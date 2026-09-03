@@ -1,0 +1,156 @@
+<!doctype html><html><head><meta charset='utf-8'><meta http-equiv="refresh" content="30"><title>AutoTester — Goal</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+  :root{
+    --bg:#0b0d12; --bg2:#080a0e; --panel:#12151e; --panel2:#171b26;
+    --line:#242a38; --line2:#313850; --txt:#e9ebf2; --muted:#8b95a9; --faint:#5b6479;
+    --done:#34d399; --teal:#2dd4bf; --inprog:#6ea8fe; --pending:#8b95a9;
+    --crit:#fb7185; --high:#f5a742; --med:#f5c542; --low:#7f8aa0; --audit:#b794f6;
+    --font-d:'Fraunces',Georgia,'Times New Roman',serif;
+    --font-b:'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif;
+    --font-m:'IBM Plex Mono','SFMono-Regular',Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{font-family:var(--font-b);margin:0;padding:2.2rem 2.4rem 4rem;color:var(--txt);
+       background:
+         radial-gradient(900px 480px at 88% -8%, rgba(45,212,191,.10), transparent 60%),
+         radial-gradient(800px 520px at -5% 8%, rgba(110,168,254,.07), transparent 55%),
+         var(--bg);
+       -webkit-font-smoothing:antialiased;font-size:15px;line-height:1.5;position:relative}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.025;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+  body>*{position:relative;z-index:1}
+  a{color:var(--inprog);text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  /* masthead */
+  .kicker{font-family:var(--font-m);font-size:.7rem;letter-spacing:.32em;text-transform:uppercase;
+          color:var(--teal);margin:0 0 .5rem}
+  h1{font-family:var(--font-d);font-weight:600;font-size:2.6rem;line-height:1.02;margin:0;
+     letter-spacing:-.01em}
+  .standfirst{font-family:var(--font-d);font-weight:500;color:var(--muted);font-size:1.02rem;
+     line-height:1.5;max-width:68ch;margin:.9rem 0 0;font-style:italic}
+  .updated{font-family:var(--font-m);font-size:.72rem;color:var(--faint);margin-top:.7rem;letter-spacing:.04em}
+
+  h2{font-family:var(--font-m);font-size:.72rem;text-transform:uppercase;letter-spacing:.26em;
+     color:var(--faint);margin:2.4rem 0 1rem;font-weight:600;
+     display:flex;align-items:center;gap:.6rem}
+  h2::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+
+  .panel{background:linear-gradient(180deg,var(--panel) 0%,var(--panel2) 140%);
+         border:1px solid var(--line);border-radius:16px;padding:1.2rem 1.35rem;
+         box-shadow:0 1px 0 rgba(255,255,255,.02) inset, 0 18px 40px -28px rgba(0,0,0,.8)}
+
+  /* hero */
+  .hero{display:grid;grid-template-columns:auto 1.1fr 1.4fr;gap:1.5rem;align-items:stretch}
+  .donut-wrap{position:relative;width:158px;height:158px;align-self:center}
+  .donut-label{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .donut-pct{font-family:var(--font-m);font-size:2.4rem;font-weight:600;color:var(--done);line-height:1;letter-spacing:-.02em}
+  .donut-sub{font-family:var(--font-m);font-size:.68rem;color:var(--muted);margin-top:.3rem;letter-spacing:.05em}
+  .focus{display:flex;flex-direction:column;justify-content:center;gap:.4rem}
+  .focus .lab{font-family:var(--font-m);font-size:.66rem;letter-spacing:.28em;text-transform:uppercase;color:var(--inprog)}
+  .focus .fid{font-family:var(--font-m);font-size:.8rem;color:var(--faint)}
+  .focus .ftitle{font-family:var(--font-d);font-weight:600;font-size:1.18rem;line-height:1.25}
+  .focus .fphase{font-size:.78rem;color:var(--muted)}
+  .focus.idle .ftitle{color:var(--done)}
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem;align-content:center}
+  .tile{background:var(--bg2);border:1px solid var(--line);border-radius:11px;padding:.7rem .5rem;text-align:center}
+  .tile .v{font-family:var(--font-m);font-size:1.5rem;font-weight:600;line-height:1}
+  .tile .k{font-size:.64rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-top:.35rem}
+
+  /* trust panel */
+  .trust{display:grid;grid-template-columns:repeat(3,1fr) 2.2fr;gap:1.1rem;align-items:center}
+  .tnum{text-align:center}
+  .tnum .v{font-family:var(--font-m);font-size:2.1rem;font-weight:600;line-height:1}
+  .tnum .k{font-family:var(--font-m);font-size:.64rem;text-transform:uppercase;letter-spacing:.16em;color:var(--muted);margin-top:.4rem}
+  .tbar-wrap{display:flex;flex-direction:column;gap:.5rem}
+  .tbar{display:flex;height:20px;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:var(--bg2)}
+  .tbar span{display:block;height:100%}
+  .tnote{font-size:.76rem;color:var(--muted);line-height:1.4}
+
+  /* needs-you */
+  .needs{border-left:3px solid var(--high)}
+  .needs.crit{border-left-color:var(--crit)}
+  .chips{display:flex;flex-wrap:wrap;gap:.45rem}
+  .chip{display:inline-flex;align-items:center;gap:.45rem;background:var(--bg2);border:1px solid var(--line);
+        border-radius:999px;padding:.34rem .75rem;font-size:.8rem}
+  .chip b{font-family:var(--font-m);font-weight:600;color:var(--txt)}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+  .d-critical{background:var(--crit)} .d-high{background:var(--high)}
+  .d-medium{background:var(--med)} .d-low{background:var(--low)}
+
+  /* roadmap */
+  .roadmap{display:flex;flex-direction:column;gap:.85rem}
+  .phase{padding:1rem 1.15rem}
+  .ph-head{display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap}
+  .ph-rail{font-family:var(--font-m);font-size:.7rem;color:var(--faint);letter-spacing:.05em}
+  .ph-title{font-family:var(--font-d);font-weight:600;font-size:1.22rem;letter-spacing:-.01em}
+  .ph-blurb{font-size:.8rem;color:var(--muted);flex:1;min-width:120px}
+  .ph-count{font-family:var(--font-m);font-size:.82rem;color:var(--muted)}
+  .ph-pill{font-family:var(--font-m);font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;
+           padding:.18rem .55rem;border-radius:7px;font-weight:600}
+  .p-complete{background:rgba(52,211,153,.14);color:var(--done)}
+  .p-active{background:rgba(110,168,254,.16);color:var(--inprog)}
+  .p-upcoming{background:rgba(139,149,169,.12);color:var(--muted)}
+  .ph-track{height:5px;background:var(--bg2);border-radius:4px;overflow:hidden;margin:.7rem 0 .85rem}
+  .ph-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--done),var(--teal))}
+  .ti{border-top:1px solid var(--line);}
+  .ti:first-of-type{border-top:none}
+  .ti>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:.6rem;
+              padding:.5rem .2rem;border-radius:8px}
+  .ti>summary::-webkit-details-marker{display:none}
+  .ti>summary:hover{background:rgba(255,255,255,.025)}
+  .ti .caret{color:var(--faint);font-size:.7rem;transition:transform .15s;flex:none}
+  .ti[open] .caret{transform:rotate(90deg)}
+  .ti .id{font-family:var(--font-m);font-size:.74rem;color:var(--faint);flex:none}
+  .ti .name{flex:1;font-size:.9rem;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ti.cur>summary{background:rgba(110,168,254,.08)}
+  .ti.cur .name{color:var(--txt)}
+  .ti.done .name{color:var(--muted)}
+  .ti-body{padding:.2rem .2rem .8rem 1.7rem;font-size:.82rem;color:var(--muted);line-height:1.5}
+  .ti-body .det{color:var(--txt);opacity:.85}
+  .ti-body .note{margin-top:.5rem;padding-left:.7rem;border-left:2px solid var(--line2);white-space:pre-wrap}
+  .ti-body .meta{margin-top:.5rem;font-family:var(--font-m);font-size:.7rem;color:var(--faint)}
+
+  .badge{font-family:var(--font-m);font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;
+         padding:.14rem .45rem;border-radius:6px;font-weight:600;flex:none}
+  .b-done{background:rgba(52,211,153,.15);color:var(--done)}
+  .b-inprog{background:rgba(110,168,254,.18);color:var(--inprog)}
+  .b-pending{background:rgba(139,149,169,.14);color:var(--muted)}
+  .b-blocked{background:rgba(251,113,133,.16);color:var(--crit)}
+
+  /* classic board fallback */
+  .board{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  .col h3{margin:.1rem 0 .7rem;font-family:var(--font-m);font-size:.78rem;color:var(--muted);letter-spacing:.06em}
+
+  /* analytics */
+  .twocol{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  .bar-row{display:flex;align-items:center;gap:.6rem;margin:.4rem 0;font-size:.8rem}
+  .bar-row .lab{width:74px;color:var(--muted);font-family:var(--font-m);font-size:.72rem;text-transform:capitalize}
+  .track{flex:1;height:8px;background:var(--bg2);border-radius:5px;overflow:hidden}
+  .fill{height:100%;border-radius:5px}
+  .bar-row .num{width:24px;text-align:right;font-family:var(--font-m);color:var(--txt)}
+  .verdict{display:flex;align-items:baseline;gap:1.1rem;flex-wrap:wrap;margin-bottom:.7rem}
+  .verdict .vb{display:flex;flex-direction:column}
+  .verdict .vv{font-family:var(--font-m);font-size:1.5rem;font-weight:600;line-height:1}
+  .verdict .vk{font-size:.64rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-top:.25rem}
+  .sevline{font-family:var(--font-m);font-size:.78rem;color:var(--muted);margin:.4rem 0}
+  .cov{display:flex;height:14px;border-radius:7px;overflow:hidden;border:1px solid var(--line);margin-top:.35rem}
+  .cov span{display:block;height:100%}
+  .meta-row{margin-top:.7rem;color:var(--muted);font-size:.8rem}
+  .meta-row b{color:var(--txt);font-family:var(--font-m)}
+  .headline{font-size:.82rem;color:var(--muted);margin-top:.6rem;line-height:1.45;font-style:italic}
+
+  ul.clean{list-style:none;padding:0;margin:0}
+  ul.clean li{padding:.5rem .15rem;border-bottom:1px solid var(--line);font-size:.82rem;line-height:1.45}
+  ul.clean li:last-child{border-bottom:none}
+  .n-critical{color:var(--crit)} .n-warn{color:var(--med)} .n-info{color:var(--muted)} .n-audit{color:var(--audit)}
+  .ts{font-family:var(--font-m);font-size:.7rem;color:var(--faint);margin-right:.4rem}
+  .made{font-family:var(--font-m);font-size:.66rem;color:var(--faint);text-transform:uppercase;letter-spacing:.08em}
+  .dsub{font-size:.76rem;color:var(--faint);margin-top:.2rem;line-height:1.4}
+  .empty{color:var(--faint);font-size:.84rem;font-style:italic}
+
+  @media(max-width:880px){.hero,.trust,.board,.twocol{grid-template-columns:1fr}.tiles{grid-template-columns:repeat(4,1fr)}}
+</style>
+</head><body><p class='kicker'>Product status</p><h1>AutoTester</h1><p class='standfirst'>An AI automated end-to-end tester that ingests product videos/docs, derives a reviewed FlowSpec, auto-generates best/worst/edge-case evals, runs them as regression in a real visible browser, self-extends coverage by requesting videos for unknown screens, and beats an expert human tester head-to-head on the same material (bugs found, false-positive rate, time). First target: Pathlynks.</p><p class='updated'>Updated 2026-09-03 07:27 · current T-010</p><div class='panel hero'><div class='donut-wrap'><svg width='158' height='158' viewBox='0 0 158 158'><circle cx='79' cy='79' r='64' fill='none' stroke='#1c2230' stroke-width='12'/><circle cx='79' cy='79' r='64' fill='none' stroke='url(#g)' stroke-width='12' stroke-linecap='round' stroke-dasharray='28.1 402.1' transform='rotate(-90 79 79)'/><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='#34d399'/><stop offset='1' stop-color='#2dd4bf'/></linearGradient></defs></svg><div class='donut-label'><div class='donut-pct'>7%</div><div class='donut-sub'>1/15 tasks</div></div></div><div class='focus'><div class='lab'>● Current focus</div><div class='fid'>T-010</div><div class='ftitle'>browser/session.py: headed Playwright + persistent profile + screenshot masking</div></div><div class='tiles'><div class='tile'><div class='v' style='color:var(--done)'>1</div><div class='k'>Done</div></div><div class='tile'><div class='v' style='color:var(--inprog)'>0</div><div class='k'>Active</div></div><div class='tile'><div class='v' style='color:var(--muted)'>14</div><div class='k'>Pending</div></div><div class='tile'><div class='v' style='color:var(--crit)'>0</div><div class='k'>Blocked</div></div></div></div><h2>Board — done vs remaining</h2><div class='board'><div class='col panel'><h3>✅ Done (1)</h3><details class='ti done'><summary><span class='caret'>▶</span><span class='dot d-low' title='low'></span><span class='id'>T-000</span><span class='badge b-done'>done</span><span class='name'>P0 design lock: schema, core, provider seam, doctor, ARCHITECTURE</span></summary><div class='ti-body'><div class='note'>Committed a5ffcec. 26 tests, ruff clean, doctor clean.</div></div></details></div><div class='col panel'><h3>⏳ Remaining (14)</h3><details class='ti cur'><summary><span class='caret'>▶</span><span class='dot d-low' title='low'></span><span class='id'>T-010</span><span class='badge b-pending'>pending</span><span class='name'>browser/session.py: headed Playwright + persistent profile + screenshot masking</span> <span class='badge b-inprog'>▶ now</span></summary><div class='ti-body'><div class='note'>Headed by default; profile at profiles/&lt;slug&gt;; mask secret inputs before capture.</div><div class='meta'>needs: T-000</div></div></details><details class='ti'><summary><span class='caret'>▶</span><span class='dot d-low' title='low'></span><span class='id'>T-011</span><span class='badge b-pending'>pending</span><span class='name'>browser/secrets.py: .env loading + {{SECRET:KEY}} injection at fill-time, domain-scoped</span></summary><div class='ti-body'><div class='note'>Security-critical: raw values must never enter a prompt, log, or artifact.</div><div class='meta'>needs: T-000</div></div></details><details class='ti'><summary><span class='caret'>▶</span><span class='dot d-low' title='low'></span><span class='id'>T-020</span><span class='badge b-pending'>pending</span><span class='name'>store/filestore.py: load/save every artifact as JSON/JSONL under projects/&lt;slug&gt;/</span></summary><div class='ti-body'><div class='note'>Human-editable files are the source of truth; UI is a view over them.</div><div class='meta'>needs: T-000</div></div></details><details class='ti'><summary><span class='caret'>▶</span><span class='dot d-low' title='low'></span><span class='id'>T-030</span><span class='badge b-pending'>pending</span><span class='name'>Onboard Pathlynks: project.json + .env.example + portal-explorer knowledge file</span></summary><div class='ti-body'><div class='note'>Needs Pathlynks URL + TEST account from Umesh. Real creds are a human gate.</div><div class='meta'>needs: T-011, T-020</div></div></details><details class='ti'><summary><span class='caret'>▶</span><span class='dot d-low' title='low'></span><span class='id'>T-040</span><span class='badge b-pending'>pending</span><span class='name'>stages/execute.py: script-first runner producing RawResult + Evidence</span></summary><div class='ti-body'><div class='note'>No judgement here - executor only observes.</div><div class='meta'>needs: T-010, T-020</div></div></details><details class='ti'><summary><span class='caret'>▶</span><span class='dot d-low' title='low'></span><span class='id'>T-041</span><span class='badge b-pending'>pending</span><span class='name'>stages/grade.py: independent stateless grader, rubric in / Verdict out</span></summary><div class='ti-body'><div class='note'>Must reject a fake-pass with no evidence. Grader never sees executor reasoning.</div><div class='meta'>needs: T-040</div></div></details><details class='ti'><summary><span class='caret'>▶</span><span class='dot d-low' title='low'></span><span class='id'>T-050</span><span class='badge b-pending'>pending</span><span class='name'>First real run: 3 hand-written Pathlynks cases (best/worst/edge) verdicted in a headed browser</span></summary><div class='ti-body'><div class='note'>Proof the loop closes end-to-end on a real product. Zero secret hits in runs/.</div><div class='meta'>needs: T-030, T-041</div></div></details><details class='ti'><summary><span class='caret'>▶</span><span class='dot d-low' title='low'></span><span class='id'>T-060</span><span class='badge b-pending'>pending</span><span class='name'>providers/gemini.py + stages/ingest.py: video/docs -&gt; FlowSpec with SourceRefs</span></summary><div class='ti-body'><div class='note'>Golden test: &gt;=90% step recall vs a hand-written list on a real demo video.</div><div class='meta'>needs: T-020</div></div></details><details class='ti'><summary><span class='caret'>▶</span><span class='dot d-low' title='low'></span><span class='id'>T-070</span><span class='badge b-pending'>pending</span><span class='name'>stages/expand.py: FlowSpec -&gt; cases covering every applicable CaseClass</span></summary><div class='ti-body'><div class='note'>The differentiator: &gt;=12 cases for the login flow, &gt;=1 per applicable taxonomy class.</div><div class='meta'>needs: T-060</div></div></details><details class='ti'><summary><span class='caret'>▶</span><span class='dot d-low' title='low'></span><span class='id'>T-080</span><span class='badge b-pending'>pending</span><span class='name'>providers/anthropic.py + agent fallback loop that emits a durable script</span></summary><div class='ti-body'><div class='note'>New case -&gt; working script in &lt;=5 iterations; re-run is script-only, ~zero tokens.</div><div class='meta'>needs: T-040</div></div></details><details class='ti'><summary><span class='caret'>▶</span><span class='dot d-low' title='low'></span><span class='id'>T-090</span><span class='badge b-pending'>pending</span><span class='name'>stages/coverage.py: route/screen diff -&gt; CoverageGap -&gt; VideoRequest</span></summary><div class='ti-body'><div class='note'>Self-extension: an unseen route produces exactly one request, deduped.</div><div class='meta'>needs: T-050</div></div></details><details class='ti'><summary><span class='caret'>▶</span><span class='dot d-low' title='low'></span><span class='id'>T-100</span><span class='badge b-pending'>pending</span><span class='name'>ui/: FastAPI onboarding, masked .env editor, live run view, report</span></summary><div class='ti-body'><div class='note'>Full onboarding -&gt; report without touching the CLI.</div><div class='meta'>needs: T-050, T-070</div></div></details><details class='ti'><summary><span class='caret'>▶</span><span class='dot d-low' title='low'></span><span class='id'>T-110</span><span class='badge b-pending'>pending</span><span class='name'>Regression proof: break a staging feature, confirm exactly that case FAILs</span></summary><div class='ti-body'><div class='note'>The actual product promise: new work cannot silently break old work.</div><div class='meta'>needs: T-080, T-100</div></div></details><details class='ti'><summary><span class='caret'>▶</span><span class='dot d-low' title='low'></span><span class='id'>T-120</span><span class='badge b-pending'>pending</span><span class='name'>stages/bench.py + seeded corpus + first human-vs-AI trial scorecard</span></summary><div class='ti-body'><div class='note'>North star made measurable. Scorecard computed by BenchTrial.score, never by hand.</div><div class='meta'>needs: T-110</div></div></details></div></div><h2>🔍 Audit &amp; analytics</h2><div class='twocol'><div class='panel'><h3 style='font-family:var(--font-m);color:var(--muted);margin:0 0 .8rem;font-size:.78rem;letter-spacing:.06em'>Remaining by criticality</h3><div class='bar-row'><span class='lab'>low</span><span class='track'><span class='fill' style='width:100%;background:var(--low)'></span></span><span class='num'>14</span></div><div class='meta-row'>Velocity <span class='dsub'>building baseline…</span></div></div><div class='panel'><h3 style='font-family:var(--font-m);color:var(--muted);margin-top:0'>Independent audit</h3><p class='empty'>No audit yet.</p></div></div><h2>Log</h2><div class='board'><div class='col panel'><h3 style='font-family:var(--font-m);color:var(--muted);margin:0 0 .6rem;font-size:.78rem;letter-spacing:.06em'>🧭 Recent decisions</h3><ul class='clean'><li class='n-info'>No decisions logged.</li></ul></div><div class='col panel'><h3 style='font-family:var(--font-m);color:var(--muted);margin:0 0 .6rem;font-size:.78rem;letter-spacing:.06em'>🔔 Notifications</h3><ul class='clean'><li class='n-warn'><span class='ts'>07:27</span>STALLED — last agentic tick never; open work is not advancing</li></ul></div></div></body></html>

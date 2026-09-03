@@ -1,0 +1,309 @@
+{
+  "product": "AutoTester",
+  "project_path": "D:\\autoTesting",
+  "north_star": "An AI automated end-to-end tester that ingests product videos/docs, derives a reviewed FlowSpec, auto-generates best/worst/edge-case evals, runs them as regression in a real visible browser, self-extends coverage by requesting videos for unknown screens, and beats an expert human tester head-to-head on the same material (bugs found, false-positive rate, time). First target: Pathlynks.",
+  "status": "active",
+  "created": "2026-09-03T07:26:17",
+  "updated": "2026-09-03T07:27:21",
+  "progress": {
+    "total": 15,
+    "done": 1,
+    "in_progress": 0,
+    "blocked": 0,
+    "pending": 14,
+    "current": "T-010",
+    "percent": 7
+  },
+  "tasks": [
+    {
+      "id": "T-000",
+      "title": "P0 design lock: schema, core, provider seam, doctor, ARCHITECTURE",
+      "status": "done",
+      "base_criticality": "LOW",
+      "deps": [],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest -q && uv run autotester doctor",
+        "expect_exit": 0
+      },
+      "note": "Committed a5ffcec. 26 tests, ruff clean, doctor clean.",
+      "attempts": 0,
+      "created": "2026-09-03T07:26:17"
+    },
+    {
+      "id": "T-010",
+      "title": "browser/session.py: headed Playwright + persistent profile + screenshot masking",
+      "status": "pending",
+      "base_criticality": "MEDIUM",
+      "deps": [
+        "T-000"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_browser.py -q",
+        "expect_exit": 0
+      },
+      "note": "Headed by default; profile at profiles/<slug>; mask secret inputs before capture.",
+      "attempts": 0,
+      "created": "2026-09-03T07:26:17",
+      "criticality": "low"
+    },
+    {
+      "id": "T-011",
+      "title": "browser/secrets.py: .env loading + {{SECRET:KEY}} injection at fill-time, domain-scoped",
+      "status": "pending",
+      "base_criticality": "CRITICAL",
+      "deps": [
+        "T-000"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_secrets.py -q",
+        "expect_exit": 0
+      },
+      "note": "Security-critical: raw values must never enter a prompt, log, or artifact.",
+      "attempts": 0,
+      "created": "2026-09-03T07:26:17",
+      "criticality": "low"
+    },
+    {
+      "id": "T-020",
+      "title": "store/filestore.py: load/save every artifact as JSON/JSONL under projects/<slug>/",
+      "status": "pending",
+      "base_criticality": "LOW",
+      "deps": [
+        "T-000"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_store.py -q",
+        "expect_exit": 0
+      },
+      "note": "Human-editable files are the source of truth; UI is a view over them.",
+      "attempts": 0,
+      "created": "2026-09-03T07:26:17",
+      "criticality": "low"
+    },
+    {
+      "id": "T-030",
+      "title": "Onboard Pathlynks: project.json + .env.example + portal-explorer knowledge file",
+      "status": "pending",
+      "base_criticality": "HIGH",
+      "deps": [
+        "T-011",
+        "T-020"
+      ],
+      "done_check": {
+        "type": "file",
+        "path": "projects/pathlynks/knowledge.md"
+      },
+      "note": "Needs Pathlynks URL + TEST account from Umesh. Real creds are a human gate.",
+      "attempts": 0,
+      "created": "2026-09-03T07:26:17",
+      "criticality": "low"
+    },
+    {
+      "id": "T-040",
+      "title": "stages/execute.py: script-first runner producing RawResult + Evidence",
+      "status": "pending",
+      "base_criticality": "MEDIUM",
+      "deps": [
+        "T-010",
+        "T-020"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_execute.py -q",
+        "expect_exit": 0
+      },
+      "note": "No judgement here - executor only observes.",
+      "attempts": 0,
+      "created": "2026-09-03T07:26:17",
+      "criticality": "low"
+    },
+    {
+      "id": "T-041",
+      "title": "stages/grade.py: independent stateless grader, rubric in / Verdict out",
+      "status": "pending",
+      "base_criticality": "HIGH",
+      "deps": [
+        "T-040"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_grade.py -q",
+        "expect_exit": 0
+      },
+      "note": "Must reject a fake-pass with no evidence. Grader never sees executor reasoning.",
+      "attempts": 0,
+      "created": "2026-09-03T07:26:17",
+      "criticality": "low"
+    },
+    {
+      "id": "T-050",
+      "title": "First real run: 3 hand-written Pathlynks cases (best/worst/edge) verdicted in a headed browser",
+      "status": "pending",
+      "base_criticality": "HIGH",
+      "deps": [
+        "T-030",
+        "T-041"
+      ],
+      "done_check": {
+        "type": "rubric_ref",
+        "rubric": ".goal/rubrics/T-050.md"
+      },
+      "note": "Proof the loop closes end-to-end on a real product. Zero secret hits in runs/.",
+      "attempts": 0,
+      "created": "2026-09-03T07:26:17",
+      "criticality": "low"
+    },
+    {
+      "id": "T-060",
+      "title": "providers/gemini.py + stages/ingest.py: video/docs -> FlowSpec with SourceRefs",
+      "status": "pending",
+      "base_criticality": "HIGH",
+      "deps": [
+        "T-020"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_ingest.py -q",
+        "expect_exit": 0
+      },
+      "note": "Golden test: >=90% step recall vs a hand-written list on a real demo video.",
+      "attempts": 0,
+      "created": "2026-09-03T07:26:17",
+      "criticality": "low"
+    },
+    {
+      "id": "T-070",
+      "title": "stages/expand.py: FlowSpec -> cases covering every applicable CaseClass",
+      "status": "pending",
+      "base_criticality": "HIGH",
+      "deps": [
+        "T-060"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_expand.py -q",
+        "expect_exit": 0
+      },
+      "note": "The differentiator: >=12 cases for the login flow, >=1 per applicable taxonomy class.",
+      "attempts": 0,
+      "created": "2026-09-03T07:26:17",
+      "criticality": "low"
+    },
+    {
+      "id": "T-080",
+      "title": "providers/anthropic.py + agent fallback loop that emits a durable script",
+      "status": "pending",
+      "base_criticality": "HIGH",
+      "deps": [
+        "T-040"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_agent_loop.py -q",
+        "expect_exit": 0
+      },
+      "note": "New case -> working script in <=5 iterations; re-run is script-only, ~zero tokens.",
+      "attempts": 0,
+      "created": "2026-09-03T07:26:17",
+      "criticality": "low"
+    },
+    {
+      "id": "T-090",
+      "title": "stages/coverage.py: route/screen diff -> CoverageGap -> VideoRequest",
+      "status": "pending",
+      "base_criticality": "MEDIUM",
+      "deps": [
+        "T-050"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_coverage.py -q",
+        "expect_exit": 0
+      },
+      "note": "Self-extension: an unseen route produces exactly one request, deduped.",
+      "attempts": 0,
+      "created": "2026-09-03T07:26:17",
+      "criticality": "low"
+    },
+    {
+      "id": "T-100",
+      "title": "ui/: FastAPI onboarding, masked .env editor, live run view, report",
+      "status": "pending",
+      "base_criticality": "MEDIUM",
+      "deps": [
+        "T-050",
+        "T-070"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_ui.py -q",
+        "expect_exit": 0
+      },
+      "note": "Full onboarding -> report without touching the CLI.",
+      "attempts": 0,
+      "created": "2026-09-03T07:26:17",
+      "criticality": "low"
+    },
+    {
+      "id": "T-110",
+      "title": "Regression proof: break a staging feature, confirm exactly that case FAILs",
+      "status": "pending",
+      "base_criticality": "HIGH",
+      "deps": [
+        "T-080",
+        "T-100"
+      ],
+      "done_check": {
+        "type": "rubric_ref",
+        "rubric": ".goal/rubrics/T-110.md"
+      },
+      "note": "The actual product promise: new work cannot silently break old work.",
+      "attempts": 0,
+      "created": "2026-09-03T07:26:17",
+      "criticality": "low"
+    },
+    {
+      "id": "T-120",
+      "title": "stages/bench.py + seeded corpus + first human-vs-AI trial scorecard",
+      "status": "pending",
+      "base_criticality": "HIGH",
+      "deps": [
+        "T-110"
+      ],
+      "done_check": {
+        "type": "rubric_ref",
+        "rubric": ".goal/rubrics/T-120.md"
+      },
+      "note": "North star made measurable. Scorecard computed by BenchTrial.score, never by hand.",
+      "attempts": 0,
+      "created": "2026-09-03T07:26:17",
+      "criticality": "low"
+    }
+  ],
+  "decisions": [],
+  "notifications": [
+    {
+      "ts": "2026-09-03T07:27:21",
+      "level": "warn",
+      "message": "STALLED — last agentic tick never; open work is not advancing",
+      "task_id": null,
+      "kind": "stalled",
+      "acked": false
+    }
+  ],
+  "preferences": {
+    "extraction_tool": "firecrawl",
+    "commit_style": "ask-first",
+    "risk_tolerance": "conservative"
+  },
+  "analytics": {
+    "velocity_per_day": 0.0,
+    "eta_days": null
+  },
+  "last_deterministic_tick": "2026-09-03T07:27:21",
+  "last_agentic_tick": "2026-09-03T07:27:21"
+}

@@ -1,0 +1,36 @@
+{
+  "adapter": "coding",
+  "_note": "Commands here are allowlisted at the START gate (2026-09-03). The maker must never add free-form shell mid-run; an un-allowlisted command is CONTRACT_MISMATCH.",
+  "unit_vocab": { "id_prefix": "AT", "severity": ["S1", "S2", "S3"] },
+
+  "verify": {
+    "kind": "shell",
+    "commands": [
+      { "cmd": "uv run pytest -q", "expect": "exit 0" },
+      { "cmd": "uv run ruff check src tests", "expect": "exit 0" },
+      { "cmd": "uv run autotester doctor", "expect": "exit 0" }
+    ]
+  },
+
+  "artifact": {
+    "kind": "code",
+    "baseline": "git",
+    "revert_op": "git revert-file"
+  },
+
+  "isolation": {
+    "reserve": [],
+    "sandbox": "worktree-copy",
+    "done": {
+      "kind": "audit-pass",
+      "_note": "No production deploy exists for this project yet. Done = slot-1 verify green + the unit's own contract criteria judged PASS by /checker. When a deployable surface appears, this becomes kind=deploy with a confirm_url."
+    }
+  },
+
+  "tools": {
+    "claim": "kernel",
+    "tick": "kernel",
+    "reserve_id": "kernel",
+    "ledger_edit": "kernel"
+  }
+}
