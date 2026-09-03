@@ -1,0 +1,11 @@
+# Contract: qa/contracts/docker.md D6. profiles/ and projects/ are deliberately NOT listed here
+# -- they must reach the image build context normally (the compose bind mount is what actually
+# persists them at runtime; this file only controls what's copied in at build time).
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.git/
+.work/

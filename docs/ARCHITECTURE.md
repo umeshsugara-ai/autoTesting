@@ -59,7 +59,8 @@ the previous stage's artifact. A stage never reaches into another stage's intern
 | FlowSpec review gate (draft → approved; blocks case generation until reviewed) | `stages/review.py::require_reviewed` |
 | FlowSpec → Case[] covering every applicable taxonomy class | `stages/expand.py::expand` |
 | Self-extension: unseen route → CoverageGap → deduped VideoRequest | `stages/coverage.py::diff_coverage` |
-| Web UI: onboarding, masked .env editor, run/report views (thin, no second store) | `ui/app.py` + `ui/env_editor.py` |
+| Web UI: onboarding, masked .env editor, run/report views, shared visual theme (thin, no second store) | `ui/app.py` + `ui/env_editor.py` + `ui/theme.py::page` |
+| Docker: containerized app + virtual display + noVNC live-watch view (local dev only) | `Dockerfile`, `docker/entrypoint.sh`, `docker-compose.yml` |
 | Regression proof (break a fixture, confirm exactly that case FAILs) + bench (north star scorecard: seeded corpus, real trial vs human-oracle baseline) | `scripts/regression_proof.py`, `stages/bench.py::scorecard` |
 
 Duplicating any of these is a bug — `autotester doctor` fails on a class or function defined twice.

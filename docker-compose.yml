@@ -1,0 +1,19 @@
+# Contract: qa/contracts/docker.md D1, D6. Local dev machine only (Umesh, 2026-09-03) -- no
+# TLS/auth is added here; ports are bound to the host for localhost use, not exposed publicly.
+services:
+  autotester:
+    build: .
+    ports:
+      - "8010:8000"  # FastAPI UI -- 8000 is a common default port other local projects also bind
+                      # to; found this in the wild when a different container already held it.
+      - "6080:6080"  # noVNC live view
+    volumes:
+      - .:/app  # same repo the host runs -- .env/projects/profiles/docs persist here, not lost
+                # on container recreation, exactly like restarting the app on the host today.
+      - autotester-venv:/app/.venv  # overlay: without this, the host's Windows .venv would shadow
+                                     # the Linux venv `uv sync` built into the image, breaking `uv run`.
+    environment:
+      - DISPLAY=:99
+
+volumes:
+  autotester-venv:

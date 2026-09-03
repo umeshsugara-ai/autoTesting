@@ -17,9 +17,10 @@ MAX_FILE_LINES = 300
 MAX_FUNCTION_LINES = 50
 BANNED_NAME_HINTS = ("_v2", "_new", "_old", "_copy", "_final", "_temp")
 ALLOWED_ROOT_ENTRIES = {
-    ".claude", ".git", ".gitignore", ".goal", ".python-version", ".venv", ".work",
-    "CLAUDE.md", "README.md", "docs", "goal.md", "profiles", "projects",
-    "pyproject.toml", "qa", "scripts", "src", "tests", "uv.lock",
+    ".claude", ".dockerignore", ".git", ".gitignore", ".goal", ".python-version", ".venv",
+    ".work", "CLAUDE.md", "README.md", "docker", "docker-compose.yml", "Dockerfile", "docs",
+    "goal.md", "profiles", "projects", "pyproject.toml", "qa", "scripts", "src", "tests",
+    "uv.lock",
 }
 
 

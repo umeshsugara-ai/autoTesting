@@ -15,6 +15,7 @@ from autotester.browser.secrets import parse_env
 from autotester.core.paths import ProjectPaths, repo_root
 from autotester.schema.project import Project
 from autotester.store.project_store import ProjectStore
+from autotester.ui import theme
 from autotester.ui.env_editor import InvalidEnvValue, set_env_value
 
 app = FastAPI(title="AutoTester")
@@ -60,12 +61,13 @@ def index() -> str:
     items = "".join(
         f'<li><a href="/projects/{escape(s)}">{escape(s)}</a></li>' for s in _project_slugs()
     )
-    return f"<h1>AutoTester</h1><ul>{items}</ul><a href='/onboard'>+ onboard a project</a>"
+    body = f"<h1>AutoTester</h1><ul>{items}</ul><a href='/onboard'>+ onboard a project</a>"
+    return theme.page("Home", body)
 
 
 @app.get("/onboard", response_class=HTMLResponse)
 def onboard_form() -> str:
-    return (
+    body = (
         "<h1>Onboard a project</h1>"
         "<form method='post' action='/onboard'>"
         "slug: <input name='slug'><br>"
@@ -74,6 +76,7 @@ def onboard_form() -> str:
         "allowed_domains (comma-separated): <input name='allowed_domains'><br>"
         "<button type='submit'>Create</button></form>"
     )
+    return theme.page("Onboard", body)
 
 
 @app.post("/onboard")
@@ -96,13 +99,14 @@ def project_detail(slug: str) -> str:
     spec = store.load_flowspec()
     review = spec.review.status.value if spec is not None else "no flowspec yet"
     safe_slug = escape(slug)
-    return (
+    body = (
         f"<h1>{escape(project.name)}</h1>"
         f"<p>review: {escape(review)}</p>"
         f"<p>cases: {len(store.list_cases())}</p>"
         f"<a href='/projects/{safe_slug}/env'>credentials</a> | "
         f"<a href='/projects/{safe_slug}/report'>report</a>"
     )
+    return theme.page(escape(project.name), body)
 
 
 @app.get("/projects/{slug}/env", response_class=HTMLResponse)
@@ -120,7 +124,8 @@ def env_editor_view(slug: str) -> str:
         "<td><button type='submit'>save</button></td></form></tr>"
         for ref in project.secrets
     )
-    return f"<h1>{escape(project.name)} — credentials</h1><table>{rows}</table>"
+    body = f"<h1>{escape(project.name)} — credentials</h1><table>{rows}</table>"
+    return theme.page(f"{escape(project.name)} — credentials", body)
 
 
 @app.post("/projects/{slug}/env")
@@ -141,14 +146,15 @@ def run_view(slug: str, run_id: str) -> str:
     _require_safe_id(run_id, "run_id")
     verdicts = {v.case_id: v for v in store.load_verdicts(run_id)}
     def _result_cell(case_id: str) -> str:
-        return escape(verdicts[case_id].result.value) if case_id in verdicts else "-"
+        return theme.badge(escape(verdicts[case_id].result.value)) if case_id in verdicts else "-"
 
     rows = "".join(
         f"<tr><td>{escape(r.case_id)}</td><td>{escape(r.outcome.value)}</td>"
         f"<td>{_result_cell(r.case_id)}</td></tr>"
         for r in store.load_results(run_id)
     )
-    return f"<h1>Run {escape(run_id)}</h1><table>{rows}</table>"
+    body = f"<h1>Run {escape(run_id)}</h1><table>{rows}</table>"
+    return theme.page(f"Run {escape(run_id)}", body)
 
 
 @app.get("/projects/{slug}/report", response_class=HTMLResponse)
@@ -158,10 +164,26 @@ def report(slug: str) -> str:
     run_ids = sorted(p.name for p in paths.runs_dir.iterdir() if p.is_dir()) \
         if paths.runs_dir.exists() else []
     if not run_ids:
-        return "<h1>Report</h1><p>no runs yet</p>"
+        return theme.page("Report", "<h1>Report</h1><p>no runs yet</p>")
     store = ProjectStore(slug)
     counts: dict[str, int] = {}
     for verdict in store.load_verdicts(run_ids[-1]):
         counts[verdict.result.value] = counts.get(verdict.result.value, 0) + 1
-    rows = "".join(f"<li>{escape(k)}: {v}</li>" for k, v in counts.items())
-    return f"<h1>Report — {escape(run_ids[-1])}</h1><ul>{rows}</ul>"
+    rows = "".join(f"<li>{theme.badge(escape(k))}: {v}</li>" for k, v in counts.items())
+    body = f"<h1>Report — {escape(run_ids[-1])}</h1><ul>{rows}</ul>"
+    return theme.page(f"Report — {escape(run_ids[-1])}", body)
+
+
+@app.get("/live", response_class=HTMLResponse)
+def live_view() -> str:
+    """Presentation-only: an embedded noVNC viewer onto the container's virtual
+    display. Reads no project state, triggers no run (qa/contracts/docker.md D4)."""
+    example = "docker compose exec autotester uv run python scripts/regression_proof.py"
+    body = (
+        "<h1>Live view</h1>"
+        "<p>Watch a run happen in real time — start one from a script "
+        f"(e.g. <code>{example}</code>) while this page is open.</p>"
+        "<iframe class='live-view' "
+        "src='http://localhost:6080/vnc.html?autoconnect=true&resize=scale'></iframe>"
+    )
+    return theme.page("Live view", body)

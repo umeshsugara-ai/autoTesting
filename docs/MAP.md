@@ -46,6 +46,7 @@
 | `store/project_store.py` | Typed convenience over `filestore` for one project's directory. |
 | `ui/app.py` | Thin FastAPI viewer/editor over project files. Design principle 8: never a |
 | `ui/env_editor.py` | The one legitimate WRITE path to the repo-root `.env` (every other module |
+| `ui/theme.py` | Shared visual chrome for every UI route. Contract: qa/contracts/docker.md D5. |
 <!-- /generated:map -->
 
 ## Schema summary

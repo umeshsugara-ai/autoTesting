@@ -243,3 +243,32 @@ def test_report_with_no_runs_says_so_instead_of_erroring(
 
     assert response.status_code == 200
     assert "no runs yet" in response.text
+
+
+# -- D4/D5 live view is presentation-only; every route keeps the shared nav --
+
+def test_live_view_renders_the_novnc_iframe(client: TestClient) -> None:
+    response = client.get("/live")
+
+    assert response.status_code == 200
+    assert "vnc.html" in response.text
+    assert "6080" in response.text
+
+
+def test_live_view_touches_no_project_state(client: TestClient, scratch_root: Path) -> None:
+    """D4: /live reads no ProjectStore/SecretStore data -- it renders the same
+    body whether or not any project exists."""
+    before = client.get("/live").text
+    client.post("/onboard", data={
+        "slug": "demo", "name": "Demo", "base_url": "https://demo.test",
+        "allowed_domains": "demo.test",
+    })
+    after = client.get("/live").text
+    assert before == after
+
+
+def test_every_page_carries_the_shared_nav(client: TestClient, scratch_root: Path) -> None:
+    for path in ("/", "/onboard", "/live"):
+        response = client.get(path)
+        assert "Live view" in response.text
+        assert "<nav>" in response.text
