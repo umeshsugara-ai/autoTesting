@@ -4,15 +4,15 @@
   "north_star": "An AI automated end-to-end tester that ingests product videos/docs, derives a reviewed FlowSpec, auto-generates best/worst/edge-case evals, runs them as regression in a real visible browser, self-extends coverage by requesting videos for unknown screens, and beats an expert human tester head-to-head on the same material (bugs found, false-positive rate, time). First target: Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-03T09:17:01",
+  "updated": "2026-09-03T10:30:51",
   "progress": {
     "total": 19,
-    "done": 6,
+    "done": 7,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 13,
-    "current": "T-030",
-    "percent": 32
+    "pending": 12,
+    "current": "T-040",
+    "percent": 37
   },
   "tasks": [
     {
@@ -133,7 +133,7 @@
     {
       "id": "T-030",
       "title": "Onboard Pathlynks: project.json + .env.example + portal-explorer knowledge file",
-      "status": "pending",
+      "status": "done",
       "base_criticality": "HIGH",
       "deps": [
         "T-011",
@@ -147,7 +147,8 @@
       "attempts": 0,
       "created": "2026-09-03T07:26:17",
       "criticality": "low",
-      "user_value": "high"
+      "user_value": "high",
+      "completed": "2026-09-03T10:30:44"
     },
     {
       "id": "T-040",
@@ -398,9 +399,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 120.0,
-    "eta_days": 0.1
+    "velocity_per_day": 70.85,
+    "eta_days": 0.2
   },
-  "last_deterministic_tick": "2026-09-03T09:17:01",
-  "last_agentic_tick": "2026-09-03T09:11:15"
+  "last_deterministic_tick": "2026-09-03T10:30:51",
+  "last_agentic_tick": "2026-09-03T09:35:33"
 }
