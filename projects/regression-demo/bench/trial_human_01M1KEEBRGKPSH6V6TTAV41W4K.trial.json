@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-09-03T10:53:42.032134Z",
+  "id": "trial_human_01M1KEEBRGKPSH6V6TTAV41W4K",
+  "corpus_id": "corpus_regression_demo_login",
+  "participant": "human",
+  "participant_label": "human-oracle-baseline",
+  "findings": [
+    {
+      "text": "/login.html: Login with correct credentials should succeed but shows an error",
+      "matched_bug_id": "bug_login_password",
+      "evidence_refs": []
+    }
+  ],
+  "duration_s": 300.0
+}

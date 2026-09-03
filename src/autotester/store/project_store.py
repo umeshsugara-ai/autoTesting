@@ -9,6 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from autotester.core.paths import ProjectPaths
+from autotester.schema.bench import BenchCorpus, BenchTrial
 from autotester.schema.case import Case
 from autotester.schema.coverage import VideoRequest
 from autotester.schema.flowspec import FlowSpec
@@ -107,3 +108,25 @@ class ProjectStore:
 
     def list_requests(self) -> list[VideoRequest]:
         return read_jsonl(self.paths.requests, VideoRequest)
+
+    # -- bench (seeded corpus + trial scorecards) --------------------------------
+    def save_bench_corpus(self, corpus: BenchCorpus) -> None:
+        write_json(self.paths.bench_corpus(corpus.id), corpus)
+
+    def load_bench_corpus(self, corpus_id: str) -> BenchCorpus | None:
+        return read_json(self.paths.bench_corpus(corpus_id), BenchCorpus)
+
+    def save_bench_trial(self, trial: BenchTrial) -> None:
+        write_json(self.paths.bench_trial(trial.id), trial)
+
+    def list_bench_trials(self, corpus_id: str) -> list[BenchTrial]:
+        bench_dir = self.paths.bench_dir
+        if not bench_dir.exists():
+            return []
+        trials = [
+            model
+            for path in sorted(bench_dir.glob("*.trial.json"))
+            for model in [read_json(path, BenchTrial)]
+            if model is not None
+        ]
+        return [t for t in trials if t.corpus_id == corpus_id]

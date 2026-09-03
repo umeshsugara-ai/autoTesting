@@ -81,6 +81,16 @@ class ProjectPaths:
         return self.dir / "knowledge.md"
 
     @property
+    def bench_dir(self) -> Path:
+        return self.dir / "bench"
+
+    def bench_corpus(self, corpus_id: str) -> Path:
+        return self.bench_dir / f"{corpus_id}.json"
+
+    def bench_trial(self, trial_id: str) -> Path:
+        return self.bench_dir / f"{trial_id}.trial.json"
+
+    @property
     def profile_dir(self) -> Path:
         """Persistent browser profile — gitignored, holds the logged-in session."""
         return self.root / "profiles" / self.slug
@@ -97,6 +107,7 @@ class ProjectPaths:
             self.scripts_dir,
             self.runs_dir,
             self.profile_dir,
+            self.bench_dir,
         ):
             path.mkdir(parents=True, exist_ok=True)
 

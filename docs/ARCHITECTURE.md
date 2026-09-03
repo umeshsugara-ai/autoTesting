@@ -60,7 +60,7 @@ the previous stage's artifact. A stage never reaches into another stage's intern
 | FlowSpec → Case[] covering every applicable taxonomy class | `stages/expand.py::expand` |
 | Self-extension: unseen route → CoverageGap → deduped VideoRequest | `stages/coverage.py::diff_coverage` |
 | Web UI: onboarding, masked .env editor, run/report views (thin, no second store) | `ui/app.py` + `ui/env_editor.py` |
-| Regression proof: break a fixture feature for real, confirm exactly that case FAILs | `scripts/regression_proof.py` |
+| Regression proof (break a fixture, confirm exactly that case FAILs) + bench (north star scorecard: seeded corpus, real trial vs human-oracle baseline) | `scripts/regression_proof.py`, `stages/bench.py::scorecard` |
 
 Duplicating any of these is a bug — `autotester doctor` fails on a class or function defined twice.
 
@@ -144,7 +144,6 @@ uv run autotester ledger add … # append a feature event (see docs/FEATURES.jso
 
 ## Status
 
-**Built:** schema, core, provider seam (mock/anthropic/gemini/langchain-fallback), doctor, CLI (incl. `flowspec status/approve/request-edit`), `browser/` (secrets, session, db), the living map (`ledger/`, `docs/MAP.md`, `docs/SNAPSHOT.md`, `docs/FEATURES.jsonl`), `store/` (filestore + ProjectStore), `projects/pathlynks/` (onboarded, 3 real cases run+graded), `stages/` execute + grade + agent_loop + ingest + review + expand + coverage, `ui/`, a real regression proof (`scripts/regression_proof.py`).
-**Next:** T-120 (the benchmark scorecard, `stages/bench.py`). The real golden-test acceptance for
-`stages/ingest.py` still needs an actual Pathlynks demo video (none supplied yet) — see the plan
-for phases P1–P5.
+**Built:** schema, core, provider seam (mock/anthropic/gemini/langchain-fallback), doctor, CLI (incl. `flowspec status/approve/request-edit`), `browser/` (secrets, session, db), the living map (`ledger/`, `docs/MAP.md`, `docs/SNAPSHOT.md`, `docs/FEATURES.jsonl`), `store/` (filestore + ProjectStore), `projects/pathlynks/` (onboarded, 3 real cases run+graded), `stages/` execute + grade + agent_loop + ingest + review + expand + coverage + bench, `ui/`, a real regression proof and a real bench trial (`scripts/regression_proof.py`, `scripts/bench_trial.py`) — the north star's scorecard is now real, computed, and cited, not just designed.
+**Next:** the P0–P5 goal backlog is closed. Open for later: a real Pathlynks demo video for
+`stages/ingest.py`'s golden test; a live, timed human trial (`bench.py` uses an oracle baseline).

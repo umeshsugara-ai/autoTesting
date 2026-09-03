@@ -1,63 +1,86 @@
-"""Benchmark scoring — the north star metric must be computed, never asserted."""
+"""Contract: qa/contracts/bench.md K1-K5. Pure-logic pieces of stages/bench.py
+-- the real end-to-end trial (a real browser + a real judge) is not a
+network-independent unit test by nature; see
+qa/manifests/t120-bench.md for that real run's cited evidence.
+"""
 
 from __future__ import annotations
 
-from autotester.schema import BenchCorpus, BenchTrial, Finding, SeededBug
-from autotester.schema.enums import Participant, Severity
+from autotester.schema.bench import BenchCorpus
+from autotester.schema.enums import Participant, Result, Severity
+from autotester.schema.verdict import Failure, Verdict
+from autotester.stages import bench
 
 
-def corpus() -> BenchCorpus:
+def _corpus() -> BenchCorpus:
     return BenchCorpus(
-        id="corpus_1",
-        app="pathlynks-staging",
-        build_ref="abc123",
+        id="corpus_test", app="demo", build_ref="broken",
         seeded_bugs=[
-            SeededBug(id="b1", description="login rejects valid user", severity=Severity.S1,
-                      location="/login", detect_hint="valid creds rejected"),
-            SeededBug(id="b2", description="report section missing", severity=Severity.S2,
-                      location="/report", detect_hint="section absent"),
-            SeededBug(id="b3", description="footer year wrong", severity=Severity.S3,
-                      location="/", detect_hint="wrong year"),
+            bench.seeded_bug(
+                "bug_login", "login rejects correct password", "/login.html",
+                "shows an error on correct credentials", Severity.S1,
+            )
         ],
     )
 
 
-def test_scoring_counts_hits_misses_and_false_positives() -> None:
-    trial = BenchTrial(
-        id="t1",
-        corpus_id="corpus_1",
-        participant=Participant.AUTOTESTER,
-        findings=[
-            Finding(text="valid creds rejected", matched_bug_id="b1"),
-            Finding(text="section absent", matched_bug_id="b2"),
-            Finding(text="button colour is off", matched_bug_id=None),
-        ],
-        duration_s=610.0,
+def _verdict(case_id: str, result: Result, criterion_id: str = "c1") -> Verdict:
+    return Verdict(
+        run_id="run_1", case_id=case_id, result=result,
+        failures=(
+            [Failure(criterion_id=criterion_id, reason="broke")] if result is Result.FAIL else []
+        ),
     )
-    score = trial.score(corpus())
-    assert score["detected"] == 2
-    assert score["seeded"] == 3
-    assert score["false_positives"] == 1
-    assert score["false_positive_rate"] == 1 / 3
-    # S1 (3) + S2 (2) found out of 3+2+1 total weight
-    assert score["severity_weighted_recall"] == 5 / 6
 
 
-def test_perfect_trial_scores_one_with_no_false_positives() -> None:
-    trial = BenchTrial(
-        id="t2",
-        corpus_id="corpus_1",
-        participant=Participant.HUMAN,
-        findings=[Finding(text=f"found {b}", matched_bug_id=b) for b in ("b1", "b2", "b3")],
+def test_findings_from_verdicts_maps_a_fail_to_its_seeded_bug() -> None:
+    verdicts = [_verdict("case_login", Result.FAIL)]
+    findings = bench.findings_from_verdicts(verdicts, {"case_login": "bug_login"})
+    assert len(findings) == 1
+    assert findings[0].matched_bug_id == "bug_login"
+
+
+def test_findings_from_verdicts_unmapped_fail_is_a_false_positive() -> None:
+    verdicts = [_verdict("case_home", Result.FAIL)]
+    findings = bench.findings_from_verdicts(verdicts, {"case_login": "bug_login"})
+    assert findings[0].matched_bug_id is None
+
+
+def test_findings_from_verdicts_ignores_pass_and_inconclusive() -> None:
+    verdicts = [_verdict("case_login", Result.PASS), _verdict("case_home", Result.INCONCLUSIVE)]
+    findings = bench.findings_from_verdicts(verdicts, {})
+    assert findings == []
+
+
+def test_run_autotester_trial_detects_the_seeded_bug() -> None:
+    corpus = _corpus()
+    verdicts = [_verdict("case_login", Result.FAIL)]
+    trial = bench.run_autotester_trial(
+        "trial_ai", corpus, verdicts, {"case_login": "bug_login"}, duration_s=12.0,
     )
-    score = trial.score(corpus())
+    assert trial.participant is Participant.AUTOTESTER
+    score = trial.score(corpus)
+    assert score["detected"] == 1
+    assert score["false_positives"] == 0
+
+
+def test_oracle_human_trial_is_labeled_a_baseline_not_a_live_run() -> None:
+    corpus = _corpus()
+    trial = bench.oracle_human_trial("trial_human", corpus, duration_s=300.0)
+    assert trial.participant is Participant.HUMAN
+    assert trial.participant_label == "human-oracle-baseline"
+    score = trial.score(corpus)
     assert score["detection_rate"] == 1.0
     assert score["false_positive_rate"] == 0.0
-    assert score["severity_weighted_recall"] == 1.0
 
 
-def test_empty_trial_does_not_divide_by_zero() -> None:
-    trial = BenchTrial(id="t3", corpus_id="corpus_1", participant=Participant.HUMAN)
-    score = trial.score(corpus())
-    assert score["detection_rate"] == 0.0
-    assert score["false_positive_rate"] == 0.0
+def test_scorecard_calls_bench_trial_score_for_every_trial() -> None:
+    corpus = _corpus()
+    ai = bench.run_autotester_trial(
+        "trial_ai", corpus, [_verdict("case_login", Result.FAIL)],
+        {"case_login": "bug_login"}, duration_s=12.0,
+    )
+    human = bench.oracle_human_trial("trial_human", corpus, duration_s=300.0)
+    card = bench.scorecard(corpus, [ai, human])
+    assert card["autotester-real-run"] == ai.score(corpus)
+    assert card["human-oracle-baseline"] == human.score(corpus)
