@@ -1,1 +1,1 @@
-2026-09-03T16:31:54+0530
+2026-09-04T04:15:00+05:30 · CLEAN · re-verified f6814b4 reconciliation (3/3 spot-checked manifests match verdicts, 0/22 manifests show remaining ready-for-check drift); goal 20/20; AT-026 still correctly HUMAN_GATE; no re-grill due; pytest/ruff/doctor all green
