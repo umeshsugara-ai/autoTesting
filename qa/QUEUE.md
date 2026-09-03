@@ -1,19 +1,26 @@
 # qa/QUEUE.md — checker sweep queue (top-3 recommended next units)
 
-Refreshed by `/checker sweep` 2026-09-03T08:40+05:30 (first sweep; terminal state FINDINGS: 10).
-Gate lines (if any) sit above the table; the maker reads them before TODO rows. None this sweep —
-north star unchanged since 458304a, `.regrill-due` absent, no reopen escalation.
+Refreshed by `/checker sweep` 2026-09-03T10:55+05:30 (terminal state FINDINGS: 6 open, 18 verified,
+1 fixed-by-this-sweep). North star unchanged since 458304a, `.regrill-due` absent, no reopen
+escalation. `qa/.last-sweep` staleness confirmed: prior queue rows AT-009/AT-010 were resolved
+(both closed `verified` at T-005 cycle-1) and are dropped below — this refresh replaces them with
+genuinely current work.
 
 | # | Status | Unit | Issues | Why now |
 |---|--------|------|--------|---------|
-| 1 | TODO | Record the out-of-pair `doctor.py` allowlist edit (commit 5f83bdb) in the T-005 manifest or a `session` DECISIONS entry | AT-009 | Only bypass found; close it before the pattern repeats |
-| 2 | TODO | Append D-005 (FlowSpec/Case: 13 proposed amendments from T-004) via `scripts/append_decision.ps1`, ACTIVE or REJECTED per group | AT-010 | Must land before T-060 locks FlowSpec |
-| 3 | TODO | Author `qa/loop.md` (re-run `/maker init` step 3b) and fix the tick-stamp timezone | AT-011, AT-012 | Liveness surfaces read these files |
+| 1 | TODO | T-040 `stages/execute.py`: script-first runner producing RawResult | — | Next scheduled unit per `.goal/goal.json` (`current: T-040`); T-030 deps satisfied, unblocked |
+| 2 | TODO | Author `.goal/rubrics/T-050.md`, `T-110.md`, `T-120.md` before those units are attempted | AT-014 | Their `done_check.type=rubric_ref` cannot resolve without the rubric files — author at each contract's START, not at close time |
+| 3 | TODO | Author `qa/loop.md` (re-run `/maker init` step 3b) | AT-011 | Loop-Doctor-lite has had nothing to check since the first sweep; low effort, closes a standing liveness gap |
 
-Also open (lower): AT-013 living-ledger L7 numbering (checker applies at the T-005 check) · AT-014 rubrics for
-T-050/T-110/T-120 · AT-015 lab-session-start injects an empty ARCHITECTURE block (flag to T-005) · AT-016 stale
-STALLED notification · AT-017 proposed goal task T-065 FlowSpec review gate · AT-018 DB assertions onto T-040.
+Also open (lower): AT-012 `.last-tick` timezone mix (historical lines only; current writes already
+use `+0530`, cosmetic) · AT-015 `lab-session-start.ps1` injects an empty ARCHITECTURE block (still
+unaddressed, flagged to whichever unit next touches the hook) · AT-023 t020 manifest test-count
+off-by-one (low, cosmetic) · AT-024 `ProjectStore` O(n) re-read on every add (low, perf, revisit at
+T-070 scale).
 
-In flight at sweep time (not a finding): T-005 files under `src/autotester/ledger/`, `prompts/`,
-`schema/ledger.py` being written (08:33–08:34), no manifest yet; `uv run ruff check` currently red on
-`ledger/relitigation.py` (E501 x2) and `ledger/store.py` (E501, SIM102) — the maker's own gate will catch it.
+Sweep note: AT-021 (doctor crash on malformed ledger) independently re-probed this sweep with three
+fresh cases (duplicate id, broken JSON, short-title validation error) against current `doctor.py` —
+all three now report a clean single-line `ledger-invalid: ...` with no traceback, exit 1. Confirmed
+fixed and flipped to `verified`. Also flipped 17 other `fixed`-but-unconfirmed rows to `verified`
+where the ledger's own evidence already showed a checker re-check "reproduced closed" (ledger
+hygiene — claims were not outrunning checks, the status field was just stale).
