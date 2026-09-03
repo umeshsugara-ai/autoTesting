@@ -4,15 +4,15 @@
   "north_star": "An AI automated end-to-end tester that ingests product videos/docs, derives a reviewed FlowSpec, auto-generates best/worst/edge-case evals, runs them as regression in a real visible browser, self-extends coverage by requesting videos for unknown screens, and beats an expert human tester head-to-head on the same material (bugs found, false-positive rate, time). First target: Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-03T08:32:23",
+  "updated": "2026-09-03T08:54:41",
   "progress": {
-    "total": 17,
-    "done": 3,
+    "total": 19,
+    "done": 4,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 14,
-    "current": "T-005",
-    "percent": 18
+    "pending": 15,
+    "current": "T-010",
+    "percent": 21
   },
   "tasks": [
     {
@@ -53,7 +53,7 @@
     {
       "id": "T-005",
       "title": "Living map + feature ledger: /init-lab AUTO, FeatureEvent schema, ledger.py, `map`/`snapshot` CLI, doctor freshness checks, hook injection, CLAUDE.md router",
-      "status": "pending",
+      "status": "done",
       "base_criticality": "MEDIUM",
       "deps": [
         "T-000"
@@ -67,7 +67,8 @@
       "note": "Grilled 2026-09-03 (.work/grill-living-ledger.md): overview-not-log; reasoning ask gated by user_value (prefilled, <=10 asks total); confidence-gated LLM relitigation matching; lean snapshot ~60 lines; every doc self-describes + CLAUDE.md router; pre-mortem enforcements (rot/fatigue/ignored).",
       "attempts": 0,
       "created": "2026-09-03T07:26:17",
-      "criticality": "low"
+      "criticality": "low",
+      "completed": "2026-09-03T08:54:41"
     },
     {
       "id": "T-010",
@@ -186,6 +187,26 @@
       "user_value": "high"
     },
     {
+      "id": "T-045",
+      "title": "Backend assertions: EvidenceKind.DB + read-only Mongo assertion helper (PATHLYNKS_MONGO_URI as SecretRef); production Mongo never written",
+      "status": "pending",
+      "base_criticality": "MEDIUM",
+      "deps": [
+        "T-040",
+        "T-011"
+      ],
+      "user_value": "normal",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_execute.py -q",
+        "expect_exit": 0
+      },
+      "note": "Sweep AT-018: Umesh will give Mongo creds in .env; the inbox entry had no task scheduling the execute-contract fold. Read-only by construction.",
+      "attempts": 0,
+      "created": "2026-09-03T07:26:17",
+      "criticality": "low"
+    },
+    {
       "id": "T-050",
       "title": "First real run: 3 hand-written Pathlynks cases (best/worst/edge) verdicted in a headed browser",
       "status": "pending",
@@ -224,12 +245,32 @@
       "user_value": "high"
     },
     {
+      "id": "T-065",
+      "title": "FlowSpec review gate: Review.status must be approved before expand runs; UI/CLI accept-or-edit",
+      "status": "pending",
+      "base_criticality": "MEDIUM",
+      "deps": [
+        "T-060"
+      ],
+      "user_value": "high",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_ingest.py -q",
+        "expect_exit": 0
+      },
+      "note": "Sweep AT-017: the north star says a *reviewed* FlowSpec; no task carried the human review gate. T-070 must depend on this.",
+      "attempts": 0,
+      "created": "2026-09-03T07:26:17",
+      "criticality": "low"
+    },
+    {
       "id": "T-070",
       "title": "stages/expand.py: FlowSpec -> cases covering every applicable CaseClass",
       "status": "pending",
       "base_criticality": "HIGH",
       "deps": [
-        "T-060"
+        "T-060",
+        "T-065"
       ],
       "done_check": {
         "type": "cmd",
@@ -346,7 +387,7 @@
       "message": "STALLED — last agentic tick never; open work is not advancing",
       "task_id": null,
       "kind": "stalled",
-      "acked": false
+      "acked": true
     }
   ],
   "preferences": {
@@ -355,9 +396,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 24.0,
-    "eta_days": 0.6
+    "velocity_per_day": 48.0,
+    "eta_days": 0.3
   },
-  "last_deterministic_tick": "2026-09-03T08:32:01",
-  "last_agentic_tick": "2026-09-03T08:26:06"
+  "last_deterministic_tick": "2026-09-03T08:52:01",
+  "last_agentic_tick": "2026-09-03T08:40:39"
 }
