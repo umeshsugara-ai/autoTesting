@@ -1,3 +1,10 @@
 2026-09-03T07:45:00 · ADVANCED · t011-secret-store built, checker dispatched (cycle 1)
 2026-09-03T08:05:00 · ADVANCED · t011-secret-store cycle 2 built (AT-001..005 fixed, .env moved to repo root), checker re-dispatched
 2026-09-03T02:56:06 · ADVANCED · t011-secret-store cycle 3 built (AT-006/007/008), checker dispatch next; goal +T-004/T-005 +user_value
+2026-09-03T08:41:44+0530 · ADVANCED · t005-living-ledger built, checker dispatched (cycle 1); D-005/D-006 appended; sweep findings folded
+2026-09-03T08:51:55+0530 · ADVANCED · t005-living-ledger cycle 2 built (AT-019 MAP.md + cap rule, AT-020/021/022), checker re-dispatched
+2026-09-03T08:56:17+0530 · ADVANCED · t005-living-ledger checked-PASS, F-003 row appended; next T-010
+2026-09-03T09:00:30+0530 · ADVANCED · t010-browser-session built (session.py, 11 tests incl. real Chromium; AT-021 fixed), checker dispatched
+2026-09-03T09:03:18+0530 · ADVANCED · t010-browser-session checked-PASS (one-shot); next unblocked: T-020
+2026-09-03T09:08:06+0530 · ADVANCED · t020-filestore built (filestore.py, ProjectStore, DRY refactor of ledger/store.py), checker dispatched
+2026-09-03T09:11:15+0530 · ADVANCED · t020-filestore checked-PASS (one-shot); next is T-030 (Pathlynks onboarding) - HUMAN_GATE (needs test-account creds)
