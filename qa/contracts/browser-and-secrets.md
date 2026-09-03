@@ -13,10 +13,15 @@ without ever exposing the credentials to a model or writing them to disk outside
 ## Criteria — T-011 `browser/secrets.py` (build this first)
 
 ### B1 — Loading
-- Loads `projects/<slug>/.env` into a `SecretStore` keyed by the `SecretRef[]` declared in `project.json`.
+- Loads the **repo-root `.env`** (`d:/autoTesting/.env`, resolved via `core/paths.py::ProjectPaths.env_file`)
+  into a `SecretStore` keyed by the `SecretRef[]` declared in that project's `project.json`. The file is
+  one credential file shared across projects; keys are namespaced per project (`PATHLYNKS_*`) and a
+  project can only ever resolve the keys it declares.
 - A declared key missing from `.env` raises a named error identifying the key; it never falls back
-  to an empty string or an environment variable from another project.
-- A key present in `.env` but not declared in `project.json` is ignored and reported, not used.
+  to an empty string or to a process environment variable.
+- A key present in `.env` but not declared in `project.json` is **ignored for use, still masked**: it is
+  reported (`store.undeclared`), can never be `resolve()`d, and its value still feeds the `Redactor`
+  and the prompt gate (B4 wins over silence — in a shared root `.env` these are other projects' credentials).
 
 ### B2 — Placeholders only, in every direction
 - `resolve(step_value, host)` accepts `{{SECRET:KEY}}` and returns the real value **only** when
@@ -28,6 +33,9 @@ without ever exposing the credentials to a model or writing them to disk outside
 ### B3 — Domain scoping is enforced, not advisory
 - A secret whose `domains` do not include the current page host cannot be resolved, even when the
   host is otherwise in the project's `allowed_domains`.
+- "Current page host" means the host the **browser** will use. A destination that URL parsers
+  disagree on (userinfo `@`, backslashes, an empty/unparseable host) is refused outright — the
+  gate fails closed rather than trusting `urlparse` over WHATWG. (Edge case recorded from AT-007.)
 - Navigating outside `allowed_domains` is refused by the session.
 
 ### B4 — Evidence is clean
@@ -76,3 +84,20 @@ page and mocks.
 - Absence of a UI (T-100).
 - Cross-browser support beyond Chromium (not required by any criterion).
 - Performance of browser startup.
+
+## Amendment log (append-only; git history is the version)
+
+- 2026-09-03 · routine · B1: credential file is the repo-root `.env`, keys namespaced + declared per
+  project (was `projects/<slug>/.env`) · why: user instruction 2026-09-03 ("place .env too in the
+  root directory of d/autoTesting/.env"), folded from `qa/feedback-inbox.md`; non-safety-weakening —
+  scoping still comes from per-project `SecretRef.domains`, and undeclared keys stay unresolvable.
+- 2026-09-03 · routine · B1: undeclared keys are "ignored for use, still masked" (was "ignored and
+  reported, not used") · why: resolves the B1-vs-B4 tension filed as AT-004; a shared root `.env`
+  makes undeclared values other projects' credentials, so masking them tightens B4 without
+  weakening B1's no-use rule.
+- 2026-09-03 · routine · B3: recorded edge case — parser-divergent destinations (userinfo,
+  backslash, unparseable) must fail closed · why: AT-007 demonstrated `urlparse` and WHATWG
+  disagreeing on the host of `https://evil.test\@pathlynks.test`. Tightening only.
+- 2026-09-03 · not folded · Mongo/DB credential (`PATHLYNKS_MONGO_URI` as a `SecretRef`, read-only
+  backend assertions) · why: belongs to a future `execute` contract, not B1–B9; left `unfolded` in
+  the inbox with that note.

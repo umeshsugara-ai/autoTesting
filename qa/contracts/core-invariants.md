@@ -42,8 +42,12 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
 
 ### C5 — Secrets never reach a model, a log, or an artifact
 - `SecretRef` carries a key and its domain scope. No schema model has a field holding a secret value.
+- Secret values live only in the **repo-root `.env`** (one file for the whole repo, keys namespaced
+  per project and declared in each project's `SecretRef[]`); a project can resolve only the keys it
+  declares. Everything in that file is masked from logs, prompts, and artifacts, declared or not.
 - Prompts and stored steps carry `{{SECRET:KEY}}` placeholders; substitution happens only at the
-  moment of typing into the browser, scoped to the project's `allowed_domains`.
+  moment of typing into the browser, scoped to that `SecretRef`'s `domains` (which lie within the
+  project's `allowed_domains`).
 - Every log line and stored artifact passes `core.redact.Redactor.scrub`.
 - `**/.env`, `profiles/`, `.work/`, and `projects/*/runs/` are gitignored.
 - **Verify:** `uv run pytest tests/test_core.py -q` exits 0; `git ls-files | grep -E "\.env$"` returns nothing.
@@ -73,3 +77,11 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
 - Suggestions for future work that no criterion requires.
 - The `src/` layout differing from the plan's prose `autotester/` — this was a deliberate,
   recorded choice (standard Python packaging); it is not a finding.
+
+## Amendment log (append-only; git history is the version)
+
+- 2026-09-03 · routine · C5: credential file is the repo-root `.env`, keys namespaced + declared per
+  project; undeclared values still masked; substitution scoped to the `SecretRef`'s `domains` ·
+  why: user instruction 2026-09-03 folded from `qa/feedback-inbox.md` (mirrors browser-and-secrets
+  B1 amendment); non-safety-weakening — the gitignore rule `**/.env` already covers the root file,
+  and per-project declaration + domain scoping are unchanged.

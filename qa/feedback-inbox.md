@@ -50,3 +50,33 @@ Format: `## <ISO datetime> — <source>` then the feedback verbatim, then `**Sta
 > and dono ko same document and flows and videos ya jo kuch material milenge and our system should beat them
 
 **Status:** folded → `.goal` north star, `schema/bench.py` (BenchCorpus/BenchTrial/score), task T-120
+
+## 2026-09-03 — Umesh, mid-cycle (chat)
+
+> nhi place .env too in the root directory of d/autoTesting/.env
+
+**Status:** folded → `browser-and-secrets.md` B1 + `core-invariants.md` C5 (2026-09-03, /checker
+cycle-2 check of t011-secret-store; routine, non-safety-weakening — see each contract's amendment
+log; commit: the cycle-2 verdict commit). Code side (`core/paths.py::env_file` → repo root) verified.
+
+## 2026-09-03 — Umesh, on DB (chat)
+
+> isme db and all bhi tho hoga naa mongo and all ka dunga mai tujhe tere .env mai
+
+**Status:** unfolded — proposal: `PATHLYNKS_MONGO_URI` as a `SecretRef`; new `EvidenceKind.DB` for
+read-only backend assertions after UI actions. Production Mongo stays read-only by construction.
+Needs a contract criterion in a future `execute` contract, not this unit.
+*/checker 2026-09-03 (cycle-2 check): deliberately left unfolded — no B1–B9 or C1–C8 criterion
+covers backend assertions; fold when the `execute` contract is initialised. Recorded in the
+browser-and-secrets amendment log so it is not lost.*
+
+## 2026-09-03 — checker AT-004, contract tension (browser-and-secrets B1 vs B4)
+
+B1 "undeclared keys are ignored" vs B4 "masks every secret value". **Maker resolved in code toward
+B4** (undeclared values are masked and prompt-guarded, never resolvable). Checker to confirm and
+amend B1 wording to "ignored for use, still masked". Especially relevant now that `.env` is
+repo-root and shared across projects.
+
+**Status:** folded → `browser-and-secrets.md` B1 ("ignored for use, still masked"; 2026-09-03,
+/checker cycle-2; routine — tightens B4, does not weaken B1; commit: the cycle-2 verdict commit).
+Code behaviour independently reproduced, AT-004 marked fixed.
