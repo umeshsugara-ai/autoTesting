@@ -38,6 +38,7 @@
 | `stages/execute.py` | EXECUTE: run one case's steps in a real browser, producing a RawResult. |
 | `stages/grade.py` | GRADE: an independent, stateless judge reads a Rubric + a RawResult's evidence. |
 | `stages/ingest.py` | INGEST: turn a video Source into a FlowSpec, provenance-tracked to the second. |
+| `stages/review.py` | FlowSpec review gate: nothing generates cases from an unreviewed understanding |
 | `store/filestore.py` | The one place any artifact is read from or written to disk. Contract: core-invariants.md C6. |
 | `store/project_store.py` | Typed convenience over `filestore` for one project's directory. |
 <!-- /generated:map -->

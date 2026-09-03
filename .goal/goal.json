@@ -4,15 +4,15 @@
   "north_star": "An AI automated end-to-end tester that ingests product videos/docs, derives a reviewed FlowSpec, auto-generates best/worst/edge-case evals, runs them as regression in a real visible browser, self-extends coverage by requesting videos for unknown screens, and beats an expert human tester head-to-head on the same material (bugs found, false-positive rate, time). First target: Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-03T15:05:58",
+  "updated": "2026-09-03T15:17:20",
   "progress": {
     "total": 20,
-    "done": 14,
+    "done": 15,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 6,
-    "current": "T-065",
-    "percent": 70
+    "pending": 5,
+    "current": "T-070",
+    "percent": 75
   },
   "tasks": [
     {
@@ -255,7 +255,7 @@
     {
       "id": "T-065",
       "title": "FlowSpec review gate: Review.status must be approved before expand runs; UI/CLI accept-or-edit",
-      "status": "pending",
+      "status": "done",
       "base_criticality": "MEDIUM",
       "deps": [
         "T-060"
@@ -263,13 +263,14 @@
       "user_value": "high",
       "done_check": {
         "type": "cmd",
-        "cmd": "uv run pytest tests/test_ingest.py -q",
+        "cmd": "uv run pytest tests/test_review.py -q",
         "expect_exit": 0
       },
       "note": "Sweep AT-017: the north star says a *reviewed* FlowSpec; no task carried the human review gate. T-070 must depend on this.",
       "attempts": 0,
       "created": "2026-09-03T07:26:17",
-      "criticality": "low"
+      "criticality": "low",
+      "completed": "2026-09-03T15:17:20"
     },
     {
       "id": "T-070",
@@ -431,9 +432,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 43.95,
-    "eta_days": 0.2
+    "velocity_per_day": 45.87,
+    "eta_days": 0.1
   },
-  "last_deterministic_tick": "2026-09-03T15:02:01",
+  "last_deterministic_tick": "2026-09-03T15:17:02",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }
