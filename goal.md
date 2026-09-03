@@ -4,6 +4,23 @@ Mire baai goal yeh hai, haemara, yeh autumn testing tool banane ka. कि ह�
 /porta-explorer skill
 /brain
 
-
+---------------------------------------------------------
 
 AUR SABSE  important iska schema essaa rakhna jo scalable ho and sytem design ko bhi phle plant krr le properly like what is the best possible and all kyuki ye scalable hoga tho like DRY principle use hoo हमने अभी recent में एक दू product बनायते, जिसे ERP and all EC system पे चाहे तो देख लेना, और उससे क्या हो गया था? कि पहले तो मतलब उसमें schema और system design कैसे flow होगा, वो कुछ ने decide हुआ, and उसके बाद यह हो गया था कि, अभी क्या होता है कि जब मैं cloud चलाता हूँ, तो cloud इतने जदा tokens खारा होता है just for holding the context and all, मतलब उसका कोई schema, कोई structure ही नी, हर जिगे code repeated है या वो है, ना मैं इच्छे से, खुद से read कर पाता हूँ, ना कुछ वो कर पाता हूँ, तो human अगर कुछ करना चाहे, तो at the end वो control ही नहीं ले पाएगा, ऐसा system बन रहा हूँ, तो ऐसा नहीं होना चाहे, human engineer भी, उसको समझ पाए, उसके हिसाब से काम कर पाए, तो यह होना चाहे, /senior-software-engineer /product-manager /ai-engineer  
+
+
+
+--------------------------------------------------------
+
+and schema and all with proper webresearch bhi final ho gya hai kyaa or that is in plan or later thing. like schema research krkee tune khi rakh liya hai Acha, Ek Baat yeh batha, kya haam ek aisa. Features, log type ka kuch aisa rakh saktay hai, like kya baar kya hootah hai, cloud code me hai, feature baatay hai, aur woh feature aisa rata hai ki, Haam bana raha hai kuch, phir woh features mein kuch issue aayenge, ya woh features abhi eek soch ke hesaap se bantah hai, baat mein woh update ho jata hai, like amhar koos se badhya ya better vision mil jata hai, toh haam us me edit karatay hai, toh eek finalize, agar feature woh hooga, jis me overall schema, overall flow and everything hooga, तो इससे क्या है कि clock code की memory and all में हम हर बार इसको mention करेंगे कि तुम जाओ, ये वाले document को end to end rate करो, तो तुमें project का summary या वो मिल जाएगा snapshot, इसको क्या होगा, tokens भी बचेंगे, और बाद मा clock code को, जिस specific part पर काम करना है, तो वो उसी specific part पर focus करेगा, जैसे product बढ़ता जाएगा, तो इसको सारे, उसका context रखने की जरुवत नी होगी तो context के लिए भी काम आएगा ये चीज और इसमें ऐसा कुछ रहेगी, like, Summary kind of, overall overview कैसा है, schema काँचा है, directories कैसे divided है, कहाँ पर क्या-क्या हमने plan किया है, और उनका क्या description है, purpose क्या है वो, और फिर overall summary kind of ऐसा कुछ हो, और फिर हमारे जो features live होते जाएंगे, date wise क्या-क्या feature है वो, और अगर कोई features date के हिसाब से edit या वो हो जाते हैं तो, उन features में date wise. की let's suppose day one में उसमें एक कोई capability बनी, day three में वो feature को update करके, कुछ और capability बनी, तो इससे हमारे ये भी रहेगा कि अच्छा पहले क्या था, हमने वो feature क्यों remove कर दिया, discard कर दिया, या update कर दिया, उसकी reasoning जिससे क्या होगा, कल के दिन, sometimes it happens कि system फिर से cyclic way में जाता है, तो उसके पास वो होगा कि हमने वो system update करा था और उसके reasons this था तो अगली बार अगर वैसा सा ही कुछ बनना होगा तो पहले system देख लेगा और user से confirm करेगा कि तुमने यह system तो इसले change कर दियाता है, इस region की वज़े से, तो क्या तुम दुबारे इसी को बनाना चाहरे हो, या कुछ और बनाना चाहरे हो, या जो तुम update करना चाहरे हो, उसका reason kyaa hai. iss type se
+
+
+this was my past work. this was not perfect but you can consider it as a reference might be it will helpful jut for understand the overview and what i am trying to ask you or understand you : "D:\pathlynks-combined-report\directory_map.md"
+
+
+
+Iske alawah yeh dhek lo ki kiya yeh sach meh helpful bhi hai ya nahi hai, ya tum aapne code meh joh summary ya is tarikay say cloud maintain karta hai, us te kama ban jayega.Aur. Haa ki ach haa, ab vohan jaake directory map update kar do, ab directory map read kar lo, toh system meh yhe automated integrated hoonan chayye, memory meh, dot, cloud code meh, her jage na, ya memory learning, yhe wali files meh, jis se kya hooga ki, yhe automated way meh update hooga, ek ledger ki tere, toh, woh cloud ko hi fayde mand rheega.
+
+
+
+----------------------------------------------------------------
