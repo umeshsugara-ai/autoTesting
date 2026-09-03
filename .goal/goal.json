@@ -4,15 +4,15 @@
   "north_star": "An AI automated end-to-end tester that ingests product videos/docs, derives a reviewed FlowSpec, auto-generates best/worst/edge-case evals, runs them as regression in a real visible browser, self-extends coverage by requesting videos for unknown screens, and beats an expert human tester head-to-head on the same material (bugs found, false-positive rate, time). First target: Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-03T07:27:21",
+  "updated": "2026-09-03T08:28:54",
   "progress": {
-    "total": 15,
-    "done": 1,
+    "total": 17,
+    "done": 2,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 14,
-    "current": "T-010",
-    "percent": 7
+    "pending": 15,
+    "current": "T-004",
+    "percent": 12
   },
   "tasks": [
     {
@@ -28,7 +28,45 @@
       },
       "note": "Committed a5ffcec. 26 tests, ruff clean, doctor clean.",
       "attempts": 0,
-      "created": "2026-09-03T07:26:17"
+      "created": "2026-09-03T07:26:17",
+      "user_value": "normal"
+    },
+    {
+      "id": "T-004",
+      "title": "Schema research scout: survey test/flow schemas (Playwright planner specs, Gherkin, WebTestBench, Allure/JUnit, Mind2Web) -> confirm or amend FlowSpec/Case",
+      "status": "pending",
+      "base_criticality": "LOW",
+      "deps": [
+        "T-000"
+      ],
+      "user_value": "normal",
+      "done_check": {
+        "type": "file",
+        "path": "docs/research/schema-2026-09.md"
+      },
+      "note": "Umesh asked whether the schema was web-researched; it was brain+market-scout derived. Do this before P2 ingest locks FlowSpec. Output: research doc + DECISIONS entry.",
+      "attempts": 0,
+      "created": "2026-09-03T07:26:17",
+      "criticality": "low"
+    },
+    {
+      "id": "T-005",
+      "title": "Living map + feature ledger: /init-lab AUTO, FeatureEvent schema, ledger.py, `map`/`snapshot` CLI, doctor freshness checks, hook injection, CLAUDE.md router",
+      "status": "pending",
+      "base_criticality": "MEDIUM",
+      "deps": [
+        "T-000"
+      ],
+      "user_value": "high",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_ledger.py -q && uv run autotester doctor",
+        "expect_exit": 0
+      },
+      "note": "Grilled 2026-09-03 (.work/grill-living-ledger.md): overview-not-log; reasoning ask gated by user_value (prefilled, <=10 asks total); confidence-gated LLM relitigation matching; lean snapshot ~60 lines; every doc self-describes + CLAUDE.md router; pre-mortem enforcements (rot/fatigue/ignored).",
+      "attempts": 0,
+      "created": "2026-09-03T07:26:17",
+      "criticality": "low"
     },
     {
       "id": "T-010",
@@ -46,12 +84,13 @@
       "note": "Headed by default; profile at profiles/<slug>; mask secret inputs before capture.",
       "attempts": 0,
       "created": "2026-09-03T07:26:17",
-      "criticality": "low"
+      "criticality": "low",
+      "user_value": "normal"
     },
     {
       "id": "T-011",
       "title": "browser/secrets.py: .env loading + {{SECRET:KEY}} injection at fill-time, domain-scoped",
-      "status": "pending",
+      "status": "done",
       "base_criticality": "CRITICAL",
       "deps": [
         "T-000"
@@ -64,7 +103,9 @@
       "note": "Security-critical: raw values must never enter a prompt, log, or artifact.",
       "attempts": 0,
       "created": "2026-09-03T07:26:17",
-      "criticality": "low"
+      "criticality": "low",
+      "user_value": "high",
+      "completed": "2026-09-03T08:28:54"
     },
     {
       "id": "T-020",
@@ -82,7 +123,8 @@
       "note": "Human-editable files are the source of truth; UI is a view over them.",
       "attempts": 0,
       "created": "2026-09-03T07:26:17",
-      "criticality": "low"
+      "criticality": "low",
+      "user_value": "normal"
     },
     {
       "id": "T-030",
@@ -100,7 +142,8 @@
       "note": "Needs Pathlynks URL + TEST account from Umesh. Real creds are a human gate.",
       "attempts": 0,
       "created": "2026-09-03T07:26:17",
-      "criticality": "low"
+      "criticality": "low",
+      "user_value": "high"
     },
     {
       "id": "T-040",
@@ -119,7 +162,8 @@
       "note": "No judgement here - executor only observes.",
       "attempts": 0,
       "created": "2026-09-03T07:26:17",
-      "criticality": "low"
+      "criticality": "low",
+      "user_value": "normal"
     },
     {
       "id": "T-041",
@@ -137,7 +181,8 @@
       "note": "Must reject a fake-pass with no evidence. Grader never sees executor reasoning.",
       "attempts": 0,
       "created": "2026-09-03T07:26:17",
-      "criticality": "low"
+      "criticality": "low",
+      "user_value": "high"
     },
     {
       "id": "T-050",
@@ -155,7 +200,8 @@
       "note": "Proof the loop closes end-to-end on a real product. Zero secret hits in runs/.",
       "attempts": 0,
       "created": "2026-09-03T07:26:17",
-      "criticality": "low"
+      "criticality": "low",
+      "user_value": "high"
     },
     {
       "id": "T-060",
@@ -173,7 +219,8 @@
       "note": "Golden test: >=90% step recall vs a hand-written list on a real demo video.",
       "attempts": 0,
       "created": "2026-09-03T07:26:17",
-      "criticality": "low"
+      "criticality": "low",
+      "user_value": "high"
     },
     {
       "id": "T-070",
@@ -191,7 +238,8 @@
       "note": "The differentiator: >=12 cases for the login flow, >=1 per applicable taxonomy class.",
       "attempts": 0,
       "created": "2026-09-03T07:26:17",
-      "criticality": "low"
+      "criticality": "low",
+      "user_value": "high"
     },
     {
       "id": "T-080",
@@ -209,7 +257,8 @@
       "note": "New case -> working script in <=5 iterations; re-run is script-only, ~zero tokens.",
       "attempts": 0,
       "created": "2026-09-03T07:26:17",
-      "criticality": "low"
+      "criticality": "low",
+      "user_value": "normal"
     },
     {
       "id": "T-090",
@@ -227,7 +276,8 @@
       "note": "Self-extension: an unseen route produces exactly one request, deduped.",
       "attempts": 0,
       "created": "2026-09-03T07:26:17",
-      "criticality": "low"
+      "criticality": "low",
+      "user_value": "high"
     },
     {
       "id": "T-100",
@@ -246,7 +296,8 @@
       "note": "Full onboarding -> report without touching the CLI.",
       "attempts": 0,
       "created": "2026-09-03T07:26:17",
-      "criticality": "low"
+      "criticality": "low",
+      "user_value": "high"
     },
     {
       "id": "T-110",
@@ -264,7 +315,8 @@
       "note": "The actual product promise: new work cannot silently break old work.",
       "attempts": 0,
       "created": "2026-09-03T07:26:17",
-      "criticality": "low"
+      "criticality": "low",
+      "user_value": "high"
     },
     {
       "id": "T-120",
@@ -281,7 +333,8 @@
       "note": "North star made measurable. Scorecard computed by BenchTrial.score, never by hand.",
       "attempts": 0,
       "created": "2026-09-03T07:26:17",
-      "criticality": "low"
+      "criticality": "low",
+      "user_value": "high"
     }
   ],
   "decisions": [],
@@ -304,6 +357,6 @@
     "velocity_per_day": 0.0,
     "eta_days": null
   },
-  "last_deterministic_tick": "2026-09-03T07:27:21",
-  "last_agentic_tick": "2026-09-03T07:27:21"
+  "last_deterministic_tick": "2026-09-03T08:27:01",
+  "last_agentic_tick": "2026-09-03T08:26:06"
 }
