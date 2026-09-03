@@ -114,7 +114,12 @@ snapshot: 32 lines written
 ## Status: checked-PASS
 
 Verdict: `qa/verdicts/t080-agent-loop.md` (Cycle checked: 1, PASS, 5/5 + 8/8; commit `29e55d1`,
-pushed). Goal task T-080 closed by the checker. The corrected-Case-not-literal-script scope call
-was judged defensible for its own narrow claim but not a full delivery of T-080's stated goal
-given the pre-existing `Script`/`Case.script_ref` schema surface — recorded as **AT-026** (medium,
-open) recommending a follow-on unit for literal script generation, not re-opened against this PASS.
+pushed). The corrected-Case-not-literal-script scope call was judged defensible for its own
+narrow claim but not a full delivery of T-080's stated goal given the pre-existing
+`Script`/`Case.script_ref` schema surface — recorded as **AT-026** (medium, open) recommending a
+follow-on unit for literal script generation, not re-opened against this PASS. **Correction:**
+`.goal/goal.json` still showed T-080 `pending` after the checker's commit (its own return text
+claimed "closed" but that never landed on disk — per the maker's own rule, disk state is
+authoritative, not a chat summary). Closed it myself as the documented fallback (`goal_cli.py
+done --task-id T-080`, idempotent, only run because the verdict is an unambiguous PASS) —
+goal now 58%.

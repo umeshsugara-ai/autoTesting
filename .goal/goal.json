@@ -4,15 +4,15 @@
   "north_star": "An AI automated end-to-end tester that ingests product videos/docs, derives a reviewed FlowSpec, auto-generates best/worst/edge-case evals, runs them as regression in a real visible browser, self-extends coverage by requesting videos for unknown screens, and beats an expert human tester head-to-head on the same material (bugs found, false-positive rate, time). First target: Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-03T11:23:33",
+  "updated": "2026-09-03T12:03:22",
   "progress": {
     "total": 19,
-    "done": 10,
+    "done": 11,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 9,
+    "pending": 8,
     "current": "T-050",
-    "percent": 53
+    "percent": 58
   },
   "tasks": [
     {
@@ -292,7 +292,7 @@
     {
       "id": "T-080",
       "title": "providers/anthropic.py + agent fallback loop that emits a durable script",
-      "status": "pending",
+      "status": "done",
       "base_criticality": "HIGH",
       "deps": [
         "T-040"
@@ -306,7 +306,8 @@
       "attempts": 0,
       "created": "2026-09-03T07:26:17",
       "criticality": "low",
-      "user_value": "normal"
+      "user_value": "normal",
+      "completed": "2026-09-03T12:03:22"
     },
     {
       "id": "T-090",
@@ -402,9 +403,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 66.54,
-    "eta_days": 0.2
+    "velocity_per_day": 60.81,
+    "eta_days": 0.1
   },
-  "last_deterministic_tick": "2026-09-03T11:22:01",
+  "last_deterministic_tick": "2026-09-03T12:02:01",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }

@@ -23,7 +23,7 @@ AutoTester wins on bugs found, false positives, and time (`schema/bench.py` comp
 - T-060 [high] providers/gemini.py + stages/ingest.py: video/docs -> FlowSpec with SourceRefs
 - T-065 [high] FlowSpec review gate: Review.status must be approved before expand runs; UI/CLI accept-or-edit
 - T-070 [high] stages/expand.py: FlowSpec -> cases covering every applicable CaseClass
-- T-080 [normal] providers/anthropic.py + agent fallback loop that emits a durable script
+- T-090 [high] stages/coverage.py: route/screen diff -> CoverageGap -> VideoRequest
 ## Last decisions (computed status)
 - D-003 2026-09-03 decision ACTIVE
 - D-004 2026-09-03 decision ACTIVE
