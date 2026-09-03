@@ -12,10 +12,14 @@ from autotester.core.paths import RepoDocs
 from autotester.ledger import render, store
 from autotester.ledger.relitigation import gate_message, relitigate
 from autotester.schema.enums import FeatureEventKind, UserValue
+from autotester.stages import review as review_stage
+from autotester.store import ProjectStore
 
 app = typer.Typer(help="AutoTester — AI automated end-to-end tester", no_args_is_help=True)
 ledger_app = typer.Typer(help="The feature ledger (docs/FEATURES.jsonl) — the only write path.")
+flowspec_app = typer.Typer(help="The FlowSpec review gate — nothing expands an unreviewed spec.")
 app.add_typer(ledger_app, name="ledger")
+app.add_typer(flowspec_app, name="flowspec")
 
 
 @app.command()
@@ -123,6 +127,47 @@ def ledger_relitigation(
         typer.secho(gate_message(verdict, retired), fg=typer.colors.YELLOW)
         raise typer.Exit(2)
     typer.secho(f"no gate — {verdict.justification} ({verdict.decided_by})", fg=typer.colors.GREEN)
+
+
+@flowspec_app.command("status")
+def flowspec_status(project: str) -> None:
+    """Show a project's FlowSpec review status."""
+    spec = ProjectStore(project).load_flowspec()
+    if spec is None:
+        typer.secho(f"no flowspec for '{project}' yet", fg=typer.colors.YELLOW)
+        raise typer.Exit(1)
+    typer.echo(f"{project}: {spec.review.status.value}"
+               + (f" — {spec.review.note}" if spec.review.note else ""))
+
+
+@flowspec_app.command("approve")
+def flowspec_approve(
+    project: str,
+    by: str = typer.Option(..., "--by"),
+    note: str | None = typer.Option(None, "--note"),
+) -> None:
+    """A human approves the project's FlowSpec as-is — required before T-070 expands it."""
+    store_ = ProjectStore(project)
+    spec = store_.load_flowspec()
+    if spec is None:
+        typer.secho(f"no flowspec for '{project}' yet", fg=typer.colors.RED)
+        raise typer.Exit(1)
+    store_.save_flowspec(review_stage.approve(spec, by, note))
+    typer.secho(f"{project}: flowspec approved by {by}", fg=typer.colors.GREEN)
+
+
+@flowspec_app.command("request-edit")
+def flowspec_request_edit(
+    project: str, by: str = typer.Option(..., "--by"), note: str = typer.Option(..., "--note")
+) -> None:
+    """A human found something wrong — back to draft with the reason recorded."""
+    store_ = ProjectStore(project)
+    spec = store_.load_flowspec()
+    if spec is None:
+        typer.secho(f"no flowspec for '{project}' yet", fg=typer.colors.RED)
+        raise typer.Exit(1)
+    store_.save_flowspec(review_stage.request_edit(spec, by, note))
+    typer.secho(f"{project}: flowspec sent back for edit by {by}", fg=typer.colors.YELLOW)
 
 
 def main() -> None:

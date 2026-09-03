@@ -60,6 +60,7 @@ the previous stage's artifact. A stage never reaches into another stage's intern
 | Multi-vendor fallback (no single-provider dependency) — the default agent/judge | `providers/langchain_fallback.py::LangChainFallbackProvider` |
 | Gemini provider (vision role — video understanding) | `providers/gemini.py::GeminiProvider` |
 | Video → FlowSpec (screens/flows, provenance to the second) | `stages/ingest.py::ingest_video` |
+| FlowSpec review gate (draft → approved; blocks case generation until reviewed) | `stages/review.py::require_reviewed` |
 
 Duplicating any of these is a bug — `autotester doctor` fails on a class or function defined twice.
 
@@ -143,7 +144,7 @@ uv run autotester ledger add … # append a feature event (see docs/FEATURES.jso
 
 ## Status
 
-**Built:** schema, core, provider seam + mock + anthropic + gemini + langchain-fallback, doctor, CLI, `browser/secrets.py`, `browser/session.py`, `browser/db.py` (read-only Mongo assertions), the living map (`ledger/`, `docs/MAP.md`, `docs/SNAPSHOT.md`, `docs/FEATURES.jsonl`), `store/` (filestore + ProjectStore), `projects/pathlynks/` (onboarded, 3 real cases run+graded), `stages/execute.py` (script-first runner), `stages/grade.py` (independent judge), `stages/agent_loop.py` (agent fallback), `stages/ingest.py` (video → FlowSpec, tested against a mock vision provider).
-**Next:** the real golden-test acceptance for `stages/ingest.py` needs an actual Pathlynks demo
-video (none supplied yet); T-065 (FlowSpec review gate) once ingest has real data to review — see
-the plan for phases P1–P5.
+**Built:** schema, core, provider seam + mock + anthropic + gemini + langchain-fallback, doctor, CLI (incl. `flowspec status/approve/request-edit`), `browser/secrets.py`, `browser/session.py`, `browser/db.py` (read-only Mongo assertions), the living map (`ledger/`, `docs/MAP.md`, `docs/SNAPSHOT.md`, `docs/FEATURES.jsonl`), `store/` (filestore + ProjectStore), `projects/pathlynks/` (onboarded, 3 real cases run+graded), `stages/execute.py` (script-first runner), `stages/grade.py` (independent judge), `stages/agent_loop.py` (agent fallback), `stages/ingest.py` (video → FlowSpec), `stages/review.py` (the human approval gate).
+**Next:** `stages/expand.py` (T-070, FlowSpec → cases, must call `review.require_reviewed`
+first). The real golden-test acceptance for `stages/ingest.py` still needs an actual Pathlynks
+demo video (none supplied yet) — see the plan for phases P1–P5.
