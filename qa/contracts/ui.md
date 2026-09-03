@@ -62,3 +62,12 @@ verified by reading `ui/app.py` in full, not merely tested against one payload.
 ## Amendment log (append-only; git history is the version)
 
 - 2026-09-03 · init · contract created for T-100 — no contract existed before this cycle.
+- 2026-09-03 · /checker (docker-live-ui unit) · shared-layout invariant: every route in
+  `ui/app.py` now returns its HTML fragment wrapped by `ui/theme.py::page(title, body)` — a
+  shared nav + stylesheet, visual only. U1-U5 are unaffected: `page()` prepends/wraps the
+  caller's already-escaped fragment and never removes, reorders, or unescapes it (verified —
+  see `qa/verdicts/docker-live-ui.md` D5). A new presentation-only route, `GET /live` (renders
+  an iframe onto the container's noVNC client; no `ProjectStore`/`SecretStore` call, triggers no
+  run), now exists alongside U1-U5's routes — covered by `qa/contracts/docker.md` D4, not a U-item
+  itself since it reads no project state. Routine, non-weakening; folds the flagged
+  `qa/feedback-inbox.md` 2026-09-03 "Docker + live-watch + UI polish" entry.

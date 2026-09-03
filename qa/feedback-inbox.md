@@ -106,3 +106,17 @@ LangChain-based. Migrating is a substantial, contract-worthy change touching eve
 calls `act()`/`judge()`/`see_video()` (execute.py doesn't, but grade.py and agent_loop.py do) —
 not something to improvise mid-cycle. Needs its own design pass (likely /cto-advisor HLD or a
 short /grill) before a contract and goal task exist for it. Tracked here until scoped.
+
+## 2026-09-03 — Umesh, on Docker + live-watch + UI polish
+**Source:** chat, this session.
+**Verbatim (Hinglish):** "mai khaa dekh sakta hu. live runn krr aur system mai docker mai runn
+krr and ui ko user friendly bnaana hai bss functionalty nhi bnaani hai" — "Where can I watch?
+Run it live, run the system in Docker, and make the UI user-friendly — just don't build new
+functionality."
+**Reading:** three infra/presentation asks, explicitly scoped away from pipeline logic: (1)
+dockerize the system, (2) a live-watch view for the headed browser inside Docker (clarified with
+Umesh: noVNC embedded in the browser, local dev machine only — no remote/cloud hardening in
+scope), (3) CSS-only UI polish across existing routes.
+**Status:** folded → `qa/contracts/docker.md` (D1-D6, new) + `qa/contracts/ui.md` amendment log
+(2026-09-03, /checker, docker-live-ui unit) — shared-layout invariant and `/live` route now
+recorded. Verified: `qa/verdicts/docker-live-ui.md` (PASS, cycle 1).
