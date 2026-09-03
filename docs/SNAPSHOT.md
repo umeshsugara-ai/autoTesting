@@ -14,15 +14,16 @@ AutoTester wins on bugs found, false positives, and time (`schema/bench.py` comp
 - F-002 **Credential boundary (.env -> browser, never a model)** [high] — Secrets load from the repo-root .env and are typed into the browser only on an allowed host; prompts, logs, screenshots and artifacts never carry a value · reason: Umesh: credentials must be highly secure so the system and portal-explorer can use the portal in a live visible browser; adversarial checker found and closed 8 leaks over 3 cycles
 - F-003 **Living map + feature ledger (snapshot, MAP, FEATURES, relitigation gate)** [high] — One derived snapshot injected at session start; a date-wise feature ledger with reasoning; a relitigation gate that asks before a retired feature is rebuilt; every doc self-describes and CLAUDE.md routes · reason: Umesh (grill 2026-09-03): the ERP project lost human control because state lived in chat and a hand-maintained map; here everything derivable is generated, every change is a dated row with a reason, and doctor fails on staleness — so a human engineer and Claude read the same small, true picture
 - F-004 **Pathlynks onboarded: real login via credential boundary** [high] — projects/pathlynks/project.json declares the dev-environment SecretRefs; scripts/onboard_pathlynks.py logs in as the user role via SecretStore+BrowserSession (never portal-explorer's raw MCP typing, which would have leaked credentials into the session transcript) and writes knowledge.md · reason: Umesh provided the counsellor and user dev-environment credentials directly so this gate could clear; first proof the whole credential boundary (T-011+T-010) holds against a real product, not just fixtures
+- F-005 **Grade stage: independent stateless judge, rubric in / Verdict out** [high] — stages/grade.py::grade judges a RawResult's evidence against a Rubric in a fresh, stateless context — deterministic outcomes (BLOCKED_HITL/ERRORED) never reach the judge, and any unevidenced or self-contradictory judge output is downgraded to INCONCLUSIVE rather than trusted · reason: Task note: independent stateless grader, rubric in / Verdict out — the plan's core-invariants C7 'the executor never grades itself' made literal; this is the mechanism the north star's bugs-found/false-positive scoring depends on, and it directly implements the eval row 'seeded fake-pass rejected 100%'
 - normal: F-001 Design lock: schema, core, provider seam, doctor
 ## Changed in the last 30 days
 - nothing updated or retired
 ## Next (open goal tasks)
-- T-041 [high] stages/grade.py: independent stateless grader, rubric in / Verdict out
 - T-045 [normal] Backend assertions: EvidenceKind.DB + read-only Mongo assertion helper (PATHLYNKS_MONGO_URI as SecretRef); production Mongo never written
 - T-050 [high] First real run: 3 hand-written Pathlynks cases (best/worst/edge) verdicted in a headed browser
 - T-060 [high] providers/gemini.py + stages/ingest.py: video/docs -> FlowSpec with SourceRefs
 - T-065 [high] FlowSpec review gate: Review.status must be approved before expand runs; UI/CLI accept-or-edit
+- T-070 [high] stages/expand.py: FlowSpec -> cases covering every applicable CaseClass
 ## Last decisions (computed status)
 - D-003 2026-09-03 decision ACTIVE
 - D-004 2026-09-03 decision ACTIVE

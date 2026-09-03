@@ -62,6 +62,20 @@ class Failure(BaseModel):
     fix_hint: str | None = None
 
 
+class Judgment(BaseModel):
+    """Raw judge output for one grading call — the stage fills in run_id, case_id,
+    grader_provider and rubric_hash afterward; the model is not asked to invent them."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    result: Result
+    scoreboard: str = Field(default="")
+    criteria_met: int = 0
+    criteria_total: int = 0
+    failures: list[Failure] = Field(default_factory=list)
+    note: str | None = None
+
+
 class Verdict(Artifact):
     """The judge's output for one case in one run."""
 

@@ -31,6 +31,7 @@
 | `schema/run.py` | What EXECUTE observed. Deliberately contains no judgement — see verdict.py. |
 | `schema/verdict.py` | Grading. An independent, stateless judge reads evidence against a rubric. |
 | `stages/execute.py` | EXECUTE: run one case's steps in a real browser, producing a RawResult. |
+| `stages/grade.py` | GRADE: an independent, stateless judge reads a Rubric + a RawResult's evidence. |
 | `store/filestore.py` | The one place any artifact is read from or written to disk. Contract: core-invariants.md C6. |
 | `store/project_store.py` | Typed convenience over `filestore` for one project's directory. |
 <!-- /generated:map -->
@@ -73,5 +74,6 @@
 | `Criterion` (`schema/verdict.py`) | One checkable bar. If it can be argued about, it is not a criterion. |
 | `Rubric` (`schema/verdict.py`) | The grading contract for a case. More specific than the case itself. |
 | `Failure` (`schema/verdict.py`) | One unmet criterion, with the evidence that shows it. |
+| `Judgment` (`schema/verdict.py`) | Raw judge output for one grading call — the stage fills in run_id, case_id, |
 | `Verdict` (`schema/verdict.py`) | The judge's output for one case in one run. |
 <!-- /generated:schema -->
