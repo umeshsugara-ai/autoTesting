@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from pydantic import Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from autotester.core.ids import content_id
 from autotester.schema.base import Artifact
-from autotester.schema.enums import CaseClass, CaseKind, CaseStatus, Severity
+from autotester.schema.enums import Action, CaseClass, CaseKind, CaseStatus, Severity
 from autotester.schema.flowspec import Step
 
 
@@ -43,6 +43,33 @@ class Case(Artifact):
             "steps": [s.model_dump(mode="json") for s in self.steps],
         }
         return content_id("case", payload)
+
+    def with_fixed_step(self, order: int, fix: AgentFix) -> Case:
+        """A new `Case` with the step at `order` replaced by `fix`. Content-addressed,
+        so the same fix applied twice never produces two rows (`ProjectStore.add_case`)."""
+        new_steps = [
+            Step(order=order, action=fix.action, target=fix.target, value=fix.value,
+                 expected=s.expected, source_ref=s.source_ref, note=f"agent fix: {fix.reasoning}")
+            if s.order == order else s
+            for s in self.steps
+        ]
+        return Case(
+            project=self.project, flow_id=self.flow_id, kind=self.kind,
+            case_class=self.case_class, title=self.title, rationale=self.rationale,
+            preconditions=self.preconditions, steps=new_steps, severity=self.severity,
+            rubric_ref=self.rubric_ref, script_ref=self.script_ref, status=self.status,
+        )
+
+
+class AgentFix(BaseModel):
+    """The agent's proposed correction for one failing step."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    action: Action
+    target: str
+    value: str | None = None
+    reasoning: str = Field(min_length=1, description="why this should fix the observed error")
 
 
 class Script(Artifact):

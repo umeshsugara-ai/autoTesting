@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from autotester.providers.anthropic import AnthropicProvider
 from autotester.providers.base import Provider, ProviderError, Unsupported
 from autotester.providers.mock import MockProvider
 
-_REGISTRY: dict[str, type[Provider]] = {"mock": MockProvider}
+_REGISTRY: dict[str, type[Provider]] = {"mock": MockProvider, "anthropic": AnthropicProvider}
 
 
 def register(provider_id: str, cls: type[Provider]) -> None:
