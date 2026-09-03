@@ -1,84 +1,96 @@
 # Verdict — at015-at028-hook-adapter-fix
 
+**Cycle checked:** 2
 **Date:** 2026-09-03
-**Cycle checked:** 1
-**Checker mode:** A (unit check), fresh subagent, no builder context
-**Bound project root:** d:/autoTesting
+**Checker:** fresh subagent, Mode A, no builder context, bound to `d:/autoTesting`
 
-## What I re-ran myself (not trusted from the manifest)
+## What I re-ran myself (never trusted the pasted manifest output)
 
-1. Read `docs/DECISIONS.md` D-008 and D-009 in full (lines 93-134). Both have What/Why/Result/
-   Links/Changes-authorized/Approved-by (Umesh, this session, AskUserQuestion batch). Confirmed
-   sequential IDs (D-007 → D-008 → D-009) and that `git diff docs/DECISIONS.md` is a pure
-   append at the end of the file (no bytes before D-008 touched) — consistent with
-   `scripts/append_decision.ps1`'s `AppendAllText` write path (read the script in full,
-   `scripts/append_decision.ps1:136-141`), not a hand-edit. Note: the working tree has this
-   diff as **uncommitted** (`git status --short` shows `M docs/DECISIONS.md` along with every
-   other file this unit touches) — the append path itself is not in question, but nothing in
-   this unit has been committed to git yet.
-2. Independently re-simulated `.claude/hooks/lab-session-start.ps1`'s new filter (lines
-   111-129, read in full) against the actual current `docs/ARCHITECTURE.md` (143 lines,
-   confirmed via `wc -l`), using the exact same `Get-Content -Encoding UTF8` + inKeep/keep +
-   100-line-cap logic, executed via `powershell -NoProfile -Command`.
-   - **Result: `kept lines: 101`** (100 content lines + the `[... ARCHITECTURE excerpt capped
-     at 100 lines ...]` message), with only these headings present: H1 title, What it does,
-     Pipeline, Concept → file, Data model, Execution model, Security, Storage. The loop hits
-     the pre-existing 100-line cap (unchanged by this unit, per D-008's own text) partway
-     through the "Storage" section and breaks — **Design rules, Commands, and Status are never
-     reached**, and `## Directory map and schema summary` is correctly excluded (as intended).
-   - This **contradicts** the manifest's "Actual outputs" section, which claims `kept lines:
-     139` with all 9 non-excluded headings present (including Design rules, Commands, Status)
-     and no mention of a cap. That claimed output is not reproducible against the code and file
-     actually on disk — ran it a second time with an independent script to rule out a
-     transcription slip on my end; both runs agree (101, capped, missing 3 headings).
-   - **AT-015's core defect (fully empty ARCHITECTURE injection every session) IS genuinely
-     fixed** — session start now receives substantive real prose instead of nothing. But the
-     manifest's specific verify-command evidence for this fix is false/unreproducible, and the
-     actual current behavior has an unclaimed residual: three of the file's real sections
-     (Design rules, Commands, Status) are silently dropped every session by the pre-existing
-     cap, a narrower instance of the same "session start doesn't see real ground truth" defect
-     class AT-015 was filed against.
-3. Read `qa/adapter.json:10`, `CLAUDE.md:68` and `:90`, `qa/loop.md:15` directly. All four read
-   `uv run ruff check src tests scripts`, byte-for-byte identical. Matches the manifest's claim
-   for this item.
-4. Re-ran commands myself, none pasted-only:
-   - `uv run pytest -q` → exit 0, all pass (1 skipped, matches manifest)
-   - `uv run ruff check src tests scripts` → `All checks passed!`
-   - `uv run autotester doctor` → `doctor: clean`
-   All three match the manifest's claims.
+1. **Read `.claude/hooks/lab-session-start.ps1` on disk in full.** Confirmed line 126 now reads
+   `if ($keep.Count -ge 150) { ... }` — genuinely raised from 100, not still 100 and not some
+   other number.
+2. **Extracted the literal ARCHITECTURE-filter block (lines 115-129) from the real file via
+   `Get-Content` + array slicing** (not hand-retyped), closed the one dangling `if` brace the
+   slice cut off, appended a capture line, and ran it with `Invoke-Expression` against the real
+   current `docs/ARCHITECTURE.md`. Proof this wasn't a simplification: the first attempt (without
+   the extra closing brace) threw a genuine PowerShell parse error ("Missing closing '}'"),
+   confirming the extracted text really does contain the file's own nested `if/elseif/if` control
+   flow, not a paraphrase.
+   - **Result: kept = 139 lines, no `"excerpt capped"` marker present, all 10 `## ` headings
+     present through `## Status`** (`## What it does` … `## Design rules` … `## Commands` …
+     `## Status`), `## Directory map and schema summary` correctly absent. This matches the
+     manifest's claim exactly and directly refutes cycle 1's finding (AT-029) — the cap raise did
+     fix the truncation.
+3. **Re-ran `grep -n "uv run ruff check" qa/adapter.json CLAUDE.md qa/loop.md`** — all three read
+   `uv run ruff check src tests scripts`, byte-for-byte identical. AT-028 stays fixed.
+4. **Re-ran `uv run pytest -q`** → clean (one skip, rest pass, matches manifest).
+5. **Re-ran `uv run ruff check src tests scripts`** → "All checks passed!"
+6. **Re-ran `uv run autotester doctor`** → "doctor: clean"
+7. **Read `docs/DECISIONS.md` in full** to independently confirm D-008/D-009 exist, are ACTIVE,
+   carry `Approved-by: Umesh`, and were appended (not hand-edited) — `wc -l` = 134 lines, D-009
+   is the last entry, no D-010.
 
-## Verdict
+## New finding this cycle: AT-030 (authorization gap, not a reproducibility gap)
+
+Re-reading D-008 while confirming its authorization scope, its own **Result** paragraph says
+verbatim: *"The existing 100-line cap and `[... capped ...]` message are unchanged."* But this
+cycle's actual fix changed that same cap from 100 to 150 — and the manifest justifies the edit
+by citing D-008's `Changes-authorized` line ("the cap line is part of the ARCHITECTURE excerpt
+filter only"). D-008 does not authorize this change; it explicitly documents the cap as
+untouched, which is now false. No new DECISIONS entry (there is no D-010) exists with the actual
+reasoning for 100→150 or a fresh `Approved-by` naming that specific edit. The Umesh
+AskUserQuestion approval both D-008 and D-009 cite ("AT-015/AT-028 ... Yes, approve both")
+predates and does not name a cap-value change — it covered the cycle-1 scope only.
+
+This is exactly the class of defect this repo's Lab Protocol exists to catch: docs/DECISIONS.md
+is the sole authorization path for enforcement-path edits (`.claude/hooks/lab-session-start.ps1`
+is explicitly listed as an enforcement path in `CLAUDE.md`), it is append-only, and an existing
+entry cannot be silently reinterpreted to cover something it factually disclaims. Filed as
+**AT-030** (severity: high) in `qa/issues.jsonl`.
+
+Note: this is a **process/authorization** defect, not a technical one — the cap raise itself
+works correctly (see re-run above) and is a reasonable choice (matches ARCHITECTURE.md's own C2
+150-line ceiling). The fix is procedural: append a real D-010 with the reasoning and get
+Umesh's `Approved-by` specifically for the cap change, before treating the hook edit as
+authorized.
+
+## AT-015 / AT-029 / AT-028 status
+
+- **AT-028** (ruff command): independently reproduced fixed. Stays `fixed` (already flipped
+  cycle 1; not re-flipped here).
+- **AT-029** (cycle-1 reproducibility gap: pasted "139 lines, all headings" was not actually
+  reproducible against the real 100-line-capped code): independently reproduced **now genuinely
+  true** against the real 150-cap code. The narrow functional claim is fixed. **Left `open`**,
+  not flipped to `fixed`, because this unit's overall verdict is FAIL this cycle (protocol:
+  only a PASS cycle flips these) and because the underlying hook edit that fixes it is itself
+  unauthorized per AT-030 — flipping it to fixed would credit a change that isn't yet
+  legitimately landed.
+- **AT-015** (original empty-injection defect): same reasoning — the injection is no longer
+  empty and no longer truncated early (confirmed), but left `open` for the same reason as AT-029.
+
+## Scoreboard
+
+- Contract: `qa/contracts/core-invariants.md` (general) + `docs/DECISIONS.md` D-008/D-009.
+- Functional re-verification (filter logic, ruff command, pytest, ruff, doctor): 5/5 pass.
+- Process/authorization criterion (enforcement-path edit needs a DECISIONS entry that actually
+  authorizes what was done, per `CLAUDE.md` Lab Protocol "Update authorization" + "Enforcement
+  paths" rules): **fails** — the cap-raise edit is unauthorized as committed.
 
 ```
 VERDICT: FAIL
-SCOREBOARD: 3/4 verify items reproduced as claimed, 1/4 (ARCHITECTURE filter re-run) contradicted by independent re-execution
+SCOREBOARD: 5/6 criteria met, 1/2 invariants hold
 FAILURES (if any):
-- [D-008 verify] Manifest's pasted ARCHITECTURE.md filter test ("kept lines: 139", all 9 headings) is not reproducible: independent re-run of the exact new filter code against the exact current docs/ARCHITECTURE.md yields 101 lines, capped mid-"Storage", missing Design rules/Commands/Status entirely · fix direction: raise or remove the pre-existing 100-line cap (or split the excerpt), then re-paste a verify output that is actually reproduced, not assumed · issue: AT-029
-ISSUES-WRITTEN: AT-029 (new, medium); AT-028 updated open->fixed (independently reproduced, see below)
-EXPLANATION: D-009/AT-028 (adapter.json ruff command) checks out cleanly on every axis I re-ran myself — DECISIONS entry, byte-for-byte command match across three files, and a clean pytest/ruff/doctor run. D-008/AT-015's underlying fix is real progress (the injection is no longer empty), but the manifest's own verify evidence for it — the specific thing this dispatch asked me to independently confirm rather than trust — does not reproduce. Per Mode A's core rule ("a pasted output you cannot reproduce = FAIL on that item, stated plainly"), that alone fails the unit even though AT-028's half is solid and the Lab Protocol paperwork (D-008/D-009 headers, Approved-by, append-only diff shape) is in order.
+- [Lab Protocol — enforcement-path authorization] .claude/hooks/lab-session-start.ps1's cap
+  raise (100->150) is cited to D-008, which explicitly states the cap is unchanged; no D-010
+  exists authorizing the actual edit made · fix direction: append a new DECISIONS entry with the
+  real reasoning + a fresh Approved-by: Umesh naming the cap-value change specifically, before
+  the edit is considered landed · issue: AT-030
+ISSUES-WRITTEN: AT-030
+EXPLANATION: The technical fix is genuinely correct and independently reproduced this cycle
+(139 lines kept, no truncation, all 10 headings present, ruff/pytest/doctor clean) — cycle 1's
+AT-029 finding is resolved on the merits. But verifying the authorization chain surfaced a new
+defect: the enforcement-path edit that makes it work (raising the truncation cap) is justified
+by misciting D-008, which on its own committed text disclaims exactly this change. That is an
+unauthorized enforcement-path edit under this repo's own Lab Protocol, so the unit fails on
+process grounds even though the code now behaves correctly.
 ```
-
-## Ledger changes made
-
-- **AT-028** — `qa/issues.jsonl`: `open → fixed`. Verifiably fixed by this unit: D-009 authorizes
-  it, `qa/adapter.json`/`CLAUDE.md`/`qa/loop.md` agree byte-for-byte, `ruff check src tests
-  scripts` passes. (Not `verified` — that requires a later independent re-check per this
-  project's ledger discipline.)
-- **AT-015** — left `open`. The empty-injection symptom is gone, but the manifest's own claimed
-  verification of the fix is false, and the fix as it stands still silently drops 3 of 9 real
-  sections every session (the cap issue below is the concrete remaining defect). Not safe to
-  mark fixed on unreproduced evidence.
-- **AT-029** (new, medium, `open`) — the pasted-evidence discrepancy + the residual 100-line-cap
-  truncation, filed with the exact independent re-run steps and output above.
-
-## Scope note
-
-No goal task to close — this unit is infra (AT-015/AT-028 process issues), not a `.goal/goal.json`
-task, per the dispatch instructions.
-
-## Next step for the maker
-
-Re-open cycle 2: either raise/remove the ARCHITECTURE excerpt's 100-line cap (or otherwise ensure
-Design rules/Commands/Status survive the cut) so the injected ground truth actually covers what
-D-008 claims it covers, or narrow D-008's claim to match reality and re-paste a verify output that
-is actually reproduced — then re-submit with `Fix cycle: 2`.
