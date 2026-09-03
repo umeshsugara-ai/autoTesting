@@ -1,0 +1,26 @@
+# Credentials — never committed, under any project
+**/.env
+**/.env.*
+!**/.env.example
+
+# Persistent browser profiles hold live logged-in sessions
+profiles/
+
+# Scratch, evidence, logs. Nothing here is a deliverable.
+.work/
+
+# Run artifacts: screenshots and traces may contain product data
+projects/*/runs/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# OS
+Thumbs.db
+.DS_Store

@@ -1,0 +1,82 @@
+"""Grading. An independent, stateless judge reads evidence against a rubric.
+
+The executor never grades itself: the context that took a shortcut will not
+catch the shortcut. A PASS requires cited evidence.
+"""
+
+from __future__ import annotations
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from autotester.schema.base import Artifact
+from autotester.schema.enums import Result
+
+
+class Criterion(BaseModel):
+    """One checkable bar. If it can be argued about, it is not a criterion."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    text: str
+    evidence_required: bool = True
+
+
+class Rubric(Artifact):
+    """The grading contract for a case. More specific than the case itself.
+
+    `no_fire` is what stops a grader inventing work: style nits, pre-existing
+    issues, and anything out of scope are named and excluded up front.
+    """
+
+    id: str
+    case_id: str | None = None
+    criteria: list[Criterion] = Field(default_factory=list)
+    no_fire: list[str] = Field(default_factory=list)
+    feedback_format: str = Field(
+        default="Line 1: `Criteria N/M met.` Then one bullet per failure: "
+        "`<criterion id> — <what is wrong>. <what to do>.`"
+    )
+
+    @property
+    def fingerprint(self) -> str:
+        from autotester.core.ids import content_id
+
+        return content_id(
+            "rub",
+            {
+                "criteria": [c.model_dump(mode="json") for c in self.criteria],
+                "no_fire": self.no_fire,
+            },
+        )
+
+
+class Failure(BaseModel):
+    """One unmet criterion, with the evidence that shows it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    criterion_id: str
+    reason: str
+    evidence_refs: list[str] = Field(default_factory=list)
+    fix_hint: str | None = None
+
+
+class Verdict(Artifact):
+    """The judge's output for one case in one run."""
+
+    run_id: str
+    case_id: str
+    result: Result
+    scoreboard: str = Field(default="", description="e.g. 'Criteria 5/7 met.'")
+    criteria_met: int = 0
+    criteria_total: int = 0
+    failures: list[Failure] = Field(default_factory=list)
+    grader_provider: str = ""
+    rubric_hash: str = ""
+    note: str | None = None
+
+    @property
+    def is_actionable_failure(self) -> bool:
+        """FAIL with at least one cited failure — what a human should look at."""
+        return self.result is Result.FAIL and bool(self.failures)
