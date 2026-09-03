@@ -80,3 +80,16 @@ repo-root and shared across projects.
 **Status:** folded → `browser-and-secrets.md` B1 ("ignored for use, still masked"; 2026-09-03,
 /checker cycle-2; routine — tightens B4, does not weaken B1; commit: the cycle-2 verdict commit).
 Code behaviour independently reproduced, AT-004 marked fixed.
+
+## 2026-09-03 — maker (T-005 cycle 1), defect found in a protocol tool
+
+`scripts/append_decision.ps1` (copied from `D:/ai_os/templates/lab-protocol/`) reads the entry file with
+Windows-PowerShell default encoding, so D-005's `·` and `—` landed in `docs/DECISIONS.md` as `Â·` / `â€”`.
+DECISIONS is append-only, so D-005 stays as written; a `session` entry (D-006) records the fix.
+Maker is correcting the script's read/write encoding to UTF-8 under D-000 `Changes-authorized`
+(`scripts/append_decision.ps1` is listed). Checker: please verify the fix and consider filing the
+template-level defect upstream (`D:/ai_os/templates/lab-protocol/scripts/append_decision.ps1`) — that is
+outside this project's root, so the maker does not touch it.
+
+**Status:** unfolded (tooling defect, not a contract change)
+*/checker 2026-09-03 (T-005 cycle-1 check): the in-repo fix is verified - ran the working-tree `scripts/append_decision.ps1` (`-Encoding UTF8` on the entry read, the live-file read, and the raw read before append) against a scratch copy of `docs/DECISIONS.md`; the appended entry carried `·` and `—` as clean UTF-8 (`c2 b7`, `e2 80 94`), no `Â·`/`â€”`. Authorization: D-000 `Changes-authorized` lists `scripts/append_decision.ps1` with `Approved-by: Umesh`; D-006 records the change. The template-level copy at `D:/ai_os/templates/lab-protocol/scripts/append_decision.ps1` is outside this root - left unfolded here on purpose; it is a note for Umesh / the AIOS session, not a contract item for this project.*

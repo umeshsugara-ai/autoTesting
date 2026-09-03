@@ -67,8 +67,9 @@ human instead of silently rebuilt. It is the product's **overview, not a logger*
 ### L7 — History is append-only with authorization (lab protocol)
 - `docs/DECISIONS.md` exists (via `/init-lab`), append-only through `scripts/append_decision.ps1`
   (PreToolUse deny on direct Edit/Write); supersession by `Supersedes: D-NNN -- <why>` in the new entry.
-- Backfilled: D-001 genesis · D-002 the 2026-09-03 stack/target/auth decisions · D-003 `.env` at
-  repo root · D-004 principle S4 (confidence-gated rules → AI).
+- Backfilled: D-000 genesis (Lab Protocol adoption) · D-001 design-first rules · D-002 the
+  2026-09-03 stack/target/auth decisions · D-003 `.env` at repo root · D-004 principle S4
+  (confidence-gated rules → AI).
 - **Verify:** `git log -p docs/DECISIONS.md` shows additions only; a direct Edit is denied by the hook.
 
 ## Out of scope
@@ -79,3 +80,7 @@ only, later); Google-Sheet sync.
 - Snapshot prose wording; choice of markers; line counts under the caps.
 - Absence of retired rows today (nothing has been retired yet).
 - The relitigation LLM's judgement quality beyond the mock-provider test.
+
+## Amendment log (append-only; git history is the version)
+
+- 2026-09-03 · routine · L7: backfill list corrected to D-000 genesis/adoption, D-001 design-first, D-002 stack, D-003 root `.env`, D-004 S4 · why: AT-013 (sweep 2aadf21) — the list was off by one against `docs/DECISIONS.md`; tightening only, applied at the T-005 cycle-1 check.
