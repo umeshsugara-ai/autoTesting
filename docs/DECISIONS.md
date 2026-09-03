@@ -81,3 +81,11 @@ confident wrong answer… it is better to lose the tokens instead of betting in 
 **Why:** a history file that garbles punctuation on every non-ASCII entry would rot exactly the way the ERP notes did; fixing the write path once is cheaper than a lifetime of corrections.
 **Result:** this entry is the first written through the UTF-8 path — the em dash here (—) and middle dot (·) should read correctly.
 **Links:** goal T-005; qa/manifests/t005-living-ledger.md; qa/feedback-inbox.md (2026-09-03 tooling-defect entry)
+
+## D-007 | 2026-09-03 | type: decision | status: ACTIVE
+**What:** After every checker PASS commit, the checker pushes `origin master` itself — no confirmation asked. This replaces the prior default (push is a human decision, confirmed each time) for THIS repo only.
+**Why:** Umesh, direct instruction 2026-09-03 ("but next time se tho tu khud push krr lega naa as a /checker" -> "yes wire that"): repeated per-push confirmation was friction once the repo was public and the pair's commits were already narrowly scoped and checker-verified. The confirm-first default remains the house rule everywhere else; this is a standing, explicit, repo-scoped exception.
+**Result:** `CLAUDE.md` maker-checker block gets a "Push on PASS" line; the checker dispatch instructions (`maker/SKILL.md`'s prompt template is global, so this repo's own contract carries the addition instead) push after commit. Known residual: the harness-level safety classifier may still block a `git push`/`gh` call independent of this authorization — that gate is not lifted by this decision and the checker must fall back to reporting the block, exactly as today.
+**Changes-authorized:** `CLAUDE.md` (maker-checker discipline block) — add the auto-push rule.
+**Approved-by:** Umesh — direct instruction, this session, 2026-09-03.
+**Links:** commit 04f5e3d (the manual push this rule replaces going forward)
