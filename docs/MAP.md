@@ -36,6 +36,7 @@
 | `schema/verdict.py` | Grading. An independent, stateless judge reads evidence against a rubric. |
 | `stages/agent_loop.py` | Agent fallback: when a case's steps break, ask the agent for a fix and retry. |
 | `stages/execute.py` | EXECUTE: run one case's steps in a real browser, producing a RawResult. |
+| `stages/expand.py` | EXPAND: FlowSpec -> Case[], covering every applicable CaseClass per flow. |
 | `stages/grade.py` | GRADE: an independent, stateless judge reads a Rubric + a RawResult's evidence. |
 | `stages/ingest.py` | INGEST: turn a video Source into a FlowSpec, provenance-tracked to the second. |
 | `stages/review.py` | FlowSpec review gate: nothing generates cases from an unreviewed understanding |
@@ -56,6 +57,7 @@
 | `BenchTrial` (`schema/bench.py`) | One participant's attempt on one corpus. |
 | `Case` (`schema/case.py`) | One generated or hand-written test case. |
 | `AgentFix` (`schema/case.py`) | The agent's proposed correction for one failing step. |
+| `ExpandedSteps` (`schema/case.py`) | One taxonomy class's proposed steps for a flow — `stages/expand.py`'s raw |
 | `Script` (`schema/case.py`) | A durable Playwright script produced once an agent gets a case working. |
 | `CoverageGap` (`schema/coverage.py`) | A screen or route observed in a run but absent from the FlowSpec. |
 | `VideoRequest` (`schema/coverage.py`) | What the system asks a human to record, and why. |

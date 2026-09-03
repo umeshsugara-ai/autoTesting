@@ -72,6 +72,18 @@ class AgentFix(BaseModel):
     reasoning: str = Field(min_length=1, description="why this should fix the observed error")
 
 
+class ExpandedSteps(BaseModel):
+    """One taxonomy class's proposed steps for a flow — `stages/expand.py`'s raw
+    model answer, turned into a `Case` by the stage (never trusted verbatim as a
+    finished artifact: an empty `steps` list means "not applicable here")."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    steps: list[Step] = Field(default_factory=list)
+    rationale: str = Field(min_length=1, description="why these steps test this class, or why "
+                            "the class doesn't apply (when steps is empty)")
+
+
 class Script(Artifact):
     """A durable Playwright script produced once an agent gets a case working.
 
