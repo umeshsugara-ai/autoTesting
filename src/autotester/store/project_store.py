@@ -10,6 +10,7 @@ from pathlib import Path
 
 from autotester.core.paths import ProjectPaths
 from autotester.schema.case import Case
+from autotester.schema.coverage import VideoRequest
 from autotester.schema.flowspec import FlowSpec
 from autotester.schema.project import Project, Source
 from autotester.schema.run import RawResult, Run
@@ -95,3 +96,14 @@ class ProjectStore:
             for model in [read_json(path, Verdict)]
             if model is not None
         ]
+
+    # -- video requests (the self-extension queue) -------------------------------
+    def add_request(self, request: VideoRequest) -> VideoRequest:
+        """Idempotent: the same gap never queues a second request."""
+        if any(r.id == request.id for r in self.list_requests()):
+            return request
+        append_jsonl(self.paths.requests, request)
+        return request
+
+    def list_requests(self) -> list[VideoRequest]:
+        return read_jsonl(self.paths.requests, VideoRequest)

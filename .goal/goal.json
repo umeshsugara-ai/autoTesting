@@ -4,15 +4,15 @@
   "north_star": "An AI automated end-to-end tester that ingests product videos/docs, derives a reviewed FlowSpec, auto-generates best/worst/edge-case evals, runs them as regression in a real visible browser, self-extends coverage by requesting videos for unknown screens, and beats an expert human tester head-to-head on the same material (bugs found, false-positive rate, time). First target: Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-03T15:27:29",
+  "updated": "2026-09-03T15:37:01",
   "progress": {
     "total": 20,
-    "done": 16,
+    "done": 17,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 4,
-    "current": "T-090",
-    "percent": 80
+    "pending": 3,
+    "current": "T-100",
+    "percent": 85
   },
   "tasks": [
     {
@@ -316,7 +316,7 @@
     {
       "id": "T-090",
       "title": "stages/coverage.py: route/screen diff -> CoverageGap -> VideoRequest",
-      "status": "pending",
+      "status": "done",
       "base_criticality": "MEDIUM",
       "deps": [
         "T-050"
@@ -330,7 +330,8 @@
       "attempts": 0,
       "created": "2026-09-03T07:26:17",
       "criticality": "low",
-      "user_value": "high"
+      "user_value": "high",
+      "completed": "2026-09-03T15:36:28"
     },
     {
       "id": "T-100",
@@ -433,9 +434,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 51.6,
+    "velocity_per_day": 53.82,
     "eta_days": 0.1
   },
-  "last_deterministic_tick": "2026-09-03T15:27:29",
+  "last_deterministic_tick": "2026-09-03T15:37:01",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }
