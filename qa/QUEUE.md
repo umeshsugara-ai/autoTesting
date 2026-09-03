@@ -1,31 +1,47 @@
 # qa/QUEUE.md — checker sweep queue (top-3 recommended next units)
 
-Refreshed by `/checker sweep` 2026-09-03T12:30+05:30 (terminal state CLEAN — 0 new findings; 7
-pre-existing open issues re-verified, all still accurate, none critical/high). North star
-unchanged since 458304a, `.regrill-due` absent, no reopen escalation. Bypass check clean: only
-`.goal/goal.json` + `.goal/dashboard.html` + `goal.md` + `qa/.last-tick` (state files) touched
-since the 10:55 sweep; every code commit (T-040, T-041, T-045, T-080) paired with a manifest and
-a matching-cycle PASS verdict, all pushed. `uv run pytest -q` / `ruff check` / `autotester doctor`
-all green. T-050 and T-060 remain the only pending goal tasks and both are genuinely human-gated
-(T-050: needs Umesh's explicit go-ahead for a live headed Pathlynks run incl. a deliberate
-wrong-password attempt; T-060: needs a Pathlynks demo video not yet supplied) — everything
-downstream of them (T-065, T-070, T-090, T-100, T-110, T-120) is transitively blocked. This
-refresh's top-3 are the only genuinely buildable work right now.
+Refreshed by `/checker sweep` 2026-09-03 (full refresh, not incremental — prior queue was stale
+since T-120's PASS/push at `d364036`). Re-verified from scratch this sweep: `.goal/goal.json`
+now shows **20/20 tasks `done`** (confirmed via direct parse — every task's `status` field is
+`"done"`, none pending/blocked). `git status --porcelain` is clean (nothing uncommitted); `git
+log` top commit is `d364036` (T-120 PASS, pushed). Health checks all green: `uv run pytest -q` →
+74 passed, 1 skipped; `uv run ruff check src tests scripts` → All checks passed; `uv run
+autotester doctor` → clean.
+
+**Issue ledger re-verified against current disk state, not trusted from old text.** Two items
+the old queue still listed as TODO turned out to already be checker-PASSed and just stuck at
+`fixed` in `qa/issues.jsonl` (ledger staleness, now corrected this sweep):
+- **AT-011** (`qa/loop.md` absent) — file exists (5398 bytes), `qa/verdicts/at011-loop-md.md`
+  says `VERDICT: PASS`. Flipped `fixed` → `verified`.
+- **AT-015** (empty ARCHITECTURE.md injection) — re-extracted the live filter from
+  `.claude/hooks/lab-session-start.ps1:111-131` and ran it against the real
+  `docs/ARCHITECTURE.md`: 139 lines kept, all 10 headings through `## Status` present, no
+  truncation. `docs/DECISIONS.md` D-008/D-010/D-011 all carry `Approved-by: Umesh`.
+  `qa/verdicts/at015-at028-hook-adapter-fix.md` says `VERDICT: PASS (stall recovery confirmed)`.
+  Flipped `fixed` → `verified`.
+- **AT-014** (`.goal/rubrics/` absent) — `.goal/rubrics/T-050.md`, `T-110.md`, `T-120.md` all
+  exist now with real criteria (not stubs), and the three goal tasks they gate are `done`.
+  Flipped `open` → `verified`.
+
+North star unchanged since `458304a`; `.regrill-due` absent; no reopen escalation — no `GRILL:`
+row needed.
+
+**Remaining open issues (5), none critical/high — re-checked this sweep, not restated:**
 
 | # | Status | Unit | Issues | Why now |
 |---|--------|------|--------|---------|
-| 1 | TODO | Author `qa/loop.md` (re-run `/maker init` step 3b — Stop line with the maker's seven terminal states, Human gate line agreeing with `qa/adapter.json`) | AT-011 | Loop-Doctor-lite has had nothing to check since the first sweep (2026-09-03T08:40); still absent on disk, confirmed this sweep (`ls qa/loop.md` → no such file); low effort, closes a standing liveness gap; no HUMAN_GATE needed |
-| 2 | TODO | Fix `lab-session-start.ps1`'s ARCHITECTURE-section injection filter (matches "sections 1-3 + 6" against headings that are `## What it does` / `## Pipeline` / etc — zero matches, so every session gets an empty ground-truth block) | AT-015 | Re-verified this sweep: `grep "^#" docs/ARCHITECTURE.md` shows no numbered headings; the filter has matched nothing since it was written. **This is an enforcement-path file (`.claude/hooks/*`)** — per D-000 it needs a DECISIONS entry with `Approved-by: Umesh` before edit; either fix the filter or rename ARCHITECTURE.md's sections to match it. Author the D-entry first, then the fix is a same-tick build. |
-| 3 | TODO | Scope + build literal Script-artifact generation for the agent fallback loop (construct a `Script` under `projects/<slug>/scripts/`, set `Case.script_ref`, once `agent_loop.run_with_fallback` gets a fix stable) | AT-026 | T-080's checker (cycle 1, 2026-09-03 12:01) filed this as its own finding: the pre-existing `Script`/`script_ref` schema surface (design-lock commit a5ffcec) was built for exactly this and T-080 doesn't use it — a defensible narrow PASS but not a full "durable script" delivery per the contract's own escape valve. Medium severity, no HUMAN_GATE required to scope it; if literal script generation is ever ruled permanently out of scope, retiring `Script`/`script_ref` from the schema would itself need human sign-off (schema removal), noted for whoever picks this up. |
+| 1 | TODO | Scope + build literal Script-artifact generation for the agent fallback loop (construct a `Script` under `projects/<slug>/scripts/`, set `Case.script_ref`) | AT-026 (medium) | Only medium-severity open issue. `schema/case.py`'s `Script`/`script_ref` surface (design-lock `a5ffcec`) was built for exactly this and still unused; `agent_loop.run_with_fallback` is now stable (T-080 long since PASSed, T-090/T-100/T-110/T-120 all shipped since), so the earlier blocker ("once the fix is stable") no longer applies. No HUMAN_GATE needed to scope it. |
+| 2 | TODO | `ProjectStore.add_source`/`add_case` full-collection re-read before every append (`src/autotester/store/project_store.py:32-37`, `:50-55`) | AT-024 (low, perf) | Flagged to "revisit at T-070 scale" — T-070 (expand stage, taxonomy-driven case generation) has since shipped (`9bede99`), so collections can now legitimately grow past the small-project size this was deferred against. Worth a quick check whether real project sizes have hit the point where this matters; still non-blocking today. |
+| 3 | TODO | `ObservedScreen` content-id hashes only `name`, not signals — two same-named screens with different content collide (`src/autotester/stages/ingest.py:37-42`, `core/ids.py:35-37`) | AT-034 (low, coverage gap) | Filed as a coverage gap, not a criterion violation — `qa/contracts/ingest.md` I1/I3 hold literally as worded. No urgency, but the only other open item besides AT-026/AT-024 with any product-facing surface. |
 
-Also open (lower, unchanged this sweep): AT-012 `.last-tick` timezone mix (historical lines only;
-current writes already use `+0530`, cosmetic) · AT-014 `.goal/rubrics/T-050.md`, `T-110.md`,
-`T-120.md` don't exist yet — per AT-014's own fix direction these are authored at each task's own
-contract START, and none of the three has started, so this is not yet actionable (not promoted to
-top-3) · AT-023 t020 manifest test-count off-by-one (low, cosmetic) · AT-024 `ProjectStore` O(n)
-re-read on every add (low, perf, revisit at T-070 scale).
+Also open (lower, cosmetic, unchanged this sweep): **AT-012** `.last-tick` timezone mix on 3
+historical pre-`+0530` lines (current writes already correct, confirmed by direct read of
+`qa/.last-tick`) · **AT-023** `t020-filestore` manifest test-count off-by-one (94 claimed vs. 93
+actual per `pytest --collect-only`; all tests pass, purely a stale manifest number).
 
-Sweep note: no reopen-power triggered — no ledger row's `fixed`/`verified` status was found
-unbacked by evidence on re-derivation. Goal-coverage: all 19 `.goal/goal.json` tasks map to an
-existing contract or an acknowledged HUMAN_GATE; no missing requirement surfaced. `qa/adapter.json`
-unchanged (no `improve` block; evolutionary-mode checks stay inactive, as before).
+**Bottom line: the goal backlog is genuinely closed (20/20), the working tree is clean and
+pushed, and nothing open is blocking.** The 3 rows above are optional housekeeping/hardening a
+future `/maker` tick could pick up at its own judgement — none are gated on Umesh and none
+require a DECISIONS entry to *start* (AT-026, AT-024, AT-034 are all ordinary code, not
+enforcement-path files). If nothing further is dispatched, the project is idle by design, not by
+neglect.
