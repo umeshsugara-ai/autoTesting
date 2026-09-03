@@ -43,6 +43,8 @@
 | `stages/review.py` | FlowSpec review gate: nothing generates cases from an unreviewed understanding |
 | `store/filestore.py` | The one place any artifact is read from or written to disk. Contract: core-invariants.md C6. |
 | `store/project_store.py` | Typed convenience over `filestore` for one project's directory. |
+| `ui/app.py` | Thin FastAPI viewer/editor over project files. Design principle 8: never a |
+| `ui/env_editor.py` | The one legitimate WRITE path to the repo-root `.env` (every other module |
 <!-- /generated:map -->
 
 ## Schema summary
