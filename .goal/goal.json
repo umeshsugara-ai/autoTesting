@@ -4,15 +4,15 @@
   "north_star": "An AI automated end-to-end tester that ingests product videos/docs, derives a reviewed FlowSpec, auto-generates best/worst/edge-case evals, runs them as regression in a real visible browser, self-extends coverage by requesting videos for unknown screens, and beats an expert human tester head-to-head on the same material (bugs found, false-positive rate, time). First target: Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-03T14:58:13",
+  "updated": "2026-09-03T15:05:58",
   "progress": {
     "total": 20,
-    "done": 13,
+    "done": 14,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 7,
-    "current": "T-060",
-    "percent": 65
+    "pending": 6,
+    "current": "T-065",
+    "percent": 70
   },
   "tasks": [
     {
@@ -235,7 +235,7 @@
     {
       "id": "T-060",
       "title": "providers/gemini.py + stages/ingest.py: video/docs -> FlowSpec with SourceRefs",
-      "status": "pending",
+      "status": "done",
       "base_criticality": "HIGH",
       "deps": [
         "T-020"
@@ -249,7 +249,8 @@
       "attempts": 0,
       "created": "2026-09-03T07:26:17",
       "criticality": "low",
-      "user_value": "high"
+      "user_value": "high",
+      "completed": "2026-09-03T15:05:58"
     },
     {
       "id": "T-065",
@@ -430,9 +431,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 37.1,
+    "velocity_per_day": 43.95,
     "eta_days": 0.2
   },
-  "last_deterministic_tick": "2026-09-03T14:57:01",
+  "last_deterministic_tick": "2026-09-03T15:02:01",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }
