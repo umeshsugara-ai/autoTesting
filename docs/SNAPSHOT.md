@@ -23,8 +23,8 @@ AutoTester wins on bugs found, false positives, and time (`schema/bench.py` comp
 - T-045 [normal] Backend assertions: EvidenceKind.DB + read-only Mongo assertion helper (PATHLYNKS_MONGO_URI as SecretRef); production Mongo never written
 - T-050 [high] First real run: 3 hand-written Pathlynks cases (best/worst/edge) verdicted in a headed browser
 ## Last decisions (computed status)
-- D-002 2026-09-03 decision ACTIVE
 - D-003 2026-09-03 decision ACTIVE
 - D-004 2026-09-03 decision ACTIVE
 - D-005 2026-09-03 decision ACTIVE
 - D-006 2026-09-03 session ACTIVE
+- D-007 2026-09-03 decision ACTIVE
