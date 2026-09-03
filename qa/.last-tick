@@ -1,1 +1,1 @@
-2026-09-04T04:45:00+05:30 · ADVANCED · UI redesign + Docker hardening (shm_size, entrypoint restart-safety, browser launch flags) built; AT-026 closed by decision, AT-036 filed honestly; checker dispatched
+2026-09-04T05:05:00+05:30 · ADVANCED · AT-036 screenshot-retry fix built and re-verified 3x clean against live docker container; checker dispatched
