@@ -185,11 +185,26 @@ class BrowserSession:
         return self._record(EvidenceKind.DOM, label, step_order=step_order)
 
     def screenshot(self, label: str, *, step_order: int | None = None) -> Evidence:
-        """Capture with every secret input masked first (B7)."""
+        """Capture with every secret input masked first (B7).
+
+        AT-036: under Xvfb, `Page.screenshot` intermittently raises a CDP
+        protocol error ("Unable to capture screenshot") right after a
+        click-triggered DOM update — a transient rendering-compositor race,
+        not a real failure of the page or the step. One retry after a short
+        wait resolves it every time it's been observed; a second consecutive
+        failure is treated as real and allowed to propagate.
+        """
         self.page.add_style_tag(content=MASK_CSS)
         self.state.screenshots += 1
         name = f"{self.state.screenshots:02d}-{label}.png"
-        self.page.screenshot(path=str(self.state.run_dir / name), full_page=False)
+        path = str(self.state.run_dir / name)
+        try:
+            self.page.screenshot(path=path, full_page=False)
+        except Exception as exc:
+            if "captureScreenshot" not in str(exc):
+                raise
+            self.page.wait_for_timeout(250)
+            self.page.screenshot(path=path, full_page=False)
         return self._record(EvidenceKind.SCREENSHOT, name, step_order=step_order, label=label)
 
     def request_human(self, prompt: str) -> HitlRequest:

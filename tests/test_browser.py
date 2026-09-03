@@ -149,6 +149,53 @@ def test_screenshot_masks_before_capture_and_records_masked_evidence(tmp_path: P
     assert ev.path == "01-login-form.png" and (s.state.run_dir / ev.path).exists()
 
 
+class _FlakyCaptureScreenshotPage(FakePage):
+    """AT-036: raises the exact transient CDP error once, then succeeds."""
+
+    def __init__(self, url: str, fail_times: int) -> None:
+        super().__init__(url)
+        self.fail_times = fail_times
+        self.waited_ms: list[int] = []
+
+    def screenshot(self, path: str, full_page: bool = False) -> None:
+        if self.fail_times > 0:
+            self.fail_times -= 1
+            raise Exception(
+                "Page.screenshot: Protocol error (Page.captureScreenshot): "
+                "Unable to capture screenshot"
+            )
+        super().screenshot(path, full_page)
+
+    def wait_for_timeout(self, timeout_ms: int) -> None:
+        self.waited_ms.append(timeout_ms)
+
+
+def test_screenshot_retries_once_on_the_known_transient_protocol_error(tmp_path: Path) -> None:
+    s = session_with_fake_page(tmp_path)
+    s._page = _FlakyCaptureScreenshotPage(LOGIN, fail_times=1)
+    ev = s.screenshot("login-form", step_order=1)
+    assert ev.path == "01-login-form.png" and (s.state.run_dir / ev.path).exists()
+    assert s.page.waited_ms == [250]
+
+
+def test_screenshot_gives_up_after_a_second_consecutive_failure(tmp_path: Path) -> None:
+    s = session_with_fake_page(tmp_path)
+    s._page = _FlakyCaptureScreenshotPage(LOGIN, fail_times=2)
+    with pytest.raises(Exception, match="captureScreenshot"):
+        s.screenshot("login-form", step_order=1)
+
+
+def test_screenshot_does_not_retry_a_different_error(tmp_path: Path) -> None:
+    class _OtherErrorPage(FakePage):
+        def screenshot(self, path: str, full_page: bool = False) -> None:
+            raise Exception("Target page, context or browser has been closed")
+
+    s = session_with_fake_page(tmp_path)
+    s._page = _OtherErrorPage(LOGIN)
+    with pytest.raises(Exception, match="has been closed"):
+        s.screenshot("login-form", step_order=1)
+
+
 def test_evidence_paths_are_scrubbed(tmp_path: Path) -> None:
     s = session_with_fake_page(tmp_path)
     ev = s._record(EvidenceKind.DOM, f"body contains {PASSWORD}")
