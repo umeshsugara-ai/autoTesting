@@ -58,3 +58,7 @@ PASS → **T-005 closed** via `goal_cli.py done --task-id T-005`. T-005 is `user
 ## Next unit should carry
 
 - AT-021 (open S3): make `doctor.run()` report `ledger-invalid` instead of tracebacking — one guard, one test on `run()`.
+
+## Post-close state (expected, not a regression)
+
+After `goal_cli done T-005`, `uv run autotester doctor` reports exactly two violations, both produced by the close itself and both cleared by the maker's close-out: `stale-generated: docs/SNAPSHOT.md` (the open-task list changed → run `autotester snapshot`) and `ledger-row-missing: T-005` (append the `live` row first, then regenerate). Doctor was clean before the close and on every restored probe.
