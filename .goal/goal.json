@@ -4,15 +4,15 @@
   "north_star": "An AI automated end-to-end tester that ingests product videos/docs, derives a reviewed FlowSpec, auto-generates best/worst/edge-case evals, runs them as regression in a real visible browser, self-extends coverage by requesting videos for unknown screens, and beats an expert human tester head-to-head on the same material (bugs found, false-positive rate, time). First target: Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-03T08:28:54",
+  "updated": "2026-09-03T08:32:23",
   "progress": {
     "total": 17,
-    "done": 2,
+    "done": 3,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 15,
-    "current": "T-004",
-    "percent": 12
+    "pending": 14,
+    "current": "T-005",
+    "percent": 18
   },
   "tasks": [
     {
@@ -34,7 +34,7 @@
     {
       "id": "T-004",
       "title": "Schema research scout: survey test/flow schemas (Playwright planner specs, Gherkin, WebTestBench, Allure/JUnit, Mind2Web) -> confirm or amend FlowSpec/Case",
-      "status": "pending",
+      "status": "done",
       "base_criticality": "LOW",
       "deps": [
         "T-000"
@@ -47,7 +47,8 @@
       "note": "Umesh asked whether the schema was web-researched; it was brain+market-scout derived. Do this before P2 ingest locks FlowSpec. Output: research doc + DECISIONS entry.",
       "attempts": 0,
       "created": "2026-09-03T07:26:17",
-      "criticality": "low"
+      "criticality": "low",
+      "completed": "2026-09-03T08:32:23"
     },
     {
       "id": "T-005",
@@ -354,9 +355,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 0.0,
-    "eta_days": null
+    "velocity_per_day": 24.0,
+    "eta_days": 0.6
   },
-  "last_deterministic_tick": "2026-09-03T08:27:01",
+  "last_deterministic_tick": "2026-09-03T08:32:01",
   "last_agentic_tick": "2026-09-03T08:26:06"
 }

@@ -8,6 +8,16 @@
             "command": "powershell -NoProfile -ExecutionPolicy Bypass -File qa/hooks/mc-sessionstart.ps1"
           }
         ]
+      },
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -Command \"$i=[Console]::In.ReadToEnd(); & \\\"$env:CLAUDE_PROJECT_DIR\\.claude\\hooks\\lab-session-start.ps1\\\" -InputJson $i\"",
+            "timeout": 15
+          }
+        ]
       }
     ],
     "PreToolUse": [
@@ -17,6 +27,26 @@
           {
             "type": "command",
             "command": "powershell -NoProfile -ExecutionPolicy Bypass -File qa/hooks/mc-precommit.ps1"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -Command \"$i=[Console]::In.ReadToEnd(); & \\\"$env:CLAUDE_PROJECT_DIR\\.claude\\hooks\\decisions-append-guard.ps1\\\" -InputJson $i\""
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -Command \"$i=[Console]::In.ReadToEnd(); & \\\"$env:CLAUDE_PROJECT_DIR\\.claude\\hooks\\lab-session-end.ps1\\\" -InputJson $i\"",
+            "timeout": 10
           }
         ]
       }

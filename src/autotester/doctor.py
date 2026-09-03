@@ -17,9 +17,9 @@ MAX_FILE_LINES = 300
 MAX_FUNCTION_LINES = 50
 BANNED_NAME_HINTS = ("_v2", "_new", "_old", "_copy", "_final", "_temp")
 ALLOWED_ROOT_ENTRIES = {
-    ".claude", ".git", ".gitignore", ".python-version", ".venv", ".work",
-    "README.md", "docs", "goal.md", "profiles", "projects", "pyproject.toml",
-    "src", "tests", "uv.lock",
+    ".claude", ".git", ".gitignore", ".goal", ".python-version", ".venv", ".work",
+    "CLAUDE.md", "README.md", "docs", "goal.md", "profiles", "projects",
+    "pyproject.toml", "qa", "scripts", "src", "tests", "uv.lock",
 }
 
 
