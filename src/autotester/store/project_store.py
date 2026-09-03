@@ -12,6 +12,7 @@ from autotester.core.paths import ProjectPaths
 from autotester.schema.case import Case
 from autotester.schema.flowspec import FlowSpec
 from autotester.schema.project import Project, Source
+from autotester.schema.run import RawResult, Run
 from autotester.store.filestore import append_jsonl, read_json, read_jsonl, write_json
 
 
@@ -56,3 +57,25 @@ class ProjectStore:
 
     def list_cases(self) -> list[Case]:
         return read_jsonl(self.paths.cases, Case)
+
+    # -- runs (one Run envelope + one RawResult file per case) -------------------
+    def save_run(self, run: Run) -> None:
+        write_json(self.paths.run_dir(run.id) / "run.json", run)
+
+    def load_run(self, run_id: str) -> Run | None:
+        return read_json(self.paths.run_dir(run_id) / "run.json", Run)
+
+    def save_result(self, run_id: str, result: RawResult) -> None:
+        write_json(self.paths.run_dir(run_id) / f"{result.case_id}.json", result)
+
+    def load_results(self, run_id: str) -> list[RawResult]:
+        run_dir = self.paths.run_dir(run_id)
+        if not run_dir.exists():
+            return []
+        return [
+            model
+            for path in sorted(run_dir.glob("*.json"))
+            if path.name != "run.json"
+            for model in [read_json(path, RawResult)]
+            if model is not None
+        ]

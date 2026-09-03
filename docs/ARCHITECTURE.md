@@ -51,6 +51,7 @@ the previous stage's artifact. A stage never reaches into another stage's intern
 | Derived docs: generated sections of this file, `docs/SNAPSHOT.md`, decision index | `ledger/render.py` |
 | Relitigation gate (retired feature coming back?) — D-004 confidence-gated | `ledger/relitigation.py` + `prompts/relitigation_v1.md` |
 | Repo-level doc paths (ledger, snapshot, decisions, router) | `core/paths.py::RepoDocs` |
+| Running a case's steps in a browser, no judgement (that's grade.py) | `stages/execute.py::run_case` |
 
 Duplicating any of these is a bug — `autotester doctor` fails on a class or function defined twice.
 
@@ -134,5 +135,5 @@ uv run autotester ledger add … # append a feature event (see docs/FEATURES.jso
 
 ## Status
 
-**Built:** schema, core, provider seam + mock, doctor, CLI, `browser/secrets.py`, `browser/session.py`, the living map (`ledger/`, `docs/MAP.md`, `docs/SNAPSHOT.md`, `docs/FEATURES.jsonl`), `store/` (filestore + ProjectStore), `projects/pathlynks/` (onboarded).
-**Next:** `stages/execute.py` and `stages/grade.py` against Pathlynks — see the plan for phases P1–P5.
+**Built:** schema, core, provider seam + mock, doctor, CLI, `browser/secrets.py`, `browser/session.py`, the living map (`ledger/`, `docs/MAP.md`, `docs/SNAPSHOT.md`, `docs/FEATURES.jsonl`), `store/` (filestore + ProjectStore), `projects/pathlynks/` (onboarded), `stages/execute.py` (script-first runner).
+**Next:** `stages/grade.py` (independent judge) against a real Pathlynks run — see the plan for phases P1–P5.

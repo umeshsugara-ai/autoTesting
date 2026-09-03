@@ -152,6 +152,28 @@ class BrowserSession:
         self.page.locator(locator).click()
         return self._record(EvidenceKind.DOM, f"clicked {locator}", step_order=step_order)
 
+    def select_option(
+        self, locator: str, value: str | None, *, step_order: int | None = None
+    ) -> Evidence:
+        self.page.locator(locator).select_option(value)
+        return self._record(EvidenceKind.DOM, f"selected {value!r} in {locator}",
+                             step_order=step_order)
+
+    def upload(self, locator: str, file_path: str, *, step_order: int | None = None) -> Evidence:
+        self.page.locator(locator).set_input_files(file_path)
+        return self._record(EvidenceKind.DOM, f"uploaded to {locator}", step_order=step_order)
+
+    def wait_for(
+        self, locator: str | None, *, timeout_ms: int = 5000, step_order: int | None = None
+    ) -> Evidence:
+        if locator:
+            self.page.locator(locator).wait_for(timeout=timeout_ms)
+            label = f"waited for {locator}"
+        else:
+            self.page.wait_for_timeout(timeout_ms)
+            label = f"waited {timeout_ms}ms"
+        return self._record(EvidenceKind.DOM, label, step_order=step_order)
+
     def screenshot(self, label: str, *, step_order: int | None = None) -> Evidence:
         """Capture with every secret input masked first (B7)."""
         self.page.add_style_tag(content=MASK_CSS)

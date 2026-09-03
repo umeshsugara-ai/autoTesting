@@ -18,11 +18,11 @@ AutoTester wins on bugs found, false positives, and time (`schema/bench.py` comp
 ## Changed in the last 30 days
 - nothing updated or retired
 ## Next (open goal tasks)
-- T-040 [normal] stages/execute.py: script-first runner producing RawResult + Evidence
 - T-041 [high] stages/grade.py: independent stateless grader, rubric in / Verdict out
 - T-045 [normal] Backend assertions: EvidenceKind.DB + read-only Mongo assertion helper (PATHLYNKS_MONGO_URI as SecretRef); production Mongo never written
 - T-050 [high] First real run: 3 hand-written Pathlynks cases (best/worst/edge) verdicted in a headed browser
 - T-060 [high] providers/gemini.py + stages/ingest.py: video/docs -> FlowSpec with SourceRefs
+- T-065 [high] FlowSpec review gate: Review.status must be approved before expand runs; UI/CLI accept-or-edit
 ## Last decisions (computed status)
 - D-003 2026-09-03 decision ACTIVE
 - D-004 2026-09-03 decision ACTIVE

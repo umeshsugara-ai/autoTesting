@@ -30,6 +30,7 @@
 | `schema/project.py` | Project configuration and the secret contract. One directory per project. |
 | `schema/run.py` | What EXECUTE observed. Deliberately contains no judgement — see verdict.py. |
 | `schema/verdict.py` | Grading. An independent, stateless judge reads evidence against a rubric. |
+| `stages/execute.py` | EXECUTE: run one case's steps in a real browser, producing a RawResult. |
 | `store/filestore.py` | The one place any artifact is read from or written to disk. Contract: core-invariants.md C6. |
 | `store/project_store.py` | Typed convenience over `filestore` for one project's directory. |
 <!-- /generated:map -->
