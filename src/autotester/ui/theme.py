@@ -161,9 +161,24 @@ _BADGE_CLASS = {
 
 
 def badge(value: str) -> str:
-    """A colored `<span>` for a result/outcome value already HTML-escaped by the caller."""
+    """A colored `<span>` for a test RESULT value (PASS/FAIL/BLOCKED/INCONCLUSIVE)
+    already HTML-escaped by the caller. Never reuse this for a non-test-result
+    status (credential presence, review state) — that's what `pill()` is for;
+    the two vocabularies read as the same thing to a user otherwise."""
     cls, icon = _BADGE_CLASS.get(value, ("badge-inconclusive", ""))
     return f"<span class='badge {cls}'>{icon} {value}</span>"
+
+
+_PILL_CLASS = {
+    "positive": "badge-pass", "warning": "badge-blocked", "neutral": "badge-inconclusive",
+}
+
+
+def pill(text: str, tone: str = "neutral") -> str:
+    """A colored status label for anything that ISN'T a test result — credential
+    presence, review state, connection state. `text` must already be escaped."""
+    cls = _PILL_CLASS.get(tone, "badge-inconclusive")
+    return f"<span class='badge {cls}'>{text}</span>"
 
 
 def stat(value: str, label: str) -> str:

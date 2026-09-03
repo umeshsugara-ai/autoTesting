@@ -137,12 +137,13 @@ def project_detail(slug: str) -> str:
     store, project = _load_project_or_404(slug)
     spec = store.load_flowspec()
     review = spec.review.status.value if spec is not None else "no flowspec yet"
+    review_tone = ("positive" if review == "approved"
+                   else "warning" if spec is not None else "neutral")
     safe_slug = escape(slug)
     name = escape(project.name)
     stats = (
         "<div class='stat-row'>"
         + theme.stat(str(len(store.list_cases())), "Cases")
-        + theme.stat(escape(review), "Review status")
         + theme.stat(str(len(project.allowed_domains)), "Allowed domain(s)")
         + "</div>"
     )
@@ -158,7 +159,8 @@ def project_detail(slug: str) -> str:
     body = (
         "<div class='breadcrumb'><a href='/'>Projects</a> / " + name + "</div>"
         f"<h1>{name}</h1>"
-        f"<p class='subtitle'>{escape(project.base_url)}</p>"
+        f"<p class='subtitle'>{escape(project.base_url)} &middot; review: "
+        f"{theme.pill(escape(review), review_tone)}</p>"
         f"{stats}{actions}"
     )
     return theme.page(name, body)
@@ -176,10 +178,13 @@ def env_editor_view(slug: str) -> str:
     if not project.secrets:
         table = theme.empty_state("🔑", "This project declares no credentials.")
     else:
+        def _status_cell(key: str) -> str:
+            return (theme.pill("● Set", "positive") if present.get(key)
+                    else theme.pill("○ Not set", "neutral"))
+
         rows = "".join(
             f"<tr><td>{escape(ref.key)}</td>"
-            f"<td>{theme.badge('PASS') if present.get(ref.key) else theme.badge('INCONCLUSIVE')}"
-            f"{' set' if present.get(ref.key) else ' not set'}</td>"
+            f"<td>{_status_cell(ref.key)}</td>"
             f"<form method='post' action='env'>"
             f"<input type='hidden' name='key' value='{escape(ref.key)}'>"
             "<td><input type='password' name='value' placeholder='new value'></td>"
