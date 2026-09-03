@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head><title>Regression Proof — Login</title></head>
+<body>
+  <h1>Sign in</h1>
+  <input id="email" type="text">
+  <input id="password" type="password">
+  <button id="submit" onclick="tryLogin()">Log in</button>
+  <p id="result"></p>
+  <script>
+    // T-110's deliberate regression target: a working build checks the real
+    // test password. The "broken" build (login.broken.html) checks a wrong
+    // one instead -- simulating a real accidental regression (a typo'd
+    // constant, a misconfigured check), not a contrived always-fail switch.
+    function tryLogin() {
+      var email = document.getElementById('email').value;
+      var password = document.getElementById('password').value;
+      var result = document.getElementById('result');
+      if (email === 'test@example.com' && password === 'pass123') {
+        result.textContent = 'Login successful';
+      } else {
+        result.textContent = 'Invalid credentials';
+      }
+    }
+  </script>
+</body>
+</html>

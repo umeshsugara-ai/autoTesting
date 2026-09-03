@@ -42,14 +42,13 @@ the previous stage's artifact. A stage never reaches into another stage's intern
 | The visible browser (persistent profile, bounded navigation, masked capture, HITL) | `browser/session.py::BrowserSession` |
 | Persistence: atomic JSON/JSONL primitives + the per-project artifact facade | `store/filestore.py`, `store/project_store.py::ProjectStore` |
 | Pathlynks: onboarding (login + knowledge.md) and the first real best/worst/edge run | `scripts/onboard_pathlynks.py`, `scripts/run_pathlynks_first_cases.py` |
-| Every project path on disk | `core/paths.py::ProjectPaths` |
 | Model calls (vision / agent / judge) | `providers/base.py::Provider` + registry in `providers/__init__.py` |
 | Design enforcement (incl. generated-doc freshness, ledger validity, router) | `doctor.py` |
 | Commands | `cli.py` |
 | Feature ledger rows (`docs/FEATURES.jsonl`) — the only write path | `ledger/store.py` |
 | Derived docs: generated sections of this file, `docs/SNAPSHOT.md`, decision index | `ledger/render.py` |
 | Relitigation gate (retired feature coming back?) — D-004 confidence-gated | `ledger/relitigation.py` + `prompts/relitigation_v1.md` |
-| Repo-level doc paths (ledger, snapshot, decisions, router) | `core/paths.py::RepoDocs` |
+| Every path on disk: per-project (`ProjectPaths`) and repo-level docs (`RepoDocs`) | `core/paths.py` |
 | Running a case's steps in a browser, no judgement (that's grade.py) | `stages/execute.py::run_case` |
 | Judging a case's evidence against its rubric — stateless, evidence-only | `stages/grade.py::grade` |
 | Read-only backend assertions (Mongo), read-only by construction | `browser/db.py::ReadOnlyCollection` |
@@ -61,6 +60,7 @@ the previous stage's artifact. A stage never reaches into another stage's intern
 | FlowSpec → Case[] covering every applicable taxonomy class | `stages/expand.py::expand` |
 | Self-extension: unseen route → CoverageGap → deduped VideoRequest | `stages/coverage.py::diff_coverage` |
 | Web UI: onboarding, masked .env editor, run/report views (thin, no second store) | `ui/app.py` + `ui/env_editor.py` |
+| Regression proof: break a fixture feature for real, confirm exactly that case FAILs | `scripts/regression_proof.py` |
 
 Duplicating any of these is a bug — `autotester doctor` fails on a class or function defined twice.
 
@@ -144,7 +144,7 @@ uv run autotester ledger add … # append a feature event (see docs/FEATURES.jso
 
 ## Status
 
-**Built:** schema, core, provider seam (mock/anthropic/gemini/langchain-fallback), doctor, CLI (incl. `flowspec status/approve/request-edit`), `browser/` (secrets, session, db), the living map (`ledger/`, `docs/MAP.md`, `docs/SNAPSHOT.md`, `docs/FEATURES.jsonl`), `store/` (filestore + ProjectStore), `projects/pathlynks/` (onboarded, 3 real cases run+graded), `stages/` execute + grade + agent_loop + ingest + review + expand + coverage, `ui/` (onboarding, credentials, run/report views).
-**Next:** T-110 (regression proof — break a staging feature, confirm exactly that case FAILs)
-and T-120 (the benchmark scorecard). The real golden-test acceptance for `stages/ingest.py` still
-needs an actual Pathlynks demo video (none supplied yet) — see the plan for phases P1–P5.
+**Built:** schema, core, provider seam (mock/anthropic/gemini/langchain-fallback), doctor, CLI (incl. `flowspec status/approve/request-edit`), `browser/` (secrets, session, db), the living map (`ledger/`, `docs/MAP.md`, `docs/SNAPSHOT.md`, `docs/FEATURES.jsonl`), `store/` (filestore + ProjectStore), `projects/pathlynks/` (onboarded, 3 real cases run+graded), `stages/` execute + grade + agent_loop + ingest + review + expand + coverage, `ui/`, a real regression proof (`scripts/regression_proof.py`).
+**Next:** T-120 (the benchmark scorecard, `stages/bench.py`). The real golden-test acceptance for
+`stages/ingest.py` still needs an actual Pathlynks demo video (none supplied yet) — see the plan
+for phases P1–P5.

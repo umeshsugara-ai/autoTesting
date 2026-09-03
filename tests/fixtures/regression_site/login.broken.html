@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head><title>Regression Proof — Login</title></head>
+<body>
+  <h1>Sign in</h1>
+  <input id="email" type="text">
+  <input id="password" type="password">
+  <button id="submit" onclick="tryLogin()">Log in</button>
+  <p id="result"></p>
+  <script>
+    // The regression: 'pass123' was accidentally changed to 'pass124' --
+    // exactly the class of silent, easy-to-miss bug the whole system exists
+    // to catch. Everything else about this file is byte-identical to
+    // login.html.
+    function tryLogin() {
+      var email = document.getElementById('email').value;
+      var password = document.getElementById('password').value;
+      var result = document.getElementById('result');
+      if (email === 'test@example.com' && password === 'pass124') {
+        result.textContent = 'Login successful';
+      } else {
+        result.textContent = 'Invalid credentials';
+      }
+    }
+  </script>
+</body>
+</html>
