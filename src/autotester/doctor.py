@@ -11,7 +11,7 @@ import ast
 from dataclasses import dataclass
 from pathlib import Path
 
-from autotester.core.paths import repo_root
+from autotester.core.paths import RepoDocs, repo_root
 
 MAX_FILE_LINES = 300
 MAX_FUNCTION_LINES = 50
@@ -99,11 +99,91 @@ def check_duplicate_definitions(root: Path) -> list[Violation]:
     return out
 
 
+def check_generated_fresh(root: Path) -> list[Violation]:
+    """L1: ARCHITECTURE generated sections and SNAPSHOT must equal a fresh regeneration."""
+    from autotester.ledger.render import apply_map, render_snapshot
+
+    docs = RepoDocs(root)
+    out = []
+    if docs.map.exists():
+        try:
+            if apply_map(docs) != docs.map.read_text(encoding="utf-8"):
+                out.append(Violation("stale-generated", "docs/MAP.md",
+                                     "generated sections differ; run `autotester map`"))
+        except ValueError as exc:
+            out.append(Violation("stale-generated", "docs/MAP.md", str(exc)))
+    if docs.snapshot.exists() or docs.features.exists():
+        current = docs.snapshot.read_text(encoding="utf-8") if docs.snapshot.exists() else ""
+        try:
+            fresh = render_snapshot(docs)
+        except Exception as exc:  # a broken ledger is reported by check_ledger, not raised here
+            out.append(Violation("stale-generated", "docs/SNAPSHOT.md",
+                                 f"cannot regenerate: {type(exc).__name__}"))
+            return out
+        if fresh != current:
+            out.append(Violation("stale-generated", "docs/SNAPSHOT.md",
+                                 "differs from regeneration; run `autotester snapshot`"))
+    return out
+
+
+def check_ledger(root: Path) -> list[Violation]:
+    """L2/L3: every FEATURES.jsonl row validates; closed high-value tasks have a row."""
+    from autotester.ledger.store import check_rows_on_pass, load_events, load_goal_tasks
+
+    docs = RepoDocs(root)
+    try:
+        events = load_events(docs.features)
+    except Exception as exc:  # a doctor reports, it never tracebacks (AT-021)
+        return [Violation("ledger-invalid", "docs/FEATURES.jsonl", f"{type(exc).__name__}: {exc}")]
+    missing = check_rows_on_pass(events, load_goal_tasks(docs.goal))
+    return [Violation("ledger-row-missing", task, "closed high-value task has no live/updated row")
+            for task in missing]
+
+
+def check_architecture_budget(root: Path) -> list[Violation]:
+    """C2: ARCHITECTURE.md stays within its line budget (AT-019)."""
+    from autotester.ledger.render import ARCHITECTURE_MAX_LINES
+
+    path = RepoDocs(root).architecture
+    if not path.exists():
+        return []
+    lines = len(path.read_text(encoding="utf-8").splitlines())
+    if lines > ARCHITECTURE_MAX_LINES:
+        return [Violation("architecture-too-long", "docs/ARCHITECTURE.md",
+                          f"{lines} lines > {ARCHITECTURE_MAX_LINES}; move detail to a routed doc")]
+    return []
+
+
+def check_docs_routed(root: Path) -> list[Violation]:
+    """L6: every docs/*.md self-describes and is listed in the CLAUDE.md router, and vice versa."""
+    from autotester.ledger.render import doc_header_missing, router_paths
+
+    docs = RepoDocs(root)
+    if not docs.docs_dir.exists():
+        return []
+    out = []
+    routed = router_paths(docs.router)
+    on_disk = {p.relative_to(root).as_posix() for p in docs.docs_dir.rglob("*.md")}
+    for path in sorted(on_disk):
+        if doc_header_missing(root / path):
+            out.append(Violation("doc-header-missing", path,
+                                 "needs **Purpose:** and **Open me when:**"))
+        if path not in routed:
+            out.append(Violation("doc-unrouted", path,
+                                 "add a row to the router table in CLAUDE.md"))
+    for path in sorted(routed - on_disk):
+        if path.endswith(".md"):
+            out.append(Violation("router-dangling", path, "router names a doc that does not exist"))
+    return out
+
+
 def run(root: Path | None = None) -> list[Violation]:
     """All checks, in reporting order."""
     base = root or repo_root()
     violations: list[Violation] = []
     for check in (check_file_sizes, check_function_sizes, check_file_names,
-                  check_root_clean, check_duplicate_definitions):
+                  check_root_clean, check_duplicate_definitions,
+                  check_ledger, check_generated_fresh, check_architecture_budget,
+                  check_docs_routed):
         violations.extend(check(base))
     return violations
