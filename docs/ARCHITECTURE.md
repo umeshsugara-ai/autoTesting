@@ -40,8 +40,7 @@ the previous stage's artifact. A stage never reaches into another stage's intern
 | Secret redaction + `{{SECRET:KEY}}` placeholders | `core/redact.py` |
 | The credential boundary (load `.env`, resolve per host, mask) | `browser/secrets.py::SecretStore` |
 | The visible browser (persistent profile, bounded navigation, masked capture, HITL) | `browser/session.py::BrowserSession` |
-| Generic JSON/JSONL read/write (atomic; the only place a file is persisted) | `store/filestore.py` |
-| Per-project artifact facade (project, sources, flowspec, cases) | `store/project_store.py::ProjectStore` |
+| Persistence: atomic JSON/JSONL primitives + the per-project artifact facade | `store/filestore.py`, `store/project_store.py::ProjectStore` |
 | Pathlynks: onboarding (login + knowledge.md) and the first real best/worst/edge run | `scripts/onboard_pathlynks.py`, `scripts/run_pathlynks_first_cases.py` |
 | Every project path on disk | `core/paths.py::ProjectPaths` |
 | Model calls (vision / agent / judge) | `providers/base.py::Provider` + registry in `providers/__init__.py` |
@@ -61,6 +60,7 @@ the previous stage's artifact. A stage never reaches into another stage's intern
 | FlowSpec review gate (draft → approved; blocks case generation until reviewed) | `stages/review.py::require_reviewed` |
 | FlowSpec → Case[] covering every applicable taxonomy class | `stages/expand.py::expand` |
 | Self-extension: unseen route → CoverageGap → deduped VideoRequest | `stages/coverage.py::diff_coverage` |
+| Web UI: onboarding, masked .env editor, run/report views (thin, no second store) | `ui/app.py` + `ui/env_editor.py` |
 
 Duplicating any of these is a bug — `autotester doctor` fails on a class or function defined twice.
 
@@ -144,7 +144,7 @@ uv run autotester ledger add … # append a feature event (see docs/FEATURES.jso
 
 ## Status
 
-**Built:** schema, core, provider seam (mock/anthropic/gemini/langchain-fallback), doctor, CLI (incl. `flowspec status/approve/request-edit`), `browser/` (secrets, session, db), the living map (`ledger/`, `docs/MAP.md`, `docs/SNAPSHOT.md`, `docs/FEATURES.jsonl`), `store/` (filestore + ProjectStore), `projects/pathlynks/` (onboarded, 3 real cases run+graded), `stages/` execute + grade + agent_loop + ingest + review + expand + coverage (self-extension).
-**Next:** `ui/` (T-100 — the only remaining unbuilt stage before T-110's regression proof). The
-real golden-test acceptance for `stages/ingest.py` still needs an actual Pathlynks demo video
-(none supplied yet) — see the plan for phases P1–P5.
+**Built:** schema, core, provider seam (mock/anthropic/gemini/langchain-fallback), doctor, CLI (incl. `flowspec status/approve/request-edit`), `browser/` (secrets, session, db), the living map (`ledger/`, `docs/MAP.md`, `docs/SNAPSHOT.md`, `docs/FEATURES.jsonl`), `store/` (filestore + ProjectStore), `projects/pathlynks/` (onboarded, 3 real cases run+graded), `stages/` execute + grade + agent_loop + ingest + review + expand + coverage, `ui/` (onboarding, credentials, run/report views).
+**Next:** T-110 (regression proof — break a staging feature, confirm exactly that case FAILs)
+and T-120 (the benchmark scorecard). The real golden-test acceptance for `stages/ingest.py` still
+needs an actual Pathlynks demo video (none supplied yet) — see the plan for phases P1–P5.
