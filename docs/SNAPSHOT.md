@@ -25,8 +25,8 @@ AutoTester wins on bugs found, false positives, and time (`schema/bench.py` comp
 - T-070 [high] stages/expand.py: FlowSpec -> cases covering every applicable CaseClass
 - T-090 [high] stages/coverage.py: route/screen diff -> CoverageGap -> VideoRequest
 ## Last decisions (computed status)
-- D-003 2026-09-03 decision ACTIVE
-- D-004 2026-09-03 decision ACTIVE
-- D-005 2026-09-03 decision ACTIVE
-- D-006 2026-09-03 session ACTIVE
 - D-007 2026-09-03 decision ACTIVE
+- D-008 2026-09-03 fix ACTIVE
+- D-009 2026-09-03 fix ACTIVE
+- D-010 2026-09-03 fix ACTIVE
+- D-011 2026-09-03 fix ACTIVE

@@ -65,7 +65,7 @@ This project runs dev work through the maker-checker pair:
   `qa/feedback-inbox.md`; `/checker` folds it in.
 - Only `/checker` can PASS a unit. "Done" claims without a checker verdict are invalid.
 - Open issues: `qa/issues.jsonl` (canonical). Adapter: `qa/adapter.json` (coding; verify =
-  `uv run pytest -q`, `uv run ruff check src tests`, `uv run autotester doctor`).
+  `uv run pytest -q`, `uv run ruff check src tests scripts`, `uv run autotester doctor`).
 - **The maker↔checker handshake is files, never memory:** maker's request = manifest at
   `Status: ready-for-check` (with `Fix cycle: N`); checker's reply = `qa/verdicts/<same-slug>.md`
   (with `Cycle checked: N`); maker's close-out = manifest flip to `checked-PASS`.
@@ -87,7 +87,7 @@ This project runs dev work through the maker-checker pair:
 
 ```bash
 uv run pytest -q                # tests
-uv run ruff check src tests     # lint
+uv run ruff check src tests scripts  # lint
 uv run autotester doctor        # design rules
 uv run autotester providers     # which model providers have credentials
 ```

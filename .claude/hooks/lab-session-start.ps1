@@ -108,7 +108,10 @@ try {
     }
   }
 
-  # --- ARCHITECTURE.md sections 1-3 + 6 (capped). ---
+  # --- ARCHITECTURE.md ground-truth prose (capped). D-008: this repo's own house style uses
+  # named headings, never the generic template's numbered "## 1./2./3./6." sections, so the
+  # prior inclusion allowlist matched nothing. Keep every section except the one that is
+  # mechanical/generated (the directory map, which lives separately in docs/MAP.md). ---
   $archPath = Join-Path $root "ARCHITECTURE.md"
   if (-not (Test-Path $archPath)) { $archPath = Join-Path $root "docs\ARCHITECTURE.md" }  # autoTesting: docs/ layout (plan §6)
   if (Test-Path -LiteralPath $archPath) {
@@ -117,12 +120,12 @@ try {
     $inKeep = $false
     foreach ($line in $archLines) {
       if ($line -match '^## ') {
-        $inKeep = ($line -match '^## (1|2|3|6)[\.\s]')
-      } elseif ($line -match '^# ') { $inKeep = $false }
+        $inKeep = -not ($line -match '^## Directory map and schema summary')
+      } elseif ($line -match '^# ') { $inKeep = $true }
       if ($inKeep -or $line -match '^# ') { $keep.Add($line) }
-      if ($keep.Count -ge 100) { $keep.Add("[... ARCHITECTURE excerpt capped at 100 lines -- read ARCHITECTURE.md for the rest]"); break }
+      if ($keep.Count -ge 150) { $keep.Add("[... ARCHITECTURE excerpt capped at 150 lines -- read ARCHITECTURE.md for the rest]"); break }
     }
-    $out.Add("--- ARCHITECTURE.md (sections 1-3 + 6 Open Questions; ground truth) ---")
+    $out.Add("--- ARCHITECTURE.md (ground truth, excludes the generated directory map) ---")
     foreach ($l in $keep) { $out.Add($l) }
   } else {
     $out.Add("[WARN] ARCHITECTURE.md missing at repo root -- protocol expects it. Run /init-lab repair.")
