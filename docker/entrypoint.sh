@@ -4,6 +4,13 @@
 # app never launches a browser before a display exists for it to render into.
 set -euo pipefail
 
+# Found running this for real: `docker compose restart` doesn't always let Xvfb clean up its
+# own lock file, so the next Xvfb refuses to start ("Server is already active for display 99")
+# -- silently, since it's backgrounded with `&`. This leaves x11vnc with no display to attach to
+# and the live view shows "Failed to connect to server" with nothing actually wrong reported.
+# Removing any stale lock/socket from a prior run makes every start (fresh or restart) idempotent.
+rm -f /tmp/.X99-lock /tmp/.X11-unix/X99
+
 Xvfb :99 -screen 0 1280x800x24 &
 sleep 1
 

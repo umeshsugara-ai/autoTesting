@@ -67,7 +67,17 @@ def launch_options(project: Project, paths: ProjectPaths) -> dict[str, Any]:
         "user_data_dir": str(paths.profile_dir),
         "headless": not project.headed,
         "viewport": {"width": 1366, "height": 850},
-        "args": ["--disable-blink-features=AutomationControlled"],
+        "args": [
+            "--disable-blink-features=AutomationControlled",
+            # Found running this for real under Docker/Xvfb: screenshot capture crashed
+            # intermittently ("Protocol error (Page.captureScreenshot): Unable to capture
+            # screenshot") on the second persistent-context launch in a process, specifically
+            # when Chromium runs as root (the container's default user) without --no-sandbox,
+            # and again for the same reason --disable-dev-shm-usage helps in constrained
+            # display environments. Both are no-ops on a normal host launch.
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+        ],
     }
 
 

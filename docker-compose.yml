@@ -14,6 +14,9 @@ services:
                                      # the Linux venv `uv sync` built into the image, breaking `uv run`.
     environment:
       - DISPLAY=:99
+    shm_size: "1gb"  # Docker's 64MB default is too small for headed Chromium -- found this
+                      # for real: screenshot capture crashed intermittently ("Protocol error
+                      # (Page.captureScreenshot): Unable to capture screenshot") under Xvfb.
 
 volumes:
   autotester-venv:

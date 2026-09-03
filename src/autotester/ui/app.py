@@ -56,25 +56,64 @@ def _load_project_or_404(slug: str) -> tuple[ProjectStore, Project]:
     return store, project
 
 
+def _project_card(slug: str) -> str:
+    store = ProjectStore(slug)
+    project = store.load_project()
+    name = escape(project.name) if project else escape(slug)
+    case_count = len(store.list_cases())
+    safe_slug = escape(slug)
+    return (
+        f"<a class='project-card' href='/projects/{safe_slug}'>"
+        f"<span class='name'>{name}</span>"
+        f"<span class='meta'>{case_count} case{'s' if case_count != 1 else ''}</span></a>"
+    )
+
+
 @app.get("/", response_class=HTMLResponse)
 def index() -> str:
-    items = "".join(
-        f'<li><a href="/projects/{escape(s)}">{escape(s)}</a></li>' for s in _project_slugs()
+    slugs = _project_slugs()
+    header = (
+        "<div class='page-header'><div><h1>Projects</h1>"
+        "<p class='subtitle'>Onboard a product once, then let AutoTester keep watching it.</p>"
+        "</div><a class='btn btn-primary' href='/onboard'>+ New project</a></div>"
     )
-    body = f"<h1>AutoTester</h1><ul>{items}</ul><a href='/onboard'>+ onboard a project</a>"
-    return theme.page("Home", body)
+    if not slugs:
+        body = header + theme.empty_state(
+            "🧪", "No projects yet — onboard your first one to get started.",
+            "<a class='btn btn-primary' href='/onboard'>+ New project</a>",
+        )
+    else:
+        cards = "".join(_project_card(s) for s in slugs)
+        body = header + f"<div class='project-grid'>{cards}</div>"
+    return theme.page("Projects", body)
 
 
 @app.get("/onboard", response_class=HTMLResponse)
 def onboard_form() -> str:
+    fields = (
+        "<div class='field'><label for='slug'>Slug</label>"
+        "<input id='slug' name='slug' placeholder='my-product' required>"
+        "<span class='hint'>lowercase letters, digits and hyphens — "
+        "becomes the folder name</span></div>"
+        "<div class='field'><label for='name'>Name</label>"
+        "<input id='name' name='name' placeholder='My Product' required></div>"
+        "<div class='field'><label for='base_url'>Base URL</label>"
+        "<input id='base_url' name='base_url' "
+        "placeholder='https://app.example.com/signin' required></div>"
+        "<div class='field'><label for='allowed_domains'>Allowed domains</label>"
+        "<input id='allowed_domains' name='allowed_domains' "
+        "placeholder='example.com, app.example.com' required>"
+        "<span class='hint'>comma-separated — the browser will never navigate "
+        "outside these</span></div>"
+        "<button class='btn btn-primary' type='submit'>Create project</button>"
+    )
+    form = f"<form method='post' action='/onboard'>{fields}</form>"
     body = (
+        "<div class='breadcrumb'><a href='/'>Projects</a> / Onboard</div>"
         "<h1>Onboard a project</h1>"
-        "<form method='post' action='/onboard'>"
-        "slug: <input name='slug'><br>"
-        "name: <input name='name'><br>"
-        "base_url: <input name='base_url'><br>"
-        "allowed_domains (comma-separated): <input name='allowed_domains'><br>"
-        "<button type='submit'>Create</button></form>"
+        "<p class='subtitle'>This creates a project record — "
+        "nothing is tested until you add cases.</p>"
+        f"{theme.card(form)}"
     )
     return theme.page("Onboard", body)
 
@@ -99,14 +138,30 @@ def project_detail(slug: str) -> str:
     spec = store.load_flowspec()
     review = spec.review.status.value if spec is not None else "no flowspec yet"
     safe_slug = escape(slug)
-    body = (
-        f"<h1>{escape(project.name)}</h1>"
-        f"<p>review: {escape(review)}</p>"
-        f"<p>cases: {len(store.list_cases())}</p>"
-        f"<a href='/projects/{safe_slug}/env'>credentials</a> | "
-        f"<a href='/projects/{safe_slug}/report'>report</a>"
+    name = escape(project.name)
+    stats = (
+        "<div class='stat-row'>"
+        + theme.stat(str(len(store.list_cases())), "Cases")
+        + theme.stat(escape(review), "Review status")
+        + theme.stat(str(len(project.allowed_domains)), "Allowed domain(s)")
+        + "</div>"
     )
-    return theme.page(escape(project.name), body)
+    actions = theme.card(
+        "<p class='subtitle' style='margin-bottom:1rem'>Manage this project.</p>"
+        "<div class='card-actions'>"
+        f"<a class='btn' href='/projects/{safe_slug}/env'>🔑 Credentials</a>"
+        f"<a class='btn' href='/projects/{safe_slug}/report'>📋 Latest report</a>"
+        "<a class='btn' href='/live'>▶ Watch live</a>"
+        "</div>",
+        title="Actions",
+    )
+    body = (
+        "<div class='breadcrumb'><a href='/'>Projects</a> / " + name + "</div>"
+        f"<h1>{name}</h1>"
+        f"<p class='subtitle'>{escape(project.base_url)}</p>"
+        f"{stats}{actions}"
+    )
+    return theme.page(name, body)
 
 
 @app.get("/projects/{slug}/env", response_class=HTMLResponse)
@@ -116,16 +171,31 @@ def env_editor_view(slug: str) -> str:
     present = (
         parse_env(paths.env_file.read_text(encoding="utf-8")) if paths.env_file.exists() else {}
     )
-    rows = "".join(
-        f"<tr><td>{escape(ref.key)}</td><td>{'set' if present.get(ref.key) else 'not set'}</td>"
-        "<form method='post' action='env'>"
-        f"<input type='hidden' name='key' value='{escape(ref.key)}'>"
-        "<td><input type='password' name='value'></td>"
-        "<td><button type='submit'>save</button></td></form></tr>"
-        for ref in project.secrets
+    name = escape(project.name)
+    safe_slug = escape(slug)
+    if not project.secrets:
+        table = theme.empty_state("🔑", "This project declares no credentials.")
+    else:
+        rows = "".join(
+            f"<tr><td>{escape(ref.key)}</td>"
+            f"<td>{theme.badge('PASS') if present.get(ref.key) else theme.badge('INCONCLUSIVE')}"
+            f"{' set' if present.get(ref.key) else ' not set'}</td>"
+            f"<form method='post' action='env'>"
+            f"<input type='hidden' name='key' value='{escape(ref.key)}'>"
+            "<td><input type='password' name='value' placeholder='new value'></td>"
+            "<td><button class='btn btn-sm' type='submit'>Save</button></td></form></tr>"
+            for ref in project.secrets
+        )
+        header = "<tr><th>Key</th><th>Status</th><th>New value</th><th></th></tr>"
+        table = f"<table>{header}{rows}</table>"
+    body = (
+        f"<div class='breadcrumb'><a href='/'>Projects</a> / "
+        f"<a href='/projects/{safe_slug}'>{name}</a> / Credentials</div>"
+        f"<h1>Credentials</h1>"
+        "<p class='subtitle'>Values are never shown once saved — only whether one is set.</p>"
+        f"{theme.card(table)}"
     )
-    body = f"<h1>{escape(project.name)} — credentials</h1><table>{rows}</table>"
-    return theme.page(f"{escape(project.name)} — credentials", body)
+    return theme.page(f"{name} — credentials", body)
 
 
 @app.post("/projects/{slug}/env")
@@ -144,34 +214,60 @@ def env_editor_submit(slug: str, key: str = Form(...), value: str = Form(...)) -
 def run_view(slug: str, run_id: str) -> str:
     store, _project = _load_project_or_404(slug)
     _require_safe_id(run_id, "run_id")
+    safe_slug = escape(slug)
+    safe_run_id = escape(run_id)
     verdicts = {v.case_id: v for v in store.load_verdicts(run_id)}
     def _result_cell(case_id: str) -> str:
         return theme.badge(escape(verdicts[case_id].result.value)) if case_id in verdicts else "-"
 
+    results = store.load_results(run_id)
     rows = "".join(
-        f"<tr><td>{escape(r.case_id)}</td><td>{escape(r.outcome.value)}</td>"
+        f"<tr><td><code>{escape(r.case_id)}</code></td><td>{escape(r.outcome.value)}</td>"
         f"<td>{_result_cell(r.case_id)}</td></tr>"
-        for r in store.load_results(run_id)
+        for r in results
     )
-    body = f"<h1>Run {escape(run_id)}</h1><table>{rows}</table>"
-    return theme.page(f"Run {escape(run_id)}", body)
+    table = (theme.empty_state("📭", "No case results in this run yet.") if not results else
+             f"<table><tr><th>Case</th><th>Outcome</th><th>Result</th></tr>{rows}</table>")
+    body = (
+        f"<div class='breadcrumb'><a href='/'>Projects</a> / "
+        f"<a href='/projects/{safe_slug}'>{safe_slug}</a> / Run</div>"
+        f"<h1>Run <code>{safe_run_id}</code></h1>"
+        f"{theme.card(table)}"
+    )
+    return theme.page(f"Run {safe_run_id}", body)
 
 
 @app.get("/projects/{slug}/report", response_class=HTMLResponse)
 def report(slug: str) -> str:
     _store, _project = _load_project_or_404(slug)
+    safe_slug = escape(slug)
+    breadcrumb = (
+        f"<div class='breadcrumb'><a href='/'>Projects</a> / "
+        f"<a href='/projects/{safe_slug}'>{safe_slug}</a> / Report</div>"
+    )
     paths = ProjectPaths(slug)
     run_ids = sorted(p.name for p in paths.runs_dir.iterdir() if p.is_dir()) \
         if paths.runs_dir.exists() else []
     if not run_ids:
-        return theme.page("Report", "<h1>Report</h1><p>no runs yet</p>")
+        body = breadcrumb + "<h1>Report</h1>" + theme.empty_state(
+            "📋", "no runs yet — run a case against this project to see a report here.",
+        )
+        return theme.page("Report", body)
     store = ProjectStore(slug)
     counts: dict[str, int] = {}
     for verdict in store.load_verdicts(run_ids[-1]):
         counts[verdict.result.value] = counts.get(verdict.result.value, 0) + 1
-    rows = "".join(f"<li>{theme.badge(escape(k))}: {v}</li>" for k, v in counts.items())
-    body = f"<h1>Report — {escape(run_ids[-1])}</h1><ul>{rows}</ul>"
-    return theme.page(f"Report — {escape(run_ids[-1])}", body)
+    stats = "<div class='stat-row'>" + "".join(
+        theme.stat(str(v), theme.badge(escape(k))) for k, v in counts.items()
+    ) + "</div>"
+    safe_run_id = escape(run_ids[-1])
+    body = (
+        breadcrumb + f"<h1>Latest report</h1>"
+        f"<p class='subtitle'>Run <code>{safe_run_id}</code> · "
+        f"<a href='/projects/{safe_slug}/runs/{safe_run_id}'>view case-by-case</a></p>"
+        f"{stats}"
+    )
+    return theme.page(f"Report — {safe_run_id}", body)
 
 
 @app.get("/live", response_class=HTMLResponse)
@@ -180,10 +276,14 @@ def live_view() -> str:
     display. Reads no project state, triggers no run (qa/contracts/docker.md D4)."""
     example = "docker compose exec autotester uv run python scripts/regression_proof.py"
     body = (
+        "<div class='breadcrumb'><a href='/'>Projects</a> / Live view</div>"
         "<h1>Live view</h1>"
-        "<p>Watch a run happen in real time — start one from a script "
-        f"(e.g. <code>{example}</code>) while this page is open.</p>"
-        "<iframe class='live-view' "
-        "src='http://localhost:6080/vnc.html?autoconnect=true&resize=scale'></iframe>"
+        "<p class='subtitle'>Watch the real browser as a run happens — nothing is running "
+        "here yet unless you start one.</p>"
+        f"<div class='live-tip'>▶ Start a run from a script, e.g. <code>{example}</code>, "
+        "while this page is open.</div>"
+        "<div class='live-shell'>"
+        "<iframe src='http://localhost:6080/vnc.html?autoconnect=true&resize=scale'></iframe>"
+        "</div>"
     )
     return theme.page("Live view", body)
