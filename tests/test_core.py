@@ -60,9 +60,12 @@ def test_redactor_walks_nested_structures() -> None:
     assert "s3cr3t-token" not in str(scrubbed)
 
 
-def test_redactor_ignores_values_too_short_to_be_secrets() -> None:
+def test_redactor_masks_even_very_short_declared_values() -> None:
+    # AT-002: a declared value is known-exact, so no length floor applies.
     redactor = Redactor({"X": "ab"})
-    assert redactor.scrub("ab cd") == "ab cd"
+    assert "ab" not in redactor.scrub("token=ab")
+    assert redactor.scrub("") == ""
+    assert Redactor({"EMPTY": ""}).scrub("nothing to mask") == "nothing to mask"
 
 
 def test_placeholder_helpers_find_secret_keys() -> None:

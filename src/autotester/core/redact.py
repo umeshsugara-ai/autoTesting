@@ -12,7 +12,6 @@ from typing import Any
 
 MASK = "[REDACTED]"
 PLACEHOLDER_RE = re.compile(r"\{\{SECRET:([A-Z0-9_]+)\}\}")
-_MIN_SECRET_LEN = 4
 
 
 class Redactor:
@@ -20,15 +19,15 @@ class Redactor:
 
     Construct once per run from the loaded environment, then pass every string
     that is about to be logged, prompted, or persisted through `scrub`.
+
+    There is deliberately no minimum length: these are known-exact declared
+    values, not heuristic guesses. A three-character password is a bad
+    password, but leaking it is still a leak (checker finding AT-002).
     """
 
     def __init__(self, secrets: dict[str, str]) -> None:
         # Longest first, so a value that contains another is masked whole.
-        self._values = sorted(
-            (v for v in secrets.values() if v and len(v) >= _MIN_SECRET_LEN),
-            key=len,
-            reverse=True,
-        )
+        self._values = sorted((v for v in secrets.values() if v), key=len, reverse=True)
         self._keys_by_value = {v: k for k, v in secrets.items()}
 
     def scrub(self, text: str) -> str:
@@ -64,7 +63,10 @@ def has_placeholder(text: str) -> bool:
 
 
 def assert_no_raw_secrets(text: str, secrets: Iterable[str]) -> None:
-    """Raise if a raw secret value is present. Used as a hard gate before prompting."""
+    """Raise if a raw secret value is present. Used as a hard gate before prompting.
+
+    Any non-empty declared value counts, regardless of length (AT-002).
+    """
     for value in secrets:
-        if value and len(value) >= _MIN_SECRET_LEN and value in text:
+        if value and value in text:
             raise ValueError("refusing to proceed: raw secret value present in payload")

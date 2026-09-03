@@ -11,7 +11,7 @@ from autotester.schema.enums import ProviderRole, SourceKind, WritePolicy
 class SecretRef(BaseModel):
     """A declared credential. Holds the KEY and its scope — never the value.
 
-    The value lives only in `projects/<slug>/.env` and is substituted at the
+    The value lives only in the repo-root `.env` and is substituted at the
     moment of typing into the browser, scoped to `domains`.
     """
 
@@ -28,6 +28,15 @@ class SecretRef(BaseModel):
         if len(value) > 64:
             raise ValueError("secret key looks like a value, not a name")
         return value
+
+    @field_validator("domains")
+    @classmethod
+    def _reject_blank_domains(cls, domains: list[str]) -> list[str]:
+        """A blank domain would match an empty host and open the gate (AT-001)."""
+        cleaned = [d.strip().lower().lstrip(".") for d in domains]
+        if any(not d for d in cleaned):
+            raise ValueError("secret domains must be non-empty hostnames")
+        return cleaned
 
 
 class ProviderConfig(BaseModel):
