@@ -1,1 +1,1 @@
-2026-09-04T05:35:00+05:30 · ADVANCED · UI status-vocabulary fix (Set/Not-set pill vs test-result badge, review-status pill) built while demoing server to Umesh; checker dispatched
+2026-09-04T05:45:00+05:30 · BACKLOG_EMPTY · UI status-vocabulary fix checker-PASSed and closed; server confirmed live at localhost:8010, zero open issues
