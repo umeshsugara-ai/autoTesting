@@ -57,6 +57,9 @@ the previous stage's artifact. A stage never reaches into another stage's intern
 | Read-only backend assertions (Mongo), read-only by construction | `browser/db.py::ReadOnlyCollection` |
 | Agent fallback: fix one broken step, persist the corrected case | `stages/agent_loop.py::run_with_fallback` |
 | Anthropic provider (agent/judge roles) | `providers/anthropic.py::AnthropicProvider` |
+| Multi-vendor fallback (no single-provider dependency) — the default agent/judge | `providers/langchain_fallback.py::LangChainFallbackProvider` |
+| Gemini provider (vision role — video understanding) | `providers/gemini.py::GeminiProvider` |
+| Video → FlowSpec (screens/flows, provenance to the second) | `stages/ingest.py::ingest_video` |
 
 Duplicating any of these is a bug — `autotester doctor` fails on a class or function defined twice.
 
@@ -140,7 +143,7 @@ uv run autotester ledger add … # append a feature event (see docs/FEATURES.jso
 
 ## Status
 
-**Built:** schema, core, provider seam + mock + anthropic, doctor, CLI, `browser/secrets.py`, `browser/session.py`, `browser/db.py` (read-only Mongo assertions), the living map (`ledger/`, `docs/MAP.md`, `docs/SNAPSHOT.md`, `docs/FEATURES.jsonl`), `store/` (filestore + ProjectStore), `projects/pathlynks/` (onboarded), `stages/execute.py` (script-first runner), `stages/grade.py` (independent judge), `stages/agent_loop.py` (agent fallback).
-**Next:** grading for T-050's 3 real cases (deferred pending a LangChain-based multi-provider
-redesign — see feedback inbox) and T-060 (video ingest — blocked on a demo video) — see the plan
-for phases P1–P5.
+**Built:** schema, core, provider seam + mock + anthropic + gemini + langchain-fallback, doctor, CLI, `browser/secrets.py`, `browser/session.py`, `browser/db.py` (read-only Mongo assertions), the living map (`ledger/`, `docs/MAP.md`, `docs/SNAPSHOT.md`, `docs/FEATURES.jsonl`), `store/` (filestore + ProjectStore), `projects/pathlynks/` (onboarded, 3 real cases run+graded), `stages/execute.py` (script-first runner), `stages/grade.py` (independent judge), `stages/agent_loop.py` (agent fallback), `stages/ingest.py` (video → FlowSpec, tested against a mock vision provider).
+**Next:** the real golden-test acceptance for `stages/ingest.py` needs an actual Pathlynks demo
+video (none supplied yet); T-065 (FlowSpec review gate) once ingest has real data to review — see
+the plan for phases P1–P5.

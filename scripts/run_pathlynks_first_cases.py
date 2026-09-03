@@ -1,20 +1,15 @@
-"""T-050: 3 hand-written Pathlynks login cases (best/worst/edge), run headed for real.
-Contract: qa/contracts/pathlynks-first-run.md F1-F5.
+"""T-050: 3 hand-written Pathlynks login cases (best/worst/edge), run headed and
+graded for real. Contract: qa/contracts/pathlynks-first-run.md F1-F5.
 
 Umesh approved this live run explicitly (2026-09-03). `headed=True` is an
 in-memory override only -- `projects/pathlynks/project.json` stays
 `headed=false` (the unattended-run default), per T-030's own note that a
 future human-supervised exploration can override per-run.
 
-Grading (F3/F4) is DEFERRED, not skipped by oversight: `ANTHROPIC_API_KEY`
-in `.env` is empty, and Umesh explicitly chose (2026-09-03, AskUserQuestion)
-to wait for a proper LangChain-based multi-provider fallback redesign rather
-than have this script build a throwaway single-vendor judge. This run still
-delivers real, honest value on its own -- genuine RawResult evidence from a
-real headed browser against the real product -- and persists it exactly as
-grade.py's contract expects, so grading can be added later without re-running
-the browser part. `--grade` re-enables real grading once a working judge
-provider exists (kept for that day, not invoked by default).
+Grading now uses `LangChainFallbackProvider` (T-050b) -- Anthropic first,
+falling through to Gemini (the only one with a working key today), so this
+never depends on one vendor. `--no-grade` runs the browser part only, kept
+for the day every configured tier is genuinely unavailable.
 """
 
 from __future__ import annotations
@@ -30,7 +25,8 @@ from autotester.browser.secrets import SecretStore
 from autotester.browser.session import BrowserSession
 from autotester.core.ids import ulid
 from autotester.core.paths import ProjectPaths
-from autotester.providers.anthropic import AnthropicProvider
+from autotester.providers.base import Provider
+from autotester.providers.langchain_fallback import LangChainFallbackProvider
 from autotester.schema.case import Case
 from autotester.schema.enums import Action, CaseClass, CaseKind, EvidenceKind
 from autotester.schema.flowspec import Step
@@ -109,8 +105,7 @@ def make_rubric(case: Case) -> Rubric:
     )
 
 
-def run_one_case(case: Case, session: BrowserSession, judge: AnthropicProvider | None,
-                  run_id: str):
+def run_one_case(case: Case, session: BrowserSession, judge: Provider | None, run_id: str):
     # execute.py::run_case snapshots ALL of session.state.evidence, which is cumulative for the
     # whole (reused) session, not scoped per case -- slice to just what THIS case adds, else
     # case 2's RawResult would also carry case 1's evidence (found running this for real).
@@ -127,7 +122,7 @@ def run_one_case(case: Case, session: BrowserSession, judge: AnthropicProvider |
 
 
 def main() -> None:
-    grade_enabled = "--grade" in sys.argv
+    grade_enabled = "--no-grade" not in sys.argv
     repo_root = Path(__file__).resolve().parents[1]
     load_dotenv(repo_root / ".env")
 
@@ -146,16 +141,15 @@ def main() -> None:
     for case in cases:
         store.add_case(case)
 
-    judge: AnthropicProvider | None = None
+    judge: Provider | None = None
     if grade_enabled:
-        judge = AnthropicProvider()
+        judge = LangChainFallbackProvider()
         if not judge.available():
-            raise RuntimeError("--grade passed but ANTHROPIC_API_KEY not found even after "
-                                "loading .env")
+            raise RuntimeError("no provider in the fallback chain is configured (no "
+                                "ANTHROPIC_API_KEY/GEMINI_API_KEY/OLLAMA_BASE_URL/"
+                                "OPENAI_API_KEY) -- pass --no-grade to run browser-only")
     else:
-        print("grading DEFERRED (no --grade flag / no working judge provider yet) -- "
-              "running the browser part only, per Umesh's 2026-09-03 decision to wait for "
-              "the LangChain provider redesign")
+        print("grading skipped (--no-grade) -- running the browser part only")
 
     # WORST/EDGE must run while genuinely logged out; BEST logs in and leaves the persistent
     # profile authenticated for the rest of this process, so it runs last (found the hard way:

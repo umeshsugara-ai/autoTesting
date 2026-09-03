@@ -47,8 +47,8 @@
   ],
   "providers": {
     "vision": "gemini",
-    "agent": "anthropic",
-    "judge": "anthropic"
+    "agent": "langchain-fallback",
+    "judge": "langchain-fallback"
   },
   "headed": false,
   "description": "Vidysea's Pathlynks product (dev environment). Counsellor role logs in at dev-new.vidysea.com/login; the user/student role at pathlynks.vidysea.com/signin."

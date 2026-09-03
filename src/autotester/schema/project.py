@@ -45,8 +45,8 @@ class ProviderConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     vision: str = "gemini"
-    agent: str = "anthropic"
-    judge: str = "anthropic"
+    agent: str = "langchain-fallback"
+    judge: str = "langchain-fallback"
 
     def for_role(self, role: ProviderRole) -> str:
         return getattr(self, str(role))

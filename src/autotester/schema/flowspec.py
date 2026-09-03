@@ -155,3 +155,48 @@ class FlowSpec(Artifact):
 
     def screen(self, screen_id: str) -> Screen | None:
         return next((s for s in self.screens if s.id == screen_id), None)
+
+
+class ObservedStep(BaseModel):
+    """One action a vision model saw in a video. Raw material for a `Step` —
+    `stages/ingest.py` turns `t_start`/`t_end` into a `SourceRef`."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    order: int
+    action: Action
+    target: str = Field(description="what was clicked/filled, in plain terms — a role/name/"
+                        "label a human would use, never a CSS selector")
+    value: str | None = None
+    t_start: float = Field(description="seconds into the video when this action starts")
+    t_end: float | None = None
+
+
+class ObservedFlow(BaseModel):
+    """One journey a vision model saw across screens."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+    entry_screen: str = Field(description="the name of the screen this flow starts on")
+    steps: list[ObservedStep] = Field(default_factory=list)
+
+
+class ObservedScreen(BaseModel):
+    """One distinguishable screen a vision model saw."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+    t_start: float = Field(description="seconds into the video when this screen first appears")
+    signals: list[str] = Field(default_factory=list, description="visible cues that identify it")
+
+
+class VideoObservation(BaseModel):
+    """A vision provider's raw reading of one video — `stages/ingest.py`'s input,
+    turned into a `FlowSpec` (ids minted, provenance attached)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    screens: list[ObservedScreen] = Field(default_factory=list)
+    flows: list[ObservedFlow] = Field(default_factory=list)

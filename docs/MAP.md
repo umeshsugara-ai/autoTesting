@@ -21,6 +21,8 @@
 | `ledger/store.py` | Read and append `docs/FEATURES.jsonl`. The only write path to the ledger. |
 | `providers/anthropic.py` | Anthropic provider: the `agent` and `judge` roles via the Messages API. |
 | `providers/base.py` | The provider seam. Every model call in the system goes through this interface. |
+| `providers/gemini.py` | Gemini provider: the `vision` role (video understanding), plus `agent`/`judge` |
+| `providers/langchain_fallback.py` | LangChain-backed provider with automatic fallback across configured vendors. |
 | `providers/mock.py` | Deterministic provider for tests and dry runs. Never calls a network. |
 | `schema/base.py` | Base model every artifact inherits. Defines the shared envelope. |
 | `schema/bench.py` | The north star, made measurable: human expert tester vs AutoTester. |
@@ -35,6 +37,7 @@
 | `stages/agent_loop.py` | Agent fallback: when a case's steps break, ask the agent for a fix and retry. |
 | `stages/execute.py` | EXECUTE: run one case's steps in a real browser, producing a RawResult. |
 | `stages/grade.py` | GRADE: an independent, stateless judge reads a Rubric + a RawResult's evidence. |
+| `stages/ingest.py` | INGEST: turn a video Source into a FlowSpec, provenance-tracked to the second. |
 | `store/filestore.py` | The one place any artifact is read from or written to disk. Contract: core-invariants.md C6. |
 | `store/project_store.py` | Typed convenience over `filestore` for one project's directory. |
 <!-- /generated:map -->
@@ -65,6 +68,10 @@
 | `Review` (`schema/flowspec.py`) | The human gate. A flowspec drives nothing until a person approves it. |
 | `Conflict` (`schema/flowspec.py`) | Sources disagreed. Flagged for a human — never silently merged. |
 | `FlowSpec` (`schema/flowspec.py`) | The reviewed understanding of one project's UI. |
+| `ObservedStep` (`schema/flowspec.py`) | One action a vision model saw in a video. Raw material for a `Step` — |
+| `ObservedFlow` (`schema/flowspec.py`) | One journey a vision model saw across screens. |
+| `ObservedScreen` (`schema/flowspec.py`) | One distinguishable screen a vision model saw. |
+| `VideoObservation` (`schema/flowspec.py`) | A vision provider's raw reading of one video — `stages/ingest.py`'s input, |
 | `FeatureEvent` (`schema/ledger.py`) | One dated event in the life of a feature: planned, live, updated, or retired. |
 | `RelitigationVerdict` (`schema/ledger.py`) | The judge's answer to "is this new unit a retired feature coming back?". |
 | `SecretRef` (`schema/project.py`) | A declared credential. Holds the KEY and its scope — never the value. |

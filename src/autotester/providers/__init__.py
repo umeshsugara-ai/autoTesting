@@ -6,9 +6,16 @@ from typing import Any
 
 from autotester.providers.anthropic import AnthropicProvider
 from autotester.providers.base import Provider, ProviderError, Unsupported
+from autotester.providers.gemini import GeminiProvider
+from autotester.providers.langchain_fallback import LangChainFallbackProvider
 from autotester.providers.mock import MockProvider
 
-_REGISTRY: dict[str, type[Provider]] = {"mock": MockProvider, "anthropic": AnthropicProvider}
+_REGISTRY: dict[str, type[Provider]] = {
+    "mock": MockProvider,
+    "anthropic": AnthropicProvider,
+    "langchain-fallback": LangChainFallbackProvider,
+    "gemini": GeminiProvider,
+}
 
 
 def register(provider_id: str, cls: type[Provider]) -> None:
