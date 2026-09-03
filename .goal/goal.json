@@ -4,15 +4,15 @@
   "north_star": "An AI automated end-to-end tester that ingests product videos/docs, derives a reviewed FlowSpec, auto-generates best/worst/edge-case evals, runs them as regression in a real visible browser, self-extends coverage by requesting videos for unknown screens, and beats an expert human tester head-to-head on the same material (bugs found, false-positive rate, time). First target: Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-03T10:57:01",
+  "updated": "2026-09-03T11:23:33",
   "progress": {
     "total": 19,
-    "done": 8,
+    "done": 10,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 11,
-    "current": "T-041",
-    "percent": 42
+    "pending": 9,
+    "current": "T-050",
+    "percent": 53
   },
   "tasks": [
     {
@@ -174,7 +174,7 @@
     {
       "id": "T-041",
       "title": "stages/grade.py: independent stateless grader, rubric in / Verdict out",
-      "status": "pending",
+      "status": "done",
       "base_criticality": "HIGH",
       "deps": [
         "T-040"
@@ -188,12 +188,13 @@
       "attempts": 0,
       "created": "2026-09-03T07:26:17",
       "criticality": "low",
-      "user_value": "high"
+      "user_value": "high",
+      "completed": "2026-09-03T11:07:05"
     },
     {
       "id": "T-045",
       "title": "Backend assertions: EvidenceKind.DB + read-only Mongo assertion helper (PATHLYNKS_MONGO_URI as SecretRef); production Mongo never written",
-      "status": "pending",
+      "status": "done",
       "base_criticality": "MEDIUM",
       "deps": [
         "T-040",
@@ -202,13 +203,14 @@
       "user_value": "normal",
       "done_check": {
         "type": "cmd",
-        "cmd": "uv run pytest tests/test_execute.py -q",
+        "cmd": "uv run pytest tests/test_db.py -q",
         "expect_exit": 0
       },
       "note": "Sweep AT-018: Umesh will give Mongo creds in .env; the inbox entry had no task scheduling the execute-contract fold. Read-only by construction.",
       "attempts": 0,
       "created": "2026-09-03T07:26:17",
-      "criticality": "low"
+      "criticality": "low",
+      "completed": "2026-09-03T11:23:33"
     },
     {
       "id": "T-050",
@@ -400,9 +402,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 68.05,
+    "velocity_per_day": 66.54,
     "eta_days": 0.2
   },
-  "last_deterministic_tick": "2026-09-03T10:57:01",
+  "last_deterministic_tick": "2026-09-03T11:22:01",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }
