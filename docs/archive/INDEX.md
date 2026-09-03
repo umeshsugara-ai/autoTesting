@@ -1,5 +1,9 @@
 # DECISIONS archive index
 
+**Purpose:** permanent one-line index of archived DECISIONS entries with their computed status, read by the session-start injector forever.
+**Open me when:** the quarterly archive runs, or you need to know whether an old approach was REJECTED.
+
+
 One line per archived entry — `ID | date | type | COMPUTED status at archive time | 10-word summary | archive file`.
 REJECTED/SUPERSEDED lines here are PERMANENT: the session-start injector reads them
 forever (relitigation protection survives archiving — decision #12 / v1.1 rule 5).

@@ -44,7 +44,7 @@ $decisionsPath = Join-Path $RepoRoot "docs\DECISIONS.md"
 if (-not (Test-Path -LiteralPath $decisionsPath)) { Write-Output "APPEND-DECISION USAGE ERROR: $decisionsPath does not exist (run /init-lab first)"; exit 2 }
 if (-not (Test-Path -LiteralPath $EntryFile)) { Write-Output "APPEND-DECISION USAGE ERROR: entry file not found: $EntryFile"; exit 2 }
 
-$entryRaw = Get-Content -LiteralPath $EntryFile -Raw
+$entryRaw = Get-Content -LiteralPath $EntryFile -Raw -Encoding UTF8  # autoTesting: entries are UTF-8 (D-006)
 if ([string]::IsNullOrWhiteSpace($entryRaw)) { Refuse "entry file is empty" }
 $entryText = $entryRaw.Trim()
 $entryLines = $entryText -split "`r?`n"
@@ -67,7 +67,7 @@ if (@("ACTIVE", "REJECTED") -notcontains $newStatus) {
 
 # --- Collect existing IDs: live file + archive INDEX (IDs are never reused, even after archiving). ---
 $existingIds = New-Object System.Collections.Generic.List[int]
-$liveLines = Get-Content -LiteralPath $decisionsPath
+$liveLines = Get-Content -LiteralPath $decisionsPath -Encoding UTF8
 foreach ($l in $liveLines) {
   $m = [regex]::Match($l, '^## D-(\d+) \|')
   if ($m.Success) { $existingIds.Add([int]$m.Groups[1].Value) }
@@ -134,7 +134,7 @@ if ($caMatch.Success) {
 }
 
 # --- All validations passed: append atomically, never touching existing bytes. ---
-$existingRaw = Get-Content -LiteralPath $decisionsPath -Raw
+$existingRaw = Get-Content -LiteralPath $decisionsPath -Raw -Encoding UTF8
 $prefix = ""
 if ($existingRaw.Length -gt 0 -and -not $existingRaw.EndsWith("`n")) { $prefix = "`r`n" }
 $toAppend = $prefix + "`r`n" + $entryText + "`r`n"

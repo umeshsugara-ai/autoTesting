@@ -16,6 +16,22 @@ AutoTester wins on bugs found, false-positive rate, and time.
 
 Plan of record: `C:/Users/Lenovo/.claude/plans/great-when-you-really-iridescent-ocean.md`.
 
+## Where to look (router — every `docs/` file, checked by `autotester doctor`)
+
+| Open | When |
+|---|---|
+| `docs/SNAPSHOT.md` | every session start (the hook injects it) and before picking a unit — the whole project in one screen |
+| `docs/ARCHITECTURE.md` | you need where a concept lives, how stages fit, the data model, execution or security model |
+| `docs/MAP.md` | you need the generated directory map (module → one job) or schema summary (model → meaning) |
+| `docs/FEATURES.jsonl` | you need a feature's history, its reason, or whether it was retired (append only via `autotester ledger add`) |
+| `docs/DECISIONS.md` | you are about to change an approach or revive one — read the *why* first (append only via `scripts/append_decision.ps1`) |
+| `docs/archive/INDEX.md` | the quarterly archive, or checking whether an old approach was REJECTED |
+| `docs/research/market-2026-09.md` | choosing a library to reuse or positioning against a competitor |
+| `docs/research/schema-2026-09.md` | changing a schema model, adding an interop adapter, or wiring a benchmark |
+| `qa/contracts/*.md` | building or checking a unit — the criteria it is judged against |
+| `.work/grill-*.md` | the reasoning behind a design (grill captures); not committed |
+
+
 ## Design rules (enforced by `uv run autotester doctor`, not by memory)
 
 These exist because `d:/erp` shipped without an upfront schema and became unreadable to humans and
@@ -58,6 +74,7 @@ This project runs dev work through the maker-checker pair:
   `/maker continue "d:/autoTesting"` **before anything else**. The maker self-continues via
   `ScheduleWakeup` and dispatches its own checker subagents and sweeps; the only human actions are
   `/maker init` (once) and answering HUMAN_GATE decisions.
+- **Ledger on PASS:** when a goal task with `user_value: high` closes on a checker PASS, the maker appends a `docs/FEATURES.jsonl` row (`autotester ledger add … --unit T-NNN --verdict qa/verdicts/<slug>.md`) with a **prefilled** reason (task note + originating instruction) shown to Umesh to confirm or edit; `normal` tasks auto-stamp `update`. Before picking a unit, run `autotester ledger relitigation "<unit title + description>"` — a gate means a HUMAN_GATE. Rules decide only where certain (D-004).
 - Manual overrides (never required): `/checker sweep` · `/loop /maker continue "d:/autoTesting"`.
 
 ## Commands

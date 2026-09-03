@@ -20,6 +20,7 @@ from autotester.schema.flowspec import (
     SourceRef,
     Step,
 )
+from autotester.schema.ledger import FeatureEvent, RelitigationVerdict
 from autotester.schema.project import Project, ProviderConfig, SecretRef, Source
 from autotester.schema.run import Evidence, ProviderUsage, RawResult, Run
 from autotester.schema.verdict import Criterion, Failure, Rubric, Verdict
@@ -36,6 +37,7 @@ __all__ = [
     "Evidence",
     "ExpectedState",
     "Failure",
+    "FeatureEvent",
     "FieldConstraints",
     "Finding",
     "Flow",
@@ -46,6 +48,7 @@ __all__ = [
     "ProviderConfig",
     "ProviderUsage",
     "RawResult",
+    "RelitigationVerdict",
     "Review",
     "Rubric",
     "Run",

@@ -149,3 +149,20 @@ class RequestStatus(StrEnum):
 class Participant(StrEnum):
     HUMAN = "human"
     AUTOTESTER = "autotester"
+
+
+class FeatureEventKind(StrEnum):
+    """What happened to a feature, as recorded in `docs/FEATURES.jsonl`."""
+
+    PLANNED = "planned"
+    LIVE = "live"
+    UPDATED = "updated"
+    RETIRED = "retired"
+
+
+class UserValue(StrEnum):
+    """How much the product's user depends on a feature. Gates the reasoning ask."""
+
+    HIGH = "high"
+    NORMAL = "normal"
+    LOW = "low"

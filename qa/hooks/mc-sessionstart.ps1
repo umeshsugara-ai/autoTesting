@@ -37,4 +37,12 @@ if (Test-Path 'qa/.paused') {
 } elseif ($pending.Count -or $unclosed.Count -or $asleep -or ($sweepAge -lt 0) -or ($sweepAge -gt 120)) {
   Write-Output ("AUTO-CONTINUE REQUIRED: pending maker-checker state found. Run /maker continue " + [char]34 + $ROOT + [char]34 + " BEFORE anything else this session (it reconciles close-outs, dispatches pending checks and the due sweep, then pulls the next unit and self-continues via ScheduleWakeup). Do not wait to be asked.")
 }
+
+# Living map (L5): regenerate + inject the snapshot so reading it is not optional.
+if (Test-Path 'docs/SNAPSHOT.md') {
+  try { & uv run autotester snapshot 2>$null | Out-Null } catch {}
+  Write-Output "--- docs/SNAPSHOT.md (generated; router in CLAUDE.md) ---"
+  [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+  Get-Content 'docs/SNAPSHOT.md' -Encoding UTF8 | Write-Output
+}
 exit 0

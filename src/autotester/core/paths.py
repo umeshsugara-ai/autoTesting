@@ -37,7 +37,12 @@ class ProjectPaths:
 
     @property
     def env_file(self) -> Path:
-        return self.dir / ".env"
+        """One credential file for the whole repo, at the root (Umesh, 2026-09-03).
+
+        Keys are namespaced per project (`PATHLYNKS_*`) and declared in each
+        project's `SecretRef[]`; a project can only resolve the keys it declares.
+        """
+        return self.root / ".env"
 
     @property
     def sources_dir(self) -> Path:
@@ -101,3 +106,48 @@ def work_dir(root: Path | None = None) -> Path:
     path = (root or repo_root()) / ".work"
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+class RepoDocs:
+    """Repo-level documents: the living map, the ledger, the history, the router."""
+
+    def __init__(self, root: Path | None = None) -> None:
+        self.root = root or repo_root()
+
+    @property
+    def docs_dir(self) -> Path:
+        return self.root / "docs"
+
+    @property
+    def architecture(self) -> Path:
+        return self.docs_dir / "ARCHITECTURE.md"
+
+    @property
+    def snapshot(self) -> Path:
+        return self.docs_dir / "SNAPSHOT.md"
+
+    @property
+    def map(self) -> Path:
+        """Generated directory map + schema summary (kept out of ARCHITECTURE's 150-line budget)."""
+        return self.docs_dir / "MAP.md"
+
+    @property
+    def features(self) -> Path:
+        return self.docs_dir / "FEATURES.jsonl"
+
+    @property
+    def decisions(self) -> Path:
+        return self.docs_dir / "DECISIONS.md"
+
+    @property
+    def router(self) -> Path:
+        """`CLAUDE.md` carries the "open X when Y" table."""
+        return self.root / "CLAUDE.md"
+
+    @property
+    def goal(self) -> Path:
+        return self.root / ".goal" / "goal.json"
+
+    @property
+    def prompts_dir(self) -> Path:
+        return self.root / "src" / "autotester" / "prompts"

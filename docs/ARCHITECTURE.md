@@ -1,5 +1,8 @@
 # AutoTester — architecture
 
+**Purpose:** the current state of the system — pipeline, concept→file map, data model, execution and security model, generated directory map and schema summary.
+**Open me when:** you need to find where a concept lives or how the stages fit together. Prose changes only under a `docs/DECISIONS.md` entry; the generated sections come from `autotester map`.
+
 Read this file, then `src/autotester/schema/`. That is the whole system.
 
 ## What it does
@@ -35,10 +38,18 @@ the previous stage's artifact. A stage never reaches into another stage's intern
 | Artifact envelope (schema_version, created_at, provenance) | `schema/base.py::Artifact` |
 | Id minting, content hashing, file sha256 | `core/ids.py` |
 | Secret redaction + `{{SECRET:KEY}}` placeholders | `core/redact.py` |
+| The credential boundary (load `.env`, resolve per host, mask) | `browser/secrets.py::SecretStore` |
+| The visible browser (persistent profile, bounded navigation, masked capture, HITL) | `browser/session.py::BrowserSession` |
+| Generic JSON/JSONL read/write (atomic; the only place a file is persisted) | `store/filestore.py` |
+| Per-project artifact facade (project, sources, flowspec, cases) | `store/project_store.py::ProjectStore` |
 | Every project path on disk | `core/paths.py::ProjectPaths` |
 | Model calls (vision / agent / judge) | `providers/base.py::Provider` + registry in `providers/__init__.py` |
-| Design enforcement | `doctor.py` |
+| Design enforcement (incl. generated-doc freshness, ledger validity, router) | `doctor.py` |
 | Commands | `cli.py` |
+| Feature ledger rows (`docs/FEATURES.jsonl`) — the only write path | `ledger/store.py` |
+| Derived docs: generated sections of this file, `docs/SNAPSHOT.md`, decision index | `ledger/render.py` |
+| Relitigation gate (retired feature coming back?) — D-004 confidence-gated | `ledger/relitigation.py` + `prompts/relitigation_v1.md` |
+| Repo-level doc paths (ledger, snapshot, decisions, router) | `core/paths.py::RepoDocs` |
 
 Duplicating any of these is a bug — `autotester doctor` fails on a class or function defined twice.
 
@@ -71,9 +82,11 @@ Browser is **headed by default** (`Project.headed`), driven against a persistent
 
 ## Security (non-negotiable)
 
-1. Values live only in `projects/<slug>/.env` (gitignored). `SecretRef` holds the **key**, never the value.
+1. Values live only in the **repo-root `.env`** (gitignored; one file, keys namespaced per project and
+   declared in each project's `SecretRef[]`). `SecretRef` holds the **key** and its domain scope, never the value.
 2. Prompts carry `{{SECRET:KEY}}`. Substitution happens at `page.fill()` time only, scoped to the
-   project's `allowed_domains`. `core/redact.assert_no_raw_secrets` is the hard gate before any call.
+   `SecretRef`'s `domains`; parser-ambiguous destinations fail closed. `core/redact.assert_no_raw_secrets`
+   is the hard gate before any call; undeclared `.env` values are masked too, never usable.
 3. Screenshots mask secret inputs; every log and artifact passes `Redactor.scrub`.
 4. `write_policy` defaults to `read_only`; writing to a target app is an explicit, per-run decision.
 
@@ -82,7 +95,8 @@ Browser is **headed by default** (`Project.headed`), driven against a persistent
 Artifacts are plain files a human can open, edit, or delete:
 
 ```
-projects/<slug>/  project.json · .env (ignored) · sources/ · sources.jsonl · flowspec.json
+.env              all credentials, repo root (ignored) — see `.env.example`
+projects/<slug>/  project.json · sources/ · sources.jsonl · flowspec.json
                   cases.jsonl · rubrics/ · scripts/ · runs/<run_id>/ · requests.jsonl · knowledge.md
 profiles/<slug>/  persistent browser profile (ignored)
 .work/            scratch, logs, evidence in progress (ignored)
@@ -101,6 +115,10 @@ The UI is a viewer/editor over these files, not a second source of truth.
 These exist because the previous project lost human control when files, duplicated concepts, and
 root-level scratch grew unchecked. The rules are cheap now and unaffordable later.
 
+## Directory map and schema summary
+
+Generated from module and model docstrings into `docs/MAP.md` by `autotester map`; not kept here so this file stays inside its 150-line budget.
+
 ## Commands
 
 ```bash
@@ -108,10 +126,12 @@ uv run autotester doctor       # design rules
 uv run autotester providers    # which model providers have credentials
 uv run pytest                  # test suite
 uv run ruff check src tests    # lint
+uv run autotester map          # regenerate docs/MAP.md
+uv run autotester snapshot     # regenerate docs/SNAPSHOT.md
+uv run autotester ledger add … # append a feature event (see docs/FEATURES.jsonl)
 ```
 
 ## Status
 
-**Built:** schema, core (ids/redaction/paths), provider seam + mock, doctor, CLI, tests.
-**Next:** `browser/` (Playwright session + secret injection), then `stages/execute.py` and
-`stages/grade.py` against Pathlynks — see the plan for phases P1–P5.
+**Built:** schema, core, provider seam + mock, doctor, CLI, `browser/secrets.py`, `browser/session.py`, the living map (`ledger/`, `docs/MAP.md`, `docs/SNAPSHOT.md`, `docs/FEATURES.jsonl`), `store/` (filestore + ProjectStore).
+**Next:** `stages/execute.py` and `stages/grade.py` against Pathlynks — see the plan for phases P1–P5.
