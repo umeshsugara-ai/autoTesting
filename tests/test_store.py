@@ -131,6 +131,49 @@ def test_add_case_is_idempotent_when_a_flowspec_regenerates(tmp_path: Path) -> N
     assert len(store.list_cases()) == 1
 
 
+def test_add_case_does_not_rescan_the_file_on_every_call(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AT-024: add_case used to call list_cases() (a full JSONL read) before
+    every single append -- O(n) per add. The id cache means only the FIRST
+    add in a store's lifetime reads the file; every later add in the same
+    instance is an in-memory set check."""
+    import autotester.store.project_store as project_store_module
+
+    store = ProjectStore("pathlynks", tmp_path)
+    calls = []
+    real_read_jsonl = project_store_module.read_jsonl
+
+    def counting_read_jsonl(path, model):
+        calls.append(path)
+        return real_read_jsonl(path, model)
+
+    monkeypatch.setattr(project_store_module, "read_jsonl", counting_read_jsonl)
+
+    for i in range(5):
+        store.add_case(Case(**{**make_case().model_dump(exclude={"id", "created_at"}),
+                                "flow_id": f"flow-{i}", "id": ""}))  # flow_id feeds compute_id
+
+    assert len(calls) == 1  # only the first add's cache-population read
+    assert len(store.list_cases()) == 5  # list_cases() itself always reads fresh
+
+
+def test_add_case_cache_does_not_hide_a_case_added_by_another_process(tmp_path: Path) -> None:
+    """The id cache is populated lazily per-instance -- a second ProjectStore
+    pointed at the same directory always sees what's actually on disk."""
+    first = ProjectStore("pathlynks", tmp_path)
+    case_a = make_case()
+    first.add_case(case_a)  # populates first's cache with {case_a.id}
+
+    second = ProjectStore("pathlynks", tmp_path)
+    case_b = Case(**{**case_a.model_dump(exclude={"id", "created_at"}),
+                      "flow_id": "flow-other", "id": ""})
+    second.add_case(case_b)
+
+    assert len(first.list_cases()) == 2
+    assert len(second.list_cases()) == 2
+
+
 def test_a_human_can_hand_edit_an_artifact_and_the_store_still_loads(tmp_path: Path) -> None:
     """C6: artifacts are files a human can open, edit, or delete."""
     store = ProjectStore("pathlynks", tmp_path)

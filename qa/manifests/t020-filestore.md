@@ -72,3 +72,13 @@ doctor: clean
 ## Status: checked-PASS
 
 Verdict: `qa/verdicts/t020-filestore.md` (Cycle checked: 1, PASS; commit 837e6cb). Goal task T-020 closed by the checker. `user_value: normal` — no ledger row required. Non-blocking findings AT-023 (manifest test-count typo) and AT-024 (O(n) add_source/add_case scan, future optimization) filed for later.
+
+## Correction (2026-09-03, resolving AT-023)
+
+The counts above (line 36: "13 tests"; line 44/46: "13 passed"/"94 tests") were off by one at
+the time this manifest was written — `tests/test_store.py` had 12 test functions, and the full
+suite at that point in time collected 93, not 94 (`uv run pytest --collect-only -q` confirms;
+all tests passed regardless — this was a self-reported-count typo, never a functional violation).
+Left uncorrected in place above per this project's evidence-manifest discipline (a historical
+record of what was run, not a living document); this note is the fix. AT-023 flipped
+`open` → `verified` in `qa/issues.jsonl`.

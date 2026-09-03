@@ -20,10 +20,24 @@ from autotester.store.filestore import append_jsonl, read_json, read_jsonl, writ
 
 
 class ProjectStore:
-    """Load and save one project's artifacts as human-editable files (C6)."""
+    """Load and save one project's artifacts as human-editable files (C6).
+
+    AT-024: `add_source`/`add_case`/`add_request` used to re-read their whole
+    collection (a full JSONL scan) on every single call to check idempotency —
+    O(n) per add, O(n^2) for n sequential adds in one loop (e.g. `expand.py`
+    adding a dozen-plus cases per flow). Each keeps a lazily-populated
+    in-memory id cache instead: the first add in a `ProjectStore`'s lifetime
+    still reads the file once, but every subsequent add in that same instance
+    is an O(1) set check. `list_*()` always reads fresh from disk — it must
+    reflect whatever is actually there, including anything written by another
+    process — only the add-time idempotency check is cached.
+    """
 
     def __init__(self, slug: str, root: Path | None = None) -> None:
         self.paths = ProjectPaths(slug, root)
+        self._source_ids: set[str] | None = None
+        self._case_ids: set[str] | None = None
+        self._request_ids: set[str] | None = None
 
     # -- project --------------------------------------------------------------
     def save_project(self, project: Project) -> None:
@@ -35,9 +49,12 @@ class ProjectStore:
     # -- sources (immutable, content-addressed) --------------------------------
     def add_source(self, source: Source) -> Source:
         """Idempotent: re-adding an identical source is a no-op, not a duplicate."""
-        if any(s.id == source.id for s in self.list_sources()):
+        if self._source_ids is None:
+            self._source_ids = {s.id for s in self.list_sources()}
+        if source.id in self._source_ids:
             return source
         append_jsonl(self.paths.sources_index, source)
+        self._source_ids.add(source.id)
         return source
 
     def list_sources(self) -> list[Source]:
@@ -53,9 +70,12 @@ class ProjectStore:
     # -- cases (content-addressed; status can change) ---------------------------
     def add_case(self, case: Case) -> Case:
         """Idempotent on id: regenerating a flowspec never duplicates a case."""
-        if any(c.id == case.id for c in self.list_cases()):
+        if self._case_ids is None:
+            self._case_ids = {c.id for c in self.list_cases()}
+        if case.id in self._case_ids:
             return case
         append_jsonl(self.paths.cases, case)
+        self._case_ids.add(case.id)
         return case
 
     def list_cases(self) -> list[Case]:
@@ -101,9 +121,12 @@ class ProjectStore:
     # -- video requests (the self-extension queue) -------------------------------
     def add_request(self, request: VideoRequest) -> VideoRequest:
         """Idempotent: the same gap never queues a second request."""
-        if any(r.id == request.id for r in self.list_requests()):
+        if self._request_ids is None:
+            self._request_ids = {r.id for r in self.list_requests()}
+        if request.id in self._request_ids:
             return request
         append_jsonl(self.paths.requests, request)
+        self._request_ids.add(request.id)
         return request
 
     def list_requests(self) -> list[VideoRequest]:
