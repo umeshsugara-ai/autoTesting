@@ -4,15 +4,15 @@
   "north_star": "An AI automated end-to-end tester that ingests product videos/docs, derives a reviewed FlowSpec, auto-generates best/worst/edge-case evals, runs them as regression in a real visible browser, self-extends coverage by requesting videos for unknown screens, and beats an expert human tester head-to-head on the same material (bugs found, false-positive rate, time). First target: Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-03T09:02:42",
+  "updated": "2026-09-03T09:10:39",
   "progress": {
     "total": 19,
-    "done": 5,
+    "done": 6,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 14,
-    "current": "T-020",
-    "percent": 26
+    "pending": 13,
+    "current": "T-030",
+    "percent": 32
   },
   "tasks": [
     {
@@ -113,7 +113,7 @@
     {
       "id": "T-020",
       "title": "store/filestore.py: load/save every artifact as JSON/JSONL under projects/<slug>/",
-      "status": "pending",
+      "status": "done",
       "base_criticality": "LOW",
       "deps": [
         "T-000"
@@ -127,7 +127,8 @@
       "attempts": 0,
       "created": "2026-09-03T07:26:17",
       "criticality": "low",
-      "user_value": "normal"
+      "user_value": "normal",
+      "completed": "2026-09-03T09:10:39"
     },
     {
       "id": "T-030",
@@ -397,9 +398,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 72.0,
-    "eta_days": 0.2
+    "velocity_per_day": 96.0,
+    "eta_days": 0.1
   },
-  "last_deterministic_tick": "2026-09-03T09:02:01",
-  "last_agentic_tick": "2026-09-03T08:56:17"
+  "last_deterministic_tick": "2026-09-03T09:07:01",
+  "last_agentic_tick": "2026-09-03T09:03:18"
 }
