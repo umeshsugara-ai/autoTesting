@@ -120,3 +120,10 @@ scope), (3) CSS-only UI polish across existing routes.
 **Status:** folded → `qa/contracts/docker.md` (D1-D6, new) + `qa/contracts/ui.md` amendment log
 (2026-09-03, /checker, docker-live-ui unit) — shared-layout invariant and `/live` route now
 recorded. Verified: `qa/verdicts/docker-live-ui.md` (PASS, cycle 1).
+
+*/maker 2026-09-03 (housekeeping pass): this item's status text still reads "unfolded" but the
+proposal was actually delivered by T-090 -- `qa/contracts/db-assert.md` exists,
+`browser/db.py::ReadOnlyCollection` is built, `EvidenceKind.DB` is a real enum member, and
+`PATHLYNKS_MONGO_URI` is declared as a `SecretRef` in `projects/pathlynks/project.json`. Flagging
+for the checker to reconcile the status line to "folded -> db-assert.md" -- not editing it myself
+since contract/ledger status is checker-owned.*
