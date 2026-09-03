@@ -42,6 +42,7 @@ the previous stage's artifact. A stage never reaches into another stage's intern
 | The visible browser (persistent profile, bounded navigation, masked capture, HITL) | `browser/session.py::BrowserSession` |
 | Generic JSON/JSONL read/write (atomic; the only place a file is persisted) | `store/filestore.py` |
 | Per-project artifact facade (project, sources, flowspec, cases) | `store/project_store.py::ProjectStore` |
+| Pathlynks onboarding (credential-boundary-safe login + knowledge.md) | `scripts/onboard_pathlynks.py` |
 | Every project path on disk | `core/paths.py::ProjectPaths` |
 | Model calls (vision / agent / judge) | `providers/base.py::Provider` + registry in `providers/__init__.py` |
 | Design enforcement (incl. generated-doc freshness, ledger validity, router) | `doctor.py` |
@@ -133,5 +134,5 @@ uv run autotester ledger add … # append a feature event (see docs/FEATURES.jso
 
 ## Status
 
-**Built:** schema, core, provider seam + mock, doctor, CLI, `browser/secrets.py`, `browser/session.py`, the living map (`ledger/`, `docs/MAP.md`, `docs/SNAPSHOT.md`, `docs/FEATURES.jsonl`), `store/` (filestore + ProjectStore).
+**Built:** schema, core, provider seam + mock, doctor, CLI, `browser/secrets.py`, `browser/session.py`, the living map (`ledger/`, `docs/MAP.md`, `docs/SNAPSHOT.md`, `docs/FEATURES.jsonl`), `store/` (filestore + ProjectStore), `projects/pathlynks/` (onboarded).
 **Next:** `stages/execute.py` and `stages/grade.py` against Pathlynks — see the plan for phases P1–P5.
