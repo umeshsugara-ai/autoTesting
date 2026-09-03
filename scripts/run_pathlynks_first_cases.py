@@ -1,0 +1,192 @@
+"""T-050: 3 hand-written Pathlynks login cases (best/worst/edge), run headed for real.
+Contract: qa/contracts/pathlynks-first-run.md F1-F5.
+
+Umesh approved this live run explicitly (2026-09-03). `headed=True` is an
+in-memory override only -- `projects/pathlynks/project.json` stays
+`headed=false` (the unattended-run default), per T-030's own note that a
+future human-supervised exploration can override per-run.
+
+Grading (F3/F4) is DEFERRED, not skipped by oversight: `ANTHROPIC_API_KEY`
+in `.env` is empty, and Umesh explicitly chose (2026-09-03, AskUserQuestion)
+to wait for a proper LangChain-based multi-provider fallback redesign rather
+than have this script build a throwaway single-vendor judge. This run still
+delivers real, honest value on its own -- genuine RawResult evidence from a
+real headed browser against the real product -- and persists it exactly as
+grade.py's contract expects, so grading can be added later without re-running
+the browser part. `--grade` re-enables real grading once a working judge
+provider exists (kept for that day, not invoked by default).
+"""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
+from dotenv import load_dotenv
+
+from autotester.browser.secrets import SecretStore
+from autotester.browser.session import BrowserSession
+from autotester.core.ids import ulid
+from autotester.core.paths import ProjectPaths
+from autotester.providers.anthropic import AnthropicProvider
+from autotester.schema.case import Case
+from autotester.schema.enums import Action, CaseClass, CaseKind, EvidenceKind
+from autotester.schema.flowspec import Step
+from autotester.schema.run import Run
+from autotester.schema.verdict import Criterion, Rubric
+from autotester.stages.execute import run_case
+from autotester.stages.grade import grade
+from autotester.store import ProjectStore
+
+SIGNIN_EMAIL = 'input[name="identifier"]'
+SIGNIN_PASSWORD = 'input[name="password"]'
+SIGNIN_SUBMIT = 'button[type="submit"]:has-text("Login")'
+WRONG_PASSWORD = "Wr0ng-Password-Deliberately-Not-Real!"  # not a secret; never a real credential
+POST_SUBMIT_WAIT_MS = 4000  # matches T-030 onboard_pathlynks.py's DASHBOARD_WAIT_MS -- the
+# submit button shows an async "Logging in..." spinner (confirmed by screenshot), so reading
+# page.url immediately after the click races the real redirect and reads the login page's own
+# URL, not where the app actually lands.
+
+
+def build_cases(project_slug: str, base_url: str) -> list[Case]:
+    """`base_url` is a literal, not a secret -- it goes straight into each case's
+    NAVIGATE step so a persisted case is standalone re-runnable via execute.py,
+    with no template marker only this script would know how to resolve."""
+    return [
+        Case(
+            project=project_slug, flow_id="flow_login", kind=CaseKind.BEST,
+            case_class=CaseClass.HAPPY, title="Login with correct credentials",
+            rationale="proves the credential boundary + execute/grade pipeline against a real "
+                      "product end to end",
+            steps=[
+                Step(order=1, action=Action.NAVIGATE, target=base_url),
+                Step(order=2, action=Action.FILL, target=SIGNIN_EMAIL,
+                     value="{{SECRET:PATHLYNKS_USER_EMAIL}}"),
+                Step(order=3, action=Action.FILL, target=SIGNIN_PASSWORD,
+                     value="{{SECRET:PATHLYNKS_USER_PASSWORD}}"),
+                Step(order=4, action=Action.CLICK, target=SIGNIN_SUBMIT),
+            ],
+        ),
+        Case(
+            project=project_slug, flow_id="flow_login", kind=CaseKind.WORST,
+            case_class=CaseClass.AUTH_WRONG_CREDS, title="Login with correct email, wrong password",
+            rationale="a real account with a deliberately wrong password must be rejected",
+            steps=[
+                Step(order=1, action=Action.NAVIGATE, target=base_url),
+                Step(order=2, action=Action.FILL, target=SIGNIN_EMAIL,
+                     value="{{SECRET:PATHLYNKS_USER_EMAIL}}"),
+                Step(order=3, action=Action.FILL, target=SIGNIN_PASSWORD, value=WRONG_PASSWORD),
+                Step(order=4, action=Action.CLICK, target=SIGNIN_SUBMIT),
+            ],
+        ),
+        Case(
+            project=project_slug, flow_id="flow_login", kind=CaseKind.EDGE,
+            case_class=CaseClass.INPUT_EMPTY, title="Submit the login form empty",
+            rationale="client-side/server-side validation must stop an empty submit",
+            steps=[
+                Step(order=1, action=Action.NAVIGATE, target=base_url),
+                Step(order=2, action=Action.CLICK, target=SIGNIN_SUBMIT),
+            ],
+        ),
+    ]
+
+
+def make_rubric(case: Case) -> Rubric:
+    return Rubric(
+        id=f"rub_{case.id}",
+        case_id=case.id,
+        criteria=[
+            Criterion(id="landed", text=(
+                "For the BEST case: the final URL evidence shows the browser left the sign-in "
+                "page and landed somewhere else (a dashboard). For WORST/EDGE cases: the final "
+                "URL evidence shows the browser is STILL on the sign-in page (login was "
+                "rejected or never attempted)."
+            )),
+        ],
+        no_fire=["exact wording of any error message shown by the product"],
+    )
+
+
+def run_one_case(case: Case, session: BrowserSession, judge: AnthropicProvider | None,
+                  run_id: str):
+    # execute.py::run_case snapshots ALL of session.state.evidence, which is cumulative for the
+    # whole (reused) session, not scoped per case -- slice to just what THIS case adds, else
+    # case 2's RawResult would also carry case 1's evidence (found running this for real).
+    start = len(session.state.evidence)
+    result = run_case(case, session)
+    session.page.wait_for_timeout(POST_SUBMIT_WAIT_MS)
+    session.screenshot(f"{case.kind.value}-final")
+    landed_url = session.secrets.redactor().scrub(session.page.url)
+    session._record(EvidenceKind.URL, landed_url, label="post-submit URL")
+    result.evidence = list(session.state.evidence[start:])
+
+    verdict = grade(make_rubric(case), result, run_id, judge) if judge is not None else None
+    return result, verdict
+
+
+def main() -> None:
+    grade_enabled = "--grade" in sys.argv
+    repo_root = Path(__file__).resolve().parents[1]
+    load_dotenv(repo_root / ".env")
+
+    store = ProjectStore("pathlynks")
+    project = store.load_project()
+    if project is None:
+        raise RuntimeError("projects/pathlynks/project.json not found")
+    headed_project = project.model_copy(update={"headed": True})
+
+    paths = ProjectPaths("pathlynks")
+    secrets = SecretStore.load(headed_project, paths.env_file)
+
+    run_id = f"run-{ulid()}"
+    run_dir = paths.run_dir(run_id)
+    cases = build_cases(project.slug, project.base_url)
+    for case in cases:
+        store.add_case(case)
+
+    judge: AnthropicProvider | None = None
+    if grade_enabled:
+        judge = AnthropicProvider()
+        if not judge.available():
+            raise RuntimeError("--grade passed but ANTHROPIC_API_KEY not found even after "
+                                "loading .env")
+    else:
+        print("grading DEFERRED (no --grade flag / no working judge provider yet) -- "
+              "running the browser part only, per Umesh's 2026-09-03 decision to wait for "
+              "the LangChain provider redesign")
+
+    # WORST/EDGE must run while genuinely logged out; BEST logs in and leaves the persistent
+    # profile authenticated for the rest of this process, so it runs last (found the hard way:
+    # the first attempt ran BEST first and the following cases hit an already-authenticated
+    # redirect instead of the login form -- see the manifest's "What we found" section).
+    run_order = sorted(cases, key=lambda c: 0 if c.kind is not CaseKind.BEST else 1)
+
+    session = BrowserSession(headed_project, secrets, run_dir, paths)
+    session.start()
+    results = []
+    try:
+        for case in run_order:
+            result, verdict = run_one_case(case, session, judge, run_id)
+            store.save_result(run_id, result)
+            if verdict is not None:
+                store.save_verdict(run_id, verdict)
+            results.append((case, result, verdict))
+            session.goto(project.base_url)  # reset to sign-in page between cases
+    finally:
+        session.close()
+
+    store.save_run(Run(id=run_id, project=project.slug, case_ids=[c.id for c, _, _ in results]))
+
+    for case, result, verdict in results:
+        verdict_str = (
+            f"{verdict.result.value} ({verdict.grader_provider})" if verdict else "(deferred)"
+        )
+        print(f"{case.kind.value:5s} {case.id}  outcome={result.outcome.value:9s} "
+              f"verdict={verdict_str}")
+    print(f"run: {run_dir}")
+
+
+if __name__ == "__main__":
+    main()

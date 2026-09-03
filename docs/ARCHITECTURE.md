@@ -43,6 +43,7 @@ the previous stage's artifact. A stage never reaches into another stage's intern
 | Generic JSON/JSONL read/write (atomic; the only place a file is persisted) | `store/filestore.py` |
 | Per-project artifact facade (project, sources, flowspec, cases) | `store/project_store.py::ProjectStore` |
 | Pathlynks onboarding (credential-boundary-safe login + knowledge.md) | `scripts/onboard_pathlynks.py` |
+| First real Pathlynks run: 3 hand-written best/worst/edge login cases | `scripts/run_pathlynks_first_cases.py` |
 | Every project path on disk | `core/paths.py::ProjectPaths` |
 | Model calls (vision / agent / judge) | `providers/base.py::Provider` + registry in `providers/__init__.py` |
 | Design enforcement (incl. generated-doc freshness, ledger validity, router) | `doctor.py` |
@@ -140,4 +141,6 @@ uv run autotester ledger add … # append a feature event (see docs/FEATURES.jso
 ## Status
 
 **Built:** schema, core, provider seam + mock + anthropic, doctor, CLI, `browser/secrets.py`, `browser/session.py`, `browser/db.py` (read-only Mongo assertions), the living map (`ledger/`, `docs/MAP.md`, `docs/SNAPSHOT.md`, `docs/FEATURES.jsonl`), `store/` (filestore + ProjectStore), `projects/pathlynks/` (onboarded), `stages/execute.py` (script-first runner), `stages/grade.py` (independent judge), `stages/agent_loop.py` (agent fallback).
-**Next:** T-050 first real Pathlynks run (3 hand-written cases through execute+grade, headed browser — human sign-off pending) and T-060 (video ingest — blocked on a demo video) — see the plan for phases P1–P5.
+**Next:** grading for T-050's 3 real cases (deferred pending a LangChain-based multi-provider
+redesign — see feedback inbox) and T-060 (video ingest — blocked on a demo video) — see the plan
+for phases P1–P5.

@@ -93,3 +93,16 @@ outside this project's root, so the maker does not touch it.
 
 **Status:** unfolded (tooling defect, not a contract change)
 */checker 2026-09-03 (T-005 cycle-1 check): the in-repo fix is verified - ran the working-tree `scripts/append_decision.ps1` (`-Encoding UTF8` on the entry read, the live-file read, and the raw read before append) against a scratch copy of `docs/DECISIONS.md`; the appended entry carried `·` and `—` as clean UTF-8 (`c2 b7`, `e2 80 94`), no `Â·`/`â€”`. Authorization: D-000 `Changes-authorized` lists `scripts/append_decision.ps1` with `Approved-by: Umesh`; D-006 records the change. The template-level copy at `D:/ai_os/templates/lab-protocol/scripts/append_decision.ps1` is outside this root - left unfolded here on purpose; it is a note for Umesh / the AIOS session, not a contract item for this project.*
+
+## 2026-09-03 — Umesh, on provider architecture (mid T-050 build)
+**Source:** chat, this session, while T-050 was blocked on ANTHROPIC_API_KEY being empty.
+**Verbatim:** "मैं पहले से ही यह discuss करके confirm कराया, right? कि किसी भी एक model पे कभी dependency नहीं होगी, it should be lang chain system और whatever की, हम जब चाहेंगे, हम anthropic में भी shift होंगे, अगर गो नहीं होगा, Gemini यहीं पे होंगे, Gemini नहीं होगा, तो Olama में होंगे, Chat, GPT में होंगे, तो there should be either fallback system और lang chain का use कर ले, ताकि कोई भी API. चलो वो अलब sign up process है, तो वो बन जाएगा conditional, otherwise बाती सब का lang chain भी तुरू कर ले,"
+**Reading:** no single-provider dependency; a fallback chain across Anthropic → Gemini → Ollama →
+ChatGPT; built on LangChain rather than a hand-rolled per-vendor Provider class.
+**Status:** unfolded (deliberate) — this is a real architecture direction, not a quick fix. The
+current `providers/base.py::Provider` ABC + registry is pluggable (a project can already mix
+Gemini for vision with Anthropic for judging) but has no automatic fallback and is not
+LangChain-based. Migrating is a substantial, contract-worthy change touching every stage that
+calls `act()`/`judge()`/`see_video()` (execute.py doesn't, but grade.py and agent_loop.py do) —
+not something to improvise mid-cycle. Needs its own design pass (likely /cto-advisor HLD or a
+short /grill) before a contract and goal task exist for it. Tracked here until scoped.
