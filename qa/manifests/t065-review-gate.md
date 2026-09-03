@@ -102,4 +102,6 @@ doctor: clean
   Flagging for the checker to correct it to `uv run pytest tests/test_review.py -q` (matching how
   the checker corrected T-045's stale `done_check` earlier this session).
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Reconciliation note (2026-09-03): this manifest was never flipped from ready-for-check at the time, even though qa/verdicts/t065-review-gate.md recorded PASS and the unit shipped (see docs/FEATURES.jsonl / .goal/goal.json). Corrected during a disk-state reconciliation pass -- no re-check performed, no new claim made; the verdict file is the actual evidence, this is only the manifest catching up to it.

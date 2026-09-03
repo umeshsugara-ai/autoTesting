@@ -166,7 +166,9 @@ scanned 23 file(s); 1 leak(s)
   `run-01M1K3QVCWQESZX05KWCWPH5B3` (cycle 1, browser-only, correct behavior but no verdicts). The
   current cycle's F1–F5 claims are about `run-01M1K941M7AQ7RWMYPF378TDQT`.
 
-## Status: ready-for-check (cycle 2)
+## Status: checked-PASS (cycle 2)
+
+Reconciliation note (2026-09-03): never flipped at the time, even though qa/verdicts/t050-pathlynks-first-run.md records Cycle checked: 2, VERDICT: PASS, and goal task T-050 shows status done (.goal/goal.json). Corrected during a disk-state reconciliation pass -- the verdict file is the actual evidence.
 
 Cycle 1 verdict: `qa/verdicts/t050-pathlynks-first-run.md` (Cycle checked: 1, FAIL, 3/5; commit
 `1790ba1`). F1/F2/F5 confirmed with real evidence; F3/F4 correctly FAILed (no working judge).

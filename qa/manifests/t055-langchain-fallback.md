@@ -108,4 +108,6 @@ doctor: clean
   `os.environ`/`load_dotenv` inside code paths, never printed or logged; the module's docstring
   and tests use fake keys/values only.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Reconciliation note (2026-09-03): this manifest was never flipped from ready-for-check at the time, even though qa/verdicts/t055-langchain-fallback.md recorded PASS and the unit shipped (see docs/FEATURES.jsonl / .goal/goal.json). Corrected during a disk-state reconciliation pass -- no re-check performed, no new claim made; the verdict file is the actual evidence, this is only the manifest catching up to it.

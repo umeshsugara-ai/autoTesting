@@ -127,4 +127,6 @@ doctor: clean
 - No secrets touched — `GEMINI_API_KEY` is read only via `os.environ` inside `_structured`, never
   printed or logged; tests use fake keys only.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Reconciliation note (2026-09-03): this manifest was never flipped from ready-for-check at the time, even though qa/verdicts/t060-ingest-video.md recorded PASS and the unit shipped (see docs/FEATURES.jsonl / .goal/goal.json). Corrected during a disk-state reconciliation pass -- no re-check performed, no new claim made; the verdict file is the actual evidence, this is only the manifest catching up to it.

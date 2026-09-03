@@ -162,4 +162,6 @@ doctor: clean
   unevidenced judge answer to INCONCLUSIVE rather than trust a possibly-wrong FAIL — the property
   actually being proven is "never a false PASS," which held in every real run performed.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Reconciliation note (2026-09-03): this manifest was never flipped from ready-for-check at the time, even though qa/verdicts/t110-regression-proof.md recorded PASS and the unit shipped (see docs/FEATURES.jsonl / .goal/goal.json). Corrected during a disk-state reconciliation pass -- no re-check performed, no new claim made; the verdict file is the actual evidence, this is only the manifest catching up to it.
