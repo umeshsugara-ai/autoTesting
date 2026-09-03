@@ -4,15 +4,15 @@
   "north_star": "An AI automated end-to-end tester that ingests product videos/docs, derives a reviewed FlowSpec, auto-generates best/worst/edge-case evals, runs them as regression in a real visible browser, self-extends coverage by requesting videos for unknown screens, and beats an expert human tester head-to-head on the same material (bugs found, false-positive rate, time). First target: Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-03T12:03:22",
+  "updated": "2026-09-03T14:57:09",
   "progress": {
-    "total": 19,
-    "done": 11,
+    "total": 20,
+    "done": 12,
     "in_progress": 0,
     "blocked": 0,
     "pending": 8,
     "current": "T-050",
-    "percent": 58
+    "percent": 60
   },
   "tasks": [
     {
@@ -384,6 +384,24 @@
       "created": "2026-09-03T07:26:17",
       "criticality": "low",
       "user_value": "high"
+    },
+    {
+      "id": "T-055",
+      "title": "providers/langchain_fallback.py: multi-vendor fallback (Anthropic->Gemini->Ollama->ChatGPT)",
+      "status": "done",
+      "base_criticality": "HIGH",
+      "deps": [],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_langchain_fallback.py -q",
+        "expect_exit": 0
+      },
+      "note": "Umesh: no single-provider dependency, LangChain-based fallback chain. Unblocks T-050 grading.",
+      "attempts": 0,
+      "created": "2026-09-03T09:22:04",
+      "criticality": "low",
+      "user_value": "high",
+      "completed": "2026-09-03T14:57:09"
     }
   ],
   "decisions": [],
@@ -395,6 +413,14 @@
       "task_id": null,
       "kind": "stalled",
       "acked": true
+    },
+    {
+      "ts": "2026-09-03T12:07:01",
+      "level": "warn",
+      "message": "STALLED — last agentic tick 94 min ago; open work is not advancing",
+      "task_id": null,
+      "kind": "stalled",
+      "acked": false
     }
   ],
   "preferences": {
@@ -403,9 +429,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 60.81,
-    "eta_days": 0.1
+    "velocity_per_day": 37.1,
+    "eta_days": 0.2
   },
-  "last_deterministic_tick": "2026-09-03T12:02:01",
+  "last_deterministic_tick": "2026-09-03T14:57:01",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }
