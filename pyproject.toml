@@ -11,6 +11,7 @@ dependencies = [
     "playwright>=1.62.0",
     "pydantic>=2.13.5",
     "pydantic-settings>=2.15.0",
+    "pymongo>=4.9.0",
     "python-dotenv>=1.2.3",
     "typer>=0.27.2",
 ]

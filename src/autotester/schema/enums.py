@@ -118,6 +118,7 @@ class EvidenceKind(StrEnum):
     NETWORK = "network"
     TRACE = "trace"
     CONSOLE = "console"
+    DB = "db"
 
 
 class Trigger(StrEnum):

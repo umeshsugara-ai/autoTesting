@@ -8,6 +8,7 @@
 <!-- generated:map -->
 | Module | One job |
 |---|---|
+| `browser/db.py` | Read-only backend assertions against MongoDB. Contract: qa/contracts/db-assert.md. |
 | `browser/secrets.py` | The credential boundary. Secret values live here and nowhere else. |
 | `browser/session.py` | One real, visible browser session per project. Contract: browser-and-secrets.md B5-B9. |
 | `cli.py` | Command line. Every action the UI offers is available here first. |

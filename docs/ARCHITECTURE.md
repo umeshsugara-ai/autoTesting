@@ -53,6 +53,7 @@ the previous stage's artifact. A stage never reaches into another stage's intern
 | Repo-level doc paths (ledger, snapshot, decisions, router) | `core/paths.py::RepoDocs` |
 | Running a case's steps in a browser, no judgement (that's grade.py) | `stages/execute.py::run_case` |
 | Judging a case's evidence against its rubric — stateless, evidence-only | `stages/grade.py::grade` |
+| Read-only backend assertions (Mongo), read-only by construction | `browser/db.py::ReadOnlyCollection` |
 
 Duplicating any of these is a bug — `autotester doctor` fails on a class or function defined twice.
 
@@ -136,5 +137,5 @@ uv run autotester ledger add … # append a feature event (see docs/FEATURES.jso
 
 ## Status
 
-**Built:** schema, core, provider seam + mock, doctor, CLI, `browser/secrets.py`, `browser/session.py`, the living map (`ledger/`, `docs/MAP.md`, `docs/SNAPSHOT.md`, `docs/FEATURES.jsonl`), `store/` (filestore + ProjectStore), `projects/pathlynks/` (onboarded), `stages/execute.py` (script-first runner), `stages/grade.py` (independent judge).
-**Next:** T-050 first real Pathlynks run (3 hand-written cases through execute+grade) — see the plan for phases P1–P5.
+**Built:** schema, core, provider seam + mock, doctor, CLI, `browser/secrets.py`, `browser/session.py`, `browser/db.py` (read-only Mongo assertions), the living map (`ledger/`, `docs/MAP.md`, `docs/SNAPSHOT.md`, `docs/FEATURES.jsonl`), `store/` (filestore + ProjectStore), `projects/pathlynks/` (onboarded), `stages/execute.py` (script-first runner), `stages/grade.py` (independent judge).
+**Next:** T-050 first real Pathlynks run (3 hand-written cases through execute+grade, headed browser — human sign-off pending) — see the plan for phases P1–P5.
