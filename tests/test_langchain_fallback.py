@@ -25,8 +25,10 @@ class FakeRawMessage:
 class FakeStructured:
     def __init__(self, parsed, raise_exc, usage) -> None:
         self._parsed, self._raise, self._usage = parsed, raise_exc, usage
+        self.invoked_with = None
 
-    def invoke(self, prompt: str):
+    def invoke(self, prompt):
+        self.invoked_with = prompt
         if self._raise is not None:
             raise self._raise
         return {"parsed": self._parsed, "raw": FakeRawMessage(self._usage)}
@@ -39,7 +41,8 @@ class FakeChatModel:
 
     def with_structured_output(self, schema, include_raw: bool = False):
         assert include_raw is True
-        return FakeStructured(self._parsed, self._raise, self._usage)
+        self.structured = FakeStructured(self._parsed, self._raise, self._usage)
+        return self.structured
 
 
 def chain_of(*tiers: tuple[str, FakeChatModel]) -> list:
@@ -69,6 +72,50 @@ def test_first_tier_success_sets_id_and_records_usage() -> None:
     assert provider.usage[0].provider == "anthropic"
     assert provider.usage[0].input_tokens == 10
     assert provider.usage[0].output_tokens == 5
+
+
+# -- AT-049 images are actually attached, not just described in the prompt --
+
+def test_judge_with_no_images_invokes_with_a_plain_string(tmp_path) -> None:
+    """Unchanged behavior for every existing caller -- act() and a
+    no-images judge() call must never start building multimodal messages."""
+    model = FakeChatModel(parsed=Answer(result="ok"))
+    provider = LangChainFallbackProvider(chain=chain_of(("gemini", model)))
+
+    provider.judge("plain text prompt", Answer)
+
+    assert model.structured.invoked_with == "plain text prompt"
+
+
+def test_judge_with_real_images_invokes_with_a_multimodal_message(tmp_path) -> None:
+    from langchain_core.messages import HumanMessage
+
+    png = tmp_path / "01-login.png"
+    png.write_bytes(b"\x89PNG\r\n\x1a\n")
+    model = FakeChatModel(parsed=Answer(result="ok"))
+    provider = LangChainFallbackProvider(chain=chain_of(("gemini", model)))
+
+    provider.judge("look at this", Answer, images=[png])
+
+    sent = model.structured.invoked_with
+    assert isinstance(sent, list) and len(sent) == 1
+    assert isinstance(sent[0], HumanMessage)
+    assert sent[0].content[0] == {"type": "text", "text": "look at this"}
+    assert sent[0].content[1]["type"] == "image_url"
+    assert sent[0].content[1]["image_url"]["url"].startswith("data:image/png;base64,")
+
+
+def test_judge_skips_an_image_path_that_does_not_exist_on_disk(tmp_path) -> None:
+    """Evidence can reference a screenshot that never made it to disk -- the
+    call must still go out as a plain string, never crash reading a missing
+    file, when every referenced image is missing."""
+    missing = tmp_path / "never-written.png"
+    model = FakeChatModel(parsed=Answer(result="ok"))
+    provider = LangChainFallbackProvider(chain=chain_of(("gemini", model)))
+
+    provider.judge("plain text prompt", Answer, images=[missing])
+
+    assert model.structured.invoked_with == "plain text prompt"
 
 
 # -- falls through on failure ------------------------------------------------

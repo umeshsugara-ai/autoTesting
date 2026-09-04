@@ -55,7 +55,7 @@ def run_case(case: Case, session: BrowserSession) -> RawResult:
                 # form-submit redirect) -- settle before the evidence
                 # screenshot, or the grader only ever sees the click itself,
                 # never what it caused.
-                session.settle()
+                session.settle(step.expected)
             session.screenshot(f"step{step.order:02d}-{step.action}", step_order=step.order)
         except MissingSecret as exc:
             return _result(case, session, start, Outcome.BLOCKED_HITL, hitl_prompt=str(exc))

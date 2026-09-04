@@ -25,6 +25,7 @@ class MockProvider(Provider):
         super().__init__(**options)
         self.responses: dict[str, list[Any]] = options.get("responses", {})
         self.prompts: list[tuple[str, str]] = []
+        self.judge_images: list[list[Path]] = []
 
     def available(self) -> bool:
         return True
@@ -43,5 +44,8 @@ class MockProvider(Provider):
     def act(self, prompt: str, schema: type[ModelT] | None = None) -> Any:
         return self._next("agent", prompt)
 
-    def judge(self, prompt: str, schema: type[ModelT]) -> ModelT:
+    def judge(
+        self, prompt: str, schema: type[ModelT], images: list[Path] | None = None
+    ) -> ModelT:
+        self.judge_images.append(images or [])
         return self._next("judge", prompt)

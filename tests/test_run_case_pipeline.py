@@ -83,6 +83,32 @@ def test_run_and_grade_case_builds_and_persists_a_default_rubric_when_none_exist
     assert persisted.criteria[0].id == "c1"
 
 
+def test_run_and_grade_case_passes_the_runs_real_screenshots_to_the_judge(
+    tmp_path: Path,
+) -> None:
+    """AT-049: the judge must actually see the real screenshot files this
+    run produced, not just their filenames -- run_and_grade_case is the one
+    path a UI Run button or CLI script calls, so this is where the wiring
+    has to be real, not just present in grade.py's own signature."""
+    store = ProjectStore("demo", tmp_path)
+    store.save_project(_project())
+    case = _case()
+    judge = MockProvider(responses={"judge": [
+        Judgment(result=Result.PASS, criteria_met=1, criteria_total=1, scoreboard="1/1 met")
+    ]})
+    paths = ProjectPaths("demo", tmp_path)
+    run_dir = paths.run_dir("run_1")
+    secrets = SecretStore.load(_project(), paths.env_file, strict=False)
+    session = BrowserSession(_project(), secrets, run_dir, paths)
+    session._page = _FakePage("https://demo.test/")
+    session.state.run_dir.mkdir(parents=True, exist_ok=True)
+
+    run_and_grade_case(case, session, judge, "run_1", store)
+
+    assert judge.judge_images == [[run_dir / "01-step01-navigate.png"]]
+    assert (run_dir / "01-step01-navigate.png").exists()
+
+
 def test_run_and_grade_case_reuses_an_existing_rubric_instead_of_overwriting_it(
     tmp_path: Path,
 ) -> None:

@@ -50,8 +50,14 @@ class Provider(ABC):
         raise Unsupported(f"{self.id} does not support agent actions")
 
     # -- role: judge --------------------------------------------------------
-    def judge(self, prompt: str, schema: type[ModelT]) -> ModelT:
-        """Grade evidence against a rubric in a fresh context."""
+    def judge(
+        self, prompt: str, schema: type[ModelT], images: list[Path] | None = None
+    ) -> ModelT:
+        """Grade evidence against a rubric in a fresh context. `images`, when
+        given, are real screenshot files the judge must actually see (not
+        just their filenames in `prompt`) — AT-049: a judge that only ever
+        reads evidence *descriptions* is grading blind, however plausible
+        its reasoning about a filename sounds."""
         raise Unsupported(f"{self.id} does not support judging")
 
     # -- shared -------------------------------------------------------------

@@ -54,6 +54,9 @@ class FakeLocator:
     def click(self) -> None:
         self.page.clicks.append(self.selector)
 
+    def inner_text(self) -> str:
+        return self.page.body_text
+
 
 class FakePage:
     """Just enough of a Playwright page to exercise the session without a browser."""
@@ -65,6 +68,7 @@ class FakePage:
         self.clicks: list[str] = []
         self.styles: list[str] = []
         self.shots: list[str] = []
+        self.body_text = ""
 
     def locator(self, selector: str) -> FakeLocator:
         return FakeLocator(self, selector)
@@ -203,37 +207,6 @@ def test_evidence_paths_are_scrubbed(tmp_path: Path) -> None:
     s = session_with_fake_page(tmp_path)
     ev = s._record(EvidenceKind.DOM, f"body contains {PASSWORD}")
     assert PASSWORD not in ev.path and "PATHLYNKS_PASSWORD" in ev.path
-
-
-# -- AT-045 settle: bounded, never raises ------------------------------------
-
-def test_settle_calls_wait_for_load_state_then_a_short_grace_wait(tmp_path: Path) -> None:
-    calls: list[tuple[str, int]] = []
-    s = session_with_fake_page(tmp_path)
-    s.page.wait_for_load_state = lambda state, timeout: calls.append((state, timeout))
-    s.page.wait_for_timeout = lambda ms: calls.append(("grace", ms))
-
-    s.settle()
-
-    assert calls == [("networkidle", 8000), ("grace", 500)]
-
-
-def test_settle_still_takes_the_grace_wait_when_network_never_idles(tmp_path: Path) -> None:
-    """A page with no post-error network activity at all (a pure client-side
-    re-render) never reaches network-idle -- the fixed grace period after it
-    is what actually lets the re-render finish before the screenshot."""
-    calls: list[tuple[str, int]] = []
-    s = session_with_fake_page(tmp_path)
-
-    def _raise(state: str, timeout: int) -> None:
-        raise TimeoutError("networkidle never reached")
-
-    s.page.wait_for_load_state = _raise
-    s.page.wait_for_timeout = lambda ms: calls.append(("grace", ms))
-
-    s.settle()  # must not raise
-
-    assert calls == [("grace", 500)]
 
 
 # -- B8 human in the loop --------------------------------------------------

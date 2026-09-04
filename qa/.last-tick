@@ -1,1 +1,1 @@
-2026-09-04T10:46:36+05:30 · ADVANCED · checker re-dispatched for at044-entry-case-profile-isolation after prior attempt failed on infra error (ENOTFOUND)
+2026-09-04T10:53:37+05:30 · ADVANCED · at044-entry-case-profile-isolation closed (PASS, F-030); sweep dispatched, AT-046 remains the one genuinely open issue -- flagged to Umesh as a HUMAN_GATE-adjacent prioritization checkpoint, not resumed unilaterally

@@ -48,11 +48,14 @@ class GeminiProvider(Provider):
     def act(self, prompt: str, schema: type[ModelT] | None = None) -> Any:
         return self._structured(prompt, schema, role="agent")
 
-    def judge(self, prompt: str, schema: type[ModelT]) -> ModelT:
-        return self._structured(prompt, schema, role="judge")
+    def judge(
+        self, prompt: str, schema: type[ModelT], images: list[Path] | None = None
+    ) -> ModelT:
+        return self._structured(prompt, schema, role="judge", images=images)
 
     def _structured(
-        self, prompt: str, schema: type[ModelT] | None, *, role: str, video_path: Path | None = None
+        self, prompt: str, schema: type[ModelT] | None, *, role: str,
+        video_path: Path | None = None, images: list[Path] | None = None,
     ) -> ModelT:
         if not self.available():
             raise ProviderError("GEMINI_API_KEY/GOOGLE_API_KEY is not set")
@@ -66,6 +69,9 @@ class GeminiProvider(Provider):
         contents: list[Any] = []
         if video_path is not None:
             contents.append(client.files.upload(file=str(video_path)))
+        for path in images or []:
+            if path.exists():
+                contents.append(client.files.upload(file=str(path)))
         contents.append(prompt)
 
         response = client.models.generate_content(

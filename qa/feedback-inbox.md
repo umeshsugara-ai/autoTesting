@@ -242,3 +242,16 @@ persistently-logged-in `pathlynks` profile with no cross-run wipe and no run-ord
 Confirmed via real verdict evidence: `TimeoutError: waiting for locator("input[name=\"identifier\"]")`
 — the sign-in form never appeared because the profile was already authenticated. This is a real
 regression in the flagship feature (Run button), not a request — filing and fixing now.
+
+## 2026-09-04 — Umesh: "go whatever is best" on AT-046, led to a critical finding (AT-049)
+
+While investigating AT-046 (residual grading flakiness) more deeply, discovered the actual root
+cause: `stages/grade.py` never attached real screenshot images to the judge call — every Verdict
+this system has ever produced was graded from evidence *filenames* in a text prompt, never real
+pixel content. Confirmed live: a screenshot clearly showing "Invalid credentials" in red text was
+graded FAIL with "no evidence of rejection," because the judge literally never saw it.
+
+Asked Umesh how to proceed (AskUserQuestion): fix now, ship what's built and file separately, or
+explain more first. Chose "fix now." Fixed as AT-049 — providers now genuinely attach real image
+bytes; verified with 5 consecutive real Pathlynks reruns, all PASS every time (was flaky before),
+verdict notes now describing real visual content.

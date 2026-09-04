@@ -16,8 +16,10 @@ does not expose.
 
 from __future__ import annotations
 
+import base64
 import os
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any, TypeVar
 
 from pydantic import BaseModel
@@ -74,6 +76,27 @@ def _default_chain() -> list[ChainEntry]:
     return chain
 
 
+def _message(prompt: str, images: list[Path] | None) -> Any:
+    """A plain string when there's nothing to attach (unchanged behavior for
+    every existing caller); a real multimodal `HumanMessage` when there are
+    real screenshot files to attach -- AT-049: `model.invoke(prompt)` with a
+    bare string can never see an image, no matter how precisely `prompt`
+    describes its filename. LangChain's `image_url` content-block format is
+    understood by ChatAnthropic/ChatGoogleGenerativeAI/ChatOpenAI alike."""
+    real_images = [p for p in (images or []) if p.exists()]
+    if not real_images:
+        return prompt
+    from langchain_core.messages import HumanMessage
+
+    content: list[dict[str, Any]] = [{"type": "text", "text": prompt}]
+    for path in real_images:
+        b64 = base64.b64encode(path.read_bytes()).decode("ascii")
+        content.append({"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}})
+    # .invoke() requires a str, PromptValue, or list[BaseMessage] -- a bare
+    # HumanMessage is none of those.
+    return [HumanMessage(content=content)]
+
+
 class LangChainFallbackProvider(Provider):
     """`act`/`judge` try each configured chat model in order, falling through
     on any exception, until one succeeds or the chain is exhausted.
@@ -96,10 +119,15 @@ class LangChainFallbackProvider(Provider):
     def act(self, prompt: str, schema: type[ModelT] | None = None) -> Any:
         return self._call(prompt, schema, role="agent")
 
-    def judge(self, prompt: str, schema: type[ModelT]) -> ModelT:
-        return self._call(prompt, schema, role="judge")
+    def judge(
+        self, prompt: str, schema: type[ModelT], images: list[Path] | None = None
+    ) -> ModelT:
+        return self._call(prompt, schema, role="judge", images=images)
 
-    def _call(self, prompt: str, schema: type[ModelT] | None, *, role: str) -> ModelT:
+    def _call(
+        self, prompt: str, schema: type[ModelT] | None, *, role: str,
+        images: list[Path] | None = None,
+    ) -> ModelT:
         if schema is None:
             raise ProviderError(f"{self.id} requires a schema for structured output (role={role})")
         if not self._chain:
@@ -108,7 +136,7 @@ class LangChainFallbackProvider(Provider):
         errors: list[str] = []
         for name, factory in self._chain:
             try:
-                return self._try_tier(name, factory, prompt, schema, role)
+                return self._try_tier(name, factory, prompt, schema, role, images)
             except Exception as exc:  # deliberately broad: any vendor failure falls through
                 errors.append(f"{name}: {type(exc).__name__}: {exc}")
                 continue
@@ -117,10 +145,11 @@ class LangChainFallbackProvider(Provider):
         )
 
     def _try_tier(
-        self, name: str, factory: Callable[[], Any], prompt: str, schema: type[ModelT], role: str
+        self, name: str, factory: Callable[[], Any], prompt: str, schema: type[ModelT], role: str,
+        images: list[Path] | None = None,
     ) -> ModelT:
         model = factory().with_structured_output(schema, include_raw=True)
-        response = model.invoke(prompt)
+        response = model.invoke(_message(prompt, images))
         parsed = response["parsed"]
         if parsed is None:
             raise ProviderError(f"{name}: structured output did not parse")

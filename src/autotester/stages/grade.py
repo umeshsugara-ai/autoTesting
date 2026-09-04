@@ -11,9 +11,11 @@ trusted. Contract: qa/contracts/grade.md.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from autotester.core.paths import RepoDocs
 from autotester.providers.base import Provider
-from autotester.schema.enums import Outcome, Result
+from autotester.schema.enums import EvidenceKind, Outcome, Result
 from autotester.schema.run import RawResult
 from autotester.schema.verdict import Failure, Judgment, Rubric, Verdict
 
@@ -77,8 +79,21 @@ def _verdict(
     )
 
 
+def _screenshot_paths(result: RawResult, run_dir: Path | None) -> list[Path]:
+    """Real image files the judge should actually see — AT-049: `_render_evidence`
+    only ever put a screenshot's *filename* in the prompt, so a text-only judge
+    was grading blind, guessing plausibility from a label it could not verify.
+    `run_dir` is optional so a caller without one yet (an older script) still
+    gets today's text-only behavior, never a crash."""
+    if run_dir is None:
+        return []
+    return [
+        run_dir / ev.path for ev in result.evidence if ev.kind is EvidenceKind.SCREENSHOT
+    ]
+
+
 def grade(rubric: Rubric, result: RawResult, run_id: str, judge: Provider,
-          docs: RepoDocs | None = None) -> Verdict:
+          docs: RepoDocs | None = None, run_dir: Path | None = None) -> Verdict:
     """Judge one case's execution against `rubric`. Never sees the case's own steps."""
     if result.outcome is Outcome.BLOCKED_HITL:
         return _verdict(run_id, result, rubric, verdict_result=Result.BLOCKED,
@@ -90,7 +105,7 @@ def grade(rubric: Rubric, result: RawResult, run_id: str, judge: Provider,
                          note=result.error)
 
     prompt = build_grade_prompt(rubric, result, docs or RepoDocs())
-    judgment = judge.judge(prompt, Judgment)
+    judgment = judge.judge(prompt, Judgment, images=_screenshot_paths(result, run_dir))
     problem = _inconsistency(rubric, judgment)
     if problem is not None:
         return _verdict(run_id, result, rubric, verdict_result=Result.INCONCLUSIVE,

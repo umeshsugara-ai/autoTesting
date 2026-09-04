@@ -47,6 +47,9 @@ class FakeLocator:
     def wait_for(self, timeout: int = 0) -> None:
         self.page.waited.append((self.selector, timeout))
 
+    def inner_text(self) -> str:
+        return self.page.body_text
+
 
 class FakePage:
     def __init__(self, url: str) -> None:
@@ -61,6 +64,7 @@ class FakePage:
         self.styles: list[str] = []
         self.shots: list[str] = []
         self.settled: list[tuple[str, int]] = []
+        self.body_text = ""
 
     def locator(self, selector: str) -> FakeLocator:
         return FakeLocator(self, selector)
@@ -154,6 +158,30 @@ def test_click_settles_before_the_screenshot_but_other_actions_do_not(
 
     assert result.outcome is Outcome.COMPLETED
     assert session.page.settled == [("networkidle", 8000)]
+
+
+def test_click_settles_against_the_steps_own_declared_expected_text(
+    tmp_path: Path,
+) -> None:
+    """AT-046: a step that declares what it expects (schema/flowspec.py's
+    ExpectedState, already part of every Step) gets a real, specific poll
+    instead of the generic networkidle guess -- e.g. a rejected-login
+    case's own "Invalid credentials" text, which needs no network activity
+    to appear and would never reliably show up via network-idle alone."""
+    from autotester.schema.flowspec import ExpectedState
+
+    steps = [
+        Step(order=1, action=Action.NAVIGATE, target=LOGIN),
+        Step(order=2, action=Action.CLICK, target="button[type=submit]",
+             expected=ExpectedState(visible_text=["Invalid credentials"])),
+    ]
+    session = session_with_fake_page(tmp_path)
+    session.page.body_text = "Invalid credentials"
+
+    result = run_case(make_case(steps), session)
+
+    assert result.outcome is Outcome.COMPLETED
+    assert session.page.settled == []  # never touched the generic networkidle path
 
 
 def test_select_upload_and_wait_actions(tmp_path: Path) -> None:

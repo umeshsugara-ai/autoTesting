@@ -8,7 +8,9 @@ belongs to a vision-capable provider (Gemini).
 
 from __future__ import annotations
 
+import base64
 import os
+from pathlib import Path
 from typing import Any, TypeVar
 
 from pydantic import BaseModel
@@ -38,10 +40,15 @@ class AnthropicProvider(Provider):
     def act(self, prompt: str, schema: type[ModelT] | None = None) -> Any:
         return self._structured(prompt, schema, role="agent")
 
-    def judge(self, prompt: str, schema: type[ModelT]) -> ModelT:
-        return self._structured(prompt, schema, role="judge")
+    def judge(
+        self, prompt: str, schema: type[ModelT], images: list[Path] | None = None
+    ) -> ModelT:
+        return self._structured(prompt, schema, role="judge", images=images)
 
-    def _structured(self, prompt: str, schema: type[ModelT] | None, *, role: str) -> ModelT:
+    def _structured(
+        self, prompt: str, schema: type[ModelT] | None, *, role: str,
+        images: list[Path] | None = None,
+    ) -> ModelT:
         if not self.available():
             raise ProviderError("ANTHROPIC_API_KEY is not set")
         if schema is None:
@@ -54,12 +61,23 @@ class AnthropicProvider(Provider):
             "description": "Return the structured answer for this request.",
             "input_schema": schema.model_json_schema(),
         }
+        content: list[dict[str, Any]] = [
+            {
+                "type": "image",
+                "source": {
+                    "type": "base64", "media_type": "image/png",
+                    "data": base64.b64encode(path.read_bytes()).decode("ascii"),
+                },
+            }
+            for path in (images or []) if path.exists()
+        ]
+        content.append({"type": "text", "text": prompt})
         response = client.messages.create(
             model=self._model,
             max_tokens=2048,
             tools=[tool],
             tool_choice={"type": "tool", "name": _TOOL_NAME},
-            messages=[{"role": "user", "content": prompt}],
+            messages=[{"role": "user", "content": content}],
         )
         block = next((b for b in response.content if b.type == "tool_use"), None)
         if block is None:

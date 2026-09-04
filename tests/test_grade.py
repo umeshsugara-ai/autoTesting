@@ -87,6 +87,38 @@ def test_completed_run_judged_pass(tmp_path: Path) -> None:
     assert verdict.run_id == "run_1" and verdict.case_id == "case_abc"
 
 
+# -- AT-049 the judge actually sees the screenshots, not just their names ----
+
+def test_judge_receives_the_real_screenshot_files_when_run_dir_is_given(
+    tmp_path: Path,
+) -> None:
+    """The judge used to be told nothing but filenames in the prompt text --
+    a plausible-sounding guess, never a real look at the evidence. When
+    grade() is given the run's real directory, the judge must receive the
+    actual image files that exist there."""
+    run_dir = tmp_path / "run_1"
+    run_dir.mkdir()
+    (run_dir / "01-login.png").write_bytes(b"\x89PNG\r\n\x1a\n")
+    (run_dir / "02-dashboard.png").write_bytes(b"\x89PNG\r\n\x1a\n")
+    judgment = Judgment(result=Result.PASS, scoreboard="2/2 met", criteria_met=2, criteria_total=2)
+    judge = MockProvider(responses={"judge": [judgment]})
+
+    grade(make_rubric(), make_result(Outcome.COMPLETED), "run_1", judge, run_dir=run_dir)
+
+    assert judge.judge_images == [[run_dir / "01-login.png", run_dir / "02-dashboard.png"]]
+
+
+def test_judge_receives_no_images_when_run_dir_is_not_given(tmp_path: Path) -> None:
+    """A caller that hasn't been updated yet (an older script) still gets
+    today's text-only behavior -- never a crash for a missing run_dir."""
+    judgment = Judgment(result=Result.PASS, scoreboard="2/2 met", criteria_met=2, criteria_total=2)
+    judge = MockProvider(responses={"judge": [judgment]})
+
+    grade(make_rubric(), make_result(Outcome.COMPLETED), "run_1", judge)
+
+    assert judge.judge_images == [[]]
+
+
 # -- G3 an unevidenced or inconsistent judgment is rejected ------------------
 
 def test_failure_with_no_evidence_refs_is_downgraded_to_inconclusive() -> None:

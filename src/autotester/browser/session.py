@@ -18,6 +18,7 @@ from autotester.browser.secrets import SecretStore, host_of
 from autotester.core.paths import ProjectPaths
 from autotester.core.redact import PLACEHOLDER_RE
 from autotester.schema.enums import EvidenceKind, Outcome
+from autotester.schema.flowspec import ExpectedState
 from autotester.schema.project import Project
 from autotester.schema.run import Evidence
 
@@ -174,28 +175,51 @@ class BrowserSession:
         self.page.locator(locator).set_input_files(file_path)
         return self._record(EvidenceKind.DOM, f"uploaded to {locator}", step_order=step_order)
 
-    def settle(self, timeout_ms: int = 8000) -> None:
+    def settle(self, expected: ExpectedState | None = None, timeout_ms: int = 8000) -> None:
         """Best-effort wait for an async page transition (e.g. a client-side
-        redirect after a form submit) to finish before evidence is captured.
-        Bounded and never raises — AT-045: `execute.py` used to screenshot a
-        CLICK step immediately, mid-transition, so the grader saw evidence of
-        the click but never of what it actually caused. A page that never
-        reaches network-idle (long polling, websockets) just gets the bounded
-        wait, not a failed step — this is observation, not a new step
-        (execute.md E5 still holds: no extra click/submit/navigation). 8s
-        matches the bound `scripts/run_pathlynks_first_cases.py` already
-        proved necessary for this exact class of redirect (checker-PASSed
-        `pathlynks-login-test-fresh-profile`, cycle 2) -- `networkidle`
-        genuinely resolves early once the new page settles, so this is a
-        ceiling, not a fixed cost, for the common case. A short fixed grace
-        period follows network-idle -- a rejected-login inline error message
-        is a pure client-side re-render with no further network activity, so
-        network-idle alone can resolve before the DOM/paint actually shows
-        it; this covers that class of transition too."""
+        redirect after a form submit, or an inline validation message) to
+        finish before evidence is captured. Bounded and never raises — AT-045:
+        `execute.py` used to screenshot a CLICK step immediately, mid-
+        transition, so the grader saw evidence of the click but never of what
+        it actually caused.
+
+        AT-046: a generic settle (network-idle + a fixed grace period) is a
+        probabilistic proxy for "did the page finish updating" — good enough
+        for a full navigation, unreliable for a pure client-side re-render
+        with no network signal at all (an inline "Invalid credentials"
+        message needs no request). When the step declares what it actually
+        expects (`expected.url` and/or `expected.visible_text` —
+        `schema/flowspec.py::ExpectedState`, already part of every `Step`),
+        poll for that literal, real signal instead — the same proven pattern
+        `scripts/run_pathlynks_first_cases.py` used for its own URL check,
+        generalized past "URL only" via the case's own declared expectation
+        rather than a second hardcoded heuristic. Returns the instant the
+        condition is met, so this is a ceiling, not a fixed cost. Falls back
+        to the generic network-idle+grace wait when a step declares neither
+        (execute.md E5 still holds either way: no extra click/submit/
+        navigation, purely observation)."""
+        if expected and (expected.url or expected.visible_text):
+            self._poll_for_expected(expected, timeout_ms)
+            return
         with contextlib.suppress(Exception):
             self.page.wait_for_load_state("networkidle", timeout=timeout_ms)
         with contextlib.suppress(Exception):
             self.page.wait_for_timeout(500)
+
+    def _poll_for_expected(self, expected: ExpectedState, timeout_ms: int) -> None:
+        poll_ms = 250
+        elapsed = 0
+        while elapsed < timeout_ms:
+            with contextlib.suppress(Exception):
+                if expected.url and expected.url in self.page.url:
+                    return
+                if expected.visible_text:
+                    body = self.page.locator("body").inner_text()
+                    if any(text in body for text in expected.visible_text):
+                        return
+            with contextlib.suppress(Exception):
+                self.page.wait_for_timeout(poll_ms)
+            elapsed += poll_ms
 
     def wait_for(
         self, locator: str | None, *, timeout_ms: int = 5000, step_order: int | None = None
