@@ -32,3 +32,9 @@ contract, not an extension of U3.
   presence, exactly like U3's per-project credential editor does for `SecretRef`s.
 - A generic "add any env key" form — the six keys above are the complete, closed set this page
   manages; a new provider key means a code change here, not a dynamic field.
+
+## Amendment log (append-only; git history is the version)
+
+- 2026-09-03 · init · contract created for the global AI/API provider settings page unit
+  (plan §3d, US1-US4), checker-PASSed cycle 1 (`qa/verdicts/ui-settings-providers.md`,
+  ledger F-026).

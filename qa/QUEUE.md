@@ -1,80 +1,79 @@
 # qa/QUEUE.md — checker sweep queue (top-3 recommended next units)
 
-Refreshed by `/checker sweep` 2026-09-04T10:35+05:30 — the prior committed sweep (`b7ccb9f`,
-2026-09-04T08:29:30+05:30) had already gone stale: four more units shipped and were
-checker-PASSed after it — `run-case-pipeline`, `ui-visual-identity-redesign`, `ui-run-trigger`,
-`ui-report-enrichment`, `ui-settings-providers` (ledger F-022 through F-026) — closing **plan
-section3 in full** (the real run/report/settings loop, no CLI needed), plus a cycle-2 fix on
-`pathlynks-login-test-fresh-profile` (redirect race). This sweep re-verifies that state itself
-rather than trusting the stale file.
+Refreshed by `/checker sweep` 2026-09-04T13:15+05:30. Since the prior sweep
+(2026-09-04T10:35+05:30, CLEAN) exactly one unit shipped: `ui-report-informativeness-fix`
+(ledger F-027, checker-PASSed cycle 1) — a direct fix for Umesh's screenshot feedback on the
+report/run-view UI. This sweep independently re-verified that close-out and ran the full six-check
+protocol again.
 
 ## What this sweep re-verified itself
 
-- **Bypass detection** — all five commits since the last real sweep have a matching manifest
-  (`Fix cycle` recorded) and verdict (`Cycle checked` equal to it, `VERDICT: PASS`), each
-  `checked-PASS`. `docs/FEATURES.jsonl` F-022..F-026 all point at real verdict files that exist
-  and say PASS. No bypassed unit found.
-- **`qa/issues.jsonl`** — 41 rows (was 39; two new low-severity findings this sweep, both
-  self-fixed — see below), **zero `open`**. Split: 29 `verified`, 12 `fixed`.
-- **`.goal/goal.json`** — direct parse: **20/20 tasks `status: "done"`**. North-star text
-  unedited since the last check — no goal-drift, no re-grill trigger. (`.goal/goal.json` and
-  `.goal/dashboard.html` show working-tree diffs, but they're only the auto-monitor's tick
-  timestamp/velocity churn — not a task-state change, not this sweep's to commit.)
-- **`qa/manifests/*.md`** — `grep -l "Status: ready-for-check"` across all 33 manifests →
-  **zero hits**. Nothing left dangling; every handshake closed.
-- **Verdict files git-tracked** — `git status --porcelain` clean for every `qa/verdicts/*.md`
-  touched by the five units above; all committed, no working-tree drift.
-- **Feedback inbox fold-in gap found and fixed** — three stale status lines reconciled this
-  sweep (see Findings below): a superseded Mongo/DB proposal, a Mongo/login entry that sat
-  "in progress" after its unit had already shipped, and a LangChain-fallback entry that sat
-  "unfolded (deliberate)" after T-055 shipped and PASSed. Also mirrored the plan's DFS-vs-BFS
-  flow-diagram refinement (plan §4) into the flow-diagram inbox entry, which had it in the plan
-  file but not yet in `qa/feedback-inbox.md` itself.
-- **Contract staleness** — `browser-and-secrets.md` amendment log updated to mark the 2026-09-03
-  Mongo-SecretRef proposal SUPERSEDED and record the actual 2026-09-04 resolution (declaration
-  removed, not added). Routine gate — nothing here was ever a binding B-criterion.
-- **Enforcement liveness** — `.claude/settings.json` hooks present and reference real files under
-  `.claude/hooks/` and `qa/hooks/`; repo has 131 commits (not a dead-looking-alive gate). Live.
+- **Bypass detection** — the four commits since the last sweep (`6d87d40` fix, `e42fce9` PASS
+  verdict, `54325dc` close-out, `48b4e61` inbox mark-resolved) all trace to one manifest
+  (`qa/manifests/ui-report-informativeness-fix.md`, `Fix cycle: 1`, now `Status: checked-PASS`)
+  and one verdict (`qa/verdicts/ui-report-informativeness-fix.md`, `Cycle checked: 1`,
+  `VERDICT: PASS`, 4/4 criteria). Ledger row F-027 points at the real verdict file and correctly
+  records `supersedes: F-025`. No bypassed unit found.
+- **`qa/issues.jsonl`** — 43 rows (was 41), zero `open`. Two new rows this sweep (AT-043, see
+  Findings below), both self-fixed on the spot. Split: 29 `verified`, 14 `fixed`.
+- **`.goal/goal.json`** — 20/20 tasks `status: "done"`, north-star text unedited since last
+  check — no goal-drift, no re-grill trigger. Working-tree diffs on `.goal/goal.json` and
+  `.goal/dashboard.html` are only auto-monitor tick-timestamp/velocity churn, not task-state
+  changes — not this sweep's to commit (same as the prior sweep's finding).
+- **`qa/manifests/*.md`** — `grep -l "Status: ready-for-check"` across all 37 manifests → zero
+  hits. Nothing dangling.
+- **Verdict files git-tracked** — clean; `ui-report-informativeness-fix`'s verdict, manifest,
+  and ledger row are all committed (`e42fce9`, `54325dc`).
+
+## Findings this sweep
+
+- **AT-043 (low, fixed on the spot)** — `ui-report.md`, `ui-run.md`, and `ui-settings.md` were
+  missing the mandated "Amendment log (append-only)" section entirely — the only 3 of 23
+  contracts lacking one, a structural gap versus the checker's own contract shape spec. Fixed:
+  added init rows (pointing at each unit's original PASS verdict + ledger row) to all three, plus
+  a 2026-09-04 row on `ui-report.md` recording the `ui-report-informativeness-fix` presentation
+  amendment (F-027), which had shipped with zero contract-side trace until now. Routine gate —
+  no criterion was reinterpreted, tightened, or weakened; this is bookkeeping only.
+- **Feedback-inbox** — re-checked all `unfolded` status lines. Two remain deliberately unfolded
+  (the append_decision.ps1 template-level defect note outside this repo's root; the flow-diagram/
+  mindmap enhancement idea, explicitly deferred per plan §4) — both already carry their own
+  checker rationale for staying unfolded. No new fold-in gap.
+- **Contract staleness** — none found beyond AT-043 above.
+- **Enforcement liveness** — `.claude/settings.json` hooks present and reference real files;
+  repo has 137 commits. Live, not a dead-looking-alive gate.
 - **Loop spec** — `qa/loop.md` Stop list matches the maker's seven terminal states; Human gate
-  section matches `qa/adapter.json` (no `improve` block, no contradiction). Live and consistent.
+  section not contradicted by `qa/adapter.json` (no `improve` block). Live and consistent.
 - **Re-grill check** — no north-star edit, no uncoverable requirement, no escalated reopen
-  disagreement. **No `GRILL:` row.**
-- **Plan closure cross-check** — read the plan file
-  (`C:/Users/Lenovo/.claude/plans/great-when-you-really-iridescent-ocean.md`): §3 (a-d) all
-  shipped this cycle; §4 (mindmap/flow-diagram) explicitly still deferred, not scheduled — matches
-  the feedback-inbox entry's own "Deferred" status; §5 (public launch: hosting/TLS/auth/billing)
-  explicitly out of scope for this repo's backlog, correctly absent from `.goal/goal.json`. No
-  silent gap between the plan and the tracked backlog.
+  disagreement, `qa/.regrill-due` absent. **No `GRILL:` row.**
+- **Goal-coverage** — north star unchanged; all 20 tasks done; the one unit shipped since the
+  last sweep was direct user feedback (not a goal task) and is now fully traced end-to-end
+  (feedback-inbox → manifest → verdict → ledger → contract amendment).
 
 ## Health checks (re-run by this sweep)
 
-- `uv run pytest -q` → all pass (2 skipped, pre-existing platform skips), 0 failed.
+- `uv run pytest -q` → all pass (2 pre-existing skips), 0 failed.
 - `uv run ruff check src tests scripts` → "All checks passed!"
 - `uv run autotester doctor` → "doctor: clean"
 
 ## Live Docker demo server
 
-- `docker compose ps` → `autotesting-autotester-1` **Up** (4 min into a fresh cycle, 6h image
-  age), ports `8010→8000` and `6080` (noVNC) both mapped.
-- `curl -s -o /dev/null -w "%{http_code}" http://localhost:8010/` → **200**.
+- `docker compose ps` → `autotesting-autotester-1` **Up** (20 min into this cycle), ports
+  `8010→8000` and `6080` (noVNC) both mapped.
 
-## Findings this sweep (AT-041, AT-042 — both low severity, both self-fixed)
+## Top-3 recommended next units
 
-- **AT-041** — feedback-inbox fold-in gap on the two Mongo/DB-access entries (one directly
-  contradicted the other's stale status). Fixed: contract amendment log + both inbox entries
-  reconciled, pointing at `manual-login` / F-020.
-- **AT-042** — feedback-inbox fold-in gap on the LangChain-fallback entry (stayed "unfolded
-  (deliberate)" after T-055 shipped and PASSed). Fixed: inbox entry now points at
-  `qa/contracts/langchain-fallback.md` / the PASS verdict.
+Backlog is legitimately empty of open issues and open goal tasks. No unit is queued — this is
+the terminal `BACKLOG_EMPTY` state the dashboard already stamps, not an oversight. If picking up
+discretionary work, in priority order:
 
-## Bottom line: genuinely idle, backlog closed
+1. **Flow-diagram/mindmap report enhancement** (`qa/feedback-inbox.md`, 2026-09-04 entry,
+   plan §4-refined to a DFS single-path trace) — real, well-scoped, explicitly deferred by Umesh
+   ("tu chahee tho... note it accha hai yee"), not urgent.
+2. **AT-039-class defensive hardening** — the `_URL_KEY` word-boundary fix (AT-038/AT-039) closed
+   two real adversarial gaps in `check_no_secrets.py`; if a third coincidental-naming class is
+   found in review, same fix shape applies. No known instance today — speculative only.
+3. (Not actionable here) Template-level `append_decision.ps1` encoding defect — lives outside
+   this repo's root (`D:/ai_os/templates/lab-protocol/`); flagged for Umesh/AIOS session per the
+   2026-09-03 inbox entry, not a task for this project's queue.
 
-Goal backlog closed (20/20), issue ledger has zero open rows, no manifest stuck at
-`ready-for-check`, every verdict committed, health checks clean, live Docker demo serving 200s.
-The two fold-in gaps found this sweep were reconciled in place (routine, no criterion changed).
-The only remaining known items are deliberately deferred/optional (flow-diagram, §4) or
-deliberately out of scope (§5) by Umesh's own framing — not gaps, not TODOs.
-
-| # | Status | Unit | Issues | Why now |
-|---|--------|------|--------|---------|
-| — | none | — | — | Nothing buildable is queued. 41 ledger rows are verified/fixed, 0 open. Flow-diagram idea (refined, DFS-style) logged as deferred/optional; public launch explicitly out of scope. |
+Nothing critical or high-severity is open. The system is in steady state.

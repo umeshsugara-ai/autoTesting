@@ -35,3 +35,13 @@ evidence (screenshots) was only visible by opening a run directory on disk.
   live route.
 - Pagination of run history for a project with a very large number of runs — a real project
   today has single-digit run counts; revisit if that changes.
+
+## Amendment log (append-only; git history is the version)
+
+- 2026-09-03 · init · contract created for the run history/inline screenshots/portable downloads
+  unit (plan §3c, UR1-UR4), checker-PASSed cycle 1 (`qa/verdicts/ui-report-enrichment.md`,
+  ledger F-025).
+- 2026-09-04 · routine · presentation-only fix (`ui-report-informativeness-fix`, ledger F-027,
+  amends F-025) — overview stat tiles, compact per-run badges, richer per-case scoreboard/
+  grader/failure info, and responsive screenshot CSS. UR1-UR4 wording unchanged; checker
+  confirmed no criterion was reinterpreted or weakened (`qa/verdicts/ui-report-informativeness-fix.md`).

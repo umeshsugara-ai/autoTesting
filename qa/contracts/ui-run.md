@@ -36,3 +36,8 @@ terminal. Before this, `ui/app.py` could only view state the CLI had already pro
   unit/contract.
 - The `/settings/providers` page itself — plan §3d, a separate unit/contract (RU4 only requires
   that *if* a key is set in `.env`, the running UI process can see it).
+
+## Amendment log (append-only; git history is the version)
+
+- 2026-09-03 · init · contract created for the real run-trigger route unit (plan §3b, RU1-RU4),
+  checker-PASSed cycle 1 (`qa/verdicts/ui-run-trigger.md`, ledger F-024).
