@@ -92,4 +92,6 @@ production credentials for one more layer of live proof.
 - Confirm `_PROVIDER_KEYS` is exactly the six keys named in the plan, no more, no fewer, and that
   `provider_settings_submit` 400s before calling `set_env_value` for anything outside that tuple.
 
-## Status: ready-for-check
+## Status: checked-PASS — see qa/verdicts/ui-settings-providers.md, cycle 1 PASS (checker noted
+this manifest's prose overstated which keys were genuinely set -- ANTHROPIC_API_KEY is present
+with an empty value, correctly rendered "Not set"; not a code defect)
