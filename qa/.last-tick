@@ -1,1 +1,1 @@
-2026-09-04T06:55:00+05:30 · ADVANCED · AT-038 fixed (scoped secrets-scanner exemption by .env key name); checker dispatched with a further adversarial round
+2026-09-04T07:10:00+05:30 · ADVANCED · AT-039 fixed (word-boundary URL-key check); checker dispatched, told this should be the last necessary adversarial round on this tool
