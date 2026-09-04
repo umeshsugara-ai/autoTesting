@@ -217,3 +217,10 @@ a full-size view).
 this entry's own 2026-09-04 refinement (linear trace per case, not a full branch tree). Umesh's
 mid-build follow-up "/workflow-diagram type kuch add kro" confirmed this scope: the flow arrows
 between step thumbnails ARE the workflow diagram, at exactly the re-scoped DFS granularity.*
+
+## 2026-09-04 — Umesh, explicitly wants the BFS branch-tree version too (verbatim intent)
+
+After the DFS-scoped step-flow (F-028) shipped: "abhi bhi tune bfs wala setup kiya nhi hai" —
+the DFS single-path trace was only half of what was originally asked (the 2026-09-03 mindmap
+entry): the full branch tree, every case's path merged from a shared entry screen, branch by
+branch. Explicitly asking for that now, not deferring it further.
