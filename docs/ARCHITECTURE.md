@@ -51,7 +51,7 @@ the previous stage's artifact. A stage never reaches into another stage's intern
 | Every path on disk: per-project (`ProjectPaths`) and repo-level docs (`RepoDocs`) | `core/paths.py` |
 | Running a case's steps in a browser, no judgement (that's grade.py) | `stages/execute.py::run_case` |
 | Judging a case's evidence against its rubric — stateless, evidence-only | `stages/grade.py::grade` |
-| Read-only backend assertions (Mongo) + manual one-time login (no secret, human logs in, session persists) + tester report export (Excel + self-contained HTML with embedded screenshots) | `browser/db.py::ReadOnlyCollection`, `stages/manual_login.py::manual_login`, `stages/report_export.py` |
+| Read-only backend assertions (Mongo) + manual one-time login + tester report export (Excel + HTML) + generic run+grade with a self-healing default rubric | `browser/db.py::ReadOnlyCollection`, `stages/manual_login.py`, `stages/report_export.py`, `stages/run_case_pipeline.py::run_and_grade_case` |
 | Agent fallback: fix one broken step, persist the corrected case | `stages/agent_loop.py::run_with_fallback` |
 | Multi-vendor fallback (Anthropic→Gemini→Ollama→ChatGPT; no single-provider dependency) — default agent/judge (standalone `AnthropicProvider` also registered) | `providers/langchain_fallback.py::LangChainFallbackProvider` |
 | Gemini provider (vision role — video understanding) | `providers/gemini.py::GeminiProvider` |

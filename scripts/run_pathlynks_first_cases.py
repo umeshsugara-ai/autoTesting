@@ -14,6 +14,7 @@ for the day every configured tier is genuinely unavailable.
 
 from __future__ import annotations
 
+import shutil
 import sys
 from pathlib import Path
 
@@ -40,10 +41,8 @@ SIGNIN_EMAIL = 'input[name="identifier"]'
 SIGNIN_PASSWORD = 'input[name="password"]'
 SIGNIN_SUBMIT = 'button[type="submit"]:has-text("Login")'
 WRONG_PASSWORD = "Wr0ng-Password-Deliberately-Not-Real!"  # not a secret; never a real credential
-POST_SUBMIT_WAIT_MS = 4000  # matches T-030 onboard_pathlynks.py's DASHBOARD_WAIT_MS -- the
-# submit button shows an async "Logging in..." spinner (confirmed by screenshot), so reading
-# page.url immediately after the click races the real redirect and reads the login page's own
-# URL, not where the app actually lands.
+POST_SUBMIT_MAX_WAIT_MS = 8000  # bounded ceiling for the poll below, not a blind sleep
+POST_SUBMIT_POLL_MS = 250
 
 
 def build_cases(project_slug: str, base_url: str) -> list[Case]:
@@ -105,13 +104,33 @@ def make_rubric(case: Case) -> Rubric:
     )
 
 
+def _wait_for_redirect_or_timeout(session: BrowserSession, signin_url: str) -> None:
+    """Poll until the URL leaves `signin_url` or the ceiling elapses -- never raises.
+
+    A FIXED sleep here raced the real redirect timing: found running this for real
+    (checker cycle 1) that a fixed 4s wait sometimes fired before Pathlynks' own
+    async "Logging in..." spinner finished, so BEST's post-submit screenshot/URL
+    still showed the sign-in page and the case flipped a FALSE FAIL on a login
+    that actually succeeded a moment later. WORST/EDGE are SUPPOSED to still be on
+    `signin_url` when this returns (login was rejected/never attempted) -- this
+    function is silent either way, it only stops guessing too early.
+    """
+    elapsed = 0
+    while elapsed < POST_SUBMIT_MAX_WAIT_MS:
+        if session.page.url != signin_url:
+            return
+        session.page.wait_for_timeout(POST_SUBMIT_POLL_MS)
+        elapsed += POST_SUBMIT_POLL_MS
+
+
 def run_one_case(case: Case, session: BrowserSession, judge: Provider | None, run_id: str):
     # execute.py::run_case snapshots ALL of session.state.evidence, which is cumulative for the
     # whole (reused) session, not scoped per case -- slice to just what THIS case adds, else
     # case 2's RawResult would also carry case 1's evidence (found running this for real).
+    signin_url = case.steps[0].target  # every case's own step 1 is NAVIGATE to the sign-in page
     start = len(session.state.evidence)
     result = run_case(case, session)
-    session.page.wait_for_timeout(POST_SUBMIT_WAIT_MS)
+    _wait_for_redirect_or_timeout(session, signin_url)
     session.screenshot(f"{case.kind.value}-final")
     landed_url = session.secrets.redactor().scrub(session.page.url)
     session._record(EvidenceKind.URL, landed_url, label="post-submit URL")
@@ -151,13 +170,22 @@ def main() -> None:
     else:
         print("grading skipped (--no-grade) -- running the browser part only")
 
-    # WORST/EDGE must run while genuinely logged out; BEST logs in and leaves the persistent
-    # profile authenticated for the rest of this process, so it runs last (found the hard way:
-    # the first attempt ran BEST first and the following cases hit an already-authenticated
-    # redirect instead of the login form -- see the manifest's "What we found" section).
+    # This script tests the LOGIN FLOW itself, so it needs a genuinely logged-out browser both
+    # ACROSS runs and WITHIN one run. Two distinct problems, two fixes, both still needed:
+    #  1. Cross-run: the shared profiles/pathlynks/ profile (used by onboarding/manual-login for
+    #     deliberate session reuse) persists cookies forever, so a prior successful BEST case
+    #     left THIS script's next run pre-authenticated (found running this for real: all 3
+    #     cases errored waiting for a login field the page had already navigated away from).
+    #     Fixed with a dedicated profile, wiped clean before every run.
+    #  2. Within-run: even on a fresh profile, once BEST logs in successfully, the SAME session
+    #     stays authenticated for whichever case runs next -- confirmed by re-running after fix
+    #     #1 alone: BEST correctly went PASS, but WORST/EDGE (which ran after it, in file order)
+    #     still errored the exact same way. BEST must still run last within one process.
+    login_test_paths = ProjectPaths("pathlynks-login-test")
+    shutil.rmtree(login_test_paths.profile_dir, ignore_errors=True)
     run_order = sorted(cases, key=lambda c: 0 if c.kind is not CaseKind.BEST else 1)
 
-    session = BrowserSession(headed_project, secrets, run_dir, paths)
+    session = BrowserSession(headed_project, secrets, run_dir, login_test_paths)
     session.start()
     results = []
     try:

@@ -15,7 +15,7 @@ from autotester.schema.coverage import VideoRequest
 from autotester.schema.flowspec import FlowSpec
 from autotester.schema.project import Project, Source
 from autotester.schema.run import RawResult, Run
-from autotester.schema.verdict import Verdict
+from autotester.schema.verdict import Rubric, Verdict
 from autotester.store.filestore import append_jsonl, read_json, read_jsonl, write_json
 
 
@@ -80,6 +80,13 @@ class ProjectStore:
 
     def list_cases(self) -> list[Case]:
         return read_jsonl(self.paths.cases, Case)
+
+    # -- rubrics (one file per id; `rubrics_dir` existed since design-lock, unused until now) ---
+    def save_rubric(self, rubric: Rubric) -> None:
+        write_json(self.paths.rubrics_dir / f"{rubric.id}.json", rubric)
+
+    def load_rubric(self, rubric_id: str) -> Rubric | None:
+        return read_json(self.paths.rubrics_dir / f"{rubric_id}.json", Rubric)
 
     # -- runs (one Run envelope + one RawResult file per case) -------------------
     def save_run(self, run: Run) -> None:

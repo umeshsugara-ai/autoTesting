@@ -44,6 +44,7 @@
 | `stages/manual_login.py` | Manual one-time login. Contract: qa/contracts/manual-login.md ML1-ML5. |
 | `stages/report_export.py` | Tester-style run reports: an Excel summary and a screen-by-screen HTML |
 | `stages/review.py` | FlowSpec review gate: nothing generates cases from an unreviewed understanding |
+| `stages/run_case_pipeline.py` | RUN_CASE_PIPELINE: the one function that runs a case and grades it. |
 | `store/filestore.py` | The one place any artifact is read from or written to disk. Contract: core-invariants.md C6. |
 | `store/project_store.py` | Typed convenience over `filestore` for one project's directory. |
 | `ui/app.py` | Thin FastAPI viewer/editor over project files. Design principle 8: never a |
