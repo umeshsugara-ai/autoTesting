@@ -100,4 +100,5 @@ run2: 303
   screenshot + real non-trivial downloads is the actual proof UR1-UR4 hold, not the pasted output
   above.
 
-## Status: ready-for-check
+## Status: checked-PASS — see qa/verdicts/ui-report-enrichment.md, cycle 1 PASS (checker filed
+AT-040, a low-severity cosmetic docstring-drift issue, fixed same-day post-verdict)

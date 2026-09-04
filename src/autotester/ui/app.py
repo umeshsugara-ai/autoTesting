@@ -1,9 +1,9 @@
 """Thin FastAPI viewer/editor over project files. Design principle 8: never a
 second source of truth — every route reads/writes through `ProjectStore`/
 `SecretStore` exactly like the CLI does. Contract: qa/contracts/ui.md U1-U5.
-Run-trigger/report routes live in `ui/routes_runs.py`, the credentials editor
-in `ui/routes_credentials.py` — this module keeps only the project-list,
-onboarding and live-view pages.
+The run trigger lives in `ui/routes_runs.py`, run history/report/downloads in
+`ui/routes_report.py`, the credentials editor in `ui/routes_credentials.py` —
+this module keeps only the project-list, onboarding and live-view pages.
 """
 
 from __future__ import annotations
