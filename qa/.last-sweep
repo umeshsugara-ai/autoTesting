@@ -1,1 +1,1 @@
-2026-09-04T16:45:00+05:30 · FINDINGS: 1 (AT-048, low, self-fixed -- ui-run.md and execute.md missing contract-side trace for at044/F-030)
+2026-09-04T20:58:00+05:30 · FINDINGS: 1 (AT-051, low, filed not fixed -- stale unacked goal notification, no ack tooling exists) — also promoted AT-046/AT-049/AT-050 fixed→verified on the at049-multimodal-grading verdict's own re-check evidence; F-031 close-out chain confirmed clean end to end
