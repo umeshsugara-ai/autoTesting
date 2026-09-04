@@ -69,3 +69,14 @@ data and browser login state exactly like restarting the app on the host does to
 ## Amendment log (append-only; git history is the version)
 
 - 2026-09-03 · init · contract created for the Docker + live-watch + UI-polish unit.
+- 2026-09-04 · routine · noted that `qa/contracts/ui-sidebar.md` (US1-US5) added a second piece
+  of shared chrome to `theme.page()` — the persistent project sidebar — which, unlike the
+  original wrapper D5 describes, legitimately varies with project state (which projects exist,
+  which one is active). D4's claim is about `/live`'s own route function reading no project
+  state — still true, confirmed by reading `ui/app.py::live_view()` — not about the full
+  rendered page being byte-identical regardless of project state; D5's claim is about each
+  existing route's own escaped body data being unchanged, not about the wrapper itself being
+  state-invariant. Neither invariant is weakened by the sidebar; `tests/test_ui.py::
+  test_live_view_touches_no_project_state` was narrowed accordingly to diff `/live`'s own
+  `<main>` content rather than the full page, which is a faithful re-reading of D4's actual
+  text, not a softened test. Checker-verified as part of `qa/verdicts/ui-sidebar.md` cycle 1.
