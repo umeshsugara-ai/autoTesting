@@ -150,7 +150,7 @@ def run_view(slug: str, run_id: str) -> str:
         + (_counts_stats(counts) if counts else "")
         + (sections or theme.empty_state("📭", "No case results in this run yet."))
     )
-    return theme.page(f"Run {safe_run_id}", body)
+    return theme.page(f"Run {safe_run_id}", body, active_slug=slug)
 
 
 @router.get("/projects/{slug}/report", response_class=HTMLResponse)
@@ -166,7 +166,7 @@ def report(slug: str) -> str:
         body = breadcrumb + "<h1>Report</h1>" + theme.empty_state(
             "📋", "no runs yet — run a case against this project to see a report here.",
         )
-        return theme.page("Report", body)
+        return theme.page("Report", body, active_slug=slug)
     store = ProjectStore(slug)
     latest_id = run_ids[0]
     safe_run_id = escape(latest_id)
@@ -202,7 +202,7 @@ def report(slug: str) -> str:
         f"{overview}"
         f"{history}"
     )
-    return theme.page(f"Report — {safe_slug}", body)
+    return theme.page(f"Report — {safe_slug}", body, active_slug=slug)
 
 
 def _reserved_temp_path(suffix: str) -> Path:

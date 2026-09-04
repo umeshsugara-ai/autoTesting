@@ -90,7 +90,7 @@ def flow_diagram(slug: str) -> str:
         body = breadcrumb + "<h1>Flow diagram</h1>" + theme.empty_state(
             "🌳", "no cases yet — generate or add cases to see their branch structure here.",
         )
-        return theme.page("Flow diagram", body)
+        return theme.page("Flow diagram", body, active_slug=slug)
     forest = _build_forest(cases)
     sections = "".join(
         theme.card(_tree_html(forest[flow_id]), title=f"Flow: {escape(flow_id)}")
@@ -102,4 +102,4 @@ def flow_diagram(slug: str) -> str:
         "the branches actually diverge (best/worst/edge), not just a list of cases.</p>"
         f"{sections}"
     )
-    return theme.page("Flow diagram", body)
+    return theme.page("Flow diagram", body, active_slug=slug)

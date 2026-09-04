@@ -17,6 +17,10 @@ button.
 
 from __future__ import annotations
 
+from html import escape
+
+from autotester.store.project_store import ProjectStore
+from autotester.ui.helpers import _project_slugs
 from autotester.ui.theme_style import PAGE_STYLE
 
 NAV = """
@@ -85,9 +89,42 @@ def empty_state(icon: str, message: str, action_html: str = "") -> str:
     )
 
 
-def page(title: str, body: str) -> str:
-    """Wrap one route's HTML fragment in the shared stylesheet + nav + main
-    container. `title` and `body` must already be caller-escaped where they
-    carry user/project data — this function adds no escaping of its own,
-    matching every route's existing `html.escape` discipline (ui.md U5)."""
-    return f"<!doctype html><title>{title} — AutoTester</title>{PAGE_STYLE}{NAV}<main>{body}</main>"
+def _sidebar_html(active_slug: str | None) -> str:
+    """Every onboarded project, one place, on every page (ui-sidebar.md
+    US1-US4) — the same `_project_slugs()`/`ProjectStore` lookup `index()`
+    already uses, so this is never a second source of truth for what
+    projects exist."""
+    slugs = _project_slugs()
+    if not slugs:
+        links = "<p class='sidebar-empty'>No projects yet.</p>"
+    else:
+        rows = []
+        for slug in slugs:
+            project = ProjectStore(slug).load_project()
+            name = escape(project.name) if project else escape(slug)
+            cls = " active" if slug == active_slug else ""
+            rows.append(
+                f"<a class='sidebar-link{cls}' href='/projects/{escape(slug)}'>{name}</a>"
+            )
+        links = "".join(rows)
+    return (
+        "<aside class='sidebar'>"
+        "<div class='sidebar-header'>Projects</div>"
+        f"<nav class='sidebar-nav'>{links}</nav>"
+        "<a class='sidebar-add' href='/onboard'>+ New project</a>"
+        "</aside>"
+    )
+
+
+def page(title: str, body: str, active_slug: str | None = None) -> str:
+    """Wrap one route's HTML fragment in the shared stylesheet + nav +
+    sidebar + main container. `title` and `body` must already be
+    caller-escaped where they carry user/project data — this function adds
+    no escaping of its own, matching every route's existing `html.escape`
+    discipline (ui.md U5). `active_slug` highlights the current project in
+    the sidebar on a project-scoped page; omit it on a global page."""
+    sidebar = _sidebar_html(active_slug)
+    return (
+        f"<!doctype html><title>{title} — AutoTester</title>{PAGE_STYLE}{NAV}"
+        f"<div class='layout'>{sidebar}<main>{body}</main></div>"
+    )

@@ -170,7 +170,7 @@ def project_detail(slug: str) -> str:
         f"{theme.pill(escape(review), review_tone)}</p>"
         f"{stats}{actions}"
     )
-    return theme.page(name, body)
+    return theme.page(name, body, active_slug=slug)
 
 
 @app.get("/live", response_class=HTMLResponse)

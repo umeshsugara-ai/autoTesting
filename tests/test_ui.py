@@ -256,15 +256,22 @@ def test_live_view_renders_the_novnc_iframe(client: TestClient) -> None:
 
 
 def test_live_view_touches_no_project_state(client: TestClient, scratch_root: Path) -> None:
-    """D4: /live reads no ProjectStore/SecretStore data -- it renders the same
-    body whether or not any project exists."""
+    """D4: /live's own route reads no ProjectStore/SecretStore data. The
+    shared sidebar (ui-sidebar.md) legitimately DOES vary with project state
+    -- that's the shared theme.page() wrapper's job (D5's own precedent:
+    "only the surrounding chrome changed"), not /live's own logic, so this
+    checks /live's own content is unchanged, not full-page byte equality."""
     before = client.get("/live").text
     client.post("/onboard", data={
         "slug": "demo", "name": "Demo", "base_url": "https://demo.test",
         "allowed_domains": "demo.test",
     })
     after = client.get("/live").text
-    assert before == after
+    assert "vnc.html" in before and "vnc.html" in after
+    assert ("live-tip" in before) == ("live-tip" in after)
+    before_main = before.split("<main>", 1)[1]
+    after_main = after.split("<main>", 1)[1]
+    assert before_main == after_main  # /live's own body content, unaffected by project state
 
 
 def test_every_page_carries_the_shared_nav(client: TestClient, scratch_root: Path) -> None:

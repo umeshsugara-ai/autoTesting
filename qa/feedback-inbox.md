@@ -255,3 +255,9 @@ Asked Umesh how to proceed (AskUserQuestion): fix now, ship what's built and fil
 explain more first. Chose "fix now." Fixed as AT-049 — providers now genuinely attach real image
 bytes; verified with 5 consecutive real Pathlynks reruns, all PASS every time (was flaky before),
 verdict notes now describing real visual content.
+
+## 2026-09-04 — Umesh: add a project sidebar/TOC (verbatim intent)
+
+Asked for "TOC features" -- clarified via AskUserQuestion into a concrete scope: a persistent
+sidebar listing all onboarded projects, visible on every page, for quick switching without
+going back to the homepage first.

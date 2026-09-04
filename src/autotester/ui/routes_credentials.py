@@ -52,7 +52,7 @@ def env_editor_view(slug: str) -> str:
         "<p class='subtitle'>Values are never shown once saved — only whether one is set.</p>"
         f"{theme.card(table)}"
     )
-    return theme.page(f"{name} — credentials", body)
+    return theme.page(f"{name} — credentials", body, active_slug=slug)
 
 
 @router.post("/projects/{slug}/env")
