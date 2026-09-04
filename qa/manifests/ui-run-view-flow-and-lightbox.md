@@ -96,4 +96,4 @@ Umesh's own earlier screenshot:**
 - Please do your own real click on a live thumbnail (Playwright or otherwise) rather than just
   grepping for the `:target` CSS — "does it actually open" is the real claim here.
 
-## Status: ready-for-check
+## Status: checked-PASS — see qa/verdicts/ui-run-view-flow-and-lightbox.md, cycle 1 PASS
