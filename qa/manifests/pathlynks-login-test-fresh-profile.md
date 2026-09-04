@@ -133,4 +133,4 @@ scanned 3 file(s); 0 leak(s)
   direct response to Umesh's question, per the plan at
   `C:/Users/Lenovo/.claude/plans/great-when-you-really-iridescent-ocean.md` §2.
 
-## Status: ready-for-check (cycle 2)
+## Status: checked-PASS — see qa/verdicts/pathlynks-login-test-fresh-profile.md, cycle 2 PASS
