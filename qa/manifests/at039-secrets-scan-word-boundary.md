@@ -54,4 +54,4 @@ scanned 1 file(s); 0 leak(s)              # AT-037's original fix still holds
   substring) — it cannot reopen AT-037 or AT-038 by construction, since it only ever REMOVES
   matches the old substring check would have made, never adds new ones.
 
-## Status: ready-for-check
+## Status: checked-PASS — see qa/verdicts/at039-secrets-scan-word-boundary.md, cycle 1 PASS (checker confirms chain closed, no fourth issue)
