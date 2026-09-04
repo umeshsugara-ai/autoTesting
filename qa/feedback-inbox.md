@@ -63,9 +63,11 @@ log; commit: the cycle-2 verdict commit). Code side (`core/paths.py::env_file` �
 
 > isme db and all bhi tho hoga naa mongo and all ka dunga mai tujhe tere .env mai
 
-**Status:** unfolded — proposal: `PATHLYNKS_MONGO_URI` as a `SecretRef`; new `EvidenceKind.DB` for
-read-only backend assertions after UI actions. Production Mongo stays read-only by construction.
-Needs a contract criterion in a future `execute` contract, not this unit.
+**Status:** SUPERSEDED (2026-09-04, see the Mongo/login entry below and
+`browser-and-secrets.md` amendment log) — Umesh's later instruction reversed this proposal:
+`PATHLYNKS_MONGO_URI` was removed rather than formalised as a `SecretRef`. `EvidenceKind.DB` for
+backend assertions remains a real future idea (`browser/db.py` still exists, unwired) but is no
+longer tied to this proposal's shape; re-propose fresh if/when an `execute` contract needs it.
 */checker 2026-09-03 (cycle-2 check): deliberately left unfolded — no B1–B9 or C1–C8 criterion
 covers backend assertions; fold when the `execute` contract is initialised. Recorded in the
 browser-and-secrets amendment log so it is not lost.*
@@ -99,13 +101,12 @@ outside this project's root, so the maker does not touch it.
 **Verbatim:** "मैं पहले से ही यह discuss करके confirm कराया, right? कि किसी भी एक model पे कभी dependency नहीं होगी, it should be lang chain system और whatever की, हम जब चाहेंगे, हम anthropic में भी shift होंगे, अगर गो नहीं होगा, Gemini यहीं पे होंगे, Gemini नहीं होगा, तो Olama में होंगे, Chat, GPT में होंगे, तो there should be either fallback system और lang chain का use कर ले, ताकि कोई भी API. चलो वो अलब sign up process है, तो वो बन जाएगा conditional, otherwise बाती सब का lang chain भी तुरू कर ले,"
 **Reading:** no single-provider dependency; a fallback chain across Anthropic → Gemini → Ollama →
 ChatGPT; built on LangChain rather than a hand-rolled per-vendor Provider class.
-**Status:** unfolded (deliberate) — this is a real architecture direction, not a quick fix. The
-current `providers/base.py::Provider` ABC + registry is pluggable (a project can already mix
-Gemini for vision with Anthropic for judging) but has no automatic fallback and is not
-LangChain-based. Migrating is a substantial, contract-worthy change touching every stage that
-calls `act()`/`judge()`/`see_video()` (execute.py doesn't, but grade.py and agent_loop.py do) —
-not something to improvise mid-cycle. Needs its own design pass (likely /cto-advisor HLD or a
-short /grill) before a contract and goal task exist for it. Tracked here until scoped.
+**Status:** folded → `qa/contracts/langchain-fallback.md` (T-055, new contract) — delivered and
+checker-PASSed (`qa/verdicts/t055-langchain-fallback.md`, PASS). The automatic
+Anthropic → Gemini → Ollama → ChatGPT fallback chain now exists; see that contract for the
+criteria actually shipped.
+*/checker 2026-09-04 (sweep): reconciled — this entry sat at "unfolded (deliberate)" after T-055
+had already shipped and PASSed.*
 
 ## 2026-09-03 — Umesh, on Docker + live-watch + UI polish
 **Source:** chat, this session.
@@ -144,13 +145,17 @@ ever needs to happen once per project); (3) keep all three mechanisms available:
 .env auto-fill (Umesh will keep providing this for Pathlynks specifically), and the existing
 OTP/2FA pause — never remove any of them, just make manual login the no-password-needed default
 path for new projects.
-**Status:** unfolded (in progress this cycle) — investigated and confirmed `PATHLYNKS_MONGO_URI`
-is declared in `projects/pathlynks/project.json` but genuinely unused by any real case today
-(`browser/db.py` exists and is unit-tested in isolation, never wired into an actual test case) —
-removing the declaration since Pathlynks doesn't currently need it; the `browser/db.py` capability
-itself stays available for a future case that specifically needs backend verification. Building a
-new `autotester login <slug>` command for manual one-time login, reusing the existing
-`MissingSecret`/`blocked_hitl` mechanism's spirit without removing .env auto-fill or OTP HITL.
+**Status:** folded → `qa/contracts/browser-and-secrets.md` amendment log (2026-09-04 row) —
+investigated and confirmed `PATHLYNKS_MONGO_URI` was declared in `projects/pathlynks/project.json`
+(added by T-090) but genuinely unused by any real case (`browser/db.py` exists and is
+unit-tested in isolation, never wired into an actual test case); removed the declaration since
+Pathlynks doesn't currently need it, keeping `browser/db.py` available for a future case that
+specifically needs backend verification. Built the new `autotester login <slug>` command for
+manual one-time login. Shipped and checker-PASSed as unit `manual-login` (cycle 1,
+`qa/verdicts/manual-login.md`; ledger F-020) — all three mechanisms (manual login, `.env`
+auto-fill, OTP/2FA HITL pause) confirmed still present per Umesh's "teeeno rakho option."
+*/checker 2026-09-04 (sweep): reconciles the maker's 2026-09-03 housekeeping flag on the older DB
+entry above too — that entry's T-090 delivery is now itself superseded by this one.*
 
 ## 2026-09-04 — Umesh, on report-export: a flow diagram idea
 **Source:** chat, this session, right after report-export (Excel + HTML) shipped.
@@ -168,3 +173,14 @@ data source: `FlowSpec.flows[].steps` (entry/exit screens) plus each `Case.case_
 the branch label, rendered as an inline SVG or a simple nested-list tree in the same
 self-contained HTML file (no new JS library, matching RE3's "one portable file" constraint).
 Deferred, not started this cycle.
+
+**Refinement (2026-09-04, later in the same session, per plan §4):** rendering the *full* branch
+tree (every worst/edge/best path, BFS-style — "covering all branches") is the expensive,
+worst-case version. What Umesh actually wants is simpler and cheaper: **trace the one path a
+given run actually took, DFS-style** — the literal sequence of screens/steps that case followed,
+not every hypothetical branch. Re-scoped for whenever this is picked up: a linear step-by-step
+trace per case (cheap, always renderable) rather than a full FlowSpec tree (expensive, only
+meaningful once a project has many recorded flows). Still not scheduled this cycle — this is a
+scoping refinement to the same deferred idea, not a new task.
+*/checker 2026-09-04 (sweep): folded in per the plan's own note that this refinement belongs
+here; was written into the plan file but not yet mirrored into this inbox until now.*

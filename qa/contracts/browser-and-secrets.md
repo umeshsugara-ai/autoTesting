@@ -98,6 +98,16 @@ page and mocks.
 - 2026-09-03 · routine · B3: recorded edge case — parser-divergent destinations (userinfo,
   backslash, unparseable) must fail closed · why: AT-007 demonstrated `urlparse` and WHATWG
   disagreeing on the host of `https://evil.test\@pathlynks.test`. Tightening only.
-- 2026-09-03 · not folded · Mongo/DB credential (`PATHLYNKS_MONGO_URI` as a `SecretRef`, read-only
-  backend assertions) · why: belongs to a future `execute` contract, not B1–B9; left `unfolded` in
-  the inbox with that note.
+- 2026-09-03 · SUPERSEDED (see 2026-09-04 row below) · Mongo/DB credential (`PATHLYNKS_MONGO_URI`
+  as a `SecretRef`, read-only backend assertions) · why: belonged to a future `execute` contract,
+  not B1–B9; left `unfolded` in the inbox with that note.
+- 2026-09-04 · routine · resolves the row above in the opposite direction: `PATHLYNKS_MONGO_URI`
+  is REMOVED as a forced `SecretRef` on the Pathlynks project rather than added elsewhere · why:
+  Umesh, 2026-09-04 (`qa/feedback-inbox.md`) — a tester should watch the real browser like a human
+  would, not need DB access by default; manual one-time login (new `autotester login <slug>`,
+  `browser/secrets.py`+session persistence) is the no-password default, `.env` auto-fill and OTP
+  HITL both stay unchanged. Built and checker-PASSed as unit `manual-login` (cycle 1,
+  `qa/verdicts/manual-login.md`; ledger F-020). `browser/db.py`/`ReadOnlyCollection` itself is
+  NOT removed — the capability stays available for a future case that specifically needs backend
+  verification, only the forced-by-default declaration on Pathlynks is gone. Non-safety-weakening:
+  nothing here was ever a binding B-criterion, only a proposal that never shipped.
