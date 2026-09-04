@@ -1,1 +1,1 @@
-2026-09-04T15:13:44+05:30 · ADVANCED · at049-multimodal-grading built (CRITICAL fix: judge never saw real screenshots, text-only guessing for every verdict this session) -- checker dispatched
+2026-09-04T15:30:12+05:30 · BACKLOG_EMPTY · sweep confirmed F-031 close-out clean (nothing bypassed), promoted AT-046/049/050 fixed->verified, filed AT-051 (low, stale goal.json notification, no ack tooling exists)
