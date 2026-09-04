@@ -135,4 +135,4 @@ not that project's specific login-flow-vs-shared-profile interaction) then delet
 - Do your own live-Docker verification if you can — a real `303` + real graded verdict on disk is
   the actual proof RU4 holds, not the pasted output above.
 
-## Status: ready-for-check
+## Status: checked-PASS
