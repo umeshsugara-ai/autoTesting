@@ -1,1 +1,1 @@
-2026-09-04T08:32:00+05:30 · BACKLOG_EMPTY · sweep confirmed clean (0 open issues, 20/20 goal, docker demo server healthy); flow-diagram idea correctly filed as deferred/optional
+2026-09-04T09:15:00+05:30 · ADVANCED · pathlynks login-test flakiness fixed (cycle 2, real polling replaces fixed sleep); run-case-pipeline (3a) built; both checkers dispatched
