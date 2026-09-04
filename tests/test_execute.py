@@ -60,6 +60,7 @@ class FakePage:
         self.timeouts: list[int] = []
         self.styles: list[str] = []
         self.shots: list[str] = []
+        self.settled: list[tuple[str, int]] = []
 
     def locator(self, selector: str) -> FakeLocator:
         return FakeLocator(self, selector)
@@ -76,6 +77,9 @@ class FakePage:
 
     def wait_for_timeout(self, timeout: int) -> None:
         self.timeouts.append(timeout)
+
+    def wait_for_load_state(self, state: str = "load", timeout: int = 0) -> None:
+        self.settled.append((state, timeout))
 
 
 def make_project(*, secret_present: bool = True) -> Project:
@@ -130,6 +134,26 @@ def test_completed_run_composes_session_methods_and_screenshots_every_step(
     shots = [e for e in result.evidence if e.kind is EvidenceKind.SCREENSHOT]
     assert len(shots) == 5  # one per step, including the judgement-free ASSERT
     assert [e.step_order for e in shots] == [1, 2, 3, 4, 5]
+
+
+def test_click_settles_before_the_screenshot_but_other_actions_do_not(
+    tmp_path: Path,
+) -> None:
+    """AT-045: a click often triggers an async transition (e.g. a form-submit
+    redirect); the evidence screenshot must reflect the settled page, not
+    the instant of the click itself. Other actions (fill, navigate) don't
+    need this -- they don't trigger the same async-transition problem and
+    settling after every action would just slow every run down."""
+    steps = [
+        Step(order=1, action=Action.NAVIGATE, target=LOGIN),
+        Step(order=2, action=Action.FILL, target="input[name=email]", value="a@b.com"),
+        Step(order=3, action=Action.CLICK, target="button[type=submit]"),
+    ]
+    session = session_with_fake_page(tmp_path)
+    result = run_case(make_case(steps), session)
+
+    assert result.outcome is Outcome.COMPLETED
+    assert session.page.settled == [("networkidle", 8000)]
 
 
 def test_select_upload_and_wait_actions(tmp_path: Path) -> None:

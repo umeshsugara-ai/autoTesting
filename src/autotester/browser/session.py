@@ -9,6 +9,7 @@ process's Chrome.
 
 from __future__ import annotations
 
+import contextlib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -172,6 +173,29 @@ class BrowserSession:
     def upload(self, locator: str, file_path: str, *, step_order: int | None = None) -> Evidence:
         self.page.locator(locator).set_input_files(file_path)
         return self._record(EvidenceKind.DOM, f"uploaded to {locator}", step_order=step_order)
+
+    def settle(self, timeout_ms: int = 8000) -> None:
+        """Best-effort wait for an async page transition (e.g. a client-side
+        redirect after a form submit) to finish before evidence is captured.
+        Bounded and never raises — AT-045: `execute.py` used to screenshot a
+        CLICK step immediately, mid-transition, so the grader saw evidence of
+        the click but never of what it actually caused. A page that never
+        reaches network-idle (long polling, websockets) just gets the bounded
+        wait, not a failed step — this is observation, not a new step
+        (execute.md E5 still holds: no extra click/submit/navigation). 8s
+        matches the bound `scripts/run_pathlynks_first_cases.py` already
+        proved necessary for this exact class of redirect (checker-PASSed
+        `pathlynks-login-test-fresh-profile`, cycle 2) -- `networkidle`
+        genuinely resolves early once the new page settles, so this is a
+        ceiling, not a fixed cost, for the common case. A short fixed grace
+        period follows network-idle -- a rejected-login inline error message
+        is a pure client-side re-render with no further network activity, so
+        network-idle alone can resolve before the DOM/paint actually shows
+        it; this covers that class of transition too."""
+        with contextlib.suppress(Exception):
+            self.page.wait_for_load_state("networkidle", timeout=timeout_ms)
+        with contextlib.suppress(Exception):
+            self.page.wait_for_timeout(500)
 
     def wait_for(
         self, locator: str | None, *, timeout_ms: int = 5000, step_order: int | None = None

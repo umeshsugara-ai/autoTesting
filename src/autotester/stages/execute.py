@@ -50,6 +50,12 @@ def run_case(case: Case, session: BrowserSession) -> RawResult:
     for step in sorted(case.steps, key=lambda s: s.order):
         try:
             _ACTIONS[step.action](session, step)
+            if step.action is Action.CLICK:
+                # AT-045: a click often triggers an async transition (e.g. a
+                # form-submit redirect) -- settle before the evidence
+                # screenshot, or the grader only ever sees the click itself,
+                # never what it caused.
+                session.settle()
             session.screenshot(f"step{step.order:02d}-{step.action}", step_order=step.order)
         except MissingSecret as exc:
             return _result(case, session, start, Outcome.BLOCKED_HITL, hitl_prompt=str(exc))

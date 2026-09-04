@@ -230,3 +230,15 @@ branch. Explicitly asking for that now, not deferring it further.
 2026-09-03 is now closed in both halves: F-028 (DFS single-run trace) + F-029 (BFS merged
 branch tree per flow) -- one case's actual path, and every case's path merged from a shared
 entry, respectively.*
+
+## 2026-09-04 — Umesh asked to rerun testing on pathlynks; found a real regression
+
+Triggered `POST /projects/pathlynks/run` via the live UI (the same Run button F-024 shipped) —
+result: all 3 cases INCONCLUSIVE, same failure class as the original INCONCLUSIVE-report bug
+fixed earlier this session (`pathlynks-login-test-fresh-profile`), but that fix only patched
+`scripts/run_pathlynks_first_cases.py`'s standalone script — the generic `trigger_run`/
+`run_and_grade_case` pipeline (the one the actual UI button calls) still uses the shared,
+persistently-logged-in `pathlynks` profile with no cross-run wipe and no run-order safeguard.
+Confirmed via real verdict evidence: `TimeoutError: waiting for locator("input[name=\"identifier\"]")`
+— the sign-in form never appeared because the profile was already authenticated. This is a real
+regression in the flagship feature (Run button), not a request — filing and fixing now.

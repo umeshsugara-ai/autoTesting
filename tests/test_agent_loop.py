@@ -55,6 +55,12 @@ class FakePage:
     def goto(self, url: str, wait_until: str = "") -> None:
         self.url = url
 
+    def wait_for_load_state(self, state: str = "load", timeout: int = 0) -> None:
+        pass
+
+    def wait_for_timeout(self, timeout_ms: int) -> None:
+        pass
+
 
 def make_project() -> Project:
     return Project(slug="pathlynks", name="Pathlynks", base_url=LOGIN,
