@@ -170,6 +170,69 @@ def test_run_view_shows_scoreboard_and_grader_not_just_a_bare_badge(
     assert "judged by gemini" in response.text
 
 
+def test_run_view_screenshots_link_to_a_matching_lightbox_target(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """Umesh: thumbnails were readable but too small to read detail without
+    clicking -- each thumbnail must open a full-size CSS-only lightbox."""
+    store = ProjectStore("demo", scratch_root)
+    store.save_project(
+        Project(slug="demo", name="Demo", base_url="https://demo.test",
+                 allowed_domains=["demo.test"])
+    )
+    run_dir = store.paths.run_dir("run_1")
+    run_dir.mkdir(parents=True, exist_ok=True)
+    (run_dir / "01-shot.png").write_bytes(b"\x89PNG\r\n\x1a\n")
+    store.save_result("run_1", RawResult(
+        case_id="case_1", outcome=Outcome.COMPLETED,
+        evidence=[Evidence(kind=EvidenceKind.SCREENSHOT, path="01-shot.png",
+                            label="step 1", step_order=1)],
+    ))
+    store.save_verdict("run_1", Verdict(
+        run_id="run_1", case_id="case_1", result=Result.PASS,
+        grader_provider="mock", rubric_hash="rub_x",
+    ))
+
+    response = client.get("/projects/demo/runs/run_1")
+    text = response.text
+
+    assert "class='flow-step' href='#lb-0-0'" in text
+    assert "id='lb-0-0'" in text
+    assert "class='lightbox'" in text
+
+
+def test_run_view_orders_the_step_flow_by_step_order_not_evidence_order(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """The DFS-style trace must show the literal sequence the case walked --
+    if evidence arrives out of order, step_order must still win."""
+    store = ProjectStore("demo", scratch_root)
+    store.save_project(
+        Project(slug="demo", name="Demo", base_url="https://demo.test",
+                 allowed_domains=["demo.test"])
+    )
+    run_dir = store.paths.run_dir("run_1")
+    run_dir.mkdir(parents=True, exist_ok=True)
+    (run_dir / "a.png").write_bytes(b"\x89PNG\r\n\x1a\n")
+    (run_dir / "b.png").write_bytes(b"\x89PNG\r\n\x1a\n")
+    store.save_result("run_1", RawResult(
+        case_id="case_1", outcome=Outcome.COMPLETED,
+        evidence=[
+            Evidence(kind=EvidenceKind.SCREENSHOT, path="b.png", label="second", step_order=2),
+            Evidence(kind=EvidenceKind.SCREENSHOT, path="a.png", label="first", step_order=1),
+        ],
+    ))
+    store.save_verdict("run_1", Verdict(
+        run_id="run_1", case_id="case_1", result=Result.PASS,
+        grader_provider="mock", rubric_hash="rub_x",
+    ))
+
+    response = client.get("/projects/demo/runs/run_1")
+    text = response.text
+
+    assert text.index(">first<") < text.index(">second<")
+
+
 def test_run_view_shows_failure_reasons_for_a_fail(
     client: TestClient, scratch_root: Path
 ) -> None:

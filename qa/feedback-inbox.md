@@ -203,3 +203,17 @@ Source: direct chat message with an attached screenshot, not a manifest/checker 
 now leads with a real overview (total runs, overall pass rate, cases in latest run) and compact
 per-run badges; run-detail cards show scoreboard/grader/failure info and screenshots render in a
 responsive thumbnail grid instead of native size.*
+
+## 2026-09-04 — Umesh, follow-up on run-view screenshot sizing (verbatim intent)
+
+After seeing the fixed report/run-view pages live: screenshot thumbnails are readable at a
+glance but too small to read detail without clicking. Asked (via AskUserQuestion) whether to
+add a click-to-enlarge lightbox, make thumbnails bigger directly, or leave as-is — chose
+**click-to-enlarge lightbox** (keep the compact thumbnail grid, but clicking a thumbnail opens
+a full-size view).
+
+*Resolved 2026-09-04: implemented as the DFS-style step flow on the run-detail page
+(qa/manifests/ui-run-view-flow-and-lightbox.md) rather than a separate page/export — matches
+this entry's own 2026-09-04 refinement (linear trace per case, not a full branch tree). Umesh's
+mid-build follow-up "/workflow-diagram type kuch add kro" confirmed this scope: the flow arrows
+between step thumbnails ARE the workflow diagram, at exactly the re-scoped DFS granularity.*

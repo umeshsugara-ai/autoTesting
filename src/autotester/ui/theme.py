@@ -158,13 +158,28 @@ PAGE_STYLE = """
   .failure-list li { margin-bottom: .3rem; }
   .failure-list code { font-family: var(--font-mono); font-size: .82rem; }
 
-  .shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-           gap: .9rem; margin-top: .5rem; }
-  .shots figure { margin: 0; border: 1px solid var(--border); border-radius: var(--radius);
-                  overflow: hidden; background: var(--neutral-bg); }
-  .shots img { width: 100%; height: auto; display: block; }
-  .shots figcaption { padding: .35rem .55rem; font-size: .74rem; color: var(--text-dim);
-                       font-family: var(--font-mono); border-top: 1px solid var(--border); }
+  .flow { display: flex; flex-wrap: wrap; align-items: center; margin-top: .5rem; }
+  .flow-step { display: block; width: 150px; text-decoration: none; color: inherit; }
+  .flow-step .thumb { border: 1px solid var(--border); border-radius: var(--radius);
+                       overflow: hidden; background: var(--neutral-bg);
+                       transition: border-color .15s; }
+  .flow-step:hover .thumb { border-color: var(--accent); }
+  .flow-step img { width: 100%; height: auto; display: block; cursor: zoom-in; }
+  .flow-step .step-label { display: block; padding: .3rem .1rem 0; font-size: .72rem;
+                            color: var(--text-dim); font-family: var(--font-mono);
+                            text-align: center; }
+  .flow-arrow { color: var(--border); font-size: 1.3rem; padding: 0 .25rem; flex-shrink: 0; }
+
+  .lightbox { display: none; position: fixed; inset: 0; background: rgba(20,16,12,.87);
+              z-index: 1000; align-items: center; justify-content: center; padding: 2.5rem; }
+  .lightbox:target { display: flex; }
+  .lightbox img { max-width: 94vw; max-height: 88vh; border-radius: var(--radius);
+                   box-shadow: 0 20px 60px rgba(0,0,0,.5); display: block; }
+  .lightbox .lightbox-caption { position: absolute; bottom: 1.6rem; left: 50%;
+                                 transform: translateX(-50%); color: #fff;
+                                 font-family: var(--font-mono); font-size: .8rem;
+                                 background: rgba(0,0,0,.55); padding: .3rem .85rem;
+                                 border-radius: 999px; }
 
   form { margin: 0; }
   .field { margin-bottom: 1.2rem; }

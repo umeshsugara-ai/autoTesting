@@ -60,15 +60,39 @@ def _run_date(store: ProjectStore, run_id: str) -> str:
     return escape(run.created_at.strftime("%Y-%m-%d %H:%M")) if run else ""
 
 
-def _shots(run_dir: Path, evidence: list) -> str:
-    images = "".join(
-        f"<figure><img src='data:image/png;base64,{data}' loading='lazy'>"
-        f"<figcaption>{escape(shot.label or shot.path)}</figcaption></figure>"
-        for shot in evidence if shot.kind is EvidenceKind.SCREENSHOT
-        for data in [png_base64(run_dir / shot.path)] if data is not None
+def _step_flow(run_dir: Path, evidence: list, case_index: int) -> str:
+    """The DFS-style trace Umesh asked for: the literal ordered sequence of
+    screens THIS case actually walked through — never every hypothetical
+    branch (that's the deferred, explicitly-descoped BFS/mindmap idea,
+    qa/feedback-inbox.md). Each thumbnail links to a same-page CSS-only
+    lightbox (`:target`) so the compact flow can still show full detail on
+    click, no JS needed."""
+    shots = sorted(
+        (s for s in evidence if s.kind is EvidenceKind.SCREENSHOT),
+        key=lambda s: s.step_order if s.step_order is not None else 10**9,
     )
-    return f"<div class='shots'>{images}</div>" if images else \
-        "<p class='meta'>no screenshots captured</p>"
+    steps: list[str] = []
+    lightboxes: list[str] = []
+    for i, shot in enumerate(shots):
+        data = png_base64(run_dir / shot.path)
+        if data is None:
+            continue
+        lb_id = f"lb-{case_index}-{i}"
+        caption = escape(shot.label or shot.path)
+        steps.append(
+            f"<a class='flow-step' href='#{lb_id}'>"
+            f"<span class='thumb'><img src='data:image/png;base64,{data}' loading='lazy'></span>"
+            f"<span class='step-label'>{caption}</span></a>"
+        )
+        lightboxes.append(
+            f"<a href='#' class='lightbox' id='{lb_id}'>"
+            f"<img src='data:image/png;base64,{data}'>"
+            f"<span class='lightbox-caption'>{caption}</span></a>"
+        )
+    if not steps:
+        return "<p class='meta'>no screenshots captured</p>"
+    arrow = "<span class='flow-arrow'>→</span>"
+    return f"<div class='flow'>{arrow.join(steps)}</div>{''.join(lightboxes)}"
 
 
 def _failure_list(failures: list) -> str:
@@ -94,7 +118,7 @@ def run_view(slug: str, run_id: str) -> str:
     results = store.load_results(run_id)
     counts = _run_counts(store, run_id)
 
-    def _case_body(r) -> str:
+    def _case_body(r, case_index: int) -> str:
         verdict = verdicts.get(r.case_id)
         meta = [f"<span class='meta'>{escape(r.outcome.value)}</span>"]
         if verdict:
@@ -110,13 +134,13 @@ def run_view(slug: str, run_id: str) -> str:
         error = f"<p class='scoreboard'>{escape(r.error)}</p>" if r.error else ""
         return (
             f"<div class='case-meta'>{''.join(meta)}</div>{scoreboard}{failures}{error}"
-            f"{_shots(run_dir, r.evidence)}"
+            f"{_step_flow(run_dir, r.evidence, case_index)}"
         )
 
     sections = "".join(
-        theme.card(_case_body(r), title=escape(cases[r.case_id].title if r.case_id in cases
-                                               else r.case_id))
-        for r in results
+        theme.card(_case_body(r, i), title=escape(cases[r.case_id].title if r.case_id in cases
+                                                  else r.case_id))
+        for i, r in enumerate(results)
     )
     body = (
         f"<div class='breadcrumb'><a href='/'>Projects</a> / "
