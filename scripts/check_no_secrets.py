@@ -8,6 +8,7 @@ secret value as an argument; it reads `.env` itself and checks silently.
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -35,18 +36,24 @@ def _public_base_urls(root: Path | None = None) -> set[str]:
     return urls
 
 
+_URL_KEY = re.compile(r"(?:^|_)URL(?:_|$)")  # AT-039: a whole "URL" token, never a bare substring
+                                              # match (HOURLY_BILLING_SECRET must never qualify).
+
+
 def real_values(root: Path | None = None) -> list[str]:
     """Every non-empty value currently in the repo-root .env, plus each value's
     dot-escaped form (`a.b` -> `a\\.b`) -- a trivial regex-escape is not enough
     to turn a real secret into an innocent "pattern" (found the hard way when a
     checker's own literal-vs-regex reasoning missed exactly this, AT-025).
 
-    AT-037/AT-038: a `.env` value is excluded ONLY when it (a) exactly equals a
-    project's own public base_url AND (b) sits under a key whose name marks it
-    as a URL (`"URL" in KEY`) -- excluding by bare value alone (AT-037's first
-    fix) meant a genuinely different secret that happened to coincide with a
-    base_url string would go uncaught (AT-038). Scoping to the key name closes
-    that: a password-shaped key never matches, no matter what its value is.
+    AT-037/AT-038/AT-039: a `.env` value is excluded ONLY when it (a) exactly
+    equals a project's own public base_url AND (b) sits under a key whose name
+    contains a whole "URL" token (`_URL_KEY`, e.g. `SOME_LOGIN_URL`) -- never a
+    bare substring match, so `HOURLY_BILLING_SECRET` never qualifies just
+    because "url" sits inside "hourly". Excluding by bare value alone (AT-037's
+    first fix) meant a genuinely different secret that happened to coincide
+    with a base_url string would go uncaught (AT-038); a bare substring key
+    check reopened the same failure through a coincidental key name (AT-039).
     """
     env_path = ProjectPaths("_", root).root / ".env"
     if not env_path.exists():
@@ -55,7 +62,7 @@ def real_values(root: Path | None = None) -> list[str]:
     present = parse_env(env_path.read_text(encoding="utf-8"))
     values = [
         v for k, v in present.items()
-        if v and not (v in public and "URL" in k.upper())
+        if v and not (v in public and _URL_KEY.search(k.upper()))
     ]
     escaped = [v.replace(".", "\\.") for v in values if "." in v]
     return values + escaped

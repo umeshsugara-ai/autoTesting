@@ -82,3 +82,27 @@ def test_a_coincidental_non_url_secret_still_flags_even_if_it_matches_a_base_url
     outcome = cns.scan([leaked], cns.real_values(tmp_path))
 
     assert outcome[leaked] is False  # OAUTH_CALLBACK_SECRET's coincidental leak is still caught
+
+
+def test_a_key_that_merely_contains_the_letters_url_is_not_treated_as_a_url_key(
+    tmp_path: Path,
+) -> None:
+    """AT-039: the first key-scoping fix (AT-038) used a bare substring check
+    ("URL" in KEY), so HOURLY_BILLING_SECRET would have wrongly qualified for
+    the exemption just because "url" sits inside "hourly". The word-boundary
+    regex must require a whole URL token, not any substring occurrence."""
+    (tmp_path / ".env").write_text(
+        "SOME_LOGIN_URL=https://app.example.com/signin\n"
+        "HOURLY_BILLING_SECRET=https://app.example.com/signin\n",
+        encoding="utf-8",
+    )
+    ProjectStore("demo", tmp_path).save_project(
+        Project(slug="demo", name="Demo", base_url="https://app.example.com/signin",
+                allowed_domains=["app.example.com"])
+    )
+    leaked = tmp_path / "some_artifact.json"
+    leaked.write_text("billing: https://app.example.com/signin", encoding="utf-8")
+
+    outcome = cns.scan([leaked], cns.real_values(tmp_path))
+
+    assert outcome[leaked] is False  # HOURLY_BILLING_SECRET's coincidental leak is still caught
