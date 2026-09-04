@@ -63,3 +63,15 @@ text inline in `grade.py`.
 
 - 2026-09-03 · init · contract created for T-041 (grade stage), following the pattern set by
   `execute.md` for T-040 — no contract existed before this cycle.
+- 2026-09-04 · routine · G1 clarified: the judge call must attach the real bytes of any
+  `SCREENSHOT`-kind evidence it has been given a `run_dir` for, not just describe that evidence
+  as a filename/label in the text prompt. Prompted by AT-049 (critical, `qa/issues.jsonl`) — every
+  prior `Verdict` was graded from evidence filenames only, `Provider.judge()`/`grade()` never
+  attached image bytes, which explained run-to-run flakiness far better than a timing theory
+  (a text-only judge guessing plausibility from a label is inherently non-deterministic). Fixed
+  in `providers/base.py`, `providers/langchain_fallback.py`, `providers/gemini.py`,
+  `providers/anthropic.py`, `stages/grade.py::_screenshot_paths`,
+  `stages/run_case_pipeline.py::run_and_grade_case`; checker-verified 2026-09-04
+  (`qa/verdicts/at049-multimodal-grading.md`). This does not weaken G1's "no case metadata, no
+  script source" boundary — an image is evidence the same as a screenshot's filename always was,
+  just now genuinely seen rather than merely named.
