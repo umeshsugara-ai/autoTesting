@@ -141,4 +141,8 @@ clearly legible — matching WORST's verdict note above almost verbatim.
   describe it in text") belongs in the contract's amendment log — this is exactly the kind of
   gap the contract's own spirit already implied but never made explicit.
 
-## Status: ready-for-check
+## Status: checked-PASS — see qa/verdicts/at049-multimodal-grading.md, cycle 1 PASS (checker
+independently re-ran 3 fresh live Docker reruns of its own, 9/9 case verdicts PASS; verified the
+real screenshot behind one verdict's note matches its reasoning almost verbatim; added a routine
+grade.md amendment making G1's evidence-attachment spirit explicit; filed and self-resolved
+AT-050, a low-severity premature verified_date stamp)
