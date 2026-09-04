@@ -1,1 +1,1 @@
-2026-09-04T06:20:00+05:30 · ADVANCED · manual-login feature built (no-password login option, Umesh's request); removed unused PATHLYNKS_MONGO_URI; checker dispatched
+2026-09-04T06:40:00+05:30 · ADVANCED · AT-037 secrets-scanner false-positive fixed; checker dispatched with adversarial security review
