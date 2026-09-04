@@ -90,4 +90,4 @@ the design exactly, no layout overlap or clipping.
   page-state-varying piece of shared chrome (the sidebar) exists alongside the original
   "byte-identical" wrapper (D5).
 
-## Status: ready-for-check
+## Status: checked-PASS — see qa/verdicts/ui-sidebar.md, cycle 1 PASS
