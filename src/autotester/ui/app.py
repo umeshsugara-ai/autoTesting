@@ -19,7 +19,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from autotester.core.paths import repo_root
 from autotester.schema.project import Project
 from autotester.store.project_store import ProjectStore
-from autotester.ui import routes_credentials, routes_report, routes_runs, theme
+from autotester.ui import routes_credentials, routes_report, routes_runs, routes_settings, theme
 from autotester.ui.helpers import _load_project_or_404, _project_slugs, _require_slug
 
 __all__ = ["_require_slug", "app"]
@@ -42,6 +42,7 @@ app = FastAPI(title="AutoTester", lifespan=_lifespan)
 app.include_router(routes_runs.router)
 app.include_router(routes_report.router)
 app.include_router(routes_credentials.router)
+app.include_router(routes_settings.router)
 
 
 def _project_card(slug: str) -> str:

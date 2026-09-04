@@ -27,6 +27,7 @@ NAV = """
     <a href="/">Projects</a>
     <a href="/onboard">+ New project</a>
     <a href="/live" class="nav-live">● Live view</a>
+    <a href="/settings/providers">⚙ Settings</a>
   </nav>
 </header>
 """
