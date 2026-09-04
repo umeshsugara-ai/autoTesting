@@ -148,6 +148,23 @@ PAGE_STYLE = """
   td code { font-family: var(--font-mono); font-size: .85rem; }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: var(--neutral-bg); }
+  .run-results { display: flex; gap: .4rem; flex-wrap: wrap; }
+  .run-date { color: var(--text-dim); font-size: .82rem; font-family: var(--font-mono); }
+
+  .case-meta { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+               margin-bottom: .5rem; }
+  .scoreboard { font-size: .88rem; color: var(--text-dim); margin: 0 0 .5rem; }
+  .failure-list { margin: 0 0 .75rem; padding-left: 1.1rem; font-size: .86rem; }
+  .failure-list li { margin-bottom: .3rem; }
+  .failure-list code { font-family: var(--font-mono); font-size: .82rem; }
+
+  .shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+           gap: .9rem; margin-top: .5rem; }
+  .shots figure { margin: 0; border: 1px solid var(--border); border-radius: var(--radius);
+                  overflow: hidden; background: var(--neutral-bg); }
+  .shots img { width: 100%; height: auto; display: block; }
+  .shots figcaption { padding: .35rem .55rem; font-size: .74rem; color: var(--text-dim);
+                       font-family: var(--font-mono); border-top: 1px solid var(--border); }
 
   form { margin: 0; }
   .field { margin-bottom: 1.2rem; }
@@ -209,13 +226,16 @@ _BADGE_CLASS = {
 }
 
 
-def badge(value: str) -> str:
+def badge(value: str, count: int | None = None) -> str:
     """A colored `<span>` for a test RESULT value (PASS/FAIL/BLOCKED/INCONCLUSIVE)
     already HTML-escaped by the caller. Never reuse this for a non-test-result
     status (credential presence, review state) — that's what `pill()` is for;
-    the two vocabularies read as the same thing to a user otherwise."""
+    the two vocabularies read as the same thing to a user otherwise. Pass
+    `count` to render a compact "N RESULT" summary badge (e.g. a run-history
+    row) instead of a single case's own result — same color/icon lookup."""
     cls, icon = _BADGE_CLASS.get(value, ("badge-inconclusive", ""))
-    return f"<span class='badge {cls}'>{icon} {value}</span>"
+    label = f"{count} {value}" if count is not None else value
+    return f"<span class='badge {cls}'>{icon} {label}</span>"
 
 
 _PILL_CLASS = {

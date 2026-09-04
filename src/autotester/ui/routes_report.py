@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from starlette.background import BackgroundTask
 
 from autotester.core.paths import ProjectPaths
-from autotester.schema.enums import EvidenceKind
+from autotester.schema.enums import EvidenceKind, Result
 from autotester.stages.report_export import export_excel, export_html, png_base64
 from autotester.store.project_store import ProjectStore
 from autotester.ui import theme
@@ -43,6 +43,45 @@ def _counts_stats(counts: dict[str, int]) -> str:
     ) + "</div>"
 
 
+def _counts_badges(counts: dict[str, int]) -> str:
+    """Compact inline pills (a run-history row) rather than full-size stat
+    tiles — a stat tile's ~2rem number is meant for one page-level headline,
+    not repeated once per row (that's what made the run-history table read
+    as a wall of oversized, meaningless numbers)."""
+    if not counts:
+        return "<span class='meta'>no verdicts</span>"
+    return "<div class='run-results'>" + "".join(
+        theme.badge(escape(k), count=v) for k, v in counts.items()
+    ) + "</div>"
+
+
+def _run_date(store: ProjectStore, run_id: str) -> str:
+    run = store.load_run(run_id)
+    return escape(run.created_at.strftime("%Y-%m-%d %H:%M")) if run else ""
+
+
+def _shots(run_dir: Path, evidence: list) -> str:
+    images = "".join(
+        f"<figure><img src='data:image/png;base64,{data}' loading='lazy'>"
+        f"<figcaption>{escape(shot.label or shot.path)}</figcaption></figure>"
+        for shot in evidence if shot.kind is EvidenceKind.SCREENSHOT
+        for data in [png_base64(run_dir / shot.path)] if data is not None
+    )
+    return f"<div class='shots'>{images}</div>" if images else \
+        "<p class='meta'>no screenshots captured</p>"
+
+
+def _failure_list(failures: list) -> str:
+    if not failures:
+        return ""
+    items = "".join(
+        f"<li><code>{escape(f.criterion_id)}</code> — {escape(f.reason)}"
+        + (f" <em>{escape(f.fix_hint)}</em>" if f.fix_hint else "") + "</li>"
+        for f in failures
+    )
+    return f"<ul class='failure-list'>{items}</ul>"
+
+
 @router.get("/projects/{slug}/runs/{run_id}", response_class=HTMLResponse)
 def run_view(slug: str, run_id: str) -> str:
     store, _project = _load_project_or_404(slug)
@@ -53,31 +92,38 @@ def run_view(slug: str, run_id: str) -> str:
     cases = {c.id: c for c in store.list_cases()}
     verdicts = {v.case_id: v for v in store.load_verdicts(run_id)}
     results = store.load_results(run_id)
+    counts = _run_counts(store, run_id)
 
-    def _shots(evidence: list) -> str:
-        images = "".join(
-            f"<figure><img src='data:image/png;base64,{data}'>"
-            f"<figcaption>{escape(shot.label or shot.path)}</figcaption></figure>"
-            for shot in evidence if shot.kind is EvidenceKind.SCREENSHOT
-            for data in [png_base64(run_dir / shot.path)] if data is not None
+    def _case_body(r) -> str:
+        verdict = verdicts.get(r.case_id)
+        meta = [f"<span class='meta'>{escape(r.outcome.value)}</span>"]
+        if verdict:
+            meta.append(theme.badge(escape(verdict.result.value)))
+            if verdict.grader_provider:
+                provider = escape(verdict.grader_provider)
+                meta.append(f"<span class='meta'>judged by {provider}</span>")
+        scoreboard = (
+            f"<p class='scoreboard'>{escape(verdict.scoreboard)}</p>"
+            if verdict and verdict.scoreboard else ""
         )
-        return images or "<p class='meta'>no screenshots captured</p>"
-
-    def _result_cell(case_id: str) -> str:
-        return theme.badge(escape(verdicts[case_id].result.value)) if case_id in verdicts else "-"
+        failures = _failure_list(verdict.failures) if verdict else ""
+        error = f"<p class='scoreboard'>{escape(r.error)}</p>" if r.error else ""
+        return (
+            f"<div class='case-meta'>{''.join(meta)}</div>{scoreboard}{failures}{error}"
+            f"{_shots(run_dir, r.evidence)}"
+        )
 
     sections = "".join(
-        theme.card(
-            f"<p class='subtitle'>{escape(r.outcome.value)} · {_result_cell(r.case_id)}</p>"
-            f"<div class='shots'>{_shots(r.evidence)}</div>",
-            title=escape(cases[r.case_id].title if r.case_id in cases else r.case_id),
-        )
+        theme.card(_case_body(r), title=escape(cases[r.case_id].title if r.case_id in cases
+                                               else r.case_id))
         for r in results
     )
     body = (
         f"<div class='breadcrumb'><a href='/'>Projects</a> / "
-        f"<a href='/projects/{safe_slug}'>{safe_slug}</a> / Run</div>"
+        f"<a href='/projects/{safe_slug}'>{safe_slug}</a> / "
+        f"<a href='/projects/{safe_slug}/report'>Report</a> / Run</div>"
         f"<h1>Run <code>{safe_run_id}</code></h1>"
+        + (_counts_stats(counts) if counts else "")
         + (sections or theme.empty_state("📭", "No case results in this run yet."))
     )
     return theme.page(f"Run {safe_run_id}", body)
@@ -100,27 +146,39 @@ def report(slug: str) -> str:
     store = ProjectStore(slug)
     latest_id = run_ids[0]
     safe_run_id = escape(latest_id)
+
+    all_counts = [_run_counts(store, rid) for rid in run_ids]
+    total_verdicts = sum(sum(c.values()) for c in all_counts)
+    total_pass = sum(c.get(Result.PASS.value, 0) for c in all_counts)
+    pass_rate = f"{round(100 * total_pass / total_verdicts)}%" if total_verdicts else "—"
+    overview = "<div class='stat-row'>" + "".join((
+        theme.stat(str(len(run_ids)), "Total runs"),
+        theme.stat(pass_rate, "Overall pass rate"),
+        theme.stat(str(sum(all_counts[0].values())), "Cases in latest run"),
+    )) + "</div>"
+
     downloads = (
         f"<a class='btn' href='/projects/{safe_slug}/report.xlsx'>⬇ Download Excel</a> "
         f"<a class='btn' href='/projects/{safe_slug}/report.html'>⬇ Download HTML</a>"
     )
     history_rows = "".join(
         f"<tr><td><a href='/projects/{safe_slug}/runs/{escape(rid)}'><code>{escape(rid)}</code>"
-        f"</a></td><td>{_counts_stats(_run_counts(store, rid))}</td></tr>"
+        f"</a><br><span class='run-date'>{_run_date(store, rid)}</span></td>"
+        f"<td>{_counts_badges(_run_counts(store, rid))}</td></tr>"
         for rid in run_ids
     )
     history = theme.card(
         f"<table><tr><th>Run</th><th>Results</th></tr>{history_rows}</table>", title="Run history"
     )
     body = (
-        breadcrumb + "<h1>Latest report</h1>"
-        f"<p class='subtitle'>Run <code>{safe_run_id}</code> · "
+        breadcrumb + "<h1>Report</h1>"
+        f"<p class='subtitle'>Latest run <code>{safe_run_id}</code> · "
         f"<a href='/projects/{safe_slug}/runs/{safe_run_id}'>view case-by-case</a> · "
         f"{downloads}</p>"
-        f"{_counts_stats(_run_counts(store, latest_id))}"
+        f"{overview}"
         f"{history}"
     )
-    return theme.page(f"Report — {safe_run_id}", body)
+    return theme.page(f"Report — {safe_slug}", body)
 
 
 def _reserved_temp_path(suffix: str) -> Path:

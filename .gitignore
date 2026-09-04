@@ -12,6 +12,10 @@ profiles/
 # Run artifacts: screenshots and traces may contain product data
 projects/*/runs/
 
+# Lazily-generated default rubrics (stages/run_case_pipeline.py) -- derived
+# state, same as runs/, not a deliverable to hand-commit per project
+projects/*/rubrics/
+
 # Python
 .venv/
 __pycache__/

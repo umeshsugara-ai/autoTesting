@@ -117,3 +117,78 @@ def test_report_offers_real_excel_and_html_downloads(
 def test_downloads_404_for_an_unknown_project(client: TestClient, scratch_root: Path) -> None:
     assert client.get("/projects/nope/report.xlsx").status_code == 404
     assert client.get("/projects/nope/report.html").status_code == 404
+
+
+def test_report_shows_an_overview_summary_not_just_a_bare_history_table(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """Umesh, on a screenshot of this page: 'no summary, no overview'."""
+    _seed_project_with_two_runs(scratch_root)
+
+    response = client.get("/projects/demo/report")
+
+    assert response.status_code == 200
+    assert "Total runs" in response.text
+    assert "Overall pass rate" in response.text
+    assert "50%" in response.text  # one PASS, one FAIL verdict across the two seeded runs
+
+
+def test_run_history_rows_use_compact_badges_not_full_size_stat_tiles(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """The old table rendered a full `.stat` tile (big serif number) per row,
+    reading as a wall of oversized, meaningless numbers -- history rows must
+    use the compact `.run-results` badge summary instead."""
+    _seed_project_with_two_runs(scratch_root)
+
+    response = client.get("/projects/demo/report")
+
+    assert "class='run-results'" in response.text
+    history_section = response.text.split("Run history", 1)[1]
+    assert "class='stat'>" not in history_section
+
+
+def test_run_view_shows_scoreboard_and_grader_not_just_a_bare_badge(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """Umesh, on a screenshot of this page: 'non informational too'."""
+    store = ProjectStore("demo", scratch_root)
+    store.save_project(
+        Project(slug="demo", name="Demo", base_url="https://demo.test",
+                 allowed_domains=["demo.test"])
+    )
+    store.save_result("run_1", RawResult(case_id="case_1", outcome=Outcome.COMPLETED))
+    store.save_verdict("run_1", Verdict(
+        run_id="run_1", case_id="case_1", result=Result.PASS,
+        grader_provider="gemini", rubric_hash="rub_x", scoreboard="Criteria 2/2 met.",
+    ))
+
+    response = client.get("/projects/demo/runs/run_1")
+
+    assert response.status_code == 200
+    assert "Criteria 2/2 met." in response.text
+    assert "judged by gemini" in response.text
+
+
+def test_run_view_shows_failure_reasons_for_a_fail(
+    client: TestClient, scratch_root: Path
+) -> None:
+    from autotester.schema.verdict import Failure
+
+    store = ProjectStore("demo", scratch_root)
+    store.save_project(
+        Project(slug="demo", name="Demo", base_url="https://demo.test",
+                 allowed_domains=["demo.test"])
+    )
+    store.save_result("run_1", RawResult(case_id="case_1", outcome=Outcome.COMPLETED))
+    store.save_verdict("run_1", Verdict(
+        run_id="run_1", case_id="case_1", result=Result.FAIL,
+        grader_provider="gemini", rubric_hash="rub_x",
+        failures=[Failure(criterion_id="c1", reason="login form still visible",
+                           fix_hint="check the redirect wait")],
+    ))
+
+    response = client.get("/projects/demo/runs/run_1")
+
+    assert "login form still visible" in response.text
+    assert "check the redirect wait" in response.text

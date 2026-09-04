@@ -184,3 +184,16 @@ meaningful once a project has many recorded flows). Still not scheduled this cyc
 scoping refinement to the same deferred idea, not a new task.
 */checker 2026-09-04 (sweep): folded in per the plan's own note that this refinement belongs
 here; was written into the plan file but not yet mirrored into this inbox until now.*
+
+## 2026-09-04 — Umesh, on report/run-view UI quality (verbatim)
+
+Screenshot of `/projects/pathlynks/report`: "still very bad ui and very non professional, test
+dekho kesa dikh rhaa hai, no summary, no overview" — the report page's run-history list has no
+at-a-glance summary/overview, just a raw table of run ids and badges.
+
+Screenshot of `/projects/pathlynks/runs/run-01M1NF7RP82ADB72JDW4B47DKF`: "jo ye reporting hai vo
+bhi very bad hai non informational too, big images and all" — the run-detail page's per-case
+screenshots render oversized and the surrounding info (what was checked, why it passed/failed,
+criteria) is thin/non-informative.
+
+Source: direct chat message with an attached screenshot, not a manifest/checker finding.
