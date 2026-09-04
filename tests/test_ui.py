@@ -272,3 +272,8 @@ def test_every_page_carries_the_shared_nav(client: TestClient, scratch_root: Pat
         response = client.get(path)
         assert "Live view" in response.text
         assert "<nav>" in response.text
+
+
+# -- run trigger (RU1-RU4) and its own report/run-history tests live in
+# tests/test_ui_runs.py (kept a separate file to match ui/routes_runs.py's own
+# split, and to stay under the 300-line design rule) -----------------------

@@ -1,59 +1,46 @@
 """Thin FastAPI viewer/editor over project files. Design principle 8: never a
 second source of truth — every route reads/writes through `ProjectStore`/
 `SecretStore` exactly like the CLI does. Contract: qa/contracts/ui.md U1-U5.
+Run-trigger/report routes live in `ui/routes_runs.py`, the credentials editor
+in `ui/routes_credentials.py` — this module keeps only the project-list,
+onboarding and live-view pages.
 """
 
 from __future__ import annotations
 
-import re
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from html import escape
 
-from fastapi import FastAPI, Form, HTTPException
+from dotenv import load_dotenv
+from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from autotester.browser.secrets import parse_env
-from autotester.core.paths import ProjectPaths, repo_root
+from autotester.core.paths import repo_root
 from autotester.schema.project import Project
 from autotester.store.project_store import ProjectStore
-from autotester.ui import theme
-from autotester.ui.env_editor import InvalidEnvValue, set_env_value
+from autotester.ui import routes_credentials, routes_runs, theme
+from autotester.ui.helpers import _load_project_or_404, _project_slugs, _require_slug
 
-app = FastAPI(title="AutoTester")
-
-# Same shape as schema.project.Project.slug's own field pattern -- a slug is a
-# single safe path segment, never `..`, `/`, `\`, or a null byte, before it is
-# ever handed to ProjectPaths/ProjectStore as a directory name.
-_SLUG_RE = re.compile(r"^[a-z][a-z0-9-]*$")
-# run/case ids are ulid- or content_id-shaped: alnum plus `_`/`-` only.
-_SAFE_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+__all__ = ["_require_slug", "app"]
 
 
-def _require_slug(slug: str) -> str:
-    if not _SLUG_RE.fullmatch(slug):
-        raise HTTPException(400, "invalid project slug")
-    return slug
+@asynccontextmanager
+async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    """Same convention as every real-run script (e.g.
+    scripts/run_pathlynks_first_cases.py) -- a plain `uvicorn`/docker process never
+    sources .env on its own, so global provider keys (ANTHROPIC_API_KEY etc.) would
+    otherwise be invisible to LangChainFallbackProvider() even though the file is
+    present on disk. A startup hook, not a module-level call, so TestClient(app)
+    (which never runs lifespan unless used as a context manager) never leaks real
+    .env values into the test process."""
+    load_dotenv(repo_root() / ".env")
+    yield
 
 
-def _require_safe_id(value: str, label: str) -> str:
-    if not _SAFE_ID_RE.fullmatch(value):
-        raise HTTPException(400, f"invalid {label}")
-    return value
-
-
-def _project_slugs() -> list[str]:
-    projects_dir = repo_root() / "projects"
-    if not projects_dir.exists():
-        return []
-    return sorted(p.name for p in projects_dir.iterdir() if (p / "project.json").exists())
-
-
-def _load_project_or_404(slug: str) -> tuple[ProjectStore, Project]:
-    _require_slug(slug)
-    store = ProjectStore(slug)
-    project = store.load_project()
-    if project is None:
-        raise HTTPException(404, f"no project '{slug}'")
-    return store, project
+app = FastAPI(title="AutoTester", lifespan=_lifespan)
+app.include_router(routes_runs.router)
+app.include_router(routes_credentials.router)
 
 
 def _project_card(slug: str) -> str:
@@ -141,15 +128,24 @@ def project_detail(slug: str) -> str:
                    else "warning" if spec is not None else "neutral")
     safe_slug = escape(slug)
     name = escape(project.name)
+    case_count = len(store.list_cases())
     stats = (
         "<div class='stat-row'>"
-        + theme.stat(str(len(store.list_cases())), "Cases")
+        + theme.stat(str(case_count), "Cases")
         + theme.stat(str(len(project.allowed_domains)), "Allowed domain(s)")
         + "</div>"
+    )
+    run_button = (
+        f"<form method='post' action='/projects/{safe_slug}/run' style='display:inline'>"
+        "<button class='btn btn-primary' type='submit'>▶ Run tests</button></form>"
+        if case_count else
+        "<span class='btn' style='opacity:.5;cursor:default' title='no cases yet'>"
+        "▶ Run tests</span>"
     )
     actions = theme.card(
         "<p class='subtitle' style='margin-bottom:1rem'>Manage this project.</p>"
         "<div class='card-actions'>"
+        f"{run_button}"
         f"<a class='btn' href='/projects/{safe_slug}/env'>🔑 Credentials</a>"
         f"<a class='btn' href='/projects/{safe_slug}/report'>📋 Latest report</a>"
         "<a class='btn' href='/live'>▶ Watch live</a>"
@@ -164,115 +160,6 @@ def project_detail(slug: str) -> str:
         f"{stats}{actions}"
     )
     return theme.page(name, body)
-
-
-@app.get("/projects/{slug}/env", response_class=HTMLResponse)
-def env_editor_view(slug: str) -> str:
-    _store, project = _load_project_or_404(slug)
-    paths = ProjectPaths(slug)
-    present = (
-        parse_env(paths.env_file.read_text(encoding="utf-8")) if paths.env_file.exists() else {}
-    )
-    name = escape(project.name)
-    safe_slug = escape(slug)
-    if not project.secrets:
-        table = theme.empty_state("🔑", "This project declares no credentials.")
-    else:
-        def _status_cell(key: str) -> str:
-            return (theme.pill("● Set", "positive") if present.get(key)
-                    else theme.pill("○ Not set", "neutral"))
-
-        rows = "".join(
-            f"<tr><td>{escape(ref.key)}</td>"
-            f"<td>{_status_cell(ref.key)}</td>"
-            f"<form method='post' action='env'>"
-            f"<input type='hidden' name='key' value='{escape(ref.key)}'>"
-            "<td><input type='password' name='value' placeholder='new value'></td>"
-            "<td><button class='btn btn-sm' type='submit'>Save</button></td></form></tr>"
-            for ref in project.secrets
-        )
-        header = "<tr><th>Key</th><th>Status</th><th>New value</th><th></th></tr>"
-        table = f"<table>{header}{rows}</table>"
-    body = (
-        f"<div class='breadcrumb'><a href='/'>Projects</a> / "
-        f"<a href='/projects/{safe_slug}'>{name}</a> / Credentials</div>"
-        f"<h1>Credentials</h1>"
-        "<p class='subtitle'>Values are never shown once saved — only whether one is set.</p>"
-        f"{theme.card(table)}"
-    )
-    return theme.page(f"{name} — credentials", body)
-
-
-@app.post("/projects/{slug}/env")
-def env_editor_submit(slug: str, key: str = Form(...), value: str = Form(...)) -> RedirectResponse:
-    _store, project = _load_project_or_404(slug)
-    if project.secret(key) is None:
-        raise HTTPException(400, f"'{key}' is not a declared secret for '{slug}'")
-    try:
-        set_env_value(repo_root() / ".env", key, value)
-    except InvalidEnvValue as exc:
-        raise HTTPException(400, str(exc)) from exc
-    return RedirectResponse(f"/projects/{slug}/env", status_code=303)
-
-
-@app.get("/projects/{slug}/runs/{run_id}", response_class=HTMLResponse)
-def run_view(slug: str, run_id: str) -> str:
-    store, _project = _load_project_or_404(slug)
-    _require_safe_id(run_id, "run_id")
-    safe_slug = escape(slug)
-    safe_run_id = escape(run_id)
-    verdicts = {v.case_id: v for v in store.load_verdicts(run_id)}
-    def _result_cell(case_id: str) -> str:
-        return theme.badge(escape(verdicts[case_id].result.value)) if case_id in verdicts else "-"
-
-    results = store.load_results(run_id)
-    rows = "".join(
-        f"<tr><td><code>{escape(r.case_id)}</code></td><td>{escape(r.outcome.value)}</td>"
-        f"<td>{_result_cell(r.case_id)}</td></tr>"
-        for r in results
-    )
-    table = (theme.empty_state("📭", "No case results in this run yet.") if not results else
-             f"<table><tr><th>Case</th><th>Outcome</th><th>Result</th></tr>{rows}</table>")
-    body = (
-        f"<div class='breadcrumb'><a href='/'>Projects</a> / "
-        f"<a href='/projects/{safe_slug}'>{safe_slug}</a> / Run</div>"
-        f"<h1>Run <code>{safe_run_id}</code></h1>"
-        f"{theme.card(table)}"
-    )
-    return theme.page(f"Run {safe_run_id}", body)
-
-
-@app.get("/projects/{slug}/report", response_class=HTMLResponse)
-def report(slug: str) -> str:
-    _store, _project = _load_project_or_404(slug)
-    safe_slug = escape(slug)
-    breadcrumb = (
-        f"<div class='breadcrumb'><a href='/'>Projects</a> / "
-        f"<a href='/projects/{safe_slug}'>{safe_slug}</a> / Report</div>"
-    )
-    paths = ProjectPaths(slug)
-    run_ids = sorted(p.name for p in paths.runs_dir.iterdir() if p.is_dir()) \
-        if paths.runs_dir.exists() else []
-    if not run_ids:
-        body = breadcrumb + "<h1>Report</h1>" + theme.empty_state(
-            "📋", "no runs yet — run a case against this project to see a report here.",
-        )
-        return theme.page("Report", body)
-    store = ProjectStore(slug)
-    counts: dict[str, int] = {}
-    for verdict in store.load_verdicts(run_ids[-1]):
-        counts[verdict.result.value] = counts.get(verdict.result.value, 0) + 1
-    stats = "<div class='stat-row'>" + "".join(
-        theme.stat(str(v), theme.badge(escape(k))) for k, v in counts.items()
-    ) + "</div>"
-    safe_run_id = escape(run_ids[-1])
-    body = (
-        breadcrumb + f"<h1>Latest report</h1>"
-        f"<p class='subtitle'>Run <code>{safe_run_id}</code> · "
-        f"<a href='/projects/{safe_slug}/runs/{safe_run_id}'>view case-by-case</a></p>"
-        f"{stats}"
-    )
-    return theme.page(f"Report — {safe_run_id}", body)
 
 
 @app.get("/live", response_class=HTMLResponse)
