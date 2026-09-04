@@ -112,4 +112,4 @@ $ curl http://localhost:8010/projects/pathlynks/runs/run-01M1N7EE6GRBZ4RK4Q0QYK0
 - Please take your own screenshot (or at least inspect the served CSS) of a real run's page —
   "images no longer huge" is a visual claim as much as a functional one.
 
-## Status: ready-for-check
+## Status: checked-PASS — see qa/verdicts/ui-report-informativeness-fix.md, cycle 1 PASS
