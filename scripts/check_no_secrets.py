@@ -15,17 +15,48 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from autotester.browser.secrets import parse_env
 from autotester.core.paths import ProjectPaths
+from autotester.store import ProjectStore
+
+
+def _public_base_urls(root: Path | None = None) -> set[str]:
+    """AT-037: a project's own `base_url` is meant to be public (it's the
+    product's sign-in page) -- if the SAME string also happens to sit in
+    `.env` as a convenience value, that coincidence is not a leak. Excluded
+    by exact string match only, never a prefix/substring rule."""
+    projects_dir = ProjectPaths("_", root).root / "projects"
+    if not projects_dir.exists():
+        return set()
+    urls = set()
+    for slug_dir in projects_dir.iterdir():
+        if (slug_dir / "project.json").exists():
+            project = ProjectStore(slug_dir.name, root).load_project()
+            if project is not None:
+                urls.add(project.base_url)
+    return urls
 
 
 def real_values(root: Path | None = None) -> list[str]:
     """Every non-empty value currently in the repo-root .env, plus each value's
     dot-escaped form (`a.b` -> `a\\.b`) -- a trivial regex-escape is not enough
     to turn a real secret into an innocent "pattern" (found the hard way when a
-    checker's own literal-vs-regex reasoning missed exactly this, AT-025)."""
+    checker's own literal-vs-regex reasoning missed exactly this, AT-025).
+
+    AT-037/AT-038: a `.env` value is excluded ONLY when it (a) exactly equals a
+    project's own public base_url AND (b) sits under a key whose name marks it
+    as a URL (`"URL" in KEY`) -- excluding by bare value alone (AT-037's first
+    fix) meant a genuinely different secret that happened to coincide with a
+    base_url string would go uncaught (AT-038). Scoping to the key name closes
+    that: a password-shaped key never matches, no matter what its value is.
+    """
     env_path = ProjectPaths("_", root).root / ".env"
     if not env_path.exists():
         return []
-    values = [v for v in parse_env(env_path.read_text(encoding="utf-8")).values() if v]
+    public = _public_base_urls(root)
+    present = parse_env(env_path.read_text(encoding="utf-8"))
+    values = [
+        v for k, v in present.items()
+        if v and not (v in public and "URL" in k.upper())
+    ]
     escaped = [v.replace(".", "\\.") for v in values if "." in v]
     return values + escaped
 
