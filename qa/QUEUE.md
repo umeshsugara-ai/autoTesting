@@ -1,40 +1,31 @@
 # qa/QUEUE.md — checker sweep queue (top-3 recommended next units)
 
-Refreshed by `/checker sweep` 2026-09-04 — routine safety-net sweep across the six units shipped
-since the prior sweep (`2026-09-04T04:15:00+05:30`): docker-live-ui, issue-batch-at012-023-024, a
-manifest reconciliation, ui-redesign-and-docker-hardening, at036-screenshot-retry, and
-ui-status-vocabulary-fix. All were checker-PASSed individually; this pass re-verifies nothing
-drifted across all of them together.
+Refreshed by `/checker sweep` 2026-09-04T08:4x+05:30 — routine sweep, ~3h after the prior CLEAN
+sweep (2026-09-04T05:28:12+05:30). Two more units shipped and were checker-PASSed since then:
+`manual-login` (`autotester login <slug>` — no-password browser login) and `report-export`
+(`autotester report excel/html <slug>` — portable tester reports with embedded screenshots),
+plus a small follow-up fixing a missing charset meta tag the checker flagged.
 
-## What this sweep re-verified itself (not trusted from prior commit messages)
+## What this sweep re-verified itself
 
-- **`qa/issues.jsonl`** — read in full (36 rows, AT-001..AT-036). **Zero rows `open`.** Status
-  split: 27 `verified`, 9 `fixed` (a `fixed` row only needs a dedicated re-check to promote to
-  `verified`; none block anything). Spot-checked the two most recently touched rows:
-  - **AT-026** ("T-080 ships a corrected Case, not a durable Script artifact") — the prior
-    `HUMAN_GATE` is now **closed**: Umesh decided in chat 2026-09-04 to keep the corrected-Case
-    approach and not build a Script-execution engine (new attack surface for no real gain). No
-    DECISIONS entry needed — a decision *not* to build something touches no enforcement path or
-    architecture. Row is `verified`.
-  - **AT-036** ("intermittent `Page.screenshot` Protocol error under Xvfb") — independently
-    re-read `src/autotester/browser/session.py::screenshot()` (lines 187-207): retries exactly
-    once after a 250ms wait on the literal `captureScreenshot` error, propagates any other error
-    or a second consecutive failure. Matches the manifest's claim and `qa/verdicts/
-    at036-screenshot-retry.md`. Promoted `fixed → verified` this sweep (the checker's own
-    re-derivation, not the maker's paste).
-- **`.goal/goal.json`** — direct parse: **20/20 tasks `status: "done"`**, `progress.percent: 100`.
-  `north_star` text is byte-identical to every prior revision (no goal-drift).
-- **`qa/manifests/*.md`** — `grep -l "## Status: ready-for-check"` across all 25 manifests →
-  **zero hits**. Nothing left dangling across the last several units.
-- **Verdict files git-tracked** — `git status --porcelain` on `qa/verdicts/docker-live-ui.md`,
-  `qa/verdicts/ui-redesign-and-docker-hardening.md`, `qa/verdicts/at036-screenshot-retry.md`, and
-  `qa/verdicts/ui-status-vocabulary-fix.md` each returned **empty** (committed, no working-tree
-  drift).
-- **Re-grill check** — `qa/.regrill-due` does not exist; north star unedited since last contract
-  amendment (contracts last touched 2026-09-03 23:15, goal.json working-tree diff today is
-  timestamp/analytics fields only); no reopen-escalation on any unit. **No `GRILL:` row.**
-- **Enforcement liveness** — `.claude/settings.json` SessionStart hooks (`mc-sessionstart.ps1`,
-  `lab-session-start.ps1`) present and wired; repo has 91 commits (not a dead gate).
+- **`qa/issues.jsonl`** — read in full, **39 rows, zero `open`**. Status split: 29 `verified`,
+  10 `fixed` (grown from the 36-row baseline as the two new units + the charset follow-up added
+  rows; none block anything).
+- **`.goal/goal.json`** — direct parse: **20/20 tasks `status: "done"`**. North star text unedited
+  since the last check — no goal-drift, no re-grill trigger.
+- **`qa/manifests/*.md`** — `grep -l "## Status: ready-for-check"` across all manifests →
+  **zero hits**. Nothing left dangling.
+- **Verdict files git-tracked** — `git status --porcelain` on `qa/verdicts/manual-login.md` and
+  `qa/verdicts/report-export.md` both returned **empty** (committed, no working-tree drift).
+- **Feedback inbox** — tail read. One new entry, 2026-09-04, Umesh on report-export: a
+  binary-tree/mindmap flow visualization idea for the HTML report (screen-by-screen,
+  branch-by-branch). Correctly filed **`Status: unfolded`** with a concrete implementation sketch
+  (`FlowSpec.flows[].steps` + `Case.case_class` as branch label, inline SVG/nested-list, no new
+  JS dependency) — but explicitly framed by Umesh as optional ("tu chahee tho") and marked
+  "Deferred, not started this cycle." Filed correctly: not lost, **not treated as a mandatory
+  TODO**.
+- **Re-grill check** — no north-star edit, no uncoverable requirement, no escalated reopen
+  disagreement since the last sweep. **No `GRILL:` row.**
 
 ## Health checks (re-run by this sweep)
 
@@ -44,20 +35,19 @@ drifted across all of them together.
 
 ## Live Docker demo server
 
-- `docker compose ps` → `autotesting-autotester-1` **Up** (3 min into this check, container
-  40 min old), ports `8010→8000` and `6080` (noVNC) both mapped.
+- `docker compose ps` → `autotesting-autotester-1` **Up** (3h+ uptime), ports `8010→8000` and
+  `6080` (noVNC) both mapped.
 - `curl -s -o /dev/null -w "%{http_code}" http://localhost:8010/` → **200**.
-- Confirmed healthy for the live-demo use case.
+- Confirmed healthy for the active live-demo use case this session.
 
 ## Bottom line: genuinely idle
 
-Goal backlog closed (20/20), issue ledger has **zero open rows** (the last open item, AT-026,
-was resolved by Umesh's explicit decision this session and is now `verified`), no manifest is
-stuck at `ready-for-check`, all four named verdict files are committed, health checks are clean,
-and the live Docker demo is serving 200s. **No TODO rows below** — there is nothing buildable
-queued and inventing busywork against a fully closed backlog would be worse than an honest empty
-queue.
+Goal backlog closed (20/20), issue ledger has zero open rows, no manifest stuck at
+`ready-for-check`, both new verdict files are committed, health checks are clean, and the live
+Docker demo is serving 200s. The only new feedback item is explicitly deferred/optional by
+Umesh's own framing. **No TODO rows below** — nothing buildable is queued, and inventing busywork
+against a closed backlog plus one deferred nice-to-have would be worse than an honest empty queue.
 
 | # | Status | Unit | Issues | Why now |
 |---|--------|------|--------|---------|
-| — | none | — | — | Nothing buildable is queued. All 36 ledger rows are verified/fixed, 0 open. |
+| — | none | — | — | Nothing buildable is queued. 39 ledger rows are verified/fixed, 0 open. Flow-diagram idea logged as deferred/optional, not a TODO. |
