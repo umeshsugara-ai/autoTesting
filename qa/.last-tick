@@ -1,1 +1,1 @@
-2026-09-04T06:00:00+05:30 · BACKLOG_EMPTY · sweep confirmed clean (0 open issues, 20/20 goal, 0 dangling manifests, live server healthy at localhost:8010)
+2026-09-04T06:20:00+05:30 · ADVANCED · manual-login feature built (no-password login option, Umesh's request); removed unused PATHLYNKS_MONGO_URI; checker dispatched
