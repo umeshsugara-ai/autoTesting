@@ -12,6 +12,7 @@ from autotester.core.paths import RepoDocs
 from autotester.ledger import render, store
 from autotester.ledger.relitigation import gate_message, relitigate
 from autotester.schema.enums import FeatureEventKind, UserValue
+from autotester.stages import manual_login as manual_login_stage
 from autotester.stages import review as review_stage
 from autotester.store import ProjectStore
 
@@ -168,6 +169,20 @@ def flowspec_request_edit(
         raise typer.Exit(1)
     store_.save_flowspec(review_stage.request_edit(spec, by, note))
     typer.secho(f"{project}: flowspec sent back for edit by {by}", fg=typer.colors.YELLOW)
+
+
+@app.command("login")
+def login(project: str) -> None:
+    """Open a real browser for a human to log in by hand -- no password needed.
+    Contract: qa/contracts/manual-login.md. The session is saved into the
+    project's persistent profile; every later run reuses it."""
+    store_ = ProjectStore(project)
+    proj = store_.load_project()
+    if proj is None:
+        typer.secho(f"no project '{project}' yet", fg=typer.colors.RED)
+        raise typer.Exit(1)
+    manual_login_stage.manual_login(proj)
+    typer.secho(f"{project}: login session saved", fg=typer.colors.GREEN)
 
 
 def main() -> None:

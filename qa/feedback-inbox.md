@@ -127,3 +127,27 @@ proposal was actually delivered by T-090 -- `qa/contracts/db-assert.md` exists,
 `PATHLYNKS_MONGO_URI` is declared as a `SecretRef` in `projects/pathlynks/project.json`. Flagging
 for the checker to reconcile the status line to "folded -> db-assert.md" -- not editing it myself
 since contract/ledger status is checker-owned.*
+
+## 2026-09-04 — Umesh, on Mongo/DB access and login credentials
+**Source:** chat, this session, looking at the live credentials page.
+**Verbatim (Hinglish):** "ye btaa mongo db ya mongo uri kyu chaiye tujhe db kyu chaiye hoga
+tester ko. jaise ek tester test krna hai live browser mi jaake vese krega naa tu browser prr aur
+ek project k liye tujhe bss login id and password hi tho chaiye vo bhi user se ya tho le lee ya
+better ki usre ko browser khol kr bolo ki login krkee de dee." Follow-up on login options: "hamare
+paas bhi rakho but only in specific cases after the user somehow ignore the first 2 jaise
+pathlynsk test krna hoga tujhe tho mai tujhe system mai filll kreke de dunga bss like teeeno rakho
+option."
+**Reading:** (1) why does the system need Mongo DB access — a tester should just watch the real
+browser, like a human would; (2) for login, prefer NOT storing a password at all — open the
+visible browser and let the human log in manually once (the persistent profile means this only
+ever needs to happen once per project); (3) keep all three mechanisms available: manual login,
+.env auto-fill (Umesh will keep providing this for Pathlynks specifically), and the existing
+OTP/2FA pause — never remove any of them, just make manual login the no-password-needed default
+path for new projects.
+**Status:** unfolded (in progress this cycle) — investigated and confirmed `PATHLYNKS_MONGO_URI`
+is declared in `projects/pathlynks/project.json` but genuinely unused by any real case today
+(`browser/db.py` exists and is unit-tested in isolation, never wired into an actual test case) —
+removing the declaration since Pathlynks doesn't currently need it; the `browser/db.py` capability
+itself stays available for a future case that specifically needs backend verification. Building a
+new `autotester login <slug>` command for manual one-time login, reusing the existing
+`MissingSecret`/`blocked_hitl` mechanism's spirit without removing .env auto-fill or OTP HITL.

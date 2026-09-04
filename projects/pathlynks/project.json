@@ -36,13 +36,6 @@
         "vidysea.com"
       ],
       "mask_in_screenshot": true
-    },
-    {
-      "key": "PATHLYNKS_MONGO_URI",
-      "domains": [
-        "vidysea.com"
-      ],
-      "mask_in_screenshot": true
     }
   ],
   "providers": {
