@@ -58,4 +58,9 @@ scanned 1 file(s); 0 leak(s)              # AT-037's original complaint still st
   name it with `URL` in it, or it won't be exempted (a false positive again, but never a false
   negative — the fail-safe direction is correct).
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Checker verdict: `qa/verdicts/at038-secrets-scan-key-scoped.md` (Cycle checked: 1, PASS). AT-038's
+specific gap (value-only exclusion, no key link) is genuinely closed. A narrower residual gap in
+the "URL"-substring heuristic (a coincidentally URL-containing key name, e.g. `HOURLY_...`) was
+found during the check and filed separately as AT-039 (low severity, does not block this PASS).
