@@ -41,3 +41,11 @@ terminal. Before this, `ui/app.py` could only view state the CLI had already pro
 
 - 2026-09-03 · init · contract created for the real run-trigger route unit (plan §3b, RU1-RU4),
   checker-PASSed cycle 1 (`qa/verdicts/ui-run-trigger.md`, ledger F-024).
+- 2026-09-04 · routine · recorded the `at044-entry-case-profile-isolation` fix (ledger F-030):
+  `trigger_run` now gives an entry-screen case (`_is_entry_case`) a dedicated, wiped-before-
+  every-run profile instead of the shared persistent session, fixing a real regression where
+  the Run button reproduced the original guaranteed-INCONCLUSIVE bug. RU1-RU4 meaning unchanged
+  (still the same one real pipeline, no second execution path) — this tightens *how* a session
+  is chosen per case, not what the criteria require. Checker-PASSed cycle 1
+  (`qa/verdicts/at044-entry-case-profile-isolation.md`). Found by sweep: shipped with zero
+  contract-side trace until now (AT-048).

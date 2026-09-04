@@ -66,3 +66,13 @@ has no way to add or remove actions from what the case already specifies.
 
 - 2026-09-03 · init · contract created for T-040 (execute stage), the follow-on named in
   `browser-and-secrets.md`'s amendment log ("belongs to a future `execute` contract, not B1-B9").
+- 2026-09-04 · routine · recorded the `at044-entry-case-profile-isolation` fix (AT-045, ledger
+  F-030): `run_case` now calls the new `BrowserSession.settle()` (networkidle + 500ms grace,
+  both independently exception-suppressed) after a CLICK step, before its screenshot, so
+  evidence capture sees the post-transition state rather than mid-transition. E2 ("composes
+  existing session primitives") and E5 ("never invents an extra click/submit/navigation") both
+  hold unchanged — `settle()` is a passive wait called through `session.settle()`, not a new
+  step. Checker-PASSed cycle 1 (`qa/verdicts/at044-entry-case-profile-isolation.md`). Residual
+  evidence-timing flakiness for pathlynks live reruns is tracked separately as AT-046 (open,
+  medium) — not fixed by this amendment. Found by sweep: shipped with zero contract-side trace
+  until now (AT-048).
