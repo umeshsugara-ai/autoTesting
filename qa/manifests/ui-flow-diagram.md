@@ -107,4 +107,4 @@ $ docker compose restart && curl http://localhost:8010/   # 200
   confirm it never has access to a real substituted secret value, only the `Case`'s own stored
   `Step.value` (placeholder or literal), matching the credential-boundary architecture.
 
-## Status: ready-for-check
+## Status: checked-PASS — see qa/verdicts/ui-flow-diagram.md, cycle 1 PASS

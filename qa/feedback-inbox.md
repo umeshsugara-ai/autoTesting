@@ -224,3 +224,9 @@ After the DFS-scoped step-flow (F-028) shipped: "abhi bhi tune bfs wala setup ki
 the DFS single-path trace was only half of what was originally asked (the 2026-09-03 mindmap
 entry): the full branch tree, every case's path merged from a shared entry screen, branch by
 branch. Explicitly asking for that now, not deferring it further.
+
+*Resolved 2026-09-04: qa/manifests/ui-flow-diagram.md, checker-PASSed cycle 1
+(qa/verdicts/ui-flow-diagram.md), ledgered docs/FEATURES.jsonl F-029. The full mindmap ask from
+2026-09-03 is now closed in both halves: F-028 (DFS single-run trace) + F-029 (BFS merged
+branch tree per flow) -- one case's actual path, and every case's path merged from a shared
+entry, respectively.*
