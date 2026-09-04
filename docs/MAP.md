@@ -51,7 +51,8 @@
 | `ui/env_editor.py` | The one legitimate WRITE path to the repo-root `.env` (every other module |
 | `ui/helpers.py` | Shared request-validation and lookup helpers used by every UI route module. |
 | `ui/routes_credentials.py` | The masked .env editor. Contract: qa/contracts/ui.md U3 — a real value is |
-| `ui/routes_runs.py` | Trigger a real run and view its results. Contract: qa/contracts/ui-run.md |
+| `ui/routes_report.py` | Run history, per-case screenshots, and portable downloads. Contract: |
+| `ui/routes_runs.py` | Trigger a real run. Contract: qa/contracts/ui-run.md RU1-RU4. Run-history |
 | `ui/theme.py` | Shared visual system for every UI route. Contract: qa/contracts/docker.md D5. |
 <!-- /generated:map -->
 

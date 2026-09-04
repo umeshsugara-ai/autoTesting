@@ -1,0 +1,119 @@
+"""Run history, inline screenshots, portable downloads. Contract:
+qa/contracts/ui-report.md UR1-UR4.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+from fastapi.testclient import TestClient
+
+from autotester.schema.enums import EvidenceKind, Outcome, Result
+from autotester.schema.project import Project
+from autotester.schema.run import Evidence, RawResult
+from autotester.schema.verdict import Verdict
+from autotester.store.project_store import ProjectStore
+from autotester.ui.app import app
+
+
+@pytest.fixture
+def scratch_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    monkeypatch.setenv("AUTOTESTER_ROOT", str(tmp_path))
+    return tmp_path
+
+
+@pytest.fixture
+def client() -> TestClient:
+    return TestClient(app)
+
+
+def _seed_project_with_two_runs(scratch_root: Path) -> ProjectStore:
+    store = ProjectStore("demo", scratch_root)
+    store.save_project(
+        Project(slug="demo", name="Demo", base_url="https://demo.test",
+                 allowed_domains=["demo.test"])
+    )
+    for run_id, result_value in (("run_1", Result.PASS), ("run_2", Result.FAIL)):
+        store.save_result(run_id, RawResult(case_id="case_1", outcome=Outcome.COMPLETED))
+        store.save_verdict(run_id, Verdict(
+            run_id=run_id, case_id="case_1", result=result_value,
+            grader_provider="mock", rubric_hash="rub_x",
+        ))
+    return store
+
+
+def test_report_lists_every_run_newest_first(client: TestClient, scratch_root: Path) -> None:
+    _seed_project_with_two_runs(scratch_root)
+
+    response = client.get("/projects/demo/report")
+
+    assert response.status_code == 200
+    text = response.text
+    assert text.index("run_2") < text.index("run_1")  # newest first
+    assert "/projects/demo/runs/run_1" in text
+    assert "/projects/demo/runs/run_2" in text
+
+
+def test_run_view_embeds_a_real_screenshot_inline(
+    client: TestClient, scratch_root: Path
+) -> None:
+    store = ProjectStore("demo", scratch_root)
+    store.save_project(
+        Project(slug="demo", name="Demo", base_url="https://demo.test",
+                 allowed_domains=["demo.test"])
+    )
+    run_dir = store.paths.run_dir("run_1")
+    run_dir.mkdir(parents=True, exist_ok=True)
+    (run_dir / "01-shot.png").write_bytes(
+        bytes.fromhex("89504e470d0a1a0a0000000d49484452")  # a real (truncated) PNG header
+    )
+    store.save_result("run_1", RawResult(
+        case_id="case_1", outcome=Outcome.COMPLETED,
+        evidence=[Evidence(kind=EvidenceKind.SCREENSHOT, path="01-shot.png", label="step 1")],
+    ))
+    store.save_verdict("run_1", Verdict(
+        run_id="run_1", case_id="case_1", result=Result.PASS,
+        grader_provider="mock", rubric_hash="rub_x",
+    ))
+
+    response = client.get("/projects/demo/runs/run_1")
+
+    assert response.status_code == 200
+    assert "data:image/png;base64," in response.text
+    assert "step 1" in response.text
+
+
+def test_run_view_says_so_honestly_when_a_case_has_no_screenshots(
+    client: TestClient, scratch_root: Path
+) -> None:
+    store = _seed_project_with_two_runs(scratch_root)
+    del store  # seeded results carry no evidence
+
+    response = client.get("/projects/demo/runs/run_1")
+
+    assert response.status_code == 200
+    assert "no screenshots captured" in response.text
+
+
+def test_report_offers_real_excel_and_html_downloads(
+    client: TestClient, scratch_root: Path
+) -> None:
+    _seed_project_with_two_runs(scratch_root)
+
+    excel = client.get("/projects/demo/report.xlsx")
+    html = client.get("/projects/demo/report.html")
+
+    assert excel.status_code == 200
+    assert excel.headers["content-type"].startswith(
+        "application/vnd.openxmlformats-officedocument"
+    )
+    assert len(excel.content) > 0
+    assert html.status_code == 200
+    assert "text/html" in html.headers["content-type"]
+    assert b"case_1" in html.content
+
+
+def test_downloads_404_for_an_unknown_project(client: TestClient, scratch_root: Path) -> None:
+    assert client.get("/projects/nope/report.xlsx").status_code == 404
+    assert client.get("/projects/nope/report.html").status_code == 404

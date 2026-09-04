@@ -71,7 +71,10 @@ def export_excel(
     return out_path
 
 
-def _b64_png(path: Path) -> str | None:
+def png_base64(path: Path) -> str | None:
+    """Base64-encode a screenshot for inline embedding. Public — also used by
+    `ui/routes_report.py` to embed the same screenshots in the live view, so
+    the live page and the portable export show identical evidence."""
     if not path.exists():
         return None
     return base64.b64encode(path.read_bytes()).decode("ascii")
@@ -87,7 +90,7 @@ def _case_section(store: ProjectStore, run_id: str, case: Case | None, result, v
         f"<figure><img src='data:image/png;base64,{data}'>"
         f"<figcaption>{escape(shot.label or shot.path)}</figcaption></figure>"
         for shot in shots
-        for data in [_b64_png(run_dir / shot.path)] if data is not None
+        for data in [png_base64(run_dir / shot.path)] if data is not None
     )
     scoreboard = escape(verdict.scoreboard) if verdict and verdict.scoreboard else ""
     error = escape(result.error) if result.error else ""
