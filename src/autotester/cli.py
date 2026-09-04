@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
+from pathlib import Path
 
 import typer
 
@@ -13,14 +14,17 @@ from autotester.ledger import render, store
 from autotester.ledger.relitigation import gate_message, relitigate
 from autotester.schema.enums import FeatureEventKind, UserValue
 from autotester.stages import manual_login as manual_login_stage
+from autotester.stages import report_export
 from autotester.stages import review as review_stage
 from autotester.store import ProjectStore
 
 app = typer.Typer(help="AutoTester — AI automated end-to-end tester", no_args_is_help=True)
 ledger_app = typer.Typer(help="The feature ledger (docs/FEATURES.jsonl) — the only write path.")
 flowspec_app = typer.Typer(help="The FlowSpec review gate — nothing expands an unreviewed spec.")
+report_app = typer.Typer(help="Export a run as a portable tester report (Excel + HTML).")
 app.add_typer(ledger_app, name="ledger")
 app.add_typer(flowspec_app, name="flowspec")
+app.add_typer(report_app, name="report")
 
 
 @app.command()
@@ -183,6 +187,36 @@ def login(project: str) -> None:
         raise typer.Exit(1)
     manual_login_stage.manual_login(proj)
     typer.secho(f"{project}: login session saved", fg=typer.colors.GREEN)
+
+
+@report_app.command("excel")
+def report_excel(
+    project: str,
+    run_id: str | None = typer.Argument(None),
+    out: str = typer.Option(..., "--out", help="output .xlsx path"),
+) -> None:
+    """One row per case: outcome, verdict, criteria met, duration."""
+    try:
+        path = report_export.export_excel(project, run_id, Path(out))
+    except ValueError as exc:
+        typer.secho(str(exc), fg=typer.colors.RED)
+        raise typer.Exit(1) from exc
+    typer.secho(f"wrote {path}", fg=typer.colors.GREEN)
+
+
+@report_app.command("html")
+def report_html(
+    project: str,
+    run_id: str | None = typer.Argument(None),
+    out: str = typer.Option(..., "--out", help="output .html path"),
+) -> None:
+    """Screen-by-screen report with embedded screenshots, one file, portable."""
+    try:
+        path = report_export.export_html(project, run_id, Path(out))
+    except ValueError as exc:
+        typer.secho(str(exc), fg=typer.colors.RED)
+        raise typer.Exit(1) from exc
+    typer.secho(f"wrote {path}", fg=typer.colors.GREEN)
 
 
 def main() -> None:
