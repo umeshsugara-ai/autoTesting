@@ -197,3 +197,9 @@ screenshots render oversized and the surrounding info (what was checked, why it 
 criteria) is thin/non-informative.
 
 Source: direct chat message with an attached screenshot, not a manifest/checker finding.
+
+*Resolved 2026-09-04: qa/manifests/ui-report-informativeness-fix.md, checker-PASSed cycle 1
+(qa/verdicts/ui-report-informativeness-fix.md), ledgered docs/FEATURES.jsonl F-027. Report page
+now leads with a real overview (total runs, overall pass rate, cases in latest run) and compact
+per-run badges; run-detail cards show scoreboard/grader/failure info and screenshots render in a
+responsive thumbnail grid instead of native size.*
