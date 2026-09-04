@@ -129,4 +129,6 @@ workaround.
   really could recur for any future FakePage-style test double), and that `settle()`'s two
   waits are independently exception-suppressed, not just the first one.
 
-## Status: ready-for-check
+## Status: checked-PASS — see qa/verdicts/at044-entry-case-profile-isolation.md, cycle 1 PASS
+(checker filed AT-047, a low-severity ledger bookkeeping gap — AT-045 was cited by id but never
+registered as its own row — fixed same-day by filing it retroactively)
