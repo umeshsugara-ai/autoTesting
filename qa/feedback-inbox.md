@@ -151,3 +151,20 @@ removing the declaration since Pathlynks doesn't currently need it; the `browser
 itself stays available for a future case that specifically needs backend verification. Building a
 new `autotester login <slug>` command for manual one-time login, reusing the existing
 `MissingSecret`/`blocked_hitl` mechanism's spirit without removing .env auto-fill or OTP HITL.
+
+## 2026-09-04 — Umesh, on report-export: a flow diagram idea
+**Source:** chat, this session, right after report-export (Excel + HTML) shipped.
+**Verbatim (Hinglish):** "tu chahee tho testing report mai ek binary tree flow bhi dikha sakta hai
+ek mindmap wise screen by screen kya kya hai and branch by branch reporting too. getting user k
+liye bhi flow easy to understand rhegaa. aur tere liye bhi. getting. note it accha hai yee."
+**Reading:** the HTML tester report (`stages/report_export.py::export_html`) could additionally
+show a tree/mindmap-style visualization of the flow -- screen by screen, branch by branch (worst/
+edge/best cases sharing a common entry screen, diverging from there) -- so the overall shape of
+what was tested is easy to grasp at a glance, for Umesh and for a future Claude session reading
+the same report. Explicitly framed as optional ("tu chahee tho") and asked to be noted, not
+necessarily built immediately.
+**Status:** unfolded — a real, well-scoped enhancement for a future report-export cycle. Natural
+data source: `FlowSpec.flows[].steps` (entry/exit screens) plus each `Case.case_class`/`kind` as
+the branch label, rendered as an inline SVG or a simple nested-list tree in the same
+self-contained HTML file (no new JS library, matching RE3's "one portable file" constraint).
+Deferred, not started this cycle.
