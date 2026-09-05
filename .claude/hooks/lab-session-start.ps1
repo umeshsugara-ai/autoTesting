@@ -108,24 +108,20 @@ try {
     }
   }
 
-  # --- ARCHITECTURE.md ground-truth prose (capped). D-008: this repo's own house style uses
-  # named headings, never the generic template's numbered "## 1./2./3./6." sections, so the
-  # prior inclusion allowlist matched nothing. Keep every section except the one that is
-  # mechanical/generated (the directory map, which lives separately in docs/MAP.md). ---
+  # --- ARCHITECTURE.md sections 1-3 + 6 (capped). ---
   $archPath = Join-Path $root "ARCHITECTURE.md"
-  if (-not (Test-Path $archPath)) { $archPath = Join-Path $root "docs\ARCHITECTURE.md" }  # autoTesting: docs/ layout (plan §6)
   if (Test-Path -LiteralPath $archPath) {
     $archLines = Get-Content -LiteralPath $archPath -Encoding UTF8 -ErrorAction Stop
     $keep = New-Object System.Collections.Generic.List[string]
     $inKeep = $false
     foreach ($line in $archLines) {
       if ($line -match '^## ') {
-        $inKeep = -not ($line -match '^## Directory map and schema summary')
-      } elseif ($line -match '^# ') { $inKeep = $true }
+        $inKeep = ($line -match '^## (1|2|3|6)[\.\s]')
+      } elseif ($line -match '^# ') { $inKeep = $false }
       if ($inKeep -or $line -match '^# ') { $keep.Add($line) }
-      if ($keep.Count -ge 150) { $keep.Add("[... ARCHITECTURE excerpt capped at 150 lines -- read ARCHITECTURE.md for the rest]"); break }
+      if ($keep.Count -ge 100) { $keep.Add("[... ARCHITECTURE excerpt capped at 100 lines -- read ARCHITECTURE.md for the rest]"); break }
     }
-    $out.Add("--- ARCHITECTURE.md (ground truth, excludes the generated directory map) ---")
+    $out.Add("--- ARCHITECTURE.md (sections 1-3 + 6 Open Questions; ground truth) ---")
     foreach ($l in $keep) { $out.Add($l) }
   } else {
     $out.Add("[WARN] ARCHITECTURE.md missing at repo root -- protocol expects it. Run /init-lab repair.")
@@ -186,7 +182,7 @@ try {
       additionalContext = $ctx
     }
   }
-  $payload | ConvertTo-Json -Depth 6 -Compress | Write-Output
+  $payload | ConvertTo-Json -Depth 6 -Compress | ForEach-Object { [regex]::Replace($_, "[^\x00-\x7F]", { param($m) ("\u{0:x4}" -f [int][char]$m.Value) }) } | Write-Output   # ASCII-only JSON: under the harness PowerShell writes stdout in the OEM codepage and non-ASCII becomes 0x1a, which is invalid inside a JSON string (found 2026-09-05)
   exit 0
 }
 catch {

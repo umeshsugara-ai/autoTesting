@@ -196,3 +196,11 @@ approval AT-031 required; D-010's underlying code fix (the cap value, 150, match
 **Changes-authorized:** .claude/settings.json (hook command strings only; matchers, timeouts and entries unchanged)
 **Approved-by:** Umesh
 **Links:** AIOS decisions/log.md 2026-09-05 (two entries: machine-wide hook fix; Lab-repo finding); memory reference_hook_commands_run_under_bash
+
+## D-013 | 2026-09-05 | type: decision | status: ACTIVE
+**What:** Sync the committed hook scripts decisions-append-guard.ps1, lab-session-start.ps1 to the AIOS Lab-Protocol template (D:/ai_os/templates/lab-protocol/hooks, commit of 2026-09-05): JSON output is now ASCII-escaped before it is written. Behaviour otherwise unchanged.
+**Why:** Under the harness PowerShell writes stdout in the OEM codepage; non-ASCII characters copied from ARCHITECTURE.md / DECISIONS.md into the session-start snapshot became 0x1a bytes inside the JSON string and Claude Code rejected the payload (raw-text fallback + a hook_non_blocking_error per session). Observed in this repo's live session on 2026-09-05 right after the hook commands were rewired (see AIOS decisions/log.md).
+**Result:** The session-start snapshot and the append-guard reply are accepted as JSON; no more error records.
+**Changes-authorized:** .claude/hooks/decisions-append-guard.ps1 , .claude/hooks/lab-session-start.ps1 (byte-identical to the AIOS template)
+**Approved-by:** Umesh
+**Links:** AIOS decisions/log.md 2026-09-05 (ASCII-escape addendum); hook-fixtures.ps1 'lab-session-start under chcp 437'
