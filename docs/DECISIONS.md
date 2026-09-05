@@ -188,3 +188,11 @@ approval AT-031 required; D-010's underlying code fix (the cap value, 150, match
 **Approved-by:** Umesh — direct answer, this session, 2026-09-03, quoted verbatim above.
 **Links:** issues AT-030, AT-031 (`qa/issues.jsonl`); qa/verdicts/at015-at028-hook-adapter-fix.md
 (Cycle checked: 3, FAIL); qa/debug/at015-at028-hook-adapter-fix-cycle3.md
+
+## D-012 | 2026-09-05 | type: decision | status: ACTIVE
+**What:** Rewrite every hook command in .claude/settings.json from `powershell -Command "$i=[Console]::In.ReadToEnd(); & \"$env:CLAUDE_PROJECT_DIR\...\" -InputJson $i"` to `powershell -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/<script>.ps1` for: decisions-append-guard.ps1, lab-session-end.ps1, lab-session-start.ps1. No hook script changes; the scripts already read stdin when -InputJson is empty.
+**Why:** Claude Code executes hook commands through bash -c on this machine, which expands `$i` and `$env:...` to empty strings before PowerShell parses the command. Every hook in this repo has therefore failed with a parse error on every invocation since it was installed (evidence: `hook_non_blocking_error` records in the session transcripts; AIOS decisions/log.md 2026-09-05). The append-only DECISIONS guard, the session-start protocol snapshot and the /landplane reminder have never actually run here. Run with -File, the repo copies work (verified in D:/KnowledgeBase on 2026-09-05: lab-session-start injects the snapshot with a RECOVERY warning; decisions-append-guard denies a direct edit).
+**Result:** Enforcement becomes live from the next session. The /init-lab template in the AIOS carries the same fix (templates/lab-protocol/project-settings.template.json, commit d2d93a4) so new repos are correct.
+**Changes-authorized:** .claude/settings.json (hook command strings only; matchers, timeouts and entries unchanged)
+**Approved-by:** Umesh
+**Links:** AIOS decisions/log.md 2026-09-05 (two entries: machine-wide hook fix; Lab-repo finding); memory reference_hook_commands_run_under_bash
