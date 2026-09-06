@@ -261,3 +261,69 @@ verdict notes now describing real visual content.
 Asked for "TOC features" -- clarified via AskUserQuestion into a concrete scope: a persistent
 sidebar listing all onboarded projects, visible on every page, for quick switching without
 going back to the homepage first.
+
+**Status:** folded → `qa/contracts/ui-sidebar.md` (US1-US5, new) — shipped and checker-PASSed
+(`qa/verdicts/ui-sidebar.md`, cycle 1, PASS), ledgered `docs/FEATURES.jsonl` F-032.
+*/checker 2026-09-06 (sweep): closing the loop — this entry had no Status line even though the
+unit shipped and PASSed two sweeps ago.*
+
+## 2026-09-06 — Umesh, on whole-platform BFS exploration + video-derived eval methodology (goal.md, Hinglish, scribed from an uncommitted addition to the root `goal.md` vision file — not yet spoken in this session's chat)
+
+**Source:** found as an uncommitted diff to root `goal.md` at sweep time (`git diff goal.md`), the
+same informal capture file whose 2026-09-03 entry above was already transcribed into this inbox
+once before. Scribed verbatim per that precedent; not independently confirmed with Umesh this
+session.
+
+> एक feature यह भी था कि अगर कोई team video upload capture to पूरी platform testing कर ही नहीं पा
+> रहा है. सारे feature सारी possibilities को explore कर ही नहीं पा रहा है. BFS वाली functionality
+> तो तेरी बनी नहीं है platform पर. तू बस dashboard में जा रहा है dashboard में कौन कौन से icons हैं?
+> कौन कौन से button clickable हैं? उनको click करके कौन कौन सी screen आती है? फिर forward जाकर क्या
+> होगा? Backward जाकर क्या होगा? तू एक screen से दूसरी screen में चला गया. वह screen क्या तूने पहले
+> देखी है या नहीं देखी है? यह सब proper testing करके यह button काम कर रहा है नहीं कर रहा है. यह API
+> से data आ रहा है नहीं आ रहा है. essay पूरी proper testing होनी चाहिए थी वह तो तू कर नहीं रहा है और
+> कर भी रहा है तो वह तेरी reporting में बिल्कुल भी नहीं पता चल रहा ना reports proper clear हैं और उस
+> सबके अलावा भी एक एक और functionality यह थी कि अगर तुझे flow नहीं पता है और कभी कभार यह भी होगा कि
+> तू बस एक अपने flow के हिसाब से चल लेगा जितना तेरी platform की understanding है. तो उस case में user
+> क्या करेगा? User एक video upload करेगा. वह video के basis पर तू क्या करेगा? जैसे हम मैं एक तेरे को
+> folder दूंगा वहां देखना videos के through हम क्या करते हैं? और इसके अलावा यह भी तो करें system की
+> light data bases में रख लिया और सारी learning excel में हुआ transcription रख ली screenshot by
+> screenshot workflows रख लिया. Work flow diagrams बनाकर रख लिया और फिर उसके बाद समझ लिया कि अच्छा
+> flow कैसा है और user ने कैसे कैसे testing करी थी तो अच्छा use case क्या है? वह भी user बताएगा.
+> इसके लिए हम Gemini API की use कर लेंगे और अभी recent के जो models आए हैं जैसे Gemini three point
+> one pro or Gemini three point eight flash आया है. तो इन दोनों के combination से हम time stamp
+> wise, user wise, screen wise, flow bnaa dengee aur uske basis se bhi testing hogi , like business
+> case and use case and flow ki better undersstanding hogi tho , esse video, audio, document and
+> all for flow understand and for creating eval methods.
+>
+> jaise testing k liye proper evals chaiye tho vo hone chaiyee
+>
+> C:\Users\Lenovo\Videos\Screen Recordings
+>
+> iss directory ko explore krr aur samjh like aaj takk hum videos ko kese kese various way se test
+> krte hai and issues nikalte hai. automated way se humko ye krna hai phle
+>
+> aur abhi wali reporting ko bhi dekho, is it the best way, issi directory mai dekho, issues ki
+> reporting excel sheet mai bhi kese krri hai humne aur bfs for overall ya dfs type jo best hoga
+
+**Reading (checker's, unconfirmed):** three distinct asks, none currently covered by any
+contract: (1) a **BFS-style whole-platform crawl** — icon/button discovery on the dashboard,
+click, observe the resulting screen, track visited-vs-new, forward/back — explicitly broader than
+today's scope (a reviewed FlowSpec's *known* flows only; ingest/expand never crawl for undiscovered
+screens); (2) **local video corpus as testing-methodology ground truth** — a real folder,
+`C:\Users\Lenovo\Videos\Screen Recordings`, outside this repo and outside any project's declared
+`allowed_domains`/inputs, that Umesh says already contains examples of how testing/issue-finding
+has actually been done, to be mined for eval-method design (referencing Gemini 3.1 Pro / 3.8
+Flash by name — models this codebase's provider seam does not currently name); (3) a repeat
+challenge to whether the **current reporting format is right** ("abhi wali reporting ko bhi
+dekho, is it the best way… bfs for overall ya dfs type jo best hoga") even after F-027/F-028/F-029
+already shipped report-informativeness fixes and both the DFS single-run trace and the BFS
+merged-branch-tree *report visualizations*— this reads as asking whether the underlying *test
+strategy* should be BFS-driven, not just its diagram.
+
+**Status:** unfolded — filed as ledger issue AT-052 (goal-drift) and a `GRILL:` row in
+`qa/QUEUE.md`, per checker sweep protocol check 6 (a requirement no contract criterion and no
+existing inbox entry can source — only Umesh can scope what "whole-platform BFS" and "learn from
+this video folder" actually mean for FlowSpec/ingest). Do not fold into a contract until that
+grill happens — (1) risks silently redefining the north star's flow-review model, (2) references
+a path outside any project's `allowed_domains`/input boundary, which needs a scoping decision
+before any code reads it.
