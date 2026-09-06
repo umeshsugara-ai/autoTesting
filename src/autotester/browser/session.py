@@ -10,6 +10,7 @@ process's Chrome.
 from __future__ import annotations
 
 import contextlib
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -63,12 +64,20 @@ def check_destination(project: Project, url: str) -> str:
 
 
 def launch_options(project: Project, paths: ProjectPaths) -> dict[str, Any]:
-    """Arguments for `launch_persistent_context` (B5): headed by default, own profile."""
+    """Arguments for `launch_persistent_context` (B5): headed by default, own profile.
+
+    `AUTOTESTER_SLOW_MO_MS` (unset/0 by default -- no behavior change) pads every
+    Playwright operation by that many ms, so a human watching the noVNC live view
+    can actually see a run happen instead of it completing in under a second.
+    Opt-in only, never set by the app itself -- a human exports it before a demo.
+    """
     paths.profile_dir.mkdir(parents=True, exist_ok=True)
+    slow_mo_ms = int(os.environ.get("AUTOTESTER_SLOW_MO_MS", "0") or "0")
     return {
         "user_data_dir": str(paths.profile_dir),
         "headless": not project.headed,
         "viewport": {"width": 1366, "height": 850},
+        "slow_mo": slow_mo_ms,
         "args": [
             "--disable-blink-features=AutomationControlled",
             # Found running this for real under Docker/Xvfb: screenshot capture crashed

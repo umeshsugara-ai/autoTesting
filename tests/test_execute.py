@@ -140,14 +140,17 @@ def test_completed_run_composes_session_methods_and_screenshots_every_step(
     assert [e.step_order for e in shots] == [1, 2, 3, 4, 5]
 
 
-def test_click_settles_before_the_screenshot_but_other_actions_do_not(
+def test_click_and_navigate_settle_before_the_screenshot_but_other_actions_do_not(
     tmp_path: Path,
 ) -> None:
-    """AT-045: a click often triggers an async transition (e.g. a form-submit
-    redirect); the evidence screenshot must reflect the settled page, not
-    the instant of the click itself. Other actions (fill, navigate) don't
-    need this -- they don't trigger the same async-transition problem and
-    settling after every action would just slow every run down."""
+    """AT-045/AT-053: a click or a fresh navigation both trigger an async
+    transition (a form-submit redirect, or the target page itself still
+    rendering) -- the evidence screenshot must reflect the settled page, not
+    the instant of the action itself. Other actions (fill) don't need this --
+    they don't trigger the same async-transition problem and settling after
+    every action would just slow every run down. AT-053: a real live run
+    against a brand-new production URL captured a blank NAVIGATE screenshot
+    and false-FAILed on it because only CLICK settled before this fix."""
     steps = [
         Step(order=1, action=Action.NAVIGATE, target=LOGIN),
         Step(order=2, action=Action.FILL, target="input[name=email]", value="a@b.com"),
@@ -157,7 +160,7 @@ def test_click_settles_before_the_screenshot_but_other_actions_do_not(
     result = run_case(make_case(steps), session)
 
     assert result.outcome is Outcome.COMPLETED
-    assert session.page.settled == [("networkidle", 8000)]
+    assert session.page.settled == [("networkidle", 8000), ("networkidle", 8000)]
 
 
 def test_click_settles_against_the_steps_own_declared_expected_text(
@@ -181,7 +184,11 @@ def test_click_settles_against_the_steps_own_declared_expected_text(
     result = run_case(make_case(steps), session)
 
     assert result.outcome is Outcome.COMPLETED
-    assert session.page.settled == []  # never touched the generic networkidle path
+    # the NAVIGATE step (no declared expected) takes the generic networkidle
+    # path; only the CLICK step's own declared expected text is specific
+    # enough to skip it (AT-046) -- see the settle-vs-not test above for the
+    # case where neither step declares an expected text.
+    assert session.page.settled == [("networkidle", 8000)]
 
 
 def test_select_upload_and_wait_actions(tmp_path: Path) -> None:
