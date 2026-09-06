@@ -126,6 +126,8 @@ PAGE_STYLE = """
   .project-card .name { font-family: var(--font-display); font-weight: 600; font-size: 1.15rem;
                          margin-bottom: .4rem; display: block; }
   .project-card .meta { color: var(--text-dim); font-family: var(--font-mono); font-size: .8rem; }
+  .project-card .card-status { display: block; margin-top: .6rem; }
+  .project-card .card-status .badge { font-size: .72rem; margin-right: .35rem; }
 
   .stat-row { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.75rem; }
   .stat {

@@ -28,6 +28,7 @@ from autotester.ui import (
     theme,
 )
 from autotester.ui.helpers import _load_project_or_404, _project_slugs, _require_slug
+from autotester.ui.routes_report import _run_counts, _run_ids_newest_first
 
 __all__ = ["_require_slug", "app"]
 
@@ -53,17 +54,65 @@ app.include_router(routes_credentials.router)
 app.include_router(routes_settings.router)
 
 
+def _latest_run_status(slug: str) -> tuple[str | None, dict[str, int]]:
+    """The latest run id (or None if the project has never run) and its verdict
+    counts — same lookup `routes_report.py`'s report page already does per
+    project, reused here rather than a second way to compute "how did the
+    last run go" (ui.md U2/U4: real persisted state, never recomputed)."""
+    run_ids = _run_ids_newest_first(slug)
+    if not run_ids:
+        return None, {}
+    store = ProjectStore(slug)
+    return run_ids[0], _run_counts(store, run_ids[0])
+
+
 def _project_card(slug: str) -> str:
     store = ProjectStore(slug)
     project = store.load_project()
     name = escape(project.name) if project else escape(slug)
     case_count = len(store.list_cases())
     safe_slug = escape(slug)
+    run_id, counts = _latest_run_status(slug)
+    if run_id is None:
+        status = "<span class='meta'>never run</span>"
+    else:
+        status = "".join(theme.badge(escape(k), count=v) for k, v in counts.items())
     return (
         f"<a class='project-card' href='/projects/{safe_slug}'>"
         f"<span class='name'>{name}</span>"
-        f"<span class='meta'>{case_count} case{'s' if case_count != 1 else ''}</span></a>"
+        f"<span class='meta'>{case_count} case{'s' if case_count != 1 else ''}</span>"
+        f"<span class='card-status'>{status}</span></a>"
     )
+
+
+def _portfolio_stats(slugs: list[str]) -> str:
+    """Aggregate health across every onboarded project — the piece a
+    non-technical user needs before clicking into any one project (feedback
+    2026-09-06: the home page showed names and case counts only, nothing
+    saying what's actually passing or failing)."""
+    total_cases = 0
+    never_run = 0
+    failing = 0
+    healthy = 0
+    for slug in slugs:
+        total_cases += len(ProjectStore(slug).list_cases())
+        _run_id, counts = _latest_run_status(slug)
+        if _run_id is None:
+            never_run += 1
+        elif counts.get("FAIL", 0) > 0 or counts.get("BLOCKED", 0) > 0:
+            failing += 1
+        else:
+            healthy += 1
+    tiles = [
+        theme.stat(str(len(slugs)), "projects"),
+        theme.stat(str(total_cases), "cases"),
+        theme.stat(str(healthy), "latest run clean"),
+    ]
+    if failing:
+        tiles.append(theme.stat(str(failing), "latest run failing"))
+    if never_run:
+        tiles.append(theme.stat(str(never_run), "never run"))
+    return f"<div class='stat-row'>{''.join(tiles)}</div>"
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -81,7 +130,10 @@ def index() -> str:
         )
     else:
         cards = "".join(_project_card(s) for s in slugs)
-        body = header + f"<div class='project-grid'>{cards}</div>"
+        body = (
+            header + _portfolio_stats(slugs)
+            + f"<div class='project-grid'>{cards}</div>"
+        )
     return theme.page("Projects", body)
 
 
