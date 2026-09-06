@@ -9,6 +9,12 @@ profiles/
 # Scratch, evidence, logs. Nothing here is a deliverable.
 .work/
 
+# Playwright MCP tool scratch (screenshots/console logs from live browser sessions)
+.playwright-mcp/
+
+# Pre-compact session handoff notes -- ephemeral, session-scoped, not project state
+.handoffs/
+
 # Run artifacts: screenshots and traces may contain product data
 projects/*/runs/
 
