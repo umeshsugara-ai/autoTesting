@@ -80,3 +80,15 @@ data and browser login state exactly like restarting the app on the host does to
   test_live_view_touches_no_project_state` was narrowed accordingly to diff `/live`'s own
   `<main>` content rather than the full page, which is a faithful re-reading of D4's actual
   text, not a softened test. Checker-verified as part of `qa/verdicts/ui-sidebar.md` cycle 1.
+- 2026-09-06 · routine · recorded the `at054-live-watch-slowmo` fix (AT-054, ledger row AT-054):
+  a new opt-in `AUTOTESTER_SLOW_MO_MS` env var threads into Playwright's `slow_mo` launch option
+  (default 0, no behavior change) so a human watching `/live` can actually follow the headed
+  browser's actions in real time instead of watching them flash by; `docker-compose.yml`
+  passes the var through unchanged. D2/D3 (headed-by-default, `/live` view) are unaffected — this
+  only changes the speed the already-headed browser plays at, never whether or where it shows.
+  Checker-PASSed cycle 1 (`qa/verdicts/at054-live-watch-slowmo.md`). Found unrecorded by this
+  sweep, together with a related process gap (AT-055: the checker's own PASS commits for both
+  this unit and at053-navigate-settle initially landed only paperwork, not the source diff —
+  recovered in commit `55befd8`; see `qa/issues.jsonl` AT-055 — a global dispatch-protocol
+  tightening recommendation for `checker/SKILL.md` was raised to Umesh separately, since that
+  file sits outside this project's bound root).

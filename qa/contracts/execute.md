@@ -76,3 +76,13 @@ has no way to add or remove actions from what the case already specifies.
   evidence-timing flakiness for pathlynks live reruns is tracked separately as AT-046 (open,
   medium) — not fixed by this amendment. Found by sweep: shipped with zero contract-side trace
   until now (AT-048).
+- 2026-09-06 · routine · recorded the `at053-navigate-settle` fix (AT-053, ledger row AT-053):
+  `run_case` now calls `session.settle()` after a NAVIGATE step too, not only after CLICK
+  (AT-045's fix covered CLICK only) — a real live-site run against a brand-new production URL
+  came back a false FAIL because the navigate screenshot was captured before the page rendered
+  (blank white frame; the click step afterward was fine). E2/E5 hold unchanged for the same
+  reason as the AT-045 amendment above — `settle()` remains a passive, exception-suppressed wait,
+  not a new step. Checker-PASSed cycle 1 (`qa/verdicts/at053-navigate-settle.md`), re-verified
+  live against `https://www.vidysea.com/erp` (3 consecutive real PASSes, real Gemini multimodal
+  grading). Found unrecorded by this sweep — same contract-side-trace gap class as AT-048; this
+  entry closes it for AT-053.
