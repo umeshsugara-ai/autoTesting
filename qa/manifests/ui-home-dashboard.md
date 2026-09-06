@@ -77,4 +77,9 @@ cards (Pathlynks, Regression Proof Demo, Vidysea Centre Management ERP), each wi
 real latest-run PASS badge pulled from actual persisted verdict files, not invented or
 cached data.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Verdict: `qa/verdicts/ui-home-dashboard.md` (Cycle checked: 1, PASS, 4/4 applicable criteria
+met). The checker independently reproduced the live end-to-end result and, per the AT-055
+lesson, confirmed and committed the maker's actual source changes itself before passing
+(`23f03c3` source, `3ca4fb1` verdict) — both pushed to origin master (D-007).
