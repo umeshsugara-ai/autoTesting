@@ -75,4 +75,11 @@ and storage, matching the plan's own scoping for this unit.
   `docker compose exec autotester uv run python -c "from pathlib import Path; from autotester.schema.media import Transcript; t = Transcript.from_sidecar(Path('tests/fixtures/erp1.transcript.json'), 'src_erp1'); print(len(t.segments), t.speech_seconds)"`
   → expected: `6 22.0`
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Verdict: `qa/verdicts/track-a1-video-schema.md` (**Cycle checked: 1**, PASS, 4/4 criteria — C1,
+C2, C3, C6). The checker re-ran every verify command itself in the container rather than trusting
+this manifest's pasted output, diffed D-014's authorized field list line-for-line against the
+committed diff (nothing exceeds it), and confirmed AT-089 and AT-090 — the two findings the
+overdue sweep filed against this unit's own mid-flight state — are genuinely resolved, moving
+both from `open` to `verified`. No new issues found. `T-130` closed in `.goal/goal.json`.
