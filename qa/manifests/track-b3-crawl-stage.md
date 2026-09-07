@@ -91,4 +91,32 @@ graph exists on disk and the CLI prints a summary; nothing renders it yet.
   "Obliterate") and re-run the proof — the sentinel-page check should then FAIL, proving the
   proof's guards are real rather than vacuous.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Verdict: `qa/verdicts/track-b3-crawl-stage.md` (**Cycle checked: 1**, PASS). The checker authored
+`qa/contracts/explore.md` and did **not** rubber-stamp the criteria I proposed — it added a **X12**
+I had omitted (the crawl is DOM-driven and deterministic; a model may *name* a screen but never
+*choose an action*), which D-015 had authorised by name and I missed; tightened X6 to record
+AT-093 as an open gap rather than let a safety criterion read clean; and tightened X11 by proving
+crash-survival with a real induced `KeyboardInterrupt` **and** bounding the claim — a kill *during*
+an append is not covered, because `read_jsonl` raises on a torn row despite `append_jsonl`'s
+"crash-safe" docstring (filed as AT-096).
+
+**The adversarial check was decisive and is the reason this PASS means something.** Renaming
+"Delete account" → "Obliterate" in the fixture made `explore_proof.py` fail on exactly the right
+assertion (`reached=['deleted.html']`, exit 1, screens 7→8): the crawler genuinely clicked the
+unlisted control and genuinely landed on the sentinel page. So the guards are real and the proof
+detects a breach rather than passing vacuously. Fixture restored and hash-verified. The
+node-status defect's test was likewise proven to have teeth by sabotaging `update_node`.
+
+**Escalation I must act on before T-145:** AT-093 (hyphen/underscore/dot-separated logout labels
+not denied) was filed at T-142 with "close before T-143 wires a real crawl loop". T-143 *is* that
+loop and shipped without it. The checker escalated it **medium → high, gating T-145** rather than
+failing this unit for a consciously deferred defect — the right call, and the gate is correct: the
+guard stopping this crawler from logging itself out of a production ERP does not recognise
+`Log-Out`. Fixed next, as its own unit, before any live run.
+
+Also filed: AT-094 (a third `_NoCacheHandler` copy — my `explore_proof.py` duplicated what the
+conftest I wrote in the same commit already imports), AT-095 (`settle_ms` has **no test pinning
+it**, unlike the status fix — a fair asymmetry to call out in my own work), AT-096 (the
+`append_jsonl` crash-safety docstring overclaims). `T-143` closed in `.goal/goal.json`.
