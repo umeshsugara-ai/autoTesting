@@ -11,8 +11,9 @@ import re
 
 from fastapi import HTTPException
 
-from autotester.browser.secrets import host_of
+from autotester.browser.secrets import SecretStore, host_of
 from autotester.core.paths import repo_root
+from autotester.core.redact import PLACEHOLDER_RE
 from autotester.schema.project import Project
 from autotester.store.project_store import ProjectStore
 
@@ -75,3 +76,34 @@ def _load_project_or_404(slug: str) -> tuple[ProjectStore, Project]:
     if project is None:
         raise HTTPException(404, f"no project '{slug}'")
     return store, project
+
+def _refuse_unsafe_value(value: str, project: Project, secrets: SecretStore) -> None:
+    """Keep a real credential out of `cases.jsonl`, and catch a mistyped key now
+    rather than mid-run.
+
+    Two distinct mistakes, both silent before this existed:
+    - Typing the credential ITSELF into the value box. `cases.jsonl` is not
+      gitignored, so it would be persisted in plaintext; and because no
+      `{{SECRET:KEY}}` placeholder is present, `session.fill` never tags the
+      field, so it appears in cleartext in every screenshot too.
+    - Referencing a key the project has not declared. That resolved only at
+      typing time, deep inside `_value_for`, surfacing as a stringified
+      `UndeclaredSecret` inside a generic ERRORED outcome.
+    """
+    if not value:
+        return
+    referenced = PLACEHOLDER_RE.findall(value)
+    if referenced:
+        for key in referenced:
+            if project.secret(key) is None:
+                raise HTTPException(400, (
+                    f"this project has not declared a credential called '{key}'. "
+                    f"Declare it in Project settings first, then use it here."
+                ))
+        return
+    if not secrets.redactor().is_clean(value):
+        raise HTTPException(400, (
+            "that looks like a real credential. Do not paste the value into a test "
+            "step — it would be stored in plain text and show up in screenshots. "
+            "Declare it in Project settings, then reference it here as {{SECRET:KEY}}."
+        ))

@@ -172,6 +172,12 @@ class SecretStore:
         """Declared and undeclared alike — anything in .env is a secret to mask."""
         return {**self._shadow, **self._values}
 
+    def has_value(self, key: str) -> bool:
+        """Whether a declared key currently has a usable value. Says nothing
+        about what the value is — callers use this to fail a run up front
+        rather than mid-step."""
+        return bool(self._values.get(key))
+
     def redactor(self) -> Redactor:
         """A `Redactor` that masks every value in .env, declared or not (AT-004)."""
         return Redactor(self._all_values())

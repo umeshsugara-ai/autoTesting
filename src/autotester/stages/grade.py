@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from autotester.browser.secrets import SecretStore
 from autotester.core.paths import RepoDocs
 from autotester.providers.base import Provider
 from autotester.schema.enums import EvidenceKind, Outcome, Result
@@ -93,8 +94,16 @@ def _screenshot_paths(result: RawResult, run_dir: Path | None) -> list[Path]:
 
 
 def grade(rubric: Rubric, result: RawResult, run_id: str, judge: Provider,
-          docs: RepoDocs | None = None, run_dir: Path | None = None) -> Verdict:
-    """Judge one case's execution against `rubric`. Never sees the case's own steps."""
+          docs: RepoDocs | None = None, run_dir: Path | None = None,
+          secrets: SecretStore | None = None) -> Verdict:
+    """Judge one case's execution against `rubric`. Never sees the case's own steps.
+
+    `secrets`, when given, gates the built prompt through
+    `SecretStore.guard_prompt` before it reaches a model. That gate is
+    documented as "call before every model call" but had no production
+    caller: protection rested entirely on evidence having been scrubbed at
+    `session._record`. Optional so the existing script callers are unchanged.
+    """
     if result.outcome is Outcome.BLOCKED_HITL:
         return _verdict(run_id, result, rubric, verdict_result=Result.BLOCKED,
                          provider_id="rule", scoreboard="not judged: execution was blocked",
@@ -105,6 +114,8 @@ def grade(rubric: Rubric, result: RawResult, run_id: str, judge: Provider,
                          note=result.error)
 
     prompt = build_grade_prompt(rubric, result, docs or RepoDocs())
+    if secrets is not None:
+        secrets.guard_prompt(prompt)
     judgment = judge.judge(prompt, Judgment, images=_screenshot_paths(result, run_dir))
     problem = _inconsistency(rubric, judgment)
     if problem is not None:

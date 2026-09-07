@@ -58,6 +58,24 @@ def _run_entry_case(
         session.close()
 
 
+def _require_declared_values(project: Project, secrets: SecretStore, slug: str) -> None:
+    """Refuse the run up front when a declared credential has no value yet.
+
+    The UI path loads secrets with `strict=False`, so a missing value used to
+    surface only when a step tried to type it — as `BLOCKED_HITL`, mid-run,
+    after a browser had already been launched. Name the key instead, and say
+    where to fix it."""
+    missing = [ref.key for ref in project.secrets if not secrets.has_value(ref.key)]
+    if missing:
+        raise HTTPException(400, (
+            f"{', '.join(missing)} has no value yet. Enter it on the project's "
+            f"Credentials page (/projects/{slug}/env) before running."
+            if len(missing) == 1 else
+            f"these credentials have no value yet: {', '.join(missing)}. Enter them on the "
+            f"project's Credentials page (/projects/{slug}/env) before running."
+        ))
+
+
 @router.post("/projects/{slug}/run")
 def trigger_run(slug: str) -> RedirectResponse:
     """A real, synchronous run: the request waits for the browser to finish
@@ -75,6 +93,7 @@ def trigger_run(slug: str) -> RedirectResponse:
         )
     paths = ProjectPaths(slug)
     secrets = SecretStore.load(project, paths.env_file, strict=False)
+    _require_declared_values(project, secrets, slug)
     run_id = f"run-{ulid()}"
     run_dir = paths.run_dir(run_id)
     entry_flags = [_is_entry_case(c, project) for c in cases]

@@ -98,5 +98,6 @@ def run_and_grade_case(
     if rubric is None or is_stale_default(rubric, case):
         rubric = default_rubric(case, rubric_id)
         store.save_rubric(rubric)
-    verdict = grade(rubric, result, run_id, judge, run_dir=store.paths.run_dir(run_id))
+    verdict = grade(rubric, result, run_id, judge, run_dir=store.paths.run_dir(run_id),
+                    secrets=session.secrets)
     return result, verdict

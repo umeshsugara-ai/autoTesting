@@ -20,42 +20,34 @@ from html import escape
 from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
+from autotester.browser.secrets import SecretStore
+from autotester.core.paths import ProjectPaths
 from autotester.schema.case import Case
 from autotester.schema.enums import KIND_BY_CLASS, Action, CaseClass
 from autotester.schema.flowspec import ExpectedState, Step
+from autotester.schema.project import Project
 from autotester.store.project_store import ProjectStore
 from autotester.ui import theme
-from autotester.ui.helpers import _load_project_or_404, _require_safe_id
+from autotester.ui.case_form import (
+    STEP_ROWS,
+    _credential_datalist,
+    _options,
+    _step_row,
+)
+from autotester.ui.helpers import (
+    _load_project_or_404,
+    _refuse_unsafe_value,
+    _require_safe_id,
+)
 
 router = APIRouter()
 
-# Enough rows for a real multi-step flow without a JS row-adder; blank rows are
-# dropped, so this is a ceiling, never a requirement.
-STEP_ROWS = 5
 
 
-def _options(values: list[str], selected: str) -> str:
-    return "".join(
-        f"<option value='{escape(v)}'{' selected' if v == selected else ''}>{escape(v)}</option>"
-        for v in values
-    )
 
 
-def _step_row(index: int, action: str, target: str) -> str:
-    """One step's four inputs. `action`/`target` prefill row 0 with the project's
-    own base_url, so the fastest useful case — "does the front door still load" —
-    is one title away."""
-    actions = _options([a.value for a in Action], action)
-    return (
-        "<tr>"
-        f"<td class='step-n'>{index + 1}</td>"
-        f"<td><select name='step_action'>{actions}</select></td>"
-        f"<td><input name='step_target' value='{escape(target)}' "
-        "placeholder='https://… or a button&#39;s visible label'></td>"
-        "<td><input name='step_value' placeholder='text to type (optional)'></td>"
-        "<td><input name='step_expected' placeholder='text that must appear (optional)'></td>"
-        "</tr>"
-    )
+
+
 
 
 @router.get("/projects/{slug}/cases/new", response_class=HTMLResponse)
@@ -66,15 +58,20 @@ def new_case_form(slug: str) -> str:
 
     rows = "".join(
         _step_row(i, Action.NAVIGATE.value if i == 0 else Action.CLICK.value,
-                  project.base_url if i == 0 else "")
+                  project.base_url if i == 0 else "", bool(project.secrets))
         for i in range(STEP_ROWS)
     )
     table = (
         "<table class='step-table'><tr><th>#</th><th>Action</th><th>Target</th>"
         "<th>Value</th><th>Expect to see</th></tr>"
         f"{rows}</table>"
+        f"{_credential_datalist(project)}"
         "<p class='hint'>Leave a row blank to skip it. A row counts if it has a target "
         "or a value.</p>"
+        + ("<p class='hint'>For a password or any other credential, pick the saved "
+           "<code>{{SECRET:KEY}}</code> from the value box rather than typing the real "
+           "value — the real value is never stored in a test case.</p>"
+           if project.secrets else "")
     )
     fields = (
         "<div class='field'><label for='title'>What are you checking?</label>"
@@ -103,7 +100,8 @@ def new_case_form(slug: str) -> str:
 
 
 def _build_steps(
-    actions: list[str], targets: list[str], values: list[str], expects: list[str]
+    actions: list[str], targets: list[str], values: list[str], expects: list[str],
+    project: Project, secrets: SecretStore,
 ) -> list[Step]:
     """Keep only rows a human actually filled in, renumbering from 1 so a skipped
     middle row never leaves a hole in `Step.order`."""
@@ -115,6 +113,7 @@ def _build_steps(
             parsed = Action(action)
         except ValueError as exc:
             raise HTTPException(400, f"unknown action '{action}'") from exc
+        _refuse_unsafe_value(value.strip(), project, secrets)
         expected = (
             ExpectedState(visible_text=[expect.strip()]) if expect.strip()
             else ExpectedState()
@@ -124,6 +123,7 @@ def _build_steps(
             value=value.strip() or None, expected=expected,
         ))
     return steps
+
 
 
 def _refuse_duplicate(store: ProjectStore, case: Case) -> None:
@@ -148,7 +148,8 @@ async def create_case(slug: str, request: Request) -> RedirectResponse:
     """Reads the raw form rather than declaring `list[str] = Form(...)` params:
     the step inputs are repeated fields, and `getlist` is the direct way to read
     them without a mutable default in the signature (ruff B008)."""
-    store, _project = _load_project_or_404(slug)
+    store, project = _load_project_or_404(slug)
+    secrets = SecretStore.load(project, ProjectPaths(slug).env_file, strict=False)
     form = await request.form()
     title = str(form.get("title", ""))
     case_class = str(form.get("case_class", ""))
@@ -164,6 +165,7 @@ async def create_case(slug: str, request: Request) -> RedirectResponse:
         [str(v) for v in form.getlist("step_target")],
         [str(v) for v in form.getlist("step_value")],
         [str(v) for v in form.getlist("step_expected")],
+        project, secrets,
     )
     if not steps:
         raise HTTPException(400, "a case needs at least one step")
