@@ -1,99 +1,119 @@
 # qa/QUEUE.md — checker sweep queue (top-3 recommended next units)
 
-Refreshed by `/checker sweep` 2026-09-06 (second sweep today — prior sweep at 12:13:52+05:30
-found AT-052 goal-drift and closed clean otherwise; this sweep specifically re-verifies the
-AT-053/AT-054/AT-055 recovery this session made and re-confirms AT-052's HUMAN_GATE).
+Refreshed by `/checker sweep` 2026-09-07T18:40 (overdue routine sweep — prior sweep 2026-09-06
+20:15:00, >20h ago). Since then: 8 more Track 0 units shipped and closed checked-PASS
+(ui-secrets-declaration, ui-credential-safety, ui-credential-safety-all-fields x2 cycles,
+ui-credential-guard-project-routes x3 cycles), AT-052's GRILL gate was answered on disk (not via
+`/grill` — Umesh answered directly, captured in `qa/gates/at052-bfs-video-corpus-grill.md`), a
+16-task Track A/B backlog was registered (T-121..T-145, commit `fc6aa70`), and Track A1 (T-130)
+schema work has started but is mid-flight and uncommitted.
 
 ## GRILL
 
-- GRILL: whole-platform BFS crawl + video-corpus eval methodology — **unchanged from the last
-  sweep, still correctly gated, not dropped or re-litigated.** AT-052 (open) and this row persist
-  because no grill has happened yet — `qa/.regrill-due` does not exist (grill not yet run), the
-  goal.md feedback is still unfolded in `qa/feedback-inbox.md`, and the north star text is
-  unchanged since the last sweep (confirmed byte-for-byte against `.goal/goal.json`), so nothing
-  here regresses or auto-resolves. Only Umesh can scope this. Run
-  `/grill "whole-platform BFS crawl + video-corpus eval methodology"`. (AT-052)
+**Resolved this sweep — row removed.** AT-052 is `status: fixed` in the ledger (fixed_date
+2026-09-07). The gate carries a proper `**Answered:**` line dated 2026-09-07 naming option (1)
+(scope both capabilities, plus the discovered Track 0 prerequisite), the plan is approved and
+on disk (`C:/Users/Lenovo/.claude/plans/great-when-you-really-iridescent-ocean.md`), and
+D-014/D-015/D-016 record the resulting schema/architecture authorizations. `qa/.regrill-due`
+remains absent (correct — nothing further to re-grill). Not dropped silently: verified the
+`**Answered:**` block itself, not just the ledger status field, before removing the row (the
+D-006 "gate answered off-disk" failure mode this check exists to catch would have been an
+`Answered:` line missing despite a real answer existing elsewhere — the opposite is not a
+concern, and here the line is present and matches the ledger).
 
 ## What this sweep found
 
-- **Bypass detection** — walked every commit since the last sweep's stamp (2026-09-06T12:13:52,
-  commit `f403e55`): `26b1aab` (checker PASS, at053-navigate-settle, cycle 1 — manifest+contract-
-  gap+verdict present, see below), `91924f3` (checker PASS, at054-live-watch-slowmo, cycle 1,
-  same), `55befd8` (recovery commit landing the two units' actual source diffs — execute.py,
-  test_execute.py, session.py, docker-compose.yml — that the two PASS commits above had missed;
-  read in full, diff is exactly what both manifests describe, nothing extra), `02e2828` (chore:
-  onboard `projects/vidysea-erp/{project.json,cases.jsonl}` under the same convention as
-  `projects/pathlynks/`, plus `.gitignore` entries for `.playwright-mcp/`/`.handoffs/` scratch —
-  data/config chore, not product code, no manifest expected), `616d8de` (ledger: file AT-055).
-  **No bypassed unit.**
-- **Handshake reconciliation (the specific ask this sweep was dispatched to answer):**
-  independently confirmed the maker's/session's claimed recovery, not trusted the commit message —
-  `git status --porcelain` on `src/autotester/stages/execute.py`, `tests/test_execute.py`,
-  `src/autotester/browser/session.py`, `docker-compose.yml` is now clean, and
-  `git diff HEAD -- <those 4 files>` is empty (fully committed, nothing left in the working tree
-  one `git clean`/checkout away from loss). `git show --stat 55befd8` touches exactly those 4
-  files plus the at054 manifest's close-out flip — matches both manifests' described changes.
-  Read the actual diff (not just the stat): `execute.py`'s `if step.action is Action.CLICK` became
-  `if step.action in (Action.CLICK, Action.NAVIGATE)` (AT-053), `session.py::launch_options` gained
-  an `AUTOTESTER_SLOW_MO_MS` opt-in env var defaulting to `0` threaded into Playwright's `slow_mo`
-  (AT-054) — no new silent-failure pattern introduced (no new bare/log-only except, no new
-  default-value fallback masking an error). **Verdict: genuinely committed and matches both
-  PASSed manifests.**
-- **Contract amendment gap (found + fixed this sweep, filed as AT-056):** `qa/contracts/
-  execute.md` and `qa/contracts/docker.md` amendment logs both ended at their prior rows
-  (AT-045/AT-048 and ui-sidebar respectively) — neither AT-053 (NAVIGATE settle) nor AT-054
-  (slow-mo env var) had a contract-side trace, the same gap class AT-043/AT-048 already named.
-  This was an open question from an earlier senior-engineer review for AT-053 specifically, and
-  turned out to apply to AT-054/docker.md too. **Fixed this sweep** — both contracts now carry a
-  2026-09-06 routine amendment row recording the fix, the PASS verdict, and (docker.md) a pointer
-  to AT-055. Both are routine (recording a shipped, already-PASSed fix; nothing weakened).
-- **AT-052 (goal-drift GRILL) still correctly gated** — re-confirmed `qa/.regrill-due` absent,
-  `AT-052` still `status: open` in the ledger, the `GRILL:` row still present above the TODO
-  table, and the goal.md feedback entry in `qa/feedback-inbox.md` still marked unfolded. Not
-  silently dropped, not re-litigated, not auto-resolved by this session's unrelated work.
-- **Checker dispatch-protocol recommendation (not applied — outside this project's bound root):**
-  the root cause of AT-055 is that Mode A step 7 in the global `checker/SKILL.md` only says
-  "commit the verdict file too, with a narrow pathspec" — it never tells the checker to confirm
-  the maker's source diff is *also* committed in the same handshake, so a checker can correctly
-  follow its own protocol to the letter and still leave the maker's real fix stranded in the
-  working tree (exactly what happened twice, at053 and at054, before this session's manual
-  recovery). This checker judges the fix genuinely warranted, but **does not apply it** — that
-  file lives outside `D:/autoTesting` (`C:/Users/Lenovo/.claude/skills/checker/SKILL.md`), and
-  "Mode B sweep never leaves the bound root" / "all reads and writes stay inside the bound root"
-  are hard rules in the checker's own charter. Recommended wording for Umesh to apply globally:
-  Mode A step 7, after "commit the verdict file too" — add "and, in the same commit or an
-  immediately adjacent one, confirm `git status --porcelain` is clean for every file the manifest's
-  `What-changed` section names; if it is not, commit those too (or note explicitly why they are
-  intentionally left uncommitted) before returning the verdict." This is a recommendation, not an
-  applied change.
-- **Ledger** — 56 rows now (was 52 two commits ago in this session's own recovery pass, 54 before
-  this sweep). AT-055 flipped `fixed → verified` (independently reproduced above, not merely
-  re-asserted). AT-056 filed and closed same-sweep (contract amendment applied immediately, per
-  the criticality gate: routine amendments are auto-apply-and-commit). AT-051 (low, stale
-  unacked notification) still `open`, unchanged — still correctly out of this project's binding
-  scope (fix lives in the shared `D:/ai_os` `goal_cli.py`, not this repo).
-- **`.goal/goal.json`** — still 20/20 tasks `done`, project `status: active`; north star text
-  byte-identical to the version already on record when AT-052 was filed (re-read and compared),
-  so no *new* goal-drift trigger fired this sweep beyond the one already gated.
-- **Enforcement liveness** — re-confirmed `.claude/settings.json`'s 5 hook command strings all
-  still use the `-File` form (D-012) — unchanged since the last sweep, no regression.
-- **Silent-failure hunt** — read the full diff of `55befd8` (the only code-bearing commit since
-  the last sweep): no new bare/log-only `except`, no new default-value fallback masking an error,
-  no new un-timed/un-rolled-back side effect. Clean.
+- **Bypass detection** — walked every commit since the last sweep's stamp (2026-09-06T20:15:00,
+  commit `f403e55`) through `HEAD` (`a3d0be4`): `f930306`/`8ab3f5a` (ui-case-management PASS +
+  source), `f36ebfd`/`c431f1c`/`7e1863b` (close-out, AT-066 test-only fix, tick stamp),
+  `3b91d1e` (AT-052 gate answered), `876367a`/`877f015`/`f8fcba9` (ui-secrets-declaration: build,
+  PASS, AT-068 fix), `a61e3bf`/`1bd5091`/`e55f386` (ui-credential-safety: build, PASS,
+  close-out), `b811366`/`3312c78`/`8f50c5a` (ui-credential-safety-all-fields: build, PASS,
+  close-out), `a3a9b4a`/`1acf35a`/`b49904e`/`db072a3` (ui-credential-guard-project-routes: FAIL
+  cycle 1, FAIL cycle 2, PASS cycle 3, AT-088 echo fix), `123bc77` (tick: Track 0 complete),
+  `fc6aa70` (governance: plan.md + 16 goal tasks + D-014/D-015/D-016 — docs/config, not product
+  code, no manifest expected), `a3d0be4` (tick: T-121 "closed" — see finding below, this claim
+  does not match `.goal/goal.json`). **Every code-bearing commit has a matching manifest +
+  PASS verdict with the correct `Cycle checked`. No bypassed unit.**
+- **Handshake reconciliation** — checked all 4 units closed since the last sweep
+  (ui-secrets-declaration, ui-credential-safety, ui-credential-safety-all-fields,
+  ui-credential-guard-project-routes): every manifest ends `## Status: checked-PASS`, every
+  verdict's `Cycle checked` equals the manifest's final `Fix cycle` (1, 1, 1, 3 respectively),
+  no `ready-for-check` manifest sits without a matching verdict. `qa/.last-tick` is fresh
+  (2026-09-07T11:47:03Z, well under the 2h staleness bar) and `qa/.paused` does not exist —
+  maker is not asleep. Ledger `fixed`-vs-`verified` counts are not runaway (AT-088 `fixed`
+  pending its own next-sweep verification is normal lag, not a claims-outrunning-checks pattern).
+- **NEW FINDING (AT-089, medium) — a tick claim that does not match the tracked state.**
+  `qa/.last-tick`'s 2026-09-07T11:47:03Z line says *"T-121 governance registration closed"*, but
+  `.goal/goal.json`'s own `T-121` row is `status: pending` in both `git show HEAD:.goal/goal.json`
+  and the current working copy — byte-diffed, unchanged. No `goal_cli.py done --task-id T-121`
+  call appears in history since `fc6aa70`. T-121 was never a checker-PASSed unit (no manifest/
+  verdict exists for it — it was a governance/docs commit), so this isn't a checker close-out
+  miss; the tick's own narration overclaimed. Every task depending on T-121 (T-122..T-145) is
+  therefore also correctly still `pending`, which is fine — the mismatch is only in what the tick
+  *said* happened.
+- **NEW FINDING (AT-090, medium) — WIP mid-migration, uncommitted, doctor currently RED.**
+  `git status --porcelain` shows `src/autotester/schema/enums.py` modified (Action gains
+  BACK/HOVER/PRESS_KEY/SCROLL, correctly per D-014) plus three new untracked files —
+  `schema/analysis.py`, `schema/media.py`, `schema/observation.py` (the D-014 item-2 move
+  target). `uv run autotester doctor` right now reports **5 violations**: 4x duplicate-concept
+  (`ObservedStep`/`ObservedFlow`/`ObservedScreen`/`VideoObservation` now defined in BOTH the new
+  `schema/observation.py` AND their original `schema/flowspec.py` — D-014 says *move*, and only
+  the copy half has happened) + 1x stale-generated (`docs/MAP.md` differs from source).
+  `uv run pytest -q` is clean (75 passed, 2 skipped) — only doctor is red, and doctor is the exact
+  instrument T-121's AND T-130's own `done_check` re-runs. No manifest exists for this yet
+  (correctly — it's unfinished, not a bypass), but it sits uncommitted, one `git clean`/checkout
+  away from loss — the AT-055 risk class one step earlier (unfinished-and-uncommitted rather than
+  finished-and-uncommitted). Not fixed by this sweep (sweep never builds); filed so the next
+  tick finishes the migration (delete the four class bodies from `flowspec.py`, re-export if
+  anything still imports the old path, run `autotester map`) instead of starting fresh work on
+  top of a half-moved schema.
+- **Contract coverage** — no gap: `qa/contracts/video-learning.md` and `qa/contracts/explore.md`
+  (authorized by D-014/D-015) correctly do not exist yet — they're checker-authored on first
+  PASS, and T-130/T-140 haven't shipped. `ui.md`'s amendment log is current through U8/AT-088.
+  No stale criteria found.
+- **Stale manifests** — none. All 29 manifests on disk end in a terminal `## Status:` line
+  matching their verdict's `Cycle checked`.
+- **Enforcement liveness** — `.claude/settings.json`'s 5 hook command strings still use the
+  `-File` form (D-012), unchanged. Repo has 204 commits (not an empty-history dead gate). Lab
+  Protocol wiring: `docs/DECISIONS.md` present, D-000's `Approved-by: Umesh` covers it — no
+  approval-required finding. `qa/loop.md`'s `Stop` line lists all 7 terminal states and its
+  `Human gate` section is not contradicted by `qa/adapter.json`'s `isolation.done` (still
+  `audit-pass`, no deploy claim to check against). Loop-design questions: can it spin — no, each
+  tick's Stop line reads a real progress signal (a unit closed or a criterion newly evidenced);
+  can it Goodhart the verifier — no, slot-1 is real pytest/ruff/doctor plus checker-judged
+  contract criteria, not a proxy; can it run a wrong answer to completion — no, every `done_check`
+  sampled this sweep is at least as strong as its contract criterion. No medium finding raised.
+- **Silent-failure hunt** — read the diffs of every code-bearing commit since the last sweep
+  (the Track 0 units above): no new bare/log-only `except`, no new default-value fallback masking
+  an error, no new un-timed/un-rolled-back side effect. The credential-guard work in this window
+  is itself hardening, not a new silent-failure surface. Clean.
+- **Goal-coverage gap analysis** — `.goal/goal.json` now 36 tasks (20 done, 16 pending, all
+  T-121..T-145 correctly `pending` per the AT-089 finding above). North-star text unchanged since
+  the version already on record. Track A/B tasks map cleanly onto D-014/D-015/D-016's
+  authorizations; no requirement found `missing` beyond what those decisions and the plan already
+  scope. No new goal-drift trigger.
 
 ## Top-3 recommended next units
 
-1. **HUMAN_GATE — the GRILL (AT-052), still standing.** Nothing whole-platform-scoped should get
-   built until Umesh scopes it. Unchanged priority from the last sweep.
-2. **Recommendation for Umesh (not a build unit in this project) — tighten `checker/SKILL.md`
-   Mode A step 7** per the wording above, so the AT-055 failure mode (PASS-commit lands paperwork,
-   leaves the real fix uncommitted) cannot recur across any maker-checker project, not just this
-   one. Global file, human-approved change, outside this sweep's authority to apply.
-3. **AT-051 (low)** — ack the stale `stalled` notification once `goal_cli.py` (shared skill)
-   grows an `ack` subcommand. Still out of this project's root; not a build unit here. Backlog is
-   otherwise empty: 20/20 goal tasks done, only AT-051 (low, out-of-scope) and AT-052
-   (HUMAN_GATE) open.
+1. **AT-090 (medium) — finish the T-130 schema migration before starting anything else in that
+   area.** Delete `ObservedStep`/`ObservedFlow`/`ObservedScreen`/`VideoObservation` from
+   `schema/flowspec.py` now that `schema/observation.py` holds them, fix any import, run
+   `autotester map`, confirm `uv run autotester doctor` is clean, then let T-130's own manifest
+   proceed to checker. This clears both the doctor-red state and is a prerequisite for T-121
+   actually being closeable (see #2).
+2. **AT-089 (medium) — reconcile or correct the T-121 claim.** Either run
+   `goal_cli.py done --task-id T-121` if `uv run autotester doctor` is clean at the time (it
+   isn't right now, per AT-090), or amend the tick understanding that T-121 is genuinely still
+   open. Low effort, clears a real state mismatch before it compounds across 15 dependent tasks.
+3. **T-140 (Track B1: observation primitives)** — independent of T-130 (both depend only on
+   T-121, not on each other), so it can proceed in parallel per the original plan once someone is
+   free to pick it up. T-122 stays correctly `HUMAN_GATE` (needs Umesh to enter
+   ERP_EMAIL/ERP_PASSWORD on `/projects/erp/env` before the logged-in ERP run can happen).
 
-Terminal state: **FINDINGS: 2** (AT-055 verified closed for real this sweep; AT-056 found and
-fixed same-sweep as a routine contract amendment). AT-052's GRILL gate reconfirmed standing, not
-a new finding.
+Backlog is not empty and not human-gated overall: T-130 and T-140 are both buildable now: AT-090
+is what should happen next.
+
+Terminal state: **FINDINGS: 2** (AT-089 tick/goal-state mismatch on T-121; AT-090 mid-flight
+schema migration currently failing `autotester doctor`). AT-052's GRILL gate is resolved and its
+row removed — not a new finding, a correct close.
