@@ -74,6 +74,21 @@ and writes `project.json` only and touches no `SecretRef` value and no `.env` (U
 Approver, not a validation fix, and the user's real intent stays expressible because the refusal
 names the exact host to add.
 
+### U8 — The case form cannot commit a raw credential to a git-tracked file
+Every user-supplied text of a case — the `title` and every `step_target`, `step_value` and
+`step_expected` — passes `ui/helpers.py::_refuse_unsafe_submission` **before any `Case` is
+built**, on both doors into a title (`POST /projects/{slug}/cases` and
+`POST /projects/{slug}/cases/{case_id}/rename`). A `{{SECRET:KEY}}` placeholder naming an
+undeclared key is refused (400); a raw `.env` value in any one of those fields is refused (400);
+and their **concatenation** is checked too, so a value split across two or more rows — or across
+two different field types — cannot reassemble byte-for-byte in `projects/<slug>/cases.jsonl`,
+which is git-tracked in a public repo. Nothing is written to disk on a refusal. A refusal that
+reaches the grading prompt anyway (a credential already inside a rubric) yields a
+`Result.BLOCKED` `Verdict` naming no value — `stages/grade.py` never raises out of
+`SecretStore.guard_prompt`, because crashing every subsequent run leaves no way back.
+This criterion pins the *case form only*. The equivalent hole on the three routes that write
+`project.json` is **not** covered here and is tracked as **AT-073**.
+
 ## No-fire list
 
 - Authentication/authorization — this is a local, single-operator tool for now (matches the
@@ -159,3 +174,27 @@ names the exact host to add.
   schemeless or nonsense `base_url` still onboards) and **AT-062** (onboarding stores `name`/
   `base_url` unstripped while the edit form strips them). See
   `qa/verdicts/ui-project-edit-and-domain-validation.md`.
+- 2026-09-07 · /checker (ui-credential-safety-all-fields unit) · **new criterion U8 added** —
+  the credential guard the two previous units built had no criterion at all, so a later unit
+  could have deleted it and no check would have noticed. Routine, non-weakening (adds a
+  criterion, softens none). U8 records exactly what this checker re-derived live against a real
+  `.env` value: title / target / expect / value each refuse (closing **AT-070**), and a value
+  split across two rows, three rows, or two *different* field types is refused by the
+  concatenation check (closing **AT-071**). U1–U7 re-verified in the same check and unaffected:
+  onboarding and edit still go through `ProjectStore` only (U1), unknown slug still 404s (U2),
+  the env editor is untouched and imports nothing new (U3), no run/report code changed (U4),
+  escaping unchanged (U5), all five U6 refusals still fire and the duplicate-check 400 was
+  confirmed to be the duplicate check and not the guard misfiring (U6), and
+  `_require_reachable_base_url` is byte-unchanged (U7). Five defects found in the same probe were
+  filed rather than folded in, because none is a U-criterion violation by this unit:
+  **AT-073** (high — `POST /onboard`, `POST /projects/{slug}/edit` and
+  `POST /projects/{slug}/secrets` still write a raw `.env` value in cleartext to git-tracked
+  `project.json`, breaching core-invariants C5; this is the next unit),
+  **AT-074** (a URL-encoded or whitespace-split value still gets through, recoverable in one
+  step), **AT-075** (the `unknown case class` / `unknown action` 400s echo raw form input, the
+  AT-068 pattern), **AT-076** (any `.env` value — including another project's undeclared one —
+  blocks its own literal text, so a login URL in `.env` cannot be a navigate target and the
+  suggested `{{SECRET:KEY}}` remedy does not work there because only `session.fill` resolves
+  placeholders) and **AT-077** (the concatenation refusal names no field, so an innocent
+  straddle across 15 artificial boundaries leaves the user with nothing to change). See
+  `qa/verdicts/ui-credential-safety-all-fields.md`.
