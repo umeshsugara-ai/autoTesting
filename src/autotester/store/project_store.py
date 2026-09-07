@@ -21,6 +21,7 @@ from autotester.schema.project import Project, Source
 from autotester.schema.run import RawResult, Run
 from autotester.schema.screenmap import ScreenMap
 from autotester.schema.verdict import Rubric, Verdict
+from autotester.store.crawl_store import CrawlStoreMixin
 from autotester.store.filestore import (
     append_jsonl,
     delete_jsonl_row,
@@ -31,7 +32,7 @@ from autotester.store.filestore import (
 )
 
 
-class ProjectStore:
+class ProjectStore(CrawlStoreMixin):
     """Load and save one project's artifacts as human-editable files (C6).
 
     AT-024: `add_source`/`add_case`/`add_request` used to re-read their whole
@@ -51,6 +52,7 @@ class ProjectStore:
         self._case_ids: set[str] | None = None
         self._request_ids: set[str] | None = None
         self._issue_ids: set[str] | None = None
+        self._node_ids: dict[str, set[str]] | None = None  # keyed by crawl_id
 
     # -- project --------------------------------------------------------------
     def save_project(self, project: Project) -> None:

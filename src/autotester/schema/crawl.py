@@ -1,11 +1,18 @@
-"""Crawl-safety primitives. B1's minimal slice — `stages/explore_safety.py`
-(Track B4) and `stages/explore.py` (B3) extend this file with `CrawlBounds`,
-`SafetyPolicy`, `CrawlIssue`, `Crawl` once those stages exist.
+"""Crawl-safety and crawl-envelope primitives (Track B).
+
+`DialogEvent` shipped at B1. B2 adds the schema the crawl stage itself
+(B3) and the safety layer (B4) need: bounds that actually stop a BFS,
+a policy the explorer consults before every action, and the envelope
+artifact persisted per crawl.
 """
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+
+from autotester.core.ids import content_id, run_id
+from autotester.schema.base import Artifact
+from autotester.schema.enums import CrawlStatus, IssueKind, WritePolicy
 
 
 class DialogEvent(BaseModel):
@@ -16,3 +23,102 @@ class DialogEvent(BaseModel):
     dialog_type: str
     message: str = ""
     accepted: bool = False
+
+
+# D-016's default deny-list: destructive-name patterns a READ_ONLY/TEST_ACCOUNT
+# crawl never clicks. Word-bounded so "Deliverables" doesn't match "deliver".
+DEFAULT_DENY_PATTERNS = (
+    r"\bdelete\b", r"\bremove\b", r"\bdeactivate\b", r"\bdisable\b", r"\barchive\b",
+    r"\bpurge\b", r"\bdrop\b", r"\breset\b", r"\brevoke\b", r"\bterminate\b",
+    r"\bcancel subscription\b", r"\bpay\b", r"\bcheckout\b", r"\bsend\b", r"\bsubmit\b",
+    r"\bapprove\b", r"\breject\b", r"\bpublish\b", r"\bunsubscribe\b",
+)
+
+# Never clicked at ANY write_policy, including ALLOW_WRITES.
+DEFAULT_NEVER_CLICK_PATTERNS = (r"\blog ?out\b", r"\bsign ?out\b", r"\bsignout\b")
+
+# Third-party hosts whose failed requests are noise, never an issue.
+DEFAULT_THIRD_PARTY_IGNORE = (
+    "google-analytics.com", "googletagmanager.com", "doubleclick.net",
+    "facebook.net", "connect.facebook.net", "hotjar.com", "clarity.ms",
+    "sentry.io", "segment.io", "intercom.io", "fonts.gstatic.com", "fonts.googleapis.com",
+)
+
+
+class CrawlBounds(BaseModel):
+    """Bounds the BFS actually stops on — every field must be able to end
+    the crawl and name itself as `Crawl.stop_reason` (X4)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    max_screens: int = 30
+    max_actions: int = 200
+    wall_clock_s: float = 600.0
+    max_depth: int = 6
+    per_node_action_cap: int = 25
+    dialog_repeat_limit: int = 3
+
+
+class SafetyPolicy(BaseModel):
+    """What the explorer will and won't click, given a project's `write_policy`."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    write_policy: WritePolicy = WritePolicy.READ_ONLY
+    deny_patterns: list[str] = Field(default_factory=lambda: list(DEFAULT_DENY_PATTERNS))
+    never_click_patterns: list[str] = Field(
+        default_factory=lambda: list(DEFAULT_NEVER_CLICK_PATTERNS)
+    )
+    third_party_ignore: list[str] = Field(
+        default_factory=lambda: list(DEFAULT_THIRD_PARTY_IGNORE)
+    )
+    click_unnamed: bool = False
+
+
+class CrawlIssue(Artifact):
+    """One problem the crawl noticed — console error, failed first-party
+    request, an off-domain navigation attempt, or a dialog storm."""
+
+    id: str = ""
+    crawl_id: str
+    project: str
+    kind: IssueKind
+    node_id: str
+    detail: str
+    first_party: bool = True
+
+    def model_post_init(self, _context: object) -> None:
+        if not self.id:
+            payload = {"crawl_id": self.crawl_id, "node_id": self.node_id,
+                       "kind": str(self.kind), "detail": self.detail}
+            object.__setattr__(self, "id", content_id("cissue", payload))
+
+
+class NoiseCount(BaseModel):
+    """One third-party host's dropped-request tally (never an issue, X9)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    host: str
+    count: int = 0
+
+
+class Crawl(Artifact):
+    """The envelope for one bounded BFS run — `stages/explore.py`'s output."""
+
+    id: str = Field(default_factory=lambda: run_id("crawl"))
+    project: str
+    status: CrawlStatus = CrawlStatus.RUNNING
+    bounds: CrawlBounds = Field(default_factory=CrawlBounds)
+    policy: SafetyPolicy = Field(default_factory=SafetyPolicy)
+    login_case_id: str | None = None
+    provider: str = "mock"
+    started_at: str | None = None
+    finished_at: str | None = None
+    stop_reason: str | None = None
+    screens: int = 0
+    edges: int = 0
+    actions: int = 0
+    denied: int = 0
+    issues: int = 0
+    noise_counts: list[NoiseCount] = Field(default_factory=list)

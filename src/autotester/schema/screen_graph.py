@@ -10,6 +10,10 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from autotester.core.ids import content_id
+from autotester.schema.base import Artifact
+from autotester.schema.enums import Action, EdgeOutcome, NodeStatus
+
 
 class ElementRef(BaseModel):
     """One interactive element found by `browser/enumerate.js`."""
@@ -40,3 +44,64 @@ class PageObservation(BaseModel):
     url: str
     title: str = ""
     elements: list[ElementRef] = Field(default_factory=list)
+
+
+class ScreenNode(Artifact):
+    """One distinct screen the crawl found. Identity is structural
+    (`stages/screen_identity.py::node_from`), never URL-only and never an
+    LLM description — the two failure modes the prior attempt hit."""
+
+    id: str = ""
+    crawl_id: str
+    project: str
+    url_template: str
+    url_example: str = Field(description="one real URL that produced this identity")
+    signature: str = Field(description="content hash of the sorted (role, name) set")
+    title: str = ""
+    name: str = ""
+    depth: int = 0
+    status: NodeStatus = NodeStatus.QUEUED
+    elements: list[ElementRef] = Field(default_factory=list)
+    screenshot_ref: str | None = None
+    console_errors: list[str] = Field(default_factory=list)
+    failed_requests: list[str] = Field(default_factory=list)
+    discovered_by: str | None = Field(default=None, description="the ScreenEdge.id that found it")
+
+    def model_post_init(self, _context: object) -> None:
+        if not self.id:
+            payload = {"t": self.url_template, "s": self.signature}
+            object.__setattr__(self, "id", content_id("node", payload))
+
+
+class ScreenEdge(Artifact):
+    """One candidate action the crawl tried from one screen."""
+
+    id: str = ""
+    crawl_id: str
+    from_node: str
+    to_node: str | None = None
+    action: Action
+    target: str = Field(description="the element's selector")
+    name: str = ""
+    outcome: EdgeOutcome
+    reason: str | None = None
+
+    def model_post_init(self, _context: object) -> None:
+        if not self.id:
+            payload = {
+                "crawl_id": self.crawl_id, "from": self.from_node,
+                "target": self.target, "action": str(self.action),
+            }
+            object.__setattr__(self, "id", content_id("edge", payload))
+
+
+class CrawlFrontier(BaseModel):
+    """The BFS queue state — persisted so a crash mid-crawl leaves a resumable
+    (if not yet auto-resumed, per plan.md's no-fire list) partial graph."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    queue: list[str] = Field(default_factory=list)
+    visited: list[str] = Field(default_factory=list)
+    actions_used: int = 0
+    screens_found: int = 0

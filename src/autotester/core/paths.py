@@ -135,6 +135,32 @@ class ProjectPaths:
     def screen_map(self) -> Path:
         return self.dir / "screenmap.json"
 
+    # -- Track B: autonomous explorer (D-015) ----------------------------------
+    @property
+    def crawls_dir(self) -> Path:
+        return self.dir / "crawl"
+
+    def crawl_dir(self, crawl_id: str) -> Path:
+        return self.crawls_dir / crawl_id
+
+    def crawl_shots_dir(self, crawl_id: str) -> Path:
+        return self.crawl_dir(crawl_id) / "shots"
+
+    def crawl_nodes(self, crawl_id: str) -> Path:
+        return self.crawl_dir(crawl_id) / "nodes.jsonl"
+
+    def crawl_edges(self, crawl_id: str) -> Path:
+        return self.crawl_dir(crawl_id) / "edges.jsonl"
+
+    def crawl_issues(self, crawl_id: str) -> Path:
+        return self.crawl_dir(crawl_id) / "issues.jsonl"
+
+    def crawl_frontier(self, crawl_id: str) -> Path:
+        return self.crawl_dir(crawl_id) / "frontier.json"
+
+    def crawl_manifest(self, crawl_id: str) -> Path:
+        return self.crawl_dir(crawl_id) / "crawl.json"
+
     def ensure(self) -> None:
         """Create the directories a project needs. Safe to call repeatedly."""
         for path in (

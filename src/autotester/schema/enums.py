@@ -224,3 +224,41 @@ class Confidence(StrEnum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
+
+
+class NodeStatus(StrEnum):
+    """A crawled screen's state in the BFS frontier (Track B)."""
+
+    QUEUED = "queued"
+    EXPLORED = "explored"
+    ABORTED_DIALOG = "aborted_dialog"
+    ABORTED_ERROR = "aborted_error"
+
+
+class EdgeOutcome(StrEnum):
+    """What happened when the explorer tried one candidate action."""
+
+    NAVIGATED = "navigated"
+    SAME_SCREEN = "same_screen"
+    DENIED_POLICY = "denied_policy"
+    SKIPPED_UNNAMED = "skipped_unnamed"
+    OFF_DOMAIN_REFUSED = "off_domain_refused"
+    DIALOG = "dialog"
+    ERRORED = "errored"
+
+
+class IssueKind(StrEnum):
+    """What kind of problem a crawl-detected `CrawlIssue` is."""
+
+    CONSOLE = "console"
+    NETWORK = "network"
+    NAVIGATION = "navigation"
+    DIALOG = "dialog"
+
+
+class CrawlStatus(StrEnum):
+    RUNNING = "running"
+    COMPLETED = "completed"
+    STOPPED_BOUND = "stopped_bound"
+    LOGIN_FAILED = "login_failed"
+    ABORTED = "aborted"

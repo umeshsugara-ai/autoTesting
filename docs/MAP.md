@@ -17,6 +17,7 @@
 | `core/ids.py` | Identifier generation. The ONLY place ids are minted. |
 | `core/paths.py` | Filesystem layout. The ONLY place project paths are constructed. |
 | `core/redact.py` | Secret redaction. Every log line and stored artifact passes through here. |
+| `core/urls.py` | URL templating: the identity input a crawled screen shares with the |
 | `doctor.py` | Design enforcement. Runs the rules that keep this repo readable. |
 | `ledger/relitigation.py` | The cyclic-rebuild gate: is this new unit a retired feature coming back? |
 | `ledger/render.py` | Derive the living docs from code and the ledger. Nothing here is hand-typed. |
@@ -31,7 +32,7 @@
 | `schema/bench.py` | The north star, made measurable: human expert tester vs AutoTester. |
 | `schema/case.py` | A test case — one falsifiable claim about the product, plus how to check it. |
 | `schema/coverage.py` | Coverage gaps and the video requests that close them. |
-| `schema/crawl.py` | Crawl-safety primitives. B1's minimal slice — `stages/explore_safety.py` |
+| `schema/crawl.py` | Crawl-safety and crawl-envelope primitives (Track B). |
 | `schema/enums.py` | Every closed vocabulary in the system. Nothing else defines these strings. |
 | `schema/flowspec.py` | The FlowSpec — the system's understanding of the product under test. |
 | `schema/issue.py` | A video-derived issue — its own artifact, deliberately NOT a `CaseClass`. |
@@ -54,6 +55,8 @@
 | `stages/report_export.py` | Tester-style run reports: an Excel summary and a screen-by-screen HTML |
 | `stages/review.py` | FlowSpec review gate: nothing generates cases from an unreviewed understanding |
 | `stages/run_case_pipeline.py` | RUN_CASE_PIPELINE: the one function that runs a case and grades it. |
+| `stages/screen_identity.py` | Screen identity: turn one `PageObservation` into a `ScreenNode`. |
+| `store/crawl_store.py` | Crawl artifact persistence — split from `project_store.py` at the |
 | `store/filestore.py` | The one place any artifact is read from or written to disk. Contract: core-invariants.md C6. |
 | `store/project_store.py` | Typed convenience over `filestore` for one project's directory. |
 | `ui/app.py` | Thin FastAPI viewer/editor over project files. Design principle 8: never a |
@@ -93,6 +96,11 @@
 | `CoverageGap` (`schema/coverage.py`) | A screen or route observed in a run but absent from the FlowSpec. |
 | `VideoRequest` (`schema/coverage.py`) | What the system asks a human to record, and why. |
 | `DialogEvent` (`schema/crawl.py`) | One JS dialog (`alert`/`confirm`/`prompt`/`beforeunload`) the observer saw. |
+| `CrawlBounds` (`schema/crawl.py`) | Bounds the BFS actually stops on — every field must be able to end |
+| `SafetyPolicy` (`schema/crawl.py`) | What the explorer will and won't click, given a project's `write_policy`. |
+| `CrawlIssue` (`schema/crawl.py`) | One problem the crawl noticed — console error, failed first-party |
+| `NoiseCount` (`schema/crawl.py`) | One third-party host's dropped-request tally (never an issue, X9). |
+| `Crawl` (`schema/crawl.py`) | The envelope for one bounded BFS run — `stages/explore.py`'s output. |
 | `SourceRef` (`schema/flowspec.py`) | Where a piece of understanding came from — a video second, a doc line. |
 | `FieldConstraints` (`schema/flowspec.py`) | What the UI says a field accepts. Drives boundary/edge case generation. |
 | `InputField` (`schema/flowspec.py`) | One input on a screen. |
@@ -127,6 +135,9 @@
 | `Run` (`schema/run.py`) | One regression run over a set of cases. |
 | `ElementRef` (`schema/screen_graph.py`) | One interactive element found by `browser/enumerate.js`. |
 | `PageObservation` (`schema/screen_graph.py`) | One page-visit's raw material: its url/title and interactive elements. |
+| `ScreenNode` (`schema/screen_graph.py`) | One distinct screen the crawl found. Identity is structural |
+| `ScreenEdge` (`schema/screen_graph.py`) | One candidate action the crawl tried from one screen. |
+| `CrawlFrontier` (`schema/screen_graph.py`) | The BFS queue state — persisted so a crash mid-crawl leaves a resumable |
 | `ScreenVisit` (`schema/screenmap.py`) | One recording that showed this screen. |
 | `MappedScreen` (`schema/screenmap.py`) | One screen folded across every recording that showed it. |
 | `Journey` (`schema/screenmap.py`) | One recording's ordered path through screens. |
