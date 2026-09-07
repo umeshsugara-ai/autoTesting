@@ -86,4 +86,37 @@ Model-named screens (`prompts/explore_name_screen_v1.md` designed for, not built
 provider-free per X12); background/async crawling; merging crawl-discovered *flows*; auto-expanding
 cases from crawled screens (that is `expand.py`, after human review).
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Verdict: `qa/verdicts/track-b5-crawl-merge-report.md` (**Cycle checked: 1**, PASS, 20/20 criteria,
+12/12 invariants). The checker authored **X13-X16** in `explore.md` and **amended `coverage.md` V1
++ added V5**, and it did not rubber-stamp what I proposed:
+
+- **X14 upheld but restated.** My "two screens from the same crawl sharing a url_pattern is not a
+  conflict" exception was accepted on its merits and rewritten as a principle -- *"sources
+  disagree, not patterns collide"* -- rather than left as a carve-out. Two residuals were then
+  recorded **inside** the criterion instead of letting it read clean: **AT-103** (my exemption is
+  scoped to one *crawl*, not one *source*, so a re-crawl DOES file false conflicts -- proven live:
+  0 conflicts when merged in one call, 1 when merged as c1 then c2) and **AT-102** (the clash test
+  keys on the name string, so a same-name re-discovery is a silent duplicate).
+- **X13 gained a mandatory sabotage clause** -- "a gate no test defends is decorative" is now
+  contract text, not just something I asked for once.
+- **My own count was wrong.** The manifest says 33 targeted tests; there are 39. Recorded by the
+  checker rather than filed. Noted here so the next manifest counts before it claims.
+
+**The adversarial check I asked for was decisive, and its failure mode is worth keeping.** Mutating
+`merge_screens`'s `status=ReviewStatus.DRAFT` to `status=spec.review.status` **fails**
+`test_new_screens_are_added_and_review_resets_to_draft` -- the human approval gate is defended by a
+real test, and a crawl cannot silently keep a FlowSpec "approved" after adding screens nobody
+reviewed. The checker also documented a trap it hit first: `PYTHONPATH` loses to `/app/src` under
+this repo's pytest, so a sabotage applied in a *copied* tree is never loaded and everything passes
+-- which reads exactly like "the gate is decorative". The mutation has to be on the real file.
+
+Also verified independently: idempotent re-merge is byte-identical (same sha256, not just the same
+version number); reverting `_path_of` fails 3 tests; no `fill`/`select_option`/`upload` anywhere in
+the new modules (X10); `scripts/explore_proof.py` still 10/10 (B3 did not regress).
+
+**Filed for me to act on:** **AT-104 (medium, before T-145)** -- the UI merge button sends the spec
+back to DRAFT and redirects to a page that renders no review status anywhere. The CLI says it
+explicitly; the UI does not. The gate is armed and the human is not told. Also AT-102, AT-103,
+AT-105. `T-144` closed in `.goal/goal.json` (27/36, 75%); ledger row **F-035**.
