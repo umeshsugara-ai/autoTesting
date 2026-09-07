@@ -127,3 +127,93 @@ def test_run_and_grade_case_reuses_an_existing_rubric_instead_of_overwriting_it(
     reloaded = store.load_rubric(f"rub_{case.id}")
     assert reloaded is not None
     assert reloaded.criteria[0].text == "a hand-tuned criterion, not the default"
+
+
+# -- AT-059: a stale auto-generated rubric must not grade forever -------------
+
+def test_a_case_whose_rationale_changed_gets_a_regenerated_default_rubric(
+    tmp_path: Path,
+) -> None:
+    """The bug, exactly: `Case.compute_id()` excludes `rationale`, so correcting
+    a rationale keeps the SAME case id and therefore the same `rub_<case_id>`
+    file — which used to mean the OLD claim graded forever. Observed live: a
+    fixed case still FAILed against the stale claim on a screenshot that plainly
+    showed what it asked for, and deleting the file by hand was the only cure."""
+    store = ProjectStore("demo", tmp_path)
+    store.save_project(_project())
+    old = _case(rationale="added by hand from the UI")
+    new = _case(rationale=None)
+    assert old.id == new.id, "precondition: rationale is not part of the case id"
+    store.save_rubric(default_rubric(old, f"rub_{old.id}"))
+    judge = MockProvider(responses={"judge": [
+        Judgment(result=Result.PASS, criteria_met=1, criteria_total=1, scoreboard="1/1 met")
+    ]})
+
+    run_and_grade_case(new, _session(tmp_path), judge, "run_1", store)
+
+    reloaded = store.load_rubric(f"rub_{new.id}")
+    assert reloaded is not None
+    assert "added by hand from the UI" not in reloaded.criteria[0].text
+    assert "Homepage loads" in reloaded.criteria[0].text
+
+
+def test_an_unchanged_generated_rubric_is_left_alone(tmp_path: Path) -> None:
+    """Regenerating on every run would churn the file and lose any future
+    hand-edit window — only a genuinely stale claim triggers a rewrite."""
+    store = ProjectStore("demo", tmp_path)
+    store.save_project(_project())
+    case = _case()
+    original = default_rubric(case, f"rub_{case.id}")
+    store.save_rubric(original)
+    judge = MockProvider(responses={"judge": [
+        Judgment(result=Result.PASS, criteria_met=1, criteria_total=1, scoreboard="1/1 met")
+    ]})
+
+    run_and_grade_case(case, _session(tmp_path), judge, "run_1", store)
+
+    assert store.load_rubric(f"rub_{case.id}").criteria == original.criteria
+
+
+def test_a_hand_edited_generated_rubric_survives_a_rationale_change(
+    tmp_path: Path,
+) -> None:
+    """The dangerous edge: the rubric carries this generator's provenance, and
+    the claim IS stale, but a human has since rewritten the criterion. A grading
+    contract someone tuned by hand is never overwritten on a guess."""
+    store = ProjectStore("demo", tmp_path)
+    store.save_project(_project())
+    old = _case(rationale="the original claim")
+    tuned = default_rubric(old, f"rub_{old.id}")
+    tuned.criteria[0].text = "a hand-tuned criterion, not the default"
+    store.save_rubric(tuned)
+    judge = MockProvider(responses={"judge": [
+        Judgment(result=Result.PASS, criteria_met=1, criteria_total=1, scoreboard="1/1 met")
+    ]})
+
+    run_and_grade_case(_case(rationale="a completely different claim"),
+                       _session(tmp_path), judge, "run_1", store)
+
+    reloaded = store.load_rubric(f"rub_{old.id}")
+    assert reloaded.criteria[0].text == "a hand-tuned criterion, not the default"
+
+
+def test_a_rubric_with_no_provenance_is_treated_as_hand_authored(
+    tmp_path: Path,
+) -> None:
+    """Rubrics written before this stamping existed carry no provenance and are
+    indistinguishable from hand-written ones, so they keep their claim rather
+    than being silently rewritten."""
+    store = ProjectStore("demo", tmp_path)
+    store.save_project(_project())
+    old = _case(rationale="a legacy claim")
+    legacy = default_rubric(old, f"rub_{old.id}")
+    legacy.provenance = None
+    store.save_rubric(legacy)
+    judge = MockProvider(responses={"judge": [
+        Judgment(result=Result.PASS, criteria_met=1, criteria_total=1, scoreboard="1/1 met")
+    ]})
+
+    run_and_grade_case(_case(rationale="a new claim"), _session(tmp_path), judge,
+                       "run_1", store)
+
+    assert "a legacy claim" in store.load_rubric(f"rub_{old.id}").criteria[0].text
