@@ -2,7 +2,7 @@
 **Contract:** qa/contracts/core-invariants.md (C1, C2, C3) — pending X5-X9 in `qa/contracts/explore.md`, written by the checker once T-143 (B3, the crawl stage) exists to receive it
 **Goal task:** T-142
 **Date:** 2026-09-07
-**Fix cycle:** 1 of max 3
+**Fix cycle:** 2 of max 3
 **Dual check:** no
 **Plan:** plan.md §5 "B4 — safety layer, pure", authorised by D-016
 
@@ -41,10 +41,11 @@ Full diff in commit `ca7b842`. Pure logic — no browser, no provider, no I/O.
   the breaker tripping, counting per-node (not globally), and resetting.
 
 ## Judgement calls
-- **Never-click wins over every other check, including `ALLOW_WRITES`.** Tested explicitly
-  (`test_deny_matrix[...ALLOW_WRITES-log_out-True]`) — there is no policy setting that makes the
-  explorer click a logout control. This is the one line D-016 does not let a human loosen through
-  configuration; it would need a code change.
+- **Never-click wins over every other check, including `ALLOW_WRITES`, and is not configurable
+  away.** Originally implemented as an ordinary `SafetyPolicy` field (a real bug, AT-092 — see
+  cycle 1 above); now checked against a hardcoded baseline `deny_reason` always consults
+  regardless of policy construction. This is the one guard D-016 does not let configuration
+  loosen; only a code change to `DEFAULT_NEVER_CLICK_PATTERNS` itself could.
 - **An unnamed non-link control is denied even under `ALLOW_WRITES`**, unless `click_unnamed` is
   explicitly set. Clicking blind is exactly how the prior attempt discovered a Delete button — an
   icon-only button with no accessible name gets refused and reported (a later unit's job), not
@@ -54,10 +55,52 @@ Full diff in commit `ca7b842`. Pure logic — no browser, no provider, no I/O.
 
 ## How to verify (commands + expected)
 - `docker compose exec autotester uv run pytest tests/test_explore_safety.py -q` → expected:
-  exit 0, 27 pass
-- `docker compose exec autotester uv run pytest -q` → expected: `461 passed, 1 skipped` (up from
+  exit 0, 38 pass (27 original + 11 from cycle 1's AT-092 fix)
+- `docker compose exec autotester uv run pytest -q` → expected: `472 passed, 1 skipped` (up from
   434 after T-141)
 - `docker compose exec autotester uv run ruff check src tests scripts` → expected: `All checks passed!`
 - `docker compose exec autotester uv run autotester doctor` → expected: `doctor: clean`
+
+## Cycle 1 — checker crashed mid-run (network error), but had already found a real bug
+
+The dispatched checker hit a genuine API/network failure (`ENOTFOUND`) and never produced a
+verdict file — no PASS, no FAIL. Its last recorded action before crashing was writing an issue,
+and it had already appended **AT-092 (medium)** to `qa/issues.jsonl` before the crash: my own
+manifest claimed *"there is no policy setting that makes the explorer click a logout control; it
+would need a code change"* — **false**. `policy_for(project, never_click_patterns=[])` (an
+ordinary `SafetyPolicy` field with no floor) silently disarmed the never-click guard, because
+`deny_reason` checked `policy.never_click_patterns` directly instead of a hardcoded baseline.
+
+Treating this as a real cycle-1 finding rather than discarding the crashed run: I reproduced the
+checker's exact probe myself, confirmed the bug, and fixed it.
+
+### Fix
+`stages/explore_safety.py::deny_reason` now checks `DEFAULT_NEVER_CLICK_PATTERNS` (imported
+directly from `schema/crawl.py`) **unconditionally**, in addition to whatever
+`policy.never_click_patterns` holds — configuration can only WIDEN the never-click set, never
+narrow it below the hardcoded baseline. New test
+`test_never_click_cannot_be_disarmed_by_clearing_the_policy_field` proves
+`never_click_patterns=[]` no longer lets a logout control through, and
+`test_never_click_still_widens_with_extra_patterns` proves the extension path still works.
+
+### A second gap found while re-probing, fixed in the same cycle
+Manually re-running the class of adversarial names the crashed checker was headed toward
+(`"Redelivery"`, `"Submitted successfully"`, `"Resend code"` — all correctly **not** denied,
+word-boundary matching already handles these) surfaced a real miss: `"Log me out"` returned
+`None` — the literal `\blog ?out\b` pattern requires "log" and "out" adjacent (optional single
+space), so any connecting word defeats it. Widened `DEFAULT_NEVER_CLICK_PATTERNS` in
+`schema/crawl.py` to `\blog\b[\s\w]{0,10}\bout\b` (bounded gap, not `.*`) and the same for
+sign/out. Re-probed against plausible false-positive sentences (`"Log in to your account"`,
+`"Sign in with Google"`, `"Login"`, `"Outstanding balance"`) — none now falsely match. New
+parametrised test `test_never_click_tolerates_a_short_gap_without_over_matching` (9 cases) pins
+both directions.
+
+### Known remaining limit, stated rather than hidden
+Pattern matching is English-only and text-based; a control named entirely in another language,
+or via a non-visible identifier the accessible-name algorithm doesn't surface, is not caught by
+this layer. `policy_for(**overrides)` is the documented per-project extension point for the
+*deny*-list (widening what's refused); the never-click baseline cannot be widened away, but it is
+also not exhaustive of every possible phrasing. This is the same class of limit already
+documented for `deny_patterns` in the original manifest text below — not new to this cycle.
 
 ## Status: ready-for-check

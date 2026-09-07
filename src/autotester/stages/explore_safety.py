@@ -16,7 +16,7 @@ from __future__ import annotations
 import re
 
 from autotester.browser.secrets import host_of
-from autotester.schema.crawl import DialogEvent, SafetyPolicy
+from autotester.schema.crawl import DEFAULT_NEVER_CLICK_PATTERNS, DialogEvent, SafetyPolicy
 from autotester.schema.enums import WritePolicy
 from autotester.schema.project import Project
 from autotester.schema.screen_graph import ElementRef
@@ -43,8 +43,18 @@ def deny_reason(el: ElementRef, policy: SafetyPolicy) -> str | None:
     clicking blind is how the prior attempt found "Delete" the hard way);
     then the deny-list, disabled entirely under `ALLOW_WRITES`; then a
     form-submit control, refused only under `READ_ONLY`.
+
+    AT-092: never-click is checked against `DEFAULT_NEVER_CLICK_PATTERNS`
+    directly, NOT `policy.never_click_patterns` — that field is an ordinary
+    overridable `SafetyPolicy` attribute with no floor, so
+    `policy_for(project, never_click_patterns=[])` would otherwise silently
+    disarm the one guard D-016 says configuration must never be able to
+    loosen. `policy.never_click_patterns` still widens the set (a project
+    may add more patterns); it can never narrow it.
     """
-    if _matches_any(el.name, list(policy.never_click_patterns)):
+    if _matches_any(el.name, list(DEFAULT_NEVER_CLICK_PATTERNS)) or _matches_any(
+        el.name, list(policy.never_click_patterns)
+    ):
         return "never-click pattern (logout/sign-out)"
     if not el.name and el.role != "link":
         if policy.click_unnamed:

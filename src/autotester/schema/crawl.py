@@ -34,8 +34,13 @@ DEFAULT_DENY_PATTERNS = (
     r"\bapprove\b", r"\breject\b", r"\bpublish\b", r"\bunsubscribe\b",
 )
 
-# Never clicked at ANY write_policy, including ALLOW_WRITES.
-DEFAULT_NEVER_CLICK_PATTERNS = (r"\blog ?out\b", r"\bsign ?out\b", r"\bsignout\b")
+# Never clicked at ANY write_policy, including ALLOW_WRITES. The [\s\w]{0,10}
+# gap tolerates "Log me out"/"Sign yourself out" without over-matching an
+# unrelated sentence (bounded width, not `.*`).
+DEFAULT_NEVER_CLICK_PATTERNS = (
+    r"\blog ?out\b", r"\blog\b[\s\w]{0,10}\bout\b",
+    r"\bsign ?out\b", r"\bsignout\b", r"\bsign\b[\s\w]{0,10}\bout\b",
+)
 
 # Third-party hosts whose failed requests are noise, never an issue.
 DEFAULT_THIRD_PARTY_IGNORE = (

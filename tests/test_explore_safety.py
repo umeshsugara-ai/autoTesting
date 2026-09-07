@@ -87,6 +87,43 @@ def test_click_unnamed_override_allows_an_unnamed_control() -> None:
     assert deny_reason(CONTROLS["unnamed_button"], policy) is None
 
 
+def test_never_click_cannot_be_disarmed_by_clearing_the_policy_field() -> None:
+    """AT-092 (checker-found): `never_click_patterns` is an ordinary
+    overridable field with no floor. Configuration can WIDEN the never-click
+    set, but clearing it must never narrow it below the hardcoded baseline —
+    logout/sign-out stays refused regardless."""
+    policy = policy_for(
+        make_project(WritePolicy.ALLOW_WRITES), never_click_patterns=[],
+    )
+    assert deny_reason(CONTROLS["log_out"], policy) is not None
+
+
+@pytest.mark.parametrize("name,expect_denied", [
+    ("Log me out", True), ("Sign yourself out", True), ("Log out", True),
+    ("Log in to your account", False), ("Sign in with Google", False),
+    ("Login", False), ("Signing up", False), ("Outstanding balance", False),
+    ("Log this event", False),
+])
+def test_never_click_tolerates_a_short_gap_without_over_matching(
+    name: str, expect_denied: bool,
+) -> None:
+    """AT-092 follow-up (found while re-probing the checker's crashed adversarial
+    run): the literal "log ?out" pattern missed "Log me out". Widened to
+    tolerate a bounded gap; re-probed against plausible false-positive
+    sentences ("Log in to your account") to confirm it doesn't over-match."""
+    policy = policy_for(make_project(WritePolicy.ALLOW_WRITES))
+    reason = deny_reason(el(name), policy)
+    assert (reason is not None) is expect_denied
+
+
+def test_never_click_still_widens_with_extra_patterns() -> None:
+    policy = policy_for(
+        make_project(WritePolicy.ALLOW_WRITES), never_click_patterns=[r"\bexit\b"],
+    )
+    assert deny_reason(el("Exit"), policy) is not None
+    assert deny_reason(CONTROLS["log_out"], policy) is not None  # baseline still applies
+
+
 # -- link safety --------------------------------------------------------------
 
 def test_same_domain_relative_link_is_safe() -> None:
