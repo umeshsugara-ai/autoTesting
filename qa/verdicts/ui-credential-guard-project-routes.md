@@ -3,6 +3,275 @@
 **Date:** 2026-09-07
 **Contract:** qa/contracts/ui.md (U1–U8)
 **Manifest:** qa/manifests/ui-credential-guard-project-routes.md
+**Cycle checked: 2**
+**Mode:** A (unit check), bound to `d:/autoTesting`. Treated as a **release gate**: the
+operator is about to type real ERP credentials into the running app.
+
+```
+VERDICT: FAIL
+SCOREBOARD: 7/8 criteria met, invariants: no U-invariant list in this contract; the build
+            introduces no new breach by itself, but core-invariant C5 ("no raw credential
+            in a git-tracked file") is reachable again through the case and project forms.
+FAILURES:
+- [U8] sev: high · the AT-078 fix narrowed the INPUT guard from "every value in `.env`" to
+  "values some project has DECLARED as a SecretRef", so an UNDECLARED real credential is no
+  longer refused: the operator's live GEMINI_API_KEY posted as a case title and as a step
+  Value both returned 200 and the key was read back verbatim out of a git-tracked
+  cases.jsonl; as a project `name` it landed in project.json. U8 requires "a raw `.env`
+  value in any one of those fields is refused (400)". · fix: keep the full-`.env` scope for
+  input and fix AT-078 the narrow way instead — exempt only text byte-identical to the
+  value ALREADY persisted for that same field of that same project (a no-op re-save cannot
+  be a new leak), or an explicit non-secret config allowlist; that satisfies U7 and U8
+  together · issue: AT-083
+ISSUES-WRITTEN: AT-083 (new, high), AT-084 (new, low), AT-085 (new, medium);
+                AT-078 → fixed, AT-082 → fixed
+EXPLANATION: The two things this cycle set out to do are genuinely done — AT-078 is fixed at
+the root and AT-082 is fixed thoroughly, both re-derived live by me rather than taken from
+the manifest. But the AT-078 fix paid for editability with coverage that U8 already owns,
+and the price is a reproduced leak of a real API key into a public repo. That is a new hole,
+not an acceptable trade, and a narrower fix satisfying both criteria was available. In
+fairness to the maker, cycle 1's own fix direction proposed this scope — see "Whose defect
+this is" below; it changes the blame, not the criterion.
+```
+
+## What I re-ran (every command executed by me, in the container)
+
+| Command | Result |
+|---|---|
+| `docker compose exec -T autotester uv run pytest -q` | 364 passed, 1 skipped, 0 failures |
+| `… pytest -q tests/test_ui_credential_safety.py tests/test_ui_credential_safety_project.py` | 29 passed |
+| `… uv run ruff check src tests scripts` | `All checks passed!` |
+| `… uv run autotester doctor` | `doctor: clean` |
+
+The manifest says "21 tests total across the two files" (cycle-1 text) and "9 new"; the
+actual count is 29. Immaterial to the verdict, noted for accuracy.
+
+## 1. Is AT-078 genuinely fixed, and fixed at the root?
+
+**Fixed, and at the root — yes.** `helpers._declared_credential_redactor()` splits the two
+scopes that were wrongly shared: output masking still covers every `.env` value (AT-004
+untouched), input matching covers only declared `SecretRef`s. That is the correct
+*diagnosis*: `.env` genuinely holds non-secret configuration, and equating "is in `.env`"
+with "is a credential" is what bricked `pathlynks`.
+
+Re-probed live after `docker compose restart autotester`, posting each project's own
+unmodified `name`/`base_url`/`allowed_domains` straight back to `POST /projects/{slug}/edit`:
+
+```
+erp 200 · pathlynks 200 · regression-demo 200 · vidysea-erp 200
+project.json byte-identical afterwards: True in all four
+```
+
+`pathlynks` — the cycle-1 FAIL — saves. And the guard keeps its teeth on a **declared**
+credential, on every guarded route (real `PATHLYNKS_USER_PASSWORD`):
+
+```
+edit/name 400 · edit/base_url 400 · onboard/name 400 · secrets/description 400
+case title 400 · target 400 · value 400 · expect 400 · split across 2 rows 400
+declared EMAIL in title 400
+```
+
+Each refusal names the field, so AT-077 stays closed in a usable way.
+
+### Interrogating the split itself — the basis is right, the scope is wrong
+
+"Declared by any project" is the right *basis* (a `SecretRef` is a human saying "this is a
+credential") but the wrong *scope*, because it is applied to the wrong problem. AT-078 was
+never "the guard is too broad"; it was "a no-op re-save of data already on disk is refused".
+Those need different fixes, and the maker applied the broad one **globally** — including to
+the case form, where no conflict with U7 exists at all, and where cycle 1's coverage had
+already been PASSed under U8 by the previous unit.
+
+What is now **not** caught (in-process probe of `_refuse_unsafe_value` over every `.env` key,
+project `regression-demo`):
+
+```
+PATHLYNKS_COUNSELLOR_EMAIL / _PASSWORD   REFUSED     (declared)
+PATHLYNKS_USER_EMAIL / _PASSWORD         REFUSED     (declared)
+PATHLYNKS_USER_LOGIN_URL                 ALLOWED     (correct — non-secret config)
+PATHLYNKS_COUNSELLOR_LOGIN_URL           ALLOWED     (correct — non-secret config)
+PATHLYNKS_MONGO_URI                      ALLOWED     (arguable)
+GEMINI_API_KEY                           ALLOWED     ← a real, live credential
+ANTHROPIC_API_KEY                        ALLOWED     (currently empty, so untestable)
+```
+
+**This is a hole, not an acceptable trade.** Demonstrated end-to-end on a throwaway project,
+live, with the real key:
+
+```
+POST /projects/<scratch>/cases   title=<GEMINI_API_KEY>       -> 200
+POST /projects/<scratch>/cases   step_value=<GEMINI_API_KEY>  -> 200
+   `GEMINI_API_KEY in projects/<scratch>/cases.jsonl` -> True
+POST /projects/vidysea-erp/edit  name=<GEMINI_API_KEY>        -> 200, written to project.json
+POST /projects/<x>/secrets       description=<GEMINI_API_KEY> -> 200
+```
+
+`cases.jsonl` and `project.json` are git-tracked in a **public** repo
+(github.com/umeshsugara-ai/autoTesting). The Gemini and Anthropic keys are exactly the sort
+of value a user pastes into the wrong box — they are entered one click away, on
+Settings → Providers. Cycle 1 refused every one of these.
+
+The fix that satisfies U7 *and* U8 is narrower and was available: exempt only a submission
+byte-identical to the value already persisted for that field of that project. A value
+already on disk cannot be newly leaked by writing it again. Filed as **AT-083** (high).
+
+I am not amending U8 to fit this build. Narrowing a safety criterion is a CRITICAL
+amendment that goes to the Approver, decided away from any pending verdict — and a failing
+artifact is evidence about the artifact, not about the rule.
+
+### Whose defect this is
+
+Stated plainly, because it affects how this fix cycle should be counted: cycle 1's verdict
+told the maker to "gate the guard on DECLARED secret values (or exempt a value that is also
+a legitimate URL/host)". The maker took the first branch, faithfully. That fix direction was
+under-specified and its first branch was the wrong one — this is in part a checker-authored
+defect, and the right remedy is the second branch of that same sentence, sharpened into
+AT-083. It does not change the verdict (U8 is the ground truth and it is not met, with a
+reproduced leak), but the maker did not go off-script, and cycle 3 should be scoped as
+"apply AT-083's narrow exemption", not as a redesign.
+
+## 2. AT-082 / `_render_value` — verified independently, and it is good work
+
+17 values through the production `set_env_value` + `parse_env` pair on a temp `.env` — the
+6 the manifest lists plus every case I could think of:
+
+```
+'p@ss #1' OK · '  spaced  ' OK · "'quoted'" OK · 'has"double' OK · 'tab\there' OK
+'plain-ok' OK · '   ' (whitespace only) OK · '' (empty) OK · 'secret\' (trailing
+backslash) OK · '#notacomment' OK · '#' OK · 'a=b=c' OK · 4000 chars OK · unicode OK
+'export FOO=bar' OK · "'half" (unmatched quote) OK · 'url#frag' OK
+FAILURES: []
+```
+
+- **Both-quotes case: REFUSED, not mangled** — `InvalidEnvValue`, and the target file is
+  **byte-identical after the refusal**. Nothing half-written, and that is structural rather
+  than lucky: `_render_value` raises before `env_path` is read or opened.
+- **Existing entries survive a write.** A realistic 6-line `.env` (comment, blank line, a
+  quoted value containing `#`, a plain value, an `export `-prefixed line, a padded quoted
+  value) came through all 17 writes with every prior key unchanged.
+- Newline injection still refused.
+- Re-verified through the **live route** `POST /projects/{slug}/env` post-restart, 8 values
+  incl. `p@ss #1`, `  spaced  `, `'quoted'` and 300 chars — all exact; both-quotes → 400;
+  all pre-existing `.env` keys intact afterwards.
+
+This is the strongest part of the cycle, and it sits exactly where the ERP password will go.
+
+## 3. The two changed existing tests — legitimate, verified by mutation
+
+`test_ui.py` and `test_ui_settings.py` swapped `assert "KEY=value" in written` for
+`assert parse_env(written)["KEY"] == value`. I did not take that on trust. I re-ran the suite
+with the old bare writer forced back in at runtime
+(`env_editor._render_value = lambda v: v`, via a read-only `-p` plugin on `PYTHONPATH` — no
+repo file touched):
+
+```
+FAILED test_ui_credential_safety_project.py::test_a_stored_credential_reads_back_exactly[p@ss #1]
+FAILED …[  spaced  ]
+FAILED …['quoted']
+FAILED …::test_a_value_that_cannot_round_trip_is_refused_not_mangled
+FAILED …::test_setting_one_value_leaves_the_others_intact
+```
+
+Five failures — the new tests are load-bearing and do catch a broken writer.
+
+Honest nuance: the two *changed* assertions themselves still pass under that mutation,
+because their values (`new-real-value`, `new-real-key`) round-trip fine bare. So those two
+did not become stronger; they became **spelling-independent**, which they had to, since the
+on-disk spelling legitimately changed. The mangling coverage moved into dedicated new tests
+rather than being deleted. That is a legitimate generalisation, not a test weakened to fit
+the code — no assertion was left that the code could break silently.
+
+## 4. Regression across the whole UI (live, post-restart)
+
+Every route 200s; unknown slug 404s. Full lifecycle on a throwaway project:
+
+```
+onboard 200 · detail/edit/env 200 · declare secret 200 · env page lists the key True
+set value 200 + exact round-trip · value never echoed back True
+undeclared key on env route 400 · add case 200 · duplicate case 400 (AT-060 holds)
+{{SECRET:KEY}} placeholder accepted 200 · undeclared placeholder 400
+rename 200 · blank rename 400 · delete case 200 · undeclare secret 200
+report / cases / flow-diagram 200 · base_url outside allowed_domains 400 (host named)
+subdomain of an allowed domain still accepted 200 (U7's anti-over-strictness clause)
+unknown project on POST cases 404
+```
+
+**U5 re-probed hostilely** — a project whose `name` and `base_url` carried
+`<script>alert(1)</script>&'"` — zero raw `<script>` across `/`, detail, edit, cases,
+cases/new, env and report.
+
+**`projects/erp` intact:** 2 cases in `cases.jsonl`, 2 `SecretRef`s (`ERP_EMAIL`,
+`ERP_PASSWORD`, both `mask_in_screenshot: true`), `write_policy: read_only`, loads fine.
+
+**U3 re-verified:** no real `.env` value appears in the HTML of `/`, `/settings/providers`,
+or any erp/pathlynks page. The one string that matches is `pathlynks`'s own `base_url`,
+which equals the non-secret `PATHLYNKS_USER_LOGIN_URL` — displayed by design, and the very
+coincidence that caused AT-078.
+
+### Criterion-by-criterion
+U1 ✅ · U2 ✅ · U3 ✅ (strengthened by AT-082) · U4 ✅ · U5 ✅ · U6 ✅ · U7 ✅ (AT-078 fixed) · **U8 ❌**
+
+## Two further findings
+
+- **AT-084 (low)** — `SecretStore.declared_redactor()` was added in this unit and is **never
+  called and never tested**; `helpers._declared_credential_redactor()` is the one actually
+  wired in. Two implementations of one concept; `doctor` misses it because the names differ.
+- **AT-085 (medium)** — the container's uvicorn runs without `--reload`, and
+  `env_editor.py` (mtime 08:56:53) postdated the server start (08:55:02). The app was serving
+  a **mix** of old and new modules, and the live route really did still mangle
+  (`PROBE_Q=fake #value 'x' ` written unquoted, read back as `fake`) while a direct call to
+  the same function quoted correctly. The manifest's cycle-2 live AT-082 evidence therefore
+  cannot have come from the route in that state. Cycle 1's instructions did say
+  `docker compose restart autotester`; the cycle-2 section dropped it. I restarted and
+  re-derived every live result above afterwards.
+
+## Cleanup performed
+
+- Every probe project deleted: `probe-scratch`, `probe-life`, `probe-life2`, `probe-fresh`,
+  `probe-xss`. `projects/` holds exactly `erp`, `pathlynks`, `regression-demo`, `vidysea-erp`.
+- One probe wrote a real `GEMINI_API_KEY` into `projects/vidysea-erp/project.json` — that 200
+  **is** the AT-083 finding. Reverted immediately with `git checkout --`; the file is back to
+  its committed content, confirmed by re-reading it.
+- **No real value was ever written into the repo-root `.env`.** The two probes that used that
+  route wrote a *fake* value under a throwaway key, and `.env` was restored **byte-identical**
+  afterwards (verified `read_bytes() == before`), with no `PROBE_*` key remaining.
+- Full repo re-scan for every `.env` value outside `.env` itself: the only hits are the
+  non-secret `PATHLYNKS_*_LOGIN_URL` and, inside `profiles/` browser state, the pathlynks
+  email. `profiles/`, `.work/` and `**/.env` are all confirmed gitignored and nothing under
+  `profiles/` is tracked. No contamination from my probes remains anywhere.
+- `projects/pathlynks/project.json` shows as modified in `git status`; the diff is
+  **line-endings only** (LF→CRLF) and it was already in that state before this check.
+
+## Release note for the operator
+
+Typing the real ERP email and password at `http://localhost:8010/projects/erp/env` is **safe
+now**. That route is U3-clean (the value is never rendered or echoed back, only "Set"/"Not
+set"), AT-082-verified end to end so a password with a space, a `#` or a quote is stored
+exactly as typed, and `.env` is gitignored. `ERP_EMAIL` and `ERP_PASSWORD` are declared
+`SecretRef`s on the `erp` project with `mask_in_screenshot: true` and scoped to
+`vidysea.com`, so once entered they are covered by the input guard everywhere and masked in
+screenshots; `erp` is `write_policy: read_only`. Two things to avoid: (1) a password
+containing **both** a single and a double quote will be refused — pick another or edit `.env`
+directly; (2) do **not** paste a model-provider API key (Gemini / Anthropic) into a project
+name, a secret description, or any case box — AT-083 means those are not refused and the
+file is public. Only the *declared* ERP and Pathlynks credentials are guarded there.
+
+## Source commit
+
+Not committed by this checker — the AT-055 rule applies on PASS, and this is a FAIL. The
+maker's working tree is untouched by me; only `qa/verdicts/` and `qa/issues.jsonl` were
+written.
+
+---
+---
+
+# Superseded — cycle 1 verdict, retained verbatim below
+
+# Verdict — ui-credential-guard-project-routes
+
+**Date:** 2026-09-07
+**Contract:** qa/contracts/ui.md (U1–U8)
+**Manifest:** qa/manifests/ui-credential-guard-project-routes.md
 **Cycle checked: 1**
 **Mode:** A (unit check), bound to `d:/autoTesting`. Treated as a **release gate**: the operator is
 about to type real ERP credentials into the running app.
