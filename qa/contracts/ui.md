@@ -44,6 +44,20 @@ Every string derived from user input or project data (`name`, `base_url`, slugs,
 outcome/result values) is passed through `html.escape` before being placed in a response —
 verified by reading `ui/app.py` in full, not merely tested against one payload.
 
+### U6 — A test case is creatable from the UI, as a real CLI-compatible `Case`
+`GET /projects/{slug}/cases/new` renders a plain server-rendered form and
+`POST /projects/{slug}/cases` persists the result via `ProjectStore.add_case` as a
+genuine `schema.case.Case` in `projects/<slug>/cases.jsonl` — the same file and format
+`stages/expand.py` and every stage already read; no UI-only case representation exists.
+`kind` is **derived** from `case_class` (`KIND_BY_CLASS`) and is never a form field, so
+the two can never disagree. `rationale` is left `None`: it is a *claim*, not provenance
+— `stages/run_case_pipeline.default_rubric` feeds it to the grader verbatim as the claim
+to judge evidence against (AT-057 cycle, 2026-09-07) — and provenance lives in
+`flow_id="manual"`. A blank title, zero surviving steps, an unknown `case_class`, an
+unknown `action`, and an unknown project are each **refused (400/400/400/400/404) with
+nothing written to disk**. A project with zero cases says so on its detail page and
+offers the route to fix it, rather than showing only a disabled Run control.
+
 ## No-fire list
 
 - Authentication/authorization — this is a local, single-operator tool for now (matches the
@@ -90,3 +104,22 @@ verified by reading `ui/app.py` in full, not merely tested against one payload.
   with zero cases has no UI path to add one, so its ▶ Run tests button is permanently disabled —
   it needs its own contract-scoped cycle and a scoping decision (add-a-case flow vs explicit
   next-step prompt) before a criterion can be written for it.
+- 2026-09-07 · /checker (ui-add-case unit) · **new criterion U6 added** — the contract-scoped
+  cycle the AT-057 row above demanded has now happened, and the scoping decision came back
+  "both": `ui/routes_cases.py` adds the add-a-case form AND `app.py::_actions_card` adds the
+  empty-state prompt, so the criterion is finally writable. Routine, non-weakening (adds a
+  criterion, softens none). U1-U5 re-verified in the same check and unaffected: the new routes
+  go through `ProjectStore` only (U1's no-second-store rule), read live state per request (U2),
+  touch no `SecretStore`/`.env` (U3), touch no run/report code (U4), and escape every
+  user-derived value — probed hostilely against a project whose `name` and `base_url` carried
+  `<script>`, `'` and `"`, with zero raw tags in the response (U5). Two real defects found
+  during that cycle were correctly filed rather than folded in here, because neither is a
+  U-criterion: **AT-058** (onboarding accepts an `allowed_domains` that excludes the project's
+  own `base_url` host, and no route can edit it afterwards — a security-model decision, not a
+  bug fix) and **AT-059** (a case's persisted rubric is keyed on a case id that deliberately
+  excludes `rationale`, so a changed claim keeps grading against the stale one — a `grade`
+  bug the UI flow can no longer trigger now that `rationale` is `None`). Also filed:
+  **AT-060** — the form silently discards a submission whose steps duplicate an existing case
+  (`add_case` is idempotent on the content id and `create_case` never checks the return), so a
+  user cannot correct a mistyped title and gets no feedback. See
+  `qa/verdicts/ui-add-case.md`.
