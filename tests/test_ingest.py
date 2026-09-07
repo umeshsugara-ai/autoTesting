@@ -11,7 +11,12 @@ from pathlib import Path
 from autotester.core.paths import RepoDocs
 from autotester.providers.mock import MockProvider
 from autotester.schema.enums import Action
-from autotester.schema.flowspec import ObservedFlow, ObservedScreen, ObservedStep, VideoObservation
+from autotester.schema.observation import (
+    ObservedFlow,
+    ObservedScreen,
+    ObservedStep,
+    VideoObservation,
+)
 from autotester.schema.project import Source, SourceKind
 from autotester.stages.ingest import build_ingest_prompt, ingest_video
 

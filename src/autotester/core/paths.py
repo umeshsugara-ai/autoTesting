@@ -98,6 +98,43 @@ class ProjectPaths:
     def run_dir(self, run_id: str) -> Path:
         return self.runs_dir / run_id
 
+    # -- Track A: video learning (D-014) ---------------------------------------
+    def source_dir(self, source_id: str) -> Path:
+        return self.dir / "sources" / source_id
+
+    def source_media(self, source_id: str) -> Path:
+        return self.source_dir(source_id) / "media.json"
+
+    def source_transcript(self, source_id: str) -> Path:
+        return self.source_dir(source_id) / "transcript.json"
+
+    def source_chunks_dir(self, source_id: str) -> Path:
+        return self.source_dir(source_id) / "chunks"
+
+    def source_frames_dir(self, source_id: str) -> Path:
+        return self.source_dir(source_id) / "frames"
+
+    def source_observations_dir(self, source_id: str) -> Path:
+        return self.source_dir(source_id) / "observations"
+
+    def source_observation(
+        self, source_id: str, provider_label: str, prompt_name: str, chunk_index: int
+    ) -> Path:
+        label = provider_label.replace(":", "_").replace("/", "_")
+        name = f"{label}__{prompt_name}__{chunk_index:02d}.json"
+        return self.source_observations_dir(source_id) / name
+
+    def source_analysis(self, source_id: str) -> Path:
+        return self.source_dir(source_id) / "analysis.json"
+
+    @property
+    def issues(self) -> Path:
+        return self.dir / "issues.jsonl"
+
+    @property
+    def screen_map(self) -> Path:
+        return self.dir / "screenmap.json"
+
     def ensure(self) -> None:
         """Create the directories a project needs. Safe to call repeatedly."""
         for path in (

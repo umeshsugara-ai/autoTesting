@@ -65,6 +65,9 @@ class Source(Artifact):
     duration_s: float | None = None
     label: str | None = None
     notes: str | None = None
+    recorded_on: str | None = Field(
+        default=None, description="ISO date, e.g. the Excel 'Date' column"
+    )
 
     def model_post_init(self, _context: object) -> None:
         if not self.id:

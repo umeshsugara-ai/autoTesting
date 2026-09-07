@@ -30,11 +30,11 @@ AutoTester wins on bugs found, false positives, and time (`schema/bench.py` comp
 - 2026-09-04 updated F-030 Run button reproduced the INCONCLUSIVE-report bug -- fixed with entry-case profile isolation — Direct live regression found while fulfilling Umesh's own request to rerun testing -- not a plan-driven unit. Checker-PASSed cycle 1 after its own two independent real reruns against pathlynks confirmed zero TimeoutErrors (AT-044's specific claim), plus verified the regression this same build caught and fixed (an unwrapped settle() call broke stages/agent_loop.py's shared run_case usage) stays fixed. AT-046 (residual evidence-quality flakiness, not timeouts) filed and left honestly open as a harder, separate problem.
 - 2026-09-04 updated F-031 Multimodal grading -- the judge now actually sees screenshots, not just filenames — Investigating AT-046's residual flakiness deeper led to the actual root cause, not just another timing tweak. Umesh, asked directly (AskUserQuestion) whether to fix now or defer: 'fix now.' Checker-PASSed cycle 1 after its own 3 independent fresh live Pathlynks reruns (9/9 case verdicts PASS) and direct visual comparison of a real screenshot against its verdict's reasoning.
 ## Next (open goal tasks)
-- T-121 [normal] Governance: register plan.md, goal tasks, D-014..D-016 (Track A/B backlog)
 - T-122 [high] Track 0 tail: login case + first logged-in ERP run (HUMAN_GATE: ERP_EMAIL/ERP_PASSWORD values)
 - T-123 [normal] Medium-issue batch: AT-087 per-field exemption, AT-076/086 config-field rule, AT-079/080, AT-065, AT-085
 - T-130 [normal] Track A1: video-learning schema + storage foundation (D-014)
 - T-131 [high] Track A2: hardened Gemini vision provider + registered Source + persisted ingest
+- T-132 [normal] Track A3: host media prep (probe, chunks, transcript reuse/whisper, frames)
 ## Last decisions (computed status)
 - D-012 2026-09-05 decision ACTIVE
 - D-013 2026-09-05 decision ACTIVE

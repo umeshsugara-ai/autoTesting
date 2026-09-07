@@ -9,12 +9,17 @@ from __future__ import annotations
 from pathlib import Path
 
 from autotester.core.paths import ProjectPaths
+from autotester.schema.analysis import VideoAnalysis
 from autotester.schema.bench import BenchCorpus, BenchTrial
 from autotester.schema.case import Case
 from autotester.schema.coverage import VideoRequest
 from autotester.schema.flowspec import FlowSpec
+from autotester.schema.issue import Issue
+from autotester.schema.media import MediaPrep, Transcript
+from autotester.schema.observation import ModelObservation
 from autotester.schema.project import Project, Source
 from autotester.schema.run import RawResult, Run
+from autotester.schema.screenmap import ScreenMap
 from autotester.schema.verdict import Rubric, Verdict
 from autotester.store.filestore import (
     append_jsonl,
@@ -45,6 +50,7 @@ class ProjectStore:
         self._source_ids: set[str] | None = None
         self._case_ids: set[str] | None = None
         self._request_ids: set[str] | None = None
+        self._issue_ids: set[str] | None = None
 
     # -- project --------------------------------------------------------------
     def save_project(self, project: Project) -> None:
@@ -195,3 +201,64 @@ class ProjectStore:
             if model is not None
         ]
         return [t for t in trials if t.corpus_id == corpus_id]
+
+    # -- Track A: video learning (D-014) -----------------------------------------
+    def save_media_prep(self, prep: MediaPrep) -> None:
+        write_json(self.paths.source_media(prep.source_id), prep)
+
+    def load_media_prep(self, source_id: str) -> MediaPrep | None:
+        return read_json(self.paths.source_media(source_id), MediaPrep)
+
+    def save_transcript(self, transcript: Transcript) -> None:
+        write_json(self.paths.source_transcript(transcript.source_id), transcript)
+
+    def load_transcript(self, source_id: str) -> Transcript | None:
+        return read_json(self.paths.source_transcript(source_id), Transcript)
+
+    def save_observation(self, observation: ModelObservation) -> None:
+        path = self.paths.source_observation(
+            observation.source_id, observation.provider_label,
+            observation.prompt_name, observation.chunk_index,
+        )
+        write_json(path, observation)
+
+    def list_observations(self, source_id: str) -> list[ModelObservation]:
+        obs_dir = self.paths.source_observations_dir(source_id)
+        if not obs_dir.exists():
+            return []
+        return [
+            model
+            for path in sorted(obs_dir.glob("*.json"))
+            for model in [read_json(path, ModelObservation)]
+            if model is not None
+        ]
+
+    def save_analysis(self, analysis: VideoAnalysis) -> None:
+        write_json(self.paths.source_analysis(analysis.source_id), analysis)
+
+    def load_analysis(self, source_id: str) -> VideoAnalysis | None:
+        return read_json(self.paths.source_analysis(source_id), VideoAnalysis)
+
+    def add_issue(self, issue: Issue) -> Issue:
+        """Idempotent on id, same lazy-cache pattern as `add_case`/`add_source`."""
+        if self._issue_ids is None:
+            self._issue_ids = {i.id for i in self.list_issues()}
+        if issue.id in self._issue_ids:
+            return issue
+        append_jsonl(self.paths.issues, issue)
+        self._issue_ids.add(issue.id)
+        return issue
+
+    def list_issues(self) -> list[Issue]:
+        return read_jsonl(self.paths.issues, Issue)
+
+    def update_issue(self, issue: Issue) -> None:
+        upsert_jsonl(self.paths.issues, issue, Issue)
+        if self._issue_ids is not None:
+            self._issue_ids.add(issue.id)
+
+    def save_screen_map(self, screen_map: ScreenMap) -> None:
+        write_json(self.paths.screen_map, screen_map)
+
+    def load_screen_map(self) -> ScreenMap | None:
+        return read_json(self.paths.screen_map, ScreenMap)

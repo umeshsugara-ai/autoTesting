@@ -4,15 +4,15 @@
   "north_star": "An AI automated end-to-end tester that ingests product videos/docs, derives a reviewed FlowSpec, auto-generates best/worst/edge-case evals, runs them as regression in a real visible browser, self-extends coverage by requesting videos for unknown screens, and beats an expert human tester head-to-head on the same material (bugs found, false-positive rate, time). First target: Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-07T17:15:41",
+  "updated": "2026-09-07T17:47:04",
   "progress": {
     "total": 36,
-    "done": 20,
+    "done": 21,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 16,
-    "current": null,
-    "percent": 55.6
+    "pending": 15,
+    "current": "T-122",
+    "percent": 58
   },
   "tasks": [
     {
@@ -413,7 +413,7 @@
     {
       "id": "T-121",
       "title": "Governance: register plan.md, goal tasks, D-014..D-016 (Track A/B backlog)",
-      "status": "pending",
+      "status": "done",
       "base_criticality": "NORMAL",
       "deps": [],
       "done_check": {
@@ -421,10 +421,12 @@
         "cmd": "uv run autotester doctor",
         "expect_exit": 0
       },
-      "note": "Plan approved 2026-09-07 (plan.md). Backlog was empty; this registers all Track A/B/G units so the maker doesn't report BACKLOG_EMPTY.",
+      "note": "Plan approved 2026-09-07 (plan.md). Backlog was empty; this registers all Track A/B/G units so the maker doesn't report BACKLOG_EMPTY. [AT-089 fix: marked done after checker sweep caught the tick/goal-state mismatch -- commit fc6aa70 landed all the work but never flipped this row.]",
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
-      "user_value": "normal"
+      "user_value": "normal",
+      "criticality": "low",
+      "completed": "2026-09-07T17:23:06"
     },
     {
       "id": "T-122",
@@ -442,7 +444,8 @@
       "note": "Blocked until Umesh enters real values on /projects/erp/env. Registers the login bootstrap case B3 reuses.",
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
-      "user_value": "high"
+      "user_value": "high",
+      "criticality": "critical"
     },
     {
       "id": "T-123",
@@ -460,7 +463,8 @@
       "note": "",
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
-      "user_value": "normal"
+      "user_value": "normal",
+      "criticality": "low"
     },
     {
       "id": "T-130",
@@ -478,7 +482,8 @@
       "note": "",
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
-      "user_value": "normal"
+      "user_value": "normal",
+      "criticality": "low"
     },
     {
       "id": "T-131",
@@ -496,7 +501,8 @@
       "note": "",
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
-      "user_value": "high"
+      "user_value": "high",
+      "criticality": "low"
     },
     {
       "id": "T-132",
@@ -514,7 +520,8 @@
       "note": "",
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
-      "user_value": "normal"
+      "user_value": "normal",
+      "criticality": "low"
     },
     {
       "id": "T-133",
@@ -533,7 +540,8 @@
       "note": "",
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
-      "user_value": "high"
+      "user_value": "high",
+      "criticality": "low"
     },
     {
       "id": "T-134",
@@ -551,7 +559,8 @@
       "note": "",
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
-      "user_value": "high"
+      "user_value": "high",
+      "criticality": "low"
     },
     {
       "id": "T-135",
@@ -569,7 +578,8 @@
       "note": "",
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
-      "user_value": "normal"
+      "user_value": "normal",
+      "criticality": "critical"
     },
     {
       "id": "T-136",
@@ -587,7 +597,8 @@
       "note": "",
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
-      "user_value": "high"
+      "user_value": "high",
+      "criticality": "low"
     },
     {
       "id": "T-140",
@@ -605,7 +616,8 @@
       "note": "",
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
-      "user_value": "normal"
+      "user_value": "normal",
+      "criticality": "low"
     },
     {
       "id": "T-141",
@@ -623,7 +635,8 @@
       "note": "",
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
-      "user_value": "normal"
+      "user_value": "normal",
+      "criticality": "low"
     },
     {
       "id": "T-142",
@@ -641,7 +654,8 @@
       "note": "",
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
-      "user_value": "high"
+      "user_value": "high",
+      "criticality": "low"
     },
     {
       "id": "T-143",
@@ -661,7 +675,8 @@
       "note": "",
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
-      "user_value": "high"
+      "user_value": "high",
+      "criticality": "low"
     },
     {
       "id": "T-144",
@@ -679,7 +694,8 @@
       "note": "",
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
-      "user_value": "high"
+      "user_value": "high",
+      "criticality": "critical"
     },
     {
       "id": "T-145",
@@ -698,7 +714,8 @@
       "note": "No 2FA on test accounts (Umesh 2026-09-07); real user accounts are never used. No staging named -> production, READ_ONLY.",
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
-      "user_value": "high"
+      "user_value": "high",
+      "criticality": "low"
     }
   ],
   "decisions": [],
@@ -718,6 +735,27 @@
       "task_id": null,
       "kind": "stalled",
       "acked": false
+    },
+    {
+      "ts": "2026-09-07T17:17:01",
+      "level": "critical",
+      "message": "T-122 is CRITICAL — human required",
+      "task_id": "T-122",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-07T17:17:01",
+      "level": "critical",
+      "message": "T-135 is CRITICAL — human required",
+      "task_id": "T-135",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-07T17:17:01",
+      "level": "critical",
+      "message": "T-144 is CRITICAL — human required",
+      "task_id": "T-144",
+      "acked": false
     }
   ],
   "preferences": {
@@ -726,9 +764,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 4.13,
-    "eta_days": null
+    "velocity_per_day": 4.33,
+    "eta_days": 3.5
   },
-  "last_deterministic_tick": "2026-09-07T17:12:01",
+  "last_deterministic_tick": "2026-09-07T17:47:04",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }

@@ -14,16 +14,8 @@ from pathlib import Path
 from autotester.core.ids import content_id
 from autotester.core.paths import RepoDocs
 from autotester.providers.base import Provider
-from autotester.schema.flowspec import (
-    Flow,
-    FlowSpec,
-    ObservedFlow,
-    ObservedScreen,
-    Screen,
-    SourceRef,
-    Step,
-    VideoObservation,
-)
+from autotester.schema.flowspec import Flow, FlowSpec, Screen, SourceRef, Step
+from autotester.schema.observation import ObservedFlow, ObservedScreen, VideoObservation
 from autotester.schema.project import Source
 
 PROMPT_NAME = "ingest_video_v1.md"

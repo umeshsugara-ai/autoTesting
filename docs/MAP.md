@@ -24,15 +24,20 @@
 | `providers/gemini.py` | Gemini provider: the `vision` role (video understanding), plus `agent`/`judge` |
 | `providers/langchain_fallback.py` | LangChain-backed provider with automatic fallback across configured vendors. |
 | `providers/mock.py` | Deterministic provider for tests and dry runs. Never calls a network. |
+| `schema/analysis.py` | The adjudicated result of running an ensemble over one video's chunks. |
 | `schema/base.py` | Base model every artifact inherits. Defines the shared envelope. |
 | `schema/bench.py` | The north star, made measurable: human expert tester vs AutoTester. |
 | `schema/case.py` | A test case — one falsifiable claim about the product, plus how to check it. |
 | `schema/coverage.py` | Coverage gaps and the video requests that close them. |
 | `schema/enums.py` | Every closed vocabulary in the system. Nothing else defines these strings. |
 | `schema/flowspec.py` | The FlowSpec — the system's understanding of the product under test. |
+| `schema/issue.py` | A video-derived issue — its own artifact, deliberately NOT a `CaseClass`. |
 | `schema/ledger.py` | The feature ledger row and the relitigation verdict. Contract: qa/contracts/living-ledger.md. |
+| `schema/media.py` | Host-side media preparation artifacts: transcripts and chunk manifests. |
+| `schema/observation.py` | A vision model's raw reading of one video — INGEST's input material. |
 | `schema/project.py` | Project configuration and the secret contract. One directory per project. |
 | `schema/run.py` | What EXECUTE observed. Deliberately contains no judgement — see verdict.py. |
+| `schema/screenmap.py` | The product map — every screen the system has learned across all a |
 | `schema/verdict.py` | Grading. An independent, stateless judge reads evidence against a rubric. |
 | `stages/agent_loop.py` | Agent fallback: when a case's steps break, ask the agent for a fix and retry. |
 | `stages/bench.py` | BENCH: the north star made measurable. Contract: qa/contracts/bench.md K1-K5. |
@@ -67,6 +72,10 @@
 <!-- generated:schema -->
 | Model | Meaning |
 |---|---|
+| `AnalysedScreen` (`schema/analysis.py`) | An `ObservedScreen` two or more models agreed on (or the one model that |
+| `AnalysedIssue` (`schema/analysis.py`) | An `ObservedIssue` after cross-model merge — `id` is stamped by |
+| `JourneyStop` (`schema/analysis.py`) | One stop in a recording's end-to-end journey — reuses `ObservedScreen`'s |
+| `VideoAnalysis` (`schema/analysis.py`) | One source's adjudicated understanding — screens, flows, the ordered |
 | `Provenance` (`schema/base.py`) | Who or what produced this artifact, and from what. |
 | `Artifact` (`schema/base.py`) | Common envelope: versioned, timestamped, attributable. |
 | `SeededBug` (`schema/bench.py`) | A deliberately introduced defect with known ground truth. |
@@ -89,12 +98,20 @@
 | `Review` (`schema/flowspec.py`) | The human gate. A flowspec drives nothing until a person approves it. |
 | `Conflict` (`schema/flowspec.py`) | Sources disagreed. Flagged for a human — never silently merged. |
 | `FlowSpec` (`schema/flowspec.py`) | The reviewed understanding of one project's UI. |
-| `ObservedStep` (`schema/flowspec.py`) | One action a vision model saw in a video. Raw material for a `Step` — |
-| `ObservedFlow` (`schema/flowspec.py`) | One journey a vision model saw across screens. |
-| `ObservedScreen` (`schema/flowspec.py`) | One distinguishable screen a vision model saw. |
-| `VideoObservation` (`schema/flowspec.py`) | A vision provider's raw reading of one video — `stages/ingest.py`'s input, |
+| `Issue` (`schema/issue.py`) | One row of "what's wrong", derived from a video and (optionally) matched |
 | `FeatureEvent` (`schema/ledger.py`) | One dated event in the life of a feature: planned, live, updated, or retired. |
 | `RelitigationVerdict` (`schema/ledger.py`) | The judge's answer to "is this new unit a retired feature coming back?". |
+| `TranscriptSegment` (`schema/media.py`) | One spoken utterance, absolute seconds into the source video. |
+| `Transcript` (`schema/media.py`) | A video's narration. `from_sidecar` loads the exact shape the existing |
+| `MediaChunk` (`schema/media.py`) | One re-encoded chunk of a longer video. |
+| `MediaPrep` (`schema/media.py`) | Probe + chunk manifest for one `Source`. Degrades gracefully (VL1): |
+| `ObservedStep` (`schema/observation.py`) | One action a vision model saw in a video. Raw material for a `Step` — |
+| `ObservedFlow` (`schema/observation.py`) | One journey a vision model saw across screens. |
+| `ObservedScreen` (`schema/observation.py`) | One distinguishable screen a vision model saw. |
+| `ObservedIssue` (`schema/observation.py`) | A problem the vision model itself noticed — spoken, on-screen, or both. |
+| `VisionOptions` (`schema/observation.py`) | Generation config for a vision call — the settings the proven external |
+| `VideoObservation` (`schema/observation.py`) | A vision provider's raw reading of one video (or chunk) — turned into a |
+| `ModelObservation` (`schema/observation.py`) | One model's raw answer for one chunk — cached on disk so re-running the |
 | `SecretRef` (`schema/project.py`) | A declared credential. Holds the KEY and its scope — never the value. |
 | `ProviderConfig` (`schema/project.py`) | Which provider serves each role. Roles are swappable per project. |
 | `Source` (`schema/project.py`) | An immutable input the system learned from. |
@@ -103,6 +120,10 @@
 | `ProviderUsage` (`schema/run.py`) | Token and call accounting per provider role — the cost story per run. |
 | `RawResult` (`schema/run.py`) | One case's execution record. |
 | `Run` (`schema/run.py`) | One regression run over a set of cases. |
+| `ScreenVisit` (`schema/screenmap.py`) | One recording that showed this screen. |
+| `MappedScreen` (`schema/screenmap.py`) | One screen folded across every recording that showed it. |
+| `Journey` (`schema/screenmap.py`) | One recording's ordered path through screens. |
+| `ScreenMap` (`schema/screenmap.py`) | The product map: every learned screen plus the journeys that visited them. |
 | `Criterion` (`schema/verdict.py`) | One checkable bar. If it can be argued about, it is not a criterion. |
 | `Rubric` (`schema/verdict.py`) | The grading contract for a case. More specific than the case itself. |
 | `Failure` (`schema/verdict.py`) | One unmet criterion, with the evidence that shows it. |

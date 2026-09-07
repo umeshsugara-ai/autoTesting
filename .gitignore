@@ -22,6 +22,11 @@ projects/*/runs/
 # state, same as runs/, not a deliverable to hand-commit per project
 projects/*/rubrics/
 
+# Video chunks and extracted frames (host-side media prep, Track A/D-014) --
+# large binary derived state, regenerable from the registered source
+projects/*/sources/*/chunks/
+projects/*/sources/*/frames/
+
 # Python
 .venv/
 __pycache__/

@@ -44,12 +44,21 @@ _ACTIONS: dict[Action, StepHandler] = {
 }
 
 
+class StepNotExecutable(RuntimeError):
+    """`step.action` has no `BrowserSession` handler yet (e.g. a Track B action
+    added to the enum before its handler landed). Caught like any other
+    execution failure — a run reports it, never crashes on it."""
+
+
 def run_case(case: Case, session: BrowserSession) -> RawResult:
     """Execute `case.steps` in order on `session`. E1/E2/E3: observe, never judge."""
     start = time.monotonic()
     for step in sorted(case.steps, key=lambda s: s.order):
         try:
-            _ACTIONS[step.action](session, step)
+            handler = _ACTIONS.get(step.action)
+            if handler is None:
+                raise StepNotExecutable(f"{step.action.value} has no browser handler yet")
+            handler(session, step)
             if step.action in (Action.CLICK, Action.NAVIGATE):
                 # AT-045/AT-053: a click or a fresh navigation both trigger an
                 # async transition (a form-submit redirect, or the target page

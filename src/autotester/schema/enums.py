@@ -13,7 +13,12 @@ class SourceKind(StrEnum):
 
 
 class Action(StrEnum):
-    """What a step does to the browser."""
+    """What a step does to the browser.
+
+    BACK/HOVER/PRESS_KEY/SCROLL discharge D-005's approved-but-unbuilt Action
+    amendment (D-014); they exist for the Track B explorer (`stages/explore.py`)
+    and are shared here rather than duplicated (C3).
+    """
 
     NAVIGATE = "navigate"
     CLICK = "click"
@@ -22,6 +27,10 @@ class Action(StrEnum):
     UPLOAD = "upload"
     WAIT = "wait"
     ASSERT = "assert"
+    BACK = "back"
+    HOVER = "hover"
+    PRESS_KEY = "press_key"
+    SCROLL = "scroll"
 
 
 class CaseKind(StrEnum):
@@ -167,3 +176,51 @@ class UserValue(StrEnum):
     HIGH = "high"
     NORMAL = "normal"
     LOW = "low"
+
+
+class IssueCategory(StrEnum):
+    """What kind of problem a video-derived `Issue` is.
+
+    The first 12 come from the proven external pipeline's bug taxonomy;
+    `FEATURE_GAP`/`WRONG_MODEL`/`DATA_ERROR` were added for D-014 after a
+    real ground-truth workbook showed 10/33 rows were spoken change requests
+    with no home in the original 12 ("this should be X", "remove this").
+    """
+
+    VALIDATION = "validation"
+    LAYOUT = "layout"
+    DEAD_END = "dead_end"
+    LATENCY = "latency"
+    BROKEN_LINK = "broken_link"
+    COPY_TEXT = "copy_text"
+    STATE_LOSS = "state_loss"
+    DATA_INCONSISTENCY = "data_inconsistency"
+    TRANSIENT_GLITCH = "transient_glitch"
+    NAVIGATION_CONFUSION = "navigation_confusion"
+    LOGIC_ERROR = "logic_error"
+    FEATURE_GAP = "feature_gap"
+    WRONG_MODEL = "wrong_model"
+    DATA_ERROR = "data_error"
+    OTHER = "other"
+
+
+class IssueOrigin(StrEnum):
+    """How an `Issue` was noticed — mirrors the human sheet's 'How we know'."""
+
+    SPOKEN = "spoken"
+    SCREEN = "screen"
+    SPOKEN_AND_SCREEN = "spoken_and_screen"
+    MODEL_DETECTED = "model_detected"
+
+
+class IssueStatus(StrEnum):
+    OPEN = "open"
+    CONFIRMED = "confirmed"
+    FIXED = "fixed"
+    DISMISSED = "dismissed"
+
+
+class Confidence(StrEnum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
