@@ -28,9 +28,15 @@ from fastapi import APIRouter, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import ValidationError
 
+from autotester.browser.secrets import SecretStore
+from autotester.core.paths import ProjectPaths
 from autotester.schema.project import Project, SecretRef
 from autotester.ui import theme
-from autotester.ui.helpers import _load_project_or_404, _require_reachable_base_url
+from autotester.ui.helpers import (
+    _load_project_or_404,
+    _refuse_unsafe_submission,
+    _require_reachable_base_url,
+)
 
 router = APIRouter()
 
@@ -143,6 +149,17 @@ def edit_project_submit(
     if not domains:
         raise HTTPException(400, "a project needs at least one allowed domain")
     _require_reachable_base_url(base_url, domains)
+    _refuse_unsafe_submission(
+        [("the name", name), ("the base URL", base_url),
+         ("allowed domains", allowed_domains)],
+        project, SecretStore.load(project, ProjectPaths(slug).env_file, strict=False),
+        # AT-078: re-saving this project's own stored values is a no-op, not a
+        # paste. Only what is already on disk for these exact fields is exempt.
+        exempt=frozenset({
+            project.name, project.base_url, ", ".join(project.allowed_domains),
+            *project.allowed_domains,
+        }),
+    )
 
     store.save_project(project.model_copy(update={
         "name": name.strip(), "base_url": base_url.strip(), "allowed_domains": domains,
@@ -163,6 +180,13 @@ def declare_secret(
     the repo-root `.env`. `SecretRef`'s own validators do the checking — this
     route only turns their ValidationError into a readable 400."""
     store, project = _load_project_or_404(slug)
+    # AT-073: this box is one field away from the Key box on the same form, and
+    # project.json is git-tracked -- a value pasted here would be committed.
+    _refuse_unsafe_submission(
+        [("the description", description), ("the scope", domains)],
+        project, SecretStore.load(project, ProjectPaths(slug).env_file, strict=False),
+        exempt=frozenset({", ".join(project.allowed_domains), *project.allowed_domains}),
+    )
     scope = [d.strip() for d in domains.split(",") if d.strip()]
     if not scope:
         # SecretRef allows an empty list, but such a key can never resolve

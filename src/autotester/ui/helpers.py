@@ -8,6 +8,7 @@ attribute-injection hole started exactly there).
 from __future__ import annotations
 
 import re
+from urllib.parse import unquote_plus
 
 from fastapi import HTTPException
 
@@ -77,7 +78,28 @@ def _load_project_or_404(slug: str) -> tuple[ProjectStore, Project]:
         raise HTTPException(404, f"no project '{slug}'")
     return store, project
 
-def _refuse_unsafe_value(value: str, project: Project, secrets: SecretStore) -> None:
+def _credential_variants(text: str) -> list[str]:
+    """The forms a pasted credential can arrive in that all recover trivially.
+
+    AT-074: `Redactor.is_clean` is a plain substring test, so a value that was
+    URL-encoded, or that a user broke with a stray space or newline, sailed
+    through and was written to a git-tracked file — recoverable with one
+    `unquote_plus` or a whitespace strip. Matching is done against every form,
+    not just the literal one.
+    """
+    decoded = unquote_plus(text)
+    return [
+        text,
+        decoded,
+        "".join(text.split()),
+        "".join(decoded.split()),
+    ]
+
+
+def _refuse_unsafe_value(
+    value: str, project: Project, secrets: SecretStore, *, field: str = "this field",
+    exempt: frozenset[str] = frozenset(),
+) -> None:
     """One field. Placeholders must name a declared key; a literal must not be a
     real `.env` value.
 
@@ -101,17 +123,29 @@ def _refuse_unsafe_value(value: str, project: Project, secrets: SecretStore) -> 
                     f"Declare it in Project settings first, then use it here."
                 ))
         return
-    if not secrets.redactor().is_clean(value):
+    if value in exempt:
+        # AT-078: a field re-submitted byte-identical to what is already on
+        # disk for that same field of that same project. `.env` holds plain
+        # configuration as well as credentials -- `pathlynks`'s own base_url
+        # is byte-identical to the non-secret PATHLYNKS_USER_LOGIN_URL -- so
+        # without this, a no-op save of a project's own data was refused with
+        # no fix the user could express. Narrow on purpose: it exempts only
+        # data the system itself already stored, never fresh input (AT-083).
+        return
+    redactor = secrets.redactor()
+    if any(not redactor.is_clean(v) for v in _credential_variants(value)):
         raise HTTPException(400, (
-            "that looks like a real credential. Do not type the value into a test "
-            "case — cases are stored in the repository in plain text and appear in "
-            "screenshots. Declare it in Project settings, then reference it here as "
-            "{{SECRET:KEY}}."
+            f"{field} looks like it contains a real credential. Values are stored in "
+            f"the repository in plain text and appear in screenshots, so they must "
+            f"never be typed in directly. Declare it in Project settings and use "
+            f"{{{{SECRET:KEY}}}} in a step's Value box — note that only a Value is "
+            f"substituted, not a URL or a title."
         ))
 
 
 def _refuse_unsafe_submission(
-    texts: list[str], project: Project, secrets: SecretStore
+    texts: list[tuple[str, str]], project: Project, secrets: SecretStore,
+    *, exempt: frozenset[str] = frozenset(),
 ) -> None:
     """Every user-supplied field of a case, and their concatenation.
 
@@ -121,16 +155,27 @@ def _refuse_unsafe_submission(
     `rationale=None`, so `claim_of` falls back to the title and feeds it to the
     grade prompt, where `guard_prompt` raises and 500s every later run.
 
+    AT-083: matching runs over EVERY value in `.env`, declared or not -- an
+    undeclared key (a provider API key, say) is still a credential, and this
+    repo is public. Scoping to declared-only was a real hole.
+
     AT-071: checking fields one at a time also missed a value split across two
     rows, which reassembles byte-for-byte on disk. So the joined text is checked
     too. A false positive there costs a clear error message asking for a
     placeholder; a false negative costs a committed credential.
     """
-    for text in texts:
-        _refuse_unsafe_value(text.strip(), project, secrets)
-    joined = "".join(t.strip() for t in texts)
-    if joined and not secrets.redactor().is_clean(joined):
+    for label, text in texts:
+        _refuse_unsafe_value(text.strip(), project, secrets, field=label, exempt=exempt)
+    # An exempt field holds data the system itself already stored, so it cannot
+    # be half of a freshly-pasted credential -- and leaving it in would re-fire
+    # the very false positive the exemption exists to stop (AT-078: pathlynks's
+    # own base_url contains a non-secret .env URL, so the join always matched).
+    fresh = [(label, text.strip()) for label, text in texts if text.strip() not in exempt]
+    joined = "".join(text for _label, text in fresh)
+    redactor = secrets.redactor()
+    if joined and any(not redactor.is_clean(v) for v in _credential_variants(joined)):
         raise HTTPException(400, (
-            "a real credential appears to be split across these fields. Declare it in "
-            "Project settings and reference it as {{SECRET:KEY}} instead."
+            "a real credential appears to be split across "
+            f"{', '.join(sorted({label for label, _t in fresh}))}. Declare it in Project "
+            "settings and use {{SECRET:KEY}} in a step's Value box instead."
         ))

@@ -16,7 +16,8 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from autotester.core.paths import repo_root
+from autotester.browser.secrets import SecretStore
+from autotester.core.paths import ProjectPaths, repo_root
 from autotester.schema.project import Project
 from autotester.store.project_store import ProjectStore
 from autotester.ui import (
@@ -32,6 +33,7 @@ from autotester.ui import (
 from autotester.ui.helpers import (
     _load_project_or_404,
     _project_slugs,
+    _refuse_unsafe_submission,
     _require_reachable_base_url,
     _require_slug,
 )
@@ -186,6 +188,15 @@ def onboard_submit(
     _require_slug(slug)
     domains = [d.strip() for d in allowed_domains.split(",") if d.strip()]
     _require_reachable_base_url(base_url, domains)  # AT-058: fail here, not mid-run
+    # AT-073: project.json is git-tracked and a project NAME renders on every
+    # page, so these boxes need the same guard the case form has.
+    _refuse_unsafe_submission(
+        [("the name", name), ("the base URL", base_url), ("allowed domains", allowed_domains)],
+        Project(slug=slug, name=slug, base_url=base_url, allowed_domains=domains),
+        SecretStore.load(
+            Project(slug=slug, name=slug, base_url=base_url, allowed_domains=domains),
+            ProjectPaths(slug).env_file, strict=False),
+    )
     project = Project(slug=slug, name=name, base_url=base_url, allowed_domains=domains)
     ProjectStore(slug).save_project(project)
     return RedirectResponse(f"/projects/{slug}", status_code=303)

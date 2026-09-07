@@ -1,0 +1,284 @@
+"""Credential safety on the routes that write `project.json`, and on the
+encodings a pasted value can arrive in. Contract: qa/contracts/ui.md U8.
+
+AT-073: the case-form guard stopped at the case form. A real credential typed
+into a project NAME (onboarding or rename) or into a SecretRef's *description*
+box went into git-tracked `project.json` in cleartext — and a name renders on
+every page including the home index. The description box is one field from the
+Key box on the same form, which is the likeliest place a hurried user pastes a
+value. AT-074/AT-075 cover the trivially-recoverable encodings and the error
+bodies that echoed raw input back.
+
+Split from test_ui_credential_safety.py once that file passed doctor's 300-line cap.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+from fastapi.testclient import TestClient
+
+from autotester.schema.enums import Action, CaseClass
+from autotester.store.project_store import ProjectStore
+from autotester.ui.app import app
+
+REAL_PASSWORD = "hunter2-this-is-the-real-one"
+
+
+@pytest.fixture
+def scratch_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    monkeypatch.setenv("AUTOTESTER_ROOT", str(tmp_path))
+    return tmp_path
+
+
+@pytest.fixture
+def client() -> TestClient:
+    return TestClient(app)
+
+
+def _project_with_credential(client: TestClient, scratch_root: Path, *, value: str = "") -> None:
+    client.post("/onboard", data={
+        "slug": "demo", "name": "Demo", "base_url": "https://demo.test/signin",
+        "allowed_domains": "demo.test",
+    })
+    client.post("/projects/demo/secrets", data={
+        "key": "DEMO_PASSWORD", "domains": "demo.test", "mask_in_screenshot": "on",
+    })
+    if value:
+        env_line = "DEMO_PASSWORD=" + value + chr(10)
+        (scratch_root / ".env").write_text(env_line, encoding="utf-8")
+
+
+def _add_case(client: TestClient, value: str):
+    return client.post("/projects/demo/cases", data={
+        "title": "Log in", "case_class": CaseClass.HAPPY.value,
+        "step_action": [Action.FILL.value], "step_target": ["input[type=password]"],
+        "step_value": [value], "step_expected": [""],
+    }, follow_redirects=False)
+
+
+# -- AT-073: project.json is git-tracked too ---------------------------------
+
+def test_a_credential_as_a_project_name_at_onboarding_is_refused(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """AT-073: a project NAME lands in git-tracked project.json AND renders on
+    every page including the home index."""
+    (scratch_root / ".env").write_text(f"DEMO_PASSWORD={REAL_PASSWORD}\n", encoding="utf-8")
+    client.post("/onboard", data={
+        "slug": "seed", "name": "Seed", "base_url": "https://demo.test",
+        "allowed_domains": "demo.test",
+    })
+    client.post("/projects/seed/secrets", data={
+        "key": "DEMO_PASSWORD", "domains": "demo.test", "mask_in_screenshot": "on",
+    })
+
+    response = client.post("/onboard", data={
+        "slug": "leaky", "name": REAL_PASSWORD, "base_url": "https://demo.test",
+        "allowed_domains": "demo.test",
+    }, follow_redirects=False)
+
+    assert response.status_code == 400
+    assert not (scratch_root / "projects" / "leaky").exists()
+
+
+def test_a_credential_in_the_secret_description_is_refused(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """The description box sits one field from the Key box on the same form —
+    the likeliest place a hurried user pastes the value."""
+    _project_with_credential(client, scratch_root, value=REAL_PASSWORD)
+
+    response = client.post("/projects/demo/secrets", data={
+        "key": "SECOND_KEY", "domains": "demo.test", "description": REAL_PASSWORD,
+    })
+
+    assert response.status_code == 400
+    project = ProjectStore("demo", scratch_root).load_project()
+    assert REAL_PASSWORD not in project.model_dump_json()
+
+
+def test_a_credential_in_a_project_rename_is_refused(
+    client: TestClient, scratch_root: Path
+) -> None:
+    _project_with_credential(client, scratch_root, value=REAL_PASSWORD)
+
+    response = client.post("/projects/demo/edit", data={
+        "name": REAL_PASSWORD, "base_url": "https://demo.test/signin",
+        "allowed_domains": "demo.test",
+    })
+
+    assert response.status_code == 400
+    assert ProjectStore("demo", scratch_root).load_project().name == "Demo"
+
+
+# -- AT-074: trivially-recoverable encodings ---------------------------------
+
+def test_a_url_encoded_credential_is_refused(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """AT-074: `is_clean` is a plain substring test, so a percent-encoded value
+    passed straight through and was written to a tracked file."""
+    from urllib.parse import quote_plus
+    _project_with_credential(client, scratch_root, value=REAL_PASSWORD)
+
+    response = _add_case(client, quote_plus(REAL_PASSWORD))
+
+    assert response.status_code == 400
+    assert ProjectStore("demo", scratch_root).list_cases() == []
+
+
+def test_a_credential_broken_by_a_space_is_refused(
+    client: TestClient, scratch_root: Path
+) -> None:
+    half = len(REAL_PASSWORD) // 2
+    _project_with_credential(client, scratch_root, value=REAL_PASSWORD)
+
+    response = _add_case(client, f"{REAL_PASSWORD[:half]} {REAL_PASSWORD[half:]}")
+
+    assert response.status_code == 400
+    assert ProjectStore("demo", scratch_root).list_cases() == []
+
+
+# -- AT-075: error bodies must not echo raw input ----------------------------
+
+def test_an_unknown_case_class_is_not_echoed_back(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """AT-075: `unknown case class '{x}'` put raw form input in the response
+    body and the access log — the AT-068 pattern again."""
+    _project_with_credential(client, scratch_root, value=REAL_PASSWORD)
+
+    response = client.post("/projects/demo/cases", data={
+        "title": "probe", "case_class": REAL_PASSWORD,
+        "step_action": [Action.NAVIGATE.value], "step_target": ["https://demo.test/"],
+        "step_value": [""], "step_expected": [""],
+    })
+
+    assert response.status_code == 400
+    assert REAL_PASSWORD not in response.text
+
+
+# -- AT-082: a stored credential must read back byte-for-byte ----------------
+
+@pytest.mark.parametrize("value", [
+    "p@ss #1",          # a whitespace-# was cut as a comment
+    "  spaced  ",       # edge whitespace was stripped
+    "'quoted'",         # a leading quote was unwrapped
+    'has"double',
+    "tab\there",
+    "plain-ok",
+])
+def test_a_stored_credential_reads_back_exactly(scratch_root: Path, value: str) -> None:
+    """AT-082: `set_env_value` wrote the value bare, so `parse_env`'s comment
+    stripping, rstrip and unquoting silently mangled it — `p@ss #1` was stored
+    as `p@ss` — while the Credentials page still reported "Set". The failure
+    surfaced much later as a wrong-password login."""
+    from autotester.browser.secrets import parse_env
+    from autotester.ui.env_editor import set_env_value
+
+    env = scratch_root / ".env"
+    set_env_value(env, "DEMO_PASSWORD", value)
+
+    assert parse_env(env.read_text(encoding="utf-8"))["DEMO_PASSWORD"] == value
+
+
+def test_a_value_that_cannot_round_trip_is_refused_not_mangled(
+    scratch_root: Path
+) -> None:
+    """Both quote characters cannot survive `_clean_value`. Refusing is honest;
+    storing something different from what the user typed is not."""
+    from autotester.ui.env_editor import InvalidEnvValue, set_env_value
+
+    with pytest.raises(InvalidEnvValue):
+        set_env_value(scratch_root / ".env", "DEMO_PASSWORD", "a\"b'c")
+
+
+def test_setting_one_value_leaves_the_others_intact(scratch_root: Path) -> None:
+    from autotester.browser.secrets import parse_env
+    from autotester.ui.env_editor import set_env_value
+
+    env = scratch_root / ".env"
+    set_env_value(env, "FIRST_KEY", "first #value")
+    set_env_value(env, "SECOND_KEY", "  second  ")
+    set_env_value(env, "FIRST_KEY", "changed #again")
+
+    parsed = parse_env(env.read_text(encoding="utf-8"))
+    assert parsed["FIRST_KEY"] == "changed #again"
+    assert parsed["SECOND_KEY"] == "  second  "
+
+
+# -- AT-078 + AT-083: the exemption must be narrow, not a hole ---------------
+
+def test_a_project_can_resave_its_own_unmodified_data(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """AT-078: `.env` holds plain configuration as well as credentials. When the
+    guard matched every `.env` value, a project whose own base_url equalled a
+    non-secret `.env` URL became uneditable — a no-op save returned 400 with no
+    fix the user could express."""
+    client.post("/onboard", data={
+        "slug": "demo", "name": "Demo", "base_url": "https://demo.test/signin",
+        "allowed_domains": "demo.test",
+    })
+    # The .env entry appears AFTER the project exists -- exactly how pathlynks
+    # got here: PATHLYNKS_USER_LOGIN_URL was added to a shared .env long after
+    # that project was onboarded. Onboarding a project whose base_url is
+    # ALREADY in .env is still refused; filed as its own issue, not hidden.
+    env = scratch_root / ".env"
+    env.write_text("SOME_CONFIG_URL=https://demo.test/signin\n", encoding="utf-8")
+
+    response = client.post("/projects/demo/edit", data={
+        "name": "Demo", "base_url": "https://demo.test/signin",
+        "allowed_domains": "demo.test",
+    }, follow_redirects=False)
+
+    assert response.status_code == 303
+    assert ProjectStore("demo", scratch_root).load_project().base_url == "https://demo.test/signin"
+
+
+def test_an_undeclared_env_value_is_still_refused(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """AT-083: scoping the guard to DECLARED credentials to fix AT-078 opened a
+    real hole — an undeclared provider API key sitting in the shared `.env` is
+    still a credential, and this repo is public. Matching must stay broad; only
+    already-stored data is exempt."""
+    env = scratch_root / ".env"
+    env.write_text("GEMINI_API_KEY=AIza-undeclared-but-very-real\n", encoding="utf-8")
+    client.post("/onboard", data={
+        "slug": "demo", "name": "Demo", "base_url": "https://demo.test",
+        "allowed_domains": "demo.test",
+    })
+
+    response = client.post("/projects/demo/cases", data={
+        "title": "AIza-undeclared-but-very-real", "case_class": CaseClass.HAPPY.value,
+        "step_action": [Action.NAVIGATE.value], "step_target": ["https://demo.test/"],
+        "step_value": [""], "step_expected": [""],
+    })
+
+    assert response.status_code == 400
+    assert ProjectStore("demo", scratch_root).list_cases() == []
+
+
+def test_the_exemption_does_not_let_a_credential_in_through_another_field(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """The exemption covers only data already stored for that same field. A
+    credential pasted into a DIFFERENT field of the same form is still refused."""
+    env = scratch_root / ".env"
+    env.write_text("SECRET_TOKEN=tok-abcdefghijklmnop\n", encoding="utf-8")
+    client.post("/onboard", data={
+        "slug": "demo", "name": "Demo", "base_url": "https://demo.test",
+        "allowed_domains": "demo.test",
+    })
+
+    response = client.post("/projects/demo/edit", data={
+        "name": "tok-abcdefghijklmnop",          # a credential, not stored data
+        "base_url": "https://demo.test",          # exempt (unchanged)
+        "allowed_domains": "demo.test",           # exempt (unchanged)
+    })
+
+    assert response.status_code == 400
+    assert ProjectStore("demo", scratch_root).load_project().name == "Demo"

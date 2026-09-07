@@ -62,7 +62,8 @@ def test_pasting_the_real_credential_into_a_step_is_refused(
     response = _add_case(client, REAL_PASSWORD)
 
     assert response.status_code == 400
-    assert "looks like a real credential" in response.text
+    assert "looks like it contains a real credential" in response.text
+    assert "a Value box" in response.text  # the message names the field (AT-077)
     assert ProjectStore("demo", scratch_root).list_cases() == []
 
 

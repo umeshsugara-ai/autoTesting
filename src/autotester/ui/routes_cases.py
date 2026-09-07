@@ -16,6 +16,7 @@ smoke test costs one field.
 from __future__ import annotations
 
 from html import escape
+from typing import Any
 
 from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -25,6 +26,7 @@ from autotester.core.paths import ProjectPaths
 from autotester.schema.case import Case
 from autotester.schema.enums import KIND_BY_CLASS, Action, CaseClass
 from autotester.schema.flowspec import ExpectedState, Step
+from autotester.schema.project import Project
 from autotester.store.project_store import ProjectStore
 from autotester.ui import theme
 from autotester.ui.case_form import (
@@ -110,7 +112,7 @@ def _build_steps(
         try:
             parsed = Action(action)
         except ValueError as exc:
-            raise HTTPException(400, f"unknown action '{action}'") from exc
+            raise HTTPException(400, "that is not one of the offered step actions") from exc
         expected = (
             ExpectedState(visible_text=[expect.strip()]) if expect.strip()
             else ExpectedState()
@@ -140,6 +142,18 @@ def _refuse_duplicate(store: ProjectStore, case: Case) -> None:
     ))
 
 
+def _guard_submitted_case(form: Any, project: Project, secrets: SecretStore) -> None:
+    """Every user-supplied text of a case submission, labelled so a refusal can
+    name the box it came from (AT-070/AT-071/AT-077)."""
+    _refuse_unsafe_submission(
+        [("the title", str(form.get("title", ""))),
+         *[("a Target box", str(v)) for v in form.getlist("step_target")],
+         *[("a Value box", str(v)) for v in form.getlist("step_value")],
+         *[("an Expect box", str(v)) for v in form.getlist("step_expected")]],
+        project, secrets,
+    )
+
+
 @router.post("/projects/{slug}/cases")
 async def create_case(slug: str, request: Request) -> RedirectResponse:
     """Reads the raw form rather than declaring `list[str] = Form(...)` params:
@@ -155,13 +169,11 @@ async def create_case(slug: str, request: Request) -> RedirectResponse:
     try:
         parsed_class = CaseClass(case_class)
     except ValueError as exc:
-        raise HTTPException(400, f"unknown case class '{case_class}'") from exc
+        # AT-075: never echo raw form input -- a pasted credential would land
+        # in the response body and the access log.
+        raise HTTPException(400, "that is not one of the offered kinds of check") from exc
 
-    _refuse_unsafe_submission(
-        [title, *form.getlist("step_target"), *form.getlist("step_value"),
-         *form.getlist("step_expected")],
-        project, secrets,
-    )
+    _guard_submitted_case(form, project, secrets)
     steps = _build_steps(
         [str(v) for v in form.getlist("step_action")],
         [str(v) for v in form.getlist("step_target")],
@@ -258,7 +270,8 @@ def rename_case(slug: str, case_id: str, title: str = Form(...)) -> RedirectResp
     if case is None:
         raise HTTPException(404, f"no case '{case_id}'")
     secrets = SecretStore.load(project, ProjectPaths(slug).env_file, strict=False)
-    _refuse_unsafe_submission([title], project, secrets)
+    _refuse_unsafe_submission([("the title", title)], project, secrets,
+                               exempt=frozenset({case.title}))
     store.update_case(case.model_copy(update={"title": title.strip()}))
     return RedirectResponse(f"/projects/{slug}/cases", status_code=303)
 

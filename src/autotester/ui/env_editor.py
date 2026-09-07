@@ -11,11 +11,38 @@ import os
 import re
 from pathlib import Path
 
+from autotester.browser.secrets import parse_env
+
 _KEY_RE = re.compile(r"^[A-Z_][A-Z0-9_]*$")
 
 
 class InvalidEnvValue(ValueError):
     """Refused a key or value that could corrupt or inject a `.env` line."""
+
+
+def _render_value(value: str) -> str:
+    """The `.env` right-hand side that `parse_env` reads back as `value` exactly.
+
+    AT-082: written bare, a value containing ` #`, leading/trailing whitespace,
+    or wrapped in quotes came back MANGLED — `_clean_value` strips a trailing
+    whitespace-`#` comment, rstrips, and unquotes — while the Credentials page
+    still reported "Set". A password like `p@ss #1` was silently stored as
+    `p@ss`, and the failure would surface much later as a wrong-password login.
+
+    Quoting round-trips all three, because `_clean_value` returns everything
+    between a leading quote and its next match. A value containing BOTH quote
+    characters cannot round-trip through that parser, so it is refused rather
+    than written wrong — saying no is better than lying about what was stored.
+    """
+    for quote in ('"', "'"):
+        if quote not in value:
+            candidate = f"{quote}{value}{quote}"
+            if parse_env("K=" + candidate + chr(10)).get("K") == value:
+                return candidate
+    raise InvalidEnvValue(
+        "this value cannot be stored safely because it contains both a single and a "
+        "double quote. Change the credential, or set it directly in the .env file."
+    )
 
 
 def set_env_value(env_path: Path, key: str, value: str) -> None:
@@ -37,10 +64,11 @@ def set_env_value(env_path: Path, key: str, value: str) -> None:
         raise InvalidEnvValue(f"'{key}' is not a valid .env key (expected UPPER_SNAKE_CASE)")
     if "\n" in value or "\r" in value:
         raise InvalidEnvValue("value must not contain a newline")
+    rendered = _render_value(value)
 
     lines = env_path.read_text(encoding="utf-8").splitlines() if env_path.exists() else []
     prefix = f"{key}="
-    new_line = f"{key}={value}"
+    new_line = f"{key}={rendered}"
     out: list[str] = []
     replaced = False
     for line in lines:

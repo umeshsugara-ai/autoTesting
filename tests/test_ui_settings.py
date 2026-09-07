@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from autotester.browser.secrets import parse_env
 from autotester.ui.app import app
 from autotester.ui.env_editor import set_env_value
 
@@ -55,7 +56,7 @@ def test_settings_submit_writes_via_env_editor_and_never_echoes(
 
     assert response.status_code in (200, 303)
     written = (scratch_root / ".env").read_text(encoding="utf-8")
-    assert "OPENAI_API_KEY=new-real-key" in written
+    assert parse_env(written)["OPENAI_API_KEY"] == "new-real-key"  # round-trip, not spelling
     assert "new-real-key" not in response.text
 
 

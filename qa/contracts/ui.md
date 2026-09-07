@@ -89,6 +89,30 @@ reaches the grading prompt anyway (a credential already inside a rubric) yields 
 This criterion pins the *case form only*. The equivalent hole on the three routes that write
 `project.json` is **not** covered here and is tracked as **AT-073**.
 
+### U9 — The three routes that write `project.json` cannot commit a raw credential either
+`POST /onboard` (`name`, `base_url`, `allowed_domains`), `POST /projects/{slug}/edit` (the same
+three) and `POST /projects/{slug}/secrets` (`description`, `domains`) each pass their
+user-supplied text through `ui/helpers.py::_refuse_unsafe_submission` **before** `project.json`
+is written — the same guard U8 pins on the case form, on the file that a project *name* renders
+from on every page including the home index. Matching runs against **every** value in the shared
+`.env`, declared as a `SecretRef` or not: an undeclared provider key is still a credential and
+this repo is public (AT-083 — scoping input matching to declared values only was a real hole and
+is the one thing this criterion must never be softened back to).
+The guard must **not** brick a project's own data. A field is exempt **only** when its submitted
+text is byte-identical to what is already persisted for that project — data the system itself
+stored, never fresh input, and never anything derived from the same request (AT-078: `pathlynks`'s
+`base_url` is byte-identical to the non-secret `.env` entry `PATHLYNKS_USER_LOGIN_URL`, and
+without this every project whose config collides with a `.env` value became uneditable with no
+fix the user could express). Every on-disk project must be able to re-save its own unmodified
+`name` / `base_url` / `allowed_domains`, and to be renamed while keeping a colliding base URL.
+Two residuals are deliberately **outside** this criterion and tracked instead, because closing
+either is a scope decision rather than a bug fix: **AT-087** — exempt fields are excluded from
+the *concatenation* check and the exempt set is flat rather than per-field, so a credential
+straddling an exempt field and a fresh one is not caught (the case form is unaffected: it passes
+no exempt set at all); and **AT-086** — a project whose `base_url` is byte-identical to an `.env`
+value cannot be created through the UI at all, by onboarding or by editing a placeholder. Both
+fail closed.
+
 ## No-fire list
 
 - Authentication/authorization — this is a local, single-operator tool for now (matches the
@@ -198,3 +222,28 @@ This criterion pins the *case form only*. The equivalent hole on the three route
   placeholders) and **AT-077** (the concatenation refusal names no field, so an innocent
   straddle across 15 artificial boundaries leaves the user with nothing to change). See
   `qa/verdicts/ui-credential-safety-all-fields.md`.
+- 2026-09-07 · /checker (ui-credential-guard-project-routes unit, cycle 3) · **new criterion U9
+  added** — the U8 amendment above named AT-073 as "the next unit"; this was it, and it took
+  three cycles because the two obvious fixes each broke the other half. U9 records what finally
+  held, and pins **both** directions so neither regression can recur silently: matching over the
+  **full** `.env` (cycle 2 was FAILed for scoping it to declared values — proved with the
+  operator's live `GEMINI_API_KEY` landing in a git-tracked `cases.jsonl` and `project.json`),
+  **and** a byte-identical-to-stored exemption (cycle 1 was FAILed for refusing `pathlynks`'s own
+  unmodified `base_url` and making the project uneditable). Routine, non-weakening — it adds a
+  criterion, softens none, and the two residuals it names are recorded as tracked issues rather
+  than written out of the rule. U1–U8 re-verified in the same check and unaffected: onboarding
+  and edit still go through `ProjectStore` only and a subdomain still onboards (U1/U7), unknown
+  slug still 404s (U2), no declared `SecretRef` value appears in any of 35 rendered routes and
+  the env editor is unchanged (U3), no run/report code touched and every `report`/`.html`/`.xlsx`
+  is 200 (U4), escaping re-probed live against a project named `<script>alert(1)</script>&'"`
+  with zero raw tags on 6 routes (U5), all five case-form refusals still fire with no raw echo
+  (U6), and the case form's own concatenation check is **structurally** unexemptable because
+  `routes_cases._guard_submitted_case` passes no `exempt` set — 32 hostile probes against a
+  declared *and* an undeclared live credential all refused (U8). Three defects found in the same
+  probe were filed rather than folded in, none a criterion violation: **AT-087** (medium — the
+  exemption hollows out the concatenation check on the project routes; isolated against a
+  control), **AT-088** (medium — `_require_reachable_base_url` runs before the guard and echoes a
+  credential pasted into Base URL back in its 400, the AT-068/AT-075 pattern's fourth occurrence)
+  and **AT-086** raised low→medium (the manifest's "has workarounds" was tested and is wrong —
+  onboarding a placeholder then editing is refused too). See
+  `qa/verdicts/ui-credential-guard-project-routes.md`.

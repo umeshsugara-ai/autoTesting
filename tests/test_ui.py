@@ -151,8 +151,12 @@ def test_env_editor_writes_a_new_value_via_post(client: TestClient, scratch_root
     )
 
     assert response.status_code in (200, 303)
+    # Assert the ROUND-TRIP, not the on-disk spelling: AT-082 made the writer
+    # quote values so one containing ` #`, edge whitespace or a quote survives
+    # `parse_env`. What must hold is that the value reads back exactly.
+    from autotester.browser.secrets import parse_env
     written = (scratch_root / ".env").read_text(encoding="utf-8")
-    assert "DEMO_PASSWORD=new-real-value" in written
+    assert parse_env(written)["DEMO_PASSWORD"] == "new-real-value"
     assert "new-real-value" not in response.text  # never echoed back either
 
 
