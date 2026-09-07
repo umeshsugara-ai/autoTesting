@@ -91,4 +91,43 @@ Real end-to-end against the live app, after `docker compose restart autotester`:
 
 The stale claim self-healed on the next run, with no manual file deletion.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Verdict: `qa/verdicts/grade-stale-rubric-invalidation.md` (Cycle checked: 1, PASS, 4/4 criteria
+met, 3/3 no-fire boundaries hold). AT-059 flipped open → fixed.
+
+**Correction the checker made to this manifest's own reasoning.** The "judgement call" section
+above claims the 4 pre-existing rubrics are "genuinely indistinguishable from hand-written."
+That is **factually wrong**, and the checker proved it: all 4 carry `_rubric_for_claim`'s exact
+template (criterion id `c1`, the exact sentence, the exact one-element `no_fire`), while every
+hand-written rubric in this repo differs in shape — `scripts/run_pathlynks_first_cases.py:91`
+uses criterion id `landed`, and the other two use `no_fire=["visual styling"]`. So leaving them
+alone is a **choice, not a forced consequence**. The checker judged the choice correct anyway —
+a runtime template heuristic would reintroduce exactly the overwrite-on-a-guess risk this unit
+exists to avoid, for 4 files that are all non-stale today — and closed AT-059 on this unit, with
+the residual tracked as AT-065 (a human-reviewed one-off migration, not a runtime guess). The
+conclusion stood; the stated reason did not, and is corrected here rather than left to read as
+verified.
+
+**The overwrite guard was attacked, not just reviewed.** The checker constructed 12
+false-positive shapes — hand-written with no provenance; hand-written with a **forged**
+`produced_by == GENERATOR` (with and without a note); generator output edited in `criteria`
+text, in `evidence_required`, by an appended criterion; edited **only** in `no_fire` (appended
+and cleared); `provenance.note` None; `produced_by="human"`; note forged to the current claim.
+All returned False. It noted three of those shapes (edit-only-in-`no_fire`, appended criterion,
+forged-note) are **not** covered by this unit's tests, and that the guard holds structurally
+rather than by luck: a forged provenance alone buys nothing, because the criteria and `no_fire`
+must still match byte-for-byte what the generator would have produced for the recorded claim.
+
+Blast radius confirmed clear: no churn on an unchanged claim, one non-definition caller
+(`ui/routes_runs.py`), and the shipped guard run over **all 5 rubric files across the 4 real
+projects** — none would be rewritten by the next run, verified file by file.
+
+Source was uncommitted again on arrival (the AT-055 pattern); the checker committed it itself
+(`d96c4ee`, 5 files, narrow pathspec) and pushed per D-007.
+
+**Three new issues filed, all non-blocking and all reproduced:** AT-065 (medium — the legacy-
+rubric migration above), AT-063 (low — a hand-edit confined to `feedback_format` is discarded,
+since the untouched-check does not compare it; nothing in the codebase ever sets it), AT-064
+(low — a generator-stamped rubric shared via `case.rubric_ref` would be rewritten with the
+pointing case's claim; currently unreachable, nothing assigns `rubric_ref`).
