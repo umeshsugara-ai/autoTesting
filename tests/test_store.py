@@ -183,3 +183,42 @@ def test_a_human_can_hand_edit_an_artifact_and_the_store_still_loads(tmp_path: P
     text = text.replace('"name": "Pathlynks"', f'"name": "{new_name}"')
     store.paths.config.write_text(text, encoding="utf-8")
     assert store.load_project().name == new_name
+
+
+def test_delete_case_clears_the_id_cache_within_one_store_instance(tmp_path: Path) -> None:
+    """AT-066: the UI-level delete-then-re-add test cannot prove this — a fresh
+    `ProjectStore` is built per request, so it would stay green even if
+    `delete_case` never called `discard`. Exercised here against ONE instance,
+    which is the only place the cache is observable."""
+    store = ProjectStore("pathlynks", tmp_path)
+    case = make_case()
+    store.add_case(case)
+    assert store.has_case(case.id)
+
+    assert store.delete_case(case.id) is True
+
+    assert not store.has_case(case.id)      # the cache, not just the file
+    assert store.list_cases() == []
+    store.add_case(case)                     # the re-add the stale cache would swallow
+    assert [c.id for c in store.list_cases()] == [case.id]
+
+
+def test_delete_case_returns_false_for_an_unknown_id(tmp_path: Path) -> None:
+    store = ProjectStore("pathlynks", tmp_path)
+    store.add_case(make_case())
+
+    assert store.delete_case("case_nope") is False
+    assert len(store.list_cases()) == 1
+
+
+def test_update_case_keeps_the_id_cached_and_replaces_in_place(tmp_path: Path) -> None:
+    store = ProjectStore("pathlynks", tmp_path)
+    case = store.add_case(make_case())
+
+    store.update_case(case.model_copy(update={"title": "renamed"}))
+
+    assert store.has_case(case.id)
+    cases = store.list_cases()
+    assert len(cases) == 1                   # replaced, never appended twice
+    assert cases[0].title == "renamed"
+    assert cases[0].id == case.id
