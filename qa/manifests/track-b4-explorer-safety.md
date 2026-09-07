@@ -103,4 +103,15 @@ this layer. `policy_for(**overrides)` is the documented per-project extension po
 also not exhaustive of every possible phrasing. This is the same class of limit already
 documented for `deny_patterns` in the original manifest text below — not new to this cycle.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Verdict: `qa/verdicts/track-b4-explorer-safety.md` (**Cycle checked: 2**, PASS, 3/3 criteria —
+C1-C3). Cycle 1's checker crashed on a network error but had already found AT-092 (never-click
+disarmable via `SafetyPolicy` construction); I fixed it and a related gap myself before cycle 2.
+Cycle 2 reproduced the AT-092 fix independently, tried its own bypass of `deny_reason` and failed
+to find one, confirmed the extension point (widening `never_click_patterns`) still works, and
+found one new gap: **AT-093 (medium)** — hyphen/underscore/dot-separated logout labels
+(`Log-Out`, `LOG_OUT`, `Log.Out`) aren't caught by the pattern baseline. Filed, left open — a
+pattern-matching completeness gap, not a policy-bypass, and not a criterion violation; bundled
+into the T-123 medium-issue batch rather than blocking this unit's close-out. AT-092 moved to
+`verified`. `T-142` closed in `.goal/goal.json`.
