@@ -4,15 +4,15 @@
   "north_star": "An AI automated end-to-end tester that ingests product videos/docs, derives a reviewed FlowSpec, auto-generates best/worst/edge-case evals, runs them as regression in a real visible browser, self-extends coverage by requesting videos for unknown screens, and beats an expert human tester head-to-head on the same material (bugs found, false-positive rate, time). First target: Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-08T00:44:06",
+  "updated": "2026-09-08T00:47:06",
   "progress": {
-    "total": 36,
+    "total": 45,
     "done": 27,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 9,
+    "pending": 18,
     "current": "T-122",
-    "percent": 75
+    "percent": 60
   },
   "tasks": [
     {
@@ -722,6 +722,179 @@
       "created": "2026-09-07T17:15:41",
       "user_value": "high",
       "criticality": "low"
+    },
+    {
+      "id": "T-124",
+      "title": "Consent gates as an artifact (RunApproval + require_approval) and a real done_check for T-145",
+      "status": "pending",
+      "base_criticality": "HIGH",
+      "deps": [
+        "T-144"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_consent.py -q",
+        "expect_exit": 0
+      },
+      "note": "D-018. Gate 1 = read scope, gate 2 = every outward-facing run. Replaces T-145's done_check, which is currently {'cmd':'true'} and cannot fail (AT-100).",
+      "attempts": 0,
+      "created": "2026-09-08T00:46:52",
+      "user_value": "high",
+      "criticality": "low"
+    },
+    {
+      "id": "T-125",
+      "title": "Test catalog: which case classes apply, which are runnable, which are blocked and why (+ cheap->expensive ordering)",
+      "status": "pending",
+      "base_criticality": "NORMAL",
+      "deps": [
+        "T-124"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_catalog.py tests/test_ui_catalog.py -q",
+        "expect_exit": 0
+      },
+      "note": "plan.md 5A. expand.py generates cases without saying which cannot actually run; a blocked entry must name the one action that unblocks it.",
+      "attempts": 0,
+      "created": "2026-09-08T00:46:52",
+      "user_value": "high",
+      "criticality": "low"
+    },
+    {
+      "id": "T-126",
+      "title": "Governance debt sweep: adapter allowlist (D-018), QUEUE/SNAPSHOT drift, ledger backfill",
+      "status": "pending",
+      "base_criticality": "NORMAL",
+      "deps": [
+        "T-124"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run autotester doctor",
+        "expect_exit": 0
+      },
+      "note": "plan.md 5A. qa/adapter.json allowlists 3 commands while checkers legitimately run proof scripts, docker inspect, git show and their own probes.",
+      "attempts": 0,
+      "created": "2026-09-08T00:46:52",
+      "user_value": "normal",
+      "criticality": "low"
+    },
+    {
+      "id": "T-150",
+      "title": "Track C governance: register C tasks, file ai-target.md and adversarial.md criteria for the checker",
+      "status": "pending",
+      "base_criticality": "NORMAL",
+      "deps": [
+        "T-124"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run autotester doctor",
+        "expect_exit": 0
+      },
+      "note": "D-017/D-018 already appended 2026-09-08. Contracts are checker-owned; this unit files the criteria, it does not write them.",
+      "attempts": 0,
+      "created": "2026-09-08T00:46:52",
+      "user_value": "normal",
+      "criticality": "low"
+    },
+    {
+      "id": "T-151",
+      "title": "Track C1: read-only target discovery + deterministic signals + classification (+ context folder as markdown)",
+      "status": "pending",
+      "base_criticality": "HIGH",
+      "deps": [
+        "T-150"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_discover.py -q",
+        "expect_exit": 0
+      },
+      "note": "D-017: signals by grep/file inspection, never a model. A model may NAME the system kind and may never choose which checks run. Every Signal cites a real file:line. Obsidian = structured markdown only (frontmatter + tags).",
+      "attempts": 0,
+      "created": "2026-09-08T00:46:52",
+      "user_value": "high",
+      "criticality": "low"
+    },
+    {
+      "id": "T-152",
+      "title": "Track C2: AI check registry + catalog matching (reuses T-125's Catalog, never a second one)",
+      "status": "pending",
+      "base_criticality": "NORMAL",
+      "deps": [
+        "T-151",
+        "T-125"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_ai_catalog.py -q",
+        "expect_exit": 0
+      },
+      "note": "Kind->checks is a literal table in code so a checker can re-derive it. Blocked entries name the missing fixture, never silently dropped.",
+      "attempts": 0,
+      "created": "2026-09-08T00:46:52",
+      "user_value": "normal",
+      "criticality": "low"
+    },
+    {
+      "id": "T-153",
+      "title": "Track C3: behavioural checks against a captured run, graded by the existing independent judge",
+      "status": "pending",
+      "base_criticality": "HIGH",
+      "deps": [
+        "T-152"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_ai_capture.py -q",
+        "expect_exit": 0
+      },
+      "note": "C7: the capturer never grades. Latency/schema computed in code, not judged. Every capture passes Redactor.scrub + assert_no_raw_secrets before reaching a judge.",
+      "attempts": 0,
+      "created": "2026-09-08T00:46:52",
+      "user_value": "high",
+      "criticality": "low"
+    },
+    {
+      "id": "T-154",
+      "title": "Track C4: bounded adversarial pass behind consent gate 2 (+ adversarial_proof.py)",
+      "status": "pending",
+      "base_criticality": "CRITICAL",
+      "deps": [
+        "T-153",
+        "T-124"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run python scripts/adversarial_proof.py",
+        "expect_exit": 0
+      },
+      "note": "HIGHEST-RISK UNIT IN THE PLAN. Native file-defined probe sets; Garak/PyRIT/DeepTeam are NOT dependencies (D-017). No approval => zero requests sent, asserted at the transport. Probe cap, allowed_domains only, production named explicitly.",
+      "attempts": 0,
+      "created": "2026-09-08T00:46:52",
+      "user_value": "high",
+      "criticality": "low"
+    },
+    {
+      "id": "T-155",
+      "title": "Track C5: unified AI test report grouped by tier with judge reason strings",
+      "status": "pending",
+      "base_criticality": "NORMAL",
+      "deps": [
+        "T-154"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_ai_report.py -q",
+        "expect_exit": 0
+      },
+      "note": "Reuses core/excel.py autosize_columns. Blocked checks appear as blocked with a reason, never as passes.",
+      "attempts": 0,
+      "created": "2026-09-08T00:46:52",
+      "user_value": "normal",
+      "criticality": "low"
     }
   ],
   "decisions": [],
@@ -770,9 +943,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 5.13,
-    "eta_days": 1.9
+    "velocity_per_day": 5.34,
+    "eta_days": 3.4
   },
-  "last_deterministic_tick": "2026-09-08T00:42:02",
+  "last_deterministic_tick": "2026-09-08T00:47:06",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }
