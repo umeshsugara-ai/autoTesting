@@ -41,6 +41,14 @@ _ACTIONS: dict[Action, StepHandler] = {
         step_order=step.order,
     ),
     Action.ASSERT: lambda session, step: None,  # evidence only — see run_case's screenshot
+    Action.BACK: lambda session, step: session.go_back(step_order=step.order),
+    Action.HOVER: lambda session, step: session.hover(step.target, step_order=step.order),
+    Action.PRESS_KEY: lambda session, step: session.press_key(
+        step.value or "Enter", step.target or None, step_order=step.order
+    ),
+    Action.SCROLL: lambda session, step: session.scroll(
+        int(step.value) if step.value else 800, step_order=step.order
+    ),
 }
 
 
@@ -59,7 +67,7 @@ def run_case(case: Case, session: BrowserSession) -> RawResult:
             if handler is None:
                 raise StepNotExecutable(f"{step.action.value} has no browser handler yet")
             handler(session, step)
-            if step.action in (Action.CLICK, Action.NAVIGATE):
+            if step.action in (Action.CLICK, Action.NAVIGATE, Action.BACK):
                 # AT-045/AT-053: a click or a fresh navigation both trigger an
                 # async transition (a form-submit redirect, or the target page
                 # itself still rendering) -- settle before the evidence

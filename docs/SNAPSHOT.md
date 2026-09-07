@@ -32,9 +32,9 @@ AutoTester wins on bugs found, false positives, and time (`schema/bench.py` comp
 ## Next (open goal tasks)
 - T-122 [high] Track 0 tail: login case + first logged-in ERP run (HUMAN_GATE: ERP_EMAIL/ERP_PASSWORD values)
 - T-123 [normal] Medium-issue batch: AT-087 per-field exemption, AT-076/086 config-field rule, AT-079/080, AT-065, AT-085
-- T-130 [normal] Track A1: video-learning schema + storage foundation (D-014)
 - T-131 [high] Track A2: hardened Gemini vision provider + registered Source + persisted ingest
 - T-132 [normal] Track A3: host media prep (probe, chunks, transcript reuse/whisper, frames)
+- T-133 [high] Track A4: two-model ensemble + deterministic adjudication + Issue derivation + 13-column Excel + scorer
 ## Last decisions (computed status)
 - D-012 2026-09-05 decision ACTIVE
 - D-013 2026-09-05 decision ACTIVE

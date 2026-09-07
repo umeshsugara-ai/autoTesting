@@ -263,17 +263,6 @@ def test_load_results_for_an_unknown_run_is_empty_not_an_error(tmp_path: Path) -
     assert store.load_results("run_does_not_exist") == []
 
 
-# -- D-014: an Action with no handler yet reports, never crashes -------------
-
-def test_scroll_action_with_no_handler_yet_errors_instead_of_raising(tmp_path: Path) -> None:
-    """SCROLL/HOVER/PRESS_KEY/BACK exist on the enum (D-014, shared with Track
-    B) before Track B1 gives them a `BrowserSession` handler. A case naming
-    one today must report ERRORED, never crash `run_case` with a KeyError."""
-    steps = [Step(order=1, action=Action.SCROLL, target="")]
-    session = session_with_fake_page(tmp_path)
-
-    result = run_case(make_case(steps), session)
-
-    assert result.outcome is Outcome.ERRORED
-    assert "scroll" in (result.error or "")
-    assert "no browser handler yet" in (result.error or "")
+# D-014/Track B1 tests (an Action with no handler, and the new BACK/HOVER/
+# PRESS_KEY/SCROLL actions) moved to test_execute_new_actions.py at the
+# 300-line cap.

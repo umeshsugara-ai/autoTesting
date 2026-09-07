@@ -10,11 +10,11 @@ process's Chrome.
 from __future__ import annotations
 
 import contextlib
-import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from autotester.browser.launch import launch_options
 from autotester.browser.secrets import SecretStore, host_of
 from autotester.core.paths import ProjectPaths
 from autotester.core.redact import PLACEHOLDER_RE
@@ -22,6 +22,9 @@ from autotester.schema.enums import EvidenceKind, Outcome
 from autotester.schema.flowspec import ExpectedState
 from autotester.schema.project import Project
 from autotester.schema.run import Evidence
+
+__all__ = ["BrowserSession", "HitlRequest", "NavigationRefused", "SessionState",
+           "check_destination", "launch_options"]
 
 # CSS applied to secret inputs right before capture. Text becomes unreadable
 # without changing layout, so the screenshot still shows *where* the field is.
@@ -63,35 +66,6 @@ def check_destination(project: Project, url: str) -> str:
     return host
 
 
-def launch_options(project: Project, paths: ProjectPaths) -> dict[str, Any]:
-    """Arguments for `launch_persistent_context` (B5): headed by default, own profile.
-
-    `AUTOTESTER_SLOW_MO_MS` (unset/0 by default -- no behavior change) pads every
-    Playwright operation by that many ms, so a human watching the noVNC live view
-    can actually see a run happen instead of it completing in under a second.
-    Opt-in only, never set by the app itself -- a human exports it before a demo.
-    """
-    paths.profile_dir.mkdir(parents=True, exist_ok=True)
-    slow_mo_ms = int(os.environ.get("AUTOTESTER_SLOW_MO_MS", "0") or "0")
-    return {
-        "user_data_dir": str(paths.profile_dir),
-        "headless": not project.headed,
-        "viewport": {"width": 1366, "height": 850},
-        "slow_mo": slow_mo_ms,
-        "args": [
-            "--disable-blink-features=AutomationControlled",
-            # Found running this for real under Docker/Xvfb: screenshot capture crashed
-            # intermittently ("Protocol error (Page.captureScreenshot): Unable to capture
-            # screenshot") on the second persistent-context launch in a process, specifically
-            # when Chromium runs as root (the container's default user) without --no-sandbox,
-            # and again for the same reason --disable-dev-shm-usage helps in constrained
-            # display environments. Both are no-ops on a normal host launch.
-            "--no-sandbox",
-            "--disable-dev-shm-usage",
-        ],
-    }
-
-
 class BrowserSession:
     """Drive one project's browser. Construct, `start()`, act, `close()`.
 
@@ -105,11 +79,14 @@ class BrowserSession:
         secrets: SecretStore,
         run_dir: Path,
         paths: ProjectPaths | None = None,
+        *,
+        observer: Any | None = None,
     ) -> None:
         self.project = project
         self.secrets = secrets
         self.paths = paths or ProjectPaths(project.slug)
         self.state = SessionState(run_dir=run_dir)
+        self.observer = observer
         self._playwright: Any = None
         self._context: Any = None
         self._page: Any = None
@@ -124,6 +101,8 @@ class BrowserSession:
         )
         self._page = self._context.pages[0] if self._context.pages else self._context.new_page()
         self.state.run_dir.mkdir(parents=True, exist_ok=True)
+        if self.observer is not None:
+            self.observer.attach(self._page)
         return self
 
     def close(self) -> None:
@@ -172,6 +151,32 @@ class BrowserSession:
     def click(self, locator: str, *, step_order: int | None = None) -> Evidence:
         self.page.locator(locator).click()
         return self._record(EvidenceKind.DOM, f"clicked {locator}", step_order=step_order)
+
+    def current_url(self) -> str:
+        """The page's current URL. The explorer (Track B) reads this instead of
+        touching `.page` directly (the actuator choke-point)."""
+        return str(self.page.url)
+
+    def go_back(self, *, step_order: int | None = None) -> Evidence:
+        self.page.go_back(wait_until="domcontentloaded")
+        return self._record(EvidenceKind.URL, self.page.url, step_order=step_order, label="back")
+
+    def hover(self, locator: str, *, step_order: int | None = None) -> Evidence:
+        self.page.locator(locator).hover()
+        return self._record(EvidenceKind.DOM, f"hovered {locator}", step_order=step_order)
+
+    def press_key(
+        self, key: str, locator: str | None = None, *, step_order: int | None = None
+    ) -> Evidence:
+        if locator:
+            self.page.locator(locator).press(key)
+        else:
+            self.page.keyboard.press(key)
+        return self._record(EvidenceKind.DOM, f"pressed {key}", step_order=step_order)
+
+    def scroll(self, delta_y: int = 800, *, step_order: int | None = None) -> Evidence:
+        self.page.mouse.wheel(0, delta_y)
+        return self._record(EvidenceKind.DOM, f"scrolled {delta_y}px", step_order=step_order)
 
     def select_option(
         self, locator: str, value: str | None, *, step_order: int | None = None

@@ -9,6 +9,8 @@
 | Module | One job |
 |---|---|
 | `browser/db.py` | Read-only backend assertions against MongoDB. Contract: qa/contracts/db-assert.md. |
+| `browser/launch.py` | Playwright launch options for one project's persistent browser context. |
+| `browser/observe.py` | Passive observation: enumerate a page's controls, capture console/network |
 | `browser/secrets.py` | The credential boundary. Secret values live here and nowhere else. |
 | `browser/session.py` | One real, visible browser session per project. Contract: browser-and-secrets.md B5-B9. |
 | `cli.py` | Command line. Every action the UI offers is available here first. |
@@ -29,6 +31,7 @@
 | `schema/bench.py` | The north star, made measurable: human expert tester vs AutoTester. |
 | `schema/case.py` | A test case — one falsifiable claim about the product, plus how to check it. |
 | `schema/coverage.py` | Coverage gaps and the video requests that close them. |
+| `schema/crawl.py` | Crawl-safety primitives. B1's minimal slice — `stages/explore_safety.py` |
 | `schema/enums.py` | Every closed vocabulary in the system. Nothing else defines these strings. |
 | `schema/flowspec.py` | The FlowSpec — the system's understanding of the product under test. |
 | `schema/issue.py` | A video-derived issue — its own artifact, deliberately NOT a `CaseClass`. |
@@ -37,6 +40,7 @@
 | `schema/observation.py` | A vision model's raw reading of one video — INGEST's input material. |
 | `schema/project.py` | Project configuration and the secret contract. One directory per project. |
 | `schema/run.py` | What EXECUTE observed. Deliberately contains no judgement — see verdict.py. |
+| `schema/screen_graph.py` | What one page-visit observed: its interactive elements and identity inputs. |
 | `schema/screenmap.py` | The product map — every screen the system has learned across all a |
 | `schema/verdict.py` | Grading. An independent, stateless judge reads evidence against a rubric. |
 | `stages/agent_loop.py` | Agent fallback: when a case's steps break, ask the agent for a fix and retry. |
@@ -88,6 +92,7 @@
 | `Script` (`schema/case.py`) | A durable Playwright script produced once an agent gets a case working. |
 | `CoverageGap` (`schema/coverage.py`) | A screen or route observed in a run but absent from the FlowSpec. |
 | `VideoRequest` (`schema/coverage.py`) | What the system asks a human to record, and why. |
+| `DialogEvent` (`schema/crawl.py`) | One JS dialog (`alert`/`confirm`/`prompt`/`beforeunload`) the observer saw. |
 | `SourceRef` (`schema/flowspec.py`) | Where a piece of understanding came from — a video second, a doc line. |
 | `FieldConstraints` (`schema/flowspec.py`) | What the UI says a field accepts. Drives boundary/edge case generation. |
 | `InputField` (`schema/flowspec.py`) | One input on a screen. |
@@ -120,6 +125,8 @@
 | `ProviderUsage` (`schema/run.py`) | Token and call accounting per provider role — the cost story per run. |
 | `RawResult` (`schema/run.py`) | One case's execution record. |
 | `Run` (`schema/run.py`) | One regression run over a set of cases. |
+| `ElementRef` (`schema/screen_graph.py`) | One interactive element found by `browser/enumerate.js`. |
+| `PageObservation` (`schema/screen_graph.py`) | One page-visit's raw material: its url/title and interactive elements. |
 | `ScreenVisit` (`schema/screenmap.py`) | One recording that showed this screen. |
 | `MappedScreen` (`schema/screenmap.py`) | One screen folded across every recording that showed it. |
 | `Journey` (`schema/screenmap.py`) | One recording's ordered path through screens. |
