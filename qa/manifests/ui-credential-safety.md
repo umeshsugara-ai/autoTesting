@@ -95,4 +95,42 @@ the check fires on a genuine credential and not just on a lookalike):
 
 No case was written in probes 1 or 2 — both projects' `cases.jsonl` are unchanged.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Verdict: `qa/verdicts/ui-credential-safety.md` (Cycle checked: 1, PASS, 7/7 criteria met).
+
+**The check did its job: it found a real hole this manifest overclaimed.** I asked the checker to
+try to bypass the guard rather than confirm it works, and it did.
+
+Caught, confirmed by probe: the exact value; the value with surrounding whitespace (`_build_steps`
+strips *before* the guard); the value as a substring of a longer string; and an undeclared `.env`
+value belonging to another project (the redactor is built from shadow + declared).
+
+**Not caught — filed as AT-070 (high):** the guard is wired to `step_value` **alone**. The same
+credential typed into the case **title**, the **target** box, or the **expect** box — same form
+row — is accepted and written in cleartext to `cases.jsonl`, which is **git-tracked in a public
+repo**. The title case is the worst of the three: U6 mandates `rationale=None`, so `claim_of`
+falls back to the title and feeds it into the grade prompt, where the `guard_prompt` this very
+unit wired raises an **unhandled** `ValueError` — so the leak would also 500 every subsequent run.
+Also **AT-071 (medium)**: a value split across two step rows passes, because the guard runs once
+per row, and the halves reassemble byte-for-byte on disk.
+
+Neither is a criterion violation — no `ui.md` criterion covers credential safety inside cases,
+which is precisely why they are issues and not a FAIL — but this manifest presented the guard as
+protection for the form when it protects one box. Corrected here rather than left to read as
+verified. Both are fixed in the follow-on unit `ui-credential-safety-all-fields`.
+
+Also filed **AT-072 (low)**: `is_clean` has no minimum length by deliberate design (AT-002) and
+fails closed, which is the right direction, but with a short or word-like value in `.env` ordinary
+text is refused with "that looks like a real credential" — live-reachable today because
+`PATHLYNKS_USER_LOGIN_URL`, a non-secret, sits in `.env`.
+
+Verified good by the checker's own probes: `guard_prompt` genuinely fires on the UI path (it
+constructed a poisoned rubric and confirmed `grade()` raises before the judge is called), the
+three script callers are untouched, `has_value` returns a bare bool and the run-refusal names
+KEYS only, and `_require_declared_values` runs **before** `session.start()` so no browser is
+launched. The `case_form.py` split moved code unchanged.
+
+Source was uncommitted on arrival (the AT-055 pattern); the checker committed the ten paths itself
+(`a61e3bf`), verdict and ledger in `1bd5091`, both pushed per D-007. Nothing was written to the
+repo-root `.env` — its scratch envs lived in container temp dirs.
