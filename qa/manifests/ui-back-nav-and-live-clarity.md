@@ -100,4 +100,24 @@ failed — `.btn-back`'s CSS rule ships in the shared stylesheet on *every* page
 substring always matches. Fixed by asserting on the rendered anchor
 (`<a class='btn btn-back'`) instead. The test was wrong, not the code.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Verdict: `qa/verdicts/ui-back-nav-and-live-clarity.md` (Cycle checked: 1, PASS, 5/5 criteria
+met, 1/1 invariants hold). The checker audited all 8 call sites for U5 rather than sampling,
+and proved escaping live by onboarding a project named `<script>alert(1)</script>&'"` and
+fetching 5 routes — raw script present on none. It confirmed all 8 breadcrumb replacements are
+faithful (same labels, same link targets, only the back button added) and committed this unit's
+source itself (`2cd6db8`) per the AT-055 lesson, having found all of it still uncommitted at
+check time.
+
+Two non-failure observations carried forward rather than dropped:
+1. `theme.breadcrumb()` interpolates a caller string into an `href='...'` attribute while adding
+   no escaping of its own. Every current caller is correct (no user-controlled string reaches an
+   href at all), but `escape(href, quote=True)` inside the helper would be cheap defense in
+   depth for a future caller.
+2. The run view is the one breadcrumb call site with no direct back-button assertion (it needs a
+   seeded run to reach, so the parametrized test skips it).
+
+The checker also filed **AT-057** (high, open) for the empty-project dead end this unit logged
+but deliberately did not fix, so it is queued contract-scoped work rather than inbox prose, and
+appended a routine amendment row to `qa/contracts/ui.md` recording the breadcrumb invariant.
