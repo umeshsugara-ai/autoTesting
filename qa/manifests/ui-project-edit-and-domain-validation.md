@@ -92,4 +92,38 @@ nothing created - refused cleanly
 
 The failure now lands at the moment of the mistake, names the host to add, and writes nothing.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Verdict: `qa/verdicts/ui-project-edit-and-domain-validation.md` (Cycle checked: 1, PASS, 7/7
+criteria — U1-U6 re-verified plus a new U7 the checker added, pinning the *composition*
+(`host_of` + `allows_domain`) rather than the behaviour, so a future unit cannot let the
+validator drift stricter than the gate it mirrors). AT-058 flipped open → fixed.
+
+Checker findings worth keeping:
+- **Nothing bricked** — all four on-disk projects still pass the new validator, including the
+  two riskiest shapes: `pathlynks` (a subdomain of `vidysea.com`) and `regression-demo` (a bare
+  IP with a port).
+- It caught a real trap in the composition: `secrets._host_matches` (used for secret scoping)
+  lowercases and strips leading dots while `allows_domain` does not, so reaching for the wrong
+  one would have made the validator silently disagree with the runtime gate. The unit uses the
+  same pair `browser/session.py::check_destination` does.
+- **Edit route is not a back door** — a `slug=hijacked` field posted to the form is ignored, the
+  slug is unchanged and no new directory appears; stranding domains, empty domain list, blank
+  name and a userinfo/backslash base_url are all 400 with the on-disk value unchanged.
+- U5 clean under a hostile probe (name and base_url carrying `<script>` and quotes); U3 intact
+  (no `.env`/SecretStore reach; `model_copy` preserves `secrets`, `write_policy`, `slug`).
+- It proved the half only a live test can show: seeded a project in the exact broken state,
+  fixed it through the UI, and confirmed `check_destination` then returns the host instead of
+  raising `NavigationRefused`.
+- Judged the deliberate non-fix (no wildcard) sound, noting the user is not stuck: the real
+  intent is fully expressible and the refusal names the exact host to add.
+
+Source was again uncommitted on arrival; the checker committed it itself (`b444d17`), with the
+verdict/ledger/contract in `258f2ac`, both pushed per D-007.
+
+**Two low-severity gaps filed, not failed:**
+- **AT-061** — `host_of` returns a pseudo-host for garbage input, so `base_url=all` or a
+  schemeless `vidysea.com` still onboards. This manifest's claim that `host_of` "returns empty"
+  is what the code checks, but it is not true for every malformed input; the residual fix
+  belongs in the UI layer, not in `host_of`.
+- **AT-062** — onboarding stores `name`/`base_url` unstripped while the edit form strips them.
