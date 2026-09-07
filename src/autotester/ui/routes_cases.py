@@ -25,7 +25,6 @@ from autotester.core.paths import ProjectPaths
 from autotester.schema.case import Case
 from autotester.schema.enums import KIND_BY_CLASS, Action, CaseClass
 from autotester.schema.flowspec import ExpectedState, Step
-from autotester.schema.project import Project
 from autotester.store.project_store import ProjectStore
 from autotester.ui import theme
 from autotester.ui.case_form import (
@@ -36,7 +35,7 @@ from autotester.ui.case_form import (
 )
 from autotester.ui.helpers import (
     _load_project_or_404,
-    _refuse_unsafe_value,
+    _refuse_unsafe_submission,
     _require_safe_id,
 )
 
@@ -100,8 +99,7 @@ def new_case_form(slug: str) -> str:
 
 
 def _build_steps(
-    actions: list[str], targets: list[str], values: list[str], expects: list[str],
-    project: Project, secrets: SecretStore,
+    actions: list[str], targets: list[str], values: list[str], expects: list[str]
 ) -> list[Step]:
     """Keep only rows a human actually filled in, renumbering from 1 so a skipped
     middle row never leaves a hole in `Step.order`."""
@@ -113,7 +111,6 @@ def _build_steps(
             parsed = Action(action)
         except ValueError as exc:
             raise HTTPException(400, f"unknown action '{action}'") from exc
-        _refuse_unsafe_value(value.strip(), project, secrets)
         expected = (
             ExpectedState(visible_text=[expect.strip()]) if expect.strip()
             else ExpectedState()
@@ -160,12 +157,16 @@ async def create_case(slug: str, request: Request) -> RedirectResponse:
     except ValueError as exc:
         raise HTTPException(400, f"unknown case class '{case_class}'") from exc
 
+    _refuse_unsafe_submission(
+        [title, *form.getlist("step_target"), *form.getlist("step_value"),
+         *form.getlist("step_expected")],
+        project, secrets,
+    )
     steps = _build_steps(
         [str(v) for v in form.getlist("step_action")],
         [str(v) for v in form.getlist("step_target")],
         [str(v) for v in form.getlist("step_value")],
         [str(v) for v in form.getlist("step_expected")],
-        project, secrets,
     )
     if not steps:
         raise HTTPException(400, "a case needs at least one step")
@@ -249,13 +250,15 @@ def cases_list(slug: str) -> str:
 def rename_case(slug: str, case_id: str, title: str = Form(...)) -> RedirectResponse:
     """Title is deliberately outside `Case.compute_id()`, so renaming keeps the
     id — and with it every past run, verdict and rubric already attached."""
-    store, _project = _load_project_or_404(slug)
+    store, project = _load_project_or_404(slug)
     _require_safe_id(case_id, "case id")
     if not title.strip():
         raise HTTPException(400, "a case needs a title")
     case = store.get_case(case_id)
     if case is None:
         raise HTTPException(404, f"no case '{case_id}'")
+    secrets = SecretStore.load(project, ProjectPaths(slug).env_file, strict=False)
+    _refuse_unsafe_submission([title], project, secrets)
     store.update_case(case.model_copy(update={"title": title.strip()}))
     return RedirectResponse(f"/projects/{slug}/cases", status_code=303)
 

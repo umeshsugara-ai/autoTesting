@@ -78,14 +78,14 @@ def _load_project_or_404(slug: str) -> tuple[ProjectStore, Project]:
     return store, project
 
 def _refuse_unsafe_value(value: str, project: Project, secrets: SecretStore) -> None:
-    """Keep a real credential out of `cases.jsonl`, and catch a mistyped key now
-    rather than mid-run.
+    """One field. Placeholders must name a declared key; a literal must not be a
+    real `.env` value.
 
     Two distinct mistakes, both silent before this existed:
-    - Typing the credential ITSELF into the value box. `cases.jsonl` is not
-      gitignored, so it would be persisted in plaintext; and because no
-      `{{SECRET:KEY}}` placeholder is present, `session.fill` never tags the
-      field, so it appears in cleartext in every screenshot too.
+    - Typing the credential ITSELF into a text box. `cases.jsonl` is git-TRACKED
+      in a public repo, so that is a credential committed in cleartext; and
+      because no `{{SECRET:KEY}}` placeholder is present, `session.fill` never
+      tags the field, so it shows up in every screenshot too.
     - Referencing a key the project has not declared. That resolved only at
       typing time, deep inside `_value_for`, surfacing as a stringified
       `UndeclaredSecret` inside a generic ERRORED outcome.
@@ -103,7 +103,34 @@ def _refuse_unsafe_value(value: str, project: Project, secrets: SecretStore) -> 
         return
     if not secrets.redactor().is_clean(value):
         raise HTTPException(400, (
-            "that looks like a real credential. Do not paste the value into a test "
-            "step — it would be stored in plain text and show up in screenshots. "
-            "Declare it in Project settings, then reference it here as {{SECRET:KEY}}."
+            "that looks like a real credential. Do not type the value into a test "
+            "case — cases are stored in the repository in plain text and appear in "
+            "screenshots. Declare it in Project settings, then reference it here as "
+            "{{SECRET:KEY}}."
+        ))
+
+
+def _refuse_unsafe_submission(
+    texts: list[str], project: Project, secrets: SecretStore
+) -> None:
+    """Every user-supplied field of a case, and their concatenation.
+
+    AT-070: the guard was wired to the value box alone, so the same credential
+    typed into the title, the target or the expect box sailed through into a
+    git-tracked `cases.jsonl`. The title was the worst of the three — U6 leaves
+    `rationale=None`, so `claim_of` falls back to the title and feeds it to the
+    grade prompt, where `guard_prompt` raises and 500s every later run.
+
+    AT-071: checking fields one at a time also missed a value split across two
+    rows, which reassembles byte-for-byte on disk. So the joined text is checked
+    too. A false positive there costs a clear error message asking for a
+    placeholder; a false negative costs a committed credential.
+    """
+    for text in texts:
+        _refuse_unsafe_value(text.strip(), project, secrets)
+    joined = "".join(t.strip() for t in texts)
+    if joined and not secrets.redactor().is_clean(joined):
+        raise HTTPException(400, (
+            "a real credential appears to be split across these fields. Declare it in "
+            "Project settings and reference it as {{SECRET:KEY}} instead."
         ))

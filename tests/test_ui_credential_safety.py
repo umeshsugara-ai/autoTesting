@@ -166,3 +166,109 @@ def test_a_run_is_refused_when_a_declared_credential_has_no_value(
     assert response.status_code == 400
     assert "DEMO_PASSWORD" in response.text
     assert "Credentials page" in response.text
+
+
+# -- AT-070/AT-071: the guard covers the whole form, not one box -------------
+
+def _add_case_fields(client: TestClient, *, title: str = "Log in", target: str = "input#x",
+                     value: str = "", expect: str = ""):
+    return client.post("/projects/demo/cases", data={
+        "title": title, "case_class": CaseClass.HAPPY.value,
+        "step_action": [Action.FILL.value], "step_target": [target],
+        "step_value": [value], "step_expected": [expect],
+    }, follow_redirects=False)
+
+
+@pytest.mark.parametrize("field", ["title", "target", "expect"])
+def test_a_credential_in_any_field_is_refused_not_just_the_value_box(
+    client: TestClient, scratch_root: Path, field: str
+) -> None:
+    """AT-070: the guard was wired to `step_value` alone. `cases.jsonl` is
+    git-TRACKED in a public repo, so a credential in the title, target or expect
+    box was a credential committed in cleartext. The title was worst: U6 leaves
+    `rationale=None`, so `claim_of` falls back to it and feeds the grade prompt."""
+    _project_with_credential(client, scratch_root, value=REAL_PASSWORD)
+
+    response = _add_case_fields(client, **{field: REAL_PASSWORD})
+
+    assert response.status_code == 400, f"{field} accepted a real credential"
+    assert ProjectStore("demo", scratch_root).list_cases() == []
+
+
+def test_a_credential_split_across_two_rows_is_refused(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """AT-071: the guard ran once per row, so the halves passed individually and
+    reassembled byte-for-byte on disk."""
+    _project_with_credential(client, scratch_root, value=REAL_PASSWORD)
+    half = len(REAL_PASSWORD) // 2
+
+    response = client.post("/projects/demo/cases", data={
+        "title": "Split", "case_class": CaseClass.HAPPY.value,
+        "step_action": [Action.FILL.value, Action.FILL.value],
+        "step_target": ["input#a", "input#b"],
+        "step_value": [REAL_PASSWORD[:half], REAL_PASSWORD[half:]],
+        "step_expected": ["", ""],
+    }, follow_redirects=False)
+
+    assert response.status_code == 400
+    assert ProjectStore("demo", scratch_root).list_cases() == []
+
+
+def test_renaming_a_case_to_a_credential_is_refused(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """Rename is a second door into the same field."""
+    _project_with_credential(client, scratch_root, value=REAL_PASSWORD)
+    _add_case_fields(client, title="Honest title")
+    case_id = ProjectStore("demo", scratch_root).list_cases()[0].id
+
+    response = client.post(f"/projects/demo/cases/{case_id}/rename",
+                            data={"title": REAL_PASSWORD})
+
+    assert response.status_code == 400
+    assert ProjectStore("demo", scratch_root).list_cases()[0].title == "Honest title"
+
+
+def test_an_ordinary_multi_field_case_still_works(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """The widened guard must not block normal use."""
+    _project_with_credential(client, scratch_root, value=REAL_PASSWORD)
+
+    response = _add_case_fields(
+        client, title="Sign in works", target="input[type=email]",
+        value="tester@demo.test", expect="Welcome",
+    )
+
+    assert response.status_code == 303
+    assert len(ProjectStore("demo", scratch_root).list_cases()) == 1
+
+
+def test_a_credential_reaching_the_grade_prompt_blocks_instead_of_crashing(
+    tmp_path: Path
+) -> None:
+    """AT-070's second half: refusing to send the prompt is right, but raising an
+    unhandled ValueError 500d every later run with no way back."""
+    from autotester.browser.secrets import SecretStore
+    from autotester.providers.mock import MockProvider
+    from autotester.schema.enums import Outcome, Result
+    from autotester.schema.project import Project, SecretRef
+    from autotester.schema.run import RawResult
+    from autotester.schema.verdict import Criterion, Rubric
+    from autotester.stages.grade import grade
+
+    env = tmp_path / ".env"
+    env.write_text(f"DEMO_PASSWORD={REAL_PASSWORD}\n", encoding="utf-8")
+    project = Project(slug="demo", name="Demo", base_url="https://demo.test",
+                       allowed_domains=["demo.test"],
+                       secrets=[SecretRef(key="DEMO_PASSWORD", domains=["demo.test"])])
+    secrets = SecretStore.load(project, env)
+    poisoned = Rubric(id="rub_x", case_id="case_x",
+                       criteria=[Criterion(id="c1", text=f"evidence shows {REAL_PASSWORD}")])
+    result = RawResult(case_id="case_x", outcome=Outcome.COMPLETED)
+
+    verdict = grade(poisoned, result, "run_1", MockProvider(), secrets=secrets)
+
+    assert verdict.result is Result.BLOCKED
+    assert REAL_PASSWORD not in verdict.model_dump_json()

@@ -115,7 +115,20 @@ def grade(rubric: Rubric, result: RawResult, run_id: str, judge: Provider,
 
     prompt = build_grade_prompt(rubric, result, docs or RepoDocs())
     if secrets is not None:
-        secrets.guard_prompt(prompt)
+        try:
+            secrets.guard_prompt(prompt)
+        except ValueError as exc:
+            # AT-070: refusing to send the prompt is right, but crashing the run
+            # is not -- a credential that reached a rubric (e.g. via a case title
+            # feeding claim_of) would otherwise 500 every subsequent run with no
+            # way back. Fail this case loudly and safely instead, naming no value.
+            return _verdict(
+                run_id, result, rubric, verdict_result=Result.BLOCKED,
+                provider_id="rule", scoreboard="not judged: prompt withheld",
+                note=f"a credential value reached the grading prompt, so it was not sent "
+                     f"({type(exc).__name__}). Remove it from the case and use "
+                     f"{{{{SECRET:KEY}}}} instead.",
+            )
     judgment = judge.judge(prompt, Judgment, images=_screenshot_paths(result, run_dir))
     problem = _inconsistency(rubric, judgment)
     if problem is not None:
