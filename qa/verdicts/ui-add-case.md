@@ -258,5 +258,11 @@ were modified-uncommitted — the exact AT-055 failure mode. **I committed them 
 with a narrow pathspec covering `src/autotester/ui/routes_cases.py`,
 `src/autotester/ui/app.py`, `tests/test_ui_cases.py`, `docs/MAP.md`,
 `qa/manifests/ui-add-case.md`, `qa/issues.jsonl`, `qa/contracts/ui.md` and this verdict.
-`qa/feedback-inbox.md` had no pending change to commit. See the commit named at the end
-of this file.
+`qa/feedback-inbox.md` had no pending change to commit — it was already clean in the
+working tree, so nothing of this unit's was left stranded there.
+
+Commit: **1652de5** — `checker: PASS verdict on ui-add-case (cycle 1) + the unit's
+source changes` (8 files: the three source/test files, `docs/MAP.md`, the manifest,
+the ledger, the contract amendment, and this verdict). Deliberately excluded and still
+uncommitted: `projects/erp/` (untracked runtime data, Umesh's), `docs/SNAPSHOT.md`,
+`.goal/*`, `goal.md`, `qa/.last-tick` (hook/maker-owned bookkeeping, not this unit's).
