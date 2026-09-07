@@ -97,9 +97,15 @@ PAGE_STYLE = """
                  gap: 1rem; margin-bottom: 1.75rem; flex-wrap: wrap; }
   .subtitle { color: var(--text-dim); margin: 0; font-size: .98rem; }
   .breadcrumb { font-family: var(--font-mono); font-size: .78rem; color: var(--muted);
-                margin-bottom: .9rem; text-transform: uppercase; letter-spacing: .04em; }
+                text-transform: uppercase; letter-spacing: .04em; }
   .breadcrumb a { color: var(--muted); text-decoration: none; }
   .breadcrumb a:hover { color: var(--accent); }
+
+  /* The trail alone read as a location label, not a control -- every non-home
+     page gets a real back button beside it. */
+  .crumbs { display: flex; align-items: center; gap: .85rem; margin-bottom: 1.1rem;
+            flex-wrap: wrap; }
+  .btn-back { padding: .34rem .85rem; font-size: .82rem; flex: none; }
 
   .card {
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
@@ -247,5 +253,6 @@ PAGE_STYLE = """
               border-radius: var(--radius-lg); padding: 1.1rem 1.3rem; margin-bottom: 1.4rem; }
   .live-tip code { font-family: var(--font-mono); background: var(--neutral-bg);
                     padding: .15rem .4rem; border-radius: 4px; font-size: .85rem; }
+  .live-tip-muted { color: var(--text-dim); font-size: .9rem; }
 </style>
 """

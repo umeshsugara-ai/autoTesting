@@ -50,8 +50,8 @@ def provider_settings_view() -> str:
     )
     table = f"<table><tr><th>Key</th><th>Status</th><th>New value</th><th></th></tr>{rows}</table>"
     body = (
-        "<div class='breadcrumb'><a href='/'>Projects</a> / Settings</div>"
-        "<h1>Provider settings</h1>"
+        theme.breadcrumb(("Projects", "/"), ("Settings", None))
+        + "<h1>Provider settings</h1>"
         "<p class='subtitle'>Global AI/API keys every project's grading and agent steps fall "
         "back through. Values are never shown once saved — only whether one is set.</p>"
         f"{theme.card(table)}"

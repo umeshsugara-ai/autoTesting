@@ -82,8 +82,10 @@ def flow_diagram(slug: str) -> str:
     store, _project = _load_project_or_404(slug)
     safe_slug = escape(slug)
     breadcrumb = (
-        f"<div class='breadcrumb'><a href='/'>Projects</a> / "
-        f"<a href='/projects/{safe_slug}'>{safe_slug}</a> / Flow diagram</div>"
+        theme.breadcrumb(
+            ("Projects", "/"), (safe_slug, f"/projects/{safe_slug}"),
+            ("Flow diagram", None),
+        )
     )
     cases = store.list_cases()
     if not cases:

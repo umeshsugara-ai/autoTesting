@@ -71,3 +71,22 @@ verified by reading `ui/app.py` in full, not merely tested against one payload.
   run), now exists alongside U1-U5's routes — covered by `qa/contracts/docker.md` D4, not a U-item
   itself since it reads no project state. Routine, non-weakening; folds the flagged
   `qa/feedback-inbox.md` 2026-09-03 "Docker + live-watch + UI polish" entry.
+- 2026-09-07 · /checker (ui-back-nav-and-live-clarity unit) · shared back-navigation invariant:
+  every route that is not the home page now builds its trail with
+  `ui/theme.py::breadcrumb(*crumbs)` — one helper replacing 8 hand-written
+  `<div class='breadcrumb'>` blocks across 5 modules — which renders a real `← Back` anchor
+  targeting the **last crumb carrying an href** (the natural parent), plus the same trail as
+  before. U5 is unaffected and re-verified: `breadcrumb()` adds no escaping of its own (same
+  caller-escaping discipline as `page()`), all 8 call sites pass `escape()`d labels, and every
+  href is a literal or `/projects/{escape(slug)}` where the slug is already `_require_slug`
+  regex-validated — so no user-controlled string reaches an `href=`. Verified live against a
+  project named `<script>alert(1)</script>&'"` on 5 routes (see
+  `qa/verdicts/ui-back-nav-and-live-clarity.md` U5). Also in this unit: `GET /live`'s tip text
+  replaced — the stale `scripts/regression_proof.py` instruction (which predated the ▶ Run tests
+  button) is gone, replaced by the honest "a black screen is normal, it is the container's real
+  and idle display" note plus the AT-054 `AUTOTESTER_SLOW_MO_MS` opt-in; presentation-only, no
+  `ProjectStore`/`SecretStore` call added. Routine, non-weakening. Known gap deliberately NOT
+  covered by any criterion here and now tracked as ledger issue **AT-057**: an onboarded project
+  with zero cases has no UI path to add one, so its ▶ Run tests button is permanently disabled —
+  it needs its own contract-scoped cycle and a scoping decision (add-a-case flow vs explicit
+  next-step prompt) before a criterion can be written for it.

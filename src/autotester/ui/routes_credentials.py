@@ -46,9 +46,10 @@ def env_editor_view(slug: str) -> str:
         header = "<tr><th>Key</th><th>Status</th><th>New value</th><th></th></tr>"
         table = f"<table>{header}{rows}</table>"
     body = (
-        f"<div class='breadcrumb'><a href='/'>Projects</a> / "
-        f"<a href='/projects/{safe_slug}'>{name}</a> / Credentials</div>"
-        "<h1>Credentials</h1>"
+        theme.breadcrumb(
+            ("Projects", "/"), (name, f"/projects/{safe_slug}"), ("Credentials", None),
+        )
+        + "<h1>Credentials</h1>"
         "<p class='subtitle'>Values are never shown once saved — only whether one is set.</p>"
         f"{theme.card(table)}"
     )

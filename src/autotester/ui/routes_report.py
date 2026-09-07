@@ -143,10 +143,11 @@ def run_view(slug: str, run_id: str) -> str:
         for i, r in enumerate(results)
     )
     body = (
-        f"<div class='breadcrumb'><a href='/'>Projects</a> / "
-        f"<a href='/projects/{safe_slug}'>{safe_slug}</a> / "
-        f"<a href='/projects/{safe_slug}/report'>Report</a> / Run</div>"
-        f"<h1>Run <code>{safe_run_id}</code></h1>"
+        theme.breadcrumb(
+            ("Projects", "/"), (safe_slug, f"/projects/{safe_slug}"),
+            ("Report", f"/projects/{safe_slug}/report"), ("Run", None),
+        )
+        + f"<h1>Run <code>{safe_run_id}</code></h1>"
         + (_counts_stats(counts) if counts else "")
         + (sections or theme.empty_state("📭", "No case results in this run yet."))
     )
@@ -157,9 +158,8 @@ def run_view(slug: str, run_id: str) -> str:
 def report(slug: str) -> str:
     _store, _project = _load_project_or_404(slug)
     safe_slug = escape(slug)
-    breadcrumb = (
-        f"<div class='breadcrumb'><a href='/'>Projects</a> / "
-        f"<a href='/projects/{safe_slug}'>{safe_slug}</a> / Report</div>"
+    breadcrumb = theme.breadcrumb(
+        ("Projects", "/"), (safe_slug, f"/projects/{safe_slug}"), ("Report", None),
     )
     run_ids = _run_ids_newest_first(slug)
     if not run_ids:

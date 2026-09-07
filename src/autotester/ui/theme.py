@@ -77,6 +77,28 @@ def stat(value: str, label: str) -> str:
     )
 
 
+def breadcrumb(*crumbs: tuple[str, str | None]) -> str:
+    """A real "← Back" button plus the trail, for every page that isn't home.
+
+    Each crumb is `(label, href)`; the current page passes `href=None`. The
+    back button targets the LAST crumb that has an href — the natural parent —
+    so `Projects / Demo / Credentials` goes back to Demo, not all the way home.
+
+    Labels must already be caller-escaped, same discipline as `page()`. This
+    exists because the trail alone was a 0.78rem muted uppercase line that read
+    as a location label, not a control: "there is no back button for easy
+    navigation" (Umesh, 2026-09-07), and eight routes had each hand-written
+    their own copy of the same markup."""
+    parent = next((href for _label, href in reversed(crumbs) if href), None)
+    back = (
+        f"<a class='btn btn-back' href='{parent}'>&larr; Back</a>" if parent else ""
+    )
+    trail = " / ".join(
+        f"<a href='{href}'>{label}</a>" if href else label for label, href in crumbs
+    )
+    return f"<div class='crumbs'>{back}<div class='breadcrumb'>{trail}</div></div>"
+
+
 def card(body: str, title: str | None = None) -> str:
     heading = f"<h2>{title}</h2>" if title else ""
     return f"<div class='card'>{heading}{body}</div>"

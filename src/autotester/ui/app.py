@@ -158,8 +158,8 @@ def onboard_form() -> str:
     )
     form = f"<form method='post' action='/onboard'>{fields}</form>"
     body = (
-        "<div class='breadcrumb'><a href='/'>Projects</a> / Onboard</div>"
-        "<h1>Onboard a project</h1>"
+        theme.breadcrumb(("Projects", "/"), ("Onboard", None))
+        + "<h1>Onboard a project</h1>"
         "<p class='subtitle'>This creates a project record — "
         "nothing is tested until you add cases.</p>"
         f"{theme.card(form)}"
@@ -216,8 +216,8 @@ def project_detail(slug: str) -> str:
         title="Actions",
     )
     body = (
-        "<div class='breadcrumb'><a href='/'>Projects</a> / " + name + "</div>"
-        f"<h1>{name}</h1>"
+        theme.breadcrumb(("Projects", "/"), (name, None))
+        + f"<h1>{name}</h1>"
         f"<p class='subtitle'>{escape(project.base_url)} &middot; review: "
         f"{theme.pill(escape(review), review_tone)}</p>"
         f"{stats}{actions}"
@@ -229,14 +229,22 @@ def project_detail(slug: str) -> str:
 def live_view() -> str:
     """Presentation-only: an embedded noVNC viewer onto the container's virtual
     display. Reads no project state, triggers no run (qa/contracts/docker.md D4)."""
-    example = "docker compose exec autotester uv run python scripts/regression_proof.py"
     body = (
-        "<div class='breadcrumb'><a href='/'>Projects</a> / Live view</div>"
-        "<h1>Live view</h1>"
-        "<p class='subtitle'>Watch the real browser as a run happens — nothing is running "
-        "here yet unless you start one.</p>"
-        f"<div class='live-tip'>▶ Start a run from a script, e.g. <code>{example}</code>, "
-        "while this page is open.</div>"
+        theme.breadcrumb(("Projects", "/"), ("Live view", None))
+        + "<h1>Live view</h1>"
+        "<p class='subtitle'>Watch the real browser as a run happens.</p>"
+        "<div class='live-tip'>"
+        "<strong>A black screen below is normal.</strong> It is the container's real "
+        "display, and it is empty whenever no run is in progress — the browser window "
+        "only exists while a test is running. Open a project and press "
+        "<em>▶ Run tests</em> with this page open in a second tab to watch it work."
+        "</div>"
+        "<div class='live-tip live-tip-muted'>"
+        "Runs finish in about a second, so a run at full speed can be over before you "
+        "look. To make one watchable, set <code>AUTOTESTER_SLOW_MO_MS=1500</code> before "
+        "<code>docker compose up -d</code> — every browser action is then padded so you "
+        "can follow it step by step."
+        "</div>"
         "<div class='live-shell'>"
         "<iframe src='http://localhost:6080/vnc.html?autoconnect=true&resize=scale'></iframe>"
         "</div>"
