@@ -95,4 +95,38 @@ GET /projects/erp/cases  (screenshot .work/cases-list.png)
   -> "Sign-in page loads and shows the login form" | HAPPY | 1 step | Rename · Delete
 ```
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Verdict: `qa/verdicts/ui-case-management.md` (Cycle checked: 1, PASS, 7/7 criteria met).
+AT-060 flipped open → fixed.
+
+**Correction to this manifest's own claim.** The tests section above says
+`test_deleting_then_re_adding_the_same_steps_works` "proves `delete_case` genuinely clears the
+id cache". It does not, and the checker was right to call it: `ui/helpers.py:73` builds a fresh
+`ProjectStore` per request, so that test would stay green even if `delete_case` never called
+`discard`. The behaviour is correct — the checker verified it directly within a single store
+instance — but the test does not prove it. Filed as **AT-066** (low, test-coverage gap).
+
+Data-safety findings, since this unit adds the first destructive UI action:
+- **No row loss in any probe.** Middle-row delete leaves survivors byte-identical and ordered;
+  an unknown id returns False with the file byte-identical; an absent file returns False and is
+  *not* created; deleting the last row yields a valid empty file, not a corrupt one; no orphan
+  `.tmp-*` left behind. It shares `_atomic_write`'s mkstemp-then-`os.replace` path, so a crash
+  cannot truncate.
+- **Delete scope verified on disk**: a before/after tree diff showed `files removed: set()` —
+  the deleted case's rubric, `RawResult` and `Verdict` all still load, and the sibling case is
+  untouched. Only the one JSONL row goes.
+- **Rename cannot change identity even under injection**: posting `id`, `project`, `flow_id`,
+  `case_class`, `steps` and `step_target` alongside `title` returned 303 and left every one of
+  those fields unchanged, because the route reads only `title` and applies it via `model_copy`.
+- **U5 and `_require_safe_id` clean**: a case titled `<script>alert(1)</script>&'"quote` renders
+  fully escaped with the quote neutralised, and a path-traversal case id is a real 400 on both
+  rename and delete.
+
+Also filed: **AT-067** (low) — a human running one of the three real-run scripts *while* clicking
+Delete is a genuine write-race window. Pre-existing with `upsert_jsonl`, caveated in both
+docstrings, not introduced here.
+
+Source was uncommitted again on arrival (the AT-055 pattern); the checker committed the nine
+paths itself (`8ab3f5a`), verdict and ledger in `f930306`, both pushed per D-007. It cleaned up
+its scratch project and left `projects/erp`'s single real case intact.
