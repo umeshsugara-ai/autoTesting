@@ -58,6 +58,22 @@ unknown `action`, and an unknown project are each **refused (400/400/400/400/404
 nothing written to disk**. A project with zero cases says so on its detail page and
 offers the route to fix it, rather than showing only a disabled Run control.
 
+### U7 — A project cannot be created or edited into a state where it can never run
+Every route that writes `project.json` (`POST /onboard`, `POST /projects/{slug}/edit`) first calls
+`ui/helpers.py::_require_reachable_base_url`, which **composes the same two functions the real
+navigation gate uses** — `browser.secrets.host_of` and `Project.allows_domain`, exactly as
+`browser/session.py::check_destination` does — so the validator can never be stricter or looser
+than the boundary it guards (a subdomain of an allowed domain must still be accepted). A project
+whose own `base_url` host falls outside its `allowed_domains` is refused **400 with the host named**
+and **nothing is written to disk**. The edit route is not a back door: it runs the same validator,
+refuses a blank name and an empty domain list, and **cannot change the slug** — the slug names the
+directory every run, case, rubric and browser profile is already filed under. Editing preserves
+every field the form does not offer (`secrets`, `write_policy`, `providers`) — the edit form reads
+and writes `project.json` only and touches no `SecretRef` value and no `.env` (U3 boundary).
+`allowed_domains` gets **no wildcard**: widening the browser's hard boundary is a decision for the
+Approver, not a validation fix, and the user's real intent stays expressible because the refusal
+names the exact host to add.
+
 ## No-fire list
 
 - Authentication/authorization — this is a local, single-operator tool for now (matches the
@@ -123,3 +139,23 @@ offers the route to fix it, rather than showing only a disabled Run control.
   (`add_case` is idempotent on the content id and `create_case` never checks the return), so a
   user cannot correct a mistyped title and gets no feedback. See
   `qa/verdicts/ui-add-case.md`.
+- 2026-09-07 · /checker (ui-project-edit-and-domain-validation unit) · **new criterion U7 added**
+  — the AT-058 row above named a defect no U-criterion covered; the unit fixed both halves
+  (validate at onboarding, and an edit route to recover a project already broken), so the
+  criterion is now writable. Routine, non-weakening (adds a criterion, softens none). The
+  criterion deliberately pins the *composition* (`host_of` + `allows_domain`, the same pair
+  `browser/session.py::check_destination` uses) rather than the validation behaviour, because the
+  real risk here is a validator that drifts stricter than the boundary and bricks a legitimate
+  project — verified live: a subdomain still onboards, and all four on-disk projects
+  (`pathlynks`, `vidysea-erp`, `regression-demo`, `erp`) still pass. U1-U6 re-verified in the same
+  check and unaffected: the edit route goes through `ProjectStore` only (U1), reads live per
+  request and 404s an unknown slug (U2), imports no `SecretStore` and preserves `secrets` through
+  `model_copy` (U3), touches no run/report code (U4), escapes every rendered value — probed with a
+  project whose `name` and `base_url` carried `<script>`, `'` and `"`, zero raw tags and every
+  `value='…'` attribute escaped including `'`→`&#x27;` (U5), and leaves the add-a-case flow
+  untouched (U6). The refused wildcard is recorded as correct: `allowed_domains` stays a hard
+  boundary. Two low-severity gaps found in the same probe were filed rather than folded in, since
+  neither violates a criterion: **AT-061** (`host_of` returns a pseudo-host for garbage, so a
+  schemeless or nonsense `base_url` still onboards) and **AT-062** (onboarding stores `name`/
+  `base_url` unstripped while the edit form strips them). See
+  `qa/verdicts/ui-project-edit-and-domain-validation.md`.
