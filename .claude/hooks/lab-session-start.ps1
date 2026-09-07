@@ -108,7 +108,13 @@ try {
     }
   }
 
-  # --- ARCHITECTURE.md sections 1-3 + 6 (capped). ---
+  # --- ARCHITECTURE.md ground-truth excerpt (capped). D-008/D-010/D-019: keep every
+  # named section except the generated directory map. This repo's headings are NAMED,
+  # never numbered, so the template's '^## (1|2|3|6)' allowlist matches NOTHING here
+  # and silently injects an empty block -- that has now regressed twice (AT-015,
+  # AT-097). This file is deliberately NOT byte-identical to the AIOS template; a
+  # future sync must re-apply this filter and the 150 cap. Pinned by
+  # tests/test_session_start_hook.py. ---
   $archPath = Join-Path $root "ARCHITECTURE.md"
   if (Test-Path -LiteralPath $archPath) {
     $archLines = Get-Content -LiteralPath $archPath -Encoding UTF8 -ErrorAction Stop
@@ -116,12 +122,12 @@ try {
     $inKeep = $false
     foreach ($line in $archLines) {
       if ($line -match '^## ') {
-        $inKeep = ($line -match '^## (1|2|3|6)[\.\s]')
+        $inKeep = ($line -notmatch '^## Directory map and schema summary')
       } elseif ($line -match '^# ') { $inKeep = $false }
       if ($inKeep -or $line -match '^# ') { $keep.Add($line) }
-      if ($keep.Count -ge 100) { $keep.Add("[... ARCHITECTURE excerpt capped at 100 lines -- read ARCHITECTURE.md for the rest]"); break }
+      if ($keep.Count -ge 150) { $keep.Add("[... ARCHITECTURE excerpt capped at 150 lines -- read ARCHITECTURE.md for the rest]"); break }
     }
-    $out.Add("--- ARCHITECTURE.md (sections 1-3 + 6 Open Questions; ground truth) ---")
+    $out.Add("--- ARCHITECTURE.md (all sections except the generated directory map; ground truth) ---")
     foreach ($l in $keep) { $out.Add($l) }
   } else {
     $out.Add("[WARN] ARCHITECTURE.md missing at repo root -- protocol expects it. Run /init-lab repair.")
