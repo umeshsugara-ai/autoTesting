@@ -15,10 +15,18 @@ the same thing twice.
 
 ## Criteria
 
-### V1 — A known route produces no gap
-`diff_coverage(spec, results)` compares each observed URL's **path** (`urlsplit(url).path`, host
-and query ignored) against every `Screen.url_pattern` already in the `FlowSpec` — a match
-produces nothing.
+### V1 — A known route produces no gap, and both sides are normalised the same way
+`diff_coverage(spec, results)` compares each observed URL's **path** against every
+`Screen.url_pattern` already in the `FlowSpec` — a match produces nothing. **Amended at T-144
+(D-015, "coverage.md V1 after B5"):** the path is not `urlsplit(url).path`. Both sides of every
+coverage diff — the observed URL *and* the stored `url_pattern` — go through
+`core.urls.url_template(..., keep_host=False)`, the one place in the repo a URL becomes a
+screen-identity path (`stages/ingest.py` A2 and `stages/screen_identity.py` B2 call the same
+function). Without this a run that visited `/students/1` was a permanent gap against a screen
+whose pattern is `/students/{id}`, so **every id-bearing route looked forever uncovered** and the
+"ask the human for a video" mechanism fired on routes the FlowSpec already knew.
+**Verify (the fix must be load-bearing):** revert `_path_of` to `urlsplit(url).path` and tests must
+fail — executed 2026-09-08, 3 fail.
 
 ### V2 — An unseen route produces exactly one gap, deduped across cases
 Two different cases in the same `results` list that both reach the same unseen path produce
@@ -38,6 +46,15 @@ An `Evidence` entry whose `path` is a redacted string (e.g. `[REDACTED]:KEY`, pr
 therefore never treated as an observed URL — `diff_coverage` filters on that prefix before
 attempting to parse anything as a route.
 
+### V5 — Crawl-sourced coverage is the same diff, in both directions
+`diff_crawl(spec, nodes)` is `diff_coverage`'s crawl-sourced twin: a screen the crawl reached whose
+templated path matches no `Screen.url_pattern` is a `CoverageGap` (`kind="screen"`), deduped by the
+same content-addressed id, normalised through the same `_path_of`. `unreached_screens(spec, nodes)`
+reports the other direction — screens the `FlowSpec` claims that this crawl never got to. That
+direction is **not** a gap and must never become a `VideoRequest`: a bounded crawl seeing less than
+the spec describes is expected, and it is the signal that the crawl stopped early or that a route
+needed a login it did not have.
+
 ## No-fire list
 
 - Screen-level (as opposed to route-level) gap detection — `Screen.name`/`signals` matching is a
@@ -52,3 +69,15 @@ attempting to parse anything as a route.
 ## Amendment log (append-only; git history is the version)
 
 - 2026-09-03 · init · contract created for T-090 — no contract existed before this cycle.
+- 2026-09-08 · routine · **V1 amended and V5 added** at T-144 (Track B5) by /checker, folding the
+  `qa/feedback-inbox.md` 2026-09-08 maker entry. Authorized by D-015, whose `Changes-authorized`
+  names "coverage.md V1 after B5". Non-weakening: V1 becomes *stricter* (it now names the exact
+  normaliser and demands both sides use it, and requires the fix to be defended by a failing test
+  when reverted), and V5 adds a criterion for the crawl-sourced twins rather than softening one.
+  V2-V4 are byte-unchanged and were re-verified in the same check (`tests/test_coverage.py`, 12
+  tests, all green). The "one gap looks like many" trap this closes was real and shipped: before
+  T-144 `_path_of` was `urlsplit(url).path`, so `/students/1` and `/students/2` each produced their
+  own gap against `/students/{id}` — reverting it now fails
+  `test_an_id_bearing_route_no_longer_looks_unknown`,
+  `test_a_crawled_screen_matching_a_templated_pattern_is_not_a_gap` and
+  `test_two_crawled_ids_of_one_screen_produce_at_most_one_gap`.

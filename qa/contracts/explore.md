@@ -132,6 +132,57 @@ anywhere in this stage is *naming* an already-discovered screen for human readab
 action choice was explicitly rejected by D-015. This is what keeps the crawl reproducible and its
 failures debuggable, and it is why the whole stage can be proven without a credential or an API key.
 
+### X13 — A crawl may propose screens, never approve them
+`stages/explore_merge.py::merge_screens` **never rewrites an existing `Screen`** — a human-named
+or human-reviewed screen survives a merge byte-identically. When the merge adds anything, the
+spec's `Review` is reset to `DRAFT` and `version` is bumped, so a `FlowSpec` can never carry
+`approved` over screens no human has seen. When it adds nothing the spec is returned untouched:
+re-merging the same crawl produces no version bump, no second review reset and no duplicate
+conflict, and the persisted `flowspec.json` is byte-identical.
+**Verify (both directions, and the gate must be load-bearing):** set a spec to `APPROVED`, merge a
+crawl with one new screen, confirm `DRAFT`; merge the same crawl twice and diff the persisted file
+byte-for-byte; **and sabotage the `Review(...)` reset — at least one test must fail.** A reset no
+test defends is a decorative human gate.
+
+### X14 — A disagreement between SOURCES is kept, never resolved
+When a crawled screen claims a `url_pattern` an already-known screen claims under a different
+name, **both screens survive** and a `Conflict` records both claims with both `source_ref`s. The
+merge never picks a winner and never overwrites: silently resolving is how a product map stops
+matching the product. The same conflict is not recorded twice on a re-merge.
+
+**Deliberate exception, judged and UPHELD by the checker (2026-09-08):** two screens found by the
+**same** crawl that share a `url_pattern` are **not** a conflict. X3 requires two states at one URL
+offering different controls to be TWO screens; a single source correctly modelling an SPA is not
+two sources disagreeing, and raising a `Conflict` there would file a false one on every SPA in
+every product. Verified live on the fixture site: 7 screens across 6 url patterns, 0 conflicts.
+A `Conflict` means *sources disagree*, not *patterns collide* — this criterion pins that meaning.
+
+**Two residuals of the current rule, tracked rather than written out of it** (neither is a
+violation of this criterion as written; both are ledger issues to be closed by a later unit):
+**AT-102** — the clash test is `clash.name != incoming.name`, so a re-discovered screen at a known
+pattern under the *same* name is added as a silent duplicate with no `Conflict` to explain it;
+**AT-103** — the same-crawl exemption does not extend across crawls, so a second SPA state
+discovered by a *later* crawl at a pattern an earlier crawl already merged does file a `Conflict`
+that is not a disagreement. The exemption is right; its scope is one crawl rather than one source.
+
+### X15 — `Screen.url_pattern` is a host-less path, not the node's browsing template
+`ScreenNode.url_template` carries a host (it is a browsing identity); `Screen.url_pattern` is a
+path pattern, because that is what `stages/coverage.py` and `stages/ingest.py` compare against.
+`screen_from` therefore derives it as `url_template(node.url_example, keep_host=False)` and never
+copies `node.url_template`. Copying the template verbatim would make every coverage diff miss.
+**Verify:** every merged `url_pattern` starts with `/`, and `/students/1` and `/students/2`
+collapse to one `/students/{id}` screen.
+
+### X16 — The crawl report shows what was REFUSED and why it STOPPED
+A bounded crawl reported as only what it found reads as full coverage of the product. Both the
+crawl page and the workbook therefore give `Crawl.stop_reason` equal billing with the headline
+counts, and both list **every** `DENIED_POLICY` / `SKIPPED_UNNAMED` / `OFF_DOMAIN_REFUSED` edge
+with its `reason` and the control it names. Third-party noise counted under X9 is recorded in the
+workbook's own `Noise` sheet — "we ignored it" stays auditable — and never appears as a
+`CrawlIssue`. The workbook is `Summary / Screens / Edges / Denied & Skipped / Issues / Noise`.
+**Known gap, tracked not waived: AT-105** — the noise counts reach the workbook only; the crawl
+page does not surface them.
+
 ## No-fire list (do not raise these as findings)
 
 - Filling forms with synthetic data, and vision-guided action choice — both rejected by D-015/X10.
@@ -145,6 +196,11 @@ failures debuggable, and it is why the whole stage can be proven without a crede
   specific missing pattern class is a normal issue; the design choice is settled.
 - The 8s settle default in `session.settle` being different from the crawl's 2500ms — deliberate
   and documented: a graded case performs a handful of actions, a crawl performs hundreds.
+- Auto-generating cases from crawled screens (that is `expand.py`, after human review); naming
+  screens with a model (`prompts/explore_name_screen_v1.md` is designed for and deliberately NOT
+  built — X12 keeps the crawl provider-free); background/async crawling from the UI (synchronous,
+  the same trade-off `routes_runs.py` already makes); resuming an interrupted crawl; merging
+  crawl-discovered *flows* (only screens are merged); editing a merged screen from the crawl page.
 
 ## Amendment log (append-only; git history is the version)
 
@@ -159,3 +215,20 @@ failures debuggable, and it is why the whole stage can be proven without a crede
   a torn row and the append-only ordering only supports the between-writes claim; added the
   settle-ms and deny-list-in-principle rows to the no-fire list so neither is re-litigated.
   `execute.md` E5 is untouched and stays the rule for `run_case`.
+
+- 2026-09-08 · routine · **X13-X16 added** at T-144 (Track B5) by /checker, from the criteria the
+  maker filed in `qa/feedback-inbox.md` (2026-09-08). Authorized by D-015, whose
+  `Changes-authorized` names `qa/contracts/explore.md` and `coverage.md V1 after B5`. Adds
+  criteria, softens none; X1-X12 are byte-unchanged and were re-verified in the same check
+  (`scripts/explore_proof.py` 10/10; `run_case` still one call site in `_bootstrap_login`; no
+  `playwright` import or `.page.` access outside `browser/`; `grep fill|select_option|upload`
+  over every module this unit added returns nothing). Changes made to the maker's proposed
+  wording while authoring: **X13 gained a mandatory sabotage clause** — the DRAFT reset must be
+  defended by a test that fails when the reset is removed, because a human gate no test defends is
+  decorative (executed: `status=ReviewStatus.DRAFT` → `status=spec.review.status` fails
+  `test_new_screens_are_added_and_review_resets_to_draft`); **X14's exception was judged on its
+  merits and UPHELD**, and re-stated as *sources disagree, not patterns collide*, with the two
+  residuals of the current implementation (AT-102 same-name silent duplicate, AT-103 cross-crawl
+  false conflict) recorded in the criterion rather than left implicit; **X16 was tightened** to say
+  where noise is auditable and to record AT-105 (the crawl page omits it) as a tracked gap rather
+  than letting the criterion read clean. The maker's offered no-fire list is folded in above.
