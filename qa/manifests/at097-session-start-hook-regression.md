@@ -4,7 +4,7 @@
 contract governs the hook itself; **that is part of the finding.**
 **Goal task:** none (issue-fix unit)
 **Date:** 2026-09-08
-**Fix cycle:** 1 of max 3
+**Fix cycle:** 2 of max 3
 **Dual check:** no
 **Issues addressed:** **AT-097** (high), **AT-029** (medium) — the same defect's two halves
 **Authorized by:** **D-019** (appended before any file was touched)
@@ -82,4 +82,47 @@ FAIL and a HUMAN_GATE, not a softened criterion — and it is one commit to reve
   and all 10 named headings — **do not** take my probe's word for it.
 - Confirm `D-013`'s ASCII-escaping is untouched (`git diff 051303e -- .claude/hooks/`).
 
-## Status: ready-for-check
+## Status: FAIL (cycle 1) — half fixed, half BLOCKED on HUMAN_GATE
+
+Verdict: `qa/verdicts/at097-session-start-hook-regression.md` (**Cycle checked: 1**, FAIL, 5/6).
+
+**The checker was right and my fix was to dead code.** The hook reads
+`Join-Path $root "ARCHITECTURE.md"` (line 118) — the repo root — and this project keeps the file
+at `docs/ARCHITECTURE.md`. A root copy has **never existed** (`git log --all --diff-filter=A --
+ARCHITECTURE.md` is empty). I ran the real hook to confirm rather than take the verdict's word:
+
+```
+[WARN] ARCHITECTURE.md missing at repo root -- protocol expects it. Run /init-lab repair.
+## headings injected: 0
+```
+
+So the excerpt block has never executed since the genesis commit, the empty-ground-truth defect is
+older than AT-097 described, and four DECISIONS entries have been arguing about the contents of
+unreachable code. The sibling line 50 already reads `docs\DECISIONS.md` — the prefix is present
+for decisions and missing for architecture, in the same file.
+
+**AT-107 is the part that should sting, and it is mine.** My test hardcoded the architecture path,
+so all six passed green while the hook injected nothing. That is *exactly* the "simulating a
+fiction" failure I had just written a paragraph in this manifest congratulating myself for
+avoiding — one axis over. Catching it on the filter constant and then missing it on the path is
+not a smaller version of the same mistake; it is the same mistake.
+
+### Cycle 2 — what I fixed and what I cannot
+- **AT-107 fixed.** `tests/test_session_start_hook.py` now parses `$archPath` out of the `.ps1`
+  too, and `test_the_hook_reads_the_file_the_project_actually_has` is
+  `xfail(strict=True)` — it stays green while the defect is real and **fails loudly the moment the
+  path is corrected**, so the fix cannot land with a stale xfail hiding it. 6 passed, 1 xfailed.
+- **AT-106 BLOCKED on HUMAN_GATE** — `qa/gates/at106-hook-architecture-path.md`. Correcting the
+  path changes an enforcement-path value no DECISIONS entry authorizes, and the checker applied
+  this repo's own AT-030/AT-031 precedent (a batch approval does not cover a specific value by
+  extension). I am not extending D-019 to cover it; that would be the exact move that failed twice.
+
+**Upheld from cycle 1, and worth recording because I flagged it as my one judgement call:** the
+checker judged the D-008/D-010/D-011 standing-authorization reasoning adversarially and **upheld
+it** — no HUMAN_GATE was owed on the filter and cap, D-013's revert was genuinely unintended, and
+declining `Supersedes: D-013` was correct because the marker is machine-consumed into every
+session's decision index and would print "discard this" over a live fix. One fair correction: my
+"creates NO new authority" was slightly overstated, since D-019's byte-identity clause does narrow
+something D-013 approved.
+
+## Status: blocked-human-gate

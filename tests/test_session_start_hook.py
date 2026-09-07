@@ -9,12 +9,24 @@ empty ground-truth block until a sweep happened to notice.
 Nothing tested it. These tests read the REAL `.ps1` on disk — not a copy — so a
 third revert fails here instead of going unnoticed for days. They are pure
 Python (no PowerShell), so they run in the Linux container like everything else.
+
+**AT-106/AT-107 (checker-found, and the reason this file grew a path test):** the
+first version of these tests hardcoded the architecture path, so all six passed
+green while the hook was injecting NOTHING — it looks for `ARCHITECTURE.md` at
+the repo root, and this project keeps it in `docs/`, so the whole filter block
+below has never once executed. That is the same "testing a fiction" flaw the
+filter tests were written to avoid, one axis over. The path is now parsed out of
+the `.ps1` too, and `test_the_hook_reads_the_file_the_project_actually_has`
+xfails STRICTLY: it fails loudly the moment the path is corrected, so nobody can
+fix the hook and leave a stale xfail behind.
 """
 
 from __future__ import annotations
 
 import re
 from pathlib import Path
+
+import pytest
 
 REPO = Path(__file__).resolve().parents[1]
 HOOK = REPO / ".claude" / "hooks" / "lab-session-start.ps1"
@@ -58,6 +70,30 @@ def excluded_pattern() -> str:
         + next((ln.strip() for ln in hook_code().splitlines() if "$inKeep =" in ln), "<absent>")
     )
     return match.group(1)
+
+
+_ARCHPATH_RE = re.compile(r'\$archPath = Join-Path \$root "([^"]+)"')
+
+
+def architecture_path_from_hook() -> Path:
+    """The architecture file the hook ACTUALLY opens, read out of the hook.
+
+    Hardcoding this is what let AT-097's fix look green while the repaired
+    filter was unreachable dead code."""
+    match = _ARCHPATH_RE.search(hook_code())
+    assert match is not None, "the hook no longer computes an $archPath at all"
+    return REPO / match.group(1).replace("\\", "/")
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="AT-106: the hook looks for ARCHITECTURE.md at the repo root; this project keeps it "
+    "in docs/ and a root copy has never existed, so the excerpt block never runs. Correcting it "
+    "changes an enforcement-path value no DECISIONS entry authorizes — gated in "
+    "qa/gates/at106-hook-architecture-path.md. Remove this xfail when the gate is answered.",
+)
+def test_the_hook_reads_the_file_the_project_actually_has() -> None:
+    assert architecture_path_from_hook().exists()
 
 
 def hook_cap() -> int:
