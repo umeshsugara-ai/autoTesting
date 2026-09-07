@@ -9,6 +9,48 @@ outside the repo again.
 
 ---
 
+## 0. Revision — 2026-09-07 evening (amendment, not a rewrite)
+
+Everything in §1–§8 stands. This revision records what shipped since the plan was approved, the
+two scoping answers Umesh gave tonight, and the new work they authorise. **§5A (Track C) and §5B
+(the adopted reference patterns) are new; §2's order table is replaced; D-017 and D-018 are added
+to §7.**
+
+**Verified on disk tonight (not claimed — counted):**
+
+| | |
+|---|---|
+| Goal | **26/36 done.** Pending: T-122 (human gate), T-123, T-131, T-132, T-133, T-134, T-135, T-136, T-144, T-145 |
+| Track G | T-121 done. T-122 gated on `ERP_EMAIL`/`ERP_PASSWORD`; T-123 buildable, untouched |
+| Track A | **T-130 (schema) only.** `stages/media_prep.py`, `analyze_video.py`, `adjudicate.py`, `issues.py`, `product_map.py` **do not exist**; `add_source`/`add_issue`/`save_analysis` have **zero callers**; `providers/gemini.py::see_video` exists and nothing calls it; `stages/ingest.py` never touches `ProjectStore` |
+| Track B | **B1–B4 done (T-140/141/142/143).** Only T-144 remains. The crawl writes a graph nothing reads |
+| Maker-checker | 59 manifests ↔ 59 verdicts, 1:1, no orphans; 58 `checked-PASS`, 1 `STALLED`. Checkers re-run every command themselves and four of the last six **sabotaged the work to prove the tests bite** (renamed a destructive control → proof correctly failed; no-opped `update_node`; planted raw Playwright outside `browser/`; killed a crawl mid-flight). They caught the maker wrong four times (AT-091, AT-086 escalation, a stale test count, a missing X12) |
+| Live evidence | Real graded runs against live Pathlynks (44) and ERP (5). **Zero `crawl/` dirs and zero `flowspec.json` anywhere** — the explorer and the video pipeline have never touched a real product |
+
+**Debt this revision must clear (each becomes a task, none is optional):**
+
+1. **`T-145.done_check` is `{"cmd": "true"}`** — a check that cannot fail, on the HIGH-value live
+   ERP crawl. Replaced in T-124.
+2. Sweep ~5 h and 6 closed tasks stale; `qa/QUEUE.md` says 20 done/16 pending (actual 26/10) and
+   claims `qa/contracts/explore.md` "correctly does not exist" (it exists, checker-authored).
+3. `docs/SNAPSHOT.md` lists 5 of 10 pending tasks and has no "changed" row after 2026-09-04
+   although F-033/F-034 shipped 2026-09-07. `.goal/*` + SNAPSHOT uncommitted.
+4. **32 issues sit at `fixed` awaiting checker verification** vs 46 verified — including AT-093
+   (high, gated T-145), fixed after the last sweep with no sweep since.
+5. T-130/T-140/T-141 closed `checked-PASS` with **no `FEATURES.jsonl` row**, unlike T-142/T-143.
+6. `qa/adapter.json` allowlists three `uv run …` commands, but recent verdicts legitimately ran
+   `scripts/explore_proof.py`, `docker inspect`, `git show`, `md5sum` and checker-authored probe
+   scripts. The allowlist is narrower than honest practice — widen it deliberately rather than
+   letting every check be a silent `CONTRACT_MISMATCH`.
+
+**Umesh's two answers tonight:**
+- **Build order:** *T-144 first* — finish Track B, make the explorer's output visible.
+- **Scope:** *adopt the cheap parts of the AI-testing reference **and** open Track C* for
+  AI-system testing (classification → check registry → behavioural checks → bounded adversarial
+  pass), as a bounded track with its own contract and its own consent gate.
+
+---
+
 ## 1. Context — why this plan exists
 
 Umesh's critical review (2026-09-07 afternoon) established, verified against disk:
@@ -57,22 +99,32 @@ fails on stale `docs/MAP.md`, and `check_root_clean` rejects any root file not i
 
 | Band | Track | Units |
 |---|---|---|
-| T-121..T-123 | G — governance + Track 0 tail | register plan · login case + first logged-in run · medium-issue batch |
-| T-130..T-136 | A — learn from recordings | A1..A6 + acceptance |
-| T-140..T-145 | B — autonomous explorer | B1, B2, B4, B3, B5 + live demo |
+| T-121..T-126 | G — governance + Track 0 tail + adopted patterns | ✅ register plan · login case (gated) · medium-issue batch · **T-124 consent gates · T-125 test catalog + cheap→expensive ordering · T-126 governance debt sweep** |
+| T-130..T-136 | A — learn from recordings | ✅ A1 · A2..A6 + acceptance remain |
+| T-140..T-145 | B — autonomous explorer | ✅ B1, B2, B4, B3 · **T-144 (B5) next** · T-145 live demo |
+| **T-150..T-155** | **C — testing AI systems (new)** | governance · discovery+classification · check registry+matching · behavioural checks · bounded adversarial pass · report |
 
-Decisions to append (via `powershell -File scripts/append_decision.ps1 -EntryFile <f>`, in order):
-**D-014** Track A schema + shared `Action` additions · **D-015** Track B stage/contract/schema ·
-**D-016** `write_policy` runtime matrix. Full text in §7.
+Decisions: ✅ **D-014** Track A schema · ✅ **D-015** Track B stage/contract/schema · ✅ **D-016**
+`write_policy` matrix. **To append: D-017** (Track C — AI systems as a second target kind) ·
+**D-018** (the two-gate consent model + adapter allowlist widening). Full text in §7.
 
-**Maker order (one unit per tick, A and B interleaved so both tracks move):**
+**Maker order (one unit per tick; T-144 first per Umesh 2026-09-07 evening):**
 
 ```
-T-121 (governance, same turn as approval)
- └─ T-122 ERP login run  [HUMAN_GATE until ERP_EMAIL/ERP_PASSWORD have values]
-D-014 ─► A1 ─► B1 ─► A2 ─► B2 ─► A3 ─► D-016 ─► B4 ─► A4 ─► D-015/explore.md ─► B3 ─► A5 ─► B5 ─► A6 ─► T-136 ─► T-145
+T-144 (B5 — finishes Track B, makes the crawl visible)
+ └─ T-126 governance debt sweep + T-124 consent gates  [same tick pair; T-124 replaces T-145's no-op done_check]
+     └─ D-017/D-018 ─► T-125 catalog ─► T-150 (Track C governance)
+         ├─ Track A:  A2 (T-131) ─► A3 (T-132) ─► A4 (T-133) ─► A5 (T-134) ─► A6 (T-135) ─► T-136
+         └─ Track C:  C1 (T-151) ─► C2 (T-152) ─► C3 (T-153) ─► C4 (T-154) ─► C5 (T-155)
 T-123 (medium issues) slots in whenever a track is blocked on a checker.
+T-122 / T-145 unblock the moment ERP_EMAIL + ERP_PASSWORD have values.
 ```
+
+**Sizing, honestly:** three open tracks at one checked unit per tick is slow. Track A is the
+longest pole and the only one with a human ground-truth sheet to score against; Track C is new and
+its adversarial unit (T-154) is the highest-risk thing in this plan. Track A takes priority for
+tick budget whenever both are unblocked — Track C advances on ticks where Track A waits on a
+checker.
 
 Every unit ships through maker-checker: contract criteria requested in `qa/feedback-inbox.md`
 (checker writes them) → manifest with **the source diff committed, not paperwork only** (AT-055
@@ -424,12 +476,177 @@ against the human sheet, and the product map screenshot. done_check = the scorer
 
 ---
 
+## 5A. Adopted from the AI-testing reference — the parts that fit today (T-124..T-126)
+
+The reference proposes a skill that tests **AI systems' outputs**. Three of its ideas are better
+articulations of things AutoTester already half-does, and land now as ordinary units. The rest
+becomes Track C (§5B). What is **not** adopted is listed in §8.
+
+### T-124 — the two-gate consent model, and a real gate on the live crawl · ~200 lines
+The reference's *"consent gate 1: scope of read access · consent gate 2: explicit confirmation
+naming the endpoint + probe count"* is exactly the discipline `write_policy` and the HUMAN_GATE
+files reach for informally. Make it an artifact instead of a habit.
+- **New** `schema/approval.py`: `RunApproval(Artifact)` — `target` (base_url or endpoint),
+  `scope` (what will be read/clicked/sent), `bounds` (max actions / max probes / wall clock),
+  `granted_by`, `granted_at`, `expires_at`, `run_kind` (`crawl` / `adversarial` / `live_case`).
+  Content-addressed so an approval cannot be silently edited to widen itself after the fact.
+- **New** `core/consent.py::require_approval(kind, target, bounds, store)` — loads
+  `projects/<slug>/approvals.jsonl`, refuses when absent/expired/narrower than the requested
+  bounds, and **names the exact missing approval and how to grant it**. `stages/explore.py` calls
+  it before `_seed`; T-154's adversarial pass calls it before any probe.
+- `ui/routes_credentials.py` gains a grant form (the credentials page is already the one place a
+  human authorises a target); CLI `autotester approve <project> --kind --target --max-actions`.
+- **Fixes the debt:** `T-145.done_check` becomes a real command — the crawl exits 0 **and**
+  `approvals.jsonl` carries a matching unexpired `crawl` approval — replacing `{"cmd": "true"}`.
+- Tests: approval narrower than the request → refused with the shortfall named; expired → refused;
+  absent → the refusal text contains the grant command; `run_crawl` refuses without one; an
+  approval edited on disk fails its content id.
+
+### T-125 — the test catalog: what applies, what is runnable, what is blocked and why · ~300 lines
+The reference's *"map classification + detected signals to applicable entries; report what's
+runnable now vs blocked on missing fixtures"* is the honest version of `expand.py`, which today
+generates cases without saying which of them cannot actually run.
+- **New** `stages/catalog.py::catalog(project, spec, store) -> Catalog` — for every `CaseClass`:
+  `applicable` (does the FlowSpec support it), `runnable`, and when not, a **`blocked_reason`**
+  from a closed vocabulary (`no_flowspec`, `flowspec_not_approved`, `missing_credential`,
+  `no_ground_truth`, `needs_write_policy`, `no_live_endpoint`). Pure function over artifacts on
+  disk — no model, no network.
+- **New** `schema/catalog.py`: `CatalogEntry`, `Catalog`, enum `BlockedReason`.
+- **Cheap→expensive ordering** (the reference's staged pass): `CaseClass` gains a `tier`
+  (`static` → `behavioural` → `adversarial`); `routes_runs.py` runs tiers in order and stops a
+  tier that has no runnable entries, so a cheap structural failure is reported before an expensive
+  graded run is paid for.
+- **New** `ui/routes_catalog.py` — `GET /projects/{slug}/catalog`: one row per case class, a green
+  runnable count, and every blocked row saying *why* and the one action that unblocks it.
+- Tests: a project with no FlowSpec → every entry blocked `no_flowspec` and the page says so; an
+  approved spec with an unset secret → `missing_credential` naming the key (never a value);
+  ordering places `static` before `adversarial`; catalog is pure (same inputs → identical output).
+
+### T-126 — governance debt sweep (one unit, closes §0's list)
+Commit `.goal/*` + `SNAPSHOT.md`; regenerate `SNAPSHOT`/`MAP`; refresh `qa/QUEUE.md`; dispatch the
+overdue `/checker sweep` **including a verification pass over the 32 `fixed` issues** (AT-093
+first, since it gated T-145); backfill `FEATURES.jsonl` rows for T-130/T-140/T-141; widen
+`qa/adapter.json`'s allowlist to the commands checkers legitimately already run (proof scripts,
+`docker inspect`, `git show`, `md5sum`, checker-authored probes under `.work/`) under D-018.
+
+---
+
+## 5B. Track C — testing AI systems (T-150..T-155)
+
+**What this is.** A second *target kind*. Today a target is a web product reached through a
+browser; Track C adds a target reached through an **API endpoint or a codebase** — an LLM app —
+judged on its outputs rather than its screens. Vidysea's own products contain LLM features, so
+this is not a detour: it is the same north star (an expert human tester and AutoTester get the
+same material; AutoTester wins on bugs found, false-positive rate, and time) applied to the half
+of Vidysea a browser cannot grade.
+
+**Design rules carried over from Tracks A and B, deliberately:**
+- **Signals are deterministic; the model only labels.** Exactly Track B's X12 discipline. SDK
+  imports, prompt-template files, agent-framework usage, presence of ground truth, presence of a
+  live endpoint are found by **grep and file inspection, never by a model**. A model may *name*
+  the system kind from those signals; it may never *choose which checks run* — that mapping is a
+  table in code, so the catalog is reproducible and a checker can re-derive it.
+- **C7 holds:** the thing that exercises the AI system never grades it. Probes and captures go
+  through a runner; judgement goes through the existing `stages/grade.py` seam with a `Rubric`.
+- **C8 holds:** every model call through `providers.base.Provider`; every probe set and judge
+  prompt is a file under `prompts/`, never an inline string.
+- **Nothing outward-facing happens without T-124's approval artifact.**
+
+### T-150 — Track C governance
+Append **D-017** and **D-018** (§7); register T-150..T-155 in `.goal/goal.json`; file the
+C1–C10 criteria in `qa/feedback-inbox.md` for the checker to author as
+`qa/contracts/ai-target.md` and `qa/contracts/adversarial.md` (contracts are checker-owned).
+
+### T-151 — target discovery + classification (read-only) · ~350 lines
+- **New** `schema/ai_target.py`: `AiTarget(Artifact)` — `root_path`, `context_paths`, `endpoint`
+  (optional), `system_kind` (`conversational` / `agentic` / `orchestration` / `hybrid`),
+  `signals: list[Signal]`, `has_ground_truth`, `confidence`; `Signal(kind, evidence_path, line,
+  detail)` so every classification cites a file:line a human can open.
+- **New** `stages/discover.py`: `scan(root, context_dirs) -> list[Signal]` — deterministic
+  detectors for LLM SDK imports, prompt-template files, agent/graph frameworks, tool/MCP
+  registrations, retrieval/vector-store use, sync vs async orchestration, eval/ground-truth
+  fixtures. Read-only by construction: opens files, writes nothing outside `projects/<slug>/`.
+- **Context folder as a first-class source** (the reference's Obsidian point, taken at its own
+  v1 scope): **new** `stages/read_context.py` — a folder of markdown read as `Source` rows,
+  parsing YAML frontmatter and `#tags` as hints. Backlinks, Dataview and live-vault features are
+  explicitly **not** implemented; an Obsidian vault is treated as structured markdown, nothing more.
+- `classify(signals, provider)` — the model receives **only the signal list**, returns a kind plus
+  a reason; a `mock` provider yields a deterministic rule-based kind so the pipeline never
+  requires a model. Consent gate 1 (`RunApproval(run_kind="read")`) is required before `scan`
+  touches a path outside the project.
+- Tests: fixture repos for each kind classify correctly **with `mock`, no model**; every `Signal`
+  resolves to a real file:line; a repo with no LLM signals classifies as not-an-AI-target rather
+  than guessing; scanning refuses a path outside the approved scope.
+
+### T-152 — check registry + catalog matching · ~300 lines
+- **New** `schema/ai_check.py`: enum `AiCheckKind` — conversational (`hallucination`,
+  `context_containment`, `goal_completion`, `response_time`, `fallback_validation`), agentic
+  (`decision_sequence`, `correct_agent_invocation`, `tool_invocation`, `simulated_workflow`),
+  orchestration (`state_management`, `integration_sync_async`), adversarial (`prompt_injection`,
+  `jailbreak`, `data_exfiltration`, `guardrail_bypass`) — plus `AiCheck` (kind, tier, requires,
+  rubric_ref).
+- **New** `stages/ai_catalog.py::match(target) -> Catalog` — reuses **T-125's `Catalog` and
+  `BlockedReason`** rather than defining a second catalog (C3: one concept, one place). The
+  kind→checks mapping is a literal table; blocked entries name the missing fixture
+  (`no_ground_truth`, `no_live_endpoint`, `no_approval`).
+- Tests: each system kind yields its expected check set; a target with no ground truth reports
+  `hallucination` blocked, not silently dropped; the table is exhaustive over `AiCheckKind`.
+
+### T-153 — behavioural checks against a captured run · ~350 lines
+- **New** `stages/ai_capture.py` — exercises the target once per check (HTTP endpoint or an
+  in-repo entry point), recording request/response/latency as `Evidence`. Never grades.
+- Grading reuses `stages/grade.py` unchanged: one `Rubric` per `AiCheckKind` under `prompts/`,
+  `Verdict` out. Latency and schema checks are computed in code, not judged by a model.
+- Secrets: every capture passes `Redactor.scrub` and `assert_no_raw_secrets` before it reaches the
+  judge — the same gate the browser path already uses.
+- Tests: a stub endpoint returning a known-wrong answer FAILs `hallucination` and an unrelated
+  check stays PASS (the T-110 regression discipline, applied to Track C); the capturer has no
+  import of `grade`.
+
+### T-154 — bounded adversarial pass · ~350 lines · **the highest-risk unit in this plan**
+- **New** `stages/adversarial.py` — fires probe prompts at the target's input surface and records
+  whether a guardrail held. **Native, file-defined probe sets first**
+  (`prompts/probes/<category>.md`), not a vendored framework: Garak/PyRIT/DeepTeam are heavy
+  dependencies whose value here is their corpus, and a `ProbeSource` adapter behind the provider
+  seam can import their corpora later without either becoming a hard dependency. That adapter is
+  designed for in this unit and **built only if the native set proves too thin** — stated so no
+  later manifest can claim the wrapper shipped when it did not.
+- **Every safety rule from D-016 restated for this surface, in D-018:** an unexpired
+  `RunApproval(run_kind="adversarial")` naming the exact endpoint and a probe count ≥ the planned
+  run; a hard probe cap; refusal against any host outside `allowed_domains`; refusal against a
+  production endpoint unless the approval says `production` explicitly; every probe and response
+  written to disk; nothing generated by a probe is ever executed.
+- Grading is independent (C7): a `guardrail_held` judgement comes from the judge seam, never from
+  the module that fired the probe.
+- **New** `scripts/adversarial_proof.py` — the credential-free proof, mirroring
+  `explore_proof.py`: a local fixture endpoint with a deliberately weak guardrail and a strong
+  one; asserts the weak one is caught, the strong one is not falsely accused, the probe cap is
+  obeyed, and **that running without an approval exits non-zero having sent nothing**.
+- Tests: no approval → zero requests made (asserted at the transport, not by inspecting intent);
+  probe count above the approval → refused; off-domain endpoint → refused; a passing guardrail
+  produces no finding (no vacuous alarm).
+
+### T-155 — the unified AI test report · ~300 lines
+Pass/fail against thresholds **grouped by tier**, each row carrying the judge's reason string —
+the reference's "unified report", built on `report_export.py`'s shared `autosize_columns` rather
+than a second exporter. **New** `ui/routes_ai_report.py` + `report ai` CLI. Blocked checks appear
+as blocked with their reason, never as passes.
+
+---
+
 ## 6. Verification (whole plan)
 
 - Adapter slot 1 on every unit: `uv run pytest -q` · `uv run ruff check src tests scripts` · `uv run autotester doctor` — green, plus a fresh `/checker` verdict; live figures only after the staleness guard.
 - **Track 0 tail:** T-122's logged-in ERP run ends in a genuine PASS with the password masked in every screenshot.
 - **Track A:** T-136's scorer output — recall and false positives per corpus as numbers; Excel header identical to the human sheet; `analysis.json` byte-identical on re-run.
 - **Track B:** `scripts/explore_proof.py` exits 0 (Delete/Deactivate/Remove/Save/Log out never clicked, external link refused, dialog storm survived, GA never an issue) and T-145's real ERP crawl produces a screen graph the human can read.
+- **Adopted patterns:** `run_crawl` and the adversarial pass both refuse with a named shortfall
+  when no matching approval exists; `T-145.done_check` is a command that can actually fail; the
+  catalog page shows a blocked reason for every non-runnable case class.
+- **Track C:** `scripts/adversarial_proof.py` exits 0 — a weak guardrail is caught, a strong one is
+  not falsely accused, the probe cap holds, and the no-approval path sends zero requests; every
+  `Signal` in a classification resolves to a real file:line; the whole discovery→catalog path runs
+  with `provider=mock`.
 - **Governance:** `.goal/goal.json` carries every unit; `docs/MAP.md`/`SNAPSHOT.md` regenerated each unit; every high-value PASS gets a `FEATURES.jsonl` row.
 
 ---
@@ -519,6 +736,67 @@ confirm-or-edit.
 **Links:** T-142; D-014; D-015; D-004
 ```
 
+### D-017 — Track C: AI systems as a second target kind
+```
+## D-017 | 2026-09-07 | type: decision | status: ACTIVE
+**What:** AutoTester gains a second TARGET KIND. Today a target is a web product reached through a
+browser and judged on its screens; Track C adds a target reached through an API endpoint or a
+codebase -- an LLM application -- judged on its outputs. New models schema/ai_target.py (AiTarget,
+Signal), schema/ai_check.py (AiCheckKind, AiCheck); new stages discover.py, read_context.py,
+ai_catalog.py, ai_capture.py, adversarial.py; contracts qa/contracts/ai-target.md and
+qa/contracts/adversarial.md, both checker-authored. Discovery signals are DETERMINISTIC (grep and
+file inspection); a model may name the system kind from those signals but may never choose which
+checks run -- that mapping is a table in code, exactly as D-015 kept action choice out of the
+model's hands for the crawl. C7 is preserved: stages/ai_capture.py and stages/adversarial.py
+exercise the target and never grade it; judgement goes through stages/grade.py with a Rubric.
+A context folder (including an Obsidian vault) is read as ordinary structured markdown --
+frontmatter and tags only; backlinks, Dataview and live-vault features are explicitly out of scope.
+Rejected for now: vendoring Garak/PyRIT/DeepTeam as hard dependencies -- their value is their probe
+corpus, so a ProbeSource adapter behind the provider seam is designed for and built only if the
+native file-defined probe sets prove too thin.
+**Why:** Umesh 2026-09-07 evening, choosing "adopt the cheap parts + a Track C for AI-system
+testing" over adopting the reference's cheap patterns alone. Vidysea's own products carry LLM
+features that a browser cannot grade, so the north star -- a human tester and AutoTester get the
+same material, AutoTester wins on bugs found, false positives and time -- applies unchanged to
+them. Building it as a second target kind rather than a separate tool reuses the provider seam,
+the grade stage, the redaction boundary, the Catalog and the report exporter.
+**Result:** units T-150..T-155. Track A keeps tick priority; Track C advances when A waits on a
+checker (plan.md section 2).
+**Changes-authorized:** docs/ARCHITECTURE.md (Pipeline, Concept->file table, Storage); new
+qa/contracts/ai-target.md and qa/contracts/adversarial.md; .gitignore for capture artifacts.
+**Approved-by:** Umesh -- plan revision approved 2026-09-07 evening (plan.md section 5B).
+**Links:** T-150..T-155; D-015; D-016; D-018
+```
+
+### D-018 — the two-gate consent model, and an honest adapter allowlist
+```
+## D-018 | 2026-09-07 | type: decision | status: ACTIVE
+**What:** (1) Consent becomes an ARTIFACT, not a habit. New schema/approval.py::RunApproval
+(target, scope, bounds, granted_by, granted_at, expires_at, run_kind) and
+core/consent.py::require_approval, content-addressed so an approval cannot be widened after the
+fact. Gate 1 covers read scope (a discovery scan outside the project); gate 2 covers every
+outward-facing run -- the live crawl and, above all, the adversarial pass, whose approval must name
+the exact endpoint and a probe count at or above the planned run. An adversarial run against a
+production endpoint requires the approval to say production explicitly. Without a matching
+unexpired approval the runner sends nothing and exits non-zero. (2) T-145's done_check, currently
+{"cmd": "true"} -- a check that cannot fail on a HIGH-value live-crawl task -- is replaced by a
+command asserting both the crawl's exit code and a matching approval row. (3) qa/adapter.json's
+verify allowlist is widened to the commands checkers already legitimately run (the proof scripts,
+docker inspect, git show, md5sum, checker-authored probes under .work/), because a narrower
+allowlist than honest practice makes every real check a silent CONTRACT_MISMATCH.
+**Why:** the reference material's two consent gates are a better articulation of what write_policy
+and the HUMAN_GATE files reach for informally, and the explorer is about to be pointed at a live
+production ERP (T-145) with a done_check that cannot fail. Firing adversarial prompts at an
+endpoint is outward-facing and costly; it is the one capability in this plan that must be
+impossible to start by accident.
+**Result:** T-124 (consent gates + the T-145 done_check fix), T-126 (adapter allowlist), and the
+refusal criteria in qa/contracts/adversarial.md.
+**Changes-authorized:** qa/adapter.json verify.commands; .goal/goal.json T-145 done_check;
+qa/contracts/explore.md amendment for the pre-crawl approval; new qa/contracts/adversarial.md.
+**Approved-by:** Umesh -- plan revision approved 2026-09-07 evening.
+**Links:** T-124, T-126, T-145, T-154; D-016; D-017
+```
+
 ### Contract criteria the maker will request (checker-owned, filed via `qa/feedback-inbox.md`)
 - **ingest.md I6–I9:** persists via `save_flowspec` and never overwrites APPROVED without
   `--replace/--merge`; every ingested `Screen` carries `source_ref` and templated `url_pattern`
@@ -560,3 +838,26 @@ confirm-or-edit.
 - Sizing: Track G is hours; Track A and Track B are each multi-week at one checked unit per tick.
   A4/T-136 is the first point where Track A yields something Umesh can compare to his team's sheet;
   B3's `explore_proof.py` is the first visible crawl.
+
+**Added by the 2026-09-07 evening revision:**
+
+- **Not adopted from the reference, and why.** *Password-protecting the skill before granting
+  access* — AutoTester's boundary is already stronger (values only in a gitignored 0600 `.env`,
+  entered through the tool's own UI, never in chat); a password on top adds ceremony, not safety.
+  *An OpenCode-based skill* — AutoTester is a repo product with a CLI and a web UI, not a skill.
+  *Synthetic fixture generation with human approval* — it directly contradicts explore.md **X10**
+  ("nothing is typed"); if it is ever wanted it needs its own decision, not a quiet exception.
+- **Adversarial testing is the highest-risk capability in this plan.** It sends adversarial prompts
+  to a live endpoint; it can cost money, trip a vendor's abuse detection, and pollute a production
+  log. D-018's approval artifact is what makes it impossible to start by accident, and T-154's
+  proof script asserts that the no-approval path **sends nothing** at the transport layer rather
+  than merely intending to.
+- **Garak / PyRIT / DeepTeam are not dependencies.** Probe corpora live in `prompts/probes/*.md`.
+  The adapter that could import theirs is designed for and built only on evidence that the native
+  set is too thin — no manifest may claim the wrapper shipped before it does.
+- **Track C's classification can be wrong.** It cites file:line for every signal precisely so a
+  human can overrule it; a wrong `system_kind` must degrade to "checks you didn't want", never to
+  a silently missing check — hence blocked entries are always shown with a reason, never dropped.
+- **Three open tracks is the real risk to the schedule**, not any single unit. If Track A slips
+  again, Track C is the one to pause — it is the only track with no human ground-truth sheet
+  waiting on it.
