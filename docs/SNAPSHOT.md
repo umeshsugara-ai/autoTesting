@@ -32,8 +32,8 @@ AutoTester wins on bugs found, false positives, and time (`schema/bench.py` comp
 ## Next (open goal tasks)
 - backlog empty
 ## Last decisions (computed status)
-- D-007 2026-09-03 decision ACTIVE
-- D-008 2026-09-03 fix ACTIVE
 - D-009 2026-09-03 fix ACTIVE
 - D-010 2026-09-03 fix ACTIVE
 - D-011 2026-09-03 fix ACTIVE
+- D-012 2026-09-05 decision ACTIVE
+- D-013 2026-09-05 decision ACTIVE

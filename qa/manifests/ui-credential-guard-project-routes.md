@@ -253,4 +253,47 @@ Still open from earlier cycles: **AT-079/AT-080** (the `slug` and secret-`key` b
 only by their own regexes), **AT-081** (double-encoded / base64 / markup-interleaved values),
 **AT-072**, **AT-076**.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Verdict: `qa/verdicts/ui-credential-guard-project-routes.md` (**Cycle checked: 3**, PASS, 8/8
+criteria, 5/5 no-fire invariants). AT-078 and AT-083 both closed; AT-074, AT-075, AT-077, AT-082,
+AT-084 closed in earlier cycles of this unit.
+
+The checker confirmed current code **three** ways before trusting any probe — uvicorn has no
+`--reload`, no `src/**.py` is newer than the worker's start, and a behavioural fingerprint only
+cycle-3 code satisfies (pathlynks re-save 303 *and* undeclared key refused; cycle 1 gave 400 on
+the first, cycle 2 gave 303 on the second). Then **38/38 hostile probes refused**, each run twice
+— once with the live undeclared `GEMINI_API_KEY`, once with the declared
+`PATHLYNKS_USER_PASSWORD` — across onboard / edit / secrets / case title / target / value /
+expect / rename, plus URL-encoded, split-across-rows and split-across-field-types.
+
+**It found a real leak in my exemption, and isolated it against a control.** On the project-edit
+route, a stored `base_url` ending in half a password (exempt, so dropped from the join) plus a
+crafted `allowed_domains` continuing it → **303**, and the two fields reassemble the full password
+on disk. Change `base_url` by one character so it is no longer exempt and the same split is
+**400**. Root cause: `exempt` is a flat set rather than per-field. Filed **AT-087 (medium)** — not
+a FAIL, because U8 scopes the guard to the case form, and on the case form the exemption is
+structurally unreachable (`routes_cases` passes no exempt set, and nothing user-supplied can enter
+one). The per-field fix is a separate unit.
+
+**AT-088 (medium)** — `_require_reachable_base_url` runs *before* the guard and echoes the raw
+submission, so pasting a credential into Base URL returns it verbatim in the 400 body. Fourth
+occurrence of the AT-068/AT-075 pattern.
+
+**AT-086 corrected low → medium.** The checker verified my filing was accurate but that the
+workaround I claimed does **not** exist: onboarding a placeholder and then editing to the real URL
+is also refused. Filing it rather than fixing it at cycle 3 of 3 was judged legitimate scoping.
+
+It also had to **widen the pathspec I gave it** — `app.py` (the onboard guard itself) and
+`env_editor.py` plus three test files belong to this unit and I omitted them from the dispatch
+list. My error, and exactly the kind of omission that leaves source uncommitted. Committed as part
+of its PASS. The contract gained **U9**, pinning both directions so neither cycle's regression can
+recur silently.
+
+Cleanup verified: all eight `project.json`/`cases.jsonl` md5s byte-identical to pre-probe state,
+eleven scratch projects deleted, no probe value ever written to `.env`, and a scan of every
+git-tracked file for every real `.env` value found only `PATHLYNKS_USER_LOGIN_URL` — a public
+sign-in URL nobody declares as a secret.
+
+Noted for a decision, outside this unit: `projects/erp/` is untracked while the other three
+projects are committed.

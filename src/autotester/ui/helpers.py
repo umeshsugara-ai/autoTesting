@@ -23,6 +23,7 @@ from autotester.store.project_store import ProjectStore
 # ever handed to ProjectPaths/ProjectStore as a directory name.
 _SLUG_RE = re.compile(r"^[a-z][a-z0-9-]*$")
 # run/case ids are ulid- or content_id-shaped: alnum plus `_`/`-` only.
+_HOSTNAME_RE = re.compile(r"^(?=.*\.)[a-z0-9.-]+$")
 _SAFE_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 
 
@@ -54,12 +55,25 @@ def _require_reachable_base_url(base_url: str, domains: list[str]) -> None:
     """
     host = host_of(base_url)
     if not host:
-        raise HTTPException(400, f"'{base_url}' is not a URL the browser can open")
+        # AT-088: never echo the submitted URL -- this check runs BEFORE the
+        # credential guard, so a password pasted here would be handed straight
+        # back in the response body and the access log (the fourth occurrence
+        # of the AT-068/AT-075 pattern).
+        raise HTTPException(400, "that is not a URL the browser can open")
     probe = Project(slug="probe", name="probe", base_url=base_url, allowed_domains=domains)
     if not probe.allows_domain(host):
+        # AT-088: `host_of` returns a pseudo-host for garbage, so naming it
+        # unconditionally would echo back a credential pasted into this box.
+        # Name it only when it is genuinely hostname-shaped; otherwise say what
+        # is wrong without quoting what was sent.
+        if _HOSTNAME_RE.fullmatch(host):
+            raise HTTPException(400, (
+                f"this project could never run: its base URL host '{host}' is not covered "
+                f"by allowed domains {domains}. Add '{host}' to the allowed domains."
+            ))
         raise HTTPException(400, (
-            f"this project could never run: its base URL host '{host}' is not covered by "
-            f"allowed domains {domains}. Add '{host}' to the allowed domains."
+            "that base URL does not look like an address the browser can open. Enter the "
+            "product's URL, e.g. https://app.example.com/signin."
         ))
 
 
