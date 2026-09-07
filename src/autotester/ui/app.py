@@ -22,6 +22,7 @@ from autotester.schema.project import Project
 from autotester.store.project_store import ProjectStore
 from autotester.ui import (
     routes_cases,
+    routes_crawls,
     routes_credentials,
     routes_flow_diagram,
     routes_project_edit,
@@ -61,6 +62,7 @@ app.include_router(routes_project_edit.router)
 app.include_router(routes_runs.router)
 app.include_router(routes_report.router)
 app.include_router(routes_flow_diagram.router)
+app.include_router(routes_crawls.router)
 app.include_router(routes_credentials.router)
 app.include_router(routes_settings.router)
 
@@ -216,6 +218,7 @@ def _actions_card(safe_slug: str, run_button: str, case_count: int) -> str:
         f"<a class='btn' href='/projects/{safe_slug}/env'>🔑 Credentials</a>"
         f"<a class='btn' href='/projects/{safe_slug}/report'>📋 Latest report</a>"
         f"<a class='btn' href='/projects/{safe_slug}/flow-diagram'>🌳 Flow diagram</a>"
+        f"<a class='btn' href='/projects/{safe_slug}/crawls'>🕸 Crawls</a>"
         f"<a class='btn' href='/projects/{safe_slug}/edit'>⚙ Project settings</a>"
         "<a class='btn' href='/live'>▶ Watch live</a>"
         "</div>",

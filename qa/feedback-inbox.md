@@ -379,3 +379,43 @@ Criteria the maker built against, offered as a starting point (the checker owns 
 an interrupted crawl; parallel tabs; CI triggers; `EvidenceKind.TRACE`; auto-generating cases from
 crawl screens (that is `expand.py` after human review); auth bypass / 2FA automation; a wildcard
 for `allowed_domains`; and crawl→FlowSpec merge + reporting (that is B5/T-144, not this unit).
+
+---
+
+## 2026-09-08 · maker (T-144, Track B5) · PATTERN: a criterion nobody owns is a criterion nobody checks
+
+**Contract request — `qa/contracts/explore.md` needs X13–X16, and `qa/contracts/coverage.md` V1
+needs an amendment.** Contracts are checker-owned; the maker never writes one. Filing the criteria
+I built against so the checker can author, tighten or reject them.
+
+- **X13 — A crawl may propose screens, never approve them.** `merge_screens` never rewrites an
+  existing `Screen`; any real change resets `Review.status` to DRAFT and bumps `version`; merging
+  the same crawl twice changes nothing (same fingerprint, no version bump, no duplicate conflict).
+- **X14 — A disagreement is kept, never resolved.** When a crawled screen claims a `url_pattern`
+  an existing screen already claims under a different name, both screens survive and a `Conflict`
+  records both claims. **Deliberate exception the checker should judge:** two screens found by the
+  SAME crawl sharing a `url_pattern` are NOT a conflict — X3 requires two SPA states at one URL to
+  be two screens, so flagging that would file a false conflict on every SPA. Evidence: the fixture
+  index page's filter toggle produces exactly this, 7 screens across 6 url patterns.
+- **X15 — `Screen.url_pattern` is a host-less path, not the node's browsing template.**
+  `node.url_template` carries a host; `coverage.py` compares paths. Copying the template verbatim
+  would make every coverage diff miss.
+- **X16 — The crawl report shows what was REFUSED and why it STOPPED**, not only what was found.
+  Both the page and the workbook name `stop_reason`, every `DENIED_POLICY`/`SKIPPED_UNNAMED`/
+  `OFF_DOMAIN_REFUSED` edge with its reason, and third-party noise counted-but-never-reported.
+  A report that omitted these would read as full coverage of a bounded crawl.
+- **`coverage.md` V1 amendment:** both sides of every coverage diff are normalised through
+  `core.urls.url_template(..., keep_host=False)`. Before T-144, coverage compared raw paths, so a
+  run that visited `/students/1` was reported as a gap against a screen whose pattern is
+  `/students/{id}` — every id-bearing route looked permanently uncovered. `diff_crawl` and
+  `unreached_screens` are the crawl-sourced twins of `diff_coverage`.
+
+**No-fire list offered for this unit:** auto-generating cases from crawled screens (that is
+`expand.py`, after human review); naming screens with a model (`prompts/explore_name_screen_v1.md`
+is designed for and deliberately NOT built — the crawl stays provider-free, X12); background/async
+crawling from the UI (synchronous, same trade-off `routes_runs.py` already makes); resuming an
+interrupted crawl; merging crawl-discovered *flows* (only screens are merged); editing a merged
+screen from the crawl page.
+
+**APPLIES NEXT:** the same "propose, never approve" shape is what Track A's `merge_flowspec.py`
+(T-135) needs, and the same two-direction coverage view is what T-125's catalog page reports.

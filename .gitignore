@@ -39,3 +39,6 @@ __pycache__/
 # OS
 Thumbs.db
 .DS_Store
+
+# Crawl artifacts: screenshots of a real product under test
+projects/*/crawl/*/shots/

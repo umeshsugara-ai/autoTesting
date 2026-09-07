@@ -7,8 +7,8 @@ from pathlib import Path
 
 import typer
 
+from autotester import cli_crawl, providers
 from autotester import doctor as doctor_module
-from autotester import providers
 from autotester.core.paths import RepoDocs
 from autotester.ledger import render, store
 from autotester.ledger.relitigation import gate_message, relitigate
@@ -219,53 +219,8 @@ def report_html(
     typer.secho(f"wrote {path}", fg=typer.colors.GREEN)
 
 
-@app.command("explore")
-def explore_cmd(
-    project: str,
-    max_screens: int = typer.Option(30, "--max-screens"),
-    max_actions: int = typer.Option(200, "--max-actions"),
-    wall_clock: float = typer.Option(600.0, "--wall-clock", help="seconds"),
-    max_depth: int = typer.Option(6, "--max-depth"),
-    login_case: str | None = typer.Option(None, "--login-case", help="case id to log in with"),
-) -> None:
-    """Bounded BFS crawl of a project, refusing anything its write_policy
-    denies. Contract: qa/contracts/explore.md. Nothing is typed except the
-    optional login case; nothing destructive is clicked."""
-    from autotester.browser.observe import PageObserver
-    from autotester.browser.secrets import SecretStore
-    from autotester.browser.session import BrowserSession
-    from autotester.core.ids import run_id
-    from autotester.core.paths import ProjectPaths
-    from autotester.schema.crawl import CrawlBounds
-    from autotester.stages import explore as explore_stage
-
-    store_ = ProjectStore(project)
-    proj = store_.load_project()
-    if proj is None:
-        typer.secho(f"no project '{project}' yet", fg=typer.colors.RED)
-        raise typer.Exit(1)
-    case = store_.get_case(login_case) if login_case else None
-    if login_case and case is None:
-        typer.secho(f"no case '{login_case}' in {project}", fg=typer.colors.RED)
-        raise typer.Exit(1)
-    paths = ProjectPaths(project)
-    paths.ensure()
-    bounds = CrawlBounds(max_screens=max_screens, max_actions=max_actions,
-                         wall_clock_s=wall_clock, max_depth=max_depth)
-    secrets = SecretStore.load(proj, paths.env_file, strict=False)
-    observer = PageObserver()
-    crawl_id = run_id("crawl")
-    with BrowserSession(proj, secrets, paths.crawl_shots_dir(crawl_id),
-                        paths, observer=observer) as session:
-        crawl = explore_stage.run_crawl(proj, session, store_, observer=observer,
-                                        bounds=bounds, login_case=case, crawl_id=crawl_id)
-    typer.secho(
-        f"{crawl.id}: {crawl.status.value} ({crawl.stop_reason}) — "
-        f"{crawl.screens} screens, {crawl.edges} edges, {crawl.actions} actions, "
-        f"{crawl.denied} denied, {crawl.issues} issues",
-        fg=typer.colors.GREEN,
-    )
-    typer.echo(str(paths.crawl_dir(crawl.id)))
+app.command("explore")(cli_crawl.explore_cmd)
+report_app.command("crawl")(cli_crawl.report_crawl)
 
 
 def main() -> None:

@@ -14,6 +14,7 @@ from pathlib import Path
 
 from openpyxl import Workbook
 
+from autotester.core.excel import autosize_columns
 from autotester.schema.case import Case
 from autotester.schema.enums import EvidenceKind
 from autotester.store import ProjectStore
@@ -63,9 +64,7 @@ def export_excel(
             verdict.grader_provider if verdict else "",
             (verdict.scoreboard if verdict else "") or (result.error or ""),
         ])
-    for column in ws.columns:
-        width = max(len(str(cell.value)) for cell in column if cell.value is not None)
-        ws.column_dimensions[column[0].column_letter].width = min(width + 2, 60)
+    autosize_columns(ws)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     wb.save(out_path)
     return out_path

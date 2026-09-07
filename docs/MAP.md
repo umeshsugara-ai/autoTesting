@@ -14,6 +14,8 @@
 | `browser/secrets.py` | The credential boundary. Secret values live here and nowhere else. |
 | `browser/session.py` | One real, visible browser session per project. Contract: browser-and-secrets.md B5-B9. |
 | `cli.py` | Command line. Every action the UI offers is available here first. |
+| `cli_crawl.py` | Crawl commands — `autotester explore` and `autotester report crawl`. |
+| `core/excel.py` | Workbook presentation helpers shared by every Excel exporter. |
 | `core/ids.py` | Identifier generation. The ONLY place ids are minted. |
 | `core/paths.py` | Filesystem layout. The ONLY place project paths are constructed. |
 | `core/redact.py` | Secret redaction. Every log line and stored artifact passes through here. |
@@ -47,9 +49,11 @@
 | `stages/agent_loop.py` | Agent fallback: when a case's steps break, ask the agent for a fix and retry. |
 | `stages/bench.py` | BENCH: the north star made measurable. Contract: qa/contracts/bench.md K1-K5. |
 | `stages/coverage.py` | COVERAGE: diff what a run actually saw against what the FlowSpec knows. |
+| `stages/crawl_report.py` | The crawl, as something a human can read: an Excel workbook and the |
 | `stages/execute.py` | EXECUTE: run one case's steps in a real browser, producing a RawResult. |
 | `stages/expand.py` | EXPAND: FlowSpec -> Case[], covering every applicable CaseClass per flow. |
 | `stages/explore.py` | EXPLORE: a bounded, safety-gated BFS crawl of a (usually logged-in) app. |
+| `stages/explore_merge.py` | Fold a crawl's screen graph into the reviewed FlowSpec (Track B5). |
 | `stages/explore_node.py` | One node's worth of exploring: try each safe candidate action, record what |
 | `stages/explore_safety.py` | The explorer's inner safety guard (Track B4, D-016). |
 | `stages/grade.py` | GRADE: an independent, stateless judge reads a Rubric + a RawResult's evidence. |
@@ -64,9 +68,11 @@
 | `store/project_store.py` | Typed convenience over `filestore` for one project's directory. |
 | `ui/app.py` | Thin FastAPI viewer/editor over project files. Design principle 8: never a |
 | `ui/case_form.py` | Rendering the add-a-case form. Contract: qa/contracts/ui.md. |
+| `ui/crawl_view.py` | HTML fragments for the crawl pages — split from `routes_crawls.py` to keep |
 | `ui/env_editor.py` | The one legitimate WRITE path to the repo-root `.env` (every other module |
 | `ui/helpers.py` | Shared request-validation and lookup helpers used by every UI route module. |
 | `ui/routes_cases.py` | Create, list, rename and delete a project's test cases from the UI. |
+| `ui/routes_crawls.py` | The explorer, on screen: crawl history, one crawl's screen graph, its |
 | `ui/routes_credentials.py` | The masked .env editor. Contract: qa/contracts/ui.md U3 — a real value is |
 | `ui/routes_flow_diagram.py` | The BFS-style companion to `routes_report.py`'s DFS per-run step flow: |
 | `ui/routes_project_edit.py` | Edit a project's own settings after onboarding. Contract: qa/contracts/ui.md. |

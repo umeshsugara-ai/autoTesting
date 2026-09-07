@@ -260,5 +260,24 @@ PAGE_STYLE = """
   .btn-danger:hover { background: var(--danger-bg); }
   .row-form { display: flex; gap: .5rem; align-items: center; }
   .row-form input { flex: 1 1 auto; min-width: 12rem; }
+
+  /* Crawl pages (T-144). A screen graph is mostly tabular; the one place it
+     is not is the tree, where indentation carries the discovery depth. */
+  .meta { color: var(--text-dim); font-size: .85rem; }
+  .data-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  .data-table th, .data-table td { text-align: left; padding: .45rem .6rem;
+    border-bottom: 1px solid var(--border); vertical-align: top; }
+  .data-table thead th { color: var(--text-dim); font-weight: 600;
+    text-transform: uppercase; font-size: .72rem; letter-spacing: .06em; }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+  .crawl-tree { list-style: none; margin: 0; padding: 0; }
+  .crawl-node { display: flex; gap: .75rem; align-items: flex-start;
+    padding: .6rem 0; border-bottom: 1px solid var(--border);
+    margin-left: calc(var(--depth, 0) * 1.25rem); }
+  .crawl-node:last-child { border-bottom: none; }
+  .crawl-node .thumb { flex: 0 0 auto; }
+  .crawl-node .thumb img { width: 7rem; border: 1px solid var(--border);
+    border-radius: var(--radius); display: block; }
+  .crawl-node-body { min-width: 0; overflow-wrap: anywhere; }
 </style>
 """

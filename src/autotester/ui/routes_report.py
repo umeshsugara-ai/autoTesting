@@ -4,8 +4,6 @@ qa/contracts/ui-report.md UR1-UR4.
 
 from __future__ import annotations
 
-import os
-import tempfile
 from html import escape
 from pathlib import Path
 
@@ -18,7 +16,11 @@ from autotester.schema.enums import EvidenceKind, Result
 from autotester.stages.report_export import export_excel, export_html, png_base64
 from autotester.store.project_store import ProjectStore
 from autotester.ui import theme
-from autotester.ui.helpers import _load_project_or_404, _require_safe_id
+from autotester.ui.helpers import (
+    _load_project_or_404,
+    _require_safe_id,
+    _reserved_temp_path,
+)
 
 router = APIRouter()
 
@@ -203,17 +205,6 @@ def report(slug: str) -> str:
         f"{history}"
     )
     return theme.page(f"Report — {safe_slug}", body, active_slug=slug)
-
-
-def _reserved_temp_path(suffix: str) -> Path:
-    """Reserve a unique filename via mkstemp, then hand it to the exporter to
-    create fresh — export_excel/export_html both write a brand-new file, so
-    the mkstemp-opened fd is closed and the placeholder removed immediately."""
-    fd, tmp = tempfile.mkstemp(suffix=suffix)
-    os.close(fd)
-    path = Path(tmp)
-    path.unlink()
-    return path
 
 
 @router.get("/projects/{slug}/report.xlsx")

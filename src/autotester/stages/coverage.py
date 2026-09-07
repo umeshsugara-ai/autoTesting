@@ -9,16 +9,20 @@ mechanism: any URL a run's evidence reached that matches no known screen's
 
 from __future__ import annotations
 
-from urllib.parse import urlsplit
-
+from autotester.core.urls import url_template
 from autotester.schema.coverage import CoverageGap, VideoRequest
 from autotester.schema.enums import EvidenceKind
-from autotester.schema.flowspec import FlowSpec
+from autotester.schema.flowspec import FlowSpec, Screen
 from autotester.schema.run import RawResult
+from autotester.schema.screen_graph import ScreenNode
 
 
 def _path_of(url: str) -> str:
-    return urlsplit(url).path or "/"
+    """Both sides of every coverage diff are normalised the same way (V1
+    amendment, T-144): a run that visited `/students/1` must not be reported as
+    a gap against a screen whose pattern is `/students/{id}`. Before this,
+    coverage compared raw paths and every id-bearing route looked unknown."""
+    return url_template(url, keep_host=False)
 
 
 def _known_paths(spec: FlowSpec) -> set[str]:
@@ -61,3 +65,36 @@ def request_for(gap: CoverageGap) -> VideoRequest:
         gap_id=gap.id,
         prompt=f"Record a short video showing the screen/flow at '{gap.subject}' — {gap.reason}",
     )
+
+
+# -- crawl coverage (T-144): the same diff, sourced from a screen graph -------
+
+def _crawled_paths(nodes: list[ScreenNode]) -> dict[str, ScreenNode]:
+    """Keyed on the templated path of each node's real example URL — the node's
+    own `url_template` carries a host, and a `Screen.url_pattern` does not."""
+    return {_path_of(node.url_example): node for node in nodes}
+
+
+def diff_crawl(spec: FlowSpec, nodes: list[ScreenNode]) -> list[CoverageGap]:
+    """Every screen the crawl actually reached that the FlowSpec cannot name."""
+    known = _known_paths(spec)
+    gaps: dict[str, CoverageGap] = {}
+    for path, node in _crawled_paths(nodes).items():
+        if path in known:
+            continue
+        gap = CoverageGap(
+            project=spec.project, kind="screen", subject=path, seen_in_run=node.crawl_id,
+            reason=f"the crawl reached '{path}' but no screen in the FlowSpec has this "
+                   f"url_pattern",
+        )
+        gaps.setdefault(gap.id, gap)
+    return list(gaps.values())
+
+
+def unreached_screens(spec: FlowSpec, nodes: list[ScreenNode]) -> list[Screen]:
+    """The other direction: screens the FlowSpec claims that the crawl never
+    got to. Not a gap — the spec is not wrong for describing more than one
+    bounded crawl saw — but it is what tells a human the crawl stopped early or
+    that a route needs a login the crawl did not have."""
+    crawled = set(_crawled_paths(nodes))
+    return [s for s in spec.screens if s.url_pattern and _path_of(s.url_pattern) not in crawled]

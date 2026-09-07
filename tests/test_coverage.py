@@ -7,7 +7,13 @@ from pathlib import Path
 from autotester.schema.enums import EvidenceKind, Outcome
 from autotester.schema.flowspec import FlowSpec, Screen
 from autotester.schema.run import Evidence, RawResult
-from autotester.stages.coverage import diff_coverage, request_for
+from autotester.schema.screen_graph import ScreenNode
+from autotester.stages.coverage import (
+    diff_coverage,
+    diff_crawl,
+    request_for,
+    unreached_screens,
+)
 from autotester.store.project_store import ProjectStore
 
 
@@ -93,3 +99,59 @@ def test_add_request_is_idempotent(tmp_path: Path) -> None:
     store.add_request(request)  # same gap, re-diffed later -> must not duplicate
 
     assert len(store.list_requests()) == 1
+
+
+# -- V1 amendment (T-144): both sides templated, and crawl-sourced coverage ---
+
+def make_node(url: str, crawl_id: str = "crawl_1") -> ScreenNode:
+    return ScreenNode(
+        crawl_id=crawl_id, project="pathlynks", url_template=f"app.test{url}",
+        url_example=f"https://app.test{url}", signature=f"sig{url}",
+        name=url,
+    )
+
+
+def test_an_id_bearing_route_no_longer_looks_unknown() -> None:
+    """Before T-144 both sides were compared as raw paths, so a run that
+    visited `/students/1` was reported as a gap against a screen whose pattern
+    is `/students/{id}` — every id-bearing route looked uncovered forever."""
+    spec = make_spec("/students/{id}")
+    results = [make_result("case_1", "https://app.test/students/1")]
+
+    assert diff_coverage(spec, results) == []
+
+
+def test_crawled_screen_the_spec_cannot_name_is_a_gap() -> None:
+    spec = make_spec("/signin")
+    gaps = diff_crawl(spec, [make_node("/reports/new")])
+
+    assert len(gaps) == 1
+    assert gaps[0].subject == "/reports/new"
+    assert gaps[0].kind == "screen"
+    assert gaps[0].seen_in_run == "crawl_1"
+
+
+def test_a_crawled_screen_matching_a_templated_pattern_is_not_a_gap() -> None:
+    spec = make_spec("/students/{id}")
+    assert diff_crawl(spec, [make_node("/students/7")]) == []
+
+
+def test_two_crawled_ids_of_one_screen_produce_at_most_one_gap() -> None:
+    spec = make_spec("/signin")
+    gaps = diff_crawl(spec, [make_node("/students/1"), make_node("/students/2")])
+
+    assert len(gaps) == 1
+
+
+def test_unreached_screens_names_what_the_crawl_never_got_to() -> None:
+    spec = make_spec("/signin", "/billing")
+    unreached = unreached_screens(spec, [make_node("/signin")])
+
+    assert [s.url_pattern for s in unreached] == ["/billing"]
+
+
+def test_a_screen_with_no_url_pattern_is_never_reported_unreached() -> None:
+    """A screen the FlowSpec cannot locate by URL cannot be shown as missed —
+    that would be a permanent false alarm on every crawl."""
+    spec = FlowSpec(project="pathlynks", screens=[Screen(id="s1", name="modal")])
+    assert unreached_screens(spec, [make_node("/signin")]) == []
