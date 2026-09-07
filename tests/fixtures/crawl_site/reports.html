@@ -1,0 +1,12 @@
+<!doctype html>
+<html><head><title>Crawl Demo - Reports</title></head>
+<body>
+  <h1>Reports</h1>
+  <a href="/">Home</a>
+  <script>
+    console.error('report widget failed to initialise');
+    fetch('/api/missing').catch(function () {});
+    fetch('https://www.google-analytics.com/collect').catch(function () {});
+    fetch('https://cdn.unknown-third.test/x.js').catch(function () {});
+  </script>
+</body></html>

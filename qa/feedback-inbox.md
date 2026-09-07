@@ -330,3 +330,52 @@ before any code reads it.
 2026-09-06 · umesh (live, mid-session, Hinglish) · "bhai ye kessa ui bnaya hai na dashboard na kuch user kese testing krr payegaa" — the AutoTester UI's home page ("/") is a bare project-card grid (`ui/app.py::index`), no dashboard-style overview (no aggregate stats, no recent-run summary across projects, no at-a-glance health view). PATTERN: a non-technical user landing on "/" sees a list of names and case counts, nothing telling them what's passing/failing/stale across their portfolio without clicking into each project one at a time. EVIDENCE: read `ui/app.py:69-85` live during this session — `index()` only ever renders `_project_card` tiles in a grid, no stat tiles, no "N projects, M failing" summary. Contrasts with the already-shipped per-project report page (`routes_report.py`) which DOES have stat tiles (total runs, pass rate, cases in latest run) — that pattern exists and works, it's just never been pulled up to the home page. APPLIES NEXT: any home-page/dashboard redesign work — reuse `theme.py`'s existing stat-tile component instead of inventing a new one.
 2026-09-07 · umesh (live, using the UI) · "dekh maine abhi ERP project ki details daali, there is no back button for easy navigation" — after entering the ERP project's details through the AutoTester UI, there is no back button anywhere for easy navigation. PATTERN: pages that take a user *into* a flow (onboarding form, project detail, env editor, settings, report/run views) give no way back out except the browser's own back button or the top nav — a non-technical user who lands on a sub-page has no visible "← back" affordance. EVIDENCE: reported live by Umesh while onboarding the ERP project through the UI. APPLIES NEXT: any UI route that isn't the home page — the fix belongs in the shared layout (`ui/theme.py::page`) or a shared breadcrumb helper, not per-route one-offs, so no future page can ship without it.
 2026-09-07 · umesh (live, using the UI) · "and live preview and all mai kuch bhi nhi ho rhaa" (nothing at all is happening in the live preview). PATTERN: two distinct causes, both real. (1) The /live page embeds a working noVNC iframe, but when no run is in progress the container's X display is genuinely empty, so it renders as a large dead black rectangle with no explanation — it reads as broken software when it is actually correct-but-idle. Its tip text also still pointed at a stale script command (scripts/regression_proof.py) instead of the ▶ Run tests button that has since shipped. (2) MORE IMPORTANT, found while verifying: a freshly-onboarded project has ZERO cases, so its ▶ Run tests button renders permanently disabled and there is NO UI path anywhere to add a case — onboarding leads to a dead end for a non-technical user, who can create a project and then literally cannot test anything with it. Cases today are only creatable via a Python one-liner against ProjectStore.add_case, or via stages/expand.py from a reviewed FlowSpec that itself requires an ingested video. EVIDENCE: live screenshot of /projects/erp showing "0 CASES" and a greyed-out Run tests button, taken 2026-09-07. APPLIES NEXT: the empty-project dead end is the single biggest "this is not a real product" gap left in the UI — a project with no cases needs either an add-a-case flow or an explicit, prominent next-step prompt telling the user exactly how to get one.
+
+---
+
+## 2026-09-07 — maker request: a new contract `qa/contracts/explore.md` (Track B3, T-143)
+
+**Why a NEW contract and not an amendment to `execute.md`:** `execute.md` **E5** states
+*"`run_case` performs exactly the actions in `case.steps` — it never invents an extra click,
+submit, or navigation."* A crawler is by definition the invention of clicks. E5 must stay intact
+and unamended for `run_case`; the explorer needs its own contract that explicitly says inventing
+actions is *this* stage's job. Authorised by **D-015**.
+
+**Covers:** T-140 (B1 primitives), T-141 (B2 identity), T-142 (B4 safety), T-143 (B3 crawl).
+**Owner:** /checker. **Criticality:** HIGH — it drives a real logged-in browser against
+production. **Depends on:** core-invariants.md (all), browser-and-secrets.md B5-B9,
+execute.md E5 (explicitly preserved).
+
+Criteria the maker built against, offered as a starting point (the checker owns the final text):
+
+- **X1 — E5 stays intact.** `run_case` is unchanged in behaviour; `stages/explore.py` is the only
+  stage permitted to invent a click or navigation, and it calls `run_case` for nothing except the
+  human-authored login bootstrap case.
+- **X2 — Every browser touch goes through `browser/`.** No `.page.` access and no `playwright`
+  import in `src/autotester/` outside `browser/` (`tests/test_actuator_chokepoint.py`).
+- **X3 — Screen identity is structural**, never URL-only and never model text. Two list pages
+  differing only in row data are one node; two states at one URL with different controls are two.
+- **X4 — Bounds fire and name themselves.** `max_screens`/`max_actions`/`wall_clock_s`/`max_depth`
+  each end the crawl and are named in `Crawl.stop_reason`; no stop condition depends on provider
+  output (the crawl takes no provider at all).
+- **X5 — `write_policy` is enforced (the D-016 matrix)**, with the fixture proof that a
+  Delete-labelled control is never clicked under READ_ONLY and is clicked under ALLOW_WRITES.
+- **X6 — Session-ending controls are never clicked at any policy**; unnamed non-link controls are
+  skipped and counted, not guessed.
+- **X7 — The host is re-checked after every action**, not only on `goto`; a refusal produces an
+  `OFF_DOMAIN_REFUSED` edge plus a `NAVIGATION` issue, then recovery.
+- **X8 — Dialog circuit breaker.** Every dialog is recorded; `beforeunload` accepted, others
+  dismissed; exceeding `dialog_repeat_limit` on one node aborts that node and the crawl continues.
+- **X9 — Third-party noise is not an issue.** A failed request is an issue only when first-party;
+  declared analytics hosts are dropped; other third parties are counted as noise only.
+- **X10 — Nothing is typed.** The explorer never calls `fill`/`select_option`/`upload`; the only
+  typing on a crawl is the login case through `run_case`.
+- **X11 — Artifacts are incremental, human-readable files** under `projects/<slug>/crawl/<id>/`;
+  a crash mid-crawl leaves a loadable partial graph. A node's final status reaches disk (this was
+  a real bug found while building: `add_node` is idempotent, so a visited node stayed `queued`
+  on disk until `update_node` was added).
+
+**No-fire list offered:** filling forms with synthetic data; vision-guided action choice; resuming
+an interrupted crawl; parallel tabs; CI triggers; `EvidenceKind.TRACE`; auto-generating cases from
+crawl screens (that is `expand.py` after human review); auth bypass / 2FA automation; a wildcard
+for `allowed_domains`; and crawl→FlowSpec merge + reporting (that is B5/T-144, not this unit).

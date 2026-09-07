@@ -1,0 +1,21 @@
+<!doctype html>
+<html><head><title>Crawl Demo - Home</title></head>
+<body>
+  <h1>Crawl Demo</h1>
+  <nav>
+    <a href="/students/">Students</a>
+    <a href="/settings.html">Settings</a>
+    <a href="/reports.html">Reports</a>
+    <a href="/dialog.html">Dialog page</a>
+    <a href="https://example.com/">External site</a>
+  </nav>
+  <button id="toggle-filters" onclick="document.getElementById('filters').hidden = !document.getElementById('filters').hidden">Open filters</button>
+  <div id="filters" hidden>
+    <label><input type="checkbox" id="show-archived" aria-label="Show archived"> Show archived</label>
+  </div>
+  <form action="/saved.html" method="get">
+    <input type="text" name="email" aria-label="Email">
+    <input type="password" name="password" aria-label="Password">
+    <button type="submit">Sign in</button>
+  </form>
+</body></html>

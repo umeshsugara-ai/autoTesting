@@ -62,6 +62,14 @@ class CrawlBounds(BaseModel):
     max_depth: int = 6
     per_node_action_cap: int = 25
     dialog_repeat_limit: int = 3
+    settle_ms: int = Field(
+        default=2500,
+        description="per-action settle ceiling. Deliberately far below the 8s a graded "
+        "test case waits: a crawl performs hundreds of actions, and a page whose "
+        "third-party requests never resolve would otherwise cost the full ceiling every "
+        "single time (measured: a 60-action crawl of the fixture site took >5 minutes at "
+        "8s, because one page fetches unreachable analytics hosts)",
+    )
 
 
 class SafetyPolicy(BaseModel):

@@ -1,0 +1,10 @@
+<!doctype html>
+<html><head><title>Crawl Demo - Dialog</title></head>
+<body>
+  <h1>Dialog page</h1>
+  <a href="/">Home</a>
+  <button id="confirm-storm" onclick="for (var i = 0; i < 5; i++) { confirm('Are you sure? ' + i); }">Confirm thing</button>
+  <script>
+    window.addEventListener('beforeunload', function (e) { e.preventDefault(); e.returnValue = 'stay?'; return 'stay?'; });
+  </script>
+</body></html>

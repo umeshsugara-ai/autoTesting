@@ -9,7 +9,13 @@ from __future__ import annotations
 from autotester.core.paths import ProjectPaths
 from autotester.schema.crawl import Crawl, CrawlIssue
 from autotester.schema.screen_graph import CrawlFrontier, ScreenEdge, ScreenNode
-from autotester.store.filestore import append_jsonl, read_json, read_jsonl, write_json
+from autotester.store.filestore import (
+    append_jsonl,
+    read_json,
+    read_jsonl,
+    upsert_jsonl,
+    write_json,
+)
 
 
 class CrawlStoreMixin:
@@ -47,6 +53,15 @@ class CrawlStoreMixin:
 
     def list_nodes(self, crawl_id: str) -> list[ScreenNode]:
         return read_jsonl(self.paths.crawl_nodes(crawl_id), ScreenNode)
+
+    def update_node(self, node: ScreenNode) -> None:
+        """Replace a node in place, keeping its id — how a node moves from
+        QUEUED to EXPLORED/ABORTED_*. `add_node` is deliberately idempotent,
+        so without this the on-disk graph would record every node as QUEUED
+        forever, however much of it was actually explored."""
+        upsert_jsonl(self.paths.crawl_nodes(node.crawl_id), node, ScreenNode)
+        if self._node_ids is not None:
+            self._node_ids.setdefault(node.crawl_id, set()).add(node.id)
 
     def add_edge(self, edge: ScreenEdge) -> None:
         append_jsonl(self.paths.crawl_edges(edge.crawl_id), edge)
