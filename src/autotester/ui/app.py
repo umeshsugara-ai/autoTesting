@@ -23,12 +23,18 @@ from autotester.ui import (
     routes_cases,
     routes_credentials,
     routes_flow_diagram,
+    routes_project_edit,
     routes_report,
     routes_runs,
     routes_settings,
     theme,
 )
-from autotester.ui.helpers import _load_project_or_404, _project_slugs, _require_slug
+from autotester.ui.helpers import (
+    _load_project_or_404,
+    _project_slugs,
+    _require_reachable_base_url,
+    _require_slug,
+)
 from autotester.ui.routes_report import _run_counts, _run_ids_newest_first
 
 __all__ = ["_require_slug", "app"]
@@ -49,6 +55,7 @@ async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(title="AutoTester", lifespan=_lifespan)
 app.include_router(routes_cases.router)
+app.include_router(routes_project_edit.router)
 app.include_router(routes_runs.router)
 app.include_router(routes_report.router)
 app.include_router(routes_flow_diagram.router)
@@ -178,6 +185,7 @@ def onboard_submit(
 ) -> RedirectResponse:
     _require_slug(slug)
     domains = [d.strip() for d in allowed_domains.split(",") if d.strip()]
+    _require_reachable_base_url(base_url, domains)  # AT-058: fail here, not mid-run
     project = Project(slug=slug, name=name, base_url=base_url, allowed_domains=domains)
     ProjectStore(slug).save_project(project)
     return RedirectResponse(f"/projects/{slug}", status_code=303)
@@ -196,6 +204,7 @@ def _actions_card(safe_slug: str, run_button: str, case_count: int) -> str:
         f"<a class='btn' href='/projects/{safe_slug}/env'>🔑 Credentials</a>"
         f"<a class='btn' href='/projects/{safe_slug}/report'>📋 Latest report</a>"
         f"<a class='btn' href='/projects/{safe_slug}/flow-diagram'>🌳 Flow diagram</a>"
+        f"<a class='btn' href='/projects/{safe_slug}/edit'>⚙ Project settings</a>"
         "<a class='btn' href='/live'>▶ Watch live</a>"
         "</div>",
         title="Actions",

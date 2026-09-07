@@ -11,6 +11,7 @@ import re
 
 from fastapi import HTTPException
 
+from autotester.browser.secrets import host_of
 from autotester.core.paths import repo_root
 from autotester.schema.project import Project
 from autotester.store.project_store import ProjectStore
@@ -33,6 +34,31 @@ def _require_safe_id(value: str, label: str) -> str:
     if not _SAFE_ID_RE.fullmatch(value):
         raise HTTPException(400, f"invalid {label}")
     return value
+
+
+def _require_reachable_base_url(base_url: str, domains: list[str]) -> None:
+    """Refuse a project whose own `base_url` host is outside its `allowed_domains`.
+
+    AT-058: such a project can never test anything — every run dies at the first
+    step with `NavigationRefused`, hours after the mistake was made and with no
+    hint that onboarding was where it went wrong. Umesh hit this by typing "all"
+    in Allowed domains, meaning "allow everything": it was stored verbatim as a
+    literal domain named `all`, and the project was dead on arrival.
+
+    Deliberately NOT solved by teaching `allowed_domains` a wildcard —
+    `allowed_domains` is the documented boundary the browser is never allowed to
+    cross, and an allow-anything escape hatch is a security decision, not a
+    validation fix.
+    """
+    host = host_of(base_url)
+    if not host:
+        raise HTTPException(400, f"'{base_url}' is not a URL the browser can open")
+    probe = Project(slug="probe", name="probe", base_url=base_url, allowed_domains=domains)
+    if not probe.allows_domain(host):
+        raise HTTPException(400, (
+            f"this project could never run: its base URL host '{host}' is not covered by "
+            f"allowed domains {domains}. Add '{host}' to the allowed domains."
+        ))
 
 
 def _project_slugs() -> list[str]:

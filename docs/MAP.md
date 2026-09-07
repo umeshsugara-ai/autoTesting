@@ -53,6 +53,7 @@
 | `ui/routes_cases.py` | Create a test case from the UI. Contract: qa/contracts/ui.md (U1-U5). |
 | `ui/routes_credentials.py` | The masked .env editor. Contract: qa/contracts/ui.md U3 — a real value is |
 | `ui/routes_flow_diagram.py` | The BFS-style companion to `routes_report.py`'s DFS per-run step flow: |
+| `ui/routes_project_edit.py` | Edit a project's own settings after onboarding. Contract: qa/contracts/ui.md. |
 | `ui/routes_report.py` | Run history, per-case screenshots, and portable downloads. Contract: |
 | `ui/routes_runs.py` | Trigger a real run. Contract: qa/contracts/ui-run.md RU1-RU4. Run-history |
 | `ui/routes_settings.py` | Global AI/API provider keys. Contract: qa/contracts/ui-settings.md US1-US4. |
