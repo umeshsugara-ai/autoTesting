@@ -16,7 +16,14 @@ from autotester.schema.flowspec import FlowSpec
 from autotester.schema.project import Project, Source
 from autotester.schema.run import RawResult, Run
 from autotester.schema.verdict import Rubric, Verdict
-from autotester.store.filestore import append_jsonl, read_json, read_jsonl, write_json
+from autotester.store.filestore import (
+    append_jsonl,
+    delete_jsonl_row,
+    read_json,
+    read_jsonl,
+    upsert_jsonl,
+    write_json,
+)
 
 
 class ProjectStore:
@@ -80,6 +87,34 @@ class ProjectStore:
 
     def list_cases(self) -> list[Case]:
         return read_jsonl(self.paths.cases, Case)
+
+    def get_case(self, case_id: str) -> Case | None:
+        return next((c for c in self.list_cases() if c.id == case_id), None)
+
+    def has_case(self, case_id: str) -> bool:
+        """Whether this id is already on file — the check `add_case` makes
+        silently. A caller that must tell "created" from "already existed"
+        (a create form, say) asks this first; `add_case`'s idempotence is
+        deliberate and stays."""
+        if self._case_ids is None:
+            self._case_ids = {c.id for c in self.list_cases()}
+        return case_id in self._case_ids
+
+    def update_case(self, case: Case) -> None:
+        """Replace a case in place, keeping its id — so its runs, verdicts and
+        rubric stay attached. Only fields outside `Case.compute_id()`'s payload
+        can change this way; anything else is a different case."""
+        upsert_jsonl(self.paths.cases, case, Case)
+        if self._case_ids is not None:
+            self._case_ids.add(case.id)
+
+    def delete_case(self, case_id: str) -> bool:
+        """Remove a case; True when one was removed. Its past runs and verdicts
+        are history and are deliberately left alone."""
+        removed = delete_jsonl_row(self.paths.cases, Case, case_id)
+        if removed and self._case_ids is not None:
+            self._case_ids.discard(case_id)
+        return removed
 
     # -- rubrics (one file per id; `rubrics_dir` existed since design-lock, unused until now) ---
     def save_rubric(self, rubric: Rubric) -> None:

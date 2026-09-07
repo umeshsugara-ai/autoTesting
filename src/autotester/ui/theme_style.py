@@ -254,5 +254,11 @@ PAGE_STYLE = """
   .live-tip code { font-family: var(--font-mono); background: var(--neutral-bg);
                     padding: .15rem .4rem; border-radius: 4px; font-size: .85rem; }
   .live-tip-muted { color: var(--text-dim); font-size: .9rem; }
+
+  /* Destructive action: readable, never the loudest thing on the page. */
+  .btn-danger { color: var(--danger); border-color: var(--danger); }
+  .btn-danger:hover { background: var(--danger-bg); }
+  .row-form { display: flex; gap: .5rem; align-items: center; }
+  .row-form input { flex: 1 1 auto; min-width: 12rem; }
 </style>
 """

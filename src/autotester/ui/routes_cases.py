@@ -1,4 +1,5 @@
-"""Create a test case from the UI. Contract: qa/contracts/ui.md (U1-U5).
+"""Create, list, rename and delete a project's test cases from the UI.
+Contract: qa/contracts/ui.md (U1-U6).
 
 AT-057: onboarding used to dead-end — a new project had zero cases, its Run
 button was permanently disabled, and cases were creatable only from Python
@@ -16,14 +17,15 @@ from __future__ import annotations
 
 from html import escape
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from autotester.schema.case import Case
 from autotester.schema.enums import KIND_BY_CLASS, Action, CaseClass
 from autotester.schema.flowspec import ExpectedState, Step
+from autotester.store.project_store import ProjectStore
 from autotester.ui import theme
-from autotester.ui.helpers import _load_project_or_404
+from autotester.ui.helpers import _load_project_or_404, _require_safe_id
 
 router = APIRouter()
 
@@ -124,6 +126,23 @@ def _build_steps(
     return steps
 
 
+def _refuse_duplicate(store: ProjectStore, case: Case) -> None:
+    """AT-060: `add_case` is idempotent on the content id, so a second case with
+    identical steps was silently swallowed and the user redirected as if it had
+    worked. Because `title` sits outside `compute_id`'s payload, that also made
+    re-submitting the form the natural — and silently failing — way to fix a
+    typo'd title. Say so, and point at the rename that does work."""
+    if not store.has_case(case.id):
+        return
+    existing = store.get_case(case.id)
+    existing_title = existing.title if existing else "an existing case"
+    raise HTTPException(400, (
+        f"this project already has a case with exactly these steps: "
+        f"'{existing_title}'. Change a step to make it a different case, or rename "
+        f"the existing one from the cases list."
+    ))
+
+
 @router.post("/projects/{slug}/cases")
 async def create_case(slug: str, request: Request) -> RedirectResponse:
     """Reads the raw form rather than declaring `list[str] = Form(...)` params:
@@ -149,7 +168,7 @@ async def create_case(slug: str, request: Request) -> RedirectResponse:
     if not steps:
         raise HTTPException(400, "a case needs at least one step")
 
-    store.add_case(Case(
+    case = Case(
         project=slug,
         flow_id="manual",
         kind=KIND_BY_CLASS[parsed_class],
@@ -164,5 +183,87 @@ async def create_case(slug: str, request: Request) -> RedirectResponse:
         # lives in flow_id="manual".
         rationale=None,
         steps=steps,
-    ))
-    return RedirectResponse(f"/projects/{slug}", status_code=303)
+    )
+    _refuse_duplicate(store, case)
+    store.add_case(case)
+    return RedirectResponse(f"/projects/{slug}/cases", status_code=303)
+
+
+def _case_row(slug: str, case: Case) -> str:
+    """One case: what it claims, how it is classified, and the two things a
+    human needs to be able to do about it — rename and delete."""
+    safe_id = escape(case.id)
+    steps = len(case.steps)
+    return (
+        "<tr>"
+        f"<td><form method='post' action='/projects/{slug}/cases/{safe_id}/rename' "
+        "class='row-form'>"
+        f"<input name='title' value='{escape(case.title)}' aria-label='Case title'>"
+        "<button class='btn' type='submit'>Rename</button></form></td>"
+        f"<td>{theme.pill(escape(case.case_class.value))}</td>"
+        f"<td class='meta'>{steps} step{'s' if steps != 1 else ''}</td>"
+        f"<td><form method='post' action='/projects/{slug}/cases/{safe_id}/delete'>"
+        "<button class='btn btn-danger' type='submit'>Delete</button></form></td>"
+        "</tr>"
+    )
+
+
+@router.get("/projects/{slug}/cases", response_class=HTMLResponse)
+def cases_list(slug: str) -> str:
+    """AT-060: cases existed only as a number on the project page — there was no
+    way to see what a project actually checks, let alone fix a title or remove a
+    case added by mistake."""
+    store, project = _load_project_or_404(slug)
+    safe_slug = escape(slug)
+    name = escape(project.name)
+    cases = store.list_cases()
+    if cases:
+        rows = "".join(_case_row(safe_slug, c) for c in cases)
+        body_inner = (
+            "<table><tr><th>Case</th><th>Class</th><th>Steps</th><th></th></tr>"
+            f"{rows}</table>"
+        )
+    else:
+        body_inner = theme.empty_state(
+            "🧪", "No cases yet — this project cannot run until it has one.",
+            f"<a class='btn btn-primary' href='/projects/{safe_slug}/cases/new'>"
+            "+ Add the first case</a>",
+        )
+    body = (
+        theme.breadcrumb(("Projects", "/"), (name, f"/projects/{safe_slug}"),
+                          ("Cases", None))
+        + "<h1>Cases</h1>"
+        "<p class='subtitle'>Each one is a claim AutoTester checks in a real browser. "
+        "Steps are what identify a case, so changing them means a new case.</p>"
+        f"<div class='card-actions' style='margin-bottom:1.2rem'>"
+        f"<a class='btn btn-primary' href='/projects/{safe_slug}/cases/new'>+ Add case</a>"
+        "</div>"
+        f"{theme.card(body_inner)}"
+    )
+    return theme.page("Cases", body, active_slug=slug)
+
+
+@router.post("/projects/{slug}/cases/{case_id}/rename")
+def rename_case(slug: str, case_id: str, title: str = Form(...)) -> RedirectResponse:
+    """Title is deliberately outside `Case.compute_id()`, so renaming keeps the
+    id — and with it every past run, verdict and rubric already attached."""
+    store, _project = _load_project_or_404(slug)
+    _require_safe_id(case_id, "case id")
+    if not title.strip():
+        raise HTTPException(400, "a case needs a title")
+    case = store.get_case(case_id)
+    if case is None:
+        raise HTTPException(404, f"no case '{case_id}'")
+    store.update_case(case.model_copy(update={"title": title.strip()}))
+    return RedirectResponse(f"/projects/{slug}/cases", status_code=303)
+
+
+@router.post("/projects/{slug}/cases/{case_id}/delete")
+def delete_case(slug: str, case_id: str) -> RedirectResponse:
+    """Past runs and verdicts are history and stay on disk — only the case
+    itself stops being scheduled."""
+    store, _project = _load_project_or_404(slug)
+    _require_safe_id(case_id, "case id")
+    if not store.delete_case(case_id):
+        raise HTTPException(404, f"no case '{case_id}'")
+    return RedirectResponse(f"/projects/{slug}/cases", status_code=303)

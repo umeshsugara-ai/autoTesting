@@ -200,6 +200,7 @@ def _actions_card(safe_slug: str, run_button: str, case_count: int) -> str:
         "<p class='subtitle' style='margin-bottom:1rem'>Manage this project.</p>"
         "<div class='card-actions'>"
         f"{run_button}"
+        f"<a class='btn' href='/projects/{safe_slug}/cases'>🧪 Cases</a>"
         f"<a class='btn' href='/projects/{safe_slug}/cases/new'>+ Add case</a>"
         f"<a class='btn' href='/projects/{safe_slug}/env'>🔑 Credentials</a>"
         f"<a class='btn' href='/projects/{safe_slug}/report'>📋 Latest report</a>"

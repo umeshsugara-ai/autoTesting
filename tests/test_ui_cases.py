@@ -78,7 +78,9 @@ def test_adding_a_case_persists_a_real_case_readable_by_the_store(
     }, follow_redirects=False)
 
     assert response.status_code == 303
-    assert response.headers["location"] == "/projects/demo"
+    # lands on the cases list, not the project page: the user should see the
+    # thing they just created (and its rename/delete controls) immediately
+    assert response.headers["location"] == "/projects/demo/cases"
     cases = ProjectStore("demo", scratch_root).list_cases()
     assert len(cases) == 1
     case = cases[0]

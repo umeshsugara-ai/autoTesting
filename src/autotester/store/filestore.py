@@ -72,6 +72,22 @@ def append_jsonl(path: Path, model: BaseModel) -> None:
         handle.write(model.model_dump_json(exclude_none=True) + "\n")
 
 
+def delete_jsonl_row(
+    path: Path, model_cls: type[ModelT], row_id: str, *, key: str = "id"
+) -> bool:
+    """Drop the row whose `key` equals `row_id`; True when one was removed.
+
+    Same whole-file atomic rewrite as `upsert_jsonl`, and the same caveat: for
+    a small collection a human curates, never for append-only history.
+    """
+    items = read_jsonl(path, model_cls)
+    kept = [item for item in items if getattr(item, key) != row_id]
+    if len(kept) == len(items):
+        return False
+    _atomic_write(path, "".join(item.model_dump_json(exclude_none=True) + "\n" for item in kept))
+    return True
+
+
 def upsert_jsonl(path: Path, model: ModelT, model_cls: type[ModelT], *, key: str = "id") -> None:
     """Replace the row whose `key` matches this model's, else append.
 
