@@ -4,15 +4,15 @@
   "north_star": "An AI automated end-to-end tester that ingests product videos/docs, derives a reviewed FlowSpec, auto-generates best/worst/edge-case evals, runs them as regression in a real visible browser, self-extends coverage by requesting videos for unknown screens, and beats an expert human tester head-to-head on the same material (bugs found, false-positive rate, time). First target: Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-04T21:27:01",
+  "updated": "2026-09-07T17:15:41",
   "progress": {
-    "total": 20,
+    "total": 36,
     "done": 20,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 0,
+    "pending": 16,
     "current": null,
-    "percent": 100
+    "percent": 55.6
   },
   "tasks": [
     {
@@ -409,6 +409,296 @@
       "criticality": "low",
       "user_value": "high",
       "completed": "2026-09-03T14:57:09"
+    },
+    {
+      "id": "T-121",
+      "title": "Governance: register plan.md, goal tasks, D-014..D-016 (Track A/B backlog)",
+      "status": "pending",
+      "base_criticality": "NORMAL",
+      "deps": [],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run autotester doctor",
+        "expect_exit": 0
+      },
+      "note": "Plan approved 2026-09-07 (plan.md). Backlog was empty; this registers all Track A/B/G units so the maker doesn't report BACKLOG_EMPTY.",
+      "attempts": 0,
+      "created": "2026-09-07T17:15:41",
+      "user_value": "normal"
+    },
+    {
+      "id": "T-122",
+      "title": "Track 0 tail: login case + first logged-in ERP run (HUMAN_GATE: ERP_EMAIL/ERP_PASSWORD values)",
+      "status": "pending",
+      "base_criticality": "HIGH",
+      "deps": [
+        "T-121"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_execute.py tests/test_run_case_pipeline.py -q",
+        "expect_exit": 0
+      },
+      "note": "Blocked until Umesh enters real values on /projects/erp/env. Registers the login bootstrap case B3 reuses.",
+      "attempts": 0,
+      "created": "2026-09-07T17:15:41",
+      "user_value": "high"
+    },
+    {
+      "id": "T-123",
+      "title": "Medium-issue batch: AT-087 per-field exemption, AT-076/086 config-field rule, AT-079/080, AT-065, AT-085",
+      "status": "pending",
+      "base_criticality": "NORMAL",
+      "deps": [
+        "T-121"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_ui_credential_safety.py tests/test_ui_credential_safety_project.py tests/test_ui_credential_exemption.py -q",
+        "expect_exit": 0
+      },
+      "note": "",
+      "attempts": 0,
+      "created": "2026-09-07T17:15:41",
+      "user_value": "normal"
+    },
+    {
+      "id": "T-130",
+      "title": "Track A1: video-learning schema + storage foundation (D-014)",
+      "status": "pending",
+      "base_criticality": "NORMAL",
+      "deps": [
+        "T-121"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_schema.py tests/test_store.py tests/test_execute.py tests/test_ingest.py -q",
+        "expect_exit": 0
+      },
+      "note": "",
+      "attempts": 0,
+      "created": "2026-09-07T17:15:41",
+      "user_value": "normal"
+    },
+    {
+      "id": "T-131",
+      "title": "Track A2: hardened Gemini vision provider + registered Source + persisted ingest",
+      "status": "pending",
+      "base_criticality": "HIGH",
+      "deps": [
+        "T-130"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_providers.py tests/test_ingest.py -q",
+        "expect_exit": 0
+      },
+      "note": "",
+      "attempts": 0,
+      "created": "2026-09-07T17:15:41",
+      "user_value": "high"
+    },
+    {
+      "id": "T-132",
+      "title": "Track A3: host media prep (probe, chunks, transcript reuse/whisper, frames)",
+      "status": "pending",
+      "base_criticality": "NORMAL",
+      "deps": [
+        "T-130"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_media.py tests/test_media_prep.py -q",
+        "expect_exit": 0
+      },
+      "note": "",
+      "attempts": 0,
+      "created": "2026-09-07T17:15:41",
+      "user_value": "normal"
+    },
+    {
+      "id": "T-133",
+      "title": "Track A4: two-model ensemble + deterministic adjudication + Issue derivation + 13-column Excel + scorer",
+      "status": "pending",
+      "base_criticality": "HIGH",
+      "deps": [
+        "T-131",
+        "T-132"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_adjudicate.py tests/test_analyze_video.py tests/test_issues.py -q",
+        "expect_exit": 0
+      },
+      "note": "",
+      "attempts": 0,
+      "created": "2026-09-07T17:15:41",
+      "user_value": "high"
+    },
+    {
+      "id": "T-134",
+      "title": "Track A5: product map, journeys, issues and sources pages",
+      "status": "pending",
+      "base_criticality": "HIGH",
+      "deps": [
+        "T-133"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_ui_product_map.py tests/test_ui_issues.py tests/test_ui_sources.py -q",
+        "expect_exit": 0
+      },
+      "note": "",
+      "attempts": 0,
+      "created": "2026-09-07T17:15:41",
+      "user_value": "high"
+    },
+    {
+      "id": "T-135",
+      "title": "Track A6: coverage/merge/expand loops reconnected + ARCHITECTURE update",
+      "status": "pending",
+      "base_criticality": "NORMAL",
+      "deps": [
+        "T-134"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest -q && uv run autotester doctor",
+        "expect_exit": 0
+      },
+      "note": "",
+      "attempts": 0,
+      "created": "2026-09-07T17:15:41",
+      "user_value": "normal"
+    },
+    {
+      "id": "T-136",
+      "title": "Track A acceptance: erp1/2/3 scored vs ERP_Issues_Trainers.xlsx with recall/FP numbers in the manifest",
+      "status": "pending",
+      "base_criticality": "HIGH",
+      "deps": [
+        "T-133"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run python scripts/score_video_issues.py --project erp --truth \"C:/Users/Lenovo/Videos/Screen Recordings/ERP_Issues_Trainers.xlsx\" --sheet \"Trainer module\"",
+        "expect_exit": 0
+      },
+      "note": "",
+      "attempts": 0,
+      "created": "2026-09-07T17:15:41",
+      "user_value": "high"
+    },
+    {
+      "id": "T-140",
+      "title": "Track B1: observation primitives (browser/observe.py, launch split, Action BACK/HOVER/PRESS_KEY/SCROLL, choke-point test) -- D-014/D-015",
+      "status": "pending",
+      "base_criticality": "NORMAL",
+      "deps": [
+        "T-121"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_observe.py tests/test_browser_actions.py tests/test_execute.py tests/test_actuator_chokepoint.py tests/test_browser.py -q",
+        "expect_exit": 0
+      },
+      "note": "",
+      "attempts": 0,
+      "created": "2026-09-07T17:15:41",
+      "user_value": "normal"
+    },
+    {
+      "id": "T-141",
+      "title": "Track B2: screen identity (url templating + structural signature) + crawl schema + store",
+      "status": "pending",
+      "base_criticality": "NORMAL",
+      "deps": [
+        "T-121"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_urls.py tests/test_screen_identity.py tests/test_store_crawl.py -q",
+        "expect_exit": 0
+      },
+      "note": "",
+      "attempts": 0,
+      "created": "2026-09-07T17:15:41",
+      "user_value": "normal"
+    },
+    {
+      "id": "T-142",
+      "title": "Track B4: explorer safety layer (SafetyPolicy, deny-list, write_policy matrix, dialog breaker) -- D-016",
+      "status": "pending",
+      "base_criticality": "HIGH",
+      "deps": [
+        "T-141"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_explore_safety.py -q",
+        "expect_exit": 0
+      },
+      "note": "",
+      "attempts": 0,
+      "created": "2026-09-07T17:15:41",
+      "user_value": "high"
+    },
+    {
+      "id": "T-143",
+      "title": "Track B3: bounded BFS crawl stage + qa/contracts/explore.md + fixture crawl site + CLI",
+      "status": "pending",
+      "base_criticality": "HIGH",
+      "deps": [
+        "T-140",
+        "T-141",
+        "T-142"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_explore.py tests/test_explore_live.py -q && uv run python scripts/explore_proof.py",
+        "expect_exit": 0
+      },
+      "note": "",
+      "attempts": 0,
+      "created": "2026-09-07T17:15:41",
+      "user_value": "high"
+    },
+    {
+      "id": "T-144",
+      "title": "Track B5: crawl -> FlowSpec merge, crawl coverage, Excel/UI crawl report",
+      "status": "pending",
+      "base_criticality": "HIGH",
+      "deps": [
+        "T-143"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_explore_merge.py tests/test_coverage.py tests/test_crawl_report.py tests/test_ui_crawls.py -q",
+        "expect_exit": 0
+      },
+      "note": "",
+      "attempts": 0,
+      "created": "2026-09-07T17:15:41",
+      "user_value": "high"
+    },
+    {
+      "id": "T-145",
+      "title": "Live bounded READ_ONLY crawl of vidysea.com/erp with the test account",
+      "status": "pending",
+      "base_criticality": "HIGH",
+      "deps": [
+        "T-122",
+        "T-144"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "true",
+        "expect_exit": 0
+      },
+      "note": "No 2FA on test accounts (Umesh 2026-09-07); real user accounts are never used. No staging named -> production, READ_ONLY.",
+      "attempts": 0,
+      "created": "2026-09-07T17:15:41",
+      "user_value": "high"
     }
   ],
   "decisions": [],
@@ -436,9 +726,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 11.69,
+    "velocity_per_day": 4.13,
     "eta_days": null
   },
-  "last_deterministic_tick": "2026-09-04T21:27:01",
+  "last_deterministic_tick": "2026-09-07T17:12:01",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }
