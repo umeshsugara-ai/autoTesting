@@ -83,4 +83,14 @@ pasted below, not just claimed:
   ```
   → expected: two elements, the button with selector `#go`, the link with `href: '/x'`.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Verdict: `qa/verdicts/track-b1-observation-primitives.md` (**Cycle checked: 1**, PASS, 3/3
+criteria — C1-C3, no regression on B5/B7/B9, E2 holds). The checker went beyond re-reading this
+manifest: planted a real actuator-choke-point violation and a real duplicate-concept collision
+on `launch.py`/`session.py` and confirmed both are caught; live-probed `PageObserver`'s dialog
+policy against genuine Chromium dialogs; reproduced the real-Chromium `enumerate.js` probe
+verbatim. Filed **AT-091 (low)**: this manifest's claim that the pre-existing pytest skip is "the
+real-Chromium test" is wrong — it is actually `tests/test_db.py::test_live_mongo`, an unrelated
+opt-in Mongo test. Cosmetic, doesn't affect any contract criterion, left open rather than fixed
+in this cycle. `T-140` closed in `.goal/goal.json`.

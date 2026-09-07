@@ -4,15 +4,15 @@
   "north_star": "An AI automated end-to-end tester that ingests product videos/docs, derives a reviewed FlowSpec, auto-generates best/worst/edge-case evals, runs them as regression in a real visible browser, self-extends coverage by requesting videos for unknown screens, and beats an expert human tester head-to-head on the same material (bugs found, false-positive rate, time). First target: Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-07T18:03:24",
+  "updated": "2026-09-07T18:28:44",
   "progress": {
     "total": 36,
-    "done": 22,
+    "done": 23,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 14,
+    "pending": 13,
     "current": "T-122",
-    "percent": 61
+    "percent": 64
   },
   "tasks": [
     {
@@ -604,7 +604,7 @@
     {
       "id": "T-140",
       "title": "Track B1: observation primitives (browser/observe.py, launch split, Action BACK/HOVER/PRESS_KEY/SCROLL, choke-point test) -- D-014/D-015",
-      "status": "pending",
+      "status": "done",
       "base_criticality": "NORMAL",
       "deps": [
         "T-121"
@@ -618,7 +618,8 @@
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
       "user_value": "normal",
-      "criticality": "low"
+      "criticality": "low",
+      "completed": "2026-09-07T18:28:44"
     },
     {
       "id": "T-141",
@@ -765,9 +766,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 4.55,
+    "velocity_per_day": 4.53,
     "eta_days": 3.1
   },
-  "last_deterministic_tick": "2026-09-07T18:03:24",
+  "last_deterministic_tick": "2026-09-07T18:27:01",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }
