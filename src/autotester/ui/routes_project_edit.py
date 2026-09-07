@@ -10,7 +10,8 @@ name, base_url, allowed_domains. The slug is the project's identity (it names
 the directory every artifact already lives under) and is deliberately NOT
 editable — renaming it would orphan runs, cases and the browser profile.
 
-This module also owns the project's `SecretRef` declarations (Track 0 / AT-068).
+This module also owns the project's `SecretRef` declarations (Track 0, Unit 0.1 of
+the 2026-09-07 plan; gate `qa/gates/at052-bfs-video-corpus-grill.md`).
 Until now nothing anywhere wrote `project.json::secrets`, so a project always
 declared zero credentials — which made `/projects/<slug>/env` render "This
 project declares no credentials" and reject every save. A logged-in test was
@@ -72,8 +73,9 @@ def _secrets_card(safe_slug: str, project: Project) -> str:
         f"<form method='post' action='/projects/{safe_slug}/secrets'>"
         "<div class='field'><label for='key'>Key</label>"
         "<input id='key' name='key' placeholder='ERP_PASSWORD' required>"
-        "<span class='hint'>CAPITALS, digits and underscores — a name, never the "
-        "value itself</span></div>"
+        "<span class='hint'>a NAME for the credential in CAPITALS, digits and underscores "
+        "— e.g. ERP_PASSWORD. The value itself is entered later, on the Credentials "
+        "page.</span></div>"
         "<div class='field'><label for='description'>What it is</label>"
         "<input id='description' name='description' "
         "placeholder='the test account's password'></div>"
@@ -172,8 +174,11 @@ def declare_secret(
             mask_in_screenshot=bool(mask_in_screenshot),
         )
     except ValidationError as exc:
+        # Never echo the submitted key back: the likeliest wrong entry in that box is
+        # the credential VALUE itself, and echoing it would put it in the response body
+        # and the access log (AT-068). Name it only once it has proven to be key-shaped.
         why = exc.errors()[0]["msg"]
-        raise HTTPException(400, f"cannot declare '{key.strip()}': {why}") from exc
+        raise HTTPException(400, f"cannot declare this credential: {why}") from exc
     if project.secret(ref.key) is not None:
         raise HTTPException(400, f"'{ref.key}' is already declared on this project")
 

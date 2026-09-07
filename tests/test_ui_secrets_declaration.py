@@ -180,3 +180,18 @@ def test_declaring_on_an_unknown_project_is_404(
     })
 
     assert response.status_code == 404
+
+
+def test_a_rejected_key_is_never_echoed_back(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """AT-068: the likeliest wrong entry in the Key box is the credential VALUE
+    itself. A 400 that repeats it puts it in the response body and the access
+    log. The error must say what is wrong without quoting what was sent."""
+    _onboard(client)
+
+    response = _declare(client, key="hunter2-actually-a-password")
+
+    assert response.status_code == 400
+    assert "hunter2" not in response.text
+    assert ProjectStore("demo", scratch_root).load_project().secrets == []

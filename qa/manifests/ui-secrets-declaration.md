@@ -85,4 +85,36 @@ AFTER   GET /projects/erp/env      -> ERP_EMAIL, ERP_PASSWORD, both "Not set"
 The Credentials page is now genuinely usable for `erp`; Umesh can type the two values in and
 nothing else is needed from the code side.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Verdict: `qa/verdicts/ui-secrets-declaration.md` (Cycle checked: 1, PASS, 7/7 criteria met).
+
+The checker proved the no-leak property harder than this manifest claimed it. Its strongest
+evidence was **`pathlynks`**, which declares four `SecretRef`s *and* holds four real values in
+`.env`: it scanned the rendered HTML of every page for each real value. The single hit it found
+it ran down and dismissed correctly — `PATHLYNKS_USER_LOGIN_URL` is byte-identical to that
+project's own `base_url`, so it appears in the edit form as a URL, not as a credential. It also
+posted `value`, `secret` and `password` canaries at the declare route (all inert), probed the key
+pattern at its boundary (`A' onmouseover=x`, `A"><img src=x>`, `A/../../etc`, spaces, lowercase,
+leading digit, a 70-char key — all 400, nothing written), and confirmed `.env`'s md5 was identical
+before and after the entire check. It never exercised `POST /env` at all, so no probe value
+reached `.env`.
+
+It also verified the one rule this unit adds beyond `SecretRef`'s own validators is justified, by
+executing `SecretRef(key='EMPTY_SCOPE', domains=[])` and confirming it validates today and would
+fail only later at resolve time.
+
+Source was uncommitted on arrival (the AT-055 pattern); the checker committed it itself
+(`876367a` source+tests+manifest+MAP, `877f015` verdict+ledger) and pushed per D-007.
+
+**Two low-severity issues filed, both mine, both fixed immediately after the verdict** — before
+any real credential is entered, since one of them touches credential handling:
+- **AT-068** — the declare 400 echoed the raw submitted key back, and the form's own hint named
+  pasting the *value* there as a likely error. If a user pastes a password into the Key box, that
+  response body and the access log would contain it. Now the 400 reads "cannot declare this
+  credential: <reason>" and never quotes the input; the hint was reworded to say the box wants a
+  NAME and that the value is entered later. Regression test:
+  `test_a_rejected_key_is_never_echoed_back`.
+- **AT-069** — the module docstring cited ledger id `AT-068` as this unit's tracker, but no such
+  row existed when it was written, so the pointer later resolved to an unrelated defect. Now cites
+  the plan and the gate file instead.
