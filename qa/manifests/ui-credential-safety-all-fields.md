@@ -82,4 +82,35 @@ erp cases: "Sign-in page loads and shows the login form", "Training lookup page 
 (An identical re-post of the first case returns 400 from the *duplicate* check, not the guard —
 verified by reading the error body, which names the clashing case.)
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Verdict: `qa/verdicts/ui-credential-safety-all-fields.md` (Cycle checked: 1, PASS, 7/7 criteria).
+**AT-070 and AT-071 both closed**, and verified further than this manifest claimed: the checker
+re-ran every bypass with the real `PATHLYNKS_USER_PASSWORD` and additionally proved a **three-row**
+split and a split across **two different field types** (target+expect, title+target) are all
+refused, and that the guard runs before any `Case` is built so a refusal writes nothing.
+
+It also added **criterion U8** to `qa/contracts/ui.md` — the credential guard had no criterion at
+all, so a later unit could have deleted it unnoticed.
+
+**The check found the guard stops at the case form. Five new issues:**
+- **AT-073 (high)** — `POST /onboard` (name), `POST /projects/{slug}/edit` (name) and
+  `POST /projects/{slug}/secrets` (**description**) all accept a real credential and write it in
+  cleartext to git-tracked `project.json`; a credential used as a project *name* then renders on
+  **every page including the home index**. Breaches core-invariants **C5**. The description box is
+  the dangerous one — it sits directly beside the Key box on the very form the user was told to
+  use, so this is a trap introduced by Unit 0.1.
+- **AT-074 (medium)** — `is_clean` is a plain substring test, so a **URL-encoded** value, or one
+  split by a single space or newline inside one field, is accepted and written to `cases.jsonl`;
+  recoverable with one `unquote`/whitespace-strip.
+- **AT-075 (medium)** — `unknown case class '{x}'` and `unknown action '{x}'` echo raw form input
+  into the 400 body (the AT-068 pattern again), and the class parse runs *before* the guard.
+- **AT-076 (medium)** — the guard's advice is wrong for a navigate target: only `session.fill`
+  resolves `{{SECRET:KEY}}`, `goto` does not, so a refused URL has no working alternative.
+  Reachable today because the non-secret `PATHLYNKS_USER_LOGIN_URL` sits in `.env`.
+- **AT-077 (low)** — 16 fields joined with no separator create 15 artificial boundaries; an
+  innocent straddle is refused with a message naming no field, leaving the user stuck.
+
+Source was uncommitted on arrival (the AT-055 pattern again — fifth time); the checker committed
+the five paths itself (`b811366`), verdict/contract/ledger in `3312c78`, both pushed per D-007.
+Repo-root `.env` was never written to; its scratch projects were deleted.
