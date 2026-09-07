@@ -11,10 +11,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from crawl_fake import crawl_it, make_project
+from crawl_fake import crawl_it, make_project, make_session
 
+from autotester.browser.observe import PageObserver
 from autotester.schema.crawl import CrawlBounds, SafetyPolicy
 from autotester.schema.enums import CrawlStatus, EdgeOutcome, WritePolicy
+from autotester.stages.explore import run_crawl
+from autotester.store.project_store import ProjectStore
 
 SENTINELS = ("/deleted", "/saved", "/logged-out")
 
@@ -142,6 +145,27 @@ def test_visited_nodes_are_marked_explored_on_disk_not_just_in_memory(tmp_path: 
     crawl_id = store.list_crawl_ids()[0]
     statuses = {n.status.value for n in store.list_nodes(crawl_id)}
     assert statuses == {"explored"}
+
+
+def test_every_settle_uses_the_crawl_bound_not_the_default_ceiling(tmp_path: Path) -> None:
+    """AT-095 (checker-found): `settle_ms` fixed a real defect — a 60-action
+    crawl took >5 minutes because every action waited up to 8.5s for
+    networkidle — but shipped with no test, unlike the node-status fix.
+    A regression to `session.settle()` (the 8000ms default) would be silent
+    and would only show up as a crawl nobody wants to wait for."""
+    bounds = CrawlBounds(settle_ms=137)
+    project = make_project()
+    session, _page = make_session(tmp_path, project)
+    seen: list[int] = []
+    original = session.settle
+    session.settle = lambda expected=None, timeout_ms=8000: (  # type: ignore[method-assign]
+        seen.append(timeout_ms), original(expected, timeout_ms))[1]
+
+    run_crawl(project, session, ProjectStore("demo", tmp_path),
+              observer=PageObserver(), bounds=bounds)
+
+    assert seen, "the crawl never settled at all"
+    assert set(seen) == {137}, f"some settle used the default ceiling: {sorted(set(seen))}"
 
 
 def test_reloaded_crawl_matches_the_returned_envelope(tmp_path: Path) -> None:

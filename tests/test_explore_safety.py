@@ -116,6 +116,39 @@ def test_never_click_tolerates_a_short_gap_without_over_matching(
     assert (reason is not None) is expect_denied
 
 
+@pytest.mark.parametrize("name", [
+    "Log-Out", "LOG_OUT", "Sign-Out", "Log.Out", "log-out", "Sign_Out",
+    "Sign|Out", "Log/Out", "LOGOUT", "Logout", "Log me out",
+])
+def test_separator_joined_logout_labels_are_denied(name: str) -> None:
+    """AT-093 (checker-found, escalated to high because it gates the live ERP
+    crawl): `Log-Out`/`LOG_OUT`/`Sign-Out` are ordinary real button labels and
+    every one slipped past patterns written for `log out`. Fixed by folding
+    separators before matching, not by growing each pattern."""
+    policy = policy_for(make_project(WritePolicy.ALLOW_WRITES))
+    assert deny_reason(el(name), policy) is not None
+
+
+@pytest.mark.parametrize("name", [
+    "Log in to your account", "Sign-in", "Backlog-Outline", "Re-send code",
+    "Outstanding balance", "Sign up", "Log this event", "Deliverables", "About-us",
+])
+def test_separator_folding_does_not_create_false_positives(name: str) -> None:
+    """The other direction: folding `-`/`_`/`.` to spaces must not make
+    innocent labels look like logout or destructive controls."""
+    policy = policy_for(make_project(WritePolicy.ALLOW_WRITES))
+    assert deny_reason(el(name), policy) is None
+
+
+def test_normalise_label_folds_every_separator() -> None:
+    from autotester.stages.explore_safety import normalise_label
+
+    assert normalise_label("Log-Out") == "Log Out"
+    assert normalise_label("LOG_OUT") == "LOG OUT"
+    assert normalise_label("a.b/c+d|e") == "a b c d e"
+    assert normalise_label("  spaced   out  ") == "spaced out"
+
+
 def test_never_click_still_widens_with_extra_patterns() -> None:
     policy = policy_for(
         make_project(WritePolicy.ALLOW_WRITES), never_click_patterns=[r"\bexit\b"],

@@ -31,8 +31,28 @@ def policy_for(project: Project, **overrides: object) -> SafetyPolicy:
     return SafetyPolicy(write_policy=project.write_policy, **overrides)  # type: ignore[arg-type]
 
 
+_SEPARATORS = re.compile(r"[-_./+|]+")
+_WHITESPACE = re.compile(r"\s+")
+
+
+def normalise_label(name: str) -> str:
+    """Fold a control's accessible name to a plain space-separated form before
+    pattern matching.
+
+    AT-093: `Log-Out`, `LOG_OUT`, `Sign-Out` and `Log.Out` are all ordinary
+    real-world button labels, and every one of them slipped past patterns
+    written for `log out`/`logout` — the guard meant to stop this crawler
+    logging itself out of a production app did not recognise the hyphenated
+    spelling. Normalising once here fixes every pattern at the same time and
+    keeps the patterns themselves readable, instead of growing a separator
+    alternation into each one.
+    """
+    return _WHITESPACE.sub(" ", _SEPARATORS.sub(" ", name)).strip()
+
+
 def _matches_any(name: str, patterns: list[str]) -> bool:
-    return any(re.search(pattern, name, re.IGNORECASE) for pattern in patterns)
+    folded = normalise_label(name)
+    return any(re.search(pattern, folded, re.IGNORECASE) for pattern in patterns)
 
 
 def deny_reason(el: ElementRef, policy: SafetyPolicy) -> str | None:

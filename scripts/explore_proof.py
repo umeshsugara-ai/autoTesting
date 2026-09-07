@@ -22,6 +22,9 @@ import threading
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from regression_proof import _NoCacheHandler
 
 from autotester.browser.observe import PageObserver
 from autotester.browser.secrets import SecretStore
@@ -37,17 +40,18 @@ SITE_DIR = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "crawl_s
 SENTINELS = ("deleted.html", "saved.html", "logged-out.html")
 
 
-class _NoCacheHandler(http.server.SimpleHTTPRequestHandler):
-    def end_headers(self) -> None:
-        self.send_header("Cache-Control", "no-store")
-        super().end_headers()
+class _QuietNoCacheHandler(_NoCacheHandler):  # type: ignore[misc,valid-type]
+    """AT-094: the no-cache behaviour is `regression_proof._NoCacheHandler`'s,
+    reused rather than copied a third time (tests/conftest.py imports the same
+    one). This subclass only silences the per-request logging, which would
+    otherwise bury the proof's own output."""
 
     def log_message(self, fmt: str, *args: object) -> None:
         return None
 
 
 def start_server() -> tuple[http.server.ThreadingHTTPServer, str]:
-    handler = functools.partial(_NoCacheHandler, directory=str(SITE_DIR))
+    handler = functools.partial(_QuietNoCacheHandler, directory=str(SITE_DIR))
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     return server, f"http://127.0.0.1:{server.server_address[1]}/"
