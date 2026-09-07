@@ -1,0 +1,103 @@
+"""The explorer's inner safety guard (Track B4, D-016).
+
+Umesh's OUTER boundary is the test account's own permissions — whatever the
+account can reach, the crawl may reach. This module is the INNER guard he
+can loosen (`WritePolicy.ALLOW_WRITES`): by default the explorer never
+clicks a destructive-looking control, never submits a form under
+`READ_ONLY`, never clicks a logout/sign-out control at any policy, and
+never treats third-party noise (analytics, trackers) as a product issue.
+
+Pure logic — no browser, no provider. Contract: qa/contracts/explore.md
+X5-X9 (lands at T-143, when the contract itself is written).
+"""
+
+from __future__ import annotations
+
+import re
+
+from autotester.browser.secrets import host_of
+from autotester.schema.crawl import DialogEvent, SafetyPolicy
+from autotester.schema.enums import WritePolicy
+from autotester.schema.project import Project
+from autotester.schema.screen_graph import ElementRef
+
+_UNSAFE_SCHEMES = ("javascript:", "mailto:", "tel:")
+
+
+def policy_for(project: Project, **overrides: object) -> SafetyPolicy:
+    """Build a `SafetyPolicy` from a project's `write_policy`, with any field
+    overridden explicitly (e.g. a per-project `deny_patterns` extension for
+    control names in another language — a documented limit, not a bug)."""
+    return SafetyPolicy(write_policy=project.write_policy, **overrides)  # type: ignore[arg-type]
+
+
+def _matches_any(name: str, patterns: list[str]) -> bool:
+    return any(re.search(pattern, name, re.IGNORECASE) for pattern in patterns)
+
+
+def deny_reason(el: ElementRef, policy: SafetyPolicy) -> str | None:
+    """Why `el` must NOT be clicked right now, or `None` if it's safe to try.
+
+    Order matters: never-click applies at every policy (checked first);
+    then an unnamed non-link control (nothing to match against, and
+    clicking blind is how the prior attempt found "Delete" the hard way);
+    then the deny-list, disabled entirely under `ALLOW_WRITES`; then a
+    form-submit control, refused only under `READ_ONLY`.
+    """
+    if _matches_any(el.name, list(policy.never_click_patterns)):
+        return "never-click pattern (logout/sign-out)"
+    if not el.name and el.role != "link":
+        if policy.click_unnamed:
+            return None
+        return "unnamed control"
+    if policy.write_policy != WritePolicy.ALLOW_WRITES and _matches_any(
+        el.name, list(policy.deny_patterns)
+    ):
+        return "destructive-name deny-list"
+    if policy.write_policy == WritePolicy.READ_ONLY and el.is_form_submit:
+        return "form submit under read_only"
+    return None
+
+
+def link_is_safe(el: ElementRef, project: Project) -> bool:
+    """A link the explorer may `goto` directly: same-domain, not a scheme the
+    browser would treat specially (`javascript:`, `mailto:`, `tel:`)."""
+    if not el.href:
+        return False
+    if el.href.startswith(_UNSAFE_SCHEMES):
+        return False
+    host = host_of(el.href)
+    if not host:
+        # a relative href ("/students/1") has no host of its own -- safe,
+        # it resolves against the current (already-allowed) page.
+        return not el.href.startswith("//")
+    return project.allows_domain(host)
+
+
+def classify_request(url: str, project: Project, policy: SafetyPolicy) -> str:
+    """`"first_party"` (a real issue candidate), `"ignored"` (a known
+    analytics/tracker host, dropped entirely), or `"noise"` (some other
+    third party, counted but never reported as a product issue) — X9."""
+    host = host_of(url)
+    if host and project.allows_domain(host):
+        return "first_party"
+    if host and any(host == d or host.endswith(f".{d}") for d in policy.third_party_ignore):
+        return "ignored"
+    return "noise"
+
+
+class DialogBreaker:
+    """Trips when one screen shows too many dialogs in a row — the prior
+    attempt got permanently trapped by a repeated `beforeunload` loop."""
+
+    def __init__(self, limit: int) -> None:
+        self.limit = limit
+        self._counts: dict[str, int] = {}
+
+    def record(self, node_id: str, _event: DialogEvent) -> bool:
+        """Returns True once `node_id` has exceeded `limit` dialogs."""
+        self._counts[node_id] = self._counts.get(node_id, 0) + 1
+        return self._counts[node_id] > self.limit
+
+    def reset(self, node_id: str) -> None:
+        self._counts.pop(node_id, None)
