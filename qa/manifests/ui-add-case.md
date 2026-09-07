@@ -116,4 +116,33 @@ The full loop — onboard → add a case → run → graded verdict — is now r
 alone, which is what T-100's "full onboarding → report without touching the CLI" claimed and
 what AT-057 showed was false in practice.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Verdict: `qa/verdicts/ui-add-case.md` (Cycle checked: 1, PASS, 6/6 criteria met — U1-U5 plus a
+new U6 the checker added to `qa/contracts/ui.md`: "a test case is creatable from the UI as a
+real CLI-compatible Case"). AT-057 flipped open → fixed.
+
+The checker went beyond re-running the verify commands:
+- **Hostile U5 probe** — onboarded a project named `<script>alert(1)</script>&'"X` with a
+  base_url carrying `' onmouseover=alert(2) x="><script>alert(3)</script>`; the prefilled
+  attribute came back fully escaped and `grep -c "<script"` over the whole 20KB response was 0.
+- **Forgery probe** — posted `kind=worst`, `id=forged` and `rationale=INJECTED` alongside
+  `case_class=happy`; all three were inert, confirming `kind` is genuinely derived and the
+  form has no hidden write surface.
+- **Refusals verified on disk**, not by status code: after all four 400s the scratch project
+  still held only `project.json` and `cases.jsonl` was never created.
+- Confirmed the rationale→rubric causal chain in code and that the regression test pins the
+  **generated criterion text**, not just the stored field.
+- Judged both deferrals honest, and noted AT-059 **can no longer be triggered by this flow**
+  since the form has no rationale input.
+- Confirmed the `erp` change was genuinely data: `Project.allows_domain` is byte-identical to
+  its committed version, so no wildcard escape hatch was smuggled in.
+
+It also committed this unit's source itself (`1652de5`, pushed per D-007) — the AT-055 failure
+mode had recurred, with `routes_cases.py`, `test_ui_cases.py` and the manifest untracked on
+arrival.
+
+**New issue filed: AT-060 (medium)** — the form silently discards a submission whose steps
+duplicate an existing case (`add_case` is idempotent on the content id and `create_case` never
+checks its return). Because `title` is excluded from `compute_id`, this is also the only way a
+user could try to correct a mistyped title, and it fails silently. Queued, not fixed here.
