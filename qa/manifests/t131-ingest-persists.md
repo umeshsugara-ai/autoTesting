@@ -101,4 +101,4 @@ uv run autotester doctor                                  doctor: clean
 - `ObservedScreen.screenshot_ts` is requested in the prompt but nothing consumes it yet; it lands
   with frames in A3.
 
-## Status: ready-for-check
+## Status: checked-PASS

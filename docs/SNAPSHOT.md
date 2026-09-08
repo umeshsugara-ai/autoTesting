@@ -19,7 +19,7 @@ AutoTester wins on bugs found, false positives, and time (`schema/bench.py` comp
 - F-007 **First real Pathlynks run: 3 hand-written login cases (best/worst/edge), headed browser, graded by LangChainFallbackProvider** [high] — First end-to-end proof the whole pipeline (project -> case -> execute -> grade) closes against a real product: 3 real headed-browser cases against pathlynks.vidysea.com/signin, each genuinely graded (grader_provider=gemini, never mock) with verdicts independently confirmed defensible against their own RawResult evidence -- BEST landed on /dashboard, WORST/EDGE stayed on sign-in. Closes AT-033. · reason: Task note: 'Proof the loop closes end-to-end on a real product. Zero secret hits in runs/.' — this is the first real, fully-graded proof the whole pipeline (project -> case -> execute -> grade) closes end to end against a real product, not fixtures: 3 headed-browser cases against pathlynks.vidysea.com/signin, each genuinely graded by a real judge (grader_provider=gemini, never mock), verdicts independently confirmed defensible against their own RawResult evidence. Closes AT-033 (F3/F4 were structurally unmet in cycle 1 for lack of a working judge).
 - F-009 **Video ingest: Gemini vision provider + stages/ingest.py video-to-FlowSpec mapping** [high] — Correction to F-008: unit field was written as the manifest slug (t060-ingest-video) instead of the goal task id (T-060), so autotester doctor's ledger-row-missing check couldn't match it. Same feature, no functional change. · reason: Data-entry correction found by the maker via 'uv run autotester doctor' immediately after F-008 was appended with the wrong unit reference.
 - F-010 **FlowSpec review gate: approve/request-edit + require_reviewed CLI** [high] — Human-in-the-loop review gate for FlowSpec, gating any downstream case-generation on an approved review status. · reason: North star's own text requires a *reviewed* FlowSpec before generating evals; AT-017 (sweep) originally flagged this as a goal-coverage gap with no task carrying the human review gate.
-- +18 more high-value features → docs/FEATURES.jsonl
+- +19 more high-value features → docs/FEATURES.jsonl
 - normal: F-001 Design lock: schema, core, provider seam, doctor, F-028 DFS step-flow diagram + click-to-enlarge lightbox on run-view, F-029 BFS merged branch-tree diagram per flow, F-032 Persistent project sidebar on every page
 ## Changed in the last 30 days
 - 2026-09-03 updated F-009 Video ingest: Gemini vision provider + stages/ingest.py video-to-FlowSpec mapping — Data-entry correction found by the maker via 'uv run autotester doctor' immediately after F-008 was appended with the wrong unit reference.
@@ -32,9 +32,9 @@ AutoTester wins on bugs found, false positives, and time (`schema/bench.py` comp
 ## Next (open goal tasks)
 - T-122 [high] Track 0 tail: login case + first logged-in ERP run (HUMAN_GATE: ERP_EMAIL/ERP_PASSWORD values)
 - T-123 [normal] Medium-issue batch: AT-087 per-field exemption, AT-076/086 config-field rule, AT-079/080, AT-065, AT-085
-- T-131 [high] Track A2: hardened Gemini vision provider + registered Source + persisted ingest
 - T-132 [normal] Track A3: host media prep (probe, chunks, transcript reuse/whisper, frames)
 - T-133 [high] Track A4: two-model ensemble + deterministic adjudication + Issue derivation + 13-column Excel + scorer
+- T-134 [high] Track A5: product map, journeys, issues and sources pages
 ## Last decisions (computed status)
 - D-016 2026-09-07 decision ACTIVE
 - D-017 2026-09-08 decision ACTIVE
