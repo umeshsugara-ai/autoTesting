@@ -1024,3 +1024,51 @@ remember, and the only one yet to produce an instance of the class inside itself
 self-caught bugs -- the first self-catch in nineteen units. One instance is not a trend.
 NEXT: cycle-2 verdict, then either AT-206+AT-192+AT-170 as one unit or T-136.
 OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
+
+## 2026-09-09 — tick: ADVANCED (29) — T-133 PASS closed out, AT-206 unit built and ready-for-check
+T-133 cycle 2: PASS, 6/6 criteria, 2/2 invariants. Closed out, F-039 appended to the ledger
+(video-issue-ensemble, high). The checker re-measured all three cycle-1 failures itself rather than
+reading the diff: 500 shuffles of the true shipped shape (2 models x 2 prompts x 3 chunks) -> 0
+mismatches; a crippled run persists observations_used 1 / expected 12; analyze(force=True) over a
+corrupted cache completes with 12 calls where cycle 1 measured a ValueError.
+It answered the two things I asked it to press on, and one answer was NO: the coverage numbers
+REACH NO READER. Nothing in the CLI, the sheet or the UI surfaces a partial analysis, and
+is_complete is a @property so it is not even in the persisted JSON -- AT-207. Plus AT-208:
+adjudicate(expected=None) defaults expected to used, so any caller but analyze -- T-136's scorer is
+the named next one -- gets an artifact declaring itself complete. A DEFAULT-VALUE FALLBACK INSIDE
+THE VERY FIELD ADDED TO STOP ONE. It filed both rather than hardening a criterion at the moment of
+a passing verdict, which is the right call and worth remembering.
+AT-209 (low): my force-before-read ordering is now entirely SHADOWED by skip_unreadable -- reverting
+it fails 0 tests. Reported INCONCLUSIVE, not vacuous: crash-safety rests on one mechanism, not two.
+NEW UNIT, and it is the sweep's own #1: AT-206 + AT-192 + AT-193 + AT-170 -- the class itself, not
+another instance of it. Four issues, one shape: A CHECK THAT CANNOT FAIL IS NOT A CHECK.
+AT-206 is the sharpest in the repo. PREP_COMMAND is a plain string constant that yields `ingest
+prep` with no rendering at all, and results were deduped to (file, command) -- so the assertion was
+satisfied by the INGREDIENT, and the f-string that interpolates it (the message three fix cycles
+were spent on, the entire reason the renderer exists) contributed nothing detectable. The renderer
+could be DELETED WHOLE and the guard passed. Every result now carries its LINE; dedup is
+(file, line, command); the test asserts a site whose source INTERPOLATES the constant rather than
+defines it -- a site that cannot exist without the renderer. The `len(commands) >= 6` slack, four
+sites wide and the reason AT-178 was unpinned by the same assertion, is gone.
+AT-193 had a SECOND miss inside it: a JoinedStr keeps its text in child Constant nodes that
+ast.walk visits independently, so excluding the parent alone left the documentation fully readable
+through its own children. Found by running, not by reading the diff.
+AT-192's fix reports what it still cannot resolve, because A HOLE THAT RETURNS AN EMPTY LIST LOOKS
+EXACTLY LIKE A CLEAN SCAN -- that indistinguishability is what let AT-176 and AT-192 each survive a
+guard written to catch them. 11 sites, 0 holes.
+AT-170: subprocess.run intercepted, THE ARGV IS THE ARTIFACT. -ss after -i in both seek sites,
+ffmpeg_available as BOTH binaries not either, probe returning zeros not raising.
+TEN SABOTAGES, anchor-matched-once and file-verified-changed, restored by FILE COPY not git
+checkout (AT-101 + my own T-131 lesson). All ten discriminate. The four AT-170 ones are the SAME
+FOUR a checker previously ran to zero failures.
+AND THE ONE THAT CAME BACK INCONCLUSIVE: making the hole reporter return [] unconditionally failed
+NOTHING -- the repo has no holes today, so a detector that can never report is indistinguishable
+from one that finds nothing. THAT IS AT-206'S OWN SHAPE, INSIDE AT-206'S FIX, IN THE SAME HOUR. C7's
+INCONCLUSIVE clause is what caught it; without that clause the comfortable reading is "the sabotage
+proved nothing was wrong." Now pinned by a constructed source with a known hole.
+The manifest does NOT claim the class is fixed. It fixes four instances and one meta-instance. The
+sweep's measurement is answered by the next several units or not at all.
+817 passed / 2 skipped, ruff + doctor clean. Checker dispatched this turn.
+NEXT: T-136 (the scorer, first real recall numbers) -- fold in AT-207/AT-208 there, since both are
+about a partial analysis reaching the reader and T-136's scorer is AT-208's named victim.
+OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
