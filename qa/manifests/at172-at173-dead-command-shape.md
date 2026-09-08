@@ -95,4 +95,4 @@ produced the fail-closed predicate.
   **AT-130** unchanged.
 - No model call; no crawl against a real product.
 
-## Status: ready-for-check
+## Status: checked-PASS
