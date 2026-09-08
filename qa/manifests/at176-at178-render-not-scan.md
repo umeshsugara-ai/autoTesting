@@ -99,4 +99,4 @@ uv run autotester doctor               doctor: clean
 - **AT-188** stands: a commit message carries a pasted pytest dump in a public repo, and rewriting
   pushed history to tidy it would erase the record of the mistake.
 
-## Status: ready-for-check
+## Status: checked-PASS
