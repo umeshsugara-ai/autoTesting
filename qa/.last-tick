@@ -526,3 +526,47 @@ consent chain. Track A has not moved since T-131 and the plan gives it tick prio
 Ready for it: corpus on C:/Users/Lenovo/Videos/Screen Recordings (NOT D: as the plan says),
 faster_whisper NOT in the project venv so the sidecar path is the one that works, ffmpeg 8.1.1 present.
 OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
+
+## 2026-09-08 — tick: ADVANCED (17) — at158-at160 PASSED; T-132 BUILT (product work resumed)
+at158-at160 closed checked-PASS cycle 1 (verdict a9b4332). Third pass at the predicate found NO new
+escape in the program position. It verified my count correction BY ITS CAUSE, not just its value
+(one test renamed, two non-test helpers added, net zero new test functions), and ruled that
+recording it in the manifest rather than rewriting a pushed commit was right, on the grounds that
+rewriting is the one correction which ERASES THE EVIDENCE THE ERROR HAPPENED. It kept the blanket &
+rejection. Queued: AT-161 (the || family escapes through `; true` and `&& true` -- no live instance
+on disk) and AT-162 (low).
+COMMITMENT HONOURED: nothing high, so T-132 next as written on disk. Track A resumed.
+Built t132-media-prep (commit 8dbc2d5, ready-for-check). New src/autotester/media/ package (probe,
+chunks, transcribe, frames) + stages/media_prep.py + `autotester ingest prep|frames`. Host-side,
+subprocess-only: the container has no ffmpeg and no GPU, and the two halves meet on disk.
+LIVE, REAL FFMPEG 8.1.1, REAL CORPUS, NO MODEL CALL: erp1.mp4 -> 29.91s, 1904x924; 12s chunks with
+3s overlap -> 3 real files at offsets 0/9/18, coverage 29.91 of 29.91; transcript engine=sidecar,
+6 segments, 22.0s speech, BYTE-IDENTICAL to erp1.transcript.json.
+Three decisions worth defending: the no-ffmpeg degrade emits ONE chunk on the original file, not an
+empty list, so a caller iterating prep.chunks does the right thing; sidecars are reused byte-for-
+byte and whisper never runs when one exists, because narration is GROUND TRUTH and a regenerated
+transcript is a changed quote from a real person; and -ss goes AFTER -i despite the cost, because
+before it ffmpeg seeks to the nearest keyframe and every timestamp here is relative to a chunk
+offset -- a keyframe-rounded cut silently moves every issue's reported second.
+THE FINDING, AND C7 IS THE ONLY REASON IT SURFACED: sabotage AB (disable the runt-tail fold) came
+back INCONCLUSIVE -- ZERO failures. Two units ago I would have read that as "the guard is solid".
+Investigating instead showed MY TEST ASSERTED ON A PLAN THE FOLD NEVER TOUCHED: at the defaults the
+fold is UNREACHABLE, because the loop breaks on the first remainder that fits in a chunk and that
+remainder is always in (overlap_s, chunk_s] -- so with overlap 15 > min tail 10 a runt tail cannot
+arise at all. The test passed for a reason unrelated to what it claimed to check, and disabling the
+branch produced a byte-identical plan. Now tested with overlap BELOW min_tail where the case is
+real, plus a second test pinning that the FOLD produced the plan rather than the loop merely
+ending, and the reachability condition documented so nobody reads the branch as dead code.
+Sabotage AB now fails 2.
+679 passed / 2 skipped, ruff + doctor clean. Sabotages AA-AE -> 1/2/2/3/1.
+T-132's own done_check exits 0 -- and exited 1 before this unit, which is exactly what AT-141 and
+AT-115 were for. The governance chain paid off on the very next unit.
+VL1 contract criteria requested; checker dispatched this turn.
+CONCEDED IN THE MANIFEST, NOT HIDDEN: whisper has NEVER been executed (faster_whisper is not in the
+venv, it is an optional extra) -- transcribe_subprocess is unit-tested for SHAPE only; and
+pyproject still does not declare the media extra, which is the SECOND instance of the google-genai
+deviation the checker filed as AT-130, so it should probably close with it rather than accumulate.
+NEXT after verdict: T-133 (Track A4 -- the two-model ensemble, deterministic adjudication, Issue
+derivation, the 13-column Excel and the scorer). That is the first point where AutoTester's issue
+list can be scored against the team's own sheet.
+OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
