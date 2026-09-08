@@ -899,3 +899,45 @@ NEXT after verdict: T-133 (Track A4 -- ensemble, adjudication, Issue derivation,
 Corpus facts already measured in .work/track-a-corpus-facts.md, including four that would each
 silently produce a recall of ZERO.
 OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
+
+## 2026-09-09 — tick: ADVANCED (26) — at176-at178 PASSED; T-133 two thirds built
+at176-at178 closed checked-PASS cycle 1 (verdict d2af747). Two corrections in my favour: AY fails 4
+in the full suite not the 3 I reported (the 4th is the pre-existing instance test that was the ONLY
+catcher before this guard, so the real before/after is guard 0->3, suite 1->4), and the checker
+REFUSED TO ACCEPT AZ AS PROOF WITHOUT CHECKING WHY IT FAILED -- AZ tripped the exit-code assertion
+rather than the causal backstop, so it built the case that separates them (a registered sibling that
+exits 0 and writes no media.json) and require_prepared still raised. THE BACKSTOP IS REAL AND
+UNCONDITIONAL, a stronger claim than mine, established by its own experiment.
+Two new findings are holes I introduced IN THAT COMMIT, both at ZERO live instances: AT-193
+(_is_documentation matches ast.Expr(Constant) only, and I added JoinedStr/BinOp scanning, so the
+docstring exclusion does NOT hold for the new node types) and AT-192 (the collector resolves
+SAME-FILE constants only -- AT-176's shape one `import` away). QUEUED per the rule I set when I
+closed the consent chain: fix in-flight only when HIGH.
+STARTED T-133 (Track A4), two of three parts built:
+adjudicate.py -- pure, deterministic, no provider/clock/randomness. A REAL BUG I WROTE AND CAUGHT
+BEFORE SHIPPING: I used max() to keep the worse of two severities, but Severity is declared S1,S2,S3
+in DESCENDING severity, so max() picks the MILDEST and reads as if it were right. It would have
+quietly downgraded every issue the two models disagreed about -- and disagreement is exactly when
+severity matters most. Now a named worst().
+Two more found by running rather than reading: said_verbatim does not exist on an observation (it is
+narration), and my determinism test compared whole JSON including Artifact.created_at, conflating
+"adjudication is deterministic" with "the clock did not tick" -- my adjudicate-twice test had been
+PASSING ONLY BECAUSE BOTH CALLS LANDED IN THE SAME MICROSECOND.
+issues.py -- the 13-column sheet. THE HEADER IS CHECKED AGAINST THE REAL WORKBOOK, not a list I
+typed: the test loads ERP_Issues_ALL.xlsx from the corpus and compares cell by cell, and it passes.
+Two corpus facts now enforced in code rather than remembered (At is a STRING "01:33"; severity in
+THEIR words).
+SABOTAGE BG IS THE FINDING: writing At as a raw number -- exactly what the plan's comparison assumed
+-- came back INCONCLUSIVE, because my parametrized test exercises at_mmss DIRECTLY and never the
+row. THE HELPER BEING RIGHT DOES NOT MAKE THE SHEET RIGHT. This session's recurring failure, inside
+the file about matching a human's sheet. Now asserted on the written workbook.
+AND I PUSHED DOCTOR-RED A THIRD TIME, differently: I READ the violation and committed anyway,
+because my verify chain used `;` after doctor instead of `&&`. Worse than not reading -- the check
+ran, the result was right there, and the next action did not depend on it. A VERIFY STEP WHOSE
+FAILURE DOES NOT STOP THE NEXT ACTION IS DECORATION. The sequence is now one `&&` chain, and on the
+very next commit that chain caught a stale MAP and stopped it.
+783 passed / 2 skipped, ruff + doctor clean. T-133's done_check names three test files; two exist
+and pass.
+NEXT: analyze_video (the ensemble driver with the observation cache) + the scorer, then manifest
+T-133 and dispatch.
+OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
