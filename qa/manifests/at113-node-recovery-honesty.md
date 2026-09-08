@@ -39,16 +39,36 @@ screen tree would not see it flagged as a problem.
 - `docs/FEATURES.jsonl` — F-036, the missing ledger row `autotester doctor` was flagging for T-124
   (unrelated to AT-113 itself, fixed because doctor caught it while verifying this unit).
 
-## Sabotage — reverting to the pre-fix behaviour fails both new tests
+## Sabotage — each branch reverted independently, real output pasted
+
+**AT-117 (checker-found): the block that was here before was WRONG, and it was wrong in the way
+that matters — I reconstructed it from memory instead of pasting a run.** It showed both tests
+failing with `assert 'explored' == 'aborted_error'`. That is impossible for the entry path: its
+pre-fix form *already* marked `ABORTED_ERROR`, so the defect there was the **missing issue**, not
+the status, and the test fails on the `any(...)` issue assertion. The substantive claim held and
+the checker reproduced it — but a transcript written from memory is not evidence, and it is
+exactly the failure this manifest format exists to prevent. Re-run properly, one branch at a time:
+
 ```
-$ <revert both branches to their original form>
-FAILED test_a_node_the_crawl_cannot_return_to_files_an_issue_and_is_marked_aborted
-  AssertionError: assert 'explored' == 'aborted_error'
-FAILED test_a_node_lost_mid_exploration_is_marked_aborted_not_explored
-  AssertionError: assert 'explored' == 'aborted_error'
-$ <restore>
-2 passed
+$ SABOTAGE: entry path only -- issue-filing removed, status left as-is
+E   assert False
+E    +  where False = any(<generator object test_a_node_the_crawl_cannot_return_to_files_an_issue...>)
+FAILED tests/test_explore_node_recovery.py::test_a_node_the_crawl_cannot_return_to_files_an_issue_and_is_marked_aborted
+1 failed, 1 passed in 0.38s
+
+$ SABOTAGE: mid-loop path only -- reverted to break + fall through to EXPLORED
+E   AssertionError: assert 'explored' == 'aborted_error'
+E     - aborted_error
+E     + explored
+FAILED tests/test_explore_node_recovery.py::test_a_node_lost_mid_exploration_is_marked_aborted_not_explored
+1 failed, 1 passed in 0.41s
+
+$ RESTORE
+2 passed in 0.29s
 ```
+
+Each branch fails **exactly one** test, and the one that defends it — which is a stronger result
+than "both fail", because it proves the two tests are not redundant.
 The second test needed `WritePolicy.ALLOW_WRITES` rather than the default `READ_ONLY`: under
 READ_ONLY every candidate on the fixture's `/settings` node is denied or skipped, so `return_to`
 is only ever called once (on entry) and the mid-loop path can never be exercised at all — a fact
@@ -77,4 +97,27 @@ AT-108/AT-114 — the "cause was swallowed" pattern in `capture()`'s blind `exce
 `stages/explore*.py`, not folded into this unit, per the standing plan to treat that as a shape
 rather than a location.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Verdict: `qa/verdicts/at113-node-recovery-honesty.md` (**Cycle checked: 1**, PASS, 2/2 criteria,
+6/6 unit claims independently reproduced). **AT-113 closes.** The checker read raw on-disk JSONL
+with its own probe rather than running my tests, and confirmed the fix is *discriminating* rather
+than a blanket downgrade: on the mid-loop path `/settings` is `aborted_error` while all four of
+its siblings stay `explored`.
+
+It also verified the claim I could most easily have been wrong about — that the mid-loop test
+needs `ALLOW_WRITES` — by instrumenting the call counter: `return_to` fires **once** on
+`/settings` under `READ_ONLY` and **three times** under `ALLOW_WRITES`. Under the default policy
+that test would have passed vacuously.
+
+**AT-117 (low) is the finding that matters and it is mine:** the sabotage transcript in this
+manifest was reconstructed from memory rather than pasted from a run, and was internally
+impossible. Corrected above with real output from two separate runs. The checker was right to file
+it even though the underlying claim was true — the whole point of pasting output is that it was
+not written by me.
+
+**One correction back to the checker, verified on disk rather than assumed:** its closing note says
+AT-093 (punctuation-separated logout labels, X6) is still open and must close before the explorer
+meets a real product. `qa/issues.jsonl` records AT-093 as **`verified`** — it was fixed at T-143
+and independently re-probed under three policies by the 2026-09-08 sweep. X6's gate on T-145 is
+already satisfied on that axis.
