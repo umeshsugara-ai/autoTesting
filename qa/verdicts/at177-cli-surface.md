@@ -1,206 +1,293 @@
 # Verdict — at177-cli-surface
 
-**Date:** 2026-09-08 · **Cycle checked: 1** · **Commit:** `81efef9` · **Bound root:** `D:/autoTesting`
-**Contract:** `core-invariants.md` C7 (the manifest also cites `qa/contracts/ui.md`, which is the
-**web UI** contract and has nothing to do with this unit — a bookkeeping error, not a mismatch of
-substance; C7 is the criterion actually in play and is what I judged against).
-**Adapter:** coding. Docker down, `uv` native, bare `uv run pytest`.
+**Cycle checked: 2**
+**Date:** 2026-09-09
+**Checker:** /checker Mode A, fresh subagent, bound to `D:/autoTesting`
+**Adapter:** `qa/adapter.json` (coding) — Docker down, `uv` native, bare `uv run pytest`
+**Contract:** `qa/contracts/core-invariants.md` (C2, C4, C7 are the live ones for this unit)
+**Manifest:** `qa/manifests/at177-cli-surface.md` (Fix cycle 2)
+**HEAD checked:** `bfa02c4` (manifest commit `c66fafc`)
 
-## VERDICT: FAIL
-
-One item, narrow and reproducible in one command. Everything else the manifest claims reproduced
-**exactly**, including both of its self-corrections — those are honest, not decorative.
+```
+VERDICT: PASS
+SCOREBOARD: 8/8 criteria met, 9/9 invariants hold
+FAILURES: none
+ISSUES-WRITTEN: AT-184 (verified) · AT-185 (medium, open) · AT-186 (medium, open) ·
+                AT-187 (low, open) · AT-188 (low, open);
+                AT-179 / AT-180 / AT-181 moved open -> verified
+EXPLANATION: The cycle-1 FAIL is closed in my own hands, not on the maker's word: a
+marker appended to docs/SNAPSHOT.md survived a full `uv run pytest`, and the repo
+fingerprint plus the entire root entry list came back unchanged. All three cycle-2
+sabotages reproduce at 1 failure each and at 0 with the new test files ignored, so
+each fix is genuinely pinned by work this unit did. The residuals I found — a
+20/22 exclusion whose stated reason is measurably wrong, and a live-repo guard that
+under-detects — are strength-of-test findings on a unit that now satisfies every
+criterion it is judged against, so they are filed rather than charged.
+```
 
 ---
 
-## 1. Verification re-run by me (not read)
+## 1. The cycle-1 FAIL, re-proved (AT-181) — the criterion, in my hands
+
+This is the one that failed last cycle, so I re-ran the whole proof myself rather
+than reading the manifest's claim.
 
 ```
-uv run pytest                          734 passed, 2 skipped, 1 warning in 75.34s
-uv run ruff check src tests scripts    All checks passed!
-uv run autotester doctor               doctor: clean
+$ printf '\n<!-- CHECKER-MARKER-CYCLE2-AT181 -->\n' >> docs/SNAPSHOT.md
+marker appended
+  (captured: sha256 of docs/*.md + docs/*.jsonl + every repo-root file  -> 18 hashes)
+  (captured: full repo-root entry list                                  -> 30 entries)
+
+$ uv run pytest
+739 passed, 2 skipped, 1 warning in 74.67s (0:01:14)
+
+$ grep -c 'CHECKER-MARKER-CYCLE2-AT181' docs/SNAPSHOT.md
+1
+MARKER SURVIVED
+FINGERPRINT UNCHANGED
+ROOT ENTRIES UNCHANGED
 ```
 
-Matches the manifest on the counts.
+`git status --porcelain` after the run showed nothing but the marker itself. The two
+`.goal/` files that moved are the `/goal` five-minute monitor's own timestamp tick
+(`updated`/`last_deterministic_tick` 23:42:02 -> 23:47:02, a diff of exactly two
+timestamp lines and the derived dashboard) — not pytest. I checked the diff rather
+than assuming, because a checker that waves off a dirty tree is doing the thing this
+unit is about.
 
-**The walker is not vacuous and the matrix is not collapsed.** Executing `shipped_commands()`
-myself returns **22** commands (approve · doctor · explore · flowspec approve/request-edit/status ·
-ingest frames/list/prep/register/run · ledger add/check/relitigation/weight · login · map ·
-providers · report crawl/excel/html · snapshot). `pytest --collect-only` on the matrix test alone
-collects **22 items**, and the file collects **34** — one case per command, not one collapsed case.
+The marker was then removed and `docs/SNAPSHOT.md` restored byte-identical
+(`git status --porcelain docs/` empty). **C7 holds: the project's own verify command
+no longer rewrites the git-tracked files it verifies.**
 
-## 2. The two self-corrections — reproduced, both honest
-
-Harness: isolated `git worktree` at `81efef9` (AT-101 respected — no `stash`/`checkout`/`restore`
-in the live tree), every sabotage asserting **anchor matched exactly once + file changed** before
-any result was believed (C7).
-
-**(a) "The matrix would NOT have caught AT-166."** Confirmed. Sabotage = drop
-`media_prep.UnreadableRecording` from the `except` clause at `cli_video.py:79` (the AT-166 fix
-hunk; the naive anchor matches **twice** in that file — the sibling command carries the same
-clause — so I anchored on the clause plus its `# AT-166:` comment):
+## 2. Verification, re-run and counted myself
 
 ```
-AQ vs tests/test_cli_surface.py    anchor matched once, file changed=True -> FAILED lines = 0   (INCONCLUSIVE)
-AQ vs tests/test_media_prep.py     anchor matched once, file changed=True -> FAILED lines = 1
-                                   test_the_shipped_prep_command_answers_a_refusal_cleanly
+$ uv run pytest                          739 passed, 2 skipped   (claimed 739/2 — matches)
+$ uv run ruff check src tests scripts    All checks passed!
+$ uv run autotester doctor               doctor: clean   (exit 0)
 ```
 
-Exactly what the manifest says: the matrix is INCONCLUSIVE, the targeted test is the one that
-bites. Leaving AQ in the record was right.
+## 3. AT-184 — no stray file in the repo root
 
-**(b) "The repo-level test needed the banner oracle."** Confirmed in both directions. Sabotage AT
-= `def doctor() -> None:` to `def doctor(project: str) -> None:`.
+Covered by the fingerprint run above: the root entry list was captured before and
+after a full suite and came back identical (`diff` clean, 30 entries both times). No
+file named `nonexistent`, and nothing else, appears at any point during a run.
 
-```
-against the BEFORE version (Usage assertion deleted, traceback-only)  -> FAILED lines = 0   (INCONCLUSIVE)
-against the SHIPPED version (banner oracle)                          -> FAILED lines = 1
-```
+## 4. AT-180 — I measured the reach rather than accepting 20/22
 
-## 3. Sabotages AR, AS, AT — 1 each, as claimed
+Walked click's tree and classified all 22 invocations by presence of the `Usage:`
+banner, twice:
 
-```
-AR  review.py:30  status=APPROVED, by=by -> by=None
-      anchor matched once, file changed=True -> 1
-      FAILED test_flowspec_approve_records_who_approved_it
-AS  review.py:39  ReviewStatus.NEEDS_EDIT -> ReviewStatus.APPROVED
-      anchor matched once, file changed=True -> 1
-      FAILED test_flowspec_request_edit_takes_approval_back
-AT  cli.py:32     def doctor() -> None: -> def doctor(project: str) -> None:
-      anchor matched once, file changed=True -> 1
-      FAILED test_the_repo_level_commands_run_without_a_project[doctor]
-```
+| placeholder scheme | reached application code | stopped at click's banner |
+|---|---|---|
+| naive `nonexistent-project nonexistent-id` (the pre-fix form) | **4** | 18 |
+| arity derived from click (shipped) | **20** | 2 |
 
-## 4. Attacking the matrix — it is much narrower than "all 22 driven"
-
-I ran the matrix's own invocation (`<cmd> nonexistent-project nonexistent-id`) against all 22
-commands under an empty `AUTOTESTER_ROOT` and recorded the exit code and first line of output.
-**18 of 22 never leave click's argument parser** — exit 2 with a `Usage:` banner, because the two
-extra positionals are themselves rejected (options-only commands: `doctor`, `providers`, `map`,
-`snapshot`, `ledger check`; wrong-arity: `approve`, `explore`, `login`, all three `flowspec`, all
-three `report`, `ingest list`, `ledger add/relitigation/weight`). Only **4** reach application
-code and produce a real refusal: `ingest frames`, `ingest prep`, `ingest register`, `ingest run`.
-
-So for 18 of the 22 the assertion `"Traceback" not in result.output` is an assertion about click,
-not about autotester. The docstring's "narrower than it looks" is honest in direction, but does
-not state the measured **4/22**, and the manifest headline ("a smoke matrix over all 22 commands")
-and the commit subject ("drive the 15 shipped commands nothing was driving") overstate it.
-Filed **AT-180** (medium).
-
-**"Could a command silently succeed on a nonexistent project?" — yes, and I found one.** With the
-*correct* arity, `autotester ingest list nonexistent-project` exits **0** and prints
-`nope has no sources yet — 'autotester ingest register' adds one.` — indistinguishable from a
-real project that has no sources. Every sibling refuses properly (`explore nope` / `login nope` →
-exit 1 `no project 'nope' yet`; `flowspec status nope` → exit 1). The matrix cannot notice: it
-asserts no exit code at all, and for this command it never even reaches the code. Filed **AT-179**
-(high) — a shipped product defect, and precisely the hole the matrix's weak assertion leaves open.
-
-## 5. Attacking the focused gate tests
-
-Behaviour is **correct** everywhere I probed — the gaps here are test strength, not defects:
-
-- `flowspec approve` on a project with **no FlowSpec at all** → exit 1, `no flowspec for 'bare' yet`.
-  On a wholly unknown project → the same. Correct, and **untested**.
-- `request-edit` on a **DRAFT** spec → exit 0, status moves DRAFT to `needs_edit`, `by` recorded.
-  Sane.
-- The shipped `test_flowspec_request_edit_takes_approval_back` asserts only
-  `status is not APPROVED` — it would pass on any wrong status, and checks neither `by` nor `note`.
-- `test_flowspec_status_on_an_unknown_project_is_clean` asserts **only** the absence of a
-  traceback: no exit code, no message. `status` is covered barely beyond that.
-
-Filed **AT-183** (low).
-
-## 6. The reports
-
-Refusal-only is **thin, not wrong** — but it does not deliver what this unit's own argument
-demands. `tests/test_report_export.py` and `tests/test_crawl_report.py` cover the export functions
-well, including positive cases, but contain **zero** `CliRunner` invocations (`grep -c` returns 0
-and 0). So after this unit the three `report` commands are driven only through a refusal; the
-success path of the shipped command — does it write the file where it says, exit 0, name the path
-— is still proven only at the function level. That is exactly the "a test that calls a function
-proves the function works; only a test that runs the command proves the product does" distinction
-this file's own docstring opens with. A seeded-run positive case is cheap (the fixtures already
-exist in `test_report_export.py`) and worth having. Filed **AT-182** (low).
-
-## 7. The AT-176 account — accurate, and nothing was quietly weakened
-
-Reproduced in the worktree: `PREP_COMMAND = "autotester ingest prep"` to `"autotester media prep"`
-(anchor matched once, file changed) yields **0 failures** in `tests/test_cli_advice_resolves.py`
-and **1** in `tests/test_media_prep.py::test_a_stage_needing_prep_is_sent_to_a_command_that_exists`.
-The manifest's account is correct and matches the AT-176 ledger row (severity `high`, open).
-
-One refinement to its stated cause: the manifest says the name and its backticks are "different AST
-nodes", which is true but is not the whole mechanism — the `ADVICE` regex also excludes any string
-carrying `{}` by design, and the surviving literal is ``run `{PREP_COMMAND} ``. Either exclusion
-alone hides it. This does not change the finding.
-
-**`git show --stat 81efef9` = 2 files:** `tests/test_cli_surface.py` (+201) and a Status flip on
-`qa/manifests/at172-at173-dead-command-shape.md`. `tests/test_cli_advice_resolves.py` is
-byte-untouched. Nothing was weakened.
-
-## 8. Adversarial — and this is the FAIL
-
-**Two of the 22 shipped commands overwrite git-tracked files: `map` writes `docs/MAP.md`,
-`snapshot` writes `docs/SNAPSHOT.md`** (`cli.py:51-68`). The smoke matrix itself is safe — both are
-arity-rejected before any write, and I confirmed the temp root was empty after all 22 invocations.
-
-But `test_the_repo_level_commands_run_without_a_project` **takes no `root` fixture**, so it invokes
-`map` and `snapshot` for real against the **live repo**. Proved, not inferred:
+Both of the maker's numbers reproduce exactly. The remaining two are `ledger add`
+and `ledger weight`, and the banner text names the cause directly:
 
 ```
-$ printf '\nZZZ-CHECKER-PROBE\n' >> docs/SNAPSHOT.md
-$ git status --short docs/          ->  M docs/SNAPSHOT.md
-$ uv run pytest "tests/test_cli_surface.py::test_the_repo_level_commands_run_without_a_project" -q
-....                                                                     [100%]
-$ grep -c ZZZ-CHECKER-PROBE docs/SNAPSHOT.md   ->  0   (the test erased it)
-$ git status --short docs/                     ->  (clean)
+Usage: root ledger add    [OPTIONS] {feature} {title} {event}:<planned|live|updated|retired>
+Usage: root ledger weight [OPTIONS] {feature} {value}:<high|normal|low>
 ```
 
-This is **new with this commit** — `grep -rn '"map"|"snapshot"' tests/*.py` matches no other test.
-It means `uv run pytest`, the adapter's own verify command and the one every checker re-runs, now
-silently rewrites two git-tracked files in whatever tree it is run in. It is invisible when the
-docs happen to be current (as they were in my run) and destroys uncommitted doc edits when they are
-not — and this session began with `M docs/SNAPSHOT.md` in exactly that state.
+So "a closed vocabulary rejecting the placeholder" is accurate — verified, not taken
+on trust.
 
-**Why this is a FAIL and not just an issue:** C7's first line is *"a unit is complete only when a
-check that someone else can re-run passes."* A verify command that mutates the repository it
-verifies is not independently re-runnable in the live tree — it is the failure mode C7 exists for,
-introduced inside the unit whose whole subject is C7 discipline.
+**Is 20/22 with two deliberate exclusions honest?** Yes. The number is measured,
+stated in the module docstring, and stated as a limit rather than rounded up. That is
+exactly the correction AT-180 asked for.
 
-**Fix direction (cheap):** give that test the same `root` fixture the rest of the file uses, or
-drop `map`/`snapshot` from it and assert their no-argument shape via
-`runner.invoke(app, ["snapshot", "--print"])` and an equivalent for `map` that writes nothing.
-Keep the banner oracle — it is the part that works.
+**Would forcing the last two be safe and better?** Safe — yes, and the maker's stated
+reason for not doing so is wrong. The docstring says valid arguments "would make both
+commands write, and a write command running for real inside the verify step is
+exactly AT-181". But `core/paths.py:15-20` resolves `repo_root()` from
+`AUTOTESTER_ROOT`, and `docs_dir`/`features` hang off it, so the temp root already
+contains the write. I proved it rather than reasoning about it:
+
+```
+$ AUTOTESTER_ROOT=<tmp> autotester ledger add nonexistent-feature "checker probe" planned -d probe
+F-001 planned nonexistent-feature
+$ ls <tmp>/docs
+FEATURES.jsonl  SNAPSHOT.md
+$ git status --porcelain docs/
+(empty)
+```
+
+The maker's own fingerprint test already proves that containment across all 22
+commands. Better — marginally: 22/22 with an enum value read off the click `Choice`
+would remove a hand-maintained exception, and the two commands it would cover are
+the repo's only ledger *write* path. Filed as **AT-185 (medium)**, not charged: no
+criterion demands 22/22, and an honestly-labelled 20 is worth more than a forced 22.
+
+## 5. AT-179 — both directions
+
+```
+$ AUTOTESTER_ROOT=<tmp> autotester ingest list nonexistent-project
+no project 'nonexistent-project' yet
+exit=1
+```
+
+Guard at `src/autotester/cli_video.py:53-58`. The opposite error — refusing a real
+but empty project — is guarded by
+`test_listing_sources_for_a_real_but_empty_project_succeeds`, which passes and asserts
+exit 0. The maker's stated care here is real, not decorative: a fix that refused both
+would have replaced one wrong answer with another.
+
+## 6. Sabotages AU, AV, AW — reproduced in an isolated worktree
+
+Run in `git worktree add .work/wt-at177 HEAD` (never `git stash`/`checkout`/`restore`
+in the live tree — AT-101). Every patch asserted **anchor matched exactly once** and
+**file changed on disk** before any result was believed, per C7.
+
+| sabotage | mutation | with this unit's tests | with the new test files ignored |
+|---|---|---|---|
+| **AU** — `ingest list` stops refusing an unknown project | delete the whole AT-179 guard block, `cli_video.py` | **1** `test_listing_sources_for_a_project_that_does_not_exist_refuses` | **0** — INCONCLUSIVE |
+| **AV** — `snapshot` runs without `--print` | drop `--print` from the invocation, `test_cli_harness_safety.py` | **1** `test_snapshot_print_is_what_makes_the_repo_level_test_safe` | n/a (the test *is* the new file) |
+| **AW** — placeholders escape the temp root | revert the placeholder to a bare `"nonexistent"`, `test_cli_surface.py` | **1** `test_every_placeholder_stays_inside_the_temp_root` | **0** — INCONCLUSIVE |
+
+All three confirmed at 1 each. The right-hand column is the part that matters: each
+mutation was genuinely INCONCLUSIVE before this unit's tests existed, so the maker's
+"all three fixes first came back INCONCLUSIVE" is not a rhetorical flourish — I
+reproduced the null result.
+
+## 7. The two structural-by-necessity tests, judged
+
+### `test_snapshot_print_is_what_makes_the_repo_level_test_safe` — right call, weaker than it says
+
+Running against the live repo is **safe today**: `cli.py:64-66` returns before any
+write when `print_only` is set, and I confirmed no repo file moves. The maker's
+reasoning for why a temp root cannot pin this — "the original bug was the ABSENCE of
+one, so reproducing it there is impossible by construction" — is correct as far as it
+goes.
+
+But I sabotaged the **product** rather than the test, removing that early `return` so
+`--print` echoes *and* writes, and the full suite came back **0 FAILED —
+INCONCLUSIVE**. The reason, measured: `autotester snapshot` regenerated
+`docs/SNAPSHOT.md` byte-identically to the committed copy, so a content fingerprint
+sees nothing.
+
+So, answering the question directly: **it could not damage the repo today, and it
+would not reliably catch the regression it claims to catch.** Two properties, both
+short of the docstring's "if that ever stops being true … this fails":
+
+- the detector is content-based, so a write that reproduces the existing bytes is
+  invisible — and that is the common case when the docs are current;
+- it is a *detector*, not a *preventer*: the write happens first and is judged after,
+  which is the exact ordering the maker deliberately avoided one test lower down
+  ("asserted on the argv rather than on the filesystem, because the filesystem
+  version needs the damage to happen first"). The reasoning was available; it was not
+  applied here.
+
+The maker's literal AV does yield 1, and I reproduced that — but it bites on
+`len(result.output) > 200`, not on the fingerprint. The guard that is claimed is not
+the guard that fires. Filed as **AT-186 (medium)** with a structural fix direction
+(assert under a temp root that the file was never created, or assert the write is
+never called). Not a FAIL: C7's criterion is that the verify step does not mutate the
+repo, and I proved independently that it does not.
+
+### `test_map_has_no_read_only_mode_which_is_why_it_is_excluded` — sound, incomplete
+
+Pinning an exclusion is the right instinct, and the docstring states the reason
+correctly: an exclusion nobody justifies is one somebody quietly reverses. Asserting
+an absence is legitimate here because the absence *is* the justification — the day
+`map` gains a read-only mode, the exclusion should be revisited, and this is what
+makes that day visible.
+
+It is not brittle in the false-alarm direction: `map --help` is stable and the test
+cannot fire spuriously. It is incomplete in the other — it names `--print` and
+`--dry-run` only, so a `--stdout` or `--no-write` would slip past. That is a
+one-line widening whenever someone touches it, not a defect, and I have not filed it
+separately; it is noted here so the next reader has it.
+
+## 8. The split — nothing lost, and the import is acceptable
+
+```
+$ git show d2d547d:tests/test_cli_surface.py | grep -o '^def test_[a-z_]*' | sort   ->  14 names
+$ cat tests/test_cli_surface.py tests/test_cli_harness_safety.py | ... | sort      ->  14 names
+IDENTICAL TEST SET
+```
+
+Nothing was lost, renamed, or quietly dropped in the split.
+
+**Is `from test_cli_surface import invocation_for, shipped_commands` a smell?** In
+general, yes — a test module importing another test module couples two files that
+should be independently deletable, and it depends on pytest's rootdir/`sys.path`
+insertion rather than on a package. Here it is the right call anyway, and for a
+reason specific to this unit: `shipped_commands()` and `invocation_for()` are the
+*subject* of the harness-safety tests, not incidental helpers. AT-184 was a bug **in
+`invocation_for` itself**, and `test_every_placeholder_stays_inside_the_temp_root`
+asserts on that function's output directly. Moving them into a `conftest.py` fixture
+would hide the thing under test behind indirection; moving them into `src/` would put
+test scaffolding into the shipped package. The split was forced by doctor's 300-line
+cap and it was split **by responsibility** (what the commands do / what running them
+all must never do), which is what the cap asks for. Acceptable, and I would not ask
+for it to be changed.
+
+## 9. The doctor-RED push — the account is accurate
+
+Verified rather than accepted:
+
+```
+$ git checkout d2d547d && uv run autotester doctor
+file-too-long: tests\test_cli_surface.py - 389 lines > 300; split by responsibility
+1 violation(s)
+```
+
+389 > 300, exactly as the maker describes, in the same output it read for the test
+count. Fixed in the next commit `befb425` (the split), and `doctor: clean` at HEAD.
+The manifest's self-report — "I took the green I was looking for and stopped reading"
+— is correct on every checkable detail, and the decision to leave the commit standing
+rather than rewrite history is the right one in a Lab Protocol repo.
+
+One thing the manifest does not mention: `d2d547d`'s **commit message** is a pasted
+pytest failure dump, complete with traceback and local temp paths, in a public repo.
+Filed as **AT-188 (low)** — a note, not a rebase.
+
+## 10. Adversarial — what else the harness does to the repo
+
+- **Clutter:** `git status --porcelain --ignored=matching` after a full run shows no
+  new untracked entries; every ignored path (`.work/`, `.pytest_cache/`, `profiles/`,
+  `projects/*/runs/`, `__pycache__/`) predates the run and is gitignored. C4 holds.
+- **Temp dirs:** all under pytest's `tmp_path`, none in the repo.
+- **Git config / git state:** untouched — no test in either file invokes git, and the
+  worktree used for sabotage was removed (`git worktree remove --force`).
+- **Does the fingerprint watch enough?** No — and this is the sharper half of the
+  question. `_repo_fingerprint` (`test_cli_harness_safety.py:41-48`) covers
+  `docs/*.md`, `docs/*.jsonl` and repo-root files. `projects/`, `qa/`, `src/` and
+  `.goal/` are unwatched, and `projects/<slug>/` is where the CLI does most of its
+  writing (runs, cases, rubrics, flowspec). **Does it matter today? No** — I confirmed
+  with `git status` across a full run that every tracked directory is genuinely
+  untouched, because `AUTOTESTER_ROOT` redirection contains all of it. It matters
+  later: a future command that resolves a project path without going through
+  `repo_root()` would rewrite a tracked artifact with this test still green. A
+  `git ls-files`-derived watch set would close it. Filed **AT-187 (low)** — a
+  strengthening, not a defect.
 
 ---
 
-## Ledger
+## Criteria judged
 
-- **AT-177** stays `open`. The unit closes most of it (the 15 undriven commands now have a test
-  that invokes them) but section 4 shows the drive is shallow for 18 of 22, and it introduced
-  AT-181.
-- **AT-176** unchanged (`high`, open) — correctly named as the next unit, not deferred.
+| # | Criterion | Verdict |
+|---|---|---|
+| C2 | file ≤ 300 lines, function ≤ 50, module docstring states its one job | **met** — `doctor: clean`; 296 + 127 lines after the split; both docstrings state one job |
+| C4 | repo root stays clean, scratch in `.work/` | **met** — root entry list identical across a full run; no `nonexistent` file |
+| C7a | a check someone else can re-run | **met** — I re-ran all three verify commands and reproduced every number |
+| C7b | sabotage asserts anchor-matched-once + file-changed | **met** — enforced in my own harness for all four sabotages |
+| C7c | a zero-failure sabotage is reported INCONCLUSIVE | **met** — the manifest reports AQ, and all three cycle-2 nulls, as INCONCLUSIVE rather than as vacuous tests |
+| AT-179 | unknown project refuses (1), empty project succeeds (0) | **met** — both directions run live |
+| AT-180 | reach measured and honestly stated | **met** — 4→20 of 22 reproduced exactly; residual AT-185 |
+| AT-181/184 | verify command does not mutate the repo it verifies | **met** — marker survived, fingerprint and root entries unchanged |
 
-ISSUES-WRITTEN: AT-179, AT-180, AT-181, AT-182, AT-183.
+Invariants: C1, C3, C5, C6, C8, C9 untouched by this unit and re-confirmed green via
+`doctor` + the full suite; C2, C4, C7 as above. **9/9 hold.**
 
-```
-VERDICT: FAIL
-SCOREBOARD: C7 — 5/6 sub-clauses met (independent re-run · sabotage assertion · zero-failure
-            INCONCLUSIVE reporting · real pasted output · executor-does-not-grade-itself all hold;
-            "a check someone else can re-run" fails on AT-181)
-FAILURES:
-- [C7] sev: high · `uv run pytest` now rewrites git-tracked docs/MAP.md and docs/SNAPSHOT.md,
-  because test_the_repo_level_commands_run_without_a_project invokes `map` and `snapshot` against
-  the live repo with no tmp root — proved by an injected marker being erased · give that test the
-  `root` fixture (or use `snapshot --print` and drop `map`) · issue: AT-181
-ISSUES-WRITTEN: AT-179, AT-180, AT-181, AT-182, AT-183
-EXPLANATION: Every claim in the manifest reproduced exactly — 734/2, ruff and doctor clean, the
-walker's 22 commands and 22 parametrized cases, sabotages AR/AS/AT at 1 each, and both
-self-corrections honest in both directions (AQ: 0 against the matrix, 1 against test_media_prep;
-the banner oracle: 0 before, 1 after). The AT-176 account is accurate and nothing was weakened.
-The unit fails on one thing it introduced: the new repo-level test runs two write-commands against
-the live repo, so the project's own verify command mutates the repository it verifies. Separately,
-attacking the matrix found a real shipped defect it cannot see — `ingest list <nonexistent>` exits
-0 and reports "no sources yet" (AT-179) — and measured that only 4 of the 22 invocations reach
-application code at all (AT-180).
-```
+## What I re-ran
+
+- `uv run pytest` (full, bare) ×1 live + ×6 in an isolated worktree
+- `uv run ruff check src tests scripts`, `uv run autotester doctor` (live + at `d2d547d`)
+- marker-survival + repo-fingerprint + root-entry-list probe around a full suite
+- an independent 22-command reach probe, twice (naive vs shipped placeholders)
+- live `autotester ingest list`, `autotester ledger add`, `autotester snapshot`
+- sabotages AU / AV / AW / AV-literal / a product-level `--print` mutation, each with
+  anchor and file-change assertions, each also run with the new test files ignored
