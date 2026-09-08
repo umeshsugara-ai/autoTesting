@@ -70,4 +70,26 @@ its cause, the sibling of AT-098) is queued: the honest lesson from that check w
 was swallowed" is a shape rather than a location, so it wants a sweep of every `except` in
 `stages/explore*.py`, not another one-line patch.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Verdict: `qa/verdicts/at103-conflict-scope.md` (**Cycle checked: 1**, PASS, 6/6 criteria, 4/4
+invariants). **AT-103 closes.** The checker loaded the pre-fix module beside HEAD in one
+interpreter and reproduced the probe on both sides — `conflicts=1` before, `0` after, one-crawl
+control `0` in both — and confirmed all three sabotages land, including that the lazy
+`_is_structural → return True` fix (which would also make the symptom vanish) fails three tests.
+
+**The case I wrote no test for is a real hole, and I was right to ask.** The checker probed it:
+crawl 1 finds `/settings` (sig_v1, "Settings"); the product ships a redesign; crawl 2 finds
+`/settings` (sig_v2, "Account settings") → `screens=2 conflicts=0`, and the review note is
+**byte-identical to what an innocent SPA re-crawl produces**. Two crawls at different times are two
+sources whose claims genuinely differ, and pre-fix that filed a Conflict. It did not fail the unit
+because the trade is forced at this layer (the two cases are the same shape), it fails safe (both
+screens kept, nothing overwritten, DRAFT reset intact), and X14 had pre-authorised the widening —
+but it is a cost, not a freebie. Filed as **AT-109 (medium)**, written *into* X14 so the criterion
+carries its own price, with the remedy named as last-seen/staleness on `Screen` and **explicitly
+not** a re-narrowing of `_is_structural`. That is the right shape: the instrument was always poor
+here, catching a product change only when the URL was kept *and* the name changed.
+
+The checker also verified the `node_`/`scr_` coupling beyond my test — `node_` is produced only by
+`schema/screen_graph.py:73`, human and ingested screens are `scr_`, and `id` is non-optional where
+`source_ref` (the direction AT-103 itself proposed) is nullable.
