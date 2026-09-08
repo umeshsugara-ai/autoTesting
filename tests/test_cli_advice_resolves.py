@@ -75,10 +75,12 @@ def test_the_collector_sees_the_COMPOSED_site_not_just_the_constant() -> None:
     Both sites are real advice and both must be seen, so this asserts on both
     lines: the constant's own definition, and the f-string that interpolates it
     — which no literal scanner can produce."""
-    prep = [a for a in advice() if a.command == "ingest prep"]
+    prep = [a for a in advice()
+            if a.command == "ingest prep" and a.where == Path("stages") / "media_prep.py"]
     lines = {a.line for a in prep}
     source = (SRC / "stages" / "media_prep.py").read_text(encoding="utf-8").splitlines()
 
+    assert prep, "no `ingest prep` site in stages/media_prep.py at all"
     assert len(lines) >= 2, (
         f"only one `ingest prep` site found ({prep}) — the composed message and "
         f"the constant it interpolates are different lines, and seeing only one "
@@ -152,6 +154,47 @@ def test_the_collector_reports_what_it_could_not_resolve() -> None:
 def test_every_site_is_reported_with_a_line_a_human_can_open() -> None:
     for entry in advice():
         assert entry.line >= 1, entry
+
+
+EXPECTED_SITES = {
+    ("cli_video.py", "ingest register"),
+    ("cli_video.py", "ingest list"),
+    ("core/consent.py", "approve"),
+    ("doctor.py", "map"),
+    ("doctor.py", "snapshot"),
+    ("ledger/render.py", "snapshot"),
+    ("stages/analyze_video.py", "providers"),
+    ("stages/ingest.py", "ingest register"),
+    ("stages/media_prep.py", "ingest prep"),
+    ("stages/review.py", "flowspec approve"),
+}
+"""Every place this codebase tells a human to run something, frozen.
+
+AT-210: without this, the suite could not notice a site DISAPPEARING. The
+resolve check below is parametrized over whatever the collector returns, so
+deleting a site removes a **case**, not a test — deleting `core/consent.py`'s
+advice, the very site AT-178 exists for, dropped the run from 26 tests to 25
+and failed nothing. Nine of the eleven sites were freely deletable. The
+`len(commands) >= 6` bound this replaced was crude, but it did bite at six;
+removing it without putting this in its place was a net loss.
+
+Two sites in `media_prep.py` share a command (the constant and the message that
+interpolates it), so this set has ten entries for eleven sites; the count is
+asserted separately."""
+
+EXPECTED_SITE_COUNT = 11
+
+
+def test_no_advice_site_can_vanish_unnoticed() -> None:
+    """The guard AT-210 says was missing. A new site is a deliberate act and
+    should be added here; a site that disappears should be a decision, not a
+    silently shorter test run."""
+    found = {(str(a.where).replace(chr(92), "/"), a.command) for a in advice()}
+
+    assert found == EXPECTED_SITES, (
+        f"advice sites changed.{chr(10)}"
+        f"gone: {sorted(EXPECTED_SITES - found)}{chr(10)}new: {sorted(found - EXPECTED_SITES)}")
+    assert len(advice()) == EXPECTED_SITE_COUNT, [tuple(a) for a in advice()]
 
 
 @pytest.mark.parametrize("entry", advice(),

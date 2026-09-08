@@ -190,18 +190,35 @@ def unresolved_in(source: str, constants: dict[str, str] | None = None,
     return sorted(holes)
 
 
-def _module_level_names(tree: ast.Module) -> set[str]:
-    """Every name this module binds at the top level, string-valued or not.
+NEVER_A_COMMAND = (ast.Tuple, ast.List, ast.Dict, ast.Set)
+"""Literal containers. A name bound to one cannot BE a command string, so it is
+safe to exempt from the hole report without knowing its value."""
 
-    A SCREAMING_CASE name bound here to a non-string is a number or a tuple,
-    never a command; an unresolved one that is bound NOWHERE here came from an
-    import, which is the shape worth reporting."""
+
+def _module_level_names(tree: ast.Module) -> set[str]:
+    """Names this module binds to something that CANNOT be a command string.
+
+    AT-212: this used to exempt a name for being bound at all, while
+    `_module_constants` resolves literals only — so
+
+        PREP_COMMAND = os.environ.get("CMD", "autotester ingest prep")
+
+    was exempt from the hole report AND invisible to the collector, in one
+    move. A call can return anything, so being bound to a call is not an
+    exemption; only a non-string literal or a literal container is."""
     names: set[str] = set()
     for node in tree.body:
-        if isinstance(node, ast.Assign):
-            names |= {t.id for t in node.targets if isinstance(t, ast.Name)}
-        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
-            names.add(node.target.id)
+        if not isinstance(node, ast.Assign | ast.AnnAssign):
+            continue
+        value = node.value
+        if value is None:
+            continue
+        safe = ((isinstance(value, ast.Constant) and not isinstance(value.value, str))
+                or isinstance(value, NEVER_A_COMMAND))
+        if not safe:
+            continue
+        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+        names |= {t.id for t in targets if isinstance(t, ast.Name)}
     return names
 
 

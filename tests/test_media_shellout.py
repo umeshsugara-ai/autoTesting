@@ -49,6 +49,13 @@ def after(argv: list[str], flag: str) -> int:
     return argv.index(flag)
 
 
+def is_ffmpeg(argv: list[str]) -> None:
+    """AT-213: the ordering was asserted and the PROGRAM was not, so renaming
+    the binary to `ffmpeg-x` failed nothing. A perfectly ordered argv handed to
+    a program that does not exist is not a working call."""
+    assert argv[0] == "ffmpeg", f"the tool invoked was {argv[0]!r}, not ffmpeg"
+
+
 # -- -ss goes after -i, in both places that seek -----------------------------
 
 def test_a_chunk_is_cut_with_the_seek_AFTER_the_input(monkeypatch, tmp_path: Path) -> None:
@@ -66,6 +73,7 @@ def test_a_chunk_is_cut_with_the_seek_AFTER_the_input(monkeypatch, tmp_path: Pat
     chunks_mod.encode_chunks(tmp_path / "in.mp4", tmp_path / "out", [(30.0, 180.0)])
 
     argv = recorder.argv()
+    is_ffmpeg(argv)
     assert after(argv, "-ss") > after(argv, "-i"), argv
     assert argv[after(argv, "-ss") + 1] == "30.0"
     assert argv[after(argv, "-t") + 1] == "180.0"
@@ -82,6 +90,7 @@ def test_a_frame_is_grabbed_with_the_seek_AFTER_the_input(monkeypatch, tmp_path:
     frames_mod.extract_frame(tmp_path / "in.mp4", 20.0, tmp_path / "f.png")
 
     argv = recorder.argv()
+    is_ffmpeg(argv)
     assert after(argv, "-ss") > after(argv, "-i"), argv
     assert argv[after(argv, "-ss") + 1] == "20.0"
 
@@ -115,9 +124,11 @@ def test_a_recording_that_cannot_be_probed_returns_zeros(monkeypatch, tmp_path: 
     `plan_chunks(0)` returns no chunks, so the zero propagates as "nothing to
     cut" rather than as a bad plan — the degrade path depends on this, and
     would turn into a traceback out of `prepare` if it ever raised."""
-    monkeypatch.setattr(probe_mod.subprocess, "run", Recorder(fail={"ffprobe"}))
+    recorder = Recorder(fail={"ffprobe"})
+    monkeypatch.setattr(probe_mod.subprocess, "run", recorder)
 
     assert probe_mod.probe(tmp_path / "gone.mp4") == (0.0, 0, 0)
+    assert recorder.calls[0][0] == "ffprobe", recorder.calls
     assert chunks_mod.plan_chunks(0.0) == []
 
 
