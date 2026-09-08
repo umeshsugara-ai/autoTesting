@@ -707,3 +707,26 @@ auth, this one ENOTFOUND). Worth noting what that record shows: the file-based h
 absorbed four infrastructure failures without losing a single verification. If the maker-checker
 exchange lived in agent memory, each would have silently dropped one.
 Sweep also due (qa/.last-sweep 14:41, ~4.5h against a 2h threshold) -- dispatched in the same turn.
+
+## 2026-09-08 — tick: ADVANCED (21) — crash handled, checker + overdue sweep both dispatched
+Bound to d:/autoTesting, adapter `coding`. Not paused. Reconcile: at172-at173 sits ready-for-check
+with NO verdict on disk and a clean tree -- its checker died on an API ENOTFOUND after one tool
+call. Handled per the standing rule: not a verdict, not a fix cycle. Manifest stays at cycle 1 and
+the check was re-dispatched unchanged.
+FOUR INFRASTRUCTURE CRASHES ABSORBED THIS SESSION (t124 cycle 2 ENOTFOUND, AT-113 HTTP 429,
+at125-at132 auth, at172-at173 ENOTFOUND) WITHOUT LOSING A SINGLE VERIFICATION. That is the
+file-based handshake earning its keep: had the maker-checker exchange lived in agent memory, each
+of those four would have silently dropped one check and nothing would have noticed.
+Sweep also due (qa/.last-sweep 14:41, ~4.5h against a 2h threshold) and dispatched in the same
+turn, told explicitly not to touch the at172-at173 manifest/verdict or run sabotage edits in the
+live tree while that unit's checker is using them.
+ASKED THE SWEEP THE QUESTION I CANNOT ANSWER ABOUT MYSELF: across this session one shape recurred
+about a dozen times -- I verify the mechanism I changed rather than what a production run or a
+reader actually sees (AT-116, AT-120, AT-122, AT-125, AT-133, AT-149, AT-151, AT-163, AT-166,
+AT-172). Two countermeasures were adopted: tests that drive the shipped CLI, and C7's INCONCLUSIVE
+rule. IS THE RATE ACTUALLY FALLING, or am I just finding the same class faster? I cannot judge my
+own trend from inside it, and a countermeasure that feels effective while the rate is flat is
+worse than none. Also asked it to name any surface where the blind spot is still unguarded.
+No unit closed this tick -- stating that plainly rather than counting two dispatches as progress.
+NEXT: close out at172-at173 on its verdict, then T-133 (Track A4).
+OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
