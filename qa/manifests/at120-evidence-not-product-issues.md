@@ -91,4 +91,4 @@ uv run autotester doctor               doctor: clean
   currently filed `first_party=True` by default, which is meaningless for a tool failure. Not
   fixed here — flagging it so the checker can decide whether it is a finding or noise.
 
-## Status: ready-for-check
+## Status: checked-PASS
