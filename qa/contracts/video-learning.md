@@ -63,6 +63,87 @@ runnable. A message naming a command the CLI does not expose is a dead end at ex
 the pipeline stopped, and a test asserting only a substring of it does not evidence this
 criterion.
 
+### VL2 — A cached observation is never re-requested
+For a given `(source, provider_label, prompt_name, chunk_index)` the provider is called **at most
+once, ever**. A second `analyze` over the same recording makes **zero** provider calls and writes
+the same analysis. `--force` is the only override, and it **overwrites** the cached answer in place
+rather than adding a second one — the cache is a keyed file per tuple, not an append log, so a
+forced re-run can never leave two answers to one question with nothing to choose between them. The
+key includes the model, so adding a second model to the ensemble costs exactly the second model and
+nothing else. This is the only stage that spends money; a cache that re-asks is a bill, and a cache
+that duplicates is a corrupted count of agreement.
+
+### VL2b — The cache's promise is that re-running is SAFE, not merely cheap
+The stage's own rationale is that a re-run after a crash, after a code change, or just to look
+again costs nothing and changes nothing. That promise is kept only if both of these hold.
+
+- **A damaged cache entry degrades to a re-request, never to a dead source.** The crash the cache
+  exists to survive is precisely what leaves a half-written observation file behind. An unreadable
+  or wrong-shaped entry must be treated as *absent* — re-requested and rewritten — and must not
+  propagate an exception out of `analyze`. In particular `--force`, whose whole job is to get past
+  the cache, may not itself be blocked by the cache it is overriding.
+- **A cached answer is reusable only while the question is unchanged.** The cache is keyed by
+  prompt *name*; a prompt file in `prompts/` is code in this project (CLAUDE.md: "prompts are
+  files, not inline strings"). If an edited prompt still hits the old answer, the analysis silently
+  mixes answers to two different questions and nothing on disk records which. Either the key covers
+  the prompt's content, or the stage refuses (or says so) when a cached entry was produced by
+  different prompt text. A stale answer presented as a current one is worse than a re-spend.
+
+### VL3 — Failure is partial, and an analysis says what it is made of
+One dead provider, or one failed chunk, never loses the answers that arrived. **Total** failure
+refuses (`NoObservations`) rather than persisting an empty analysis, because an empty analysis on
+disk reads as *"we watched it and found nothing"* — the opposite of what happened.
+
+That principle does not stop at zero. A `VideoAnalysis` built from 1 of 24 intended calls is the
+same untruth in a quieter voice: it names both models and both prompts, and a reader has no way to
+learn that twenty-three answers never arrived. So a persisted analysis must **carry its own
+coverage** — how many (model, prompt, chunk) answers were intended and how many were obtained — in
+a field, not in a log line that is gone by the time anyone opens the file. Downstream (T-136's
+recall score, a human reading the sheet) is entitled to know whether it is reading a full reading
+or a fragment, and the artifact is the only honest place for that.
+
+### VL4 — Adjudication is a function of content alone
+`adjudicate` is pure: no provider, no clock, no randomness. Given the same set of observations in
+**any** order it returns identical content (`Artifact.created_at`/`provenance` excepted, and the
+exception stated). "Any order" means the orders this system actually produces, which includes the
+**shipped ensemble shape** — two models x two prompts x N chunks. A sort key that leaves ties is
+not order-independence: Python's sort is stable, so a tie hands the decision straight back to the
+caller's list order, and every first-seen-wins merge downstream (a union's order, the surviving
+`url`, `purpose`, `narration`, the concatenated summary) then depends on it.
+
+Judged by measurement on the shipped shape, not by argument: shuffle a realistic observation set —
+one that includes two observations differing **only** in `prompt_name` — and compare content. A
+determinism test whose every fixture carries a single `prompt_name` does not evidence this
+criterion, because the tie it exists to catch cannot occur in it.
+
+### VL5 — Offsets are applied in code; narration is sliced to the chunk
+A chunk's timestamps are moved into whole-video time by `shift`, never by the model, and the prompt
+says so in as many words. Shifting copies rather than mutates, so a cached observation read from
+disk is not altered by having been adjudicated. A chunk's prompt carries **only that chunk's**
+narration: handing a model three minutes of video and the whole recording's transcript invites it
+to attach a real person's quote to a screen they were not talking about, and a misattributed quote
+is a fabricated one (ingest.md I8). A section with no speech says so explicitly rather than leaving
+the placeholder empty.
+
+### VL6 — The exported sheet is the human sheet's shape, verified against the file
+The workbook `export_issues_excel` writes matches the tester's own sheet in columns, column order,
+time format (`At` as an `MM:SS` **string** — a scorer comparing a float matches nothing, silently)
+and severity vocabulary (their High/Medium/Low, not our S1/S2/S3). Verified against the real
+workbook on disk where the corpus is present, cell by cell — a hand-copied header is a claim about
+a file, not a reading of it — with an offline shape test beside it that pins the same thing on a
+host without the corpus, and a stated rule for which wins when the two disagree.
+
+Judged **on the written workbook**, never on the helpers. The helper being right does not make the
+sheet right: writing `At` as a raw number was measured to fail nothing while `at_mmss` had its own
+passing parametrized test, because that test never goes through a row. Any future criterion about a
+cell is judged the same way — open the file a tester would open.
+
+*Scope note (checker, 2026-09-09):* VL6 covers the sheet this exporter writes, which is
+`ERP_Issues_ALL.xlsx`'s 13-column form. The second human workbook `ERP_Issues_Trainers.xlsx` is a
+**different** schema (12 columns, no `Date`, `Clip` where ALL says `Recording`) — measured on the
+real files. Nothing in this unit reads or accommodates it; reconciling the two belongs to T-136's
+scorer and is not scored here.
+
 ## Invariants
 
 ### I-VL1 — Whisper never overwrites a transcript that already exists
@@ -83,6 +164,20 @@ A path returned by `extract_frames` is a readable image, not merely a file that 
 at the expected name. A frame is quoted to a human beside an issue; an empty or truncated PNG
 left by an interrupted run must not be reused as if it were the screenshot the model named
 (AT-165).
+
+### I-VL5 — A merge never softens a severity
+`Severity` is declared S1, S2, S3 in **descending** severity, so `max()` over it selects the
+mildest and reads as though it were right. Wherever two readings of one fault are combined, the
+worse severity survives — disagreement is exactly the case in which severity matters most, and a
+merge that quietly downgrades it turns the ensemble into a filter. Agreement between models raises
+`confidence` and never `severity`: severity is a property of the product, not of how many models
+happened to look at it.
+
+### I-VL6 — Nothing in the analysis half asks a model to decide a merge
+Seam de-duplication and cross-model joining are deliberately dumb — casefolded names, overlapping
+intervals, a fixed window. A cleverer matcher would be a second model: unauditable,
+non-deterministic, and fatal to VL4. Adjudication, issue derivation and export contain no provider
+call of any kind.
 
 ## Explicitly UNVERIFIED (not a criterion, and not to be claimed as one)
 
@@ -179,3 +274,29 @@ recording has a sidecar.
   and are empty: no `autotester <cmd>` advice in any `.md`, `.html` or `.js`, and `ui/`'s only
   mention is a module docstring, correctly excluded. Verdict:
   `qa/verdicts/at176-at178-render-not-scan.md`.
+
+- 2026-09-09 · **START for VL2/VL2b/VL3/VL4/VL5/VL6 and I-VL5/I-VL6** · Authored by /checker at the
+  maker's request in the `t133-ensemble-and-issues` manifest (cycle 1), and deliberately **not
+  transcribed** from it: each was judged against measurement before it was written. **VL2 is as
+  requested**, with the overwrite-not-duplicate property added because it was measured (a forced
+  re-run leaves the same 4 files under the same 4 names). **VL2b is a checker addition** — the
+  maker's own rationale for the cache is "safe to re-run after a crash, after a code change";
+  measurement shows a truncated cache entry raises `ValueError` out of `analyze`, that `--force`
+  cannot get past it (AT-199), and that an edited prompt file silently hits the old answer
+  (AT-200). The promise, not just the saving, is the criterion. **VL3 was widened** past the
+  maker's "total failure refuses": a run in which 1 of 24 intended calls succeeded was measured to
+  produce an analysis indistinguishable in its provenance from a complete one — same
+  `provider_labels`, same `prompt_names`, no coverage field anywhere in the model (AT-198). That is
+  the same claim-more-than-happened failure the zero case is already guarded against. **VL4 was
+  tightened** from "in any order" to "in any order the system actually produces", because the
+  shipped `PROMPT_NAMES` has two entries while the sort key
+  `(offset_s, provider_label, chunk_index)` omits `prompt_name`: two observations differing only in
+  prompt tie, the stable sort hands the decision to the caller, and permuting them was measured to
+  change `screens`, `journey`, `issues` and `summary` (AT-197). The existing determinism test
+  cannot see this — every fixture in it carries one `prompt_name`. **VL5/VL6 are as requested**;
+  VL6 additionally carries the maker's own BG lesson (judge the written cell, not the helper),
+  which the checker reproduced: reverting `issue_row` to write a raw number fails exactly one test,
+  and it is the workbook test added after the INCONCLUSIVE — the parametrized `at_mmss` test does
+  not fire. I-VL5/I-VL6 are checker additions; `worst()` was verified exhaustively over all nine
+  severity pairs and no other inverted `max()` over an ordered enum exists under `src/`.
+  Verdict: `qa/verdicts/t133-ensemble-and-issues.md` (FAIL, cycle 1).
