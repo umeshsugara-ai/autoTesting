@@ -818,3 +818,42 @@ commit stands, because the record is worth more than a tidy history.
 NEXT after verdict: AT-176 + AT-178 + the checker's AT-174 causal oracle -- make the dead-command
 guard actually guard its class. Then T-133.
 OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
+
+## 2026-09-09 — tick: ADVANCED (24) — at177 PASSED cycle 2; AT-185/186/187 built
+at177 closed checked-PASS cycle 2 (verdict 1b9ac2f). The checker re-proved AT-181 in its OWN hands:
+a marker appended to docs/SNAPSHOT.md SURVIVED a full `uv run pytest`, fingerprint and root entry
+list unchanged. All three cycle-2 sabotages reproduce at 1 and at 0 with the new test files ignored,
+so each fix is genuinely pinned by this unit rather than by something already there.
+THEN THE FINDING THAT MATTERS, AND IT IS ABOUT THE SAFETY TEST I HAD JUST SHIPPED. AT-186: the
+checker sabotaged the PRODUCT rather than the test -- removed the early return so `snapshot --print`
+echoes AND WRITES -- and THE WHOLE SUITE CAME BACK GREEN. Cause: render_snapshot reproduces the
+committed bytes exactly, so a CONTENT HASH SEES NOTHING.
+The property I care about is "nothing was WRITTEN". What I asserted was "nothing CHANGED" -- a
+weaker claim that coincides with it most days and fails exactly when the write is idempotent, which
+is the common case for a regenerator. The fingerprint now carries mtime_ns and size beside the hash.
+Sabotage AX -- the checker's own mutation -- now fails 1 where it left the suite green.
+AT-185 is a wrong CLAIM rather than a wrong number. I stopped the matrix at 20/22 and justified it
+as "valid arguments would make those two write, which is AT-181 again". MEASURABLY WRONG:
+repo_root() honours AUTOTESTER_ROOT, so those writes land in the temp root and the repo stays clean
+-- the checker proved it by running ledger add and diffing. AN HONEST NUMBER WITH A WRONG REASON
+ATTACHED IS STILL A WRONG CLAIM. Enum values now come from click; all 22 reach application code.
+Fixing that broke the placeholder test on enum values, which are not paths and cannot become one.
+REFINED RATHER THAN LOOSENED: closed-vocabulary values exempt, everything else still inside the temp
+root, because the property is that no placeholder a command might treat as a DESTINATION can point
+at the repository.
+AT-187: the fingerprint watched docs/ and the repo root only, while projects/<slug>/ is WHERE THE
+CLI ACTUALLY WRITES. Now watches docs, qa, src, scripts, projects. .goal deliberately excluded --
+the goal monitor rewrites its timestamp every few minutes, so including it would make the test fail
+on the clock rather than on a command.
+tests/cli_walk.py extracted so both test files import the walker from a HELPER module instead of one
+test module importing another -- the smell the checker noted, which existed only because the two
+files were split at a line cap. It also brought test_cli_surface.py back under doctor's cap, WHICH
+IT HAD CROSSED AGAIN BY 9 LINES -- the second time in two commits. I read the doctor output in full
+this time, which is how I know.
+739 passed / 2 skipped, ruff clean, doctor clean read in full.
+AT-188 STANDS UNFIXED AND UNFIXABLE: commit d2d547d's message is a pasted pytest failure dump in a
+public repo, on the very commit I flagged for pushing doctor-red. Rewriting pushed history to tidy
+it would erase the record of the mistake -- the same reasoning applied twice already this session.
+NEXT after verdict: AT-176 + AT-178 + the checker's AT-174 causal oracle as ONE unit -- make the
+dead-command guard actually guard its class. Then T-133.
+OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
