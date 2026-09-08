@@ -302,3 +302,216 @@ does fail 5 of 6 — but all of it measures a code path the hook does not enter,
 parse the pattern and the cap out of the `.ps1` and then hardcode the one thing that was wrong. The
 verify commands all reproduce exactly (555 passed / 1 skipped, ruff clean, doctor clean), D-013's
 ASCII escaping is untouched, and no other hook changed.
+
+---
+---
+
+# Verdict — at097-session-start-hook-regression (CYCLE 2)
+
+**Date:** 2026-09-08
+**Cycle checked: 2**
+**Unit:** commits `b9fa94b` + `afddb87` + `5d99520` (closes AT-097 high, AT-029 medium, AT-106 high,
+AT-107 high; authorized by D-019 + D-020)
+**Contract:** `qa/contracts/core-invariants.md` + the Lab Protocol section of `CLAUDE.md`
+**Bound to:** `d:/autoTesting`
+**Mode:** A (unit check), fresh context, read-only toward the artifact
+
+```
+VERDICT: PASS
+SCOREBOARD: 6/6 criteria met, 4/4 invariants hold
+```
+
+The cycle-1 FAIL is answered on its own terms: the defect it found — a repaired filter sitting in
+code the hook never entered — is fixed, and I confirmed it by running the hook, not by reading the
+diff.
+
+---
+
+## 1 — The authorization: HOLDS, and it was gated rather than stretched
+
+**`qa/gates/at106-hook-architecture-path.md`** carries `Status: ANSWERED` and the line:
+
+> **Answered:** 2026-09-08 — **Option 1, approve the one-line path fix** — Umesh, directly in the
+> session via an AskUserQuestion presenting all three options with the two-line diff. Recorded here
+> before any file was touched, per the gate-record rule. Authorizing entry: **D-020**.
+
+**Ordering, stated precisely rather than generously.** The gate file was created OPEN in `afddb87`
+(2026-09-08 01:13:03) — 5h27m before the fix commit `5d99520` (06:40:41). So the question existed on
+disk, unanswered, for the whole interval between the cycle-1 FAIL and the change: the maker did not
+act first and paper over it afterwards. What git *cannot* independently prove is the ordering
+*within* `5d99520`, because the `Answered:` line, D-020 and the code edit all land in that one
+commit. I record that as a limitation of the evidence, not as a finding — the protocol requirement
+is that the gate be raised before acting and answered by the Approver, and both are satisfied.
+(A strictly stronger habit for next time: commit the `Answered:` line by itself, then the change.)
+
+**D-020 exists, is its own entry, and does not stretch an approval.** Verified by reading it in
+`docs/DECISIONS.md`, and by confirming the diff to that file in `5d99520` is **additions only**
+(8 added lines, 0 removed — the append-only rule holds; no existing entry was touched):
+
+- `**Approved-by:** Umesh -- asked directly 2026-09-08 via an AskUserQuestion presenting three
+  options … he chose the path fix.`
+- `**Changes-authorized:** .claude/hooks/lab-session-start.ps1 (the $archPath value only; the D-013
+  ASCII-escaping and the D-008/D-010 filter and cap are untouched); tests/test_session_start_hook.py.`
+
+That `Changes-authorized` is **narrower than the change is broad** — it names the single value and
+excludes the two neighbouring authorized behaviours by name. I checked the actual enforcement-path
+diff against it:
+
+```
+$ git diff --stat 051303e HEAD -- .claude/hooks/ qa/hooks/ scripts/append_decision.ps1 .claude/settings.json
+ .claude/hooks/lab-session-start.ps1 | 18 ++++++++++++------
+ 1 file changed, 12 insertions(+), 6 deletions(-)
+```
+
+One enforcement file, and within `5d99520` exactly two lines of it: `$archPath` and the `[WARN]`
+text. Nothing in the authorization is stretched, and D-019 was correctly **not** extended — which is
+the move this repo has failed two checks (AT-030, AT-031) for. This was the one thing cycle 1 asked
+the maker to get right and it got it right.
+
+---
+
+## 2 — The fix works. I ran the real hook, before and after.
+
+Per AT-101 I did **not** stash or check out anything in the live tree. I extracted the pre-fix hook
+with `git show b9fa94b:.claude/hooks/lab-session-start.ps1` to `.work/checkprobe/` (inside the repo,
+because the hook's AMD-3 guard makes a copy outside the root exit silently — a probe run from a temp
+dir would have produced a false "0 lines" for the wrong reason), and drove both with a real
+SessionStart payload.
+
+| | BEFORE (`b9fa94b`) | AFTER (`HEAD`) |
+|---|---|---|
+| total lines in `additionalContext` | **53** | **193** |
+| real `[WARN]` line | **present** — `[WARN] ARCHITECTURE.md missing at repo root -- protocol expects it. Run /init-lab repair.` | **none** |
+| `--- ARCHITECTURE.md (...) ---` label | absent | present |
+| architecture headings injected | **0** | **10** |
+
+The 10, verbatim from my run: What it does · Pipeline · Concept → file (one concept, one place) ·
+Data model (the core five) · Execution model · Security (non-negotiable) · Storage · Design rules
+(enforced by `autotester doctor`) · Commands · Status. The generated `## Directory map and schema
+summary` is the only `## ` section dropped, which is exactly D-008's rule.
+
+**The manifest's 0 → 10 and "no [WARN]" claims reproduce.** One honest note on the maker's own
+numbers: the only string matching `[WARN]` in the AFTER output is inside the injected *text of
+D-020 itself*, quoting the old warning. The maker reported "actual [WARN] lines: none", which is the
+correct reading; I confirm there is no emitted warning line. (Line totals differ by one from the
+manifest's 52/193 — a trailing-newline split artefact of my probe, not a discrepancy in substance.)
+
+Design rules, Commands and Status reach a session for the first time in this repo's history. That is
+AT-029's half, and unlike cycle 1 it is now a statement about the hook rather than about a filter.
+
+---
+
+## 3 — The test is no longer vacuous, and the strict xfail is genuinely gone
+
+`tests/test_session_start_hook.py` now parses **all three** load-bearing values out of the live
+`.ps1` — nothing about the hook is hardcoded any more: the excluded-heading pattern (`_FILTER_RE`),
+the cap (`_CAP_RE`), and now the architecture path (`_ARCHPATH_RE`, matching
+`$archPath = Join-Path $root "..."`).
+
+`architecture_path_from_hook()` resolves the parsed value, and
+`test_the_hook_reads_the_file_the_project_actually_has` asserts both that it **exists** and that it
+**equals** the project's `docs/ARCHITECTURE.md` — so the hardcoded `ARCHITECTURE` constant the other
+tests use is pinned to the hook's real path by a live assertion instead of by hope. That is the
+correct repair of AT-107.
+
+**The xfail was removed, not relaxed and not deleted with its assertion.** The diff in `5d99520`
+drops the whole `@pytest.mark.xfail(strict=True, reason="AT-106: ...")` decorator (and the now-unused
+`import pytest` with it), keeps the test, and turns its single
+`assert architecture_path_from_hook().exists()` into two asserts — existence *and* identity with the
+project's file. The decorator is gone, the test remains, and its assertion got **stronger**.
+`grep -n "xfail" tests/test_session_start_hook.py` returns only prose in docstrings, and the full
+suite run shows no `x` in the progress line, so no xfail of any strictness survives.
+
+### Sabotage — I reverted the path myself, in isolation
+
+I built an isolated copy under `.work/checkprobe/sab/` (hook + `docs/ARCHITECTURE.md` + the test
+file, `REPO` resolving to that copy) and re-applied the exact defect —
+`Join-Path $root "docs\ARCHITECTURE.md"` back to `Join-Path $root "ARCHITECTURE.md"`. **The live
+tree was never modified** (`git status --porcelain` showed only the pre-existing `.goal/` churn
+throughout).
+
+```
+$ python -m pytest tests/test_session_start_hook.py -q      # sabotaged copy
+F......                                                                  [100%]
+FAILED test_the_hook_reads_the_file_the_project_actually_has
+E   AssertionError: the hook opens ...\sab\ARCHITECTURE.md, which does not exist
+
+$ python -m pytest tests/test_session_start_hook.py -q      # unsabotaged copy of HEAD
+.......                                                                  [100%]
+```
+
+**Confirmed: the path defect now fails the suite, and it did not before.** Under `b9fa94b` this same
+sabotage was a no-op — all six tests passed while the hook injected nothing. That gap is closed.
+
+---
+
+## 4 — Nothing else regressed
+
+- **D-013's ASCII escaping — untouched.** `lab-session-start.ps1:191` still carries
+  `[regex]::Replace($_, "[^\x00-\x7F]", { ... "\u{0:x4}" ... })` with its 2026-09-05 comment, outside
+  every diff hunk.
+- **D-008's filter — in place.** Line 125: `$inKeep = ($line -notmatch '^## Directory map and schema summary')`.
+- **D-010's cap — in place.** Line 128: `if ($keep.Count -ge 150) { ... "capped at 150 lines" ... }`.
+- **No other enforcement path touched** — the `--stat` above covers `.claude/hooks/`, `qa/hooks/`,
+  `scripts/append_decision.ps1` and `.claude/settings.json`; one file, one line changed in this cycle.
+- **Verify commands, re-run by me, not trusted from the manifest:**
+
+| Command | Manifest claim | My result |
+|---|---|---|
+| `docker compose exec -T autotester uv run pytest -q` | 560 passed, 1 skipped | **matches** — 561 collected, one `s`, exit 0, no `x`/`F` |
+| `docker compose exec -T autotester uv run ruff check src tests scripts` | `All checks passed!` | **matches**, exit 0 |
+| `docker compose exec -T autotester uv run autotester doctor` | `doctor: clean` | **matches**, exit 0 |
+
+`doctor: clean` carries C2 (file/function caps, `docs/ARCHITECTURE.md` ≤ 150 lines — it is exactly
+150), C3 (duplicate-concept + drift filenames) and C4 (root stays clean; my probe artefacts went to
+gitignored `.work/`, which is where C4 says they belong).
+
+---
+
+## 5 — Issues
+
+| Issue | Verdict |
+|---|---|
+| **AT-097** (high) | **CLOSABLE → fixed.** Both halves are now real: the record/disk divergence is repaired under D-019, and the ground-truth block actually reaches the session (0 → 10 headings, verified by running the hook). |
+| **AT-029** (medium) | **CLOSABLE → fixed.** Design rules, Commands and Status are present in the injected excerpt; the 150 cap does not truncate before them (140 kept of 150 allowed). |
+| **AT-106** (high) | **CLOSABLE → fixed.** Path corrected under its own gate + D-020; the else-branch `[WARN]` no longer fires. |
+| **AT-107** (high) | **CLOSABLE → fixed.** The path is parsed from the `.ps1` and pinned by a live assertion; sabotage now fails the suite. |
+
+Ledger rows moved `open → fixed` with today's date; `verified` is left for a later sweep per the
+usual rule.
+
+**ISSUES-WRITTEN:** none (no new findings).
+
+---
+
+## Observations — recorded, deliberately NOT failures
+
+Neither of these meets the >80 % bar for a FAILURE line, and neither should burn a fix cycle.
+
+1. **`5d99520` bundles an enforcement-path change with an unrelated unit's product code**
+   (`stages/explore.py`, `ui/crawl_view.py`, `ui/routes_crawls.py` for AT-104/AT-098). The
+   enforcement diff inside it is exactly the two authorized lines, so nothing is smuggled and D-020
+   is not exceeded — but a change to `.claude/hooks/` is the one category where a reviewer most
+   wants an isolated commit, and this one has to be read past three other issues to be seen. Worth a
+   habit, not an issue. (The AT-104/AT-098 half is another checker's unit; I judged none of it.)
+2. **Still no feature contract governs the hook itself** — the manifest flagged this in cycle 1 and
+   it is correct. `tests/test_session_start_hook.py` is now doing that job well enough that I would
+   not manufacture a contract just to have one; noting it so it stays visible rather than forgotten.
+
+---
+
+## EXPLANATION
+
+The cycle-1 FAIL said the fix was to dead code, and the maker's response is the right shape: it did
+not extend D-019 to cover the path, it raised a gate, got Umesh's answer, wrote it to disk, and
+authorized the change with its own narrowly-scoped D-020 whose `Changes-authorized` explicitly
+excludes the neighbouring approved behaviours. I re-derived the substance rather than reading the
+diff: running the real hook from an extracted `b9fa94b` copy and from HEAD gives 0 architecture
+headings with a live `[WARN]` before and 10 headings with no warning after, so the ground-truth block
+this repo has argued about across four DECISIONS entries is finally reaching a session. The AT-107
+repair is genuine — the architecture path is now parsed out of the `.ps1` alongside the filter and
+the cap, the strict xfail is deleted with its assertion strengthened rather than weakened, and
+sabotaging the path back to the repo root fails the suite in an isolated copy where it previously
+passed. D-013's ASCII escaper, D-008's filter and D-010's cap are all untouched, no other
+enforcement path changed, and pytest (560 passed / 1 skipped), ruff and doctor all reproduce clean.
+AT-097, AT-029, AT-106 and AT-107 all close.
