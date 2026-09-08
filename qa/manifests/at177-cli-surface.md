@@ -1,8 +1,8 @@
 # at177-cli-surface
 
 **Unit:** AT-177 (high) — the sweep's top queue row
-**Commit:** 81efef9
-**Fix cycle:** 1
+**Commit:** 81efef9 (cycle 1) -> cycle 2, see `git log`
+**Fix cycle:** 2
 **Contract:** `qa/contracts/ui.md` · `core-invariants.md` C7
 
 ## What the sweep measured
@@ -86,5 +86,81 @@ deferred quietly: it is the next thing I build.
 **AT-178** (un-backticked advice at `core/consent.py:35`) and **AT-174** — for which the checker
 *designed* the oracle I said I could not find, a causal one that triggers the refusal, runs the
 quoted command as rendered, and asserts it stops firing — are queued with it.
+
+## Cycle 2 — FAIL on C7, and the failure was serious
+
+**`uv run pytest` was rewriting the repository it verifies.**
+`test_the_repo_level_commands_run_without_a_project` took no `root` fixture, so it ran `map` and
+`snapshot` against the **live repo** — and both write. The checker proved it by appending a marker
+to `docs/SNAPSHOT.md` and watching one test erase it.
+
+The project's own verify command mutating the git-tracked files it checks is not "a check someone
+else can re-run", which is C7's entire sentence. Fixed with a temp root, `snapshot --print`, and
+`map` dropped — it has no read-only mode, and a test that needs one is not worth a rewritten repo.
+
+**AT-184 then arrived from AT-181's own fix.** A placeholder is not always an *input*: `report excel`
+takes an output **path**, so a bare `"nonexistent"` made the matrix create a file called
+`nonexistent` in the repo root. Doctor caught that one.
+
+### AT-180 — my headline overstated the coverage, measured
+
+The checker measured that only **4 of 22** matrix invocations reached application code. The other 18
+stopped at click's `Usage:` banner, so the assertion was about **click**, not about autotester.
+
+Arity is now derived from click itself: **20 of 22**, measured and stated rather than claimed. The
+remaining two stop at a **closed vocabulary** rejecting the placeholder — correct behaviour, and
+deliberately not forced past, because valid arguments would make both commands **write**, which is
+AT-181 again.
+
+Two wrong turns on the way, kept because they are the interesting part:
+
+- **seeding a real project changed nothing** — the problem was never state, it was arity;
+- my first required-parameter loop used `isinstance(param, click.Argument)`, which **silently failed
+  for typer's parameters** and passed every positional as `"<name> value"` — doubling the arity and
+  putting each command right back at the banner the helper exists to get past.
+
+### AT-179 — a real shipped defect the matrix cannot see
+
+`ingest list <nonexistent-project>` printed *"no sources yet"* and exited **0** — indistinguishable
+from a real project with none, while every sibling refuses on exit 1. A script branching on its exit
+code was told everything was fine.
+
+### All three fixes first came back INCONCLUSIVE
+
+I fixed three things and pinned none of them, **in the unit whose whole subject is testing what
+ships.** Two needed a different kind of test than I first reached for:
+
+> The fingerprint test **cannot** catch AT-181 — it sets a temp root, and the original bug was the
+> *absence* of one. Reproducing it there is impossible by construction.
+
+So `snapshot --print` is pinned by running it against the live repo **deliberately** — safe
+precisely because `--print` writes nothing — and `map`'s exclusion is pinned by asserting it has no
+read-only flag, because **an exclusion nobody justifies is one somebody quietly reverses.**
+
+### Cycle 2 evidence
+
+```
+AU (ingest list stops refusing an unknown project)      -> 1   (INCONCLUSIVE first)
+AV (snapshot runs without --print on the live repo)     -> 1   (INCONCLUSIVE first)
+AW (placeholders escape the temp root)                  -> 1   (INCONCLUSIVE first)
+AR / AS / AT (cycle 1's three)                          -> 1 each
+```
+
+### And I pushed a commit with doctor RED
+
+The `file-too-long` violation was in the **same output** I read to confirm 739 passed and ruff
+clean. I took the green I was looking for and stopped reading. That is this session's habit in its
+smallest form — verifying the part I had in mind rather than the whole result the command returned.
+Fixed in the next commit (`test_cli_harness_safety.py` split out); the pushed commit stands, because
+the record is worth more than a tidy history.
+
+### Cycle 2 verification
+
+```
+uv run pytest                          739 passed, 2 skipped
+uv run ruff check src tests scripts    All checks passed!
+uv run autotester doctor               doctor: clean      <- read in full this time
+repo fingerprint across all 22 commands unchanged
+```
 
 ## Status: ready-for-check
