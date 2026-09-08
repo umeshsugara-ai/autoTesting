@@ -1,8 +1,8 @@
 # at125-at132-declared-but-unapplied
 
 **Unit:** AT-125 + AT-128 + AT-129 (checker-found on T-131) + **AT-132** (found by my own test)
-**Commit:** c4c878a
-**Fix cycle:** 1
+**Commit:** c4c878a (cycle 1) → **d9396d4** (cycle 2)
+**Fix cycle:** 2
 **Contract:** `qa/contracts/ingest.md` I7–I10 (authored by the checker on the T-131 verdict).
 
 ## Why these are one unit
@@ -123,5 +123,88 @@ uv run autotester doctor               doctor: clean
   assumptions — including `ERP_Issues_ALL.xlsx` having **32** rows, not the plan's 33. That is a
   recall denominator and belongs in T-136's manifest before any score is computed against it. Not
   acted on here.
+
+## Cycle 2 — the FAIL, and why it is the most interesting finding of this unit
+
+The checker FAILed cycle 1 on **AT-133**, and the finding is **this unit's own thesis reappearing
+inside the fix for it.** `load_sidecar`'s docstring promised *"a malformed sidecar must not stop an
+ingest"*; the code caught only `(OSError, ValueError)`, while `from_sidecar` raises `AttributeError`
+on a non-object top level and `TypeError` on non-mapping segments. Declared, plumbed, not applied —
+written by me, in the commit whose entire argument was against exactly that.
+
+Reproduced by the checker end to end: sidecar `[1,2,3]` → `ingest run` exit **1**.
+
+### AT-134 — the half that took a real judgement, and the checker drew the line correctly
+
+Returning `None` for an unreadable sidecar made the prompt assert **"no speech detected"** about a
+recording that demonstrably has speech — a false statement inside the block the prompt itself
+labels ground truth. Worse than saying nothing.
+
+The dispatch asked whether swallowing here contradicts my own AT-108/AT-114 sweep, which argued
+that swallowing a cause **is** the defect. It does not, and the checker's formulation is the one
+that resolves it:
+
+> swallowing is fine when the fallback is **neutral**, and a defect when it is an **assertion the
+> reader will believe**.
+
+That sweep's rule was never "always re-raise" — it was *never let a failure become a
+confident-looking silence*. Same rule, applied one layer up. `narration_block` now carries three
+states that are never conflated: speech → the transcript; genuinely absent → assert silence;
+present-but-unreadable → say exactly that, and tell the model not to assume silence.
+
+### AT-135 — typed refusals in both paths I added
+
+`path.exists()` is true for a **directory**, so `file_sha256` raised a raw `PermissionError` out of
+the CLI instead of the `SourceChanged` that function exists to produce; and a missing file escaped
+`upload_and_wait` as a bare `FileNotFoundError`.
+
+### Cycle 2 evidence
+
+```
+$ SABOTAGE H: AT-133/134 -- load_sidecar back to the narrow catch returning None
+failures: 4
+FAILED ...::test_a_malformed_sidecar_never_stops_an_ingest[[1, 2, 3]]
+FAILED ...::test_a_malformed_sidecar_never_stops_an_ingest[{"segments": ["hi"]}]
+FAILED ...::test_an_unreadable_sidecar_is_never_reported_as_silence[[1, 2, 3]]
+
+$ SABOTAGE I: AT-134 only -- an unreadable sidecar reported as silence again
+failures: 2
+FAILED ...::test_an_unreadable_sidecar_is_never_reported_as_silence[[1, 2, 3]]
+FAILED ...::test_an_unreadable_sidecar_is_never_reported_as_silence[{"segments": [{...confidence...}]}]
+
+$ SABOTAGE J: AT-135 -- exists() instead of is_file(), so a directory falls through
+FAILED ...::test_a_source_pointing_at_a_directory_gets_a_typed_refusal
+
+$ RESTORE
+16 passed
+```
+
+**The separation is the point.** H fails four tests, I fails exactly the two silence cases, J fails
+one. That proves the two halves of AT-133/AT-134 are defended independently rather than by a single
+over-broad test that would pass on either fix alone.
+
+### A tooling correction I am carrying forward, from the checker
+
+`addopts = "-q"` in `pyproject.toml` plus a command-line `-q` is `-qq` under pytest 9, which
+**suppresses the count line entirely** — so `uv run pytest -q`, the command my earlier manifests
+document, cannot produce the number those manifests quote. I had hit this and worked around it with
+`grep` without understanding why. Bare `uv run pytest` prints it; every count in this manifest came
+from that.
+
+### Cycle 2 verification
+
+```
+uv run pytest                          623 passed, 2 skipped   (614 at cycle 1 + 9 new)
+uv run ruff check src tests scripts    All checks passed!
+uv run autotester doctor               doctor: clean
+```
+
+### Left open deliberately
+
+**AT-136** (`Source.duration_s`, `Source.notes`, `FlowSpec.app_overview` are still
+declared-and-unapplied) and **AT-137** (`RepoDocs()` ≠ `RepoDocs(repo_root())` — the hidden
+`_root_given` flag is a smell even though the checker ruled the behaviour correct and not a
+split-brain). Both are the checker's own follow-ups, both non-blocking, and both belong to a unit
+that is about them rather than tacked onto a re-check.
 
 ## Status: ready-for-check
