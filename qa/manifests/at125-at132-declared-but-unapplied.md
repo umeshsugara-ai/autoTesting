@@ -207,4 +207,4 @@ declared-and-unapplied) and **AT-137** (`RepoDocs()` ≠ `RepoDocs(repo_root())`
 split-brain). Both are the checker's own follow-ups, both non-blocking, and both belong to a unit
 that is about them rather than tacked onto a re-check.
 
-## Status: ready-for-check
+## Status: checked-PASS
