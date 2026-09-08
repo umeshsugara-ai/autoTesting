@@ -75,4 +75,4 @@ uv run autotester doctor               doctor: clean
 - `echo_crawl_summary` takes `crawl: Any` to match the file's existing convention for its other
   helpers, not because the type is unknown. Flagged rather than quietly changed.
 
-## Status: ready-for-check
+## Status: checked-PASS
