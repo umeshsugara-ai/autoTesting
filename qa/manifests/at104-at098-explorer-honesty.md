@@ -64,4 +64,18 @@ AT-102, AT-103 (the conflict-scope residuals the T-144 checker recorded inside X
 remain open — they are FlowSpec-merge semantics, not honesty-of-reporting, and belong with the
 Track A merge work (T-135) that shares the same shape.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Verdict: `qa/verdicts/at104-at098-explorer-honesty.md` (**Cycle checked: 1**, PASS, 9/9 criteria,
+4/4 invariants). **AT-104 and AT-098 close.** The checker broke each fix three different ways
+rather than reading the diff, and confirmed the both-directions property that was the whole point:
+an approved spec is not falsely warned, and a timeout does not claim a domain refusal.
+
+**It also found the same defect one level down: AT-108 (low, new).**
+`explore_node.return_to()` discards the cause of a failed return, exactly as `_seed` discarded the
+cause of a failed start. I fixed the instance the issue named and did not look for its siblings —
+the honest lesson is that "the cause was swallowed" is a *shape*, not a location, and the sweep for
+it should have been part of this unit rather than a follow-up. Queued with AT-102/AT-103/AT-105.
+
+The deferral of AT-102/AT-103/AT-105 to T-135 was judged honest: they are FlowSpec-merge semantics
+rather than honesty-of-reporting, and none is load-bearing for T-145.

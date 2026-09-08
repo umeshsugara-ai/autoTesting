@@ -152,4 +152,28 @@ All ten named sections — What it does, Pipeline, Concept → file, Data model,
 Security, Storage, Design rules, Commands, Status — reach a session for the first time in this
 repo's history.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Verdict: `qa/verdicts/at097-session-start-hook-regression.md` (**Cycle checked: 2**, PASS, 6/6).
+**AT-097, AT-029, AT-106 and AT-107 all close.** The checker re-derived the fix by running the
+real hook from both commits rather than reading the diff — before: 53 lines, live `[WARN]`, **0**
+headings; after: 193 lines, no warning, **10** sections — and it caught a trap I had not thought
+about: the hook's own guard makes a copy in a temp directory exit silently, so a probe run from
+outside the repo root would have produced a false zero and "confirmed" the bug either way.
+
+**Three fair criticisms I am recording rather than burying:**
+1. **I bundled an enforcement-path change into a commit with unrelated product code**
+   (`5d99520` carries both the hook path fix and AT-104/AT-098). Nothing was smuggled and the
+   checker said so, but a hooks change deserves its own commit precisely so that claim needs no
+   defending. My mistake, and cheap to avoid next time.
+2. **The `Answered:` line, D-020 and the code edit landed in the same commit,** so git cannot
+   independently prove the gate was answered before I acted. The gate file itself was created OPEN
+   5h27m earlier in `afddb87`, which is what saved this — but a standalone commit for the
+   `Answered:` line would have made the ordering provable instead of merely evidenced.
+3. **No feature contract governs the hook itself.** The new test file now covers that ground, but
+   the gap is real and is part of why this defect survived two rounds of decisions arguing about
+   the contents of code that never ran.
+
+The cycle-1 FAIL is left byte-intact above the cycle-2 verdict, which is right: the record should
+show that my first fix repaired unreachable code and that my first test passed green while the
+hook injected nothing.
