@@ -267,3 +267,39 @@ Checker dispatched this turn (no dangling ready-for-check).
 NEXT: the sweep's rows 2 and 3 -- AT-141 + AT-115 as one unit (make C9 mean what it says), then
 AT-142 (the ERP credential gate has NO FILE on disk at all).
 OPEN HUMAN GATES: AT-110 approval-forgery posture; ERP_EMAIL/ERP_PASSWORD for T-122/T-145.
+
+## 2026-09-08 — tick: ADVANCED (10) — at140 FAILed cycle 1, cycle 2 shipped; AT-142 closed
+AT-142 closed outside the unit: wrote qa/gates/erp-credentials.md. The HUMAN_GATE blocking T-122
+(high) and T-145 (CRITICAL) existed only as the closing line of every tick stamp this session. My
+own rule is "the moment you name a gate, write the file" -- I named it every tick and never wrote
+it, which is exactly the D-006 loop the rule exists to prevent. Recorded in the file, not hidden.
+at140 FAILED cycle 1 on AT-143, the sharpest finding of the session: MY NO-TRACE TEST SAW 3 OF THE
+211 ENTRIES A REFUSED RUN CREATES. It globbed projects/<slug> for "crawl"/"profile"; the whole
+Chromium profile tree lives at root/profiles/<slug>, a SIBLING of projects/, unreachable by that
+glob whatever it searched for -- and it is the exact artefact my own docstring named as half the
+AT-111 bug. A TEST THAT NAMES THE RIGHT PROPERTY AND LOOKS IN THE WRONG PLACE IS WORSE THAN NO
+TEST: it reports the guarantee as held. Now snapshots set(root.rglob("*")) before/after. Proven --
+with the pre-flight removed it fails naming 204 entries led by profiles/demo/BrowserMetrics.
+AT-146 is mine to own: I called the defaults test "the one row I would keep", claiming it pins
+explore_cmd's TYPER defaults. It does not -- it never invokes explore, it builds CrawlBounds()
+directly, so it pins the SCHEMA defaults. The checker proved it by drifting 200 -> 137, under which
+that test still PASSED. My substantive claim (a drift fails nowhere else) was right; my attribution
+of WHICH test protects the seam was wrong. The two refusal tests do. Docstring corrected rather
+than the test quietly deleted -- being wrong about why a test matters belongs next to the test.
+AT-144: hardcoding max_screens=999 left all 633 green. Those two bounds never reach an approval
+(consent bounds actions/probes/wall-clock only), so nothing could notice them unwired -- and they
+decide how much of a live production ERP gets touched.
+AT-145: approve exited 0 with a green "granted" line for an already-expired date, `--expires never`,
+and an unrelated target. The SAFETY property always held (require_consent refuses all three at run
+time); what was wrong is WHAT THE HUMAN IS TOLD. A gate that reports success for a grant it will
+never honour trains the operator to stop reading it -- and that operator is granting production
+consent for T-145.
+637 passed / 2 skipped, ruff + doctor clean. Sabotages K/O/P -> 204-entry catch, 3, 1.
+Checker dispatched this turn (no dangling ready-for-check). I asked it one security-shaped
+question I could not settle myself: `startswith(base_url.rstrip("/"))` on https://demo.test.evil.com
+-- a naive URL prefix match can accept a lookalike domain.
+NEXT: AT-141 + AT-115 as one unit (make C9 mean what it says). MEASURED THIS TICK, ready for it --
+T-126, T-150 AND T-135 all have done_checks that pass RIGHT NOW, before any of their work exists
+(exit 0), while T-145's post-AT-100 check correctly exits 1. That is the AT-100 shape three times,
+not twice as AT-115 says.
+OPEN HUMAN GATES: AT-110 approval-forgery posture; ERP credentials (now qa/gates/erp-credentials.md).
