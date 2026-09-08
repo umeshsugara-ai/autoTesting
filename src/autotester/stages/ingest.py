@@ -108,6 +108,58 @@ def _to_flow(observed: ObservedFlow, source_id: str, screen_ids: dict[str, str])
     )
 
 
+def load_sidecar(source: Source) -> Transcript | None:
+    """The `<video>.transcript.json` sitting beside the recording, if there is one.
+
+    Found while fixing AT-125: `build_ingest_prompt` has taken a transcript
+    since T-131 and NO shipped caller passed one either, so `{{NARRATION}}`
+    always rendered "no speech detected" in production — the ground-truth block
+    was as dead as the vision options. Same defect, one file over, unfiled.
+
+    Loading is best-effort: a malformed sidecar must not stop an ingest, because
+    a reading with no narration is still worth having. It must not silently
+    become one either, so the caller is told by getting None and the prompt says
+    so in words."""
+    if source.path is None:
+        return None
+    sidecar = Path(source.path).with_suffix(".transcript.json")
+    if not sidecar.exists():
+        return None
+    try:
+        return Transcript.from_sidecar(sidecar, source.id)
+    except (OSError, ValueError):
+        return None
+
+
+class SourceChanged(RuntimeError):
+    """The file a Source names is no longer the file it was registered from."""
+
+
+def verify_source_bytes(source: Source) -> None:
+    """Refuse to watch a recording that is not the one this Source describes (AT-129).
+
+    `register_source` is immutable by design: re-registering changed bytes
+    mints a NEW source and leaves the old row intact. That is right for
+    provenance and wrong for reading — the stale row still points at the same
+    path, so ingesting it watches the new video while stamping every
+    `SourceRef` with the old source's id. The result is provenance that reads
+    as precise and points at the wrong recording, which is worse than an error
+    because a human reviewing it has no reason to doubt it."""
+    if source.path is None or source.sha256 is None:
+        return
+    path = Path(source.path)
+    if not path.exists():
+        raise SourceChanged(
+            f"{source.id} points at {path}, which no longer exists — re-register the recording.")
+    actual = file_sha256(path)
+    if actual != source.sha256:
+        raise SourceChanged(
+            f"{path.name} has changed since {source.id} was registered "
+            f"({source.sha256[:12]} -> {actual[:12]}). Re-register it: "
+            f"`autotester ingest register {source.project} \"{path}\"` mints a new source "
+            f"for the new bytes, and this one keeps describing the old recording.")
+
+
 def persist_ingest(store: ProjectStore, spec: FlowSpec, *, replace: bool = False) -> FlowSpec:
     """Write the FlowSpec, refusing to discard an APPROVED one (I6).
 
@@ -135,6 +187,7 @@ def ingest_video(
     and merges via the review gate (T-065), which is a separate, later stage."""
     if source.path is None:
         raise ValueError(f"source {source.id} has no path to watch")
+    verify_source_bytes(source)
     docs = docs or RepoDocs()
     prompt = build_ingest_prompt(source, docs, transcript)
     observation = provider.see_video(Path(source.path), prompt, VideoObservation, options)

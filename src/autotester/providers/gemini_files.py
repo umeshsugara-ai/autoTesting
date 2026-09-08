@@ -19,6 +19,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+from autotester.core.ids import file_sha256
 from autotester.providers.base import ProviderError
 
 ACTIVE = "ACTIVE"
@@ -56,13 +57,23 @@ def _cached_name(cache_path: Path, key: str) -> str | None:
     return str(name) if name else None
 
 
+def _cache_key(path: Path) -> str:
+    """Content, not size (AT-128).
+
+    The first version keyed on `resolve()::st_size`, which makes a recording
+    re-exported in place at the same byte size a cache HIT — serving the OLD
+    video under the new file's name, and producing a confident reading of
+    footage nobody asked about. `core.ids.file_sha256` was two modules away."""
+    return f"{path.resolve()}::{file_sha256(path)}"
+
+
 def upload_and_wait(client: Any, path: Path, *, cache_path: Path | None = None,
                     timeout_s: float = 600.0, poll_s: float = 2.0,
                     clock: Any = time.monotonic, sleep: Any = time.sleep) -> Any:
     """Upload `path`, poll until ACTIVE, and return the file handle.
 
     `clock` and `sleep` are injected so the timeout is testable without one."""
-    key = f"{path.resolve()}::{path.stat().st_size if path.exists() else 0}"
+    key = _cache_key(path)
     if cache_path is not None and (name := _cached_name(cache_path, key)):
         try:
             cached = client.files.get(name=name)

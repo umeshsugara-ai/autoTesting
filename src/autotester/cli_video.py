@@ -12,9 +12,12 @@ import typer
 
 from autotester import providers
 from autotester.core.paths import RepoDocs
+from autotester.schema.observation import VisionOptions
 from autotester.stages.ingest import (
     FlowSpecApproved,
+    SourceChanged,
     ingest_video,
+    load_sidecar,
     persist_ingest,
     register_source,
 )
@@ -74,7 +77,12 @@ def run_cmd(
         raise typer.Exit(2)
 
     prov = providers.get(provider, **({"model": model} if model else {}))
-    spec = ingest_video(source, project, prov, RepoDocs())
+    try:
+        spec = ingest_video(source, project, prov, RepoDocs(),
+                            transcript=load_sidecar(source), options=VisionOptions())
+    except SourceChanged as exc:
+        typer.secho(str(exc), fg=typer.colors.RED)
+        raise typer.Exit(2) from None
     try:
         persist_ingest(store, spec, replace=replace)
     except FlowSpecApproved as exc:

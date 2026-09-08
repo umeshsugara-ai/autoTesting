@@ -193,6 +193,7 @@ class RepoDocs:
 
     def __init__(self, root: Path | None = None) -> None:
         self.root = root or repo_root()
+        self._root_given = root is not None
 
     @property
     def docs_dir(self) -> Path:
@@ -230,4 +231,18 @@ class RepoDocs:
 
     @property
     def prompts_dir(self) -> Path:
-        return self.root / "src" / "autotester" / "prompts"
+        """Prompts ship WITH THE CODE, so the DATA root must not move them.
+
+        `root` falls back to `repo_root()`, which honours `AUTOTESTER_ROOT` — a
+        switch for relocating a project's DATA. That silently moved the prompt
+        lookup too, and `autotester ingest run` under a relocated root died on
+        `FileNotFoundError: <data root>/src/autotester/prompts/...` (AT-132,
+        found by a test driving the real CLI). Every prompt-reading stage was
+        one environment variable away from the same failure.
+
+        An EXPLICIT `root` still wins: substituting a stub prompt tree is a
+        legitimate thing for a test to do, and the defect was never explicit
+        injection — it was the env var leaking into a path it does not own."""
+        if self._root_given:
+            return self.root / "src" / "autotester" / "prompts"
+        return Path(__file__).resolve().parents[1] / "prompts"
