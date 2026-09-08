@@ -68,6 +68,13 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   not match applies nothing and reports a green suite — which reads as *"the guard test is
   vacuous"*, the precise opposite of the truth. A sabotage needs its own assertion, not just its
   own patch.
+- **A zero-failure sabotage is evidence about the SABOTAGE, not about the tests.** "Anchor matched
+  once" + "file changed" are necessary but not sufficient: an anchor can match once inside a
+  comment, a docstring, or a line no test exercises, so the patch applies, the file changes, and
+  nothing semantically moves. When a sabotage yields 0 failures the harness must report it as
+  **INCONCLUSIVE — mutation not shown to change behaviour**, and either strengthen the mutation
+  (revert the actual fix hunk, not a nearby string) or state the null result as unproven. It must
+  never be reported as "the guard test is vacuous" on that evidence alone.
 - **Verify:** `uv run pytest -q` exits 0 and the manifest pastes real output, not a summary; a
   sabotage claim in a manifest is re-run by the checker in its own harness, never read.
 
@@ -129,3 +136,14 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   output from an experiment that never happened. Tightening only — it adds a clause and weakens
   none, so it applies under the routine gate. Verdict:
   `qa/verdicts/at149-at150-path-containment.md`.
+- 2026-09-08 · routine · added to **C7** the zero-failure clause (a sabotage that produces no
+  failures is INCONCLUSIVE about the tests until the mutation is shown to change behaviour) · why:
+  measured during `at151-at152-both-arms` cycle 1, the FIRST unit judged against the clause added
+  the day before. The checker's own sabotage U matched its anchor exactly once and changed the
+  file on disk — satisfying the clause as written — and produced 0 failures, because the mutated
+  string (`"already in the past"` → `"already in the past XXX"`) is on a line no assertion reads.
+  Under the previous wording that is a clean "sabotage applied, suite green", which is exactly the
+  "the guard test is vacuous" misreading the clause exists to prevent. Re-running with the real
+  AT-151 hunk reverted produced the expected failure. The clause I wrote had a hole; this closes
+  it. Tightening only — adds a reporting duty, weakens nothing, routine gate. Verdict:
+  `qa/verdicts/at151-at152-both-arms.md`.
