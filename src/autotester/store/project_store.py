@@ -10,6 +10,7 @@ from pathlib import Path
 
 from autotester.core.paths import ProjectPaths
 from autotester.schema.analysis import VideoAnalysis
+from autotester.schema.approval import RunApproval
 from autotester.schema.bench import BenchCorpus, BenchTrial
 from autotester.schema.case import Case
 from autotester.schema.coverage import VideoRequest
@@ -74,6 +75,14 @@ class ProjectStore(CrawlStoreMixin):
 
     def list_sources(self) -> list[Source]:
         return read_jsonl(self.paths.sources_index, Source)
+
+    # -- approvals (D-018: consent is a file, not a habit) ---------------------
+    def add_approval(self, approval: RunApproval) -> RunApproval:
+        append_jsonl(self.paths.approvals, approval)
+        return approval
+
+    def list_approvals(self) -> list[RunApproval]:
+        return read_jsonl(self.paths.approvals, RunApproval)
 
     # -- flowspec (single, human-reviewed) -------------------------------------
     def save_flowspec(self, spec: FlowSpec) -> None:

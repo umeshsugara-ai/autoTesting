@@ -11,7 +11,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from crawl_fake import crawl_it, make_project, make_session
+import pytest
+from crawl_fake import crawl_it, grant_crawl_approval, make_project, make_session
 
 from autotester.browser.observe import PageObserver
 from autotester.schema.crawl import CrawlBounds, SafetyPolicy
@@ -161,8 +162,9 @@ def test_every_settle_uses_the_crawl_bound_not_the_default_ceiling(tmp_path: Pat
     session.settle = lambda expected=None, timeout_ms=8000: (  # type: ignore[method-assign]
         seen.append(timeout_ms), original(expected, timeout_ms))[1]
 
-    run_crawl(project, session, ProjectStore("demo", tmp_path),
-              observer=PageObserver(), bounds=bounds)
+    store = ProjectStore("demo", tmp_path)
+    grant_crawl_approval(store, project, bounds)
+    run_crawl(project, session, store, observer=PageObserver(), bounds=bounds)
 
     assert seen, "the crawl never settled at all"
     assert set(seen) == {137}, f"some settle used the default ceiling: {sorted(set(seen))}"
@@ -195,8 +197,9 @@ def test_a_domain_refusal_at_seed_is_distinguishable_from_a_network_failure(
         raise NavigationRefused("'https://evil.test/' is outside allowed domains ['app.test']")
 
     session.goto = refuse  # type: ignore[method-assign]
-    crawl = run_crawl(project, session, ProjectStore("demo", tmp_path),
-                      observer=PageObserver())
+    store = ProjectStore("demo", tmp_path)
+    grant_crawl_approval(store, project)
+    crawl = run_crawl(project, session, store, observer=PageObserver())
 
     assert crawl.status is CrawlStatus.ABORTED
     assert "refused by the domain guard" in (crawl.stop_reason or "")
@@ -211,8 +214,48 @@ def test_an_ordinary_failure_at_seed_names_its_exception_type(tmp_path: Path) ->
         raise TimeoutError("navigation timed out")
 
     session.goto = boom  # type: ignore[method-assign]
-    crawl = run_crawl(project, session, ProjectStore("demo", tmp_path),
-                      observer=PageObserver())
+    store = ProjectStore("demo", tmp_path)
+    grant_crawl_approval(store, project)
+    crawl = run_crawl(project, session, store, observer=PageObserver())
 
     assert "TimeoutError" in (crawl.stop_reason or "")
     assert "refused by the domain guard" not in (crawl.stop_reason or "")
+
+
+# -- D-018/T-124: the consent gate refuses before anything exists -------------
+
+def test_a_crawl_without_an_approval_refuses_and_writes_nothing(tmp_path: Path) -> None:
+    """The property that matters is not that it raises — it is that it raises
+    BEFORE a crawl envelope, a browser navigation or a screenshot directory
+    exists. A gate that refuses after the fact has already done the thing."""
+    from autotester.core.consent import ApprovalRequired
+
+    project = make_project()
+    session, page = make_session(tmp_path, project)
+    store = ProjectStore("demo", tmp_path)
+    before = list(page.history)  # the fake page seeds one entry in its constructor
+
+    with pytest.raises(ApprovalRequired) as exc:
+        run_crawl(project, session, store, observer=PageObserver())
+
+    assert "autotester approve demo --kind crawl" in str(exc.value)
+    assert store.list_crawl_ids() == []
+    assert page.history == before, "the crawl navigated before the gate refused it"
+    assert page.clicks == []
+    assert not store.paths.crawls_dir.exists()
+
+
+def test_a_crawl_wider_than_its_approval_refuses(tmp_path: Path) -> None:
+    """Granting 10 actions and then asking for 200 is the case a careful
+    operator still gets wrong — the bounds are checked, not just the existence
+    of a row."""
+    from autotester.core.consent import ApprovalRequired
+
+    project = make_project()
+    session, _page = make_session(tmp_path, project)
+    store = ProjectStore("demo", tmp_path)
+    grant_crawl_approval(store, project, CrawlBounds(max_actions=10, wall_clock_s=10.0))
+
+    with pytest.raises(ApprovalRequired, match="narrower than this run"):
+        run_crawl(project, session, store, observer=PageObserver(),
+                  bounds=CrawlBounds(max_actions=200, wall_clock_s=600.0))

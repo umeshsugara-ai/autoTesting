@@ -419,3 +419,48 @@ screen from the crawl page.
 
 **APPLIES NEXT:** the same "propose, never approve" shape is what Track A's `merge_flowspec.py`
 (T-135) needs, and the same two-direction coverage view is what T-125's catalog page reports.
+
+---
+
+## 2026-09-08 · maker (T-124, consent gates) · PATTERN: a guard each caller must remember is one a new caller will forget
+
+**Contract request — a new `qa/contracts/consent.md`, criteria CN1–CN7.** Filing the criteria I
+built against; contracts are checker-owned and the maker never writes one.
+
+- **CN1 — Nothing outward-facing starts without an approval.** `run_crawl` raises
+  `ApprovalRequired` **before** a crawl envelope, a browser navigation, a click or a screenshot
+  directory exists. Proven at the transport, not by intent: `scripts/explore_proof.py`'s first
+  invariant attempts a real ungated crawl and asserts no crawl directory was created.
+- **CN2 — The gate lives at the seam, not in each caller.** The CLI and the UI both reach
+  `run_crawl`; neither performs its own check. A guard each caller has to remember is one a new
+  caller will forget.
+- **CN3 — Consent cannot widen itself after the fact.** `RunApproval.id` is content-addressed over
+  every bound field, and `require_approval` refuses a row whose id no longer matches its contents.
+  `note` is deliberately outside the payload so a human may annotate without re-granting.
+- **CN4 — Consent is never open-ended.** `expires_at` is required; an unparseable expiry is treated
+  as expired, never as eternal.
+- **CN5 — Approval does not transfer.** Matching on (project, run_kind, target) is EXACT. A prefix
+  match would let an approval for one endpoint authorise another under the same host; consent to
+  read is not consent to fire probes.
+- **CN6 — Bounds are checked, not just existence.** A run wider than its approval is refused with
+  the shortfall named (`actions 150 > approved 20`), and every rejection reason is reported rather
+  than only the first — one bad row must not hide a good one, and a refusal that only says "no"
+  teaches the operator nothing.
+- **CN7 — Adversarial against production must say production.** `ApprovalKind.ADVERSARIAL` with
+  `production=True` requested requires `production=True` granted. (T-154's surface; the criterion
+  is filed now so the contract exists before the code that needs it.)
+
+**Also for the checker's judgement, because it is a real trade I made:** the gate applies to
+**every** crawl, including local fixture crawls in the test suite, rather than being conditional on
+the target being remote. That cost me an update to four test entry points and the proof script. I
+chose it because "is this localhost?" is a heuristic that fails **open** on a misconfiguration, and
+because a guard only the production callers pass through is a guard tested nowhere. If the checker
+disagrees, the alternative is worth stating in the contract rather than left implicit.
+
+**No-fire list offered:** revoking an approval (expiry only, for now); approval for `ingest`/
+`expand`/`run_case` (T-122's live-case gate is a separate unit); a UI grant form (CLI only this
+unit — the credentials page is the right home and it is not built here); org-level or multi-project
+approvals; any auto-granting path whatsoever.
+
+**APPLIES NEXT:** T-154's adversarial pass is the reason CN7 exists, and T-151's discovery scan is
+gate 1 (`ApprovalKind.READ`).

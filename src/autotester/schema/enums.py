@@ -144,6 +144,16 @@ class WritePolicy(StrEnum):
     ALLOW_WRITES = "allow_writes"
 
 
+class ApprovalKind(StrEnum):
+    """What a `RunApproval` authorises. D-018's two gates: READ is gate 1 (scope
+    of read access); everything else is gate 2 (an outward-facing run)."""
+
+    READ = "read"
+    CRAWL = "crawl"
+    ADVERSARIAL = "adversarial"
+    LIVE_CASE = "live_case"
+
+
 class ProviderRole(StrEnum):
     VISION = "vision"
     AGENT = "agent"

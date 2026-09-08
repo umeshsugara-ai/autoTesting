@@ -220,6 +220,7 @@ def report_html(
 
 
 app.command("explore")(cli_crawl.explore_cmd)
+app.command("approve")(cli_crawl.approve_cmd)
 report_app.command("crawl")(cli_crawl.report_crawl)
 
 

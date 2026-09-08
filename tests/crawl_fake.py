@@ -14,8 +14,9 @@ from autotester.browser.observe import PageObserver
 from autotester.browser.secrets import SecretStore
 from autotester.browser.session import BrowserSession
 from autotester.core.paths import ProjectPaths
+from autotester.schema.approval import RunApproval
 from autotester.schema.crawl import CrawlBounds, SafetyPolicy
-from autotester.schema.enums import WritePolicy
+from autotester.schema.enums import ApprovalKind, WritePolicy
 from autotester.schema.project import Project
 from autotester.stages.explore import run_crawl
 from autotester.store.project_store import ProjectStore
@@ -142,12 +143,28 @@ def make_session(tmp_path: Path, project: Project) -> tuple[BrowserSession, Fake
     return session, page
 
 
+def grant_crawl_approval(store: ProjectStore, project: Project,
+                         bounds: CrawlBounds | None = None) -> None:
+    """D-018: `run_crawl` refuses without a human's `RunApproval` on disk. Tests
+    grant a real one rather than bypassing the gate, so every crawl test also
+    exercises the gate's happy path — a guard only the production callers pass
+    through is a guard tested nowhere."""
+    bounds = bounds or CrawlBounds()
+    store.add_approval(RunApproval(
+        project=project.slug, run_kind=ApprovalKind.CRAWL, target=project.base_url,
+        scope="fixture crawl in tests", max_actions=bounds.max_actions,
+        wall_clock_s=bounds.wall_clock_s, granted_by="test",
+        granted_at="2026-09-08", expires_at="2099-01-01",
+    ))
+
+
 def crawl_it(tmp_path: Path, *, project: Project | None = None,
              bounds: CrawlBounds | None = None, policy: SafetyPolicy | None = None,
              clock: Any = None) -> tuple[Any, ProjectStore, FakeSitePage]:
     project = project or make_project()
     session, page = make_session(tmp_path, project)
     store = ProjectStore("demo", tmp_path)
+    grant_crawl_approval(store, project, bounds)
     kwargs: dict[str, Any] = {"observer": PageObserver(), "bounds": bounds or CrawlBounds(),
                               "policy": policy}
     if clock is not None:

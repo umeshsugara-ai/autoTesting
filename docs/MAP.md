@@ -15,6 +15,7 @@
 | `browser/session.py` | One real, visible browser session per project. Contract: browser-and-secrets.md B5-B9. |
 | `cli.py` | Command line. Every action the UI offers is available here first. |
 | `cli_crawl.py` | Crawl commands — `autotester explore` and `autotester report crawl`. |
+| `core/consent.py` | The consent gate (D-018): nothing outward-facing starts without a human's |
 | `core/excel.py` | Workbook presentation helpers shared by every Excel exporter. |
 | `core/ids.py` | Identifier generation. The ONLY place ids are minted. |
 | `core/paths.py` | Filesystem layout. The ONLY place project paths are constructed. |
@@ -30,6 +31,7 @@
 | `providers/langchain_fallback.py` | LangChain-backed provider with automatic fallback across configured vendors. |
 | `providers/mock.py` | Deterministic provider for tests and dry runs. Never calls a network. |
 | `schema/analysis.py` | The adjudicated result of running an ensemble over one video's chunks. |
+| `schema/approval.py` | Consent as an artifact, not a habit (D-018). |
 | `schema/base.py` | Base model every artifact inherits. Defines the shared envelope. |
 | `schema/bench.py` | The north star, made measurable: human expert tester vs AutoTester. |
 | `schema/case.py` | A test case — one falsifiable claim about the product, plus how to check it. |
@@ -92,6 +94,7 @@
 | `AnalysedIssue` (`schema/analysis.py`) | An `ObservedIssue` after cross-model merge — `id` is stamped by |
 | `JourneyStop` (`schema/analysis.py`) | One stop in a recording's end-to-end journey — reuses `ObservedScreen`'s |
 | `VideoAnalysis` (`schema/analysis.py`) | One source's adjudicated understanding — screens, flows, the ordered |
+| `RunApproval` (`schema/approval.py`) | One human's authorisation for one kind of run against one target. |
 | `Provenance` (`schema/base.py`) | Who or what produced this artifact, and from what. |
 | `Artifact` (`schema/base.py`) | Common envelope: versioned, timestamped, attributable. |
 | `SeededBug` (`schema/bench.py`) | A deliberately introduced defect with known ground truth. |

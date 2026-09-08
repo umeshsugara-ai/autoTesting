@@ -21,9 +21,10 @@ from datetime import UTC, datetime
 
 from autotester.browser.observe import PageObserver, observe
 from autotester.browser.session import BrowserSession, NavigationRefused
+from autotester.core.consent import require_approval
 from autotester.schema.case import Case
 from autotester.schema.crawl import Crawl, CrawlBounds, NoiseCount, SafetyPolicy
-from autotester.schema.enums import CrawlStatus, Outcome
+from autotester.schema.enums import ApprovalKind, CrawlStatus, Outcome
 from autotester.schema.project import Project
 from autotester.schema.screen_graph import CrawlFrontier, ScreenNode
 from autotester.stages import explore_node
@@ -151,6 +152,20 @@ def _finish(rt: ExploreRuntime, status: CrawlStatus) -> Crawl:
     return crawl
 
 
+def _require_consent(project: Project, store: ProjectStore, bounds: CrawlBounds) -> None:
+    """D-018 gate 2, checked before a crawl envelope, a browser navigation or a
+    screenshot directory exists — a refused run leaves no trace at all.
+
+    Checked here rather than in the CLI and the UI separately, because a guard
+    that each caller has to remember is one a new caller will forget.
+    """
+    require_approval(
+        store.list_approvals(), project=project.slug, kind=ApprovalKind.CRAWL,
+        target=project.base_url, actions=bounds.max_actions,
+        wall_clock_s=bounds.wall_clock_s,
+    )
+
+
 def run_crawl(
     project: Project,
     session: BrowserSession,
@@ -171,10 +186,15 @@ def run_crawl(
     `crawl_id` is accepted so a caller can mint it first and point the
     session's screenshot directory at `crawl/<id>/shots/` — the id has to
     exist before the session does.
+
+    **Raises `ApprovalRequired` before anything is created or opened** — see
+    `_require_consent`.
     """
+    bounds = bounds or CrawlBounds()
+    _require_consent(project, store, bounds)
     envelope = {
         "project": project.slug,
-        "bounds": bounds or CrawlBounds(),
+        "bounds": bounds,
         "policy": policy or SafetyPolicy(write_policy=project.write_policy),
         "login_case_id": login_case.id if login_case else None,
         "started_at": _now_iso(),

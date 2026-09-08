@@ -29,9 +29,11 @@ from regression_proof import _NoCacheHandler
 from autotester.browser.observe import PageObserver
 from autotester.browser.secrets import SecretStore
 from autotester.browser.session import BrowserSession
+from autotester.core.consent import ApprovalRequired
 from autotester.core.paths import ProjectPaths
+from autotester.schema.approval import RunApproval
 from autotester.schema.crawl import CrawlBounds
-from autotester.schema.enums import EdgeOutcome, IssueKind
+from autotester.schema.enums import ApprovalKind, EdgeOutcome, IssueKind
 from autotester.schema.project import Project
 from autotester.stages.explore import run_crawl
 from autotester.store.project_store import ProjectStore
@@ -65,6 +67,12 @@ def crawl(base_url: str, root: Path, *, headed: bool) -> tuple[object, ProjectSt
     (root / ".env").write_text("", encoding="utf-8")
     store = ProjectStore("crawl-demo", root)
     store.save_project(project)
+    store.add_approval(RunApproval(
+        project="crawl-demo", run_kind=ApprovalKind.CRAWL, target=base_url,
+        scope="credential-free proof against the local fixture site",
+        max_actions=60, wall_clock_s=180.0, granted_by="explore_proof",
+        granted_at="2026-09-08", expires_at="2099-01-01",
+    ))
     observer = PageObserver()
     session = BrowserSession(project, SecretStore.load(project, root / ".env", strict=False),
                              root / "shots", paths, observer=observer)
@@ -73,6 +81,27 @@ def crawl(base_url: str, root: Path, *, headed: bool) -> tuple[object, ProjectSt
                            bounds=CrawlBounds(max_screens=12, max_actions=60,
                                               wall_clock_s=180.0, dialog_repeat_limit=2))
     return result, store
+
+
+def gate_refuses_without_approval(base_url: str, root: Path) -> tuple[bool, str]:
+    """D-018: with no approval on disk the crawl must refuse BEFORE it opens a
+    browser or writes anything. Proven by attempting it for real and checking
+    that nothing was created — not by reading the code."""
+    project = Project(slug="nogate", name="No gate", base_url=base_url,
+                      allowed_domains=["127.0.0.1"])
+    paths = ProjectPaths("nogate", root)
+    paths.ensure()
+    store = ProjectStore("nogate", root)
+    store.save_project(project)
+    try:
+        run_crawl(project, None, store, observer=PageObserver())  # type: ignore[arg-type]
+    except ApprovalRequired:
+        untouched = not paths.crawls_dir.exists()
+        return untouched, ("refused, no crawl dir created" if untouched
+                           else "refused BUT a crawl dir was created")
+    except Exception as exc:
+        return False, f"gate did not fire first: {type(exc).__name__}: {exc}"
+    return False, "the crawl ran with no approval on disk"
 
 
 def checks(crawl_obj: object, store: ProjectStore) -> list[tuple[str, bool, str]]:
@@ -113,8 +142,10 @@ def main() -> int:
     server, base_url = start_server()
     root = Path(tempfile.mkdtemp(prefix="explore-proof-"))
     try:
+        gate_ok, gate_detail = gate_refuses_without_approval(base_url, root)
         crawl_obj, store = crawl(base_url, root, headed=headed)
-        results = checks(crawl_obj, store)
+        results = [("no approval => nothing runs, nothing written", gate_ok, gate_detail)]
+        results += checks(crawl_obj, store)
     finally:
         server.shutdown()
         server.server_close()

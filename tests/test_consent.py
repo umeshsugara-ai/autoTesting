@@ -1,0 +1,178 @@
+"""The consent gate (D-018, T-124). Contract: qa/contracts/adversarial.md (to be
+authored) + explore.md.
+
+Consent used to be a habit — `write_policy` defaults and HUMAN_GATE files that a
+careful operator honoured. These tests are about the cases where care is not
+enough: an approval edited on disk, one that expired, one for a different
+endpoint, and one that is simply absent while the run starts anyway.
+"""
+
+from __future__ import annotations
+
+from datetime import datetime
+from pathlib import Path
+
+import pytest
+
+from autotester.core.consent import ApprovalRequired, require_approval
+from autotester.schema.approval import RunApproval
+from autotester.schema.enums import ApprovalKind
+from autotester.store.project_store import ProjectStore
+
+NOW = datetime(2026, 9, 8, 12, 0, 0)
+TARGET = "https://www.vidysea.com/erp"
+
+
+def approval(**overrides: object) -> RunApproval:
+    fields: dict[str, object] = {
+        "project": "erp", "run_kind": ApprovalKind.CRAWL, "target": TARGET,
+        "scope": "read-only crawl of the trainer module", "max_actions": 150,
+        "wall_clock_s": 900.0, "granted_by": "umesh", "granted_at": "2026-09-08",
+        "expires_at": "2026-09-09",
+    }
+    fields.update(overrides)
+    return RunApproval(**fields)  # type: ignore[arg-type]
+
+
+def require(approvals: list[RunApproval], **kw: object) -> RunApproval:
+    args: dict[str, object] = {
+        "project": "erp", "kind": ApprovalKind.CRAWL, "target": TARGET,
+        "actions": 150, "wall_clock_s": 900.0, "now": NOW,
+    }
+    args.update(kw)
+    return require_approval(approvals, **args)  # type: ignore[arg-type]
+
+
+# -- the happy path, and what a refusal must teach ---------------------------
+
+def test_a_covering_approval_is_returned() -> None:
+    granted = approval()
+    assert require([granted]).id == granted.id
+
+
+def test_no_approval_at_all_names_the_command_that_grants_one() -> None:
+    """A refusal that only says no teaches the operator nothing, and the next
+    thing they do is guess."""
+    with pytest.raises(ApprovalRequired) as exc:
+        require([])
+    message = str(exc.value)
+    assert "no approval exists for it" in message
+    assert "autotester approve erp --kind crawl" in message
+    assert TARGET in message
+
+
+# -- the cases where being careful is not enough ------------------------------
+
+def test_an_approval_edited_to_widen_itself_is_refused() -> None:
+    """The reason the id is content-addressed. Hand-editing approvals.jsonl to
+    raise max_actions must not silently take effect."""
+    granted = approval(max_actions=10)
+    widened = granted.model_copy(update={"max_actions": 100_000})
+
+    assert widened.is_intact is False
+    with pytest.raises(ApprovalRequired, match="edited after it was granted"):
+        require([widened], actions=50)
+
+
+def test_annotating_an_approval_does_not_invalidate_it() -> None:
+    """`note` is deliberately outside the bound payload — a human may write on
+    an approval without having to re-grant it."""
+    annotated = approval().model_copy(update={"note": "watched this one live"})
+    assert annotated.is_intact is True
+    assert require([annotated]).id == annotated.id
+
+
+def test_an_expired_approval_is_refused_and_says_when() -> None:
+    with pytest.raises(ApprovalRequired, match="expired 2026-09-01"):
+        require([approval(expires_at="2026-09-01")])
+
+
+def test_an_unparseable_expiry_is_treated_as_expired_never_as_eternal() -> None:
+    with pytest.raises(ApprovalRequired):
+        require([approval(expires_at="whenever")])
+
+
+def test_an_approval_narrower_than_the_run_is_refused_with_the_shortfall() -> None:
+    with pytest.raises(ApprovalRequired, match="actions 150 > approved 20"):
+        require([approval(max_actions=20)])
+
+
+def test_a_longer_run_than_approved_is_refused_on_wall_clock() -> None:
+    with pytest.raises(ApprovalRequired, match="wall clock"):
+        require([approval(wall_clock_s=60.0)])
+
+
+def test_target_matching_is_exact_not_a_prefix() -> None:
+    """A prefix match would let an approval for one endpoint authorise another
+    under the same host — the whole thing this gate exists to prevent."""
+    with pytest.raises(ApprovalRequired):
+        require([approval(target="https://www.vidysea.com")], target=TARGET + "/admin")
+
+
+def test_an_approval_for_another_kind_of_run_does_not_transfer() -> None:
+    """Consent to read is not consent to fire adversarial probes."""
+    with pytest.raises(ApprovalRequired):
+        require([approval(run_kind=ApprovalKind.READ)])
+
+
+def test_an_approval_for_another_project_does_not_transfer() -> None:
+    with pytest.raises(ApprovalRequired):
+        require([approval(project="pathlynks")])
+
+
+def test_adversarial_against_production_needs_production_said_explicitly() -> None:
+    granted = approval(run_kind=ApprovalKind.ADVERSARIAL, max_probes=50)
+    with pytest.raises(ApprovalRequired, match="does not say production"):
+        require([granted], kind=ApprovalKind.ADVERSARIAL, probes=10, production=True)
+
+    said = approval(run_kind=ApprovalKind.ADVERSARIAL, max_probes=50, production=True)
+    assert require([said], kind=ApprovalKind.ADVERSARIAL, probes=10, production=True).id == said.id
+
+
+def test_one_bad_approval_does_not_hide_a_good_one() -> None:
+    """An expired row sitting beside a valid one must not cause a refusal."""
+    assert require([approval(expires_at="2026-01-01"), approval()]).id == approval().id
+
+
+def test_every_rejection_reason_is_reported_not_just_the_first() -> None:
+    with pytest.raises(ApprovalRequired) as exc:
+        require([approval(expires_at="2026-01-01"), approval(max_actions=5)])
+    message = str(exc.value)
+    assert "expired" in message
+    assert "narrower than this run" in message
+
+
+# -- it survives a round trip through the store ------------------------------
+
+def test_an_approval_round_trips_through_the_store_intact(tmp_path: Path) -> None:
+    store = ProjectStore("erp", tmp_path)
+    store.add_approval(approval())
+
+    loaded = store.list_approvals()
+
+    assert len(loaded) == 1
+    assert loaded[0].is_intact is True
+    assert require(loaded).id == approval().id
+
+
+def test_the_suggested_grant_command_would_actually_cover_this_run() -> None:
+    """Found by running it: the first version of the message omitted the bounds,
+    so an operator who pasted the printed command got a SECOND refusal —
+    `--max-actions` defaults to 0 and every real crawl exceeds 0. A suggestion
+    that does not work is worse than none, because it spends the reader's trust
+    on the way to the same dead end."""
+    with pytest.raises(ApprovalRequired) as exc:
+        require([], actions=150, wall_clock_s=900.0)
+    command = str(exc.value)
+
+    assert "--max-actions 150" in command
+    assert "--wall-clock 900.0" in command
+
+
+def test_the_grant_command_says_production_when_the_run_needs_it() -> None:
+    with pytest.raises(ApprovalRequired) as exc:
+        require([], kind=ApprovalKind.ADVERSARIAL, probes=25, production=True)
+    command = str(exc.value)
+
+    assert "--production" in command
+    assert "--max-probes 25" in command

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from html import escape
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from starlette.background import BackgroundTask
 
@@ -147,6 +147,7 @@ def start_crawl(slug: str) -> RedirectResponse:
     from autotester.browser.observe import PageObserver
     from autotester.browser.secrets import SecretStore
     from autotester.browser.session import BrowserSession
+    from autotester.core.consent import ApprovalRequired
     from autotester.stages import explore as explore_stage
 
     _store, project = _load_project_or_404(slug)
@@ -156,10 +157,15 @@ def start_crawl(slug: str) -> RedirectResponse:
     secrets = SecretStore.load(project, paths.env_file, strict=False)
     observer = PageObserver()
     crawl_id = run_id("crawl")
-    with BrowserSession(project, secrets, paths.crawl_shots_dir(crawl_id),
-                        paths, observer=observer) as session:
-        crawl = explore_stage.run_crawl(project, session, store, observer=observer,
-                                        crawl_id=crawl_id)
+    try:
+        with BrowserSession(project, secrets, paths.crawl_shots_dir(crawl_id),
+                            paths, observer=observer) as session:
+            crawl = explore_stage.run_crawl(project, session, store, observer=observer,
+                                            crawl_id=crawl_id)
+    except ApprovalRequired as exc:
+        # 403, not 500: the run was refused on purpose, and the message names the
+        # exact command that grants consent (D-018).
+        raise HTTPException(status_code=403, detail=str(exc)) from None
     return RedirectResponse(f"/projects/{slug}/crawls/{crawl.id}", status_code=303)
 
 

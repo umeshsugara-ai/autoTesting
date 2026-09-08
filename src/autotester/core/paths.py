@@ -36,6 +36,12 @@ class ProjectPaths:
         return self.dir / "project.json"
 
     @property
+    def approvals(self) -> Path:
+        """Human-granted `RunApproval` rows (D-018). Append-only in practice: an
+        approval is never edited, it expires or a new one is granted."""
+        return self.dir / "approvals.jsonl"
+
+    @property
     def env_file(self) -> Path:
         """One credential file for the whole repo, at the root (Umesh, 2026-09-03).
 

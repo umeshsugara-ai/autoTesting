@@ -19,8 +19,9 @@ from autotester.browser.observe import PageObserver
 from autotester.browser.secrets import SecretStore
 from autotester.browser.session import BrowserSession
 from autotester.core.paths import ProjectPaths
+from autotester.schema.approval import RunApproval
 from autotester.schema.crawl import Crawl, CrawlBounds
-from autotester.schema.enums import EdgeOutcome, IssueKind
+from autotester.schema.enums import ApprovalKind, EdgeOutcome, IssueKind
 from autotester.schema.project import Project
 from autotester.stages.explore import run_crawl
 from autotester.store.project_store import ProjectStore
@@ -46,6 +47,12 @@ def crawl_result(
     (tmp_path / ".env").write_text("", encoding="utf-8")
     secrets = SecretStore.load(project, tmp_path / ".env", strict=False)
     store = ProjectStore("crawl-demo", tmp_path)
+    store.add_approval(RunApproval(
+        project="crawl-demo", run_kind=ApprovalKind.CRAWL, target=project.base_url,
+        scope="local fixture crawl in the live test suite", max_actions=200,
+        wall_clock_s=600.0, granted_by="test", granted_at="2026-09-08",
+        expires_at="2099-01-01",
+    ))
     observer = PageObserver()
     session = BrowserSession(project, secrets, tmp_path / "shots", paths, observer=observer)
     try:
