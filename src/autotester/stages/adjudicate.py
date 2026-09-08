@@ -110,7 +110,7 @@ def _merge_lists(into: AnalysedScreen, other: ObservedScreen) -> None:
 
     A union rather than a choice: if one model noticed a field the other
     missed, the field exists — the disagreement is about attention, not fact."""
-    for attr in ("signals", "ui_elements", "screenshot_ts"):
+    for attr in ("signals", "fields", "ui_elements", "screenshot_ts"):
         seen = list(getattr(into, attr))
         for value in getattr(other, attr):
             if value not in seen:
@@ -168,13 +168,22 @@ def join_issues(issues: list[tuple[str, ObservedIssue]]) -> list[AnalysedIssue]:
     return sorted(merged, key=lambda i: (i.t_start, issue_key(i)))
 
 
-def adjudicate(observations: list[ModelObservation], source_id: str) -> VideoAnalysis:
+def adjudicate(observations: list[ModelObservation], source_id: str, *,
+               expected: int | None = None) -> VideoAnalysis:
     """Every model's every chunk, merged into one reading of one recording.
 
     Sorted before merging so the result does not depend on the order the
     observations happened to be loaded in — the property VL4 asks for, and the
-    one a test can actually check by shuffling the input."""
-    ordered = sorted(observations, key=lambda o: (o.offset_s, o.provider_label, o.chunk_index))
+    one a test can actually check by shuffling the input.
+
+    **The sort key must leave no ties.** My first version omitted `prompt_name`,
+    so one model's two prompts on one chunk tied and Python's stable sort handed
+    the merge back to caller order — determinism held for every fixture I wrote
+    (all single-prompt) and failed in the shipped two-prompt shape. A tie in the
+    key IS the caller's order leaking back in, so the key names every field that
+    distinguishes one observation from another."""
+    ordered = sorted(observations, key=lambda o: (o.offset_s, o.provider_label,
+                                                  o.prompt_name, o.chunk_index))
     shifted = [shift(o) for o in ordered]
 
     screens: list[tuple[str, ObservedScreen]] = []
@@ -196,6 +205,8 @@ def adjudicate(observations: list[ModelObservation], source_id: str) -> VideoAna
     joined = join_screens(screens)
     return VideoAnalysis(
         source_id=source_id,
+        observations_used=len(shifted),
+        observations_expected=len(shifted) if expected is None else expected,
         provider_labels=sorted({o.provider_label for o in shifted}),
         prompt_names=sorted({o.prompt_name for o in shifted}),
         screens=joined,

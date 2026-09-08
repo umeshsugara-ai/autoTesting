@@ -18,6 +18,7 @@ a human, and `adjudicate` can only count agreement it was given.
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 
 from autotester.core.paths import RepoDocs
@@ -40,6 +41,16 @@ carefully."""
 
 class NoObservations(RuntimeError):
     """Every provider call failed, so there is nothing to adjudicate."""
+
+
+class DuplicateProviders(ValueError):
+    """Two providers share a `label`, which is the cache key.
+
+    The second would read the first's cached answers, never be called, and
+    `models_agreeing` would still say 1 — an ensemble of one wearing the shape
+    of an ensemble of two. Agreement between independent readings is the whole
+    reason this stage costs money, so a collapsed ensemble is refused loudly
+    rather than reported quietly."""
 
 
 def load_transcript(store: ProjectStore, source: Source) -> Transcript | None:
@@ -85,12 +96,22 @@ def observe_chunk(store: ProjectStore, source: Source, provider: Provider,
     """One model's answer for one chunk under one prompt. Cached.
 
     Returns `None` when the call failed — a single failed chunk must not lose
-    the eleven that succeeded, and `adjudicate` is happy with fewer inputs."""
-    cached = _cached(store, source.id, provider.label, prompt_name, chunk.index)
-    if cached is not None and not force:
-        return cached
+    the eleven that succeeded, and `adjudicate` is happy with fewer inputs.
 
+    The prompt is built before the cache is consulted because **the prompt text
+    is part of the key**. Editing a prompt file leaves its name alone, so a
+    name-keyed cache hands back the answer to the question you just stopped
+    asking — the failure mode is invisible, and it is the one that makes people
+    distrust a cache and disable it."""
     prompt = build_chunk_prompt(prompt_name, source, docs, chunk, transcript)
+    digest = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
+
+    if not force:
+        cached = _cached(store, source.id, provider.label, prompt_name,
+                         chunk.index, digest)
+        if cached is not None:
+            return cached
+
     try:
         answer = provider.see_video(Path(chunk.path), prompt, VideoObservation, options)
     except ProviderError:
@@ -98,6 +119,7 @@ def observe_chunk(store: ProjectStore, source: Source, provider: Provider,
 
     observation = ModelObservation(
         source_id=source.id, provider_label=provider.label, prompt_name=prompt_name,
+        prompt_sha256=digest,
         chunk_index=chunk.index, offset_s=chunk.offset_s, length_s=chunk.length_s,
         observation=answer,
     )
@@ -105,12 +127,18 @@ def observe_chunk(store: ProjectStore, source: Source, provider: Provider,
     return observation
 
 
-def _cached(store: ProjectStore, source_id: str, label: str,
-            prompt_name: str, chunk_index: int) -> ModelObservation | None:
-    for observation in store.list_observations(source_id):
+def _cached(store: ProjectStore, source_id: str, label: str, prompt_name: str,
+            chunk_index: int, digest: str) -> ModelObservation | None:
+    """A cached answer to THIS question, or nothing.
+
+    Unreadable files are skipped rather than raised: a half-written observation
+    is the crash this cache exists to survive, and letting it abort `analyze`
+    (with `--force` unable to clear it) inverts the whole promise."""
+    for observation in store.list_observations(source_id, skip_unreadable=True):
         if (observation.provider_label == label
                 and observation.prompt_name == prompt_name
-                and observation.chunk_index == chunk_index):
+                and observation.chunk_index == chunk_index
+                and observation.prompt_sha256 == digest):
             return observation
     return None
 
@@ -123,6 +151,12 @@ def analyze(store: ProjectStore, source: Source, providers: list[Provider], *,
     Refuses without `media.json` rather than silently analysing an unprepared
     recording as a single blob — prep is where chunking and narration happen,
     and skipping it changes the answer without saying so."""
+    labels = [p.label for p in providers]
+    if len(set(labels)) != len(labels):
+        raise DuplicateProviders(
+            f"two providers share a label: {sorted(labels)} — the label is the cache key, "
+            f"so the ensemble would silently collapse to one reading")
+
     prep = require_prepared(store, source.id)
     docs = docs or RepoDocs()
     options = options or VisionOptions()
@@ -143,6 +177,7 @@ def analyze(store: ProjectStore, source: Source, providers: list[Provider], *,
             f"{source.id}: every provider call failed — nothing to adjudicate. "
             f"Check `autotester providers` for credentials.")
 
-    analysis = adjudicate(observations, source.id)
+    expected = len(providers) * len(PROMPT_NAMES) * len(prep.chunks)
+    analysis = adjudicate(observations, source.id, expected=expected)
     store.save_analysis(analysis)
     return analysis

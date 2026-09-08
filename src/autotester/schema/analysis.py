@@ -47,6 +47,14 @@ class VideoAnalysis(Artifact):
     model's chunked observations."""
 
     source_id: str
+    observations_used: int = 0
+    """How many model answers this reading was actually built from."""
+    observations_expected: int = 0
+    """How many there would have been if every planned call had succeeded.
+
+    Two numbers rather than a flag, because "we watched it and found nothing"
+    and "23 of 24 calls failed" produce the same screens and the same issues —
+    and a reader who cannot tell them apart will trust the second one."""
     provider_labels: list[str] = Field(default_factory=list)
     prompt_names: list[str] = Field(default_factory=list)
     screens: list[AnalysedScreen] = Field(default_factory=list)
@@ -55,3 +63,10 @@ class VideoAnalysis(Artifact):
     issues: list[AnalysedIssue] = Field(default_factory=list)
     summary: str = ""
     open_questions: list[str] = Field(default_factory=list)
+
+    @property
+    def is_complete(self) -> bool:
+        """Every planned model call landed. A partial reading is still worth
+        having; it is worth knowing that it is partial."""
+        return (self.observations_expected > 0
+                and self.observations_used >= self.observations_expected)

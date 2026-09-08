@@ -1,9 +1,9 @@
-"""The ensemble driver — VL2/VL3.
+"""The ensemble driver — VL2/VL3: what it reads, what it refuses, what it saves.
 
-This is the only stage in Track A that spends money, so the tests that matter
-are about not spending it twice. Every provider here is a spy: the assertions
-are on the number of calls made, because "the cache works" is a claim about
-calls, not about output.
+The COST half of this stage — the cache, and the rule that a re-run never
+re-spends a provider call — lives in `test_analyze_cache.py`. Split at the
+300-line cap along that line, because "does it spend money twice" and "does it
+hand each chunk its own narration" are answered by different assertions.
 
 Contract: qa/contracts/video-learning.md VL2/VL3.
 """
@@ -13,12 +13,11 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from video_fakes import SpyProvider, prepared
 
 from autotester.core.paths import RepoDocs
-from autotester.providers.base import Provider, ProviderError
-from autotester.schema.enums import IssueCategory, SourceKind
-from autotester.schema.media import MediaChunk, MediaPrep, Transcript, TranscriptSegment
-from autotester.schema.observation import ObservedIssue, ObservedScreen, VideoObservation
+from autotester.schema.enums import SourceKind
+from autotester.schema.media import MediaChunk, Transcript, TranscriptSegment
 from autotester.schema.project import Project, Source
 from autotester.stages.analyze_video import (
     PROMPT_NAMES,
@@ -28,104 +27,7 @@ from autotester.stages.analyze_video import (
 )
 from autotester.store.project_store import ProjectStore
 
-
-class SpyProvider(Provider):
-    """Counts calls and records the prompts it was handed."""
-
-    def __init__(self, label: str, *, fail: bool = False) -> None:
-        super().__init__(model=label)
-        self.id = "spy"
-        self._label = label
-        self.calls: list[tuple[str, str]] = []   # (video path, prompt)
-        self.fail = fail
-
-    @property
-    def label(self) -> str:
-        return self._label
-
-    def available(self) -> bool:
-        return True
-
-    def see_video(self, path, prompt, schema, options=None):
-        self.calls.append((str(path), prompt))
-        if self.fail:
-            raise ProviderError("no credentials")
-        return VideoObservation(
-            screens=[ObservedScreen(name="Trainers", t_start=1.0, t_end=9.0)],
-            issues=[ObservedIssue(t_start=5.0, screen="Trainers",
-                                  category=IssueCategory.FEATURE_GAP,
-                                  title="t", what_is_wrong="w")],
-            summary="a trainer tool",
-        )
-
-
-@pytest.fixture
-def prepared(tmp_path: Path) -> tuple[ProjectStore, Source]:
-    store = ProjectStore("erp", tmp_path)
-    store.save_project(Project(slug="erp", name="ERP", base_url="https://demo.test",
-                               allowed_domains=["demo.test"]))
-    video = tmp_path / "erp1.mp4"
-    video.write_bytes(b"fake")
-    source = store.add_source(Source(project="erp", kind=SourceKind.VIDEO,
-                                     path=str(video), sha256="d", label="erp1.mp4"))
-    store.save_media_prep(MediaPrep(source_id=source.id, duration_s=400.0, chunks=[
-        MediaChunk(index=0, path=str(video), offset_s=0.0, length_s=180.0),
-        MediaChunk(index=1, path=str(video), offset_s=165.0, length_s=180.0),
-    ]))
-    return store, source
-
-
-# -- the rule that costs money if it is wrong ------------------------------
-
-def test_every_model_sees_every_prompt_on_every_chunk(prepared) -> None:
-    store, source = prepared
-    pro, flash = SpyProvider("spy:pro"), SpyProvider("spy:flash")
-
-    analyze(store, source, [pro, flash], docs=RepoDocs())
-
-    assert len(pro.calls) == len(PROMPT_NAMES) * 2   # 2 prompts x 2 chunks
-    assert len(flash.calls) == len(PROMPT_NAMES) * 2
-
-
-def test_a_second_analyze_makes_zero_provider_calls(prepared) -> None:
-    """The rule this whole stage is shaped by. A re-run after a crash, after a
-    code change, or just to look again must cost nothing."""
-    store, source = prepared
-    pro = SpyProvider("spy:pro")
-
-    analyze(store, source, [pro], docs=RepoDocs())
-    first = len(pro.calls)
-    pro.calls.clear()
-
-    analyze(store, source, [pro], docs=RepoDocs())
-
-    assert first > 0
-    assert pro.calls == [], "a cached observation was re-requested"
-
-
-def test_force_is_the_only_way_past_the_cache(prepared) -> None:
-    store, source = prepared
-    pro = SpyProvider("spy:pro")
-    analyze(store, source, [pro], docs=RepoDocs())
-    pro.calls.clear()
-
-    analyze(store, source, [pro], docs=RepoDocs(), force=True)
-
-    assert len(pro.calls) == len(PROMPT_NAMES) * 2
-
-
-def test_adding_a_second_model_only_calls_the_new_one(prepared) -> None:
-    """The cache is keyed per model, so widening the ensemble costs only the
-    widening — otherwise nobody would ever add the second model."""
-    store, source = prepared
-    pro, flash = SpyProvider("spy:pro"), SpyProvider("spy:flash")
-    analyze(store, source, [pro], docs=RepoDocs())
-    pro.calls.clear()
-
-    analyze(store, source, [pro, flash], docs=RepoDocs())
-
-    assert pro.calls == []
-    assert len(flash.calls) == len(PROMPT_NAMES) * 2
+__all__ = ["prepared"]
 
 
 # -- failure is partial, never total ---------------------------------------
@@ -152,6 +54,20 @@ def test_every_model_failing_refuses_instead_of_writing_an_empty_analysis(
         analyze(store, source, [SpyProvider("spy:broken", fail=True)], docs=RepoDocs())
 
     assert store.load_analysis(source.id) is None
+
+
+def test_two_providers_under_one_label_are_refused(prepared) -> None:
+    """AT-204. The label is the cache key, so the second provider would read
+    the first's answers, never be called, and leave `models_agreeing` at 1 —
+    an ensemble of one wearing the shape of an ensemble of two. Agreement is
+    the only reason this stage costs money."""
+    from autotester.stages.analyze_video import DuplicateProviders
+
+    store, source = prepared
+
+    with pytest.raises(DuplicateProviders, match="cache key"):
+        analyze(store, source, [SpyProvider("spy:pro"), SpyProvider("spy:pro")],
+                docs=RepoDocs())
 
 
 def test_analyzing_an_unprepared_recording_is_refused(tmp_path: Path) -> None:

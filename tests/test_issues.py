@@ -106,6 +106,14 @@ def test_times_are_written_the_way_the_human_sheet_writes_them(
     assert at_mmss(seconds) == expected
 
 
+def test_a_negative_second_is_refused_not_rendered() -> None:
+    """AT-205. `-1:55` reads as a time and is really an offset applied twice.
+    The person who would have to notice it is the tester holding the sheet —
+    the one furthest from the code that produced it."""
+    with pytest.raises(ValueError, match="upstream bug"):
+        at_mmss(-115.0)
+
+
 def test_severity_is_written_in_their_words_not_ours() -> None:
     """A tester reading `S2` has to translate; a tester reading `Medium` does
     not, and this sheet is for them."""

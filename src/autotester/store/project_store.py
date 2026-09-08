@@ -233,16 +233,29 @@ class ProjectStore(CrawlStoreMixin):
         )
         write_json(path, observation)
 
-    def list_observations(self, source_id: str) -> list[ModelObservation]:
+    def list_observations(self, source_id: str,
+                          *, skip_unreadable: bool = False) -> list[ModelObservation]:
+        """Every cached model answer for one source.
+
+        `skip_unreadable` is for the one caller that can repair the damage:
+        a half-written observation file (the crash the cache exists to survive)
+        otherwise raises out of `analyze`, and `--force` could not clear it
+        because reading came first. Skipped means re-requested and overwritten,
+        never silently treated as an answer."""
         obs_dir = self.paths.source_observations_dir(source_id)
         if not obs_dir.exists():
             return []
-        return [
-            model
-            for path in sorted(obs_dir.glob("*.json"))
-            for model in [read_json(path, ModelObservation)]
-            if model is not None
-        ]
+        found: list[ModelObservation] = []
+        for path in sorted(obs_dir.glob("*.json")):
+            try:
+                model = read_json(path, ModelObservation)
+            except Exception:
+                if not skip_unreadable:
+                    raise
+                continue
+            if model is not None:
+                found.append(model)
+        return found
 
     def save_analysis(self, analysis: VideoAnalysis) -> None:
         write_json(self.paths.source_analysis(analysis.source_id), analysis)

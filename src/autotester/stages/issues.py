@@ -12,8 +12,11 @@ point of T-136: the comparison is only fair if the shapes match.
 human sheets do NOT share a schema. `ERP_Issues_ALL.xlsx` has these 13 columns
 exactly. `ERP_Issues_Trainers.xlsx` — the sheet T-136's acceptance actually
 scores against — has 12, with no `Date` and `Clip` where ALL says `Recording`.
-The scorer accommodates both; this exporter writes the 13-column form, because
-that is the one a reader gets when they ask for "the issues".
+
+**No scorer exists yet** — it is T-136, and reconciling those two shapes is its
+first job, not a thing this module already does. This exporter writes the
+13-column form, because that is the one a reader gets when they ask for "the
+issues".
 """
 
 from __future__ import annotations
@@ -43,7 +46,13 @@ reading `Medium` does not, and this sheet is for them."""
 def at_mmss(seconds: float) -> str:
     """`93.4` -> `01:33`. The human sheet writes times this way, and its `At`
     column holds strings — so a scorer comparing a float to that cell silently
-    matches nothing (measured on the real workbook)."""
+    matches nothing (measured on the real workbook).
+
+    A negative second is refused rather than rendered: `-1:55` in a tester's
+    sheet looks like a time and is really a chunk offset applied twice, and the
+    person who has to notice it is the one with the least context to."""
+    if seconds < 0:
+        raise ValueError(f"{seconds}: a negative timestamp is an upstream bug, not a time")
     total = round(seconds)
     return f"{total // 60:02d}:{total % 60:02d}"
 

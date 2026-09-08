@@ -10,17 +10,10 @@ Contract: qa/contracts/video-learning.md VL3/VL4.
 
 from __future__ import annotations
 
-import random
-
 import pytest
+from video_fakes import FLASH, PRO, issue, obs, screen
 
 from autotester.schema.enums import Confidence, IssueCategory, Severity
-from autotester.schema.observation import (
-    ModelObservation,
-    ObservedIssue,
-    ObservedScreen,
-    VideoObservation,
-)
 from autotester.stages.adjudicate import (
     adjudicate,
     join_issues,
@@ -29,33 +22,6 @@ from autotester.stages.adjudicate import (
     shift,
     worst,
 )
-
-PRO = "gemini:gemini-3.1-pro-preview"
-FLASH = "gemini:gemini-3.8-flash"
-
-
-def obs(label: str, *, chunk: int = 0, offset: float = 0.0,
-        screens: list[ObservedScreen] | None = None,
-        issues: list[ObservedIssue] | None = None,
-        summary: str = "") -> ModelObservation:
-    return ModelObservation(
-        source_id="src_1", provider_label=label, prompt_name="video_issues_v1",
-        chunk_index=chunk, offset_s=offset, length_s=180.0,
-        observation=VideoObservation(screens=screens or [], issues=issues or [],
-                                     summary=summary),
-    )
-
-
-def screen(name: str, t_start: float, t_end: float | None = None, **kw) -> ObservedScreen:
-    return ObservedScreen(name=name, t_start=t_start, t_end=t_end, **kw)
-
-
-def issue(screen_name: str, t_start: float, *, category: IssueCategory = IssueCategory.OTHER,
-          severity: Severity = Severity.S2, **kw) -> ObservedIssue:
-    return ObservedIssue(screen=screen_name, t_start=t_start, category=category,
-                         severity=severity, title=kw.pop("title", "t"),
-                         what_is_wrong=kw.pop("what_is_wrong", "w"), **kw)
-
 
 # -- severity: the comparison I got backwards ------------------------------
 
@@ -140,16 +106,24 @@ def test_the_same_screen_visited_twice_stays_two_visits() -> None:
     assert len(merged) == 2
 
 
-def test_a_field_only_one_model_noticed_survives_the_merge() -> None:
-    """A union, not a choice: if one model saw a field the other missed, the
-    field exists — the disagreement is about attention, not fact."""
+def test_every_descriptive_list_only_one_model_noticed_survives_the_merge() -> None:
+    """A union, not a choice: if one model saw something the other missed, it
+    exists — the disagreement is about attention, not fact.
+
+    It used to be named for `fields` and assert only on `signals`, which is
+    exactly how AT-202 hid: `_merge_lists` dropped `fields`, and the one test
+    whose NAME covered it never touched it. Now it asserts on each list."""
     merged = join_screens([
-        (PRO, screen("Home", 1.0, 9.0, signals=["Dashboard"], url="")),
+        (PRO, screen("Home", 1.0, 9.0, signals=["Dashboard"], fields=["Email"],
+                     ui_elements=["Sign in"], url="")),
         (FLASH, screen("Home", 2.0, 9.0, signals=["Welcome"],
+                       fields=["Email", "Password"], ui_elements=["Sign in", "Help"],
                        url="https://demo.test/home")),
     ])
 
     assert merged[0].signals == ["Dashboard", "Welcome"]
+    assert merged[0].fields == ["Email", "Password"]
+    assert merged[0].ui_elements == ["Sign in", "Help"]
     assert merged[0].url == "https://demo.test/home"
 
 
@@ -193,48 +167,6 @@ def test_one_model_alone_does_not_gain_confidence() -> None:
 
     assert merged[0].models_agreeing == 1
     assert merged[0].confidence is not Confidence.HIGH
-
-
-# -- the property the cache rests on ---------------------------------------
-
-def content(analysis) -> str:
-    """The analysis WITHOUT its provenance envelope.
-
-    `Artifact.created_at` is a wall-clock stamp, so two calls a microsecond
-    apart differ there and nowhere else. Comparing whole JSON conflated
-    "adjudication is deterministic" with "the clock did not tick" — my first
-    version of the determinism test failed on exactly that, and my
-    adjudicate-twice test PASSED only because both calls landed in the same
-    microsecond. Determinism is a property of the CONTENT."""
-    return analysis.model_dump_json(exclude={"created_at", "provenance"})
-
-
-def test_the_result_does_not_depend_on_input_order() -> None:
-    """VL4. If loading order changed the output, the cached observations would
-    produce a different analysis every run and re-running would mean nothing."""
-    observations = [
-        obs(PRO, chunk=0, offset=0.0, screens=[screen("Home", 1.0, 9.0)],
-            issues=[issue("Home", 5.0)], summary="a"),
-        obs(FLASH, chunk=0, offset=0.0, screens=[screen("home", 2.0, 8.0)], summary="b"),
-        obs(PRO, chunk=1, offset=165.0, screens=[screen("Trainers", 10.0, 20.0)]),
-        obs(FLASH, chunk=1, offset=165.0, screens=[screen("Trainers", 11.0, 21.0)],
-            issues=[issue("Trainers", 12.0)]),
-    ]
-    baseline = content(adjudicate(observations, "src_1"))
-
-    for seed in range(8):
-        shuffled = list(observations)
-        random.Random(seed).shuffle(shuffled)
-        assert content(adjudicate(shuffled, "src_1")) == baseline
-
-
-def test_adjudicating_twice_gives_byte_identical_output() -> None:
-    observations = [obs(PRO, screens=[screen("Home", 1.0, 9.0)])]
-
-    first = content(adjudicate(observations, "src_1"))
-    second = content(adjudicate(observations, "src_1"))
-
-    assert first == second
 
 
 def test_the_journey_follows_the_recording_in_time() -> None:

@@ -116,6 +116,9 @@ class ModelObservation(Artifact):
     source_id: str
     provider_label: str = Field(description="e.g. 'gemini:gemini-3.1-pro-preview'")
     prompt_name: str
+    prompt_sha256: str = Field(default="", description="the prompt TEXT this answer came from. "
+                               "A name is not a key: editing a prompt file leaves its name alone, "
+                               "and the cache would hand back the answer to the old question")
     chunk_index: int
     offset_s: float
     length_s: float

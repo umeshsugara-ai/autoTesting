@@ -39,6 +39,12 @@ A separate pass already maps the screens; this one is only about faults.
   never re-transcribe: this field is quoted to a human as something a real person said, and a
   reworded quote is a fabricated one.
 - `origin` — `spoken` if they said it, `screen` if you saw it, `spoken_and_screen` if both.
+- `confidence` — **how sure you are that this is a real fault**, not how sure you are of your
+  wording. `high` when you can point at it and there is nothing to interpret; `medium` by default;
+  `low` when you are reading intent into a half-sentence or a screen you only partly saw. Say `low`
+  freely: a `low` finding still reaches a human, and a confident wrong one costs them more than an
+  uncertain right one. Note that this is the one field the system may raise on its own — when a
+  second model reports the same fault independently — so a `low` from you is never a dead end.
 
 **Report only what you can point at.** An issue you cannot tie to a second and a screen is one a
 human cannot check, and an unverifiable finding costs more to triage than it is worth. If this
