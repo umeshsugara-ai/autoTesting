@@ -650,3 +650,49 @@ THIS IS CYCLE 3 OF MAX 3. If it does not pass, the unit goes to STALLED and stop
 than taking a fourth attempt. Recorded before the verdict, not after.
 NEXT after verdict: T-133 (Track A4) if PASS; STALLED report to Umesh if not.
 OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
+
+## 2026-09-08 — tick: ADVANCED (20) — T-132 PASSED cycle 3 of 3; the dead-command SHAPE fixed
+T-132 closed checked-PASS on cycle 3, the LAST the protocol allows (verdict b825496). Goal 67%,
+ledger row F-038. The checker verified I-VL4 by truncating a real 276,937-byte frame to 92,402 and
+confirming rejection with one re-extract; a whole PNG still reused with ZERO extract calls; a killed
+extract and an OSError both leaving no file. It attacked is_complete_png with eight shapes --
+truncated, trailing garbage, relocated IEND, wrong magic, 0-byte, and a DIRECTORY at the path -- all
+correctly False. Split lost nothing: 690 -> 693 node ids, four tests moved under identical names,
+zero deletions, widened done_check covering all three files.
+THEN IT FOUND THE SAME BUG A FOURTH TIME. AT-172 (high): the OTHER shipped command's refusal names
+"autotester ingest analyze", which does not exist. AT-163's dead end ONE COMMAND OVER, IN THE SAME
+FILE, AFTER THREE FIX CYCLES SPENT ON EXACTLY THAT SHAPE. It escaped only because the contract
+criterion was scoped to the one message already caught.
+Four occurrences is enough, so I stopped fixing instances. tests/test_cli_advice_resolves.py finds
+EVERY backtick-quoted "autotester ..." string in src/ and asks the CLI to resolve it. Six exist; all
+resolve; sabotaging either historical bug back in makes it fail.
+WRITING IT WAS THE INSTRUCTIVE PART, and each round moved the line to where it belongs:
+ (1) my first version SLICED OFF THE FIRST TOKEN, turning "ingest run" into "run" -- a test failing
+     on its OWN bug and reporting it as the code's;
+ (2) then it flagged my own COMMENTS documenting the dead commands;
+ (3) then a VARIABLE DOCSTRING explaining that "media prep" is dead.
+The rule it settled on is precise rather than convenient: A STRING THAT IS AN ENTIRE STATEMENT CAN
+NEVER BE PRINTED, so it is documentation by construction. Comments and docstrings explain; only
+runtime strings advise. That is an AST property, not a heuristic, which is why round 3 was the last.
+The AT-172 message now says the analyze stage IS NOT BUILT YET rather than naming a Track A4
+command. When there is nothing to run, say so instead of inventing something to run.
+AT-173: "ingest frames" printed a GREEN "0 frame(s) written", exit 0, for a recording that had
+vanished -- success reported for work that could not be attempted. Fixed and tested at BOTH levels,
+because the lesson of AT-166 is that fixing the stage without the shipped path is fixing half of it,
+and that lesson cost T-132 a whole cycle.
+700 passed / 2 skipped, ruff + doctor clean. Four sabotages, 1 each.
+A PRACTICE CHANGED, NOT AN INTENTION RESTATED: two commits this session lost backtick-quoted command
+names to shell command substitution inside a heredoc. I said I would stop and did not. Commit
+messages now go through a file -- verified on this unit's own commit, where the command name
+survived intact.
+PUT TO THE CHECKER HONESTLY: AT-174 is NOT closed and I do not think this unit closes it. Its
+sabotage AN4 pointed the refusal at a REGISTERED SAME-ARITY SIBLING and the Usage-banner oracle came
+back INCONCLUSIVE. The new test has the same blind spot -- it proves a command RESOLVES, not that it
+is the RIGHT one. I could not find an oracle distinguishing correct from plausible without encoding
+the answer in the test. Same offer as AT-155, which it took and which produced the fail-closed
+predicate.
+QUEUED: AT-175, AT-169 (pyproject has NO optional-dependencies block at all), AT-170, AT-130.
+NEXT after verdict: T-133 (Track A4 -- ensemble, adjudication, Issue derivation, Excel, scorer).
+Corpus facts for it already measured in .work/track-a-corpus-facts.md, including four that would
+each silently produce a recall of ZERO.
+OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
