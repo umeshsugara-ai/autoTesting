@@ -1,227 +1,196 @@
 # Verdict — t132-media-prep
 
+**Unit:** T-132 — Track A3: host media prep (probe, chunks, transcript reuse/whisper, frames)
+**Contract:** `qa/contracts/video-learning.md` (VL1, VL1b, VL1c, VL1d · I-VL1..I-VL4)
+**Commit checked:** `f90fcb3`
+**Cycle checked: 3**
 **Date:** 2026-09-08
-**Unit:** T-132 — Track A3: host media prep
-**Manifest:** `qa/manifests/t132-media-prep.md` (commit `8344137`, manifest at `37c0ab7`)
-**Contract:** `qa/contracts/video-learning.md`
-**Cycle checked:** 2
-**Bound root:** `D:/autoTesting` · adapter: `qa/adapter.json` (coding)
+**Verdict: PASS**
 
-*(This file replaces the cycle-1 FAIL verdict; git history preserves it —
-`git show HEAD~2:qa/verdicts/t132-media-prep.md`.)*
+Docker is down; `uv` runs natively. ffmpeg 8.1.1 present, `faster_whisper` absent, real corpus at
+`C:/Users/Lenovo/Videos/Screen Recordings`. No `git stash`/`checkout`/`restore` in the live tree
+(AT-101) — every sabotage ran in a detached `git worktree` at `f90fcb3` with `PYTHONPATH` pinned
+to it, and the whole live-tree state was left untouched apart from the checker-owned files this
+verdict commits.
 
----
+## 1. Verification, re-run by the checker
 
-```
-VERDICT: FAIL
-SCOREBOARD: 4/4 criteria met, 3/4 invariants hold
-FAILURES:
-- [I-VL4] sev: medium · a TRUNCATED-but-nonempty PNG is still returned by `extract_frames`
-  as evidence and cached forever; the invariant says "an empty **or truncated** PNG left by an
-  interrupted run must not be reused", and `st_size > 0` (media_prep.py:127) closes only the
-  empty half. Executed: a real 277,206-byte frame truncated to 92,402 bytes at the expected
-  name is returned with zero re-extract calls, and ffprobe rejects it ("chunk too big").
-  `extract_frame` also still does not unlink a partial `out_png` on failure (frames.py:41-42),
-  which is precisely what a `FRAME_TIMEOUT_S` kill leaves for the cache to keep · unlink the
-  partial file in the failure path and gate the cache on a decodable PNG rather than on size ·
-  issue: AT-165 (stays open; the manifest lists it as fixed)
-ISSUES-WRITTEN: AT-171 (new); AT-163/164/167/168 -> fixed; AT-165 and AT-166 amended, kept open
-EXPLANATION: Four of the six issues the manifest claims are genuinely and completely fixed, and
-I reproduced each by execution — the refusal now names a command I ran myself, an unreadable
-recording is a typed refusal with no media.json and no green line, negative and non-finite
-inputs are rejected without changing a single legitimate plan, and the falsified `-ss` rationale
-is honestly retracted in both surviving docstrings. Sabotages AF-AJ all reproduce at 1 failure
-each on a green baseline, and AI/AJ were indeed 0 before because neither test existed at
-`8dbc2d5`. The unit fails on one invariant and one claim: AT-165 was half-fixed (empty yes,
-truncated no) and AT-166 was half-fixed (persistence yes, the CLI traceback its own fix
-direction named, no), yet the manifest reports both as closed. Both halves left undone are the
-same shape as the halves that were fixed: a bad artifact reported as a good one.
-```
-
----
-
-## What I re-ran (slot-1 verify, live tree at `37c0ab7`)
-
-| command | result |
+| Command | Result |
 |---|---|
-| `uv run pytest` (bare — `-q` twice is `-qq`) | **688 passed, 2 skipped**, 1 warning in 146.58s — exit 0. Scored by counting `^FAILED` lines = **0**, not by a summary regex. |
-| `uv run ruff check src tests scripts` | `All checks passed!` — exit 0 |
-| `uv run autotester doctor` | `doctor: clean` — exit 0 |
-| T-132 `done_check` — `uv run pytest tests/test_media.py tests/test_media_prep.py -q` | **30 passed** — exit 0 |
+| `uv run pytest` (bare, `FAILED` lines counted) | **691 passed, 2 skipped**, 0 FAILED lines, exit 0 |
+| `uv run ruff check src tests scripts` | `All checks passed!`, exit 0 |
+| `uv run autotester doctor` | `doctor: clean`, exit 0 |
+| T-132 `done_check` (all three files) | 33 collected, **exit 0** |
 
-688/2 matches the manifest exactly (679 at cycle 1 + 9 new).
+`.goal/goal.json` T-132 `done_check.cmd` reads
+`uv run pytest tests/test_media.py tests/test_media_prep.py tests/test_media_frames.py -q`
+with `expect_exit: 0` — all three files, matching the split.
 
-## VL1d — re-probed, and the new test attacked
+## 2. I-VL4 re-probed (the cycle-2 FAIL)
 
-**The message now names a command that runs.** I extracted it from the live refusal and invoked it:
-`autotester ingest prep --help` → exit 0, `Usage: root ingest prep [OPTIONS] {project} {source_id}`.
-It accepts exactly the two arguments the refusal interpolates. The criterion is met on my own
-execution, not on the maker's test.
-
-**Then I attacked the test itself, and it is weaker than it looks.** The regex
-`re.search(r"\`autotester ([a-z ]+?) ")` at `tests/test_media_prep.py:148` is **non-greedy** and stops
-at the first space, so it captures the command **group**, never the subcommand:
+Re-ran the exact cycle-2 attack and extended it.
 
 ```
-SHIPPED         `autotester ingest prep`       -> captured 'ingest'  argv ['ingest','--help']  exit 0  PASS
-BOGUS-SUBCMD    `autotester ingest frobnicate` -> captured 'ingest'                            exit 0  PASS  <-- should fail
-WRONG-BUT-REAL  `autotester ingest list`       -> captured 'ingest'                            exit 0  PASS  <-- should fail
-OLD-DEAD        `autotester media prep`        -> captured 'media'                             exit 2  FAIL  (correct)
+1 cold extract                  -> 00005000.png, 1 extract call, 276,937 bytes
+2 whole PNG at expected name    -> returned, 0 extract calls          (reuse intact)
+3 truncated to 92,402 bytes     -> 1 extract call, final 276,937 B, is_complete_png=True
+4 killed extract (timeout 0.05) -> returned False, file does NOT exist
+5 ffmpeg absent (OSError)       -> returned False, file does NOT exist
 ```
 
-Answering the two questions put to me: **yes** — it would pass on a message naming a real-but-wrong
-command, and on a nonexistent subcommand under a real group. And **no** — `--help` alone is not a
-strong enough oracle: it proves the command is registered, not that it accepts the arguments the
-message implies, which I had to confirm by reading the usage line by hand. Filed as **AT-171**,
-medium. This is not a VL1d failure — the criterion is about the message, and the message is right,
-verified by execution — but the manifest's claim that "any message naming an unregistered command
-fails" is true only of an unregistered *group*.
+`is_complete_png` attacked with eight shapes:
 
-## AT-164 — re-probed, at the stage AND at the CLI surface
-
-Stage: with ffmpeg present and a 0-byte mp4, `prepare()` raises
-`UnreadableRecording: ... read no duration from empty.mp4`, and `store.load_media_prep()` is `None`.
-**Fixed.**
-
-CLI, which the manifest does not mention: I registered a 0-byte `.mp4` in a temp `AUTOTESTER_ROOT`
-and ran the real command.
-
-```
-$ autotester ingest prep demo src_87adc773ca58
-+--------------------- Traceback (most recent call last) ---------------------+
-| D:\autoTesting\src\autotester\cli_video.py:77 in media_prep_cmd             |
-| D:\autoTesting\src\autotester\stages\media_prep.py:75 in prepare            |
-+-----------------------------------------------------------------------------+
-UnreadableRecording: src_87adc773ca58: ffmpeg is installed but read no duration ...
-PREP_EXIT=1
-```
-
-No green line and no `media.json`, so **I-VL3 holds** and AT-164 is closed. But `cli_video.py:79`
-still catches only `(FileNotFoundError, ValueError)` and `UnreadableRecording` is a `RuntimeError`,
-so the operator gets a raw Rich traceback and exit 1 instead of the clean red line + exit 2 that
-every other refusal in this file produces. That is **AT-166's own fix direction** ("widen the CLI's
-except clause"), which the manifest reports as fixed. AT-166 stays open, amended.
-(`transcript.json` is still written before the refusal — a record, not an overstatement; noted below,
-not filed.)
-
-## AT-165 — the empty half is fixed, the truncated half is not
-
-| probe | result |
+| Input | Result |
 |---|---|
-| 0-byte PNG at the expected name | **rejected** — `extract_frames` returns `[]`. Fixed. |
-| good cached PNG with real bytes | **reused**, `extract_frame` not called. The fix did not trade a wrong answer for a slow one. |
-| **real 277,206-byte frame truncated to 92,402 bytes** | **returned as evidence**, 0 re-extract calls. `ffprobe` on it: `[png] chunk too big`. |
+| real 277 KB frame truncated to 92 KB | False ✔ |
+| valid PNG with trailing garbage appended | False ✔ |
+| PNG magic present, IEND relocated, tail cut | False ✔ |
+| wrong magic + correct 12-byte IEND tail | False ✔ |
+| 0-byte file | False ✔ |
+| **a directory at that path** | False ✔ (the `stat`/`open` OSError is caught) |
+| whole real PNG | True ✔ |
+| **exactly magic + IEND, 20 bytes, no image data** | **True** — see below |
 
-**Ruling on whether `st_size > 0` is a sufficient oracle: no, and it is what fails this unit.**
-I-VL4 names truncation explicitly, and the path is reachable end to end with no guard anywhere on
-it: `extract_frame`'s 60s timeout kills ffmpeg mid-write, `frames.py:41-42` returns `False`
-**without unlinking** the partial file, and the next run's `st_size > 0` check adopts it
-permanently. A half-decoded image shown to a human beside an issue is worse than an admitted gap —
-which is the maker's own argument for the 0-byte case. The unlink was already named in AT-165's fix
-direction and is one line.
+The last one is the only hole, and it is filed as a residual note on AT-165 rather than charged:
+a killed write truncates the *tail*, so nothing in the failure mode this guard exists for can
+produce a file that ends in a valid IEND. The docstring already disclaims correctness and claims
+only wholeness; that claim survives the attack. **I-VL4 holds.**
 
-## AT-167 — re-probed, and the validation move checked for collateral damage
-
-```
-plan_chunks(500, overlap_s=-30)     -> ValueError: overlap -30.0s cannot be negative
-plan_chunks(inf)                    -> ValueError: duration must be finite
-plan_chunks(nan)                    -> ValueError: duration must be finite   (was [] silently)
-plan_chunks(500, chunk_s=0/-10/inf) -> ValueError: positive, finite
-```
-
-All three cycle-1 findings closed, the NaN case included (`isfinite` catches it). **No legitimate
-result changed** by moving validation before the short-circuits:
+## 3. AT-166 re-probed through the shipped command, and the sibling command checked
 
 ```
-plan_chunks(30)  -> [(0.0, 30.0)]      plan_chunks(0) -> []     plan_chunks(-5) -> []
-plan_chunks(180) -> [(0.0, 180.0)]     plan_chunks(181) -> [(0.0,180.0),(165.0,16.0)]
-plan_chunks(500) -> [(0,180),(165,180),(330,170)]     overlap 0 -> abutting, full coverage
-5000 randomised (duration, chunk, overlap>=0) triples -> 0 gapless failures
+$ autotester ingest prep probe src_25e8afc6f93e     # a registered non-video file
+src_25e8afc6f93e: ffmpeg is installed but read no duration from garbage.mp4 — the file is
+empty or not a video this ffmpeg understands
+exit 2 · no traceback · source dir contains transcript.json only (no media.json)
 ```
 
-Every row is identical to my cycle-1 table.
+Clean typed refusal on the path an operator runs. **AT-166 closed.**
 
-## Sabotage reproduction (my own harness, rebuilt)
+The other shipped command does **not** have the same untreated-exception shape — `ingest frames`
+handles its own missing-analysis case and exits 2 — but it does carry the *other* cycle-2 defect:
+its refusal names **`autotester ingest analyze`**, and `autotester ingest --help` lists exactly
+`register / list / prep / frames / run`. `autotester ingest analyze --help` → `No such command
+'analyze'`, exit 2. That is AT-163's dead end one command over. It is **not** charged against
+VL1d, which is scoped to the `media.json` refusal and is met by the shipped artifact — filed as
+**AT-172 (high)**. The four other command strings quoted in `src/` (`autotester approve`,
+`flowspec approve`, `map`, `snapshot`) were all executed and all exist; this is isolated.
 
-`git archive HEAD` into a temp tree, `PYTHONPATH` pinned to that tree's `src` (AT-101 — nothing
-stashed, checked out or restored in the live tree). Each sabotage asserts **anchor matched exactly
-once + file content changed** before its result is believed; failures counted from `^FAILED` lines,
-never from a summary regex; zero failures is INCONCLUSIVE, never a pass.
+`ingest frames` against a recording that had been moved away also printed a **green**
+`0 frame(s) written` and exited 0 — the AT-164 family reached through `frames`. Zero frames is
+not among I-VL3's enumerated values and `extract_frames` is contractually allowed to degrade to
+fewer pictures, so this is **AT-173 (medium)**, not a criterion failure.
 
-```
-RESTORED baseline                                       -> 0 failures (rc=0)
-AF the refusal names the dead `media prep` again        -> 1   (anchor once, file changed)
-AG an unreadable video persists zero chunks again       -> 1
-AH a failed cut escapes as a raw traceback              -> 1
-AI a 0-byte leftover PNG counts as evidence             -> 1
-AJ a negative overlap is accepted again                 -> 1
-```
+## 4. AT-171 — is the new oracle sufficient? **Better, not sufficient.**
 
-All five match the manifest. **AI and AJ were genuinely 0 before**, confirmed independently of the
-maker's word: neither test exists at `8dbc2d5` (`git show 8dbc2d5:tests/test_media.py | grep -c
-negative` → 0; same for `zero_byte_leftover` in `test_media_prep.py`). C7 earned its place again.
-Note though that AI's sabotage inverts `st_size > 0` back to `exists()`, so it pins the empty half
-only — nothing in the suite would fail if the truncated case regressed, because it never worked.
+Measured, for the two-argument invocation the message interpolates:
 
-## Live corpus re-run — nothing regressed
-
-```
-duration 29.909333s, 1904x924
-  chunk_00_0s.mp4   offset=0.0  len=12.00  426674 bytes
-  chunk_01_9s.mp4   offset=9.0  len=12.00  339589 bytes
-  chunk_02_18s.mp4  offset=18.0 len=11.91  320546 bytes
-transcript: sidecar, 6 segments, 22.0s speech ; sidecar segment mismatches: 0, counts equal
-```
-
-Byte-identical to cycle 1, with the sidecar compared segment by segment rather than by engine label.
-**VL1, VL1b, VL1c all still met.**
-
-## AT-168 — the correction is honest
-
-Both surviving `-ss` docstrings (`chunks.py:93-103`, `frames.py:28-38`) now state the original
-justification was wrong, cite the byte-identical measurement on ffmpeg 8.1.1 with keyframes 4.27s
-apart, and keep the argument order on conservatism across builds. That matches what I measured, and
-neither overstates it. `grep -rn keyframe src/` finds no remaining assertion of the falsified
-mechanism — the manifest's "three docstrings" was a miscount, only two `-ss` docstrings exist.
-The manifest's cycle-1 section (lines 29-33) still asserts the keyframe claim uncorrected, but lines
-132-141 retract it explicitly in the same file. Recorded, not charged.
-
-## Issues NOT fixed this cycle — confirmed genuinely untouched
-
-| issue | check | state |
+| Named command | `Usage:` banner | Oracle verdict |
 |---|---|---|
-| AT-169 | `grep -c optional-dependencies pyproject.toml` → **0**; `transcribe.py:16` still says "declared under the optional `media` extra" | open, unchanged |
-| AT-170 | no test anywhere references `ffmpeg_available` or probe's zeros-not-raise; CX1–CX4 still have no guard | open, unchanged |
-| AT-130 | T-132 still makes no model call; its recorded trigger has not occurred | open, unchanged |
+| `ingest prep probe src_missing` (shipped) | absent | passes ✔ correct |
+| `ingest list probe src_missing` (wrong arity) | present | fails ✔ |
+| `ingest frobnicate probe src_missing` | present | fails ✔ |
+| `media prep probe src_missing` (dead group) | present | fails ✔ |
+| **`ingest frames probe src_missing`** | **absent** | **passes ✘** |
+| **`ingest register probe src_missing`** | **absent** | **passes ✘** |
 
-## A last look at `prepare()` as a whole
+The checker ran its own sabotage **AN4** (`PREP_COMMAND` → `autotester ingest frames`) under the
+same anchor-matched-once + file-changed harness: **INCONCLUSIVE, 0 failures, 33 passed.** So the
+oracle now rejects unregistered groups, unregistered subcommands and wrong arity — the three
+shapes the maker enumerated — and accepts any registered same-arity sibling regardless of what it
+does. The *criterion* VL1d is nonetheless met: the shipped message names
+`autotester ingest prep <slug> <source_id>`, which the checker ran for real. The gap is in the
+test, not the artifact → **AT-174 (medium)**, not a FAIL.
 
-Every remaining exit was walked. `path is None` → `ValueError`; not a file → `FileNotFoundError`;
-no ffmpeg → `_unchunked` (one chunk on the original, mandated by VL1 — an unreadable file cannot be
-detected without ffmpeg, so that is inherent, not a defect); empty plan → refusal; encode failure →
-refusal with no `media.json`; success → saved. `chunk_minutes` is the only knob the CLI exposes, and
-both bad values it can produce (`0`, and one small enough to invert the overlap) raise `ValueError`,
-which the CLI catches into a clean exit 2.
+## 5. Sabotages reproduced (checker's own harness, isolated worktree)
 
-The one artifact that outlives a refusal is `transcript.json`, written at `media_prep.py:50` before
-probing: it records narration for a source nothing can watch. `require_prepared` blocks anything
-downstream from acting on it, so I record it as a note rather than an issue.
+Each printed `anchor matched once, file changed` before its result was believed.
 
-**Open question, not a finding:** an ffmpeg that exits 0 having written a 0-byte chunk would pass
-`check=True` in `encode_chunks` and be recorded in `media.json` as a real chunk — the same class as
-AT-165 one layer up. I could not induce it and will not charge it.
+```
+AK  CLI stops catching UnreadableRecording      -> 1  test_the_shipped_prep_command_answers_a_refusal_cleanly
+AL  killed extract leaves its half-file again   -> 1  test_a_killed_extract_leaves_no_half_file_behind
+AM  cache gates on size again, not wholeness    -> 1  test_a_truncated_png_is_not_returned_as_evidence
+AN1 registered-but-wrong-arity (ingest list)    -> 1  test_a_stage_needing_prep_is_sent_to_a_command_that_exists
+AN2 unregistered subcommand (ingest frobnicate) -> 1  (same test)
+AN3 the original dead group (media prep)        -> 1  (same test)
+AN4 registered SAME-ARITY sibling (ingest frames, CHECKER'S OWN) -> 0  INCONCLUSIVE -> AT-174
+RESTORED: 33 passed
+```
 
-## Goal task
+All six maker-claimed sabotages reproduce at exactly the claimed count.
 
-`T-132` **remains open**. No PASS, so no close and no `docs/FEATURES.jsonl` row. (Had it passed, a
-row would have been due and auto-stamped `update`, since `user_value: normal`.)
+## 6. The split lost nothing
 
-## What the maker should do next
+Collected node ids across the whole `tests/` tree, `f90fcb3^` (worktree) vs `f90fcb3`:
+**690 → 693.** Full diff: four tests moved `test_media_prep.py → test_media_frames.py` under
+byte-identical names, plus three genuinely new ones
+(`test_a_killed_extract_leaves_no_half_file_behind`,
+`test_a_truncated_png_is_not_returned_as_evidence`,
+`test_the_shipped_prep_command_answers_a_refusal_cleanly`). File-agnostic name diff shows
+**zero deletions**. The widened `done_check` names all three files and collects all 33 — the
+maker's own stated concern (a check naming two of three files) is closed, verified against the
+node list rather than against the file names.
 
-Two lines close the FAIL: `out_png.unlink(missing_ok=True)` in `extract_frame`'s `except`, and a
-cache gate that checks the PNG is actually decodable (an `IEND` tail is enough) — plus the test that
-pins it, which the current AI sabotage does not. Then widen `cli_video.py:79` to catch
-`UnreadableRecording` for AT-166's other half, and tighten the VL1d regex for AT-171. Everything
-else in cycle 2 is right, and the AT-167 and AT-168 work in particular is the standard this project
-should hold: a guard measured against its legitimate inputs, and a rationale retracted rather than
-defended.
+## 7. The maker's self-reported measurement error
+
+Accurately described. `doctor` is clean now and the `done_check` genuinely exits **0** when run
+alone (re-run above). A `doctor && pytest` chain with a red doctor short-circuits and reports
+doctor's status, which is exactly the failure described — coherent, and the correction is on
+disk in the manifest rather than only in the maker's head. Recorded, not charged.
+
+## 8. Adversarial pass on `prepare()`
+
+| Path | Behaviour, measured |
+|---|---|
+| ffmpeg + ffprobe absent | one chunk on the original path, `ffmpeg_version` unset — the VL1 shape exactly. `ffmpeg_available()` confirmed False first. |
+| ffmpeg present, file unreadable | `UnreadableRecording`, exit 2, **no `media.json`** |
+| encode fails mid-cut | wrapped into `UnreadableRecording`, no `media.json` (sabotage AH, cycle 2) |
+| sidecar present | reused, `engine=sidecar`, 6 segments, **0 whisper calls** (I-VL1) |
+| negative overlap / non-finite duration | `ValueError` refused before the short-circuits (I-VL2) |
+| frame placement | `extract_frame(erp1.mp4, 20.0)` → md5 `670362ad938c57b42431d432ce4d9abb`, **byte-identical** to both reference orders and to cycle 2's recorded value (VL1c) |
+| chunk coverage | durations 1 / 29.91 / 181 / 600 / 3600 s: starts at 0, no gap, reaches full duration (VL1c) |
+| `prepare()`'s only callers | `cli_video.py` alone; `require_prepared` has no caller yet |
+
+One remaining honesty gap, **not** a criterion failure: the no-ffmpeg branch prints a green
+`0s, 1 chunk(s)` and persists `duration_s 0.0 / width 0 / height 0 / length_s 0.0` as if measured.
+The bracketed `[no ffmpeg — one chunk on the original file]` is the contract's own designated
+record of *why*, which is what keeps this outside I-VL3's "reported as a successful result", but a
+downstream reader of `media.json` cannot tell "not measured" from "measured as zero" →
+**AT-175 (low)**. `transcript.json` is also persisted before the recording is proven readable, so
+an unreadable source leaves a transcript and no media prep — recorded in AT-175's context, harmless
+because nothing references it.
+
+No path was found where `prepare()` reports success for a recording that cannot be watched.
+
+## Issues
+
+**Closed by this unit (open → fixed, verified 2026-09-08):** AT-165, AT-166, AT-171 — each
+re-derived by execution, not by reading the diff.
+
+**Filed:** AT-172 (high), AT-173 (medium), AT-174 (medium), AT-175 (low).
+
+**Still open, unchanged and correctly declared in the manifest:** AT-169 (no
+`[project.optional-dependencies]` block), AT-170 (no CX1–CX4 guards), AT-130 (waits on its own
+trigger — the first real Files API call, which this unit does not make).
+
+**Whisper has still never been executed.** The contract's UNVERIFIED section stands and no claim
+in this unit contradicts it.
+
+---
+
+```
+VERDICT: PASS
+SCOREBOARD: 4/4 criteria met, 4/4 invariants hold
+FAILURES: none
+ISSUES-WRITTEN: AT-172, AT-173, AT-174, AT-175 (new) · AT-165, AT-166, AT-171 (open -> fixed/verified)
+EXPLANATION: The cycle-2 FAIL on I-VL4 is closed by execution, not by inspection — a truncated
+277KB frame is now rejected and re-extracted, a whole PNG is still reused with zero extract
+calls, a killed extract leaves nothing behind, and is_complete_png survived eight attack shapes
+including a directory at the path. AT-166's CLI half is closed on the shipped command (exit 2,
+no traceback, no media.json), all six maker sabotages reproduce at exactly the claimed counts,
+and the node-id diff proves the test split moved four tests and lost none while the widened
+done_check covers all three files and exits 0. Four new findings were filed rather than charged:
+AT-172 (the sibling `ingest frames` refusal names a nonexistent `ingest analyze`) and AT-174
+(the VL1d oracle still accepts a registered same-arity sibling — the checker's own AN4 sabotage
+came back INCONCLUSIVE) are both real and both outside the criteria as authored.
+```

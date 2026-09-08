@@ -114,3 +114,24 @@ recording has a sidecar.
   **VL1d was tightened** from "names the host command" to "names a command the operator can
   actually run", because the shipped message names `autotester media prep`, which the CLI does
   not expose. Invariants I-VL1..I-VL4 and the UNVERIFIED section are checker additions.
+- 2026-09-08 · routine · **Edge cases recorded from the cycle-3 check of `t132-media-prep`
+  (PASS).** No criterion changed — these are measurements the next reader should not have to
+  re-derive. (i) **I-VL4's wholeness proxy has a known hole:** a file that is exactly PNG magic
+  plus the 12-byte IEND chunk (20 bytes, no image data) passes `is_complete_png`. It is not
+  reachable from the failure mode the guard exists for — an interrupted write truncates the tail
+  — and the guard is explicitly a wholeness proxy, not a correctness claim. Recorded, not
+  tightened (AT-165 residual). (ii) **VL1d's oracle is scoped to the criterion, not to the
+  project.** "No `Usage:` banner after running the whole quoted invocation" was measured to
+  reject an unregistered group, an unregistered subcommand and wrong arity, and to *accept* a
+  registered same-arity sibling (`ingest frames`, `ingest register`); the checker's AN4 sabotage
+  confirmed this by coming back INCONCLUSIVE. VL1d is met because the *shipped message* names a
+  command that was run for real; the residual is test strength (AT-174) and is deliberately not
+  written into the criterion at the moment of a passing verdict. (iii) **VL1d's shape exists
+  outside this criterion's scope:** the `ingest frames` refusal names `autotester ingest
+  analyze`, which the CLI does not expose (AT-172, high). VL1d covers the `media.json` refusal
+  only; a future amendment generalising it to every refusal that quotes a command should be
+  taken on its own, away from a pending verdict. (iv) **I-VL3 boundary, measured:** the
+  no-ffmpeg degrade prints a green `0s, 1 chunk(s)` and persists zeros for duration/width/height.
+  This is the shape VL1 *requires*, and the bracketed `[no ffmpeg — …]` is the designated record
+  of why, so it is outside I-VL3's "unqualified success claim" — filed as AT-175 (low) rather
+  than scored.

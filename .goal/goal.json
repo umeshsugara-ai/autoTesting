@@ -4,15 +4,15 @@
   "north_star": "An AI automated end-to-end tester that ingests product videos/docs, derives a reviewed FlowSpec, auto-generates best/worst/edge-case evals, runs them as regression in a real visible browser, self-extends coverage by requesting videos for unknown screens, and beats an expert human tester head-to-head on the same material (bugs found, false-positive rate, time). First target: Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-08T18:02:02",
+  "updated": "2026-09-08T18:38:20",
   "progress": {
     "total": 45,
-    "done": 29,
+    "done": 30,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 16,
+    "pending": 15,
     "current": "T-122",
-    "percent": 64
+    "percent": 67
   },
   "tasks": [
     {
@@ -509,7 +509,7 @@
     {
       "id": "T-132",
       "title": "Track A3: host media prep (probe, chunks, transcript reuse/whisper, frames)",
-      "status": "pending",
+      "status": "done",
       "base_criticality": "low",
       "deps": [
         "T-130"
@@ -523,7 +523,8 @@
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
       "user_value": "normal",
-      "criticality": "low"
+      "criticality": "low",
+      "completed": "2026-09-08T18:38:13"
     },
     {
       "id": "T-133",
@@ -904,7 +905,7 @@
     {
       "ts": "2026-09-03T07:27:21",
       "level": "warn",
-      "message": "STALLED \u2014 last agentic tick never; open work is not advancing",
+      "message": "STALLED — last agentic tick never; open work is not advancing",
       "task_id": null,
       "kind": "stalled",
       "acked": true
@@ -912,7 +913,7 @@
     {
       "ts": "2026-09-03T12:07:01",
       "level": "warn",
-      "message": "STALLED \u2014 last agentic tick 94 min ago; open work is not advancing",
+      "message": "STALLED — last agentic tick 94 min ago; open work is not advancing",
       "task_id": null,
       "kind": "stalled",
       "acked": false
@@ -920,21 +921,21 @@
     {
       "ts": "2026-09-07T17:17:01",
       "level": "critical",
-      "message": "T-122 is CRITICAL \u2014 human required",
+      "message": "T-122 is CRITICAL — human required",
       "task_id": "T-122",
       "acked": false
     },
     {
       "ts": "2026-09-07T17:17:01",
       "level": "critical",
-      "message": "T-135 is CRITICAL \u2014 human required",
+      "message": "T-135 is CRITICAL — human required",
       "task_id": "T-135",
       "acked": false
     },
     {
       "ts": "2026-09-07T17:17:01",
       "level": "critical",
-      "message": "T-144 is CRITICAL \u2014 human required",
+      "message": "T-144 is CRITICAL — human required",
       "task_id": "T-144",
       "acked": false
     },
@@ -969,7 +970,7 @@
     {
       "ts": "2026-09-08T11:12:10",
       "level": "critical",
-      "message": "T-145 is CRITICAL \u2014 human required",
+      "message": "T-145 is CRITICAL — human required",
       "task_id": "T-145",
       "acked": false
     },
@@ -990,7 +991,7 @@
     {
       "ts": "2026-09-08T11:12:10",
       "level": "critical",
-      "message": "T-154 is CRITICAL \u2014 human required",
+      "message": "T-154 is CRITICAL — human required",
       "task_id": "T-154",
       "acked": false
     }
@@ -1001,9 +1002,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 5.0,
-    "eta_days": 3.2
+    "velocity_per_day": 5.16,
+    "eta_days": 2.9
   },
-  "last_deterministic_tick": "2026-09-08T18:02:02",
+  "last_deterministic_tick": "2026-09-08T18:38:20",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }
