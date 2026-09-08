@@ -503,3 +503,13 @@ rewrote it, no loss) — it is the same class of live-tree mutation AT-101 alrea
 **No-fire list:** media prep / chunking / whisper (A3); the ensemble and adjudication (A4);
 frames and `screenshot_ts` consumption (A3); merging into an existing FlowSpec (A6); any live
 model call (this unit is MockProvider only).
+
+**FOLDED 2026-09-08 by /checker** into `qa/contracts/ingest.md` as **I6-I10** (I10 added by the
+checker: `register_source`'s content-identity rule was a real decision the four requested criteria
+left ungoverned). All three sabotage transcripts reproduced verbatim in a `git archive` scratch
+copy. **Ruling on `google-genai`:** real deviation from plan section 4 A2, filed as AT-130 and to be
+closed in A3 -- but not a FAIL; the maker's reason is half wrong (the module IS importable today,
+via a transitive pin, which is the hazard) and the reasoning is now in the contract's amendment
+log and no-fire list. **Ruling on the `git checkout` hygiene line:** upheld in substance, refused
+in a feature contract; filed as AT-131 extending AT-101. Nothing was lost -- the committed prompt
+diff is the full rewrite, verified. Verdict: `qa/verdicts/t131-ingest-persists.md` (PASS, cycle 1).
