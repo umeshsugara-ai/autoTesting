@@ -53,7 +53,19 @@ it refuses", it is "can a check that ran for real get past it".
 
 ### CN4 — Consent is never open-ended
 - `expires_at` is required. An unparseable expiry is treated as **expired**, never as eternal.
-- **Verify:** `tests/test_consent.py`.
+- **A bare date means the START of that day, not the end.** `expires_at: "2026-09-09"` is read by
+  `fromisoformat` as midnight, so consent lapses at `2026-09-09 00:00:00`. This is recorded, not
+  endorsed: whether it *should* mean end-of-day is a CRITICAL amendment (it widens every approval
+  already on disk by up to 24h) and is put to the human at `qa/gates/at147-expiry-end-of-day.md`.
+  Until that is answered, the semantics above are the contract.
+- **The grant and the runtime must agree: every expiry `approve` ACCEPTS must be one
+  `require_consent` will HONOUR.** Two comparisons implementing one rule is where AT-145 and
+  AT-147 both came from — a whole day in which `approve` printed a green "granted" line for a
+  consent the very next `explore` refused as expired. A refusal at the grant must also name what
+  the operator should type instead; a gate that only says "no" trains the operator to stop reading
+  it (the CN6 principle, applied one level up at the grant).
+- **Verify:** `tests/test_consent.py`; and the property test driving the real CLI grant into the
+  real `require_consent` (`tests/test_approve_cli.py::test_the_grant_and_the_runtime_agree_on_every_expiry_they_accept`).
 
 ### CN5 — Approval does not transfer
 - Matching on (`project`, `run_kind`, `target`) is **EXACT** string matching. A prefix match would
@@ -139,6 +151,13 @@ it refuses", it is "can a check that ran for real get past it".
 - 2026-09-08 · record edge case · **CN5** trailing-slash / case / query-string variants named as
   deliberately distinct targets, with the reason · why: measured all four as refused; brittleness
   is the intended trade against a normaliser that silently widens consent.
+- 2026-09-08 · tighten · **CN4** extended with (a) the measured meaning of a bare `expires_at`
+  (START of the named day) and (b) the grant↔runtime agreement property · why: measured — AT-145
+  and AT-147 were one defect twice, a `<` at the grant against a midnight `>` at the runtime, so
+  `approve --expires <today>` was granted and then refused. Recording the property once, as a
+  criterion, is what stops it arriving a third time. Tightening, not weakening — auto-applied.
+  The *end-of-day alternative* is deliberately NOT adopted here: it widens every approval on disk
+  by up to 24h, which is CRITICAL → `qa/gates/at147-expiry-end-of-day.md`.
 - 2026-09-08 · add criterion · **CN8** (a `done_check` must be demonstrated in both directions) and
   **CN9** (the gate is unconditional; the maker's trade upheld, reversal is CRITICAL) · why: the
   maker asked for a ruling on the trade and it should not stay implicit; AT-100's lesson is that an
