@@ -410,3 +410,43 @@ queue row waits.
 Measured and ready for it: T-126, T-150 AND T-135 all have done_checks that exit 0 RIGHT NOW,
 before any of their work exists. AT-100's shape three times, not the twice AT-115 records.
 OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
+
+## 2026-09-08 — tick: ADVANCED (14) — at151-at152 PASSED; chain honoured; AT-141+AT-115 built
+at151-at152 closed checked-PASS cycle 1 (verdict 0017d25). Two corrections to my claims, both kept:
+sabotage U fails 1 not the 3 I reported (the checker reverted the exact AT-151 hunk rather than my
+broader mutation -- a stronger result, credited as such), and the .. guard is NOT over-broad
+(/app/v..1/x, /app/report..pdf, /app/....//evil all pass; every real climb refused).
+IT FOUND A REAL HOLE IN THE C7 CLAUSE IT WROTE, BY WALKING INTO IT: its first sabotage U mutated a
+string on a line no assertion reads. Anchor matched once, file changed, ZERO failures -- which under
+the clause as written reads as "the guard test is vacuous", the exact misreading the clause exists
+to prevent. count==1 + file-changed prove the patch LANDED, not that it MATTERS. C7 now says a
+zero-failure sabotage is INCONCLUSIVE about the tests until the mutation is shown to change
+behaviour. Charged to the clause, not to the unit -- no fix cycle burned.
+CHAIN CLOSED AS COMMITTED. It filed only AT-153 (low, percent-encoded dot-segments) and stated
+explicitly it should be QUEUED not fixed, and endorsed AT-141+AT-115 next. I honoured the on-disk
+commitment rather than reopening consent for a low advisory-only finding.
+Built at141-at115-done-check-can-fail (commit b86bf77, ready-for-check). C9 names three control
+fields and its Verify clause tested only the first, so the field it governs SECOND was ungoverned by
+it. Measured before touching anything: T-126, T-150 AND T-135's done_checks all exit 0 before any
+of their work exists. AT-100's shape three times, in the machinery that decides whether anything is
+finished. scripts/check_deliverable.py lets a task name a deliverable instead of a repo-wide health
+command -- deliberately dumb, it checks the artifact is THERE not that it is good, because a
+done_check that judged quality would be a second and worse checker.
+THE GUARD IS STATIC ON PURPOSE: running every pending done_check for real would take minutes AND
+would pass once the work landed, so "it fails today" is the wrong property. What is pinned is that
+a check is CAPABLE of failing.
+SELF-CORRECTION, and the reason the guard has a self-test: my first predicate did not catch `true`
+-- AT-100's ORIGINAL defect, verbatim, on the CRITICAL live-ERP crawl. I wrote it against the three
+offenders in front of me instead of against the shape's own history: the same "I fixed the instance
+I was looking at" pattern as AT-148->149->150->151. The guard's own self-test failed and told me.
+654 passed / 2 skipped, ruff + doctor clean. Sabotages W/X/Y -> 2/1/1, each C7-compliant, and the
+harness now reports a zero-failure sabotage as INCONCLUSIVE rather than as a vacuous test.
+Y is the one I would keep: W and X prove the DATA is fixed, Y proves the GUARD is -- and a guard
+that cannot fail is this unit's own defect one level up.
+PUT TO THE CHECKER, honestly: is_capable_of_failing is a heuristic that FAILS OPEN, which is the
+wrong direction for a guard. I could not make it fail closed without rejecting legitimate checks.
+If the checker can, that is a better unit than this one.
+Transient network reset on one push (Recv failure); retried and succeeded.
+NEXT: C9's THIRD field, `approved`, is still unpinned by any test -- named in the manifest so the
+gap is on record rather than implied closed. Also queued: AT-153 (low), AT-136, AT-137, AT-102 etc.
+OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
