@@ -4,7 +4,7 @@
   "north_star": "An AI automated end-to-end tester that ingests product videos/docs, derives a reviewed FlowSpec, auto-generates best/worst/edge-case evals, runs them as regression in a real visible browser, self-extends coverage by requesting videos for unknown screens, and beats an expert human tester head-to-head on the same material (bugs found, false-positive rate, time). First target: Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-08T10:52:01",
+  "updated": "2026-09-08T11:12:10",
   "progress": {
     "total": 45,
     "done": 28,
@@ -19,7 +19,7 @@
       "id": "T-000",
       "title": "P0 design lock: schema, core, provider seam, doctor, ARCHITECTURE",
       "status": "done",
-      "base_criticality": "LOW",
+      "base_criticality": "low",
       "deps": [],
       "done_check": {
         "type": "cmd",
@@ -35,7 +35,7 @@
       "id": "T-004",
       "title": "Schema research scout: survey test/flow schemas (Playwright planner specs, Gherkin, WebTestBench, Allure/JUnit, Mind2Web) -> confirm or amend FlowSpec/Case",
       "status": "done",
-      "base_criticality": "LOW",
+      "base_criticality": "low",
       "deps": [
         "T-000"
       ],
@@ -54,7 +54,7 @@
       "id": "T-005",
       "title": "Living map + feature ledger: /init-lab AUTO, FeatureEvent schema, ledger.py, `map`/`snapshot` CLI, doctor freshness checks, hook injection, CLAUDE.md router",
       "status": "done",
-      "base_criticality": "MEDIUM",
+      "base_criticality": "medium",
       "deps": [
         "T-000"
       ],
@@ -74,7 +74,7 @@
       "id": "T-010",
       "title": "browser/session.py: headed Playwright + persistent profile + screenshot masking",
       "status": "done",
-      "base_criticality": "MEDIUM",
+      "base_criticality": "medium",
       "deps": [
         "T-000"
       ],
@@ -94,7 +94,7 @@
       "id": "T-011",
       "title": "browser/secrets.py: .env loading + {{SECRET:KEY}} injection at fill-time, domain-scoped",
       "status": "done",
-      "base_criticality": "CRITICAL",
+      "base_criticality": "critical",
       "deps": [
         "T-000"
       ],
@@ -114,7 +114,7 @@
       "id": "T-020",
       "title": "store/filestore.py: load/save every artifact as JSON/JSONL under projects/<slug>/",
       "status": "done",
-      "base_criticality": "LOW",
+      "base_criticality": "low",
       "deps": [
         "T-000"
       ],
@@ -134,7 +134,7 @@
       "id": "T-030",
       "title": "Onboard Pathlynks: project.json + .env.example + portal-explorer knowledge file",
       "status": "done",
-      "base_criticality": "HIGH",
+      "base_criticality": "high",
       "deps": [
         "T-011",
         "T-020"
@@ -154,7 +154,7 @@
       "id": "T-040",
       "title": "stages/execute.py: script-first runner producing RawResult + Evidence",
       "status": "done",
-      "base_criticality": "MEDIUM",
+      "base_criticality": "medium",
       "deps": [
         "T-010",
         "T-020"
@@ -175,7 +175,7 @@
       "id": "T-041",
       "title": "stages/grade.py: independent stateless grader, rubric in / Verdict out",
       "status": "done",
-      "base_criticality": "HIGH",
+      "base_criticality": "high",
       "deps": [
         "T-040"
       ],
@@ -195,7 +195,7 @@
       "id": "T-045",
       "title": "Backend assertions: EvidenceKind.DB + read-only Mongo assertion helper (PATHLYNKS_MONGO_URI as SecretRef); production Mongo never written",
       "status": "done",
-      "base_criticality": "MEDIUM",
+      "base_criticality": "medium",
       "deps": [
         "T-040",
         "T-011"
@@ -216,7 +216,7 @@
       "id": "T-050",
       "title": "First real run: 3 hand-written Pathlynks cases (best/worst/edge) verdicted in a headed browser",
       "status": "done",
-      "base_criticality": "HIGH",
+      "base_criticality": "high",
       "deps": [
         "T-030",
         "T-041"
@@ -236,7 +236,7 @@
       "id": "T-060",
       "title": "providers/gemini.py + stages/ingest.py: video/docs -> FlowSpec with SourceRefs",
       "status": "done",
-      "base_criticality": "HIGH",
+      "base_criticality": "high",
       "deps": [
         "T-020"
       ],
@@ -256,7 +256,7 @@
       "id": "T-065",
       "title": "FlowSpec review gate: Review.status must be approved before expand runs; UI/CLI accept-or-edit",
       "status": "done",
-      "base_criticality": "MEDIUM",
+      "base_criticality": "medium",
       "deps": [
         "T-060"
       ],
@@ -276,7 +276,7 @@
       "id": "T-070",
       "title": "stages/expand.py: FlowSpec -> cases covering every applicable CaseClass",
       "status": "done",
-      "base_criticality": "HIGH",
+      "base_criticality": "high",
       "deps": [
         "T-060",
         "T-065"
@@ -297,7 +297,7 @@
       "id": "T-080",
       "title": "providers/anthropic.py + agent fallback loop that emits a durable script",
       "status": "done",
-      "base_criticality": "HIGH",
+      "base_criticality": "high",
       "deps": [
         "T-040"
       ],
@@ -317,7 +317,7 @@
       "id": "T-090",
       "title": "stages/coverage.py: route/screen diff -> CoverageGap -> VideoRequest",
       "status": "done",
-      "base_criticality": "MEDIUM",
+      "base_criticality": "medium",
       "deps": [
         "T-050"
       ],
@@ -337,7 +337,7 @@
       "id": "T-100",
       "title": "ui/: FastAPI onboarding, masked .env editor, live run view, report",
       "status": "done",
-      "base_criticality": "MEDIUM",
+      "base_criticality": "medium",
       "deps": [
         "T-050",
         "T-070"
@@ -358,7 +358,7 @@
       "id": "T-110",
       "title": "Regression proof: break a staging feature, confirm exactly that case FAILs",
       "status": "done",
-      "base_criticality": "HIGH",
+      "base_criticality": "high",
       "deps": [
         "T-080",
         "T-100"
@@ -378,7 +378,7 @@
       "id": "T-120",
       "title": "stages/bench.py + seeded corpus + first human-vs-AI trial scorecard",
       "status": "done",
-      "base_criticality": "HIGH",
+      "base_criticality": "high",
       "deps": [
         "T-110"
       ],
@@ -396,7 +396,7 @@
       "id": "T-055",
       "title": "providers/langchain_fallback.py: multi-vendor fallback (Anthropic->Gemini->Ollama->ChatGPT)",
       "status": "done",
-      "base_criticality": "HIGH",
+      "base_criticality": "high",
       "deps": [],
       "done_check": {
         "type": "cmd",
@@ -414,7 +414,7 @@
       "id": "T-121",
       "title": "Governance: register plan.md, goal tasks, D-014..D-016 (Track A/B backlog)",
       "status": "done",
-      "base_criticality": "NORMAL",
+      "base_criticality": "low",
       "deps": [],
       "done_check": {
         "type": "cmd",
@@ -432,7 +432,7 @@
       "id": "T-122",
       "title": "Track 0 tail: login case + first logged-in ERP run (HUMAN_GATE: ERP_EMAIL/ERP_PASSWORD values)",
       "status": "pending",
-      "base_criticality": "HIGH",
+      "base_criticality": "high",
       "deps": [
         "T-121"
       ],
@@ -451,7 +451,7 @@
       "id": "T-123",
       "title": "Medium-issue batch: AT-087 per-field exemption, AT-076/086 config-field rule, AT-079/080, AT-065, AT-085",
       "status": "pending",
-      "base_criticality": "NORMAL",
+      "base_criticality": "low",
       "deps": [
         "T-121"
       ],
@@ -470,7 +470,7 @@
       "id": "T-130",
       "title": "Track A1: video-learning schema + storage foundation (D-014)",
       "status": "done",
-      "base_criticality": "NORMAL",
+      "base_criticality": "low",
       "deps": [
         "T-121"
       ],
@@ -490,7 +490,7 @@
       "id": "T-131",
       "title": "Track A2: hardened Gemini vision provider + registered Source + persisted ingest",
       "status": "pending",
-      "base_criticality": "HIGH",
+      "base_criticality": "high",
       "deps": [
         "T-130"
       ],
@@ -503,13 +503,13 @@
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
       "user_value": "high",
-      "criticality": "low"
+      "criticality": "high"
     },
     {
       "id": "T-132",
       "title": "Track A3: host media prep (probe, chunks, transcript reuse/whisper, frames)",
       "status": "pending",
-      "base_criticality": "NORMAL",
+      "base_criticality": "low",
       "deps": [
         "T-130"
       ],
@@ -528,7 +528,7 @@
       "id": "T-133",
       "title": "Track A4: two-model ensemble + deterministic adjudication + Issue derivation + 13-column Excel + scorer",
       "status": "pending",
-      "base_criticality": "HIGH",
+      "base_criticality": "high",
       "deps": [
         "T-131",
         "T-132"
@@ -542,13 +542,13 @@
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
       "user_value": "high",
-      "criticality": "low"
+      "criticality": "high"
     },
     {
       "id": "T-134",
       "title": "Track A5: product map, journeys, issues and sources pages",
       "status": "pending",
-      "base_criticality": "HIGH",
+      "base_criticality": "high",
       "deps": [
         "T-133"
       ],
@@ -561,13 +561,13 @@
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
       "user_value": "high",
-      "criticality": "low"
+      "criticality": "high"
     },
     {
       "id": "T-135",
       "title": "Track A6: coverage/merge/expand loops reconnected + ARCHITECTURE update",
       "status": "pending",
-      "base_criticality": "NORMAL",
+      "base_criticality": "low",
       "deps": [
         "T-134"
       ],
@@ -586,7 +586,7 @@
       "id": "T-136",
       "title": "Track A acceptance: erp1/2/3 scored vs ERP_Issues_Trainers.xlsx with recall/FP numbers in the manifest",
       "status": "pending",
-      "base_criticality": "HIGH",
+      "base_criticality": "high",
       "deps": [
         "T-133"
       ],
@@ -599,13 +599,13 @@
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
       "user_value": "high",
-      "criticality": "low"
+      "criticality": "high"
     },
     {
       "id": "T-140",
       "title": "Track B1: observation primitives (browser/observe.py, launch split, Action BACK/HOVER/PRESS_KEY/SCROLL, choke-point test) -- D-014/D-015",
       "status": "done",
-      "base_criticality": "NORMAL",
+      "base_criticality": "low",
       "deps": [
         "T-121"
       ],
@@ -625,7 +625,7 @@
       "id": "T-141",
       "title": "Track B2: screen identity (url templating + structural signature) + crawl schema + store",
       "status": "done",
-      "base_criticality": "NORMAL",
+      "base_criticality": "low",
       "deps": [
         "T-121"
       ],
@@ -645,7 +645,7 @@
       "id": "T-142",
       "title": "Track B4: explorer safety layer (SafetyPolicy, deny-list, write_policy matrix, dialog breaker) -- D-016",
       "status": "done",
-      "base_criticality": "HIGH",
+      "base_criticality": "high",
       "deps": [
         "T-141"
       ],
@@ -665,7 +665,7 @@
       "id": "T-143",
       "title": "Track B3: bounded BFS crawl stage + qa/contracts/explore.md + fixture crawl site + CLI",
       "status": "done",
-      "base_criticality": "HIGH",
+      "base_criticality": "high",
       "deps": [
         "T-140",
         "T-141",
@@ -687,7 +687,7 @@
       "id": "T-144",
       "title": "Track B5: crawl -> FlowSpec merge, crawl coverage, Excel/UI crawl report",
       "status": "done",
-      "base_criticality": "HIGH",
+      "base_criticality": "high",
       "deps": [
         "T-143"
       ],
@@ -707,7 +707,7 @@
       "id": "T-145",
       "title": "Live bounded READ_ONLY crawl of vidysea.com/erp with the test account",
       "status": "pending",
-      "base_criticality": "CRITICAL",
+      "base_criticality": "critical",
       "deps": [
         "T-122",
         "T-144"
@@ -721,13 +721,13 @@
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
       "user_value": "high",
-      "criticality": "low"
+      "criticality": "critical"
     },
     {
       "id": "T-124",
       "title": "Consent gates as an artifact (RunApproval + require_approval) and a real done_check for T-145",
       "status": "done",
-      "base_criticality": "HIGH",
+      "base_criticality": "high",
       "deps": [
         "T-144"
       ],
@@ -747,7 +747,7 @@
       "id": "T-125",
       "title": "Test catalog: which case classes apply, which are runnable, which are blocked and why (+ cheap->expensive ordering)",
       "status": "pending",
-      "base_criticality": "NORMAL",
+      "base_criticality": "low",
       "deps": [
         "T-124"
       ],
@@ -766,7 +766,7 @@
       "id": "T-126",
       "title": "Governance debt sweep: adapter allowlist (D-018), QUEUE/SNAPSHOT drift, ledger backfill",
       "status": "pending",
-      "base_criticality": "NORMAL",
+      "base_criticality": "low",
       "deps": [
         "T-124"
       ],
@@ -785,7 +785,7 @@
       "id": "T-150",
       "title": "Track C governance: register C tasks, file ai-target.md and adversarial.md criteria for the checker",
       "status": "pending",
-      "base_criticality": "NORMAL",
+      "base_criticality": "low",
       "deps": [
         "T-124"
       ],
@@ -804,7 +804,7 @@
       "id": "T-151",
       "title": "Track C1: read-only target discovery + deterministic signals + classification (+ context folder as markdown)",
       "status": "pending",
-      "base_criticality": "HIGH",
+      "base_criticality": "high",
       "deps": [
         "T-150"
       ],
@@ -817,13 +817,13 @@
       "attempts": 0,
       "created": "2026-09-08T00:46:52",
       "user_value": "high",
-      "criticality": "low"
+      "criticality": "high"
     },
     {
       "id": "T-152",
       "title": "Track C2: AI check registry + catalog matching (reuses T-125's Catalog, never a second one)",
       "status": "pending",
-      "base_criticality": "NORMAL",
+      "base_criticality": "low",
       "deps": [
         "T-151",
         "T-125"
@@ -843,7 +843,7 @@
       "id": "T-153",
       "title": "Track C3: behavioural checks against a captured run, graded by the existing independent judge",
       "status": "pending",
-      "base_criticality": "HIGH",
+      "base_criticality": "high",
       "deps": [
         "T-152"
       ],
@@ -856,13 +856,13 @@
       "attempts": 0,
       "created": "2026-09-08T00:46:52",
       "user_value": "high",
-      "criticality": "low"
+      "criticality": "high"
     },
     {
       "id": "T-154",
       "title": "Track C4: bounded adversarial pass behind consent gate 2 (+ adversarial_proof.py)",
       "status": "pending",
-      "base_criticality": "CRITICAL",
+      "base_criticality": "critical",
       "deps": [
         "T-153",
         "T-124"
@@ -876,13 +876,13 @@
       "attempts": 0,
       "created": "2026-09-08T00:46:52",
       "user_value": "high",
-      "criticality": "low"
+      "criticality": "critical"
     },
     {
       "id": "T-155",
       "title": "Track C5: unified AI test report grouped by tier with judge reason strings",
       "status": "pending",
-      "base_criticality": "NORMAL",
+      "base_criticality": "low",
       "deps": [
         "T-154"
       ],
@@ -936,6 +936,62 @@
       "message": "T-144 is CRITICAL — human required",
       "task_id": "T-144",
       "acked": false
+    },
+    {
+      "ts": "2026-09-08T11:12:10",
+      "level": "warn",
+      "message": "T-131 needs review (high)",
+      "task_id": "T-131",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-08T11:12:10",
+      "level": "warn",
+      "message": "T-133 needs review (high)",
+      "task_id": "T-133",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-08T11:12:10",
+      "level": "warn",
+      "message": "T-134 needs review (high)",
+      "task_id": "T-134",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-08T11:12:10",
+      "level": "warn",
+      "message": "T-136 needs review (high)",
+      "task_id": "T-136",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-08T11:12:10",
+      "level": "critical",
+      "message": "T-145 is CRITICAL — human required",
+      "task_id": "T-145",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-08T11:12:10",
+      "level": "warn",
+      "message": "T-151 needs review (high)",
+      "task_id": "T-151",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-08T11:12:10",
+      "level": "warn",
+      "message": "T-153 needs review (high)",
+      "task_id": "T-153",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-08T11:12:10",
+      "level": "critical",
+      "message": "T-154 is CRITICAL — human required",
+      "task_id": "T-154",
+      "acked": false
     }
   ],
   "preferences": {
@@ -944,9 +1000,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 5.1,
+    "velocity_per_day": 5.08,
     "eta_days": 3.3
   },
-  "last_deterministic_tick": "2026-09-08T10:52:01",
+  "last_deterministic_tick": "2026-09-08T11:12:10",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }
