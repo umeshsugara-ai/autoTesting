@@ -614,3 +614,39 @@ spread: erp1=1, erp2=1, erp3=5 -- a "recall x/7" headline is dominated by erp3, 
 belongs beside the total.
 NEXT after verdict: T-133 (Track A4 -- ensemble, adjudication, Issue derivation, Excel, scorer).
 OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
+
+## 2026-09-08 — tick: ADVANCED (19) — T-132 FAILED cycle 2; cycle 3 shipped (LAST ALLOWED)
+T-132 FAILED cycle 2 on I-VL4, and the shape is MY CYCLE-2 MISTAKE ONE LEVEL DOWN.
+AT-166: I made prepare() raise a typed UnreadableRecording and NEVER WIDENED THE CLI'S EXCEPT
+CLAUSE, which caught only (FileNotFoundError, ValueError). UnreadableRecording is a RuntimeError, so
+the SHIPPED command answered a deliberate refusal with a raw Rich traceback. That is exactly what
+AT-163 was ONE CYCLE EARLIER IN THE SAME FILE. Last cycle: "the message must name a command that
+exists". This cycle: "the refusal must reach the operator at all". Same root both times -- I verify
+the mechanism I changed, not the path that ships.
+AT-165 was half-fixed the same way: st_size > 0 closed only the EMPTY half. The checker truncated a
+real 277,206-byte frame to 92,402 at the expected name and extract_frames returned it as evidence
+with ZERO re-extract calls. Reachable with no guard anywhere -- the 60s timeout kills ffmpeg
+mid-write and the failure path returned False WITHOUT UNLINKING, so the cache adopted the half-file
+permanently. Now unlinks, and the cache gates on a WHOLE png (magic + the fixed 12-byte IEND chunk;
+a cheap "the encoder finished" proxy, no image library, explicitly NOT a claim the image is right).
+AT-171 TOOK THREE ATTEMPTS AT ONE ORACLE: --help on the captured command GROUP (proved the group was
+registered, so `ingest frobnicate` and `ingest list` both passed); then substring checks (sabotaging
+to a REGISTERED-but-wrong-arity command came back INCONCLUSIVE under C7); then the measured one --
+click prints its `Usage:` banner for an unregistered command, an unregistered SUBcommand AND wrong
+arity alike, while a correct invocation reaches the application's own message. All three shapes now
+bite. Measured, not guessed, on the third try.
+691 passed / 2 skipped, ruff + doctor clean. Six sabotages: AK/AL/AM -> 1 each, AN in three variants
+-> 1 each. AN's FIRST run was refused by my own harness -- I passed a placeholder anchor and the C7
+assertion caught it instead of reporting a green result.
+tests/test_media_frames.py split at doctor's cap BY RESPONSIBILITY, and the split restates the
+finding: prep's bugs were about REPORTING SUCCESS FOR WORK THAT DID NOT HAPPEN, frames' were about
+ACCEPTING A FILE AS EVIDENCE WHEN NOBODY FINISHED WRITING IT. Same file, opposite failure.
+T-132's done_check WIDENED to name the new file. A split leaving a check naming two of three files
+is the C9 defect I just spent three units on, arriving through the back door.
+A MEASUREMENT ERROR OF MY OWN, corrected: I read the done_check as exit 1 when it was 0. I had
+chained it after `autotester doctor` with && , doctor was red on the line cap, and I reported
+DOCTOR'S exit as pytest's. Caught by re-running it alone.
+THIS IS CYCLE 3 OF MAX 3. If it does not pass, the unit goes to STALLED and stops for Umesh rather
+than taking a fourth attempt. Recorded before the verdict, not after.
+NEXT after verdict: T-133 (Track A4) if PASS; STALLED report to Umesh if not.
+OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
