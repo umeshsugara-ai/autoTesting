@@ -570,3 +570,47 @@ NEXT after verdict: T-133 (Track A4 -- the two-model ensemble, deterministic adj
 derivation, the 13-column Excel and the scorer). That is the first point where AutoTester's issue
 list can be scored against the team's own sheet.
 OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
+
+## 2026-09-08 — tick: ADVANCED (18) — T-132 FAILED cycle 1; cycle 2 shipped
+T-132 FAILED cycle 1 on VL1d -- a criterion I ASKED THE CHECKER TO AUTHOR, which is the right way
+round. require_prepared sent the operator to `autotester media prep`. THERE IS NO `media` COMMAND;
+they live under `ingest`. It is the message meant to RESCUE someone who cannot run prep where they
+are, and it sent them to a dead end -- and my own test pinned the substring "media prep", so a
+PASSING TEST PROTECTED IT. The test now extracts the command from the refusal and invokes it with
+--help: a substring cannot tell a real command from a plausible one; the CLI can.
+AT-164 (high) is the one I would have shipped: ffmpeg PRESENT and a file it cannot read persisted
+chunks=[] and the CLI printed a GREEN SUCCESS LINE. A source nothing can ever watch, reported as
+prepared -- the exact shape _unchunked exists to prevent, reached through the other branch.
+Also fixed: AT-166 (a failed cut escaped as a traceback and could leave a PARTIAL chunk set, worse
+than none because it reads as complete), AT-165 (a 0-byte leftover PNG returned as evidence),
+AT-167 (a negative overlap silently skipped footage -- the one failure nothing downstream reports;
+validation also moved BEFORE the short-circuits, where it actually fires).
+AT-168 -- MY RATIONALE WAS FALSIFIED AND I CORRECTED THE CLAIM, NOT JUST THE CODE. I asserted in
+three docstrings and the manifest that -ss before -i seeks to the nearest keyframe and shifts a cut
+by seconds. The checker MEASURED it on ffmpeg 8.1.1: both orders gave a BYTE-IDENTICAL frame at
+t=20s with keyframes 4.27s apart. The order stays because it is conservative across builds, not
+because the failure I described happens. A design defended by a mechanism that does not exist is
+defended by nothing, even when the design is right.
+688 passed / 2 skipped, ruff + doctor clean. Sabotages AF-AJ -> 1 each.
+C7 EARNED ITS PLACE TWICE MORE THIS TICK: AI and AJ both came back INCONCLUSIVE, meaning I had
+fixed code and written NO TEST for either. Both pinned now, both bite on re-run. That is three
+separate units where the clause caught coverage I would otherwise have claimed.
+CHECKER CORRECTIONS TO MY CYCLE-1 NUMBERS, kept: the done_check exited 4 at the parent commit, not
+the 1 I wrote (both test files were new -- a collection error); and sabotage AC fails 3, not 2.
+STILL OPEN AND WORSE THAN I CONCEDED: AT-169 -- pyproject has NO [project.optional-dependencies]
+block at all, so the `media` extra my docstring cites does not exist. AT-130 stays open separately;
+its trigger is "the unit that first calls the Files API for real" and T-132 makes no model call.
+Whisper still never executed; ruled NOT a PASS-blocker because the crash-isolation plumbing IS
+exercised end to end (module runs, import fails, non-zero caught into engine="none") -- only its
+output shape is unverified, and the contract now carries an explicit UNVERIFIED section forbidding
+any claim that transcription works.
+PREP DONE READ-ONLY FOR T-133 while the checker ran (.work/track-a-corpus-facts.md, 4 new facts):
+the two ground-truth sheets DO NOT share a schema -- ALL has the plan's 13 columns exactly, but
+Trainers has 12 (no `Date`, and `Clip` instead of `Recording`) AND TRAINERS IS THE SHEET T-136'S
+ACCEPTANCE USES. `Clip` is not a filename but "<file> (<who>, <section>)", so the plan's
+--map erp1.mp4=<sid> equality match finds ZERO rows. `At` is a STRING "MM:SS", not a number, so the
+plan's |At - at_s| <= window comparison silently matches nothing. And the 7 rows are not evenly
+spread: erp1=1, erp2=1, erp3=5 -- a "recall x/7" headline is dominated by erp3, so per-clip recall
+belongs beside the total.
+NEXT after verdict: T-133 (Track A4 -- ensemble, adjudication, Issue derivation, Excel, scorer).
+OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
