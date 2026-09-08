@@ -44,3 +44,21 @@ NEXT after verdict: Track A T-131 (hardened Gemini vision provider + registered 
 that persists). Per plan section 2's own sizing rule Track A takes tick budget over Track C -- it
 is the only track with a human ground-truth sheet waiting to score against.
 OPEN HUMAN GATES: AT-110 approval-forgery posture; ERP_EMAIL/ERP_PASSWORD for T-122/T-145.
+
+## 2026-09-08 — tick: ADVANCED (2)
+Closed out at108-at114-swallowed-causes (checker PASS cycle 1, commit 116b0bb, pushed).
+The checker PASSed but BROKE the unit's headline claim by executing it: IssueKind.EVIDENCE was
+separate in the artifact and NOT in any number a human reads -- crawl.issues = 5 for one real
+product issue. Filed AT-120 (high) and amended X16 to record it as an OPEN gap.
+Built at120-evidence-not-product-issues (commit bc29b34, ready-for-check) rather than starting
+Track A: a regression introduced by my own previous commit outranks opening a new track.
+tool_failures counted, summarised, sheeted and rendered apart -- following the existing Noise
+precedent (counted apart, reported apart, never dropped) rather than inventing a shape.
+592 passed / 2 skipped, ruff + doctor clean. Two sabotages; sabotage 5 reproduces the checker's
+own numbers as `assert 5 == 1`.
+Checker dispatched this turn (no dangling ready-for-check).
+SELF-CORRECTION WORTH KEEPING: second time in three units that a claim of mine survived my own
+review and died on the checker's execution (AT-116 was the first). The pattern is that I verify
+the mechanism I changed and not the number a reader ends up seeing.
+NEXT after verdict: Track A T-131.
+OPEN HUMAN GATES: AT-110 approval-forgery posture; ERP_EMAIL/ERP_PASSWORD for T-122/T-145.
