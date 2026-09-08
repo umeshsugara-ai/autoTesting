@@ -67,6 +67,7 @@
 | `stages/explore_safety.py` | The explorer's inner safety guard (Track B4, D-016). |
 | `stages/grade.py` | GRADE: an independent, stateless judge reads a Rubric + a RawResult's evidence. |
 | `stages/ingest.py` | INGEST: turn a video Source into a FlowSpec, provenance-tracked to the second. |
+| `stages/issues.py` | ISSUES: turn an adjudicated analysis into rows a human tester can read. |
 | `stages/manual_login.py` | Manual one-time login. Contract: qa/contracts/manual-login.md ML1-ML5. |
 | `stages/media_prep.py` | MEDIA PREP: make a recording readable — probe it, cut it, transcribe it. |
 | `stages/report_export.py` | Tester-style run reports: an Excel summary and a screen-by-screen HTML |
