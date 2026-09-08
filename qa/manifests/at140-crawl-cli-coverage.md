@@ -1,8 +1,8 @@
 # at140-crawl-cli-coverage
 
 **Unit:** AT-140 (high) — no test drove the shipped `autotester explore` or `autotester approve`
-**Commit:** f564d0d
-**Fix cycle:** 1
+**Commit:** f564d0d (cycle 1) -> **f19471e** (cycle 2)
+**Fix cycle:** 2
 **Contract:** `qa/contracts/consent.md` CN1–CN9 · `qa/contracts/explore.md`
 **Queue:** top row of the 2026-09-08T14:40Z sweep, taken as written.
 
@@ -99,5 +99,89 @@ uv run autotester doctor               doctor: clean
   record instead of implied closed.
 - The sweep's other two queue rows (**AT-141 + AT-115** — make C9 mean what it says; **AT-142** —
   the ERP credential gate has no file on disk at all) are untouched and remain queued.
+
+## Cycle 2 -- FAIL on AT-143, and the finding is the sharpest of the session
+
+**My no-trace test saw 3 of the 211 entries a refused run creates.**
+
+It globbed `projects/<slug>` for names containing "crawl" or "profile". The entire Chromium profile
+tree -- `Default/Network/Cookies`, `Login Data`, `History` -- lives at `root/profiles/<slug>`, a
+**sibling of `projects/`**, unreachable by that glob whatever it searched for. It is the exact
+artefact my own docstring named as half the AT-111 bug.
+
+**A test that names the right property and then looks in the wrong place is worse than no test**, because
+it reports the guarantee as held. It now snapshots `set(root.rglob("*"))` before and after: nothing
+new *anywhere*, not "nothing new where I thought to look".
+
+Proven, not asserted -- with the pre-flight removed the fixed test fails with:
+
+```
+E   AssertionError: a refused run created 204 entries, e.g.
+E     .../profiles, .../profiles/demo, .../profiles/demo/BrowserMetrics, ...
+```
+
+Led by `profiles/demo/` -- precisely what the old glob could never reach.
+
+### AT-146 -- my claim, my error
+
+I called the defaults test **"the one row I would keep"**, claiming it pins `explore_cmd`'s **typer**
+defaults to `require_consent`. It does not. It never invokes `explore`; it constructs `CrawlBounds()`
+directly, so it pins the **schema** defaults. The checker proved it by drifting the typer default
+200 -> 137, under which that test still **passed**.
+
+My substantive claim was right -- a drift fails nowhere else in the 633-test suite. My attribution of
+*which* test protects the seam was wrong. The two **refusal** tests do, because they read the bounds
+out of the real command's output. The docstring is corrected rather than the test quietly deleted:
+being wrong about why a test matters is worth recording next to the test.
+
+### AT-144 -- two bounds nothing could notice
+
+Hardcoding `max_screens=999` left all 633 tests green. `--max-screens` and `--max-depth` never reach
+an approval (consent bounds actions / probes / wall-clock only), so nothing in the system could
+notice them being unwired -- and they are the two bounds that decide **how much of a live production
+ERP gets touched**. Now captured at the pre-flight seam.
+
+### AT-145 -- the safety held; what the human was told did not
+
+`approve --expires 2020-01-01` exited 0 with a green *"granted"* line. So did `--expires never`, and
+a target unrelated to the project. `require_consent` refuses all three at run time, so nothing unsafe
+could happen -- but the human granting **T-145's production consent** was told it worked.
+
+A gate that reports success for a grant it will never honour trains the operator to stop reading it.
+Expired and unparseable now refuse; a mismatched target **warns and proceeds**, because an endpoint
+under test may legitimately differ from `base_url` and CN5 matches exactly at consent time anyway.
+
+### Cycle 2 evidence
+
+```
+$ SABOTAGE K (against the AT-143 fix): drop the consent pre-flight
+E   AssertionError: a refused run created 204 entries, e.g. [.../profiles, .../profiles/demo, ...]
+FAILED tests/test_crawl_real_cli.py::test_a_refused_crawl_leaves_nothing_on_disk
+
+$ SABOTAGE O: AT-145 -- approve stops validating the grant
+failures: 3
+
+$ SABOTAGE P: AT-144 -- hardcode max_screens=999 (the exact drift the suite missed)
+failures: 1
+FAILED tests/test_crawl_real_cli.py::test_every_bound_flag_reaches_the_crawl_bounds
+
+$ RESTORE
+14 passed
+```
+
+### Cycle 2 verification
+
+```
+uv run pytest                          637 passed, 2 skipped   (633 at cycle 1 + 4 new)
+uv run ruff check src tests scripts    All checks passed!
+uv run autotester doctor               doctor: clean
+```
+
+### Also closed this tick, outside this unit
+
+**AT-142** -- the ERP credential HUMAN_GATE had no `qa/gates/` record; it existed only as the closing
+line of every tick stamp this session. Written to `qa/gates/erp-credentials.md` (commit before this
+one). My own rule is *"the moment you name a gate, write the file"*, and I named it every tick without
+ever writing it -- the exact D-006 loop the rule exists to prevent.
 
 ## Status: ready-for-check
