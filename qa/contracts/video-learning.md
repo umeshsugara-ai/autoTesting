@@ -135,3 +135,20 @@ recording has a sidecar.
   This is the shape VL1 *requires*, and the bracketed `[no ffmpeg — …]` is the designated record
   of why, so it is outside I-VL3's "unqualified success claim" — filed as AT-175 (low) rather
   than scored.
+
+- 2026-09-08 · routine · **Edge case recorded from the cycle-1 check of `at172-at173-dead-command-shape`
+  (PASS).** No criterion changed. The unit generalised VL1d's shape into a class-level guard,
+  `tests/test_cli_advice_resolves.py`, which resolves every backtick-quoted `autotester ...` string in
+  `src/` against the live CLI. **Measured hole:** that guard cannot see advice whose command name and
+  backticks live in different AST nodes -- which is exactly how `require_prepared` builds its message
+  (`media_prep.py:157`, two implicitly concatenated f-strings, the name held in the `PREP_COMMAND`
+  constant). Sabotaging `PREP_COMMAND` back to the dead `media prep` (anchor matched once, file
+  changed, isolated worktree) yields **0 failures in the class-level guard** and exactly 1 in the full
+  suite. That one is
+  `tests/test_media_prep.py::test_a_stage_needing_prep_is_sent_to_a_command_that_exists`.
+  **That instance test is therefore NOT made redundant by the class-level guard and may not be retired
+  on that basis** -- it is currently the only thing that catches the original AT-163 regression at its
+  own site. Recorded here because commit 3b765a4's argument ("stop fixing instances") would otherwise
+  make deleting it look like tidying up. Residuals tracked as AT-176 (high) and AT-178 (medium);
+  AT-174 stays open with a round-trip oracle design attached in the verdict. Verdict:
+  `qa/verdicts/at172-at173-dead-command-shape.md`.
