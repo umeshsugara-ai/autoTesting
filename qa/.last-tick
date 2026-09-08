@@ -303,3 +303,38 @@ T-126, T-150 AND T-135 all have done_checks that pass RIGHT NOW, before any of t
 (exit 0), while T-145's post-AT-100 check correctly exits 1. That is the AT-100 shape three times,
 not twice as AT-115 says.
 OPEN HUMAN GATES: AT-110 approval-forgery posture; ERP credentials (now qa/gates/erp-credentials.md).
+
+## 2026-09-08 — tick: ADVANCED (11) — at140 PASSED cycle 2; AT-147/148 built same tick
+at140 closed checked-PASS cycle 2 (verdict 5253352). Checker verified all four fixes by execution
+and corrected me IN MY FAVOUR twice: sabotage K now fails TWO tests, not one (the new AT-144 test
+also trips), and all FOUR bound flags are pinned, not the two I claimed -- it drifted max_screens,
+max_depth, max_actions and wall_clock_s independently and each broke something.
+It also hit my own cycle-1 lesson itself: its first two AT-144 sabotages anchored on
+`max_actions=max_actions`, which matches TWICE in the file, so the patch silently applied nothing
+and reported 637 green. It caught that before believing it. Same trap, both directions, same day.
+Then it filed two fresh findings on the new code, and I took them the SAME tick rather than
+queueing them, because AT-147 is high and lands on the exact date T-145's grant would use:
+AT-147 -- `_validate_grant` compared `< date.today()` while `is_expired` reads a bare date through
+fromisoformat, i.e. MIDNIGHT. So `--expires <today>` was GRANTED with a green line and refused at
+run time as expired. One rule, two comparisons, one whole day of disagreement.
+Fixed at the GRANT and deliberately NOT by making is_expired inclusive: end-of-day is the more
+intuitive reading, and adopting it WIDENS EVERY APPROVAL ALREADY ON DISK BY UP TO 24 HOURS.
+Silently lengthening a consent window is not a change a maker makes to a security gate on its own
+judgement -- put to the checker as a design question instead, with the note that if it prefers
+end-of-day my conservative refusal should be REPLACED, not layered on.
+AT-148 -- startswith(base_url) reads https://demo.test.evil.com/ as matching https://demo.test/.
+Bounded (CN5 matches exactly at run time, nothing widens) but a typo advisory silent on precisely
+the shape a typo-squat takes is not much of an advisory. Scheme+netloc equality before any path
+prefix; a genuine sub-path still passes unflagged, because a warning that cries wolf on the normal
+case gets ignored when it matters.
+641 passed / 2 skipped, ruff + doctor clean. Sabotages Q, R -> 1 each.
+tests/test_approve_cli.py split at doctor's 300-line cap BY RESPONSIBILITY, and the split restates
+the finding: test_crawl_real_cli.py is about REFUSING a crawl, the new file about ISSUING the
+approval that permits one -- the gate's deny half was well guarded and its grant half had no test
+at all until AT-140.
+Checker dispatched this turn. Asked it whether _validate_grant is reachable on EVERY path that
+creates an approval, or whether the UI grant surface bypasses it -- this fix may only cover the CLI.
+NEXT: AT-141 + AT-115 (make C9 mean what it says). Measured and ready: T-126, T-150 AND T-135 all
+have done_checks that exit 0 right now, before any of their work exists. AT-100's shape three
+times, not the twice AT-115 records.
+OPEN HUMAN GATES: AT-110 approval-forgery posture; ERP credentials (qa/gates/erp-credentials.md).
