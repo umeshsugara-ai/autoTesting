@@ -147,3 +147,10 @@ score is computed. Two ground-truth sheets (19 Aug, 24 Aug) the plan never count
 Checker dispatched this turn (no dangling ready-for-check).
 NEXT after verdict: T-132 (Track A3, host media prep) using the corrected C: paths.
 OPEN HUMAN GATES: AT-110 approval-forgery posture; ERP_EMAIL/ERP_PASSWORD for T-122/T-145.
+
+## 2026-09-08 — checker crash on at125-at132 (cycle 1), re-dispatching
+The AT-125/128/129/132 checker terminated on an API authentication error ("Not logged in") after
+its first tool call. It wrote NO verdict: `qa/verdicts/at125-*` does not exist and the working tree
+is clean. Handled per the standing rule -- a crashed checker is NOT a verdict and NOT a fix cycle.
+The manifest stays at `Fix cycle: 1` / `ready-for-check` and the check is re-dispatched unchanged.
+Third crash handled this way (t124 cycle 2 ENOTFOUND, AT-113 HTTP 429, this one auth).
