@@ -1072,3 +1072,39 @@ sweep's measurement is answered by the next several units or not at all.
 NEXT: T-136 (the scorer, first real recall numbers) -- fold in AT-207/AT-208 there, since both are
 about a partial analysis reaching the reader and T-136's scorer is AT-208's named victim.
 OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
+
+## 2026-09-09 — tick: ADVANCED (30) — AT-206 cycle 1 FAILED, four issues closed, cycle 2 dispatched
+Cycle 1: FAIL, 8/11. All eleven of the checker's sabotages discriminated -- every guard I built does
+bite. It failed on the PRESSURE PROBES, and the first finding is this unit's own thesis landing on
+this unit.
+AT-210 (high): I WROTE "sites are now pinned individually, by line" AND THEY WERE NOT. The resolve
+check is PARAMETRIZED over whatever the collector returns, so deleting a site removes a CASE, NOT A
+TEST. The checker deleted consent.py's advice -- the exact site AT-178 exists for -- and the run
+went 26 tests -> 25 with ZERO failures. Nine of eleven sites freely deletable. And removing
+`len(commands) >= 6` was a NET LOSS: crude, four sites of slack, but it BIT AT SIX, and I replaced
+it with nothing. This is the whole unit's subject -- a check that cannot fail -- committed by me in
+the commit that closes it.
+AT-211: the AT-206 guard survived its own sabotage BY COINCIDENCE. The composed-site test gathered
+line numbers from EVERY file and indexed them into media_prep.py's source, so a decoy constant at
+line 157 of any module satisfied it with the renderer deleted. Now scoped to media_prep.py; I
+replayed the checker's exact attack and it fails 3 tests.
+AT-212: the hole report's exemption was wide enough to hide a command.
+PREP_COMMAND = os.environ.get("CMD", "autotester ingest prep") was invisible to the collector AND
+exempt from the hole report IN ONE MOVE. A call can return anything, so a call is no longer an
+exemption -- only a non-string literal or a literal container. Measured after: still 11 sites, 0
+holes, so the tightening added no noise.
+AT-213: the argv ORDER was asserted and the PROGRAM was not -- ffmpeg-x failed nothing. A perfectly
+ordered argv handed to a program that does not exist is not a working call.
+WORTH RECORDING: THE CHECKER'S OWN C7 CLAUSE FIRED ON THE CHECKER. Its first dedup sabotage changed
+two of three lines, so the check key and the add key never matched -- dedup was DISABLED, not
+reverted -- and the suite returned 823 passed, SIX MORE cases than baseline. It noticed from the
+count going UP, called INCONCLUSIVE, and re-ran a true revert. That clause working on the person
+applying it is the only real test of it.
+Six sabotages plus a replay of the checker's AT-211 attack, all seven discriminate. 818 passed / 2
+skipped, ruff + doctor clean. Cycle 2 dispatched this turn.
+STANDING COUNT for the next sweep: this unit produced 4 checker-found instances of the class in
+cycle 1 and 0 self-caught. That is the number, not a softened version of it.
+NEXT: T-136 (the scorer, first real recall numbers), folding in AT-207 (coverage reaches no reader)
+and AT-208 (adjudicate's expected=None declares a fragment complete -- T-136's scorer is its named
+victim).
+OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
