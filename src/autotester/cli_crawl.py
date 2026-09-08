@@ -90,15 +90,26 @@ def explore_cmd(
     except ApprovalRequired as exc:
         typer.secho(str(exc), fg=typer.colors.YELLOW)
         raise typer.Exit(2) from None
-    typer.secho(
-        f"{crawl.id}: {crawl.status.value} ({crawl.stop_reason}) — "
-        f"{crawl.screens} screens, {crawl.edges} edges, {crawl.actions} actions, "
-        f"{crawl.denied} denied, {crawl.issues} issues",
-        fg=typer.colors.GREEN,
-    )
+    echo_crawl_summary(crawl)
     if merge:
         _merge_into_flowspec(store_, project, crawl.id)
     typer.echo(str(paths.crawl_dir(crawl.id)))
+
+
+def echo_crawl_summary(crawl: Any) -> None:
+    """The whole report a headless or CI run gets (AT-122).
+
+    `tool_failures` belongs here for the same reason it belongs in the
+    workbook: this line is the only place such a run learns the crawl could
+    not record part of what it saw. Dropping it under-reports as dishonestly
+    as folding it into `issues` over-reported."""
+    typer.secho(
+        f"{crawl.id}: {crawl.status.value} ({crawl.stop_reason}) — "
+        f"{crawl.screens} screens, {crawl.edges} edges, {crawl.actions} actions, "
+        f"{crawl.denied} denied, {crawl.issues} issues, "
+        f"{crawl.tool_failures} tool failures",
+        fg=typer.colors.GREEN,
+    )
 
 
 def _merge_into_flowspec(store_: ProjectStore, project: str, crawl_id: str) -> None:

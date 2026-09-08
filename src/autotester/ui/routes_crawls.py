@@ -65,7 +65,7 @@ def crawls(slug: str) -> str:
             f"<td>{theme.pill(escape(crawl.status.value), 'neutral')}</td>"
             f"<td>{escape(crawl.stop_reason or '—')}</td><td>{crawl.screens}</td>"
             f"<td>{crawl.denied}</td><td>{crawl.issues}</td>"
-            f"<td>{crawl.tool_failures or '—'}</td>"
+            f"<td>{crawl.tool_failures}</td>"
             f"<td>{escape(crawl.started_at or '—')}</td></tr>"
         )
     table = (

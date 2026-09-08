@@ -178,3 +178,63 @@ def test_the_workbook_and_the_crawl_page_keep_them_apart(
     tool = [i for i in store.list_crawl_issues(crawl.id) if i.kind.value == "evidence"]
     assert "could not screenshot" in crawl_view.tool_failures_table(tool, {}), (
         "the crawl page must still SHOW the gap in its own evidence")
+
+
+# -- AT-121 / AT-122: the surfaces the AT-120 sweep missed -----------------
+
+def _summary_crawl(**over: object):
+    from autotester.schema.crawl import Crawl
+    from autotester.schema.enums import CrawlStatus
+    base = dict(project="demo", id="crawl_x", status=CrawlStatus.COMPLETED,
+                stop_reason="frontier empty", screens=3, actions=9, edges=4,
+                denied=1, issues=1, tool_failures=4)
+    base.update(over)
+    return Crawl(**base)  # type: ignore[arg-type]
+
+
+def test_the_cli_line_reports_tool_failures_too(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """AT-122 (checker-found): `cli_crawl` was the one `crawl.issues` reader
+    the AT-120 commit did not touch. After that fix it no longer INFLATED the
+    count -- it silently dropped tool failures instead, so a CI or headless run
+    (the only report those get) was told nothing about holes in its own
+    evidence. Under-reporting replaced over-reporting; both are dishonest."""
+    from autotester.cli_crawl import echo_crawl_summary
+
+    echo_crawl_summary(_summary_crawl())
+
+    line = capsys.readouterr().out
+    assert "1 issues" in line
+    assert "4 tool failures" in line, "a headless run gets this line and nothing else"
+
+
+def test_a_known_zero_is_printed_as_zero_not_as_unknown(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AT-121 (checker-found): the crawls table rendered a tool-failure count
+    of 0 as the em dash it also uses for an UNKNOWN stop_reason, while the
+    Issues cell beside it printed `0`. Two different meanings, one glyph, in
+    adjacent columns."""
+    from fastapi.testclient import TestClient
+
+    from autotester.schema.project import Project
+    from autotester.ui.app import app
+
+    monkeypatch.setenv("AUTOTESTER_ROOT", str(tmp_path))
+    store = ProjectStore("demo", tmp_path)
+    store.save_project(Project(slug="demo", name="Demo", base_url="https://demo.test",
+                               allowed_domains=["demo.test"]))
+    store.save_crawl(_summary_crawl(id="crawl_zero", issues=0, tool_failures=0))
+
+    html = TestClient(app).get("/projects/demo/crawls").text
+    row = html[html.index("crawl_zero"):]
+    row = row[:row.index("</tr>")]
+
+    # Both count cells, and only the count cells. The trailing em dash in this
+    # row is `started_at` on a crawl that never started -- a genuine unknown,
+    # and the exact distinction this test exists to defend. Matching on the
+    # glyph anywhere in the row would fail on that correct behaviour.
+    assert row.count("<td>0</td>") == 2, (
+        "issues and tool failures are both a MEASURED zero and must read alike; "
+        "`or '—'` renders one of them as the sentinel for 'not known'")
