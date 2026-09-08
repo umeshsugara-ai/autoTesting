@@ -96,4 +96,4 @@ uv run autotester doctor               doctor: clean
   that exit **0 right now**, before any of their work exists. That is the AT-100 shape three times,
   not the twice AT-115 records.
 
-## Status: ready-for-check
+## Status: checked-PASS
