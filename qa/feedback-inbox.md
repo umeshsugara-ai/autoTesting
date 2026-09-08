@@ -464,3 +464,10 @@ approvals; any auto-granting path whatsoever.
 
 **APPLIES NEXT:** T-154's adversarial pass is the reason CN7 exists, and T-151's discovery scan is
 gate 1 (`ApprovalKind.READ`).
+
+**FOLDED 2026-09-08 by /checker** into the new `qa/contracts/consent.md` (CN1–CN9). CN1–CN7 kept
+in substance; CN1 tightened to hold at every shipped entry point (measured — AT-111), CN3's
+limitation stated explicitly (AT-110), CN5's slash/case/query variants recorded, CN7's scope
+boundary recorded (AT-112). The trade offered for judgement is **upheld** as CN9, and reversing it
+is now a CRITICAL amendment. The no-fire list is the contract's Out-of-scope section. Verdict:
+`qa/verdicts/t124-consent-gates.md` (FAIL, cycle 1).
