@@ -13,6 +13,7 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
+from autotester.schema.observation import VisionOptions
 from autotester.schema.run import ProviderUsage
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
@@ -39,9 +40,25 @@ class Provider(ABC):
         self.options = options
         self.usage: list[ProviderUsage] = []
 
+    @property
+    def label(self) -> str:
+        """`id:model` — how one provider CONFIGURATION is named on disk.
+
+        The ensemble runs the same provider class at two models, and a cached
+        observation must say which one produced it (`ModelObservation.
+        provider_label`). `id` alone cannot: two cache files would collide and
+        the second model's answer would silently overwrite the first's."""
+        model = self.options.get("model")
+        return f"{self.id}:{model}" if model else self.id
+
     # -- role: vision -------------------------------------------------------
-    def see_video(self, path: Path, prompt: str, schema: type[ModelT]) -> ModelT:
-        """Watch a video and return a structured reading of it."""
+    def see_video(self, path: Path, prompt: str, schema: type[ModelT],
+                  options: VisionOptions | None = None) -> ModelT:
+        """Watch a video and return a structured reading of it.
+
+        `options` carries the generation settings a vision call needs (fps,
+        seed, resolution) — they belong to the CALL, not the provider, because
+        one provider serves several stages that want different ones."""
         raise Unsupported(f"{self.id} does not support video understanding")
 
     # -- role: agent --------------------------------------------------------

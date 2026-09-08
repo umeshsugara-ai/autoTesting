@@ -15,6 +15,7 @@
 | `browser/session.py` | One real, visible browser session per project. Contract: browser-and-secrets.md B5-B9. |
 | `cli.py` | Command line. Every action the UI offers is available here first. |
 | `cli_crawl.py` | Crawl commands — `autotester explore` and `autotester report crawl`. |
+| `cli_video.py` | `autotester ingest` — register a recording and learn a FlowSpec from it. |
 | `core/consent.py` | The consent gate (D-018): nothing outward-facing starts without a human's |
 | `core/excel.py` | Workbook presentation helpers shared by every Excel exporter. |
 | `core/ids.py` | Identifier generation. The ONLY place ids are minted. |
@@ -28,6 +29,7 @@
 | `providers/anthropic.py` | Anthropic provider: the `agent` and `judge` roles via the Messages API. |
 | `providers/base.py` | The provider seam. Every model call in the system goes through this interface. |
 | `providers/gemini.py` | Gemini provider: the `vision` role (video understanding), plus `agent`/`judge` |
+| `providers/gemini_files.py` | Upload a video to the Files API and wait until the service can actually read it. |
 | `providers/langchain_fallback.py` | LangChain-backed provider with automatic fallback across configured vendors. |
 | `providers/mock.py` | Deterministic provider for tests and dry runs. Never calls a network. |
 | `schema/analysis.py` | The adjudicated result of running an ensemble over one video's chunks. |

@@ -18,6 +18,8 @@ from typing import Any, TypeVar
 from pydantic import BaseModel
 
 from autotester.providers.base import Provider, ProviderError
+from autotester.providers.gemini_files import upload_and_wait
+from autotester.schema.observation import VisionOptions
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
 
@@ -42,8 +44,10 @@ class GeminiProvider(Provider):
     def available(self) -> bool:
         return bool(self._api_key)
 
-    def see_video(self, path: Path, prompt: str, schema: type[ModelT]) -> ModelT:
-        return self._structured(prompt, schema, role="vision", video_path=path)
+    def see_video(self, path: Path, prompt: str, schema: type[ModelT],
+                  options: VisionOptions | None = None) -> ModelT:
+        return self._structured(prompt, schema, role="vision", video_path=path,
+                                options=options)
 
     def act(self, prompt: str, schema: type[ModelT] | None = None) -> Any:
         return self._structured(prompt, schema, role="agent")
@@ -53,9 +57,46 @@ class GeminiProvider(Provider):
     ) -> ModelT:
         return self._structured(prompt, schema, role="judge", images=images)
 
+    def _config(self, schema: type[BaseModel] | None, options: VisionOptions | None) -> Any:
+        """Build the generation config. 3.x models take `media_resolution` and a
+        thinking level; older ones take a temperature. Seed and token ceiling
+        are set for BOTH, because without them a re-run of the same chunk is a
+        different answer and the on-disk observation cache means nothing."""
+        from google.genai import types
+
+        opts = options or VisionOptions()
+        kwargs: dict[str, Any] = {
+            "response_mime_type": "application/json",
+            "seed": opts.seed,
+            "max_output_tokens": opts.max_output_tokens,
+        }
+        if schema is not None:
+            kwargs["response_schema"] = schema
+        if options is not None:
+            if self._model.startswith("gemini-3"):
+                kwargs["media_resolution"] = f"MEDIA_RESOLUTION_{opts.media_resolution.upper()}"
+            elif opts.temperature is not None:
+                kwargs["temperature"] = opts.temperature
+            if opts.system_instruction:
+                kwargs["system_instruction"] = opts.system_instruction
+        return types.GenerateContentConfig(**kwargs)
+
+    def _contents(self, client: Any, prompt: str, video_path: Path | None,
+                  images: list[Path] | None) -> list[Any]:
+        contents: list[Any] = []
+        if video_path is not None:
+            contents.append(upload_and_wait(client, video_path,
+                                            cache_path=Path(".work/gemini_uploads.json")))
+        for path in images or []:
+            if path.exists():
+                contents.append(upload_and_wait(client, path))
+        contents.append(prompt)
+        return contents
+
     def _structured(
         self, prompt: str, schema: type[ModelT] | None, *, role: str,
         video_path: Path | None = None, images: list[Path] | None = None,
+        options: VisionOptions | None = None,
     ) -> ModelT:
         if not self.available():
             raise ProviderError("GEMINI_API_KEY/GOOGLE_API_KEY is not set")
@@ -63,26 +104,23 @@ class GeminiProvider(Provider):
             raise ProviderError(f"{self.id} requires a schema for structured output (role={role})")
 
         from google import genai
-        from google.genai import types
 
         client = genai.Client(api_key=self._api_key)
-        contents: list[Any] = []
-        if video_path is not None:
-            contents.append(client.files.upload(file=str(video_path)))
-        for path in images or []:
-            if path.exists():
-                contents.append(client.files.upload(file=str(path)))
-        contents.append(prompt)
+        contents = self._contents(client, prompt, video_path, images)
+        try:
+            response = client.models.generate_content(
+                model=self._model, contents=contents,
+                config=self._config(schema, options),
+            )
+        except ProviderError:
+            raise
+        except Exception as exc:
+            raise ProviderError(
+                f"{self.label} generate_content failed (role={role}): "
+                f"{type(exc).__name__}: {exc}") from exc
 
-        response = client.models.generate_content(
-            model=self._model,
-            contents=contents,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json", response_schema=schema
-            ),
-        )
         if response.parsed is None:
-            raise ProviderError(f"{self.id}: structured output did not parse (role={role})")
+            raise ProviderError(self._unparsed_reason(response, role))
         usage = response.usage_metadata
         self.record(
             role,
@@ -90,3 +128,20 @@ class GeminiProvider(Provider):
             output_tokens=getattr(usage, "candidates_token_count", 0) or 0,
         )
         return response.parsed
+
+    def _unparsed_reason(self, response: Any, role: str) -> str:
+        """Say WHY nothing parsed. A truncated answer is not a malformed one.
+
+        Hitting the output ceiling on a long video is the common failure here,
+        and "structured output did not parse" sends the reader looking at their
+        schema instead of at the chunk length that actually caused it."""
+        finish = ""
+        for candidate in getattr(response, "candidates", None) or []:
+            reason = getattr(candidate, "finish_reason", None)
+            finish = str(getattr(reason, "name", reason) or "")
+            break
+        if finish == "MAX_TOKENS":
+            return (f"{self.label}: the answer hit max_output_tokens and was truncated "
+                    f"(role={role}) — shorten the chunk or raise the ceiling")
+        suffix = f", finish_reason={finish}" if finish else ""
+        return f"{self.label}: structured output did not parse (role={role}{suffix})"

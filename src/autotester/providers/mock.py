@@ -8,6 +8,7 @@ from typing import Any, TypeVar
 from pydantic import BaseModel
 
 from autotester.providers.base import Provider, ProviderError
+from autotester.schema.observation import VisionOptions
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
 
@@ -26,6 +27,9 @@ class MockProvider(Provider):
         self.responses: dict[str, list[Any]] = options.get("responses", {})
         self.prompts: list[tuple[str, str]] = []
         self.judge_images: list[list[Path]] = []
+        self.vision_options: list[VisionOptions | None] = []
+        """What each see_video call was given — so a test can prove the options
+        reached the provider instead of being built and dropped."""
 
     def available(self) -> bool:
         return True
@@ -38,7 +42,9 @@ class MockProvider(Provider):
         self.record(role, input_tokens=len(prompt) // 4, output_tokens=16)
         return queue.pop(0)
 
-    def see_video(self, path: Path, prompt: str, schema: type[ModelT]) -> ModelT:
+    def see_video(self, path: Path, prompt: str, schema: type[ModelT],
+                  options: VisionOptions | None = None) -> ModelT:
+        self.vision_options.append(options)
         return self._next("vision", f"{path}:{prompt}")
 
     def act(self, prompt: str, schema: type[ModelT] | None = None) -> Any:

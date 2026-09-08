@@ -7,7 +7,7 @@ from pathlib import Path
 
 import typer
 
-from autotester import cli_crawl, providers
+from autotester import cli_crawl, cli_video, providers
 from autotester import doctor as doctor_module
 from autotester.core.paths import RepoDocs
 from autotester.ledger import render, store
@@ -25,6 +25,7 @@ report_app = typer.Typer(help="Export a run as a portable tester report (Excel +
 app.add_typer(ledger_app, name="ledger")
 app.add_typer(flowspec_app, name="flowspec")
 app.add_typer(report_app, name="report")
+app.add_typer(cli_video.app, name="ingest")
 
 
 @app.command()
