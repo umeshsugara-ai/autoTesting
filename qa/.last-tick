@@ -154,3 +154,34 @@ its first tool call. It wrote NO verdict: `qa/verdicts/at125-*` does not exist a
 is clean. Handled per the standing rule -- a crashed checker is NOT a verdict and NOT a fix cycle.
 The manifest stays at `Fix cycle: 1` / `ready-for-check` and the check is re-dispatched unchanged.
 Third crash handled this way (t124 cycle 2 ENOTFOUND, AT-113 HTTP 429, this one auth).
+
+## 2026-09-08 — tick: ADVANCED (6) — first FAIL of the session, and it was earned
+Re-dispatched checker (after the auth crash) FAILED at125-at132 cycle 1 on AT-133. The finding is
+THIS UNIT'S OWN THESIS reappearing inside the fix for it: load_sidecar's docstring promised "a
+malformed sidecar must not stop an ingest" and the code caught only (OSError, ValueError), while
+from_sidecar raises AttributeError on a non-object top level and TypeError on non-mapping segments.
+Declared, plumbed, not applied -- written by me, in the commit whose whole argument was against
+exactly that. Reproduced end to end: sidecar [1,2,3] -> ingest run exit 1.
+Cycle 2 shipped (commit d9396d4, ready-for-check): AT-133 broad catch; AT-134 narration_block with
+three states never conflated; AT-135 typed refusals in both byte-identity paths.
+AT-134 IS THE ONE WORTH REMEMBERING. Returning None for an unreadable sidecar made the prompt
+assert "no speech detected" about a recording that demonstrably HAS speech -- a false statement
+inside the block the prompt itself labels ground truth. The checker's formulation, adopted:
+SWALLOWING IS FINE WHEN THE FALLBACK IS NEUTRAL, AND A DEFECT WHEN IT IS AN ASSERTION THE READER
+WILL BELIEVE. That reconciles with the AT-108/AT-114 sweep rather than contradicting it -- that
+sweep's rule was never "always re-raise", it was "never let a failure become a confident-looking
+silence". Same rule, one layer up. I asked the checker to rule on whether that reconciliation is
+sound or a convenient reframing.
+Sabotages H/I/J deliberately separated: H -> 4 failures, I -> exactly the 2 silence cases, J -> 1.
+The separation is the evidence that both halves are independently defended rather than covered by
+one over-broad test.
+623 passed / 2 skipped, ruff + doctor clean.
+TOOLING CORRECTION FROM THE CHECKER, CARRIED FORWARD: addopts="-q" plus a command-line -q is -qq
+under pytest 9 and SUPPRESSES the count line, so `uv run pytest -q` -- the command my earlier
+manifests document -- cannot print the number those manifests quote. I had hit this and worked
+around it with grep without understanding why. Bare `uv run pytest` prints it.
+LEFT OPEN DELIBERATELY: AT-136 (duration_s, notes, app_overview still declared-and-unapplied),
+AT-137 (RepoDocs() != RepoDocs(repo_root()) -- behaviour ruled correct, the hidden flag is a smell).
+Both belong to a unit about them, not tacked onto a re-check.
+NEXT after verdict: T-132 (Track A3, host media prep) using the corrected C: corpus paths.
+OPEN HUMAN GATES: AT-110 approval-forgery posture; ERP_EMAIL/ERP_PASSWORD for T-122/T-145.
