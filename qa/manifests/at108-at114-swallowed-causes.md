@@ -91,4 +91,4 @@ The 2 skips are the live-Mongo opt-in (`tests/test_db.py:93`) and the POSIX-only
 - `stages/explore_safety.py`, `explore_merge.py` and `screen_identity.py` contain no `except` at
   all (`grep -n except` -> no matches). The sweep covered the whole surface it claimed to.
 
-## Status: ready-for-check
+## Status: checked-PASS
