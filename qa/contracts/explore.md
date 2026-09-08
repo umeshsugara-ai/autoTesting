@@ -193,6 +193,16 @@ workbook's own `Noise` sheet — "we ignored it" stays auditable — and never a
 **Known gap, tracked not waived: AT-105** — the noise counts reach the workbook only; the crawl
 page does not surface them.
 
+**A failure of the CRAWLER is not a finding about the PRODUCT.** When the tool itself cannot record
+something — a screenshot it could not take — it files an `IssueKind.EVIDENCE` issue rather than
+inflating the product's issue list, which is X9's principle applied one step closer to home
+(AT-114, upheld by /checker 2026-09-08). **Known OPEN gap against this criterion: AT-120** — the
+separation currently stops at the enum. `Crawl.issues`, the workbook's `Issues found` row, the
+Issues sheet and the crawls UI table are all kind-blind, so a crawl with one product bug and four
+failed screenshots reports **five** issues (executed at `6e98487`). X16 is therefore **not** clean
+today for tool failures; EVIDENCE must be counted and displayed apart from product issues — the way
+`Noise` already is — before the explorer is pointed at a real product.
+
 ## No-fire list (do not raise these as findings)
 
 - Filling forms with synthetic data, and vision-guided action choice — both rejected by D-015/X10.
@@ -255,4 +265,20 @@ page does not surface them.
   `test_a_human_authored_claim_is_still_contradicted_by_a_crawl`. **AT-103 removed from the
   residual list (closed); AT-109 added** — the cost of the new scope, stated inside the criterion
   rather than left implicit. No criterion is removed or weakened; X1-X13, X15, X16 are
+  byte-unchanged.
+
+- 2026-09-08 · routine · **X16 tightened** by /checker at unit `at108-at114-swallowed-causes`
+  (commit `6e98487`, verdict `qa/verdicts/at108-at114-swallowed-causes.md`). Records the new
+  `IssueKind.EVIDENCE` member and the rule it exists for — a failure of the crawler is not a
+  finding about the product — after ruling on the design call the maker put to the checker. The
+  ruling: an **additive** enum member that weakens no criterion, reverses no goal direction and
+  enables no outward-facing action is a routine amendment under D-015 (which already authorizes
+  this stage, its file layout and this contract), not a new DECISIONS entry; the alternative
+  (filing screenshot failures as `NAVIGATION`) was rejected on the same grounds X9 rejects calling
+  third-party noise a product bug, and the maker's second test fails under that lazy fix — verified
+  by the checker's own sabotage run. `capture()` staying non-fatal was also upheld: AT-114's defect
+  is the SILENCE, not the survival, and killing a crawl over a missing screenshot trades X11's
+  crash-survivable partial graph for no graph at all. **AT-120 added as an OPEN gap** — the
+  separation is real in the enum and absent in every count and report a human reads — stated inside
+  the criterion rather than left implicit. No criterion is removed or weakened; X1-X15 are
   byte-unchanged.
