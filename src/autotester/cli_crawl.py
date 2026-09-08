@@ -145,20 +145,51 @@ def _validate_grant(expires: str, target: str, proj: Any) -> None:
     except ValueError:
         typer.secho(f"--expires must be YYYY-MM-DD, not {expires!r}", fg=typer.colors.RED)
         raise typer.Exit(1) from None
-    if expiry < date.today():
+    if expiry <= date.today():
+        # AT-147: `<` let TODAY through with a green "granted" line, and then
+        # `RunApproval.is_expired` refused it -- because `fromisoformat` reads a
+        # bare date as MIDNIGHT, so an approval "expiring today" is already dead
+        # at 00:00:01. That is the exact date an operator granting same-day
+        # production consent for T-145 would type.
+        #
+        # Fixed at the grant, deliberately NOT by making `is_expired` inclusive:
+        # that would widen every approval already on disk by up to 24 hours, and
+        # silently lengthening a consent window is not a fix a maker gets to
+        # make to a security gate on its own. Flagged for the contract instead.
+        when = "already in the past" if expiry < date.today() else (
+            "today — consent expires at the START of the named day, so a run "
+            "today needs tomorrow's date")
         typer.secho(
-            f"--expires {expires} is already in the past — this grant would refuse "
-            f"every run it was asked about",
+            f"--expires {expires} is {when}; this grant would refuse every run "
+            f"it was asked about",
             fg=typer.colors.RED)
         raise typer.Exit(1)
-    if proj is not None and proj.base_url and not target.startswith(proj.base_url.rstrip("/")):
-        # Not refused: an endpoint under test may legitimately differ from
-        # base_url, and CN5 matches exactly at consent time regardless. But say
-        # it now rather than leaving the operator to discover it at the refusal.
-        typer.secho(
-            f"note: {target} does not match this project's base_url "
-            f"({proj.base_url}) — a crawl of it will not match this approval",
-            fg=typer.colors.YELLOW)
+    _warn_on_target_mismatch(target, proj)
+
+
+def _warn_on_target_mismatch(target: str, proj: Any) -> None:
+    """Flag a target this project will never ask about (AT-145/AT-148).
+
+    Not a refusal: an endpoint under test may legitimately differ from
+    `base_url`, and CN5 matches exactly at consent time regardless. But say it
+    at grant time rather than leaving the operator to discover it at a refusal.
+
+    AT-148: the first version used `target.startswith(base_url)`, which is
+    silent on `https://demo.test.evil.com/` — a naive URL prefix match reads a
+    lookalike host as a match. Host equality first, then the path prefix.
+    """
+    from urllib.parse import urlparse
+
+    if proj is None or not proj.base_url:
+        return
+    base, want = urlparse(target), urlparse(proj.base_url)
+    same_host = (base.scheme, base.netloc) == (want.scheme, want.netloc)
+    if same_host and base.path.startswith(want.path.rstrip("/")):
+        return
+    typer.secho(
+        f"note: {target} does not match this project's base_url "
+        f"({proj.base_url}) — a crawl of it will not match this approval",
+        fg=typer.colors.YELLOW)
 
 
 def approve_cmd(

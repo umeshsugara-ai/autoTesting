@@ -184,4 +184,4 @@ line of every tick stamp this session. Written to `qa/gates/erp-credentials.md` 
 one). My own rule is *"the moment you name a gate, write the file"*, and I named it every tick without
 ever writing it -- the exact D-006 loop the rule exists to prevent.
 
-## Status: ready-for-check
+## Status: checked-PASS
