@@ -189,19 +189,27 @@ crawl page and the workbook therefore give `Crawl.stop_reason` equal billing wit
 counts, and both list **every** `DENIED_POLICY` / `SKIPPED_UNNAMED` / `OFF_DOMAIN_REFUSED` edge
 with its `reason` and the control it names. Third-party noise counted under X9 is recorded in the
 workbook's own `Noise` sheet — "we ignored it" stays auditable — and never appears as a
-`CrawlIssue`. The workbook is `Summary / Screens / Edges / Denied & Skipped / Issues / Noise`.
+`CrawlIssue`. The workbook is
+`Summary / Screens / Edges / Denied & Skipped / Issues / Tool failures / Noise`.
 **Known gap, tracked not waived: AT-105** — the noise counts reach the workbook only; the crawl
 page does not surface them.
 
 **A failure of the CRAWLER is not a finding about the PRODUCT.** When the tool itself cannot record
 something — a screenshot it could not take — it files an `IssueKind.EVIDENCE` issue rather than
 inflating the product's issue list, which is X9's principle applied one step closer to home
-(AT-114, upheld by /checker 2026-09-08). **Known OPEN gap against this criterion: AT-120** — the
-separation currently stops at the enum. `Crawl.issues`, the workbook's `Issues found` row, the
-Issues sheet and the crawls UI table are all kind-blind, so a crawl with one product bug and four
-failed screenshots reports **five** issues (executed at `6e98487`). X16 is therefore **not** clean
-today for tool failures; EVIDENCE must be counted and displayed apart from product issues — the way
-`Noise` already is — before the explorer is pointed at a real product.
+(AT-114, upheld by /checker 2026-09-08). **The separation must hold in the NUMBERS, not only in
+the enum:** `Crawl.tool_failures` counts EVIDENCE issues apart from `Crawl.issues`, and every
+surface a human reads keeps them apart — the workbook's `Issues found (in the product)` /
+`Tool failures (the crawler's own)` summary rows and its own `Tool failures` sheet, the crawls
+table's own column, and the crawl page's own stat and card. They are counted apart and reported,
+never dropped: each one is a hole in the evidence the rest of the report is built on, so the same
+"we did not report it stays auditable" rule that governs `Noise` governs them.
+**AT-120 CLOSED** (unit `at120-evidence-not-product-issues`, commit `bc29b34`, verified by
+/checker 2026-09-08 — the same probe that measured `issues = 5` at `6e98487` now measures
+`issues = 1, tool_failures = 4`). **X16 is clean for tool failures.** Residual gaps, tracked not
+waived: **AT-121** (the crawls table renders a known zero as the `—` it uses for unknown) and
+**AT-122** (the `autotester crawl` CLI one-liner reports the product's issues and omits the tool
+failures entirely).
 
 ## No-fire list (do not raise these as findings)
 
@@ -282,3 +290,18 @@ today for tool failures; EVIDENCE must be counted and displayed apart from produ
   separation is real in the enum and absent in every count and report a human reads — stated inside
   the criterion rather than left implicit. No criterion is removed or weakened; X1-X15 are
   byte-unchanged.
+
+- 2026-09-08 · routine · **X16's AT-120 gap CLOSED and the criterion restated** by /checker at unit
+  `at120-evidence-not-product-issues` (commit `bc29b34`, verdict
+  `qa/verdicts/at120-evidence-not-product-issues.md`). The gap this checker opened one unit earlier
+  is closed on its own re-executed probe, not on the maker's transcript: the fixture crawl whose
+  every screenshot fails reported `crawl.issues = 5` with kinds `{evidence: 4, navigation: 1}` at
+  `6e98487` and now reports `issues = 1, tool_failures = 4`, with the workbook's `Issues` sheet
+  carrying the one product row and the new `Tool failures` sheet carrying the four. The criterion
+  is **tightened, not softened**: it now names the counter, the two summary rows, the sheet, the
+  column, the stat and the card, so the next kind-blind regression fails the contract and not only
+  a test. The workbook sheet list is amended to add `Tool failures` between `Issues` and `Noise` —
+  a legitimate contract change the unit earns, and the pinned exact ordered list in
+  `tests/test_crawl_report.py::SHEETS` was checked to still be an `==` on the full list rather than
+  a subset. Two residual display gaps (AT-121, AT-122) recorded inside the criterion rather than
+  left implicit. Authorized by D-015. No criterion is removed or weakened; X1-X15 are byte-unchanged.
