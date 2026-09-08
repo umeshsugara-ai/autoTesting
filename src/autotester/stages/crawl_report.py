@@ -15,7 +15,7 @@ from openpyxl import Workbook
 
 from autotester.core.excel import autosize_columns
 from autotester.schema.crawl import Crawl, CrawlIssue
-from autotester.schema.enums import EdgeOutcome
+from autotester.schema.enums import EdgeOutcome, IssueKind
 from autotester.schema.screen_graph import ScreenEdge, ScreenNode
 from autotester.store.project_store import ProjectStore
 
@@ -39,7 +39,8 @@ def crawl_summary(crawl: Crawl) -> list[tuple[str, str]]:
         ("Actions tried", str(crawl.actions)),
         ("Edges recorded", str(crawl.edges)),
         ("Refused by policy", str(crawl.denied)),
-        ("Issues found", str(crawl.issues)),
+        ("Issues found (in the product)", str(crawl.issues)),
+        ("Tool failures (the crawler's own)", str(crawl.tool_failures)),
         ("Started", crawl.started_at or "—"),
         ("Finished", crawl.finished_at or "—"),
     ]
@@ -97,6 +98,20 @@ def _issues_sheet(wb: Workbook, issues: list[CrawlIssue], names: dict[str, str])
     autosize_columns(ws)
 
 
+def _tool_failures_sheet(wb: Workbook, issues: list[CrawlIssue],
+                         names: dict[str, str]) -> None:
+    """What the CRAWLER could not do, kept off the Issues sheet (AT-120).
+
+    Same reasoning as `Noise`: a reader counting rows on "Issues" is counting
+    bugs in their product, and a screenshot this tool failed to take is not
+    one. Reported rather than dropped so the gap in the evidence is visible."""
+    ws = wb.create_sheet("Tool failures")
+    ws.append(["Screen", "What the crawler could not do"])
+    for issue in issues:
+        ws.append([names.get(issue.node_id or "", issue.node_id or "—"), issue.detail])
+    autosize_columns(ws)
+
+
 def _noise_sheet(wb: Workbook, crawl: Crawl) -> None:
     """Third-party hosts whose failures were counted and never reported as
     product issues (X9) — recorded so "we ignored it" is auditable."""
@@ -130,7 +145,11 @@ def export_crawl_excel(
     _screens_sheet(wb, nodes)
     _edges_sheet(wb, edges, names)
     _refused_sheet(wb, edges, names)
-    _issues_sheet(wb, store.list_crawl_issues(crawl_id), names)
+    all_issues = store.list_crawl_issues(crawl_id)
+    product = [i for i in all_issues if i.kind is not IssueKind.EVIDENCE]
+    tool = [i for i in all_issues if i.kind is IssueKind.EVIDENCE]
+    _issues_sheet(wb, product, names)
+    _tool_failures_sheet(wb, tool, names)
     _noise_sheet(wb, crawl)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)

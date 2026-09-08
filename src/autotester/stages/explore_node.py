@@ -50,7 +50,10 @@ def add_issue(rt: ExploreRuntime, node_id: str, kind: IssueKind, detail: str,
     issue = CrawlIssue(crawl_id=rt.crawl.id, project=rt.project.slug, kind=kind,
                        node_id=node_id, detail=detail, first_party=first_party)
     rt.store.add_crawl_issue(issue)
-    rt.issues += 1
+    if kind is IssueKind.EVIDENCE:
+        rt.tool_failures += 1  # AT-120: never inflate the product's issue total
+    else:
+        rt.issues += 1
 
 
 def record_edge(rt: ExploreRuntime, node: ScreenNode, el: ElementRef, action: Action,

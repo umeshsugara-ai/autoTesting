@@ -58,6 +58,7 @@ class ExploreRuntime:
     edges: int = 0
     denied: int = 0
     issues: int = 0
+    tool_failures: int = 0
     stop_reason: str | None = None
     seed_error: str | None = None
     return_error: str | None = None
@@ -147,6 +148,7 @@ def _finish(rt: ExploreRuntime, status: CrawlStatus) -> Crawl:
         "actions": rt.frontier.actions_used,
         "denied": rt.denied,
         "issues": rt.issues,
+        "tool_failures": rt.tool_failures,
         "noise_counts": [NoiseCount(host=h, count=c) for h, c in sorted(rt.noise.items())],
     })
     rt.crawl = crawl

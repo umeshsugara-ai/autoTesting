@@ -116,3 +116,65 @@ def test_a_failed_recovery_says_so_instead_of_passing_silently() -> None:
 
     assert "browser gone" in (rt.return_error or "")
     assert "back failed" in (rt.return_error or ""), "the original cause was overwritten"
+
+
+# -- AT-120: the separation must hold in the NUMBERS, not just the enum -----
+
+def test_tool_failures_are_not_counted_into_the_products_issue_total(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The checker broke the AT-114 headline claim by executing it: a crawl
+    whose every screenshot fails reported `crawl.issues = 5` for ONE real
+    product issue, because `add_issue` incremented kind-blind. The enum was
+    separate; the number a human actually reads was not -- and since a failed
+    screenshot previously filed no issue at all, the inflation was introduced
+    by the very commit that claimed to prevent it."""
+    project = make_project()
+    session, page = make_session(tmp_path, project)
+    monkeypatch.setattr(
+        page, "screenshot",
+        lambda path, full_page=False: (_ for _ in ()).throw(RuntimeError("no screenshot")))
+    store = ProjectStore("demo", tmp_path)
+    grant_crawl_approval(store, project)
+
+    crawl = run_crawl(project, session, store, observer=PageObserver())
+
+    filed = store.list_crawl_issues(crawl.id)
+    product = [i for i in filed if i.kind.value != "evidence"]
+    tool = [i for i in filed if i.kind.value == "evidence"]
+    assert tool, "precondition: this crawl must actually fail to screenshot"
+    assert crawl.issues == len(product), (
+        f"headline issue count {crawl.issues} != {len(product)} real product issues")
+    assert crawl.tool_failures == len(tool)
+
+
+def test_the_workbook_and_the_crawl_page_keep_them_apart(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`crawl.issues` alone was never the whole leak -- the Issues sheet and
+    the UI issue list rendered every kind together, so even a correct headline
+    would have been contradicted by the rows under it."""
+    from openpyxl import load_workbook
+
+    from autotester.stages.crawl_report import export_crawl_excel
+    from autotester.ui import crawl_view
+
+    project = make_project()
+    session, page = make_session(tmp_path, project)
+    monkeypatch.setattr(
+        page, "screenshot",
+        lambda path, full_page=False: (_ for _ in ()).throw(RuntimeError("no screenshot")))
+    store = ProjectStore("demo", tmp_path)
+    grant_crawl_approval(store, project)
+    crawl = run_crawl(project, session, store, observer=PageObserver())
+
+    out = export_crawl_excel("demo", crawl.id, tmp_path / "r.xlsx", root=tmp_path)
+    wb = load_workbook(out)
+    assert "Tool failures" in wb.sheetnames
+    issue_rows = list(wb["Issues"].iter_rows(min_row=2, values_only=True))
+    assert not any("screenshot" in str(c) for row in issue_rows for c in row), (
+        "a crawler failure reached the product's Issues sheet")
+
+    tool = [i for i in store.list_crawl_issues(crawl.id) if i.kind.value == "evidence"]
+    assert "could not screenshot" in crawl_view.tool_failures_table(tool, {}), (
+        "the crawl page must still SHOW the gap in its own evidence")

@@ -134,4 +134,11 @@ class Crawl(Artifact):
     actions: int = 0
     denied: int = 0
     issues: int = 0
+    """Problems found in the PRODUCT under test. `IssueKind.EVIDENCE` is
+    deliberately excluded — see `tool_failures` (AT-120)."""
+    tool_failures: int = 0
+    """Times the crawler itself failed to record something. Counted apart for
+    the same reason `noise_counts` is: a number a human reads as "bugs in my
+    product" must not silently include the tool's own failures. Kept as a
+    count rather than dropped so "we did not report it" stays auditable."""
     noise_counts: list[NoiseCount] = Field(default_factory=list)

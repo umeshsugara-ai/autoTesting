@@ -46,6 +46,7 @@ def summary_stats(crawl: Crawl) -> str:
         + theme.stat(str(crawl.actions), "Actions")
         + theme.stat(str(crawl.denied), "Refused")
         + theme.stat(str(crawl.issues), "Issues")
+        + theme.stat(str(crawl.tool_failures), "Tool failures")
         + "</div>"
         + f"<p class='meta'>stopped: {theme.pill(escape(crawl.stop_reason or 'unknown'), tone)}"
         + f" · policy {theme.pill(escape(crawl.policy.write_policy.value), 'neutral')}</p>"
@@ -125,6 +126,17 @@ def refused_table(edges: list[ScreenEdge], names: dict[str, str]) -> str:
         "<th>Selector</th><th>Refusal</th><th>Why</th></tr></thead>"
         f"<tbody>{body}</tbody></table>"
     )
+
+
+def tool_failures_table(issues: list[CrawlIssue], names: dict[str, str]) -> str:
+    """The crawler's OWN failures, shown apart from the product's (AT-120).
+
+    A number a human reads as "bugs in my product" must not quietly include
+    the tool's failures — but hiding them would be worse, because each one is
+    a hole in the evidence the rest of the report is built on."""
+    if not issues:
+        return "<p class='meta'>The crawler recorded everything it tried to.</p>"
+    return issues_table(issues, names)
 
 
 def issues_table(issues: list[CrawlIssue], names: dict[str, str]) -> str:

@@ -18,6 +18,7 @@ from starlette.background import BackgroundTask
 from autotester.core.ids import run_id
 from autotester.core.paths import ProjectPaths
 from autotester.schema.crawl import CrawlBounds
+from autotester.schema.enums import IssueKind
 from autotester.stages.coverage import diff_crawl, unreached_screens
 from autotester.stages.crawl_report import export_crawl_excel
 from autotester.stages.explore_merge import merge_screens
@@ -64,11 +65,13 @@ def crawls(slug: str) -> str:
             f"<td>{theme.pill(escape(crawl.status.value), 'neutral')}</td>"
             f"<td>{escape(crawl.stop_reason or '—')}</td><td>{crawl.screens}</td>"
             f"<td>{crawl.denied}</td><td>{crawl.issues}</td>"
+            f"<td>{crawl.tool_failures or '—'}</td>"
             f"<td>{escape(crawl.started_at or '—')}</td></tr>"
         )
     table = (
         "<table class='data-table'><thead><tr><th>Crawl</th><th>Status</th>"
         "<th>Stopped because</th><th>Screens</th><th>Refused</th><th>Issues</th>"
+        "<th>Tool failures</th>"
         f"<th>Started</th></tr></thead><tbody>{''.join(rows)}</tbody></table>"
     )
     body = (
@@ -122,7 +125,12 @@ def crawl_page(slug: str, crawl_id: str) -> str:
           "Download Excel report</a></p>"
         + theme.card(crawl_view.screen_tree(slug, crawl, nodes, edges), title="Screens found")
         + theme.card(crawl_view.refused_table(edges, names), title="Refused & skipped")
-        + theme.card(crawl_view.issues_table(issues, names), title="Issues")
+        + theme.card(crawl_view.issues_table(
+            [i for i in issues if i.kind is not IssueKind.EVIDENCE], names),
+            title="Issues found in the product")
+        + theme.card(crawl_view.tool_failures_table(
+            [i for i in issues if i.kind is IssueKind.EVIDENCE], names),
+            title="What the crawler itself could not do")
         + coverage
         + theme.card(crawl_view.summary_table(crawl), title="Run detail")
     )

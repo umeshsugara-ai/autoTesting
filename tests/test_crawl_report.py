@@ -15,7 +15,8 @@ from autotester.schema.screen_graph import ScreenEdge, ScreenNode
 from autotester.stages.crawl_report import crawl_summary, export_crawl_excel
 from autotester.store.project_store import ProjectStore
 
-SHEETS = ["Summary", "Screens", "Edges", "Denied & Skipped", "Issues", "Noise"]
+SHEETS = ["Summary", "Screens", "Edges", "Denied & Skipped", "Issues",
+          "Tool failures", "Noise"]
 
 
 def seed(tmp_path: Path) -> tuple[ProjectStore, Crawl]:
