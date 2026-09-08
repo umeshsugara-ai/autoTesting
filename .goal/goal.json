@@ -4,15 +4,15 @@
   "north_star": "An AI automated end-to-end tester that ingests product videos/docs, derives a reviewed FlowSpec, auto-generates best/worst/edge-case evals, runs them as regression in a real visible browser, self-extends coverage by requesting videos for unknown screens, and beats an expert human tester head-to-head on the same material (bugs found, false-positive rate, time). First target: Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-08T09:52:02",
+  "updated": "2026-09-08T10:19:07",
   "progress": {
     "total": 45,
-    "done": 27,
+    "done": 28,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 18,
+    "pending": 17,
     "current": "T-122",
-    "percent": 60
+    "percent": 62
   },
   "tasks": [
     {
@@ -726,7 +726,7 @@
     {
       "id": "T-124",
       "title": "Consent gates as an artifact (RunApproval + require_approval) and a real done_check for T-145",
-      "status": "pending",
+      "status": "done",
       "base_criticality": "HIGH",
       "deps": [
         "T-144"
@@ -740,7 +740,8 @@
       "attempts": 0,
       "created": "2026-09-08T00:46:52",
       "user_value": "high",
-      "criticality": "low"
+      "criticality": "low",
+      "completed": "2026-09-08T10:19:07"
     },
     {
       "id": "T-125",
@@ -943,9 +944,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 4.94,
-    "eta_days": 3.6
+    "velocity_per_day": 4.93,
+    "eta_days": 3.7
   },
-  "last_deterministic_tick": "2026-09-08T09:52:02",
+  "last_deterministic_tick": "2026-09-08T10:17:02",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }
