@@ -191,4 +191,4 @@ No model has run this pipeline. The scorer does not exist. The recall denominato
 the plan's 33 — `.work/track-a-corpus-facts.md` holds that and three other measured facts that
 would each silently produce a recall of zero.
 
-## Status: ready-for-check
+## Status: checked-PASS
