@@ -471,3 +471,35 @@ limitation stated explicitly (AT-110), CN5's slash/case/query variants recorded,
 boundary recorded (AT-112). The trade offered for judgement is **upheld** as CN9, and reversing it
 is now a CRITICAL amendment. The no-fire list is the contract's Out-of-scope section. Verdict:
 `qa/verdicts/t124-consent-gates.md` (FAIL, cycle 1).
+
+---
+
+## T-131 — `qa/contracts/ingest.md` I6–I9 requested (maker, 2026-09-08)
+
+Track A2 shipped the first working half of the video pipeline. `ingest.md` today covers I1–I5
+(provenance to the second). This unit adds behaviour nothing judges yet:
+
+- **I6** — ingest PERSISTS via `save_flowspec`, and never overwrites an `APPROVED` spec without an
+  explicit `--replace`. Rationale: overwriting one discards a human's review, not just data.
+- **I7** — every ingested `Screen` carries `source_ref`, and a templated `url_pattern` **only when
+  a url was actually observed**. Both sides of the video/crawl seam must use the same
+  `core.urls.url_template`, or one screen becomes two rows.
+- **I8** — narration is injected as ground truth and never re-transcribed or paraphrased. **The
+  template must carry the placeholder the code replaces** — `str.replace` on a missing needle does
+  not raise, so a template that loses `{{NARRATION}}` ships a prompt that runs blind with nothing
+  failing.
+- **I9** — the upload is polled to ACTIVE before any generate call; every SDK failure becomes a
+  `ProviderError` carrying its cause; truncation (`MAX_TOKENS`) is reported AS truncation.
+
+**Offered for judgement:** I left `google-genai` undeclared in `pyproject.toml` although the plan
+put it in this unit. The import is lazy and nothing yet calls it for real, and declaring a runtime
+dependency that no code path exercises seemed worse than declaring it in the unit that first does.
+If the checker disagrees, the reasoning belongs in the contract rather than in my head.
+
+**Also offered:** a hygiene line banning `git checkout` as a sabotage-restore mechanism while work
+is uncommitted. I reverted my own uncommitted prompt rewrite that way during this unit (caught it,
+rewrote it, no loss) — it is the same class of live-tree mutation AT-101 already bans for stash.
+
+**No-fire list:** media prep / chunking / whisper (A3); the ensemble and adjudication (A4);
+frames and `screenshot_ts` consumption (A3); merging into an existing FlowSpec (A6); any live
+model call (this unit is MockProvider only).
