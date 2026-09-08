@@ -22,6 +22,17 @@ _FIELD_ROLES = {
 }
 _MAX_SIGNALS = 8
 
+# `ScreenNode.model_post_init` builds its id with `content_id("node", ...)`, so a
+# Screen carrying a node id is one the crawler identified STRUCTURALLY. Pinned by
+# `test_a_real_screen_node_id_carries_the_structural_prefix`.
+_STRUCTURAL_ID_PREFIX = "node_"
+
+
+def _is_structural(screen: Screen) -> bool:
+    """Whether this screen's identity came from a structural signature rather
+    than from a human or an ingested video merely claiming a URL."""
+    return screen.id.startswith(_STRUCTURAL_ID_PREFIX)
+
 
 def _signals(node: ScreenNode) -> list[str]:
     """The screen's identifying cues: its title plus the names of its stable
@@ -81,6 +92,26 @@ def _conflict_for(existing: Screen, incoming: Screen, crawl_id: str) -> Conflict
     )
 
 
+def _disagreement(clash: Screen | None, incoming: Screen, crawl_id: str) -> Conflict | None:
+    """Whether an existing screen at the same `url_pattern` actually disagrees.
+
+    **A conflict means two SOURCES disagree, not that two patterns collide**
+    (AT-103). Two screens that both carry a structural identity are, by
+    definition, structurally different screens at one URL — an SPA, which X3
+    requires to be two screens — so they never conflict with each other however
+    many crawls found them. Only a claim with NO structural identity (a human's
+    or an ingested video's screen, which asserts a URL and nothing more) can be
+    contradicted by a crawl.
+
+    Scoping this to one crawl instead of to identity is what made a project that
+    pressed "Explore again" accumulate a false conflict per SPA state on every
+    re-crawl.
+    """
+    if clash is None or clash.name == incoming.name or _is_structural(clash):
+        return None
+    return _conflict_for(clash, incoming, crawl_id)
+
+
 def merge_screens(
     spec: FlowSpec | None, nodes: list[ScreenNode], project: str, *, crawl_id: str
 ) -> FlowSpec:
@@ -90,6 +121,9 @@ def merge_screens(
     `url_pattern` an existing screen already claims under a different name, both
     are kept and a `Conflict` records the disagreement for the human — silently
     picking a winner is how a product map stops matching the product.
+
+    See `_disagreement` for when a shared `url_pattern` is a conflict and when
+    it is simply an SPA.
 
     Idempotent: merging the same crawl twice changes nothing, so the version is
     not bumped and the review is not reset a second time.
@@ -104,9 +138,9 @@ def merge_screens(
         incoming = screen_from(node)
         if incoming.id in known_ids:
             continue
-        clash = by_pattern.get(incoming.url_pattern)
-        if clash is not None and clash.name != incoming.name:
-            conflicts.append(_conflict_for(clash, incoming, crawl_id))
+        conflict = _disagreement(by_pattern.get(incoming.url_pattern), incoming, crawl_id)
+        if conflict is not None:
+            conflicts.append(conflict)
         added.append(incoming)
         known_ids.add(incoming.id)
 

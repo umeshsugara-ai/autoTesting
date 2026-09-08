@@ -144,3 +144,43 @@ def test_two_spa_states_at_one_url_are_two_screens_not_a_conflict() -> None:
 
     assert len(merged.screens) == 2
     assert merged.conflicts == []
+
+
+def test_a_real_screen_node_id_carries_the_structural_prefix() -> None:
+    """Pins the coupling `_is_structural` depends on: `ScreenNode` builds its id
+    with `content_id("node", ...)`. If that prefix ever changes, this fails here
+    rather than silently turning every structural screen into a conflict."""
+    from autotester.stages.explore_merge import _STRUCTURAL_ID_PREFIX
+
+    assert make_node().id.startswith(_STRUCTURAL_ID_PREFIX)
+
+
+def test_spa_states_found_by_two_separate_crawls_still_do_not_conflict() -> None:
+    """AT-103 (checker-found): the same-URL exemption was scoped to one CRAWL,
+    not to identity — so merging one SPA state from crawl 1 and the other from
+    crawl 2 filed a false Conflict, and the UI has an "Explore again" button
+    that makes re-crawling the intended workflow. Both claims come from the
+    crawler and neither disagrees with the other."""
+    plain = make_node(url="https://app.test/", template="app.test/",
+                      signature="sig_plain", name="Home", crawl_id="crawl_1")
+    filtered = make_node(url="https://app.test/", template="app.test/",
+                         signature="sig_filters", name="Home with filters open",
+                         crawl_id="crawl_2")
+
+    after_first = merge_screens(None, [plain], "erp", crawl_id="crawl_1")
+    after_second = merge_screens(after_first, [filtered], "erp", crawl_id="crawl_2")
+
+    assert len(after_second.screens) == 2
+    assert after_second.conflicts == []
+
+
+def test_a_human_authored_claim_is_still_contradicted_by_a_crawl() -> None:
+    """The other direction, and the reason the rule is about identity rather
+    than about suppressing conflicts: a screen with no structural identity
+    asserts a URL and nothing more, so a crawl CAN disagree with it."""
+    spec = FlowSpec(project="erp", screens=[
+        Screen(id="scr_human", name="Student list", url_pattern="/students/{id}"),
+    ])
+    merged = merge_screens(spec, [make_node(name="Student detail")], "erp", crawl_id="crawl_9")
+
+    assert len(merged.conflicts) == 1
