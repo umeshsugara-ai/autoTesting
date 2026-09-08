@@ -1,8 +1,8 @@
 # t132-media-prep
 
 **Unit:** T-132 — Track A3: host media prep (probe, chunks, transcript reuse/whisper, frames)
-**Commit:** 8dbc2d5 (cycle 1) -> **8344137** (cycle 2)
-**Fix cycle:** 2
+**Commit:** 8dbc2d5 (cycle 1) -> 8344137 (cycle 2) -> **f90fcb3** (cycle 3)
+**Fix cycle:** 3 of max 3
 **Goal task:** T-132 (`user_value: normal`) — `done_check` =
 `uv run pytest tests/test_media.py tests/test_media_prep.py -q`, **exits 0** (it exited **1**
 before this unit — that check was rewritten by AT-141/AT-115 precisely so it could).
@@ -179,5 +179,87 @@ Whisper still has never been executed; the checker ruled that does **not** block
 the crash-isolation plumbing *is* exercised end to end (the module runs, the import fails, the
 non-zero is caught into `engine="none"`) — only its output shape is unverified, and the contract
 now carries an explicit UNVERIFIED section forbidding any claim that transcription works.
+
+## Cycle 3 — FAIL on I-VL4, and the shape is my cycle-2 mistake one level down
+
+**AT-166: I fixed the stage and not the path an operator runs.** `prepare()` raises a typed
+`UnreadableRecording`; I never widened the CLI's `except`, which caught only
+`(FileNotFoundError, ValueError)`. `UnreadableRecording` is a `RuntimeError`, so the **shipped
+command answered a deliberate refusal with a raw Rich traceback**.
+
+That is exactly what AT-163 was, one cycle earlier, **in the same file**. Last cycle the lesson was
+"the message must name a command that exists"; this cycle it is "the refusal must reach the
+operator at all". Both are the same root: I verified the mechanism I changed rather than the path
+that ships.
+
+**AT-165 was half-fixed the same way.** `st_size > 0` closed only the *empty* half — the checker
+truncated a real **277,206-byte frame to 92,402** at the expected name and `extract_frames` returned
+it as evidence with **zero** re-extract calls. The path is reachable with no guard anywhere: the 60s
+timeout kills ffmpeg mid-write and the failure path returned `False` **without unlinking**, so the
+cache adopted the half-file permanently. Now it unlinks, and the cache gates on a *whole* PNG —
+magic plus the fixed 12-byte IEND chunk, a cheap "the encoder finished" proxy with no image library,
+and explicitly **not** a claim the image is correct.
+
+### AT-171 — three attempts at one oracle
+
+| Attempt | Why it failed |
+|---|---|
+| `--help` on the captured command **group** | proved the group was registered; `ingest frobnicate` and `ingest list` both passed |
+| substring checks for "No such command" / "Missing argument" | sabotaging to a **registered but wrong-arity** command came back **INCONCLUSIVE** (C7) |
+| **`Usage:` banner absent** | measured, not guessed: click prints it for an unregistered command, an unregistered subcommand *and* wrong arity alike, while a correct invocation reaches the application's own message |
+
+All three wrong-command shapes now bite.
+
+### Cycle 3 evidence
+
+```
+SABOTAGE AK (the CLI stops catching UnreadableRecording)          -> 1
+SABOTAGE AL (a killed extract leaves its half-file again)         -> 1
+SABOTAGE AM (the cache gates on size again, not wholeness)        -> 1
+SABOTAGE AN / registered-but-wrong command  (`ingest list`)       -> 1
+SABOTAGE AN / unregistered subcommand       (`ingest frobnicate`) -> 1
+SABOTAGE AN / the original dead group       (`media prep`)        -> 1
+RESTORED: 15 passed
+```
+
+Each printed `anchor matched once, file changed` before its result was believed. **AN's first
+run was refused by my own harness** — I passed a placeholder anchor, and the C7 assertion caught it
+rather than reporting a green result.
+
+### The split, and the done_check that would have been left behind
+
+`tests/test_media_frames.py` split out at doctor's cap, by responsibility — and the split restates
+the finding: **prep's bugs were about reporting success for work that did not happen; frames' were
+about accepting a file as evidence when nobody finished writing it.** Same file, opposite failure.
+
+**T-132's `done_check` was widened to name the new file.** A split that leaves a check naming two of
+three files is the C9 defect I just spent three units on, arriving through the back door.
+
+### A measurement error of my own
+
+I read the `done_check` as exit **1** when it was **0** — I had chained it after `autotester doctor`
+with `&&`, doctor was red on the line cap, and I reported doctor's exit as pytest's. Caught by
+re-running it alone. The same "read the number you measured" rule this session keeps turning on me.
+
+### Cycle 3 verification
+
+```
+uv run pytest                                    691 passed, 2 skipped
+uv run ruff check src tests scripts              All checks passed!
+uv run autotester doctor                         doctor: clean
+T-132 done_check (all three files)               exit 0
+```
+
+### This is cycle 3 of a maximum of 3
+
+If this does not pass, the unit goes to `STALLED` and stops for Umesh rather than taking a fourth
+attempt. Stating it here so the bound is on disk before the verdict, not after it.
+
+### Still open, unchanged
+
+**AT-169** — `pyproject.toml` has no `[project.optional-dependencies]` block at all, so the `media`
+extra the docstring cites does not exist. **AT-170** — no CX1–CX4 guards. **AT-130** — stays open on
+its own trigger. Whisper still never executed; ruled not a PASS-blocker, with the contract carrying
+an explicit UNVERIFIED section.
 
 ## Status: ready-for-check
