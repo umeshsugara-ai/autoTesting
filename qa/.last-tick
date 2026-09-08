@@ -232,3 +232,38 @@ NEXT: take the sweep's top-3 queue. Standing candidates if it surfaces nothing b
 (Track A3, host media prep, corrected C:/Users/Lenovo/Videos/Screen Recordings paths) and the
 AT-138/AT-139 pair, which are one shape and one file.
 OPEN HUMAN GATES: AT-110 approval-forgery posture; ERP_EMAIL/ERP_PASSWORD for T-122/T-145.
+
+## 2026-09-08 — tick: ADVANCED (9) — sweep landed, AT-140 built from its top row
+The overdue sweep completed: 98 verified / 42 open / 1 fixed, NO REOPENS -- it re-verified 11
+`fixed` issues by EXECUTION (nine sabotages in a git archive scratch copy with its own venv, each
+breaking a different named test, so none of those guards is vacuous), and verified AT-100 by
+running T-145's new done_check, which now genuinely fails (exit 1) where {"cmd":"true"} could not.
+Baseline confirmed on clean HEAD: 623 passed / 2 skipped, MAP.md re-derived byte-identical.
+THE ANSWER TO THE QUESTION I ASKED IT: my countermeasure is REAL but SCOPED TOO NARROWLY. Across
+the whole suite the only CLI commands any test invoked were `ingest run`, `ingest register` and
+`login`; twelve tests called run_crawl DIRECTLY -- the entry point AT-111's own checker called
+"the one no operator uses" -- and `approve`, THE COMMAND THAT GRANTS CONSENT, had no test at all
+while the refusal path around it was well defended. T-145 is CRITICAL and points exactly there.
+Built at140-crawl-cli-coverage (commit f564d0d, ready-for-check) from the queue's top row, taken
+as written. Cheap because of AT-111's dividend: consent is pre-flighted BEFORE paths.ensure() and
+BEFORE BrowserSession, so every refusal path is reachable from a plain CliRunner with no browser.
+The row I would keep if I could keep only one: explore's typer defaults (200 actions / 600s) are
+the exact numbers require_consent judges production against, and a default drifting out of step
+with the gate would fail NOWHERE ELSE in the suite.
+633 passed / 2 skipped, ruff + doctor clean. Four sabotages: K=1, L=1, M=1, N=2.
+K FAILING ONLY ONE TEST IS CORRECT AND I SAID SO RATHER THAN INFLATING IT: run_crawl re-checks at
+the seam, so removing the pre-flight still exits 2 and only the LEFTOVER FILES betray it. That is
+precisely the AT-111 bug, and it means an exit-code test alone could never have caught it.
+SELF-CORRECTION WORTH KEEPING: my first cut of sabotage L used a condition that does not exist
+(`approval.max_actions < actions` vs the real `actions > approval.max_actions`), so it applied
+nothing and reported ZERO failures -- which I read as "my test is vacuous" and nearly acted on by
+rewriting a correct test. A SABOTAGE THAT DOES NOT APPLY PROVES NOTHING IN EITHER DIRECTION; check
+the anchor matched before believing the result. This is the inverse of AT-117: there I fabricated
+a failure, here I nearly believed a fabricated pass.
+Also dropped a claim I could not support: the refusal's grant command does NOT work "verbatim" by
+design -- it leaves placeholders for what only a human can supply (who authorised it, until when).
+A test asserting verbatim execution would assert a design mistake.
+Checker dispatched this turn (no dangling ready-for-check).
+NEXT: the sweep's rows 2 and 3 -- AT-141 + AT-115 as one unit (make C9 mean what it says), then
+AT-142 (the ERP credential gate has NO FILE on disk at all).
+OPEN HUMAN GATES: AT-110 approval-forgery posture; ERP_EMAIL/ERP_PASSWORD for T-122/T-145.
