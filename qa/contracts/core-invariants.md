@@ -91,7 +91,9 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   against the reader's actual vocabulary in a test, and files the upstream defect in the ledger.
 - Applies to `.goal/goal.json` control fields (`base_criticality`, `done_check`, `approved`) as
   well as to `projects/<slug>/` artifacts.
-- **Verify:** `uv run pytest tests/test_goal_criticality_vocabulary.py -q` exits 0.
+- **Verify:** `uv run pytest tests/test_goal_criticality_vocabulary.py tests/test_goal_done_checks.py -q`
+  exits 0 — one file per control field pinned so far (`base_criticality`, `done_check`). `approved`
+  is not yet pinned (AT-156); when it is, its test joins this line.
 
 ## No-fire list (do not raise these as findings)
 
@@ -147,3 +149,16 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   AT-151 hunk reverted produced the expected failure. The clause I wrote had a hole; this closes
   it. Tightening only — adds a reporting duty, weakens nothing, routine gate. Verdict:
   `qa/verdicts/at151-at152-both-arms.md`.
+- 2026-09-08 · routine · C9's **Verify** clause now also names `tests/test_goal_done_checks.py` ·
+  why: C9 governs three control fields and its Verify clause tested only the first — that gap was
+  AT-141 itself, and leaving the clause naming one file after a second file was written would let
+  the same drift recur silently. Ruling on the `at141-at115-done-check-can-fail` manifest's first
+  question: **the static predicate is the right instrument, and the maker's reasoning is adopted
+  verbatim.** A standing regression test must pin an invariant, and "this check fails today" is not
+  one — it inverts the moment the work lands, so a dynamic version would go green exactly when the
+  task completes and would thereafter assert nothing. What is invariant is that a `done_check` names
+  something specific to its own task. The dynamic direction is not lost: sweep check 4's third
+  loop-design question ("can it run a wrong answer to completion — is every `done_check` at least as
+  strong as the contract criterion it closes") is where an executed check belongs, and it is the
+  sweep's obligation, not `tests/`. Tightening only — it names one more file and weakens nothing, so
+  it applies under the routine gate.
