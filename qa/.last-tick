@@ -857,3 +857,45 @@ it would erase the record of the mistake -- the same reasoning applied twice alr
 NEXT after verdict: AT-176 + AT-178 + the checker's AT-174 causal oracle as ONE unit -- make the
 dead-command guard actually guard its class. Then T-133.
 OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
+
+## 2026-09-09 — tick: ADVANCED (25) — at185-at187 PASSED; the guard now sees its own class
+at185-at187 closed checked-PASS cycle 1 (verdict 7a7c77c). The checker re-applied its own product
+mutation and confirmed the fix works BY THE RIGHT MECHANISM: the diff showed docs/SNAPSHOT.md with
+IDENTICAL size and IDENTICAL sha256 -- mtime_ns was the only field that moved. That is exactly the
+field the fix added and exactly why the old content hash saw nothing.
+It also confirmed AT-185 independently: 0 of 22 commands now stop at click's banner, and the full
+matrix with real enum values left docs/FEATURES.jsonl byte-identical.
+Built at176-at178-render-not-scan (commit e2f119f, ready-for-check). THE GUARD COULD NOT SEE THE
+MESSAGE THE CLASS EXISTS FOR: media_prep.py builds its advice as f"... run `{PREP_COMMAND} " f"{slug}
+..." so the backtick is in one f-string part and the command name in a module constant -- two AST
+nodes, no single literal holding both. My claim that it "finds every backtick-quoted autotester
+string" was overstated, and the guard built to end the class carried the class's own signature.
+It no longer scans literals. tests/advice_scan.py RENDERS each string the way Python will -- joining
+parts, substituting module constants, following concatenation -- and reads commands out of the
+RESULT, backticked or not. Visible surface 5 -> 9 sites, including `ingest prep` and the
+un-backticked advice in core/consent.py (AT-178). What it still cannot resolve is marked UNRESOLVED
+rather than guessed, and that boundary is stated in the module rather than left for a checker.
+AT-174: THE CHECKER DESIGNED THE ORACLE I ARGUED COULD NOT EXIST. I said no test could tell a
+correct command from a plausible sibling without encoding the answer in itself. TRUE OF STATIC
+ORACLES ONLY. The causal one tests the message's PROMISE -- trigger the refusal, run the command it
+names, assert the refusal stops firing. Sabotage AZ renames the refusal to `ingest frames`,
+REGISTERED and same-arity, which passes every static oracle in this repo; the causal test fails it.
+That is the unit.
+Sabotage AY -- the mutation that returned ZERO before -- now fails 3.
+AT-189: I excluded .goal/ from the fingerprint because a timer rewrites it, then added qa/ IN THE
+SAME COMMIT, which the pair's own automation rewrites on the same kind of timer. 207 of 1258 watched
+files, no CLI code writing there: nil detection, real flake risk. One rule, applied to one place and
+not the other.
+744 passed / 2 skipped, ruff clean, doctor clean.
+A FLAKE FOUND AND FILED RATHER THAN SHRUGGED AT: test_explore_live.py::
+test_the_dialog_page_does_not_trap_the_crawl failed ONCE under full-suite load (aborted_error where
+aborted_dialog or explored was expected) and passed on the next full run and in isolation. Nothing
+in stages/explore*.py was touched. It matters because `uv run pytest` is the adapter's SLOT-1
+VERIFY, cited by every manifest in this project -- a flaky test turns "the suite is green" from a
+fact into a probability. Recorded in qa/feedback-inbox.md with the shape it generalises to: X8's
+dialog breaker is a race BY CONSTRUCTION, so asserting one exact terminal NodeStatus is asserting
+the race resolved a particular way. Asked the checker to rule on it.
+NEXT after verdict: T-133 (Track A4 -- ensemble, adjudication, Issue derivation, Excel, scorer).
+Corpus facts already measured in .work/track-a-corpus-facts.md, including four that would each
+silently produce a recall of ZERO.
+OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
