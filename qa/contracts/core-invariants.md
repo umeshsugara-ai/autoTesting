@@ -62,7 +62,14 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
 - A unit is complete only when a check that someone else can re-run passes.
 - The executor never grades itself: `RawResult` records observation, `Verdict` records judgement,
   and they are produced by different components.
-- **Verify:** `uv run pytest -q` exits 0 and the manifest pastes real output, not a summary.
+- **A sabotage must assert that it was applied.** Where a manifest's evidence is "I broke X and N
+  tests failed", the harness must establish, before believing any result, that its **anchor
+  matched exactly once** and that the **file on disk actually changed**. A patch whose anchor did
+  not match applies nothing and reports a green suite — which reads as *"the guard test is
+  vacuous"*, the precise opposite of the truth. A sabotage needs its own assertion, not just its
+  own patch.
+- **Verify:** `uv run pytest -q` exits 0 and the manifest pastes real output, not a summary; a
+  sabotage claim in a manifest is re-run by the checker in its own harness, never read.
 
 ### C8 — Provider-agnostic
 - All model calls go through `providers.base.Provider`. No stage imports a vendor SDK directly.
@@ -104,3 +111,21 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   gate. Ruling on the at116-criticality-vocabulary manifest's open question: `.goal/goal.json` does
   NOT need its own feature contract — one file's vocabulary is too narrow a thing to govern
   separately, and the real invariant is project-wide, so it belongs here.
+- 2026-09-08 · routine · added to **C7** the sabotage-assertion clause (an anchor must match
+  exactly once and the file must actually change before a sabotage result is believed) · why:
+  **five occurrences in two days across three independent agents.** (1) AT-140 cycle 1 — the
+  maker's no-op sabotage read as "my test is vacuous" and it nearly rewrote a correct test;
+  (2) the `at140` checker hit it from its own side (`max_actions=max_actions` matched twice in the
+  file); (3) `at149-at150-path-containment` sabotage T — heredoc quoting mangled the anchor, patch
+  applied nothing, suite green; (4) and (5) the checker of that same unit, twice, whose harness
+  assertion caught it both times and printed "ANCHOR NOT PRESENT -- harness is lying". Without the
+  assertion, (4) would have been reported as "sabotage T: 0 failures, the maker's test is vacuous"
+  and a correct fix would have been FAILed. Ruling on the maker's request for a home: **not**
+  `consent.md` — a feature contract judges the artifact, not how the maker held the tools, which
+  is why AT-131 was correctly refused a home in `ingest.md`; **not** `qa/loop.md` — that file is
+  the maker's own, and a rule the maker writes for itself is not a gate. C7 is already the
+  criterion about how verification is done ("the executor never grades itself", "the manifest
+  pastes real output"), and a sabotage that silently applied nothing is a manifest pasting real
+  output from an experiment that never happened. Tightening only — it adds a clause and weakens
+  none, so it applies under the routine gate. Verdict:
+  `qa/verdicts/at149-at150-path-containment.md`.
