@@ -99,4 +99,4 @@ the one that works here; `ffmpeg 8.1.1` is present.
 - **AT-153** stays queued; the consent chain is closed.
 - No crawl has run against a real product. That is the ERP credential gate.
 
-## Status: ready-for-check
+## Status: checked-PASS
