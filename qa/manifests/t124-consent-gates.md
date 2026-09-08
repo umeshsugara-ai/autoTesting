@@ -155,4 +155,40 @@ and it is coupled to AT-110's answer. Queued, not smuggled in.
 - **Then sabotage it:** remove the pre-flight from `cli_crawl.py` and confirm the proof's first
   invariant fails with `refused BUT left: crawl dir, browser profile`.
 
-## Status: ready-for-check
+## Cycle 2 verdict: PASS (9/9, 20/20 invariants)
+
+Verdict: `qa/verdicts/t124-consent-gates.md` (**Cycle checked: 2**, PASS). Goal task closed by the
+checker itself, per protocol. **CN1 is closed for real this time** — the checker reproduced the
+cycle-1 failure in a scratch root and confirmed the filesystem afterwards is byte-identical:
+`autotester explore` with no approval exits 2 and leaves neither `projects/<slug>/crawl/` nor a
+browser profile; `POST /projects/<slug>/explore` returns 403 with the grant command in the body and
+leaves the same nothing.
+
+It sabotaged three different layers and got three different, correctly-shaped failures — the CLI
+pre-flight, the UI pre-flight, and the seam check in `run_crawl` each break a different test when
+removed, which is what "added, not moved" is supposed to look like on the outside.
+
+**Cycle 1's crashed retry, handled correctly.** The first cycle-2 checker died on a network error
+mid-run and wrote nothing. That is not a verdict per the handshake rule — the manifest stayed at
+Fix cycle 2, nothing it might have concluded was treated as evidence, and a clean-tree retry was
+dispatched. The replacement explicitly ignored the dead run and re-derived everything.
+
+**AT-116 (high, new) — my "raise T-145 to CRITICAL" fix from cycle 2 was inert.** The shared
+`goal/scripts/criticality.py::_ORDER` dict is lowercase (`"low"`/`"medium"`/`"high"`/`"critical"`);
+this project's `.goal/goal.json` has used uppercase (`"CRITICAL"`, `"HIGH"`, …) plus a fifth value,
+`"NORMAL"`, with no equivalent in `_ORDER` at all, since the file was created. `base_criticality()`
+silently falls back to `"low"` for anything it does not recognise case-sensitively, so **every
+task in this project's `base_criticality` field has been ignored by the classifier from the
+start** — T-145's derived `criticality` still read `"low"` after my cycle-2 edit. The checker
+filed it as a new issue rather than a FAILURE line because no CN criterion covers it and this
+unit did not introduce it — it exposed a pre-existing, project-wide data/classifier mismatch.
+
+**Not fixed in this cycle, and here is why:** `criticality.py` is a shared AIOS skill file at
+`D:/ai_os/.claude/skills/goal/scripts/`, outside this project's root — maker-checker's project
+binding rule is own-root-only, and editing a shared skill from inside one project's session is
+exactly the kind of change that needs its own review, not a fly-by fix mid-unit. The in-project
+half (normalising `.goal/goal.json`'s casing, and deciding what `"NORMAL"` maps to for 12 tasks)
+touches every task in the backlog and is a real behaviour change to how criticality is computed
+project-wide — routed to its own maker-checker unit next, not folded into T-124's close-out.
+
+## Status: checked-PASS
