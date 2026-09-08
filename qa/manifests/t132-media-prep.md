@@ -262,4 +262,4 @@ extra the docstring cites does not exist. **AT-170** — no CX1–CX4 guards. **
 its own trigger. Whisper still never executed; ruled not a PASS-blocker, with the contract carrying
 an explicit UNVERIFIED section.
 
-## Status: ready-for-check
+## Status: checked-PASS
