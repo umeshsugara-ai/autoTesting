@@ -209,3 +209,21 @@ def test_an_approved_flowspec_is_not_falsely_warned_about(
 
     assert "not approved" not in text.lower()
     assert "approved" in text.lower()
+
+
+def test_explore_without_an_approval_is_refused_and_leaves_no_trace(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """AT-111 (checker-found): the gate lived only inside `run_crawl`, which the
+    route wraps in `with BrowserSession(...)` — and `session.start()` creates
+    `crawl/<id>/shots/` and launches Chromium before `run_crawl` is entered. So
+    "a refused run leaves no trace" was true of the direct call and false of the
+    path every operator uses. The check now runs before any directory exists."""
+    make_project(scratch_root)
+
+    response = client.post("/projects/demo/explore", follow_redirects=False)
+
+    assert response.status_code == 403
+    assert "autotester approve demo --kind crawl" in response.json()["detail"]
+    assert not (scratch_root / "projects" / "demo" / "crawl").exists()
+    assert not (scratch_root / "profiles" / "demo").exists()

@@ -15,7 +15,9 @@ from __future__ import annotations
 
 import functools
 import http.server
+import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import threading
@@ -29,7 +31,6 @@ from regression_proof import _NoCacheHandler
 from autotester.browser.observe import PageObserver
 from autotester.browser.secrets import SecretStore
 from autotester.browser.session import BrowserSession
-from autotester.core.consent import ApprovalRequired
 from autotester.core.paths import ProjectPaths
 from autotester.schema.approval import RunApproval
 from autotester.schema.crawl import CrawlBounds
@@ -84,24 +85,42 @@ def crawl(base_url: str, root: Path, *, headed: bool) -> tuple[object, ProjectSt
 
 
 def gate_refuses_without_approval(base_url: str, root: Path) -> tuple[bool, str]:
-    """D-018: with no approval on disk the crawl must refuse BEFORE it opens a
-    browser or writes anything. Proven by attempting it for real and checking
-    that nothing was created — not by reading the code."""
+    """D-018: with no approval on disk the crawl must refuse before it opens a
+    browser or writes anything.
+
+    AT-111 (checker-found): the first version of this invariant called
+    `run_crawl` directly and passed while BOTH shipped entry points were still
+    creating `crawl/<id>/shots/` and launching Chromium first — `run_crawl` is
+    wrapped in `with BrowserSession(...)`, whose `start()` runs before the gate.
+    An invariant that only covers a path no operator uses proves nothing about
+    the product. This now drives the REAL CLI in a subprocess and checks the
+    disk afterwards.
+    """
     project = Project(slug="nogate", name="No gate", base_url=base_url,
                       allowed_domains=["127.0.0.1"])
+    # Deliberately NOT calling paths.ensure(): the setup must create nothing the
+    # CLI would be blamed for. `save_project` makes only what it needs.
     paths = ProjectPaths("nogate", root)
-    paths.ensure()
-    store = ProjectStore("nogate", root)
-    store.save_project(project)
-    try:
-        run_crawl(project, None, store, observer=PageObserver())  # type: ignore[arg-type]
-    except ApprovalRequired:
-        untouched = not paths.crawls_dir.exists()
-        return untouched, ("refused, no crawl dir created" if untouched
-                           else "refused BUT a crawl dir was created")
-    except Exception as exc:
-        return False, f"gate did not fire first: {type(exc).__name__}: {exc}"
-    return False, "the crawl ran with no approval on disk"
+    ProjectStore("nogate", root).save_project(project)
+
+    env = {**os.environ, "AUTOTESTER_ROOT": str(root)}
+    proc = subprocess.run(
+        [sys.executable, "-c", "from autotester.cli import main; main()",
+         "explore", "nogate", "--max-actions", "5"],
+        capture_output=True, text=True, env=env, timeout=180, check=False,
+    )
+    traces = [
+        name for name, path in (
+            ("crawl dir", paths.crawls_dir),
+            ("browser profile", root / "profiles" / "nogate"),
+        ) if path.exists()
+    ]
+    refused = proc.returncode == 2 and "refusing to start" in (proc.stdout + proc.stderr)
+    if not refused:
+        return False, f"CLI exit {proc.returncode}, did not refuse"
+    if traces:
+        return False, f"refused BUT left: {', '.join(traces)}"
+    return True, "CLI exit 2, no crawl dir, no browser profile"
 
 
 def checks(crawl_obj: object, store: ProjectStore) -> list[tuple[str, bool, str]]:

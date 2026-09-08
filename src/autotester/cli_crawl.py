@@ -15,6 +15,26 @@ import typer
 from autotester.store.project_store import ProjectStore
 
 
+def _preflight_consent(proj: Any, store_: ProjectStore, bounds: Any) -> None:
+    """D-018, checked before ANY directory is created and before the browser
+    starts — `run_crawl` checks again at the seam, so this is additional.
+
+    AT-111: with the check only at the seam, a refused run still left
+    `crawl/<id>/shots/` and a populated Chromium profile behind, because
+    `BrowserSession.start()` runs inside the `with` that wraps `run_crawl`.
+    Even `paths.ensure()` alone leaves an empty profile dir — harmless, but
+    "a refused run leaves no trace" has to mean what it says.
+    """
+    from autotester.core.consent import ApprovalRequired
+    from autotester.stages import explore as explore_stage
+
+    try:
+        explore_stage.require_consent(proj, store_, bounds)
+    except ApprovalRequired as exc:
+        typer.secho(str(exc), fg=typer.colors.YELLOW)
+        raise typer.Exit(2) from None
+
+
 def _resolve_crawl_target(project: str, login_case: str | None) -> tuple[ProjectStore, Any, Any]:
     """The project and (optional) login case, or a clean CLI exit naming which
     one is missing — never a traceback at a user."""
@@ -54,10 +74,11 @@ def explore_cmd(
     from autotester.stages import explore as explore_stage
 
     store_, proj, case = _resolve_crawl_target(project, login_case)
-    paths = ProjectPaths(project)
-    paths.ensure()
     bounds = CrawlBounds(max_screens=max_screens, max_actions=max_actions,
                          wall_clock_s=wall_clock, max_depth=max_depth)
+    _preflight_consent(proj, store_, bounds)
+    paths = ProjectPaths(project)
+    paths.ensure()
     secrets = SecretStore.load(proj, paths.env_file, strict=False)
     observer = PageObserver()
     crawl_id = run_id("crawl")
@@ -114,8 +135,10 @@ def approve_cmd(
     """Grant a human's approval for one kind of run against one target (D-018).
 
     Nothing outward-facing starts without one. The approval is content-addressed,
-    so editing the row afterwards to widen it invalidates it rather than
-    silently taking effect.
+    so an accidental edit to the row invalidates it rather than silently taking
+    effect — but the hash is unkeyed, so this is tamper EVIDENCE, not tamper
+    proofing: anyone who can write approvals.jsonl can recompute a valid id
+    (AT-110).
     """
     from autotester.schema.approval import RunApproval
     from autotester.schema.enums import ApprovalKind

@@ -4,9 +4,19 @@
 makes it a file a human writes once and a runner checks every time: what may be
 touched, how much of it, until when, and who said so.
 
-The id is content-addressed over **every bound field**, so an approval cannot be
-edited on disk to widen itself — `core/consent.py` recomputes it and refuses a
-row whose id no longer matches its contents.
+The id is content-addressed over **every bound field**, so `core/consent.py`
+recomputes it and refuses a row whose id no longer matches its contents.
+
+**What that does and does not buy (AT-110, found by a checker who did it).**
+`core.ids.content_id` is an UNKEYED sha256, so the id is recomputable by anyone
+who can write the file — including the agent this gate exists to bound. Deleting
+the `id` field is enough: `model_post_init` mints a matching one. So this
+detects a **careless or accidental edit**, not a determined forger; a checker
+widened a 12-action grant to 9999 with `production` flipped true and ran a
+500-action crawl on it. Closing that needs a secret (an HMAC keyed from the
+repo-root `.env`, or a signed audit line) and is a HUMAN_GATE for Umesh —
+`qa/gates/at110-approval-forgery.md`. Do not read the check below as tamper
+*proofing*; it is tamper *evidence*.
 """
 
 from __future__ import annotations

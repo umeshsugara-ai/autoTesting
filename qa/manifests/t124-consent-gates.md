@@ -6,10 +6,11 @@ and the maker never writes one. Until it exists, judge against `qa/contracts/cor
 (C1, C2, C3, C6) and `qa/contracts/explore.md` **X1–X16, which this unit must leave intact**.
 **Goal task:** T-124
 **Date:** 2026-09-08
-**Fix cycle:** 1 of max 3
+**Fix cycle:** 2 of max 3
 **Dual check:** no
 **Plan:** plan.md §5A "T-124 — the two-gate consent model", authorised by **D-018**
-**Issues addressed:** **AT-100** (T-145's `done_check` could never fail)
+**Issues addressed:** **AT-111** (cycle 2), **AT-100** *both halves* (cycle 2 — the
+manifest over-claimed at cycle 1 by closing only the `done_check` half)
 
 ## Why this unit exists
 The explorer is about to be pointed at a live production ERP, and `T-145`'s `done_check` was
@@ -86,5 +87,72 @@ crawl and asserts no crawl directory was created — not that the code looks lik
 Revoking an approval (expiry only, for now); gating `ingest`/`expand`/`run_case` (T-122's live-case
 gate is its own unit); a UI grant form (CLI only — the credentials page is the right home and is
 not built here); org-level approvals; any auto-granting path whatsoever.
+
+## Cycle 1 verdict: FAIL — and it found the thing I had actually got wrong
+
+Verdict: `qa/verdicts/t124-consent-gates.md` (**Cycle checked: 1**, FAIL, 8/9). Everything I
+claimed reproduced, and the checker confirmed by sabotage that the gate is not theatre — but it
+failed the unit on its **headline criterion**, correctly.
+
+**AT-111 (high) — "a refused run leaves no trace" was false at both real entry points.** Both
+shipped callers wrap `run_crawl` in `with BrowserSession(...)`, and `BrowserSession.start()`
+creates `crawl/<id>/shots/` and launches Chromium **before** `run_crawl` is entered. My proof
+invariant called `run_crawl` directly, so it covered a path no operator uses. That is my own
+"a guard only production callers pass through is tested nowhere" argument, inverted onto my own
+proof — I applied it to the gate and not to the evidence for the gate.
+
+### Cycle 2 — what changed
+- `stages/explore.py` — `_require_consent` → **public** `require_consent`. The seam check in
+  `run_crawl` is unchanged and unconditional, so a new caller that forgets the pre-flight is still
+  refused; the pre-flight is *additional*, never a replacement.
+- `cli_crawl.py` and `ui/routes_crawls.py` — consent checked **before `paths.ensure()` and before
+  the browser**. `ensure()` alone would leave an empty profile directory, which is harmless but
+  makes "leaves no trace" untrue; the phrase has to mean what it says.
+- **`scripts/explore_proof.py`'s first invariant now drives the REAL CLI in a subprocess** and
+  inspects the disk afterwards, instead of calling `run_crawl`. This is the actual fix: the code
+  defect was one line, the *evidence* defect was the thing that let it ship.
+- **New** `tests/test_ui_crawls.py::test_explore_without_an_approval_is_refused_and_leaves_no_trace`
+  — 403, the grant command in the detail, no crawl dir, no profile dir.
+- `schema/approval.py` and `approve_cmd`'s `--help` — **prose corrected** (see AT-110).
+- `.goal/goal.json` — **T-145 raised HIGH → CRITICAL** (AT-100's second half, which cycle 1
+  over-claimed as closed). It was `criticality: low` while being the highest outward-facing risk
+  in the backlog. CRITICAL means a **dual check** when it runs.
+
+### Sabotage — the new invariant reproduces the checker's finding exactly
+```
+SABOTAGE: pre-flight gate removed from the CLI (back to cycle-1 behaviour)
+FAIL  no approval => nothing runs, nothing written  (refused BUT left: crawl dir, browser profile)
+=== restored ===
+PASS  no approval => nothing runs, nothing written  (CLI exit 2, no crawl dir, no browser profile)
+11/11 invariants held
+```
+
+### AT-110 — the checker forged an approval, and I am not fixing it by choice
+It rewrote a row with `max_actions=9999`, `production=True` and the `id` key **removed**;
+`model_post_init` minted a matching id and a 500-action crawl ran on a human grant of 12.
+`content_id` is an unkeyed sha256, so anyone who can write the file can recompute the id. **No
+criterion claimed forgery resistance and no unkeyed local scheme can provide it**, so this is a
+posture decision, not a fix — `qa/gates/at110-approval-forgery.md`, HUMAN_GATE for Umesh, and the
+checker said explicitly not to let the maker pick it. What I *did* fix is the part that was
+mine: my docstrings claimed an approval "cannot be edited on disk to widen itself". It can. Both
+the module docstring and the operator-facing `--help` now say tamper **evidence**, not proofing.
+
+### Not fixed, deliberately
+**AT-112** (medium) — `production` is inert for `ApprovalKind.CRAWL`; nothing computes "is this
+target production", so T-145's live ERP crawl is authorised by an ordinary crawl approval. That is
+a real gap but it is a *new capability* (a production predicate), not a correction to this unit,
+and it is coupled to AT-110's answer. Queued, not smuggled in.
+
+## How to verify (cycle 2)
+- `docker compose exec -T autotester uv run pytest -q` → **583 passed, 1 skipped** (582 at cycle 1)
+- `docker compose exec -T autotester uv run ruff check src tests scripts` → `All checks passed!`
+- `docker compose exec -T autotester uv run autotester doctor` → `doctor: clean`
+- `docker compose exec -T autotester uv run python scripts/explore_proof.py` → **11/11**, first
+  line `CLI exit 2, no crawl dir, no browser profile`
+- **Re-run the cycle-1 failure yourself:** `autotester explore <slug>` with no approval, then check
+  for `projects/<slug>/crawl/` and `profiles/<slug>/`. Both must be absent. Then do the same
+  through `POST /projects/<slug>/explore` and confirm the 403 leaves nothing.
+- **Then sabotage it:** remove the pre-flight from `cli_crawl.py` and confirm the proof's first
+  invariant fails with `refused BUT left: crawl dir, browser profile`.
 
 ## Status: ready-for-check

@@ -17,6 +17,7 @@ from starlette.background import BackgroundTask
 
 from autotester.core.ids import run_id
 from autotester.core.paths import ProjectPaths
+from autotester.schema.crawl import CrawlBounds
 from autotester.stages.coverage import diff_crawl, unreached_screens
 from autotester.stages.crawl_report import export_crawl_excel
 from autotester.stages.explore_merge import merge_screens
@@ -152,6 +153,12 @@ def start_crawl(slug: str) -> RedirectResponse:
 
     _store, project = _load_project_or_404(slug)
     store = ProjectStore(slug)
+    try:
+        explore_stage.require_consent(project, store, CrawlBounds())
+    except ApprovalRequired as exc:
+        # 403, not 500: refused on purpose, and the detail names the grant
+        # command. Before `paths.ensure()` and the browser launch (AT-111).
+        raise HTTPException(status_code=403, detail=str(exc)) from None
     paths = ProjectPaths(slug)
     paths.ensure()
     secrets = SecretStore.load(project, paths.env_file, strict=False)

@@ -152,12 +152,17 @@ def _finish(rt: ExploreRuntime, status: CrawlStatus) -> Crawl:
     return crawl
 
 
-def _require_consent(project: Project, store: ProjectStore, bounds: CrawlBounds) -> None:
-    """D-018 gate 2, checked before a crawl envelope, a browser navigation or a
-    screenshot directory exists — a refused run leaves no trace at all.
+def require_consent(project: Project, store: ProjectStore, bounds: CrawlBounds) -> None:
+    """D-018 gate 2. Public so a caller can ALSO check it before opening a
+    browser — `run_crawl` still checks unconditionally, so the seam holds even
+    if a new caller forgets the pre-flight.
 
-    Checked here rather than in the CLI and the UI separately, because a guard
-    that each caller has to remember is one a new caller will forget.
+    AT-111 (checker-found): checking only here was not enough. Both shipped
+    entry points wrap `run_crawl` in `with BrowserSession(...)`, and
+    `BrowserSession.start()` creates `crawl/<id>/shots/` and launches Chromium
+    before `run_crawl` is ever entered — so the "a refused run leaves no trace"
+    property this unit sells was true of the direct call and false of every path
+    an operator actually uses.
     """
     require_approval(
         store.list_approvals(), project=project.slug, kind=ApprovalKind.CRAWL,
@@ -188,10 +193,10 @@ def run_crawl(
     exist before the session does.
 
     **Raises `ApprovalRequired` before anything is created or opened** — see
-    `_require_consent`.
+    `require_consent`.
     """
     bounds = bounds or CrawlBounds()
-    _require_consent(project, store, bounds)
+    require_consent(project, store, bounds)
     envelope = {
         "project": project.slug,
         "bounds": bounds,
