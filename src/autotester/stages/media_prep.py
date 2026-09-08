@@ -120,6 +120,13 @@ def extract_frames(store: ProjectStore, source: Source,
     if source.path is None:
         raise ValueError(f"source {source.id} has no path")
     video = Path(source.path)
+    if not video.is_file():
+        # AT-173: without this, every extract failed quietly and the caller
+        # reported "0 frames written" as a success -- indistinguishable from a
+        # recording that genuinely had no stills to take.
+        raise FileNotFoundError(
+            f"{source.id} points at {video}, which is not a readable file — "
+            f"no frames can be extracted")
     out_dir = store.paths.source_frames_dir(source.id)
 
     wanted = sorted({t for screen in analysis.screens for t in screen.screenshot_ts})

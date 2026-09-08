@@ -106,12 +106,26 @@ def media_frames_cmd(
     source = _require_source(store, project, source_id)
     analysis = store.load_analysis(source_id)
     if analysis is None:
-        typer.secho(f"{source_id} has no analysis.json yet — run `autotester ingest analyze` first",
-                    fg=typer.colors.YELLOW)
+        # AT-172: this named `autotester ingest analyze`, which does not exist
+        # -- that stage is Track A4 and is not built. Pointing an operator at a
+        # future command is the same dead end as AT-163, one command over, and
+        # it survived three fix cycles spent on exactly that shape. When there
+        # is nothing to run, say so instead of inventing something to run.
+        typer.secho(
+            f"{source_id} has no analysis.json — the analyze stage (Track A4) is not "
+            f"built yet, so there are no frames to extract",
+            fg=typer.colors.YELLOW)
         raise typer.Exit(2)
 
-    written = media_prep.extract_frames(store, source, analysis)
-    typer.secho(f"{source_id}: {len(written)} frame(s) written", fg=typer.colors.GREEN)
+    try:
+        written = media_prep.extract_frames(store, source, analysis)
+    except (FileNotFoundError, ValueError, media_prep.UnreadableRecording) as exc:
+        typer.secho(str(exc), fg=typer.colors.RED)
+        raise typer.Exit(2) from None
+    # AT-173: a vanished recording printed a GREEN `0 frame(s) written`, exit 0
+    # -- success for work that could not even be attempted.
+    colour = typer.colors.GREEN if written else typer.colors.YELLOW
+    typer.secho(f"{source_id}: {len(written)} frame(s) written", fg=colour)
 
 
 def _require_source(store: ProjectStore, project: str, source_id: str):

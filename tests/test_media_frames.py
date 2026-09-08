@@ -169,3 +169,46 @@ def test_a_frame_already_on_disk_with_real_bytes_is_reused(
 
     assert len(written) == 1
     assert calls == [], "a good cached frame must not be re-extracted"
+
+
+def test_a_vanished_recording_is_refused_not_reported_as_zero_frames(
+    store: ProjectStore, tmp_path: Path,
+) -> None:
+    """AT-173: `extract_frames` on a source whose file is gone failed every
+    extract quietly and returned `[]`, which the CLI printed as a GREEN
+    `0 frame(s) written` with exit 0 — indistinguishable from a recording that
+    genuinely had no stills to take. Success reported for work that could not
+    even be attempted."""
+    source = store.add_source(Source(project="demo", kind=SourceKind.VIDEO,
+                                     path=str(tmp_path / "gone.mp4"), sha256="x"))
+    analysis = VideoAnalysis(source_id=source.id, screens=[
+        AnalysedScreen(name="Home", t_start=1.0, screenshot_ts=[1.5])])
+
+    with pytest.raises(FileNotFoundError, match="not a readable file"):
+        media_prep.extract_frames(store, source, analysis)
+
+
+def test_the_shipped_frames_command_does_not_print_green_for_a_vanished_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The half that matters, at the path an operator runs — the lesson of
+    AT-166, applied before a checker has to find it again."""
+    from typer.testing import CliRunner
+
+    from autotester.cli import app
+    from autotester.schema.analysis import VideoAnalysis as VA
+
+    monkeypatch.setenv("AUTOTESTER_ROOT", str(tmp_path))
+    store = ProjectStore("demo", tmp_path)
+    store.save_project(Project(slug="demo", name="Demo", base_url="https://demo.test",
+                               allowed_domains=["demo.test"]))
+    source = store.add_source(Source(project="demo", kind=SourceKind.VIDEO,
+                                     path=str(tmp_path / "gone.mp4"), sha256="x"))
+    store.save_analysis(VA(source_id=source.id, screens=[
+        AnalysedScreen(name="Home", t_start=1.0, screenshot_ts=[1.5])]))
+
+    result = CliRunner().invoke(app, ["ingest", "frames", "demo", source.id])
+
+    assert result.exit_code == 2, result.output
+    assert "Traceback" not in result.output
+    assert "0 frame(s) written" not in result.output
