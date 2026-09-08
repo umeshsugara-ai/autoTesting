@@ -200,3 +200,90 @@ def test_the_same_bytes_are_uploaded_once(tmp_path: Path) -> None:
     upload_and_wait(client, video, cache_path=cache)
 
     assert client.uploads == 1
+
+
+# -- AT-133/134/135: the fix for "declared but unapplied" had the same defect --
+
+def _sidecar(root: Path, payload: str) -> Path:
+    video = a_video(root)
+    video.with_suffix(".transcript.json").write_text(payload, encoding="utf-8")
+    return video
+
+
+@pytest.mark.parametrize("payload", [
+    "[1, 2, 3]",                                    # AttributeError on raw.get
+    '{"segments": ["hi"]}',                         # TypeError on **seg
+    "not json at all",                              # ValueError
+    '{"segments": [{"start": 0, "end": 2, "text": "x", "confidence": 0.9}]}',  # extra="forbid"
+])
+def test_a_malformed_sidecar_never_stops_an_ingest(root: Path, spy: MockProvider,
+                                                   payload: str) -> None:
+    """AT-133: `load_sidecar` promised best-effort and caught only
+    (OSError, ValueError), while `from_sidecar` raises AttributeError on a
+    non-object top level and TypeError on non-mapping segments. The docstring
+    said one thing and the code did another -- this unit's own thesis, inside
+    the fix for it."""
+    source_id = register(root, _sidecar(root, payload))
+
+    result = runner.invoke(app, ["ingest", "run", "demo", source_id, "--provider", "mock"])
+
+    assert result.exit_code == 0, result.output
+
+
+@pytest.mark.parametrize("payload", [
+    "[1, 2, 3]",
+    '{"segments": [{"start": 0, "end": 2, "text": "real speech", "confidence": 0.9}]}',
+])
+def test_an_unreadable_sidecar_is_never_reported_as_silence(root: Path, spy: MockProvider,
+                                                            payload: str) -> None:
+    """AT-134: returning None for an unreadable sidecar made the prompt assert
+    "no speech detected" about a recording that demonstrably HAS speech --
+    a false statement inside the block the prompt itself labels ground truth.
+    Silence is a fine fallback when it is neutral, a defect when it is an
+    assertion the reader believes."""
+    source_id = register(root, _sidecar(root, payload))
+
+    runner.invoke(app, ["ingest", "run", "demo", source_id, "--provider", "mock"])
+
+    prompt = spy.prompts[-1][1] if spy.prompts else ""
+    assert "no speech detected" not in prompt
+    assert "could not be read" in prompt
+    assert "do NOT assume the recording is silent" in prompt
+
+
+def test_a_recording_with_genuinely_no_sidecar_still_says_no_speech(
+    root: Path, spy: MockProvider,
+) -> None:
+    """The other side of AT-134: absent is NOT the same fact as unreadable, and
+    the honest line for a truly silent recording must survive the fix."""
+    source_id = register(root, a_video(root))
+
+    runner.invoke(app, ["ingest", "run", "demo", source_id, "--provider", "mock"])
+
+    assert "no speech detected" in (spy.prompts[-1][1] if spy.prompts else "")
+
+
+def test_a_source_pointing_at_a_directory_gets_a_typed_refusal(root: Path) -> None:
+    """AT-135: `path.exists()` is true for a directory, so `file_sha256` raised
+    a raw PermissionError out of the CLI instead of the typed SourceChanged the
+    function exists to produce."""
+    from autotester.schema.enums import SourceKind
+    from autotester.schema.project import Source
+    from autotester.stages.ingest import SourceChanged, verify_source_bytes
+
+    folder = root / "not-a-video.mp4"
+    folder.mkdir()
+    source = Source(project="demo", kind=SourceKind.VIDEO, path=str(folder), sha256="deadbeef")
+
+    with pytest.raises(SourceChanged, match="not a readable file"):
+        verify_source_bytes(source)
+
+
+def test_uploading_a_missing_file_is_a_provider_error(tmp_path: Path) -> None:
+    """AT-135, second half: a bare FileNotFoundError escaped `upload_and_wait`,
+    which exists precisely so callers see one typed failure."""
+    from autotester.providers.base import ProviderError
+    from autotester.providers.gemini_files import upload_and_wait
+
+    with pytest.raises(ProviderError, match="not a readable file"):
+        upload_and_wait(object(), tmp_path / "nope.mp4")

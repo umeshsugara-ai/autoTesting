@@ -73,6 +73,9 @@ def upload_and_wait(client: Any, path: Path, *, cache_path: Path | None = None,
     """Upload `path`, poll until ACTIVE, and return the file handle.
 
     `clock` and `sleep` are injected so the timeout is testable without one."""
+    if not path.is_file():
+        raise ProviderError(
+            f"nothing to upload: {path} is not a readable file")  # AT-135: typed, not FileNotFound
     key = _cache_key(path)
     if cache_path is not None and (name := _cached_name(cache_path, key)):
         try:

@@ -28,6 +28,9 @@ from autotester.schema.project import Source
 from autotester.store.project_store import ProjectStore
 
 PROMPT_NAME = "ingest_video_v1.md"
+UNREADABLE = "unreadable"
+"""`Transcript.engine` for a sidecar that exists and could not be parsed — the
+one state that must never be reported to the model as silence (AT-134)."""
 
 
 class FlowSpecApproved(RuntimeError):
@@ -44,12 +47,24 @@ def build_ingest_prompt(source: Source, docs: RepoDocs,
     it rather than re-transcribe: asked to do both, it paraphrases speech into
     something plausible, and a paraphrased complaint is a fabricated one."""
     template = (docs.prompts_dir / PROMPT_NAME).read_text(encoding="utf-8")
-    narration = "(no speech detected — do not invent dialogue)"
-    if transcript is not None and transcript.segments:
-        narration = transcript.slice(0.0, transcript.segments[-1].end)
     return (template
             .replace("{{SOURCE_LABEL}}", source.label or source.id)
-            .replace("{{NARRATION}}", narration))
+            .replace("{{NARRATION}}", narration_block(transcript)))
+
+
+def narration_block(transcript: Transcript | None) -> str:
+    """What the prompt says about speech — three states, never conflated (AT-134).
+
+    Telling a model "no speech detected" about a recording that HAS speech is
+    not a missing feature, it is a false statement in a block the prompt itself
+    labels ground truth. An unreadable sidecar is a different fact from silence
+    and has to read as one, or the model confidently reports a silent video."""
+    if transcript is not None and transcript.segments:
+        return transcript.slice(0.0, transcript.segments[-1].end)
+    if transcript is not None and transcript.engine == UNREADABLE:
+        return ("(a transcript file exists beside this recording but could not be read — "
+                "do NOT assume the recording is silent, and do not invent dialogue)")
+    return "(no speech detected — do not invent dialogue)"
 
 
 def register_source(store: ProjectStore, path: Path, *, label: str | None = None,
@@ -117,9 +132,20 @@ def load_sidecar(source: Source) -> Transcript | None:
     was as dead as the vision options. Same defect, one file over, unfiled.
 
     Loading is best-effort: a malformed sidecar must not stop an ingest, because
-    a reading with no narration is still worth having. It must not silently
-    become one either, so the caller is told by getting None and the prompt says
-    so in words."""
+    a reading with no narration is still worth having.
+
+    AT-133/AT-134 — the first version of this got BOTH halves wrong, and it is
+    the unit's own thesis reappearing inside the fix for it:
+
+    - It caught only `(OSError, ValueError)`, while `from_sidecar` raises
+      `AttributeError` on a non-object top level and `TypeError` on non-mapping
+      segments. The docstring promised best-effort and the code crashed.
+    - Returning `None` for an UNREADABLE sidecar made the prompt assert *"no
+      speech detected"* about a recording that demonstrably has speech. Silence
+      is a fine fallback when it is neutral; it is a defect when it is an
+      assertion the reader will believe. So the two cases are now distinct:
+      absent → assert silence, present-but-unreadable → say exactly that.
+    """
     if source.path is None:
         return None
     sidecar = Path(source.path).with_suffix(".transcript.json")
@@ -127,8 +153,8 @@ def load_sidecar(source: Source) -> Transcript | None:
         return None
     try:
         return Transcript.from_sidecar(sidecar, source.id)
-    except (OSError, ValueError):
-        return None
+    except Exception:  # any malformed shape at all — the promise is best-effort
+        return Transcript(source_id=source.id, engine=UNREADABLE)
 
 
 class SourceChanged(RuntimeError):
@@ -148,10 +174,16 @@ def verify_source_bytes(source: Source) -> None:
     if source.path is None or source.sha256 is None:
         return
     path = Path(source.path)
-    if not path.exists():
+    if not path.is_file():
         raise SourceChanged(
-            f"{source.id} points at {path}, which no longer exists — re-register the recording.")
-    actual = file_sha256(path)
+            f"{source.id} points at {path}, which is not a readable file any more — "
+            f"re-register the recording.")
+    try:
+        actual = file_sha256(path)
+    except OSError as exc:  # AT-135: a typed refusal, never a raw traceback out of the CLI
+        raise SourceChanged(
+            f"{source.id} points at {path}, which could not be read "
+            f"({type(exc).__name__}: {exc}) — re-register the recording.") from exc
     if actual != source.sha256:
         raise SourceChanged(
             f"{path.name} has changed since {source.id} was registered "
