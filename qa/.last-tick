@@ -374,3 +374,39 @@ cases I did not think of: `..` segments, percent-encoding, double slashes, an em
 urlparse normalises none of those, so a target can reach a different place than its path suggests.
 NEXT: AT-141 + AT-115 (make C9 mean what it says) -- the sweep's outstanding row.
 OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; NEW at147-expiry-end-of-day.
+
+## 2026-09-08 — tick: ADVANCED (13) — at149-at150 PASSED; AT-151/152 built; CHAIN CLOSED
+at149-at150 closed checked-PASS cycle 1 (verdict 22a30b8). The checker attacked _is_under with 28
+path shapes: every wrong answer errs toward a SPURIOUS WARNING, never toward silence, except one --
+/app/../evil, filed AT-152. It also confirmed the regression check clean: the whole tests/ diff had
+exactly ONE non-addition line, my own assertion strengthened from the word "tomorrow" to a literal
+ISO date, and sabotage T proves it is a strengthening (the sabotaged message would have PASSED the
+old predicate).
+IT RULED THE METHOD NOTE INTO core-invariants C7 AND NOWHERE ELSE -- not consent.md (I was right
+that AT-131 was correctly refused a FEATURE contract), and explicitly NOT qa/loop.md, because
+"a rule the maker writes for itself is not a gate". Then it reported the rule firing on ITSELF
+twice during that very check: its own anchor was wrong twice and its harness printed "ANCHOR NOT
+PRESENT -- harness is lying". Without it, it would have reported "the maker's test is vacuous" and
+FAILED a correct fix. The trap now has five occurrences in two days across three agents.
+Built at151-at152-both-arms (commit 2458b51, ready-for-check). AT-151 IS MY OWN PATTERN A THIRD
+TIME: AT-148 fixed the host half and missed the path half; AT-149 fixed the path half; AT-150 named
+a date on the `today` branch and missed the `past` branch; AT-151 fixes both. Three iterations of
+one mistake -- "I fixed the instance I was looking at" -- each caught by the checker, never by me.
+AT-152: urlparse normalises no dot-segments, so /app/../evil read as contained while RESOLVING to
+/evil. The check now refuses to vouch for anything that can climb out.
+650 passed / 2 skipped, ruff + doctor clean. Sabotages U/V/S -> 3/1/2, each printing "anchor
+matched once, file changed" BEFORE the result was believed -- the first unit run under the new C7.
+A FAILURE IN HOW I SPLIT THE TESTS, recorded: my scripted extraction dropped a parametrize
+decorator and left an orphaned test body. RUFF caught it (F821), I did not. I rewrote both files
+explicitly rather than debug the splitter -- a script that silently mis-moves tests is the same
+class of problem as a sabotage whose anchor does not match, and I had just written a contract
+clause about exactly that.
+CHAIN CLOSED, ON DISK AS A COMMITMENT: five units now (t124 -> at147-148 -> at149-150 -> this),
+each finding progressively smaller issues in the same two functions, the last two verdicts producing
+only `low`. The security-relevant work is done -- forged approval, expired grant, lookalike host,
+climbing path all handled. NEXT UNIT IS AT-141 + AT-115 REGARDLESS of what this verdict returns,
+unless it returns something HIGH. Continuing would be polishing a function while the sweep's actual
+queue row waits.
+Measured and ready for it: T-126, T-150 AND T-135 all have done_checks that exit 0 RIGHT NOW,
+before any of their work exists. AT-100's shape three times, not the twice AT-115 records.
+OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
