@@ -450,3 +450,41 @@ Transient network reset on one push (Recv failure); retried and succeeded.
 NEXT: C9's THIRD field, `approved`, is still unpinned by any test -- named in the manifest so the
 gap is on record rather than implied closed. Also queued: AT-153 (low), AT-136, AT-137, AT-102 etc.
 OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
+
+## 2026-09-08 — tick: ADVANCED (15) — at141-at115 PASSED; the fail-closed rewrite built
+at141-at115 closed checked-PASS cycle 1 (verdict 90c15df). The checker verified the direction my
+manifest never proved -- creating the deliverables in a scratch copy flips T-150 and T-126 to exit
+0, so the new checks can PASS as well as fail -- and confirmed my correction of AT-115 from two
+occurrences to three by running the old checks at the parent commit.
+IT TOOK THE INVITATION. I had told it my predicate FAILS OPEN, that this is the wrong direction for
+a guard, and that if it could design a fail-closed version "that is a better unit than this one".
+It designed one, and this tick built it.
+AT-154 IS A HOLE INSIDE MY OWN STATED LOGIC: `pytest tests/` is the whole suite, and the DIRECTORY
+tests/ satisfied the same startswith("tests") my docstring said made a check SPECIFIC. The comment
+and the code one line apart said different things, and I wrote both.
+AT-155: a denylist on shell commands cannot fail closed. Seven measured false negatives -- echo,
+python -c, test -f, --collect-only (collects, never runs), and anything with `|| true` appended,
+because my splitter handled && and ; but not ||. The predicate is now an ALLOWLIST: a command is
+task-specific only if it is a shape known to depend on a deliverable, anything unrecognised is
+rejected, and || disqualifies outright. The escape hatch is done_check.waiver -- the checker's
+design, and the good part is what it CONVERTS: a silent hole becomes a sentence someone had to
+write and anyone can grep. Under 20 characters is itself a failure. Every pending task survives the
+stricter rule; no waivers were needed.
+AT-157: --contains raised an unhandled traceback on a directory. Never unsafe, but a done_check that
+dies with a stack trace tells its reader nothing about what is missing, which is its whole job.
+THE C7 CLAUSE EARNED ITS PLACE TODAY, IN THIS UNIT. Sabotages Z4 and Z5 both came back INCONCLUSIVE
+-- anchor matched, file changed, ZERO failures. Under the clause as it stood two units ago I would
+have read that as "these guards are solid". It meant the OPPOSITE: no task on disk carries a
+waiver, so that rule had no data to bite on, and nothing exercised --contains on an unreadable path.
+Both were untested and both LOOKED tested. Now asserted against rows and paths that would break
+them, and both bite on re-run. A clause the checker wrote one unit ago stopped me claiming coverage
+I did not have.
+658 passed / 2 skipped, ruff + doctor clean. Sabotages Z1-Z5 -> 1 each, all C7-compliant.
+PUT TO THE CHECKER: the allowlist is now the thing that can be wrong in the OTHER direction -- it
+rejects legitimate checks it does not recognise, and the cost is a waiver nobody wanted to write,
+which is a pressure toward waiving rather than fixing. I think the trade is right (a waiver is
+visible, a false negative is not) but it IS a trade, the checker designed the shape, and I should
+not rule on my own homework.
+QUEUED, NOT FIXED: AT-156 (C9's third field `approved` unpinned -- the checker ruled deferring it
+correct scoping), AT-153 (low, consent chain closed on disk).
+OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
