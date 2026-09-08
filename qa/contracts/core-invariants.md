@@ -69,6 +69,16 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
 - Prompts live in `src/autotester/prompts/*.md` as versioned files, never inline string literals.
 - **Verify:** `grep -rE "^(import|from) (anthropic|google)" src/autotester/stages/` returns nothing.
 
+### C9 — A declared control value is honoured or rejected, never silently ignored
+- A field that exists to change the system's behaviour (a criticality floor, a `done_check`, an
+  approval flag, a gate) must either take effect or fail loudly. A reader that does not recognise
+  a value must not substitute a default that is *weaker* than the value written.
+- Where the reader is outside this repo and cannot be changed here, this repo pins its own data
+  against the reader's actual vocabulary in a test, and files the upstream defect in the ledger.
+- Applies to `.goal/goal.json` control fields (`base_criticality`, `done_check`, `approved`) as
+  well as to `projects/<slug>/` artifacts.
+- **Verify:** `uv run pytest tests/test_goal_criticality_vocabulary.py -q` exits 0.
+
 ## No-fire list (do not raise these as findings)
 
 - Style/formatting preferences already satisfied by `ruff`.
@@ -85,3 +95,12 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   why: user instruction 2026-09-03 folded from `qa/feedback-inbox.md` (mirrors browser-and-secrets
   B1 amendment); non-safety-weakening — the gitignore rule `**/.env` already covers the root file,
   and per-project declaration + domain scoping are unchanged.
+- 2026-09-08 · routine · added C9: a declared control value is honoured or rejected, never silently
+  ignored · why: third occurrence of one shape — AT-100 (a `done_check` of `true` that cannot fail),
+  AT-115, and AT-116 (an uppercase criticality vocabulary the shared classifier silently downgraded
+  to `low`, disarming every declared floor since the file was created). C1's `extra="forbid"` already
+  makes an *unknown key* raise; nothing covered an unknown *value* being quietly replaced by a weaker
+  default. Tightening only — it adds a criterion and weakens none, so it applies under the routine
+  gate. Ruling on the at116-criticality-vocabulary manifest's open question: `.goal/goal.json` does
+  NOT need its own feature contract — one file's vocabulary is too narrow a thing to govern
+  separately, and the real invariant is project-wide, so it belongs here.
