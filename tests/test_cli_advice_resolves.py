@@ -30,7 +30,12 @@ import shlex
 from pathlib import Path
 
 import pytest
-from advice_scan import advice_in_source
+from advice_scan import (
+    advice_in,
+    advice_in_source,
+    unresolved_in,
+    unresolved_in_source,
+)
 from typer.testing import CliRunner
 
 from autotester.cli import app
@@ -58,31 +63,111 @@ def _unprepared_source(tmp_path: Path) -> tuple[ProjectStore, Source]:
     return store, source
 
 
-def test_the_collector_sees_the_site_the_class_exists_for() -> None:
-    """AT-176 in one assertion. `ingest prep` is built from a module constant
-    interpolated into an f-string, so the literal scanner missed it — and it is
-    precisely the message three fix cycles were spent on."""
-    commands = {c for _, c in advice()}
+def test_the_collector_sees_the_COMPOSED_site_not_just_the_constant() -> None:
+    """AT-176, pinned by LINE — and AT-206, which is why it has to be.
 
-    assert "ingest prep" in commands
-    assert len(commands) >= 6, commands
+    The old assertion was `"ingest prep" in commands`, and it **passed with the
+    renderer deleted**: `PREP_COMMAND = "autotester ingest prep"` is a plain
+    string constant that yields the command on its own, results were deduped to
+    `(file, command)`, and so the guard could not tell the message it exists for
+    from the ingredient it is built from.
+
+    Both sites are real advice and both must be seen, so this asserts on both
+    lines: the constant's own definition, and the f-string that interpolates it
+    — which no literal scanner can produce."""
+    prep = [a for a in advice() if a.command == "ingest prep"]
+    lines = {a.line for a in prep}
+    source = (SRC / "stages" / "media_prep.py").read_text(encoding="utf-8").splitlines()
+
+    assert len(lines) >= 2, (
+        f"only one `ingest prep` site found ({prep}) — the composed message and "
+        f"the constant it interpolates are different lines, and seeing only one "
+        f"of them is how AT-206 hid")
+    composed = [n for n in lines if "PREP_COMMAND" in source[n - 1]
+                and not source[n - 1].startswith("PREP_COMMAND")]
+    assert composed, (
+        f"no site INTERPOLATES PREP_COMMAND was collected; lines seen: {sorted(lines)}. "
+        f"That is the AT-176 shape, and the renderer is the only thing that can see it")
 
 
-@pytest.mark.parametrize("where,command", advice(),
-                         ids=lambda v: str(v).replace("/", "_").replace("\\", "_"))
-def test_every_command_the_code_names_is_one_the_cli_exposes(
-    where: Path, command: str,
-) -> None:
+def test_a_constant_imported_from_another_module_still_resolves() -> None:
+    """AT-192. Resolution stopped at the file boundary, so AT-176's exact shape
+    written one `import` away rendered nothing at all — and an empty result is
+    indistinguishable from a file that gives no advice."""
+    src = (
+        'PREP_COMMAND = "autotester ingest prep"\n'
+        'def f(slug):\n'
+        '    raise ValueError(f"run `{PREP_COMMAND} {slug}` first")\n')
+    imported_src = (
+        'from autotester.stages.media_prep import PREP_COMMAND\n'
+        'def f(slug):\n'
+        '    raise ValueError(f"run `{PREP_COMMAND} {slug}` first")\n')
+
+    same_file = advice_in(src)
+    imported = advice_in(imported_src, {"PREP_COMMAND": "autotester ingest prep"})
+
+    assert [c for _, c in same_file] == ["ingest prep", "ingest prep"], (
+        "the same-file case should see BOTH the constant and the message")
+    assert [c for _, c in imported] == ["ingest prep"], (
+        "a constant one import away rendered nothing at all")
+
+
+def test_documentation_written_as_an_f_string_is_not_read_as_advice() -> None:
+    """AT-193. `_is_documentation` matched `Expr(Constant)` only, while the
+    renderer had already learned `JoinedStr` and `BinOp` — so this codebase's
+    own variable-docstring convention, written either way, was scanned as live
+    advice about a command that is dead."""
+    joined = advice_in('X = 1\nf"""the old name was autotester media prep and it is dead"""\n')
+    concat = advice_in('X = 1\n"the old name was " + "autotester media prep" + " and it is dead"\n')
+
+    assert joined == []
+    assert concat == []
+
+
+def test_the_hole_report_actually_reports_a_hole() -> None:
+    """The half that makes the check below mean something.
+
+    Sabotaging `unresolved_in` to return `[]` unconditionally failed NOTHING at
+    first — the repo has no holes today, so a detector that can never report is
+    indistinguishable from one that finds nothing. That is the same shape as
+    AT-206, arriving inside the fix for AT-206. So this hands it a source with a
+    known hole: a command-shaped constant imported from outside the tree, whose
+    value cannot be known statically. `{slug}` on the same line stays unreported
+    — a detector that flags every runtime value is one nobody reads."""
+    hole = (
+        'from somewhere.unknown import PREP_COMMAND\n'
+        'def f(slug):\n'
+        '    raise ValueError(f"run `{PREP_COMMAND} {slug}` first")\n')
+    assert unresolved_in(hole) == [3]
+
+
+def test_the_collector_reports_what_it_could_not_resolve() -> None:
+    """A hole that returns an empty list looks exactly like a clean scan, which
+    is how AT-176 and AT-192 each survived a guard written to catch them. If
+    this ever fails, the answer is to resolve the name — not to widen the
+    filter until the report is empty again."""
+    assert unresolved_in_source(SRC) == []
+
+
+def test_every_site_is_reported_with_a_line_a_human_can_open() -> None:
+    for entry in advice():
+        assert entry.line >= 1, entry
+
+
+@pytest.mark.parametrize("entry", advice(),
+                         ids=lambda a: f"{a.where}:{a.line}:{a.command}".replace("\\", "_"))
+def test_every_command_the_code_names_is_one_the_cli_exposes(entry) -> None:
     """click prints its `Usage:` banner for an unregistered command, an
     unregistered subcommand and the wrong arity alike, so its absence is one
     oracle covering all three. Measured, not assumed (AT-171)."""
+    where, command = entry.where, entry.command
     result = runner.invoke(app, [*shlex.split(command), "--help"])
 
     assert "Usage:" not in result.output or "--help" in result.output, (
-        f"{where} tells an operator to run `autotester {command}`, "
+        f"{where}:{entry.line} tells an operator to run `autotester {command}`, "
         f"which the CLI does not expose: {' '.join(result.output.split())[:140]!r}")
     assert "No such command" not in result.output, (
-        f"{where} names a command that does not exist: `autotester {command}`")
+        f"{where}:{entry.line} names a command that does not exist: `autotester {command}`")
 
 
 def test_the_refusal_names_a_command_that_actually_stops_it(
