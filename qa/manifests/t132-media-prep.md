@@ -1,8 +1,8 @@
 # t132-media-prep
 
 **Unit:** T-132 — Track A3: host media prep (probe, chunks, transcript reuse/whisper, frames)
-**Commit:** 8dbc2d5
-**Fix cycle:** 1
+**Commit:** 8dbc2d5 (cycle 1) -> **8344137** (cycle 2)
+**Fix cycle:** 2
 **Goal task:** T-132 (`user_value: normal`) — `done_check` =
 `uv run pytest tests/test_media.py tests/test_media_prep.py -q`, **exits 0** (it exited **1**
 before this unit — that check was rewritten by AT-141/AT-115 precisely so it could).
@@ -100,5 +100,84 @@ Each printed `anchor matched once, file changed` before its result was believed.
   T-131, and the checker ruled that a real deviation (AT-130) to close in this track — so this is
   the second instance and it should probably close with it rather than accumulate.
 - A4 (the ensemble, adjudication, issue derivation) is untouched.
+
+## Cycle 2 — FAIL on VL1d, a criterion I asked the checker to author
+
+**`require_prepared` sent the operator to `autotester media prep`. There is no `media` command.**
+They live under `ingest`. It is the message meant to *rescue* someone who cannot run prep where
+they are, and it sent them to a dead end — and my own test pinned the substring `"media prep"`, so
+a passing test **protected** it.
+
+The test now asks the CLI itself: it extracts the command out of the refusal and invokes it with
+`--help`, so any message naming an unregistered command fails. **A substring cannot tell a real
+command from a plausible one; the CLI can.**
+
+### AT-164 — the one I would have shipped
+
+With ffmpeg **present** and a file it cannot read, prep persisted `chunks=[]` and the CLI printed a
+**green success line**. A source nothing can ever watch, reported as prepared — the exact shape
+`_unchunked` exists to prevent, reached through the other branch. Now a typed refusal that writes
+no `media.json`.
+
+### The rest
+
+- **AT-166** — a failed cut escaped as a raw traceback and could leave a partial chunk set, which is
+  worse than none because it reads as a complete plan.
+- **AT-165** — `extract_frames` reused any file at the expected name, including a 0-byte leftover
+  from an interrupted run, handed back as evidence.
+- **AT-167** — a negative overlap made the step longer than a chunk, silently skipping footage.
+  Validation also moved **before** the short-circuits, where it actually fires; after them it only
+  rejected inputs that were already fine.
+
+### AT-168 — my rationale was falsified, and the claim is corrected
+
+I asserted, in three docstrings and in this manifest, that `-ss` before `-i` seeks to the nearest
+keyframe and shifts a cut by seconds. **The checker measured it on ffmpeg 8.1.1: both orders
+produced a byte-identical frame at t=20s with keyframes 4.27s apart.**
+
+The order stays — it is conservative across builds and costs nothing at this scale — but *not for
+the reason I gave*. The docstrings now say so, and the contract makes **measured placement** the
+criterion rather than my argument. A design defended by a mechanism that does not exist is
+defended by nothing, even when the design is right.
+
+### Cycle 2 evidence
+
+```
+SABOTAGE AF (the refusal names the dead `media prep` again)      -> 1
+SABOTAGE AG (an unreadable video persists zero chunks again)     -> 1
+SABOTAGE AH (a failed cut escapes as a raw traceback)            -> 1
+SABOTAGE AI (a 0-byte leftover PNG counts as evidence)           -> 1   (was INCONCLUSIVE)
+SABOTAGE AJ (a negative overlap is accepted again)               -> 1   (was INCONCLUSIVE)
+RESTORED: 30 passed
+```
+
+**C7 earned its place twice more.** AI and AJ both came back INCONCLUSIVE, which meant I had fixed
+code and written no test for either. Both are pinned now.
+
+### Cycle 2 verification
+
+```
+uv run pytest                          688 passed, 2 skipped   (679 at cycle 1 + 9 new)
+uv run ruff check src tests scripts    All checks passed!
+uv run autotester doctor               doctor: clean
+```
+
+### Corrections to cycle 1's own numbers, from the checker
+
+- The `done_check` exited **4** at the parent commit, not 1 — both test files were new, so it was a
+  collection error. My manifest said 1.
+- Sabotage AC fails **3**, not the 2 I reported.
+
+### Still open, and now better understood
+
+**AT-169** — `pyproject.toml` has **no `[project.optional-dependencies]` block at all**, so the
+`media` extra my docstring cites does not exist. Worse than I conceded. The checker ruled **AT-130
+stays open** separately: its recorded trigger is "the unit that first calls the Files API for
+real", and T-132 makes no model call.
+
+Whisper still has never been executed; the checker ruled that does **not** block a PASS, because
+the crash-isolation plumbing *is* exercised end to end (the module runs, the import fails, the
+non-zero is caught into `engine="none"`) — only its output shape is unverified, and the contract
+now carries an explicit UNVERIFIED section forbidding any claim that transcription works.
 
 ## Status: ready-for-check
