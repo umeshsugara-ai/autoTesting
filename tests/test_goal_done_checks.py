@@ -35,40 +35,72 @@ def tasks() -> list[dict]:
     return json.loads(GOAL.read_text(encoding="utf-8"))["tasks"]
 
 
+SHELL_NEUTERING = ("|", "#", "`", "$(", ">", "<", "&")
+"""Characters that can make a command's exit code mean something other than
+what the command in front of them did. `pytest x.py | true`, `true # pytest
+x.py`, `cmd > /dev/null || exit 0` — AT-158 measured four such families, all
+admitted because the predicate looked at TOKENS rather than at what actually
+runs. Rejected outright: a `done_check` needs none of them, and a waiver is
+the way to ask for one."""
+
+RUNNERS = ("uv", "run", "poetry", "pdm", "hatch", "env")
+"""Wrapper words that precede the real program. `uv run pytest x.py` runs
+pytest; the program is the first token that is not one of these."""
+
+
+def _program(parts: list[str]) -> str:
+    """The command that actually executes, not any token that resembles one.
+
+    AT-158's root cause: this used to ask `"pytest" in parts`, so `echo pytest
+    tests/x.py` and `true # pytest tests/x.py` both read as pytest invocations.
+    A program name is only a program name in the program position."""
+    for token in parts:
+        if token in RUNNERS or "=" in token:
+            continue
+        return Path(token).name
+    return ""
+
+
 def _is_task_specific(segment: str) -> bool:
     """Does this ONE command depend on a particular task's deliverables?
 
-    AT-154/AT-155 -- this used to be a denylist (`_is_repo_wide`), and a
-    denylist on shell commands fails OPEN by construction: every shape I had
-    not thought of was accepted. The checker measured seven false negatives,
-    including one INSIDE my own stated logic -- `pytest tests/` is the whole
-    suite, and the directory `tests/` satisfied the same `startswith("tests")`
-    the docstring said made a check specific.
-
-    So this is an allowlist. A command is task-specific only if it is a shape
-    known to depend on a deliverable. Anything unrecognised is rejected, and
-    the way past that is a written `waiver`, not a cleverer command.
+    An ALLOWLIST (AT-155): a command qualifies only as a shape known to depend
+    on a deliverable. Anything unrecognised is rejected and the way past that
+    is a written `waiver`, not a cleverer command — a denylist on shell
+    commands fails open by construction, which is what AT-154/AT-155 were.
     """
     if segment.strip() in ALWAYS_TRUE:
         return False
-    parts = shlex.split(segment)
+    if any(ch in segment for ch in SHELL_NEUTERING):
+        return False
+    try:
+        parts = shlex.split(segment)
+    except ValueError:
+        return False  # unbalanced quotes: not a command anyone can reason about
     if not parts:
         return False
 
-    if any(p.endswith("check_deliverable.py") for p in parts):
+    program = _program(parts)
+
+    if program == "check_deliverable.py" or any(
+            p.endswith("check_deliverable.py") for p in parts[:3]):
         # Its own no-assertion guard exits 2, so a bare invocation always fails.
         return True
 
-    if "pytest" in parts:
-        if "--collect-only" in parts:
+    if program == "pytest" or (program.startswith("python") and "-m" in parts
+                               and "pytest" in parts):
+        if any(p in ("--collect-only", "--co") for p in parts):
             return False  # collects without running: exit 0 on anything importable
         # A path is specific only when it names a FILE or a node id. `tests/`
-        # is the whole suite wearing a path.
+        # is the whole suite wearing a path (AT-154).
         return any(p.endswith(".py") or "::" in p for p in parts)
 
-    if "python" in parts or any(p.endswith("python") for p in parts):
-        scripts = [p for p in parts if p.endswith(".py") and "scripts" in p]
-        return bool(scripts) and not any(p == "-c" for p in parts)
+    if program.startswith("python"):
+        # AT-159: `python3` and a script outside scripts/ are the SAME shape
+        # this branch was written for — an interpreter running a repo script.
+        if "-c" in parts or "-m" in parts:
+            return False
+        return any(p.endswith(".py") for p in parts[1:])
 
     return False
 
@@ -76,9 +108,8 @@ def _is_task_specific(segment: str) -> bool:
 def is_capable_of_failing(command: str) -> bool:
     """Can this `done_check` distinguish done from not-started?
 
-    Every segment is examined, and `||` disqualifies the whole command: a
-    trailing `|| true` neuters anything in front of it, so there is no
-    interesting question left to ask about the rest."""
+    `||` disqualifies the whole command: a trailing `|| true` neuters anything
+    in front of it, so there is no interesting question left about the rest."""
     if "||" in command:
         return False
     segments = [s.strip() for s in command.replace("&&", ";").split(";") if s.strip()]
@@ -98,13 +129,7 @@ def test_no_pending_task_has_a_done_check_that_cannot_fail() -> None:
     `done_check.waiver: "<why>"`. That is the point of an allowlist: the
     escape hatch is a sentence someone wrote and can be grepped for, not a
     command shape nobody noticed."""
-    offenders = [
-        (t["id"], t["done_check"]["cmd"])
-        for t in tasks()
-        if t["status"] != "done" and t.get("done_check", {}).get("cmd")
-        and not is_capable_of_failing(t["done_check"]["cmd"])
-        and not waiver_of(t)
-    ]
+    offenders = offenders_in(tasks())
 
     assert offenders == [], (
         "these done_checks pass on a clean repo whether or not their task was "
@@ -141,15 +166,33 @@ def test_the_waiver_rule_actually_rejects_a_hollow_waiver() -> None:
     assert _waiver_offenders(real) == []
 
 
-def test_a_waived_task_is_exempt_from_the_unfailable_check() -> None:
-    """The other half: a waiver must actually buy the exemption, or nobody
-    would write one."""
+def offenders_in(rows: list[dict]) -> list[str]:
+    """The exact rule `test_no_pending_task_...` applies, extracted so it can
+    be asserted on rows that do not exist on disk (AT-160)."""
+    return [r["id"] for r in rows
+            if r["status"] != "done" and r.get("done_check", {}).get("cmd")
+            and not is_capable_of_failing(r["done_check"]["cmd"])
+            and not waiver_of(r)]
+
+
+def test_a_waived_task_is_exempt_and_an_unwaived_one_is_not() -> None:
+    """AT-160: the previous version asserted the two helpers SEPARATELY and
+    never their composition, so deleting `and not waiver_of(t)` from the
+    offenders rule left the suite green — an unguarded exemption clause, which
+    is C7's own INCONCLUSIVE class inside a test written to close it.
+
+    This asserts the rule itself, on rows chosen so a broken composition cannot
+    pass: one waived and one not, both otherwise identical."""
     waived = {"id": "T-w", "status": "pending", "done_check": {
         "cmd": "uv run autotester doctor",
         "waiver": "governance-only task with no artifact to assert on"}}
+    unwaived = {"id": "T-u", "status": "pending",
+                "done_check": {"cmd": "uv run autotester doctor"}}
 
-    assert not is_capable_of_failing(waived["done_check"]["cmd"])
-    assert waiver_of(waived)
+    assert offenders_in([waived, unwaived]) == ["T-u"], (
+        "the waiver must exempt exactly its own task and nothing else")
+    assert offenders_in([waived]) == []
+    assert offenders_in([unwaived]) == ["T-u"]
 
 
 def test_every_pending_task_actually_has_a_done_check() -> None:
@@ -179,6 +222,14 @@ def test_the_guard_recognises_the_shapes_it_exists_to_catch() -> None:
         "ls src/autotester/stages/merge_flowspec.py || true",   # `||` neuters anything
         "uv run pytest tests/test_explore.py -q || exit 0",
         "true # tests/test_x.py",
+        # AT-158 -- four families the first allowlist still admitted, all from
+        # one cause: it matched program names against ANY token instead of the
+        # program position.
+        "uv run pytest --co tests/test_x.py",          # --co IS --collect-only
+        "uv run pytest tests/test_x.py | true",        # `|` was not `||`
+        "uv run pytest tests/test_x.py |& true",
+        "echo pytest tests/test_x.py",                 # the word, not the program
+        "true # pytest tests/test_x.py",               # a comment containing it
     ]
     for command in rejected:
         assert not is_capable_of_failing(command), f"accepted an unfailable check: {command!r}"
@@ -189,6 +240,13 @@ def test_the_guard_recognises_the_shapes_it_exists_to_catch() -> None:
         "uv run python scripts/check_crawl_approval.py erp",
         "uv run python scripts/check_deliverable.py --exists qa/contracts/ai-target.md "
         "&& uv run autotester doctor",
+        # AT-159 -- rejected by recognition bugs, not by policy. Both are the
+        # same shape the branch exists for: an interpreter running a repo
+        # script. Waiving them would have waived a typo.
+        "python3 scripts/check_crawl_approval.py erp",
+        "uv run python src/autotester/tools/verify.py",
+        "uv run pytest tests/test_a.py tests/test_b.py",
+        "uv run python -m pytest tests/test_x.py",
     ]
     for command in accepted:
         assert is_capable_of_failing(command), f"rejected a legitimate check: {command!r}"

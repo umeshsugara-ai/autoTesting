@@ -104,4 +104,4 @@ whether the allowlist is too narrow rather than me deciding my own homework.
   and a low advisory finding does not reopen it.
 - No crawl has run against a real product; that is still the ERP credential gate.
 
-## Status: ready-for-check
+## Status: checked-PASS
