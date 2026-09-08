@@ -62,3 +62,25 @@ review and died on the checker's execution (AT-116 was the first). The pattern i
 the mechanism I changed and not the number a reader ends up seeing.
 NEXT after verdict: Track A T-131.
 OPEN HUMAN GATES: AT-110 approval-forgery posture; ERP_EMAIL/ERP_PASSWORD for T-122/T-145.
+
+## 2026-09-08 — tick: ADVANCED (3)
+Closed out at120-evidence-not-product-issues (checker PASS cycle 1, commit e0da324 + close-out).
+Checker re-ran its own probe: issues=5 {evidence:4, navigation:1} at 6e98487 is now issues=1,
+tool_failures=4 with the same kinds still filed -- routed, not suppressed. X16 declared clean.
+It found two surfaces my sweep missed and filed AT-122 (medium, cli_crawl -- the ONE crawl.issues
+reader I did not touch, which after the fix silently DROPPED tool failures for headless/CI runs)
+and AT-121 (low, a measured zero rendered with the same em dash the table uses for unknown).
+Built at121-at122-crawl-count-surfaces (commit 6c653fd, ready-for-check) -- one unit, because both
+are the same shape as AT-120 itself: a surface that reports a crawl's counts.
+594 passed / 2 skipped, ruff + doctor clean. Sabotages 7 and 8 both bite.
+TWO SELF-CORRECTIONS THIS UNIT, both mine, both caught before dispatch:
+ (1) my first tests grepped the SOURCE for "tool_failures" -- a test that passes on a comment, the
+     AT-107 fiction-testing failure repeated one axis over, immediately after being caught for it;
+ (2) my replacement then asserted no em dash anywhere in the row and failed on CORRECT behaviour
+     (started_at on a crawl that never started is a genuine unknown -- the exact distinction the
+     test exists to defend).
+Checker dispatched this turn (no dangling ready-for-check).
+RUNNING TALLY: three consecutive units where the checker found something my own review passed.
+The consistent cause is that I verify the mechanism I changed, not the number a reader sees.
+NEXT after verdict: Track A T-131.
+OPEN HUMAN GATES: AT-110 approval-forgery posture; ERP_EMAIL/ERP_PASSWORD for T-122/T-145.
