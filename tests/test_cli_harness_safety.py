@@ -21,7 +21,7 @@ import hashlib
 from pathlib import Path
 
 import pytest
-from test_cli_surface import invocation_for, shipped_commands
+from cli_walk import invocation_for, shipped_commands
 from typer.testing import CliRunner
 
 from autotester.cli import app
@@ -35,14 +35,44 @@ def root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     return tmp_path
 
 
-def _repo_fingerprint() -> dict[str, str]:
-    """Content hashes of everything a CLI command might rewrite in the repo."""
+WATCHED_DIRS = ("docs", "qa", "src", "scripts", "projects")
+"""AT-187: the first version watched `docs/` and the repo root only, while
+`projects/<slug>/` is where the CLI actually writes. `.goal/` is deliberately
+excluded — the /goal monitor rewrites its timestamp every few minutes, so
+including it would make this test fail on the clock rather than on a command."""
 
+
+def _repo_fingerprint() -> dict[str, tuple[int, int, str]]:
+    """`(mtime_ns, size, sha256)` per file — not the hash alone.
+
+    AT-186, the sharpest finding on this file. A content hash detects a stray
+    write only when the content DIFFERS. The checker sabotaged the PRODUCT
+    rather than the test — removed the early `return` so `snapshot --print`
+    echoes *and* writes — and the whole suite came back green, because
+    `render_snapshot` reproduces the committed bytes exactly.
+
+    A guard that fires only when the damage happens to be visible is not
+    guarding what it was written for. The property is "nothing was WRITTEN";
+    "nothing CHANGED" is a weaker claim that coincides with it most days.
+    `mtime_ns` sees the write regardless of what was written.
+    """
     repo = Path(__file__).resolve().parents[1]
-    watched = [*(repo / "docs").glob("*.md"), *(repo / "docs").glob("*.jsonl")]
-    watched += [p for p in repo.iterdir() if p.is_file()]
-    return {str(p.relative_to(repo)): hashlib.sha256(p.read_bytes()).hexdigest()
-            for p in sorted(watched) if p.exists()}
+    watched: list[Path] = [f for f in repo.iterdir() if f.is_file()]
+    for name in WATCHED_DIRS:
+        directory = repo / name
+        if directory.is_dir():
+            watched += [f for f in directory.rglob("*")
+                        if f.is_file() and "__pycache__" not in f.parts]
+    out: dict[str, tuple[int, int, str]] = {}
+    for path in sorted(watched):
+        try:
+            stat = path.stat()
+            out[str(path.relative_to(repo))] = (
+                stat.st_mtime_ns, stat.st_size,
+                hashlib.sha256(path.read_bytes()).hexdigest())
+        except OSError:
+            continue
+    return out
 
 
 def test_running_every_command_leaves_the_repository_untouched(root: Path) -> None:
@@ -115,11 +145,29 @@ def test_every_placeholder_stays_inside_the_temp_root(tmp_path: Path) -> None:
 
     Asserted on the argv rather than on the filesystem, because the filesystem
     version needs the damage to happen first."""
+    import click
+    from typer.main import get_command
+
+    from autotester.cli import app as cli_app
+
+    root_cmd = get_command(cli_app)
+    ctx = click.Context(root_cmd)
+
     for command in shipped_commands():
         argv = invocation_for(command, tmp_path)
-        parts = command.split()
-        for token in argv[len(parts):]:
-            if token.startswith("-"):
+        cmd: click.Command = root_cmd
+        for part in command.split():
+            cmd = cmd.get_command(ctx, part)  # type: ignore[union-attr]
+        # A closed-vocabulary value is not a path and cannot become one, so it
+        # is exempt (AT-185 supplies these so the last two commands reach their
+        # own code). Everything else MUST be inside the temp root: the property
+        # is that no placeholder a command might treat as a DESTINATION can
+        # point at the repository.
+        vocab = {str(v) for param in cmd.params
+                 for v in (getattr(param.type, "choices", None) or ())}
+
+        for token in argv[len(command.split()):]:
+            if token.startswith("-") or token in vocab:
                 continue
             assert token.startswith(str(tmp_path)), (
                 f"`autotester {command}` gets placeholder {token!r}, which is "

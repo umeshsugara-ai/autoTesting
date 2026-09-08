@@ -19,11 +19,16 @@ Two layers here:
   about click rather than about autotester (AT-180). Arity is now derived from
   click itself, which takes it to **20 of 22** — measured, not asserted.
 
-  The remaining two, `ledger add` and `ledger weight`, stop at a **closed
-  vocabulary** rejecting the placeholder, which is correct behaviour rather
-  than a gap. They are deliberately not forced past it: valid arguments would
-  make both commands **write**, and a write command running for real inside the
-  verify step is exactly AT-181, which this same cycle exists to fix.
+  The last two, `ledger add` and `ledger weight`, take a **closed vocabulary**,
+  so the placeholder is rejected — correct behaviour, not a gap.
+
+  AT-185: I first left them there and justified it as "valid arguments would
+  make them write, which is AT-181 again". **That reason was measurably
+  wrong.** `repo_root()` honours `AUTOTESTER_ROOT`, so with the temp root in
+  place those writes land in the temp root and the repo stays clean — the
+  checker proved it by running `ledger add` and diffing. An honest number with
+  a wrong reason attached is still a wrong claim, so the enum value is now
+  supplied from click and all 22 reach application code.
 * **focused tests** on the surfaces that carry a decision: the review gate, and
   the three reports.
 """
@@ -32,9 +37,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import click
 import pytest
-from typer.main import get_command
+from cli_walk import invocation_for, shipped_commands
 from typer.testing import CliRunner
 
 from autotester.cli import app
@@ -44,69 +48,6 @@ from autotester.schema.project import Project
 from autotester.store.project_store import ProjectStore
 
 runner = CliRunner()
-
-
-def shipped_commands() -> list[str]:
-    """Walk click's own tree — so a command added tomorrow is covered without
-    anyone remembering to add it here. A hand-written list would drift out of
-    date silently, which is the failure this file is about."""
-    root = get_command(app)
-    ctx = click.Context(root)
-
-    def walk(cmd: click.Command, prefix: tuple[str, ...] = ()) -> list[str]:
-        subs = getattr(cmd, "commands", None)
-        if subs is None and hasattr(cmd, "list_commands"):
-            subs = {n: cmd.get_command(ctx, n) for n in cmd.list_commands(ctx)}
-        if subs:
-            out: list[str] = []
-            for name, sub in sorted(subs.items()):
-                out += walk(sub, (*prefix, name))
-            return out
-        return [" ".join(prefix)]
-
-    return walk(root)
-
-
-def invocation_for(command: str, root: Path | None = None) -> list[str]:
-    """The command plus one placeholder per REQUIRED parameter, from click.
-
-    AT-180: the first matrix passed `nonexistent-project nonexistent-id` to
-    everything, so 18 of 22 commands got the wrong ARITY and stopped at click's
-    `Usage:` banner — the assertion was about click's parser, not about
-    autotester. Seeding a project did not help, because the problem was never
-    state.
-
-    Arity is a property click already knows, so it is asked rather than
-    guessed. Placeholders are deliberately nonexistent: the property under test
-    is still "answer a bad invocation cleanly", now from INSIDE the command."""
-    root_cmd = get_command(app)
-    ctx = click.Context(root_cmd)
-    cmd: click.Command = root_cmd
-    for part in command.split():
-        cmd = cmd.get_command(ctx, part)  # type: ignore[union-attr]
-
-    # AT-184: a placeholder is not always an INPUT. `report excel` takes an
-    # output path, so a bare "nonexistent" made the matrix write a file called
-    # `nonexistent` into the repo root -- AT-181's shape again, produced by
-    # AT-181's own fix. Placeholders are absolute paths inside the temp root, so
-    # a command that treats one as a destination cannot reach the repository.
-    placeholder = str(root / "nonexistent") if root is not None else "nonexistent"
-
-    argv = command.split()
-    for param in cmd.params:
-        if not param.required:
-            continue
-        # A positional's `opts[0]` is its NAME, not a flag. Testing
-        # `isinstance(param, click.Argument)` silently failed for typer's
-        # parameters, so every positional was passed as "<name> nonexistent"
-        # -- doubling the arity and putting the command right back at the
-        # `Usage:` banner this helper exists to get past.
-        flag = param.opts[0]
-        if flag.startswith("-"):
-            argv += [flag, placeholder]
-        else:
-            argv.append(placeholder)
-    return argv
 
 
 @pytest.fixture

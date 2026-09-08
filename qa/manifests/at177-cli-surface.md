@@ -163,4 +163,4 @@ uv run autotester doctor               doctor: clean      <- read in full this t
 repo fingerprint across all 22 commands unchanged
 ```
 
-## Status: ready-for-check
+## Status: checked-PASS
