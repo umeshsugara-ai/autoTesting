@@ -986,3 +986,41 @@ NEXT after verdict: T-136 (the scorer and the first real recall numbers against 
 sheet). .work/track-a-corpus-facts.md holds four measured facts that would each silently produce a
 recall of ZERO.
 OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
+
+## 2026-09-09 — tick: ADVANCED (28) — T-133 cycle 1 FAILED, all nine issues closed, cycle 2 dispatched
+Cycle-1 verdict: FAIL, 3/6 criteria, nine issues (four high). It was right on every count and
+nothing was argued down. All nine fixed and re-dispatched in one tick.
+THE FINDING, AND IT IS THE SHARPEST FORM OF THE RECURRING CLASS SO FAR: my determinism test said
+the opposite of the truth. adjudicate's sort key omitted prompt_name; PROMPT_NAMES has TWO entries,
+so one model's two prompts on one chunk TIE, and a tie in a sort key is the caller's order walking
+back in through Python's stable sort. Permuting produced two different analyses. My test shuffled
+eight times and passed because every fixture was built by obs(), WHICH HARDCODED ONE PROMPT NAME --
+a single-prompt fixture has no tie in it. I tested the load-bearing property on the one shape where
+it could not fail, in the file whose docstring calls determinism load-bearing. NOT an untested
+path: A TEST THAT LOOKED EXACTLY LIKE COVERAGE OF THE THING IT COULD NOT SEE.
+Same shape one file over: the test named test_a_field_only_one_model_noticed_survives_the_merge
+asserted only on `signals` -- which is precisely how AT-202 (_merge_lists dropping `fields`) hid.
+AT-198: an analysis from 1 of 24 calls was indistinguishable from a complete one. Now two numbers,
+not a flag -- "we watched it and found nothing" and "23 calls failed" are otherwise the same
+artifact, and a reader who cannot separate them will trust the wrong one. My own zero-case guard
+stopped one step short of its own principle.
+AT-199/200: the cache inverted the promise it exists for. A truncated observation -- THE CRASH THE
+CACHE IS FOR -- raised out of analyze, and --force could not clear it because reading came before
+the force test. And the key was the prompt's NAME, so editing a prompt file returned the answer to
+the question you had just stopped asking: invisible in the artifact, which is how a cache gets
+switched off by someone who stops trusting it.
+AT-201 (a present-tense docstring claim about a scorer that does not exist), AT-203, AT-204 (two
+providers sharing a label collapse the ensemble to one silently), AT-205 (-1:55 rendered as a time
+to the person least able to tell it is a doubled offset) all closed too.
+Three targeted sabotages, each anchor-matched-once and file-verified-changed, one failure each, no
+INCONCLUSIVE. 804 passed / 2 skipped, ruff + doctor clean as one && chain. done_check widened to
+the five test files after two were split at the 300-line cap -- split by RESPONSIBILITY (cost vs
+behaviour; determinism vs merge rules), shared fakes once in tests/video_fakes.py.
+SWEEP LANDED THIS TICK: FINDINGS 1 (AT-206, high) -- a third-generation instance of the class, a
+guard that passes with the renderer it guards disabled. Trend still NOT falling: 4/3/4 instances on
+three units that got smaller; self-caught 0 of 16. It did name the two things that changed: the &&
+verify chain (the first countermeasure that removes discretion rather than adding something to
+remember, and the only one yet to produce an instance of the class inside itself) and T-133's three
+self-caught bugs -- the first self-catch in nineteen units. One instance is not a trend.
+NEXT: cycle-2 verdict, then either AT-206+AT-192+AT-170 as one unit or T-136.
+OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
