@@ -13,7 +13,7 @@ from pathlib import Path
 from autotester.core.paths import ProjectPaths
 from autotester.schema.crawl import Crawl, CrawlIssue
 from autotester.schema.enums import EdgeOutcome
-from autotester.schema.flowspec import Screen
+from autotester.schema.flowspec import FlowSpec, Screen
 from autotester.schema.screen_graph import ScreenEdge, ScreenNode
 from autotester.stages.crawl_report import crawl_summary
 from autotester.stages.report_export import png_base64
@@ -130,6 +130,27 @@ def issues_table(issues: list[CrawlIssue], names: dict[str, str]) -> str:
     return (
         "<table class='data-table'><thead><tr><th>Screen</th><th>Kind</th>"
         f"<th>Detail</th></tr></thead><tbody>{body}</tbody></table>"
+    )
+
+
+_REVIEW_TONE = {"approved": "positive", "draft": "warning", "needs_edit": "danger"}
+
+
+def review_line(spec: FlowSpec) -> str:
+    """AT-104: merging sends an APPROVED FlowSpec back to DRAFT, and the page it
+    redirects to showed no review status at all — so a human could re-arm their
+    own approval gate and never be told. The CLI said it; the UI did not."""
+    status = spec.review.status.value
+    tone = _REVIEW_TONE.get(status, "neutral")
+    note = f" — {escape(spec.review.note)}" if spec.review.note else ""
+    warning = (
+        "<p class='meta'><strong>This FlowSpec is not approved.</strong> It drives no test "
+        "expansion until a human approves it again.</p>"
+        if status != "approved" else ""
+    )
+    return (
+        f"<p class='meta'>FlowSpec v{spec.version} · review: "
+        f"{theme.pill(escape(status), tone)}{note}</p>{warning}"
     )
 
 

@@ -26,8 +26,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-import pytest
-
 REPO = Path(__file__).resolve().parents[1]
 HOOK = REPO / ".claude" / "hooks" / "lab-session-start.ps1"
 ARCHITECTURE = REPO / "docs" / "ARCHITECTURE.md"
@@ -85,15 +83,15 @@ def architecture_path_from_hook() -> Path:
     return REPO / match.group(1).replace("\\", "/")
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="AT-106: the hook looks for ARCHITECTURE.md at the repo root; this project keeps it "
-    "in docs/ and a root copy has never existed, so the excerpt block never runs. Correcting it "
-    "changes an enforcement-path value no DECISIONS entry authorizes — gated in "
-    "qa/gates/at106-hook-architecture-path.md. Remove this xfail when the gate is answered.",
-)
 def test_the_hook_reads_the_file_the_project_actually_has() -> None:
-    assert architecture_path_from_hook().exists()
+    """AT-106 (D-020): the hook looked for ARCHITECTURE.md at the repo ROOT for
+    this repo's entire history, while the file has always been in docs/ — so the
+    excerpt block never executed once and the empty ground-truth block predates
+    every decision that argued about the filter's contents. This assertion was a
+    strict xfail until the gate was answered; it is live now."""
+    resolved = architecture_path_from_hook()
+    assert resolved.exists(), f"the hook opens {resolved}, which does not exist"
+    assert resolved == ARCHITECTURE, f"the hook opens {resolved}, not the project's {ARCHITECTURE}"
 
 
 def hook_cap() -> int:

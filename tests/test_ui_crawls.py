@@ -174,3 +174,38 @@ def test_coverage_card_reports_screens_the_flowspec_cannot_name(
 
     assert "/settings" in text   # crawled, unknown to the spec
     assert "/billing" in text    # known to the spec, never reached
+
+
+def test_the_merge_button_tells_the_user_it_un_approved_the_flowspec(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """AT-104 (checker-found, gating T-145): merging resets an APPROVED FlowSpec
+    to DRAFT and redirected to a page that rendered no review status anywhere.
+    A human could re-arm their own approval gate and never be told. The CLI said
+    it explicitly; the UI did not."""
+    store = make_project(scratch_root)
+    seed_crawl(store)
+    store.save_flowspec(FlowSpec(project="demo",
+                                 review=Review(status=ReviewStatus.APPROVED, by="umesh")))
+
+    client.post("/projects/demo/crawls/crawl_demo/merge", follow_redirects=False)
+    text = client.get("/projects/demo/crawls/crawl_demo").text
+
+    assert "draft" in text.lower()
+    assert "not approved" in text.lower()
+
+
+def test_an_approved_flowspec_is_not_falsely_warned_about(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """The other direction: the warning must mean something when it appears."""
+    store = make_project(scratch_root)
+    seed_crawl(store)
+    store.save_flowspec(FlowSpec(project="demo", screens=[
+        Screen(id="s1", name="Home", url_pattern="/"),
+    ], review=Review(status=ReviewStatus.APPROVED, by="umesh")))
+
+    text = client.get("/projects/demo/crawls/crawl_demo").text
+
+    assert "not approved" not in text.lower()
+    assert "approved" in text.lower()

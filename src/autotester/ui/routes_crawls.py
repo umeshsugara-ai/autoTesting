@@ -99,7 +99,8 @@ def crawl_page(slug: str, crawl_id: str) -> str:
 
     coverage = (
         theme.card(
-            crawl_view.coverage_card(diff_crawl(spec, nodes), unreached_screens(spec, nodes))
+            crawl_view.review_line(spec)
+            + crawl_view.coverage_card(diff_crawl(spec, nodes), unreached_screens(spec, nodes))
             + f"<form method='post' action='/projects/{safe}/crawls/{safe_id}/merge'>"
             "<button type='submit'>Merge these screens into the FlowSpec</button></form>",
             title="Against the FlowSpec",

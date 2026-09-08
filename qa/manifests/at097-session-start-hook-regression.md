@@ -74,7 +74,8 @@ correct and load-bearing; marking it SUPERSEDED would tell every future reader t
 FAIL and a HUMAN_GATE, not a softened criterion — and it is one commit to reverse.
 
 ## How to verify (commands + expected)
-- `docker compose exec -T autotester uv run pytest -q` → **555 passed, 1 skipped** (549 before)
+- `docker compose exec -T autotester uv run pytest -q` → **560 passed, 1 skipped** at cycle 2 (549 before this unit began). The xfail is gone: it
+  is a live passing assertion now.
 - `docker compose exec -T autotester uv run ruff check src tests scripts` → `All checks passed!`
 - `docker compose exec -T autotester uv run autotester doctor` → `doctor: clean`
 - Re-run the sabotage above yourself; 5 of 6 must fail.
@@ -82,7 +83,7 @@ FAIL and a HUMAN_GATE, not a softened criterion — and it is one commit to reve
   and all 10 named headings — **do not** take my probe's word for it.
 - Confirm `D-013`'s ASCII-escaping is untouched (`git diff 051303e -- .claude/hooks/`).
 
-## Status: FAIL (cycle 1) — half fixed, half BLOCKED on HUMAN_GATE
+## Cycle 1 verdict: FAIL — and it was right
 
 Verdict: `qa/verdicts/at097-session-start-hook-regression.md` (**Cycle checked: 1**, FAIL, 5/6).
 
@@ -125,4 +126,30 @@ session's decision index and would print "discard this" over a live fix. One fai
 "creates NO new authority" was slightly overstated, since D-019's byte-identity clause does narrow
 something D-013 approved.
 
-## Status: blocked-human-gate
+### Cycle 2 continued — the gate was answered, and the real defect is fixed
+
+**Umesh answered the gate on 2026-09-08: Option 1, correct the path.** Asked directly via an
+AskUserQuestion presenting all three options with the diff and each one's blast radius; recorded in
+`qa/gates/at106-hook-architecture-path.md` **before** any file was touched, and authorized by
+**D-020** (its own entry, with his `Approved-by` — not an extension of D-019, which is the move
+this repo has failed two checks for).
+
+- `.claude/hooks/lab-session-start.ps1:118` — `Join-Path $root "ARCHITECTURE.md"` →
+  `Join-Path $root "docs\ARCHITECTURE.md"`. The sibling line 50 already read `docs\DECISIONS.md`.
+- The `[WARN]` text now names `docs/ARCHITECTURE.md` so a future failure points at the real path.
+- **The strict xfail is removed and its assertion is live** — that is what it was for.
+
+**The real hook, run end to end, before and after:**
+```
+BEFORE:  total lines emitted: 52    [WARN] ARCHITECTURE.md missing at repo root
+         architecture headings injected: 0
+
+AFTER:   total lines emitted: 193   actual [WARN] lines: none
+         architecture headings injected: 10
+         --- ARCHITECTURE.md (all sections except the generated directory map; ground truth) ---
+```
+All ten named sections — What it does, Pipeline, Concept → file, Data model, Execution model,
+Security, Storage, Design rules, Commands, Status — reach a session for the first time in this
+repo's history.
+
+## Status: ready-for-check

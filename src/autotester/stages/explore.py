@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
 from autotester.browser.observe import PageObserver, observe
-from autotester.browser.session import BrowserSession
+from autotester.browser.session import BrowserSession, NavigationRefused
 from autotester.schema.case import Case
 from autotester.schema.crawl import Crawl, CrawlBounds, NoiseCount, SafetyPolicy
 from autotester.schema.enums import CrawlStatus, Outcome
@@ -58,6 +58,7 @@ class ExploreRuntime:
     denied: int = 0
     issues: int = 0
     stop_reason: str | None = None
+    seed_error: str | None = None
 
     @property
     def bounds(self) -> CrawlBounds:
@@ -89,12 +90,24 @@ def _bootstrap_login(rt: ExploreRuntime, case: Case) -> bool:
 
 
 def _seed(rt: ExploreRuntime) -> ScreenNode | None:
-    """Open `base_url` and record it as the first node."""
+    """Open `base_url` and record it as the first node.
+
+    AT-098: the cause is bound and kept. Detection was never lost -- the crawl
+    did abort and did say so -- but every distinct failure collapsed to one
+    string, so an operator watching a live ERP crawl could not tell whether the
+    product was down or whether the crawl had been refused by its own domain
+    guard. A `NavigationRefused` is the X7 SECURITY refusal and must never read
+    like a DNS timeout.
+    """
     try:
         rt.session.goto(rt.project.base_url)
         rt.session.settle(timeout_ms=rt.bounds.settle_ms)
         observation = observe(rt.session)
-    except Exception:
+    except NavigationRefused as exc:
+        rt.seed_error = f"refused by the domain guard: {exc}"
+        return None
+    except Exception as exc:
+        rt.seed_error = f"{type(exc).__name__}: {exc}"
         return None
     node = node_from(observation, rt.crawl.id, rt.project.slug, depth=0)
     node = node.model_copy(update={"screenshot_ref": explore_node.capture(rt, node)})
@@ -177,7 +190,7 @@ def run_crawl(
         rt.stop_reason = "login case did not complete"
         return _finish(rt, CrawlStatus.LOGIN_FAILED)
     if _seed(rt) is None:
-        rt.stop_reason = "could not open base_url"
+        rt.stop_reason = f"could not open base_url -- {rt.seed_error or 'cause not recorded'}"
         return _finish(rt, CrawlStatus.ABORTED)
     _bfs(rt)
     completed = rt.stop_reason == "frontier empty"

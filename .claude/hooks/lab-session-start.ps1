@@ -115,7 +115,7 @@ try {
   # AT-097). This file is deliberately NOT byte-identical to the AIOS template; a
   # future sync must re-apply this filter and the 150 cap. Pinned by
   # tests/test_session_start_hook.py. ---
-  $archPath = Join-Path $root "ARCHITECTURE.md"
+  $archPath = Join-Path $root "docs\ARCHITECTURE.md"
   if (Test-Path -LiteralPath $archPath) {
     $archLines = Get-Content -LiteralPath $archPath -Encoding UTF8 -ErrorAction Stop
     $keep = New-Object System.Collections.Generic.List[string]
@@ -130,7 +130,7 @@ try {
     $out.Add("--- ARCHITECTURE.md (all sections except the generated directory map; ground truth) ---")
     foreach ($l in $keep) { $out.Add($l) }
   } else {
-    $out.Add("[WARN] ARCHITECTURE.md missing at repo root -- protocol expects it. Run /init-lab repair.")
+    $out.Add("[WARN] docs/ARCHITECTURE.md missing -- protocol expects it. Run /init-lab repair.")
   }
 
   # --- Decision index with COMPUTED status (live file). ---

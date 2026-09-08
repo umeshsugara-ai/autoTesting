@@ -174,3 +174,45 @@ def test_reloaded_crawl_matches_the_returned_envelope(tmp_path: Path) -> None:
     assert loaded is not None
     assert (loaded.screens, loaded.edges, loaded.stop_reason) == (
         crawl.screens, crawl.edges, crawl.stop_reason)
+
+
+# -- AT-098: a failed seed names its cause, and a refusal never reads like a timeout
+
+def test_a_domain_refusal_at_seed_is_distinguishable_from_a_network_failure(
+    tmp_path: Path,
+) -> None:
+    """AT-098 (checker-found, before T-145): `_seed` swallowed the exception
+    entirely, so every distinct failure collapsed to "could not open base_url".
+    An operator watching a live ERP crawl could not tell whether the product was
+    down or whether the crawl had been refused by its own domain guard -- and
+    that refusal is the X7 SECURITY boundary, not an outage."""
+    from autotester.browser.session import NavigationRefused
+
+    project = make_project()
+    session, _page = make_session(tmp_path, project)
+
+    def refuse(_url: str) -> None:
+        raise NavigationRefused("'https://evil.test/' is outside allowed domains ['app.test']")
+
+    session.goto = refuse  # type: ignore[method-assign]
+    crawl = run_crawl(project, session, ProjectStore("demo", tmp_path),
+                      observer=PageObserver())
+
+    assert crawl.status is CrawlStatus.ABORTED
+    assert "refused by the domain guard" in (crawl.stop_reason or "")
+    assert "evil.test" in (crawl.stop_reason or "")
+
+
+def test_an_ordinary_failure_at_seed_names_its_exception_type(tmp_path: Path) -> None:
+    project = make_project()
+    session, _page = make_session(tmp_path, project)
+
+    def boom(_url: str) -> None:
+        raise TimeoutError("navigation timed out")
+
+    session.goto = boom  # type: ignore[method-assign]
+    crawl = run_crawl(project, session, ProjectStore("demo", tmp_path),
+                      observer=PageObserver())
+
+    assert "TimeoutError" in (crawl.stop_reason or "")
+    assert "refused by the domain guard" not in (crawl.stop_reason or "")

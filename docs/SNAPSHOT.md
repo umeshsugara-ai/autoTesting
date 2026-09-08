@@ -36,8 +36,8 @@ AutoTester wins on bugs found, false positives, and time (`schema/bench.py` comp
 - T-132 [normal] Track A3: host media prep (probe, chunks, transcript reuse/whisper, frames)
 - T-133 [high] Track A4: two-model ensemble + deterministic adjudication + Issue derivation + 13-column Excel + scorer
 ## Last decisions (computed status)
-- D-015 2026-09-07 decision ACTIVE
 - D-016 2026-09-07 decision ACTIVE
 - D-017 2026-09-08 decision ACTIVE
 - D-018 2026-09-08 decision ACTIVE
 - D-019 2026-09-08 fix ACTIVE
+- D-020 2026-09-08 fix ACTIVE

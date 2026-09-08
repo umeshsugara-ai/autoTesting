@@ -1,6 +1,6 @@
 # GATE — AT-106: the session-start hook reads `ARCHITECTURE.md` from the wrong place
 
-**Opened:** 2026-09-08T01:20:00+05:30 · **Status: OPEN** · **Approver:** Umesh
+**Opened:** 2026-09-08T01:20:00+05:30 · **Status: ANSWERED** · **Approver:** Umesh
 
 ## The question, in one line
 May I change `.claude/hooks/lab-session-start.ps1:118` from
@@ -44,3 +44,9 @@ Reply with `1`, `2`, or `3`. On any answer I append
   never executes.
 - Unit `at097-session-start-hook-regression` is at **FAIL, cycle 2 of max 3**.
 - Nothing else. T-124 and the rest of the backlog are unaffected and continue.
+
+---
+
+**Answered:** 2026-09-08 — **Option 1, approve the one-line path fix** — Umesh, directly in the
+session via an AskUserQuestion presenting all three options with the two-line diff. Recorded here
+before any file was touched, per the gate-record rule. Authorizing entry: **D-020**.
