@@ -25,10 +25,16 @@ def frame_name(t_s: float) -> str:
 def extract_frame(video: Path, t_s: float, out_png: Path) -> bool:
     """One frame at `t_s`. True when the file exists afterwards.
 
-    `-ss` goes AFTER `-i` for the same reason it does in `chunks.encode_chunks`:
-    before the input it seeks to the nearest keyframe, which on a screen
-    recording can be seconds away and lands on a different screen entirely. The
-    whole point of this frame is that it is the second the model named.
+    `-ss` goes after `-i`. **The reason I originally gave for that was wrong**
+    (AT-168): I claimed `-ss` before `-i` seeks to the nearest keyframe and so
+    lands on a different screen. A checker tested it on ffmpeg 8.1.1 — both
+    orders produced a BYTE-IDENTICAL frame at t=20s with keyframes 4.27s apart,
+    because modern ffmpeg decodes to the exact timestamp either way.
+
+    The order is kept because it is the conservative one across ffmpeg builds
+    and costs nothing at this scale, not because the failure I described is
+    real here. What matters is the measured property the contract now states:
+    the frame lands at the second that was asked for.
 
     Returns a bool rather than raising: a crawl or an analysis that could not
     grab one still is not a failed analysis, and `product_map.build_screen_map`

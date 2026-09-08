@@ -27,9 +27,21 @@ from autotester.schema.media import MediaChunk, MediaPrep
 from autotester.schema.project import Source
 from autotester.store.project_store import ProjectStore
 
+PREP_COMMAND = "autotester ingest prep"
+"""The registered command, in one place (AT-163).
+
+The refusal used to say `autotester media prep`, which does not exist — the
+commands live under `ingest`. It is the message meant to rescue an operator who
+cannot run prep where they are, and it sent them to a dead end; my own test
+pinned the substring "media prep", so a passing test protected it."""
+
 
 class SourceNotPrepared(RuntimeError):
     """Raised when a stage needs `media.json` and there is none."""
+
+
+class UnreadableRecording(RuntimeError):
+    """ffmpeg is present and still could not make sense of the file."""
 
 
 def prepare(store: ProjectStore, source: Source, *,
@@ -55,8 +67,23 @@ def prepare(store: ProjectStore, source: Source, *,
         duration_s, width, height = probe_mod.probe(video)
         plan = chunk_mod.plan_chunks(duration_s, chunk_s=chunk_minutes * 60.0,
                                      overlap_s=overlap_s)
+        if not plan:
+            # AT-164: ffmpeg is HERE and could not read this file. Persisting
+            # zero chunks let the CLI print a green success line for a source
+            # nothing can ever watch -- the precise shape `_unchunked` exists
+            # to prevent, arrived at through the other branch.
+            raise UnreadableRecording(
+                f"{source.id}: ffmpeg is installed but read no duration from {video.name} "
+                f"— the file is empty or not a video this ffmpeg understands")
         out_dir = store.paths.source_chunks_dir(source.id)
-        cut = chunk_mod.encode_chunks(video, out_dir, plan) if plan else []
+        try:
+            cut = chunk_mod.encode_chunks(video, out_dir, plan)
+        except Exception as exc:
+            # AT-166: a failed cut escaped as a raw traceback. A partial chunk
+            # set is worse than none: it looks like a complete plan.
+            raise UnreadableRecording(
+                f"{source.id}: ffmpeg could not cut {video.name} "
+                f"({type(exc).__name__}) — no media.json written") from exc
         prep = MediaPrep(
             source_id=source.id, duration_s=duration_s,
             width=width, height=height, chunks=cut,
@@ -99,7 +126,13 @@ def extract_frames(store: ProjectStore, source: Source,
     written: list[Path] = []
     for t_s in wanted:
         png = out_dir / frame_mod.frame_name(t_s)
-        if png.exists() or frame_mod.extract_frame(video, t_s, png):
+        # AT-165: `png.exists()` alone reused ANY file at the expected name --
+        # including a 0-byte or truncated leftover from an interrupted run,
+        # handed back as evidence. A frame is evidence only if it has bytes.
+        if png.exists() and png.stat().st_size > 0:
+            written.append(png)
+            continue
+        if frame_mod.extract_frame(video, t_s, png) and png.stat().st_size > 0:
             written.append(png)
     return written
 
@@ -113,7 +146,7 @@ def require_prepared(store: ProjectStore, source_id: str) -> MediaPrep:
     prep = store.load_media_prep(source_id)
     if prep is None:
         raise SourceNotPrepared(
-            f"{source_id} has no media.json — run `autotester media prep "
+            f"{source_id} has no media.json — run `{PREP_COMMAND} "
             f"{store.paths.slug} {source_id}` on the HOST first (the container "
             f"has no ffmpeg)")
     return prep

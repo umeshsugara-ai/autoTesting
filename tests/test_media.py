@@ -168,3 +168,32 @@ def test_find_sidecar_only_reports_one_that_exists(tmp_path: Path) -> None:
 
     video.with_suffix(".transcript.json").write_text("{}", encoding="utf-8")
     assert transcribe.find_sidecar(video) is not None
+
+
+def test_a_negative_overlap_is_refused_rather_than_silently_skipping_footage() -> None:
+    """AT-167: a negative overlap makes the step LONGER than a chunk, so the
+    plan skips stretches of the recording entirely — and a gap is the one
+    failure nothing downstream reports, because a screen no model watched
+    leaves no trace anywhere.
+
+    Sabotaging this guard was INCONCLUSIVE before this test existed (C7)."""
+    with pytest.raises(ValueError, match="cannot be negative"):
+        plan_chunks(400.0, overlap_s=-5.0)
+
+
+@pytest.mark.parametrize("kwargs", [
+    {"chunk_s": 0.0},
+    {"chunk_s": -10.0},
+    {"chunk_s": float("inf")},
+])
+def test_an_impossible_chunk_size_is_refused(kwargs: dict) -> None:
+    """Validated BEFORE the short-circuits. Checked after them, an absurd chunk
+    size was accepted whenever the recording happened to be shorter than it —
+    the guard fired only on inputs that were already fine."""
+    with pytest.raises(ValueError, match="positive, finite"):
+        plan_chunks(400.0, **kwargs)
+
+
+def test_an_infinite_duration_is_refused_rather_than_looping() -> None:
+    with pytest.raises(ValueError, match="finite"):
+        plan_chunks(float("inf"))

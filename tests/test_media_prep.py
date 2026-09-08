@@ -10,6 +10,7 @@ Contract: qa/contracts/video-learning.md VL1.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -124,17 +125,71 @@ def test_a_source_whose_file_vanished_is_refused_by_name(
         media_prep.prepare(store, source, use_whisper=False)
 
 
-def test_a_stage_needing_prep_is_sent_to_the_host_not_told_to_retry(
+def test_a_stage_needing_prep_is_sent_to_a_command_that_exists(
     store: ProjectStore,
 ) -> None:
-    """`analyze` runs in the CONTAINER, where prep cannot be performed at all,
-    so "run it here" is advice it cannot follow. The refusal has to name the
-    host command."""
+    """AT-163. `analyze` runs in the CONTAINER, where prep cannot be performed,
+    so the refusal has to send the operator to the host — and to a command that
+    is actually registered.
+
+    It said `autotester media prep`. There is no `media` command; they live
+    under `ingest`. And my first test asserted the substring "media prep", so a
+    passing test PROTECTED the dead end. This one asks the CLI itself."""
+    from typer.testing import CliRunner
+
+    from autotester.cli import app
+
     with pytest.raises(media_prep.SourceNotPrepared) as caught:
         media_prep.require_prepared(store, "src_missing")
+    message = str(caught.value)
 
-    assert "media prep" in str(caught.value)
-    assert "HOST" in str(caught.value)
+    assert "HOST" in message
+    command = re.search(r"`autotester ([a-z ]+?) ", message)
+    assert command, f"the refusal named no command: {message}"
+
+    argv = [*command.group(1).split(), "--help"]
+    result = CliRunner().invoke(app, argv)
+    assert result.exit_code == 0, (
+        f"the refusal sends the operator to `autotester {' '.join(argv[:-1])}`, "
+        f"which the CLI does not expose: {result.output!r}")
+
+
+def test_the_unreadable_recording_refusal_is_not_a_green_success_line(
+    store: ProjectStore, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AT-164, and it is the sharper half. With ffmpeg PRESENT and a file it
+    cannot read, prep used to persist `chunks=[]` and the CLI printed a green
+    success line — a source nothing can ever watch, reported as prepared. That
+    is the exact shape `_unchunked` exists to prevent, reached by the other
+    branch."""
+    monkeypatch.setattr(media_prep.probe_mod, "ffmpeg_available", lambda: True)
+    monkeypatch.setattr(media_prep.probe_mod, "probe", lambda path: (0.0, 0, 0))
+    source = a_source(store, tmp_path)
+
+    with pytest.raises(media_prep.UnreadableRecording, match="read no duration"):
+        media_prep.prepare(store, source, use_whisper=False)
+
+    assert store.load_media_prep(source.id) is None, "a refused prep must persist nothing"
+
+
+def test_a_failed_cut_writes_no_media_json(
+    store: ProjectStore, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AT-166: a partial chunk set is worse than none, because it reads as a
+    complete plan and nothing downstream knows footage is missing."""
+    monkeypatch.setattr(media_prep.probe_mod, "ffmpeg_available", lambda: True)
+    monkeypatch.setattr(media_prep.probe_mod, "probe", lambda path: (400.0, 1920, 1080))
+
+    def boom(video, out_dir, plan):
+        raise RuntimeError("ffmpeg exited 1 on chunk 2 of 3")
+
+    monkeypatch.setattr(media_prep.chunk_mod, "encode_chunks", boom)
+    source = a_source(store, tmp_path)
+
+    with pytest.raises(media_prep.UnreadableRecording, match="could not cut"):
+        media_prep.prepare(store, source, use_whisper=False)
+
+    assert store.load_media_prep(source.id) is None
 
 
 # -- frames ------------------------------------------------------------------
@@ -175,3 +230,51 @@ def test_a_frame_that_could_not_be_grabbed_is_omitted_not_faked(
         AnalysedScreen(name="Home", t_start=1.0, screenshot_ts=[1.5])])
 
     assert media_prep.extract_frames(store, source, analysis) == []
+
+
+def test_a_zero_byte_leftover_png_is_not_returned_as_evidence(
+    store: ProjectStore, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AT-165: `png.exists()` alone reused ANY file at the expected name —
+    including a truncated leftover from an interrupted run — and handed it back
+    as evidence. A frame with no bytes shows a human nothing, so a report built
+    on it is worse than one that admits the still is missing.
+
+    Sabotaging the fix was INCONCLUSIVE before this test existed (C7): I had
+    changed the code and pinned none of it."""
+    frames_dir = store.paths.source_frames_dir("src_x")
+    frames_dir.mkdir(parents=True, exist_ok=True)
+    stale = frames_dir / media_prep.frame_mod.frame_name(1.5)
+    stale.write_bytes(b"")  # an interrupted ffmpeg leaves exactly this
+
+    monkeypatch.setattr(media_prep.frame_mod, "extract_frame",
+                        lambda video, t_s, out_png: False)
+    source = a_source(store, tmp_path)
+    store.paths.source_frames_dir(source.id).mkdir(parents=True, exist_ok=True)
+    empty = store.paths.source_frames_dir(source.id) / media_prep.frame_mod.frame_name(1.5)
+    empty.write_bytes(b"")
+    analysis = VideoAnalysis(source_id=source.id, screens=[
+        AnalysedScreen(name="Home", t_start=1.0, screenshot_ts=[1.5])])
+
+    assert media_prep.extract_frames(store, source, analysis) == []
+
+
+def test_a_frame_already_on_disk_with_real_bytes_is_reused(
+    store: ProjectStore, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The other side of AT-165: caching a good frame is the point, and a fix
+    that re-extracted everything would trade a wrong answer for a slow one."""
+    calls: list[float] = []
+    monkeypatch.setattr(media_prep.frame_mod, "extract_frame",
+                        lambda video, t_s, out_png: calls.append(t_s) or False)
+    source = a_source(store, tmp_path)
+    good_dir = store.paths.source_frames_dir(source.id)
+    good_dir.mkdir(parents=True, exist_ok=True)
+    (good_dir / media_prep.frame_mod.frame_name(1.5)).write_bytes(b"realpngbytes")
+    analysis = VideoAnalysis(source_id=source.id, screens=[
+        AnalysedScreen(name="Home", t_start=1.0, screenshot_ts=[1.5])])
+
+    written = media_prep.extract_frames(store, source, analysis)
+
+    assert len(written) == 1
+    assert calls == [], "a good cached frame must not be re-extracted"

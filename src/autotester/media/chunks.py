@@ -13,6 +13,7 @@ it walked in on; `stages/adjudicate.py` then drops what it sees twice (A4).
 from __future__ import annotations
 
 import subprocess
+from math import isfinite
 from pathlib import Path
 
 from autotester.schema.media import MediaChunk
@@ -41,12 +42,25 @@ def plan_chunks(duration_s: float, *, chunk_s: float = DEFAULT_CHUNK_S,
     Pure. Every downstream timestamp is shifted by its chunk's offset in code
     (`adjudicate.shift`), never by the model, so this function's output is the
     only thing that decides where a reported second actually lands."""
+    # Validate BEFORE the short-circuits. Checking after them meant an absurd
+    # chunk size was accepted whenever the recording happened to be shorter
+    # than it -- the guard only fired on inputs that were already fine.
+    if chunk_s <= 0 or not isfinite(chunk_s):
+        raise ValueError(f"chunk {chunk_s}s must be a positive, finite number of seconds")
+    if overlap_s < 0:
+        # AT-167: a negative overlap makes step LONGER than a chunk, so the
+        # plan skips stretches of the recording entirely — a gap nothing
+        # downstream reports, because a screen no model watched leaves no trace.
+        raise ValueError(f"overlap {overlap_s}s cannot be negative — it would skip footage")
+    if overlap_s >= chunk_s:
+        raise ValueError(f"overlap {overlap_s}s must be shorter than chunk {chunk_s}s")
+    if not isfinite(duration_s):
+        raise ValueError("duration must be finite")
+
     if duration_s <= 0:
         return []
     if duration_s <= chunk_s:
         return [(0.0, duration_s)]
-    if overlap_s >= chunk_s:
-        raise ValueError(f"overlap {overlap_s}s must be shorter than chunk {chunk_s}s")
 
     step = chunk_s - overlap_s
     plan: list[tuple[float, float]] = []
@@ -76,11 +90,15 @@ def encode_chunks(source: Path, out_dir: Path,
                   plan: list[tuple[float, float]]) -> list[MediaChunk]:
     """Cut `source` into `plan`'s pieces with ffmpeg. Accurate-seek re-encode.
 
-    `-ss` AFTER `-i` is deliberate and costs real time: placed before, ffmpeg
-    seeks to the nearest keyframe, so a chunk can start up to several seconds
-    from where the plan says. Every timestamp this pipeline reports is relative
-    to a chunk offset, so a keyframe-rounded cut silently moves every issue's
-    reported second. Slower and correct beats fast and quietly wrong.
+    `-ss` goes after `-i`. **My original justification for that was wrong**
+    (AT-168): I asserted that placing it before makes ffmpeg seek to the nearest
+    keyframe and shift the cut by seconds. A checker measured it on ffmpeg
+    8.1.1 and both orders produced a byte-identical frame with keyframes 4.27s
+    apart. The order stays because it is the conservative one across builds and
+    costs nothing here — not because the failure I described happens on this
+    ffmpeg. The property that actually matters is measured, not argued: a cut
+    lands where the plan says, because every timestamp downstream is relative
+    to a chunk offset.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     chunks: list[MediaChunk] = []
