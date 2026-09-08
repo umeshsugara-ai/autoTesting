@@ -129,6 +129,38 @@ def _merge_into_flowspec(store_: ProjectStore, project: str, crawl_id: str) -> N
     )
 
 
+def _validate_grant(expires: str, target: str, proj: Any) -> None:
+    """Refuse a grant that can never cover anything, and flag a likely typo (AT-145).
+
+    The safety property was never in doubt -- `require_consent` refuses an
+    expired or unparseable row at run time. What was wrong is what the HUMAN is
+    told: `approve --expires 2020-01-01` printed a green "granted" line for a
+    consent that will refuse every run it is asked about. A gate that reports
+    success for a grant it will never honour trains the operator to stop
+    reading it, and the operator here is granting production consent for a
+    crawl of a live ERP.
+    """
+    try:
+        expiry = date.fromisoformat(expires)
+    except ValueError:
+        typer.secho(f"--expires must be YYYY-MM-DD, not {expires!r}", fg=typer.colors.RED)
+        raise typer.Exit(1) from None
+    if expiry < date.today():
+        typer.secho(
+            f"--expires {expires} is already in the past — this grant would refuse "
+            f"every run it was asked about",
+            fg=typer.colors.RED)
+        raise typer.Exit(1)
+    if proj is not None and proj.base_url and not target.startswith(proj.base_url.rstrip("/")):
+        # Not refused: an endpoint under test may legitimately differ from
+        # base_url, and CN5 matches exactly at consent time regardless. But say
+        # it now rather than leaving the operator to discover it at the refusal.
+        typer.secho(
+            f"note: {target} does not match this project's base_url "
+            f"({proj.base_url}) — a crawl of it will not match this approval",
+            fg=typer.colors.YELLOW)
+
+
 def approve_cmd(
     project: str,
     kind: str = typer.Option(..., "--kind", help="read | crawl | adversarial | live_case"),
@@ -164,6 +196,7 @@ def approve_cmd(
         allowed = ", ".join(k.value for k in ApprovalKind)
         typer.secho(f"--kind must be one of: {allowed}", fg=typer.colors.RED)
         raise typer.Exit(1) from None
+    _validate_grant(expires, target, store_.load_project())
     approval = store_.add_approval(RunApproval(
         project=project, run_kind=run_kind, target=target, scope=scope,
         max_actions=max_actions, max_probes=max_probes, wall_clock_s=wall_clock,

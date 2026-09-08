@@ -81,13 +81,29 @@ def test_explore_without_an_approval_exits_two(root: Path) -> None:
 
 def test_a_refused_crawl_leaves_nothing_on_disk(root: Path) -> None:
     """CN1 means what it says. AT-111 found a refused run still left
-    `crawl/<id>/shots/` and a populated Chromium profile, because
-    `BrowserSession.start()` runs inside the `with` that wraps `run_crawl`."""
-    runner.invoke(app, ["explore", "demo"])
+    `crawl/<id>/shots/` and a populated Chromium profile behind, because
+    `BrowserSession.start()` runs inside the `with` that wraps `run_crawl`.
 
-    project_dir = root / "projects" / "demo"
-    strays = [p for p in project_dir.rglob("*") if "crawl" in p.name or "profile" in p.name]
-    assert strays == [], f"a refused run left {strays}"
+    AT-143 -- the first version of this test globbed `projects/<slug>` for
+    names containing "crawl" or "profile" and saw **3 of the 211 entries** a
+    refused run creates. The entire Chromium profile tree (`Default/Network/
+    Cookies`, `Login Data`, `History`) lives at `root/profiles/<slug>`, a
+    SIBLING of `projects/` -- unreachable by that glob whatever it searched
+    for, and it is the very artefact this docstring names. A test that names
+    the right property and then looks in the wrong place is worse than none:
+    it reports the guarantee as held.
+
+    So: snapshot the WHOLE root, and diff. Nothing new anywhere, not "nothing
+    new where I thought to look."
+    """
+    before = set(root.rglob("*"))
+
+    result = runner.invoke(app, ["explore", "demo"])
+
+    assert result.exit_code == 2, result.output
+    created = sorted(p for p in set(root.rglob("*")) - before)
+    assert created == [], (
+        f"a refused run created {len(created)} entries, e.g. {created[:5]}")
 
 
 def test_the_refusal_names_every_bound_of_the_run_it_refused(root: Path) -> None:
@@ -130,9 +146,16 @@ def test_the_refusals_command_grants_the_run_once_a_human_fills_it_in(
 # -- `approve`, the command that grants consent ----------------------------
 
 def test_approve_writes_a_row_that_covers_the_cli_defaults(root: Path) -> None:
-    """The sharp edge: `explore`'s typer defaults are what `require_consent`
-    is judged against in production. An approval for exactly the default
-    action budget must let the default run through."""
+    """An approval for exactly the default action budget must let the default
+    run through.
+
+    AT-146 -- I originally called this "the one row I would keep", claiming it
+    pins `explore_cmd`'s TYPER defaults to `require_consent`. It does not: it
+    never invokes `explore`, it constructs `CrawlBounds()` directly, so it pins
+    the SCHEMA defaults. The checker proved it by drifting the typer default
+    200 -> 137, under which this test still passed. What actually protects that
+    seam is the two refusal tests above, which read the bounds out of the real
+    command's output. Kept, correctly described."""
     from autotester.schema.crawl import CrawlBounds
     from autotester.stages.explore import require_consent
 
@@ -196,3 +219,78 @@ def test_a_missing_login_case_is_named_not_ignored(root: Path) -> None:
 
     assert result.exit_code == 1
     assert "case_nope" in result.output
+
+
+# -- AT-144: the bound flags must actually reach CrawlBounds ---------------
+
+def test_every_bound_flag_reaches_the_crawl_bounds(
+    root: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AT-144: hardcoding `max_screens=999` in `explore_cmd` left the whole
+    633-test suite green. `--max-screens` and `--max-depth` never reach an
+    approval (consent bounds actions/probes/wall-clock only), so nothing else
+    in the system can notice if they stop being wired — and they are the two
+    bounds that decide how much of a live production ERP gets touched."""
+    from autotester import cli_crawl
+
+    seen: dict[str, object] = {}
+    real = cli_crawl._preflight_consent
+
+    def capture(proj: object, store_: object, bounds: object) -> None:
+        seen["bounds"] = bounds
+        real(proj, store_, bounds)  # still refuses, so nothing runs
+
+    monkeypatch.setattr(cli_crawl, "_preflight_consent", capture)
+
+    runner.invoke(app, ["explore", "demo", "--max-screens", "7", "--max-actions", "11",
+                        "--wall-clock", "13.0", "--max-depth", "3"])
+
+    bounds = seen.get("bounds")
+    assert bounds is not None, "the CLI never reached the consent pre-flight"
+    assert (bounds.max_screens, bounds.max_actions) == (7, 11)
+    assert (bounds.wall_clock_s, bounds.max_depth) == (13.0, 3)
+
+
+# -- AT-145: a grant that cannot cover anything must say so ---------------
+
+def test_approve_refuses_an_already_expired_date(root: Path) -> None:
+    """AT-145: `approve --expires 2020-01-01` exited 0 with a green "granted"
+    line. The safety property held — `require_consent` refuses an expired row
+    — but the human granting T-145's PRODUCTION consent was told it worked.
+    A gate that reports success for a grant it will never honour trains the
+    operator to ignore it."""
+    yesterday = (date.today() - timedelta(days=1)).isoformat()
+
+    result = runner.invoke(app, [
+        "approve", "demo", "--kind", "crawl", "--target", BASE_URL,
+        "--scope", "s", "--granted-by", "umesh", "--expires", yesterday,
+    ])
+
+    assert result.exit_code == 1
+    assert "already" in result.output.lower() or "past" in result.output.lower()
+
+
+def test_approve_refuses_an_unparseable_expiry(root: Path) -> None:
+    """`--expires never` was accepted verbatim and stored, where it can only
+    ever compare as "not today's date"."""
+    result = runner.invoke(app, [
+        "approve", "demo", "--kind", "crawl", "--target", BASE_URL,
+        "--scope", "s", "--granted-by", "umesh", "--expires", "never",
+    ])
+
+    assert result.exit_code == 1
+    assert "YYYY-MM-DD" in result.output
+
+
+def test_approve_warns_when_the_target_is_not_the_projects_base_url(root: Path) -> None:
+    """Not refused — an endpoint under test legitimately differs from base_url,
+    and CN5 matches exactly at consent time anyway. But granting consent for a
+    target this project will never ask about is almost certainly a typo, and
+    the operator should hear it AT GRANT TIME rather than at the refusal."""
+    result = runner.invoke(app, [
+        "approve", "demo", "--kind", "crawl", "--target", "https://unrelated.test/",
+        "--scope", "s", "--granted-by", "umesh", "--expires", TOMORROW,
+    ])
+
+    assert result.exit_code == 0
+    assert "base_url" in result.output or "does not match" in result.output
