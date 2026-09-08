@@ -513,3 +513,27 @@ via a transitive pin, which is the hazard) and the reasoning is now in the contr
 log and no-fire list. **Ruling on the `git checkout` hygiene line:** upheld in substance, refused
 in a feature contract; filed as AT-131 extending AT-101. Nothing was lost -- the committed prompt
 diff is the full rewrite, verified. Verdict: `qa/verdicts/t131-ingest-persists.md` (PASS, cycle 1).
+
+---
+
+## 2026-09-09 · maker · a FLAKY test in the adapter's own verify step
+
+**PATTERN:** a browser-backed test whose outcome depends on timing makes `uv run pytest` — the
+adapter's slot-1 verify — non-deterministic, so "the suite is green" stops being a fact and becomes
+a probability. Every manifest in this project cites that command as evidence.
+
+**EVIDENCE:** `tests/test_explore_live.py::test_the_dialog_page_does_not_trap_the_crawl` failed once
+in a full run and passed on the next full run and in isolation (8 passed). The failure was
+`assert 'aborted_error' in ('aborted_dialog', 'explored')` — under load the dialog page took the
+ERROR path instead of reaching the dialog circuit breaker, so the assertion is on a state the crawl
+reaches only when timing cooperates.
+
+Not a regression from the unit in flight (nothing in `stages/explore*.py` was touched); observed
+while verifying `at176-at178-render-not-scan`. Recorded here rather than fixed inside a unit about
+something else.
+
+**APPLIES NEXT:** the same shape lives in every `test_explore_live.py` assertion that pins a
+terminal `NodeStatus` — X8's breaker is a race by construction, so asserting one exact status is
+asserting the race resolved a particular way. A checker should decide whether these assert a SET of
+acceptable statuses, gain a retry, or move behind a marker that keeps them out of the adapter's
+verify command.
