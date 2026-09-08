@@ -206,10 +206,21 @@ never dropped: each one is a hole in the evidence the rest of the report is buil
 "we did not report it stays auditable" rule that governs `Noise` governs them.
 **AT-120 CLOSED** (unit `at120-evidence-not-product-issues`, commit `bc29b34`, verified by
 /checker 2026-09-08 — the same probe that measured `issues = 5` at `6e98487` now measures
-`issues = 1, tool_failures = 4`). **X16 is clean for tool failures.** Residual gaps, tracked not
-waived: **AT-121** (the crawls table renders a known zero as the `—` it uses for unknown) and
-**AT-122** (the `autotester crawl` CLI one-liner reports the product's issues and omits the tool
-failures entirely).
+`issues = 1, tool_failures = 4`). **X16 is clean for tool failures.**
+**The two residual display gaps are now CLOSED too** (unit `at121-at122-crawl-count-surfaces`,
+commit `6c653fd`, verified by /checker 2026-09-08): **AT-121** — the crawls table rendered a known
+zero with the `—` it uses for unknown; the row now reads `<td>0</td><td>0</td>` for the two count
+cells while `stop_reason` and `started_at` keep the `—` for genuine unknowns, and no numeric field
+anywhere in `src/` still renders through the sentinel. **AT-122** — the `autotester crawl` CLI
+one-liner (extracted as `cli_crawl.echo_crawl_summary` so it is testable) now carries
+`{tool_failures} tool failures`, so a headless or CI run, whose entire report is that one line, is
+told about holes in its own evidence. **The counted-apart rule now holds on every surface a human
+reads: the CLI line, the crawls table, the crawl-page stat, the workbook summary and its own sheet,
+and `crawl.json`.** New residuals, tracked not waived, neither a violation as written: **AT-123**
+(the CLI line is the one surface that does not guard `stop_reason`, printing `None`; unreachable
+through `explore_cmd` today) and **AT-124** (a crawl artifact written before `tool_failures` existed
+loads with the default `0` and is displayed as a measured zero — the same property `issues` and
+`denied` have always had; the remedy is a schema change, not a display change).
 
 ## No-fire list (do not raise these as findings)
 
@@ -305,3 +316,19 @@ failures entirely).
   `tests/test_crawl_report.py::SHEETS` was checked to still be an `==` on the full list rather than
   a subset. Two residual display gaps (AT-121, AT-122) recorded inside the criterion rather than
   left implicit. Authorized by D-015. No criterion is removed or weakened; X1-X15 are byte-unchanged.
+
+- 2026-09-08 · routine · **X16's AT-121 and AT-122 residual gaps CLOSED** by /checker at unit
+  `at121-at122-crawl-count-surfaces` (commit `6c653fd`, verdict
+  `qa/verdicts/at121-at122-crawl-count-surfaces.md`). Both gaps were opened by this checker one
+  unit earlier and are closed on its own executed evidence, not on the maker's diff: the real
+  `cli_crawl.echo_crawl_summary` was called and its captured stdout read (`… 1 issues, 4 tool
+  failures`, carried at 0, 4 and 123456), and `/projects/demo/crawls` was rendered through
+  `TestClient` (`<td>0</td><td>0</td>` for the two count cells, one `—` left, on `started_at`).
+  Both sabotages reproduce in a `git archive` scratch copy with `PYTHONPATH` pinned — sabotage 7
+  character-for-character as the manifest transcript claims (the AT-117 concern, checked
+  deliberately) and sabotage 8 as `assert 1 == 2`; restore → 8 passed. Every remaining `or '—'` in
+  `src/` was swept and all sit on optional string fields. The criterion is **tightened, not
+  softened** — it now states that the counted-apart rule holds on every surface a human reads, and
+  the two NEW residuals it earns (AT-123 the unguarded `stop_reason` on the CLI line, AT-124 the
+  legacy artifact's default-0) are recorded inside it rather than left implicit. Authorized by
+  D-015. No criterion is removed or weakened; X1-X15 are byte-unchanged.
