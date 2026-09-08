@@ -2,7 +2,7 @@
 
 **Unit:** AT-206 + AT-192 + AT-193 + AT-170 — make the class guards guard their class
 **Commit:** `9351387`
-**Fix cycle:** 1
+**Fix cycle:** 2
 **Contract:** `qa/contracts/core-invariants.md` C7 (verification is independent) and
 `qa/contracts/video-learning.md` VL1. **No new criteria requested** — every claim here is judged
 against C7 as written.
@@ -84,5 +84,75 @@ it the honest-looking reading is "the sabotage proved nothing was wrong."
 It does not claim the class is fixed. It fixes four instances and one meta-instance. The sweep's
 measurement — self-caught 0 of 16, rate flat-to-rising — is not answered by a unit; it is answered
 or not by the next several units, and the next sweep should say so plainly either way.
+
+## Status: superseded by cycle 2
+
+---
+
+# Cycle 2 — the guard had its own slack, which is this unit's own subject
+
+Cycle 1: **FAIL, 8/11.** Every failure came from the pressure probes, and the first one is this
+unit's thesis landing on this unit.
+
+## AT-210 — I claimed the sites were pinned. They were not.
+
+The manifest said *"sites are now pinned individually, by line"*. The resolve check is
+**parametrized over whatever the collector returns**, so deleting a site removes a **case**, not a
+test. The checker deleted `core/consent.py`'s advice — *the exact site AT-178 exists for* — and the
+run went from 26 tests to 25 with **zero failures**. Nine of the eleven sites were freely deletable.
+
+And removing `len(commands) >= 6` was a **net loss**. It was crude and it left four sites of slack,
+which is why AT-178 was unpinned by it — but it bit at six, and I replaced it with nothing.
+
+`EXPECTED_SITES` now freezes the inventory: a vanished site fails a test instead of shortening the
+run, and adding one is a deliberate edit. Both deletions the checker used now fail.
+
+## AT-211 — the AT-206 guard survived its own sabotage by coincidence
+
+`test_the_collector_sees_the_COMPOSED_site_not_just_the_constant` gathered line numbers from
+**every file** and indexed them into `media_prep.py`'s source. So a decoy `"autotester ingest prep"`
+at line 157 of any new module satisfied it — with the renderer deleted. Only a sibling test on
+synthetic source caught the deletion at all.
+
+Now scoped to `stages/media_prep.py`. **The checker's exact attack, replayed here** (renderer
+folded away + a decoy constant at line 157 of a fresh module), fails 3 tests including that one.
+
+## AT-212 — the hole report had an exemption wide enough to hide a command
+
+`_module_level_names` exempted a name for **being bound**, while `_module_constants` resolves
+literals only. So
+
+```python
+PREP_COMMAND = os.environ.get("CMD", "autotester ingest prep")
+```
+
+was invisible to the collector **and** exempt from the hole report, in one move —
+`unresolved_in_source(SRC) == []` still held. A call can return anything, so a call is no longer an
+exemption; only a non-string literal or a literal container (`NEVER_A_COMMAND`) is. Measured after
+the change: still **11 sites, 0 holes** — the tightening added no noise.
+
+## AT-213 — the ordering was asserted and the program was not
+
+`argv[0]` was never checked, so renaming the binary to `ffmpeg-x` failed nothing. A perfectly
+ordered argv handed to a program that does not exist is not a working call. Both ffmpeg call sites
+and the ffprobe one now assert the program.
+
+## Verification
+
+- `uv run pytest` → **818 passed, 2 skipped** · ruff clean · `autotester map` · doctor clean, one
+  `&&` chain.
+- **Six sabotages plus a replay of the checker's own AT-211 attack**, each anchor-matched-once and
+  file-verified-changed, restored by file copy (AT-101). All seven discriminate: 1, 1, 3, 3, 1, 1,
+  and 3 on the replay.
+- The two site-deletions from AT-210 and the `os.environ.get` binding from AT-212 are the
+  checker's own constructions, re-run here.
+
+## Worth recording about cycle 1
+
+The checker's C7 zero-failure clause fired **on its own harness**: its first dedup sabotage changed
+two of three lines, so the check key and the add key never matched — dedup was *disabled*, not
+reverted, and the suite returned **823 passed**, six *more* cases than baseline. It caught that
+from the count going up, called it INCONCLUSIVE, and re-ran a true revert. That is the clause
+working on the person applying it, which is the only real test of it.
 
 ## Status: ready-for-check
