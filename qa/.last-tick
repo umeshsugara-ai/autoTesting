@@ -185,3 +185,25 @@ AT-137 (RepoDocs() != RepoDocs(repo_root()) -- behaviour ruled correct, the hidd
 Both belong to a unit about them, not tacked onto a re-check.
 NEXT after verdict: T-132 (Track A3, host media prep) using the corrected C: corpus paths.
 OPEN HUMAN GATES: AT-110 approval-forgery posture; ERP_EMAIL/ERP_PASSWORD for T-122/T-145.
+
+## 2026-09-08 — tick: ADVANCED (7) — sweep dispatched, unit check in flight
+Bound to d:/autoTesting, adapter `coding`. Not paused. Reconcile: one manifest at ready-for-check
+(at125-at132, cycle 2) whose checker was dispatched last tick and is STILL RUNNING -- no dangling
+handshake, nothing to close out.
+qa/.last-sweep was 2026-09-08 08:19, ~5.5h old against a 2h threshold -> SWEEP DUE, dispatched this
+tick per M3. It runs in parallel with the unit checker: a sweep holds no local port, database or
+copy, so it collides with nothing -- but it was told explicitly NOT to touch the at125-at132
+manifest/verdict or run sabotage edits in the live tree, because that unit's checker is using them.
+Asked the sweep for one thing above the routine checks: judge whether the countermeasure I adopted
+for my own recurring blind spot is REAL. Five consecutive units had one root cause (AT-116 ->
+AT-120 -> AT-122 -> AT-125 -> AT-133): I verified the mechanism I changed rather than what a
+production run does. tests/test_ingest_real_cli.py drives the shipped CLI and immediately found
+AT-132, which nothing else had. Whether that generalises -- and where the same blind spot still
+lives in this codebase -- is worth more than any single issue it could file.
+Also asked it to count the `fixed`-but-never-`verified` backlog and re-run a sample by execution.
+Eleven-plus issues were flipped `fixed` by unit checks this session and never independently
+re-verified; a `fixed` flag nobody re-ran is the self-certification this pair exists to kill.
+No unit closed this tick -- stating that plainly rather than counting the dispatch as progress.
+NEXT: close out at125-at132 on its cycle-2 verdict, then T-132 (Track A3, host media prep) using
+the corrected C:/Users/Lenovo/Videos/Screen Recordings corpus paths.
+OPEN HUMAN GATES: AT-110 approval-forgery posture; ERP_EMAIL/ERP_PASSWORD for T-122/T-145.
