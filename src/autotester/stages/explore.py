@@ -60,6 +60,9 @@ class ExploreRuntime:
     issues: int = 0
     stop_reason: str | None = None
     seed_error: str | None = None
+    return_error: str | None = None
+    """Why the most recent `return_to` failed. Scratch, not persisted — it is
+    read straight into the issue text at the failure site (AT-108)."""
 
     @property
     def bounds(self) -> CrawlBounds:

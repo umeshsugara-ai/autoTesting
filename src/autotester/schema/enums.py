@@ -264,6 +264,11 @@ class IssueKind(StrEnum):
     NETWORK = "network"
     NAVIGATION = "navigation"
     DIALOG = "dialog"
+    EVIDENCE = "evidence"
+    """The crawler itself failed to record something (AT-114). Kept distinct
+    from the four kinds above because those describe the PRODUCT under test and
+    this describes the tool: filing a tool failure as a product bug is exactly
+    the dishonesty X9 forbids for third-party noise."""
 
 
 class CrawlStatus(StrEnum):

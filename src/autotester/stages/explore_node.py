@@ -27,10 +27,21 @@ if TYPE_CHECKING:
 
 def capture(rt: ExploreRuntime, node: ScreenNode) -> str | None:
     """Screenshot this node through the session (masked, B7). Never fatal —
-    a crawl that cannot screenshot still produces a graph."""
+    a crawl that cannot screenshot still produces a graph.
+
+    AT-114: staying non-fatal is right; staying SILENT was not. `session.
+    screenshot` retries the one transient CDP race AT-036 documents and
+    deliberately re-raises everything else, because everything else is real.
+    A bare `except Exception: return None` threw that distinction away — a node
+    with no screenshot looked identical whether the compositor hiccuped twice
+    or the browser had died. The cause is now recorded as an EVIDENCE issue, a
+    kind of its own so a tool failure is never counted as a product bug.
+    """
     try:
         return rt.session.screenshot(f"node-{node.id[-6:]}").path
-    except Exception:
+    except Exception as exc:
+        add_issue(rt, node.id, IssueKind.EVIDENCE,
+                  f"could not screenshot this screen — {type(exc).__name__}: {exc}")
         return None
 
 
@@ -123,6 +134,7 @@ def try_action(rt: ExploreRuntime, node: ScreenNode, el: ElementRef) -> ScreenEd
 def return_to(rt: ExploreRuntime, node: ScreenNode) -> bool:
     """Get the browser back onto `node` so the next candidate starts from the
     same place. Back first, then the node's own URL, then the base URL."""
+    rt.return_error = None  # never report a previous node's cause as this one's
     try:
         if rt.session.current_url() == node.url_example:
             return True
@@ -132,10 +144,25 @@ def return_to(rt: ExploreRuntime, node: ScreenNode) -> bool:
             return True
         rt.session.goto(node.url_example)
         rt.session.settle(timeout_ms=rt.bounds.settle_ms)
-        return _fingerprint(rt, node.depth) == node.id
-    except Exception:
+        if _fingerprint(rt, node.depth) == node.id:
+            return True
+        rt.return_error = "back and the node URL both landed on a different screen"
         _recover(rt)
         return False
+    except Exception as exc:
+        rt.return_error = f"{type(exc).__name__}: {exc}"
+        _recover(rt)
+        return False
+
+
+def _why(rt: ExploreRuntime) -> str:
+    """The cause `return_to` recorded, or an explicit admission that none was.
+
+    AT-108: the old text said only *that* the crawl lost a screen. "Cause not
+    recorded" is still worse than a cause, but it is honest, and it is the
+    string that tells a reader the gap is in this crawler rather than in the
+    product it was looking at."""
+    return rt.return_error or "cause not recorded"
 
 
 def _fingerprint(rt: ExploreRuntime, depth: int) -> str:
@@ -143,11 +170,16 @@ def _fingerprint(rt: ExploreRuntime, depth: int) -> str:
 
 
 def _recover(rt: ExploreRuntime) -> None:
+    """Last resort: put the browser back on the base URL. A failure here is
+    the most serious thing that can happen mid-crawl — every screen visited
+    after it is suspect — so it is recorded rather than passed over (AT-108)."""
     try:
         rt.session.goto(rt.project.base_url)
         rt.session.settle(timeout_ms=rt.bounds.settle_ms)
-    except Exception:
-        pass
+    except Exception as exc:
+        rt.return_error = (f"{rt.return_error or 'return failed'}; recovery to "
+                           f"{rt.project.base_url} also failed — "
+                           f"{type(exc).__name__}: {exc}")
 
 
 def _mark(rt: ExploreRuntime, node: ScreenNode, status: NodeStatus) -> None:
@@ -193,7 +225,8 @@ def visit_node(rt: ExploreRuntime, node: ScreenNode) -> None:
     """
     if not return_to(rt, node):
         add_issue(rt, node.id, IssueKind.NAVIGATION,
-                  "could not return to this screen before exploring it — abandoned unexplored")
+                  "could not return to this screen before exploring it — abandoned "
+                  f"unexplored: {_why(rt)}")
         _mark(rt, node, NodeStatus.ABORTED_ERROR)
         return
     tried = 0
@@ -211,9 +244,10 @@ def visit_node(rt: ExploreRuntime, node: ScreenNode) -> None:
             return
         if not return_to(rt, node):
             record_edge(rt, node, el, Action.BACK, EdgeOutcome.ERRORED,
-                        "could not return to this screen")
+                        f"could not return to this screen: {_why(rt)}")
             add_issue(rt, node.id, IssueKind.NAVIGATION,
-                      "lost this screen mid-exploration — remaining controls not tried")
+                      "lost this screen mid-exploration — remaining controls not "
+                      f"tried: {_why(rt)}")
             _mark(rt, node, NodeStatus.ABORTED_ERROR)
             return
     _mark(rt, node, NodeStatus.EXPLORED)
