@@ -2,9 +2,10 @@
 
 **Unit:** T-133 — Track A4: two-model ensemble + deterministic adjudication + Issue derivation + the 13-column Excel
 **Commits:** `adjudicate` → `issues` → `analyze_video` (see `git log`, three commits)
-**Fix cycle:** 1
+**Fix cycle:** 2
 **Goal task:** T-133 (`user_value: high`) — `done_check` =
-`uv run pytest tests/test_adjudicate.py tests/test_analyze_video.py tests/test_issues.py -q`,
+`uv run pytest` over the five test files of this unit (widened in cycle 2 after two of
+them were split at the 300-line cap),
 **exits 0** (it exited non-zero before this unit; none of the three files existed).
 **Contract:** `qa/contracts/video-learning.md` — needs **VL2–VL6 authored** (requested below).
 
@@ -112,5 +113,82 @@ It is one `&&` chain now, and this is the first thing it caught.
   belongs in T-136's manifest before any score is computed against it.
 - **AT-192, AT-193** (holes I introduced in the advice collector) remain queued, as does **AT-196**
   (the flaky live test).
+
+## Status: superseded by cycle 2
+
+---
+
+# Cycle 2 — what the FAIL found and what changed
+
+The cycle-1 verdict was **FAIL, 3/6 criteria**, and it was right on every count. Nine issues,
+four of them high. All nine are fixed; nothing was argued down.
+
+## The one that matters most, because my own test said the opposite
+
+**AT-197 — the determinism claim was false in the shape that actually ships.** `adjudicate`'s
+sort key was `(offset_s, provider_label, chunk_index)`. `PROMPT_NAMES` has **two** entries, so
+one model's two prompts on one chunk **tie** — and a tie in a sort key is the caller's order
+walking straight back in through Python's stable sort. Permuting two such observations produced
+two different analyses: different screens, journey, issues, summary.
+
+My determinism test shuffled eight times and passed, because every fixture in the file was built
+by `obs()`, which **hardcoded one prompt name**. A single-prompt fixture has no tie in it. I
+tested the property on the one shape where it could not fail, in the file whose docstring calls
+determinism "the load-bearing property here."
+
+This is the recurring class the sweep keeps measuring, and this is its sharpest form yet: not an
+untested path, but a **test that looked exactly like coverage of the thing it could not see.**
+`obs()` now takes a `prompt`, and the new test permutes the two-prompt pair. It fails with the old
+key (exactly one failure) and passes with the new one — verified by reverting the key.
+
+## The other three high ones
+
+- **AT-198** — an analysis built from 1 of 24 calls carried the same screens, the same issues and
+  no coverage field at all. `VideoAnalysis` now carries `observations_used` /
+  `observations_expected`. **Two numbers rather than a boolean**, because "we watched it and found
+  nothing" and "23 calls failed" are the same artifact otherwise, and a reader who cannot separate
+  them will trust the second one. My zero-case guard stopped one step short of its own principle.
+- **AT-199 / AT-200** — the cache inverted the promise it exists for. A truncated observation file
+  (*the crash the cache is for*) raised out of `analyze`, and `--force` **could not clear it**
+  because the read happened before the force test. Force is now checked first, unreadable files
+  are skipped and re-requested, and the key is the prompt's **sha256, not its name** — editing a
+  prompt file leaves the name alone, so the cache was returning the answer to the question you had
+  just stopped asking. That one is invisible in the artifact, which is how a cache gets switched
+  off entirely by someone who stops trusting it.
+
+## The five smaller ones, none waved off
+
+**AT-201** the module docstring asserted "the scorer accommodates both" about a scorer that does
+not exist (T-136) — a present-tense claim about future work, in the file a reader opens to learn
+what the sheet is. **AT-202** `_merge_lists` dropped `fields`; the existing test was *named*
+`test_a_field_only_one_model_noticed_survives_the_merge` and asserted only on `signals`. It is now
+renamed for what it does and asserts on each list — the same failure shape as AT-197, one file
+over. **AT-203** the prompt never mentioned `confidence`. **AT-204** two providers sharing a label
+collapse the ensemble to one silently — refused. **AT-205** `at_mmss(-115)` rendered `-1:55`,
+which reads as a time to the one person least able to tell it is a doubled offset.
+
+## Verification
+
+- `uv run pytest` → **804 passed, 2 skipped** · ruff clean · `autotester map` · doctor clean, as
+  one `&&` chain.
+- `done_check` widened to the five test files and passing (59 tests).
+- **Three targeted sabotages, each anchor-matched-once and file-verified-changed:** the old sort
+  key → only the two-prompt test fails; `prompt_sha256` dropped from the cache comparison → only
+  the edited-prompt test fails; `skip_unreadable` reverted → only the truncated-file test fails.
+  One failure each, no INCONCLUSIVE.
+
+## The split, and why it is along these lines
+
+Two test files crossed the 300-line cap. They were split by **responsibility, not by size**:
+cost (`test_analyze_cache.py` — every assertion counts provider calls) from behaviour
+(`test_analyze_video.py`), and determinism (`test_adjudicate_determinism.py`) from the merge
+rules. Shared fakes live once in `tests/video_fakes.py`; duplicating them would let the two files
+drift and quietly test different things.
+
+## What this unit still does not claim
+
+No model has run this pipeline. The scorer does not exist. The recall denominator is **32**, not
+the plan's 33 — `.work/track-a-corpus-facts.md` holds that and three other measured facts that
+would each silently produce a recall of zero.
 
 ## Status: ready-for-check

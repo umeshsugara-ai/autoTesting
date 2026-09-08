@@ -4,7 +4,7 @@
   "north_star": "An AI automated end-to-end tester that ingests product videos/docs, derives a reviewed FlowSpec, auto-generates best/worst/edge-case evals, runs them as regression in a real visible browser, self-extends coverage by requesting videos for unknown screens, and beats an expert human tester head-to-head on the same material (bugs found, false-positive rate, time). First target: Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-09T01:12:03",
+  "updated": "2026-09-09T01:37:02",
   "progress": {
     "total": 45,
     "done": 30,
@@ -537,7 +537,7 @@
       ],
       "done_check": {
         "type": "cmd",
-        "cmd": "uv run pytest tests/test_adjudicate.py tests/test_analyze_video.py tests/test_issues.py -q",
+        "cmd": "uv run pytest tests/test_adjudicate.py tests/test_adjudicate_determinism.py tests/test_analyze_video.py tests/test_analyze_cache.py tests/test_issues.py",
         "expect_exit": 0
       },
       "note": "",
@@ -1002,9 +1002,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 4.92,
-    "eta_days": 3.0
+    "velocity_per_day": 4.9,
+    "eta_days": 3.1
   },
-  "last_deterministic_tick": "2026-09-09T01:12:03",
+  "last_deterministic_tick": "2026-09-09T01:37:02",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }
