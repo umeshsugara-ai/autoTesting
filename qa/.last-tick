@@ -941,3 +941,48 @@ and pass.
 NEXT: analyze_video (the ensemble driver with the observation cache) + the scorer, then manifest
 T-133 and dispatch.
 OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
+
+## 2026-09-09 — tick: ADVANCED (27) — T-133 COMPLETE and ready-for-check
+Bound to d:/autoTesting, adapter `coding`. Not paused, no pending handshake, tree clean at start.
+Finished T-133 (Track A4), the biggest remaining unit of the video-learning track. Three modules
+plus a prompt: adjudicate (pure deterministic merge), issues (the 13-column sheet), analyze_video
+(the ensemble driver), video_issues_v1.md (the bug sweep).
+ITS OWN done_check NOW PASSES ON ALL THREE FILES IT NAMES, and failed at the parent commits.
+THE MONEY RULE: a cached observation is never re-requested. A second analyze over the same
+recording makes ZERO provider calls -- safe to re-run after a crash, a code change, or just to look
+again. Keyed per model, so widening the ensemble costs only the widening; otherwise nobody would
+ever add the second model, and agreement between independent readings is the strongest signal this
+pipeline produces without a human.
+Failure is PARTIAL, never total: one dead provider must not lose the answers that arrived. But
+TOTAL failure refuses rather than persisting an empty analysis, because an empty analysis on disk
+reads as "we watched it and found nothing" -- the opposite of what happened.
+THREE BUGS I WROTE AND CAUGHT BEFORE SHIPPING, which is the first time this session that number is
+not zero: (1) the severity comparison was INVERTED -- I used max() to keep the worse of two, but
+Severity is declared S1,S2,S3 in DESCENDING severity, so max() picks the MILDEST and reads as if it
+were right; it would have quietly downgraded every issue the two models disagreed about, and
+disagreement is exactly when severity matters most. (2) said_verbatim does not exist on an
+observation -- it is narration. (3) my determinism test compared whole JSON including
+Artifact.created_at, conflating "adjudication is deterministic" with "the clock did not tick" --
+and my adjudicate-twice test had been PASSING ONLY BECAUSE BOTH CALLS LANDED IN THE SAME MICROSECOND.
+THE HEADER IS CHECKED AGAINST THE REAL WORKBOOK: the test loads ERP_Issues_ALL.xlsx from the corpus
+and compares cell by cell, and it passes. A hand-copied header is a CLAIM about a file; this reads
+the file. Two corpus facts now enforced in code rather than remembered (At is a STRING "01:33";
+severity in THEIR words).
+15 sabotages across the three modules, BA-BO. BG IS THE FINDING: writing At as a raw number --
+exactly what the plan's comparison assumed -- came back INCONCLUSIVE, because my parametrized test
+exercises at_mmss DIRECTLY and never the row. THE HELPER BEING RIGHT DOES NOT MAKE THE SHEET RIGHT.
+Now asserted on the written workbook.
+DOCTOR CAUGHT A DESIGN VIOLATION BEFORE THE COMMIT: build_prompt defined here AND in
+ledger/relitigation.py -- C3, one concept one place. Renamed to build_chunk_prompt. TWO COMMITS
+EARLIER THAT WOULD HAVE BEEN PUSHED; the one-&&-chain is the reason it was not.
+797 passed / 2 skipped, ruff + doctor clean.
+VL2-VL6 contract criteria requested. Checker dispatched this turn, AND the sweep (due since 23:09)
+dispatched alongside it -- told explicitly not to touch the t133 manifest/verdict.
+ASKED THE SWEEP TO RE-MEASURE THE TREND IT CALLED FLAT-TO-RISING LAST TIME, and to say so just as
+plainly if nothing has changed -- a softened version of that finding would be worth less than
+nothing. Since then: the one-&& chain, C7's INCONCLUSIVE reporting catching several of my own gaps,
+and three bugs self-caught in this unit.
+NEXT after verdict: T-136 (the scorer and the first real recall numbers against the team's own
+sheet). .work/track-a-corpus-facts.md holds four measured facts that would each silently produce a
+recall of ZERO.
+OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
