@@ -84,3 +84,31 @@ RUNNING TALLY: three consecutive units where the checker found something my own 
 The consistent cause is that I verify the mechanism I changed, not the number a reader sees.
 NEXT after verdict: Track A T-131.
 OPEN HUMAN GATES: AT-110 approval-forgery posture; ERP_EMAIL/ERP_PASSWORD for T-122/T-145.
+
+## 2026-09-08 — tick: ADVANCED (4)
+Closed out at121-at122-crawl-count-surfaces (checker PASS cycle 1, commit d7e1e19, pushed).
+Checker recorded one honest brittleness I had not seen: row.count('<td>0</td>') == 2 is
+positionally blind (a row with screens=0, denied=0, issues=0 yields three). It pins the right two
+only because no unrelated column is zero in that fixture. Filed AT-123 + AT-124, both low, neither
+blocking.
+Built T-131 -- Track A2, the FIRST working unit of Track A and the first product work in four
+ticks (commit 1c8c8e4, ready-for-check). Track A had shipped schema and nothing else: ingest.py
+never imported ProjectStore, see_video had zero callers, VisionOptions had nobody passing it.
+Every piece was present and nothing was connected.
+Shipped: gemini_files.upload_and_wait (upload returns while PROCESSING; that handle can yield an
+EMPTY reading indistinguishable from a bad prompt), VisionOptions honoured with seed on every
+call, MAX_TOKENS reported as truncation not as a parse failure, Provider.label = id:model,
+register_source idempotent on content, persist_ingest refusing to discard an APPROVED spec,
+url_pattern through the crawler's OWN url_template, the {{NARRATION}} ground-truth block, and
+cli_video (the stage was unreachable by a human).
+607 passed / 2 skipped, ruff + doctor clean, T-131 done_check exits 0. Three sabotages.
+I6-I9 contract criteria requested in qa/feedback-inbox.md; checker dispatched this turn.
+SELF-REPORTED ACCIDENT: restoring sabotage C I ran `git checkout` on an UNCOMMITTED prompt file
+and reverted my own rewrite (caught via grep -c returning 0; rewrote it; nothing lost). Same class
+of live-tree mutation AT-101 bans for stash. Sabotage restores must be file copies until
+committed. Offered to the checker as a possible contract line.
+TWO DEVIATIONS FLAGGED, NOT HIDDEN: google-genai left undeclared in pyproject.toml although plan
+section 4 A2 assigns it here (lazy import, nothing exercises it yet -- checker to rule); no live
+model call anywhere in this unit, every test on MockProvider.
+NEXT after verdict: T-132 (Track A3, host media prep) or the AT-123/AT-124 pair if a track blocks.
+OPEN HUMAN GATES: AT-110 approval-forgery posture; ERP_EMAIL/ERP_PASSWORD for T-122/T-145.
