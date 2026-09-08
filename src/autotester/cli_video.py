@@ -76,7 +76,11 @@ def media_prep_cmd(
     try:
         prep = media_prep.prepare(store, source, chunk_minutes=chunk_minutes,
                                   use_whisper=not no_whisper)
-    except (FileNotFoundError, ValueError) as exc:
+    except (FileNotFoundError, ValueError, media_prep.UnreadableRecording) as exc:
+        # AT-166: `UnreadableRecording` is a RuntimeError, so this clause did
+        # not catch it and the shipped command answered a deliberate refusal
+        # with a raw traceback. I fixed the STAGE last cycle and not the path
+        # an operator actually runs -- the same mistake as AT-163, one cycle on.
         typer.secho(str(exc), fg=typer.colors.RED)
         raise typer.Exit(2) from None
 

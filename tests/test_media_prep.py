@@ -11,11 +11,11 @@ Contract: qa/contracts/video-learning.md VL1.
 from __future__ import annotations
 
 import re
+import shlex
 from pathlib import Path
 
 import pytest
 
-from autotester.schema.analysis import AnalysedScreen, VideoAnalysis
 from autotester.schema.enums import SourceKind
 from autotester.schema.project import Project, Source
 from autotester.stages import media_prep
@@ -144,14 +144,31 @@ def test_a_stage_needing_prep_is_sent_to_a_command_that_exists(
     message = str(caught.value)
 
     assert "HOST" in message
-    command = re.search(r"`autotester ([a-z ]+?) ", message)
-    assert command, f"the refusal named no command: {message}"
+    quoted = re.search(r"`autotester ([^`]+)`", message)
+    assert quoted, f"the refusal named no command: {message}"
 
-    argv = [*command.group(1).split(), "--help"]
+    # AT-171: my first version captured only the COMMAND GROUP with a non-greedy
+    # `([a-z ]+?)`, so `ingest frobnicate` and `ingest list` both passed --
+    # `--help` on a group proves the GROUP is registered, not the subcommand.
+    # Run the whole quoted invocation, arguments included, as an operator would.
+    argv = shlex.split(quoted.group(1))
     result = CliRunner().invoke(app, argv)
-    assert result.exit_code == 0, (
-        f"the refusal sends the operator to `autotester {' '.join(argv[:-1])}`, "
-        f"which the CLI does not expose: {result.output!r}")
+
+    # The oracle, arrived at by measuring what each failure shape prints:
+    # click emits its `Usage:` banner for an unregistered command, an
+    # unregistered SUBcommand, and the wrong number of arguments alike, while a
+    # correct invocation reaches the application's own message. So "no usage
+    # banner" rejects all three at once.
+    #
+    # AT-171: my first oracle was `--help` on the captured command GROUP, under
+    # which `ingest frobnicate` and `ingest list` both passed -- it proved the
+    # group was registered, not that the invocation works. My second was a pair
+    # of substring checks, and sabotaging the message to a REGISTERED-but-wrong
+    # command (`ingest list`, which takes one argument, not two) came back
+    # INCONCLUSIVE under C7. This is the third, and it bites on that case.
+    assert "Usage:" not in result.output, (
+        f"the refusal sends the operator to `autotester {quoted.group(1)}`, which the "
+        f"CLI rejects as a usage error: {' '.join(result.output.split())[:160]!r}")
 
 
 def test_the_unreadable_recording_refusal_is_not_a_green_success_line(
@@ -192,89 +209,35 @@ def test_a_failed_cut_writes_no_media_json(
     assert store.load_media_prep(source.id) is None
 
 
-# -- frames ------------------------------------------------------------------
-
-def test_frames_are_extracted_only_for_the_seconds_the_model_named(
-    store: ProjectStore, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+def test_the_shipped_prep_command_answers_a_refusal_cleanly(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    asked: list[float] = []
+    """AT-166, cycle 3, and it is my cycle-2 mistake repeating: I made
+    `prepare` raise a typed `UnreadableRecording` and never widened the CLI's
+    except clause, which caught only `(FileNotFoundError, ValueError)`. So the
+    SHIPPED command answered a deliberate refusal with a raw Rich traceback —
+    the stage was fixed and the path an operator runs was not, exactly as in
+    AT-163 one cycle earlier.
 
-    def fake_extract(video: Path, t_s: float, out_png: Path) -> bool:
-        asked.append(t_s)
-        out_png.parent.mkdir(parents=True, exist_ok=True)
-        out_png.write_bytes(b"png")
-        return True
+    This drives the real CLI, because that is the only place the bug lived."""
+    from typer.testing import CliRunner
 
-    monkeypatch.setattr(media_prep.frame_mod, "extract_frame", fake_extract)
-    source = a_source(store, tmp_path)
-    analysis = VideoAnalysis(source_id=source.id, screens=[
-        AnalysedScreen(name="Home", t_start=1.0, screenshot_ts=[1.5, 9.0]),
-        AnalysedScreen(name="Home", t_start=9.0, screenshot_ts=[9.0]),  # duplicate second
-    ])
+    from autotester.cli import app
 
-    written = media_prep.extract_frames(store, source, analysis)
+    monkeypatch.setenv("AUTOTESTER_ROOT", str(tmp_path))
+    store = ProjectStore("demo", tmp_path)
+    store.save_project(Project(slug="demo", name="Demo", base_url="https://demo.test",
+                               allowed_domains=["demo.test"]))
+    video = tmp_path / "broken.mp4"
+    video.write_bytes(b"")          # 0 bytes: ffmpeg reads no duration
+    source = store.add_source(Source(project="demo", kind=SourceKind.VIDEO,
+                                     path=str(video), sha256="deadbeef"))
+    monkeypatch.setattr(media_prep.probe_mod, "ffmpeg_available", lambda: True)
+    monkeypatch.setattr(media_prep.probe_mod, "probe", lambda path: (0.0, 0, 0))
 
-    assert asked == [1.5, 9.0], "a second named twice must not be extracted twice"
-    assert len(written) == 2
+    result = CliRunner().invoke(app, ["ingest", "prep", "demo", source.id])
 
-
-def test_a_frame_that_could_not_be_grabbed_is_omitted_not_faked(
-    store: ProjectStore, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """A missing still is a gap in the evidence, not a failed analysis — and
-    nothing downstream may reference a PNG that does not exist (A5)."""
-    monkeypatch.setattr(media_prep.frame_mod, "extract_frame",
-                        lambda video, t_s, out_png: False)
-    source = a_source(store, tmp_path)
-    analysis = VideoAnalysis(source_id=source.id, screens=[
-        AnalysedScreen(name="Home", t_start=1.0, screenshot_ts=[1.5])])
-
-    assert media_prep.extract_frames(store, source, analysis) == []
-
-
-def test_a_zero_byte_leftover_png_is_not_returned_as_evidence(
-    store: ProjectStore, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """AT-165: `png.exists()` alone reused ANY file at the expected name —
-    including a truncated leftover from an interrupted run — and handed it back
-    as evidence. A frame with no bytes shows a human nothing, so a report built
-    on it is worse than one that admits the still is missing.
-
-    Sabotaging the fix was INCONCLUSIVE before this test existed (C7): I had
-    changed the code and pinned none of it."""
-    frames_dir = store.paths.source_frames_dir("src_x")
-    frames_dir.mkdir(parents=True, exist_ok=True)
-    stale = frames_dir / media_prep.frame_mod.frame_name(1.5)
-    stale.write_bytes(b"")  # an interrupted ffmpeg leaves exactly this
-
-    monkeypatch.setattr(media_prep.frame_mod, "extract_frame",
-                        lambda video, t_s, out_png: False)
-    source = a_source(store, tmp_path)
-    store.paths.source_frames_dir(source.id).mkdir(parents=True, exist_ok=True)
-    empty = store.paths.source_frames_dir(source.id) / media_prep.frame_mod.frame_name(1.5)
-    empty.write_bytes(b"")
-    analysis = VideoAnalysis(source_id=source.id, screens=[
-        AnalysedScreen(name="Home", t_start=1.0, screenshot_ts=[1.5])])
-
-    assert media_prep.extract_frames(store, source, analysis) == []
-
-
-def test_a_frame_already_on_disk_with_real_bytes_is_reused(
-    store: ProjectStore, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """The other side of AT-165: caching a good frame is the point, and a fix
-    that re-extracted everything would trade a wrong answer for a slow one."""
-    calls: list[float] = []
-    monkeypatch.setattr(media_prep.frame_mod, "extract_frame",
-                        lambda video, t_s, out_png: calls.append(t_s) or False)
-    source = a_source(store, tmp_path)
-    good_dir = store.paths.source_frames_dir(source.id)
-    good_dir.mkdir(parents=True, exist_ok=True)
-    (good_dir / media_prep.frame_mod.frame_name(1.5)).write_bytes(b"realpngbytes")
-    analysis = VideoAnalysis(source_id=source.id, screens=[
-        AnalysedScreen(name="Home", t_start=1.0, screenshot_ts=[1.5])])
-
-    written = media_prep.extract_frames(store, source, analysis)
-
-    assert len(written) == 1
-    assert calls == [], "a good cached frame must not be re-extracted"
+    assert result.exit_code == 2, result.output
+    assert "Traceback" not in result.output, "a refusal must not surface as a crash"
+    assert "read no duration" in result.output
+    assert store.load_media_prep(source.id) is None

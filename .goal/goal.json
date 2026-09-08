@@ -516,7 +516,7 @@
       ],
       "done_check": {
         "type": "cmd",
-        "cmd": "uv run pytest tests/test_media.py tests/test_media_prep.py -q",
+        "cmd": "uv run pytest tests/test_media.py tests/test_media_prep.py tests/test_media_frames.py -q",
         "expect_exit": 0
       },
       "note": "",
@@ -904,7 +904,7 @@
     {
       "ts": "2026-09-03T07:27:21",
       "level": "warn",
-      "message": "STALLED — last agentic tick never; open work is not advancing",
+      "message": "STALLED \u2014 last agentic tick never; open work is not advancing",
       "task_id": null,
       "kind": "stalled",
       "acked": true
@@ -912,7 +912,7 @@
     {
       "ts": "2026-09-03T12:07:01",
       "level": "warn",
-      "message": "STALLED — last agentic tick 94 min ago; open work is not advancing",
+      "message": "STALLED \u2014 last agentic tick 94 min ago; open work is not advancing",
       "task_id": null,
       "kind": "stalled",
       "acked": false
@@ -920,21 +920,21 @@
     {
       "ts": "2026-09-07T17:17:01",
       "level": "critical",
-      "message": "T-122 is CRITICAL — human required",
+      "message": "T-122 is CRITICAL \u2014 human required",
       "task_id": "T-122",
       "acked": false
     },
     {
       "ts": "2026-09-07T17:17:01",
       "level": "critical",
-      "message": "T-135 is CRITICAL — human required",
+      "message": "T-135 is CRITICAL \u2014 human required",
       "task_id": "T-135",
       "acked": false
     },
     {
       "ts": "2026-09-07T17:17:01",
       "level": "critical",
-      "message": "T-144 is CRITICAL — human required",
+      "message": "T-144 is CRITICAL \u2014 human required",
       "task_id": "T-144",
       "acked": false
     },
@@ -969,7 +969,7 @@
     {
       "ts": "2026-09-08T11:12:10",
       "level": "critical",
-      "message": "T-145 is CRITICAL — human required",
+      "message": "T-145 is CRITICAL \u2014 human required",
       "task_id": "T-145",
       "acked": false
     },
@@ -990,7 +990,7 @@
     {
       "ts": "2026-09-08T11:12:10",
       "level": "critical",
-      "message": "T-154 is CRITICAL — human required",
+      "message": "T-154 is CRITICAL \u2014 human required",
       "task_id": "T-154",
       "acked": false
     }

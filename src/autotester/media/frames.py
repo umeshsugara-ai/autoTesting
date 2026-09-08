@@ -47,5 +47,42 @@ def extract_frame(video: Path, t_s: float, out_png: Path) -> bool:
             check=True, capture_output=True, timeout=FRAME_TIMEOUT_S,
         )
     except (OSError, subprocess.SubprocessError):
+        # AT-165: the 60s timeout kills ffmpeg MID-WRITE, and leaving the
+        # half-file behind meant the frame cache adopted it permanently -- a
+        # truncated PNG at the expected name, served as evidence forever.
+        out_png.unlink(missing_ok=True)
         return False
-    return out_png.exists()
+    if not is_complete_png(out_png):
+        out_png.unlink(missing_ok=True)
+        return False
+    return True
+
+
+PNG_MAGIC = bytes.fromhex("89504e470d0a1a0a")
+PNG_END = bytes.fromhex("49454e44ae426082")
+"""The fixed 8-byte signature and the fixed 12-byte IEND chunk every PNG
+carries. Written as hex rather than escapes so no quoting layer between
+here and the file can mangle them."""
+
+
+def is_complete_png(path: Path) -> bool:
+    """Does this file begin AND end like a whole PNG?
+
+    `st_size > 0` closed only the empty half of AT-165: a checker truncated a
+    real 277KB frame to 92KB, and it was returned as evidence with no
+    re-extract, because a partial file is not an empty one. Every PNG ends with
+    a fixed 12-byte IEND chunk, so its presence is a cheap proxy for "the
+    encoder finished" -- no image library, no decode.
+
+    Not a claim the image is CORRECT, only that it is whole. That is the
+    property the cache needs: a frame nobody finished writing is not evidence."""
+    try:
+        if path.stat().st_size < len(PNG_MAGIC) + len(PNG_END):
+            return False
+        with path.open("rb") as handle:
+            if handle.read(len(PNG_MAGIC)) != PNG_MAGIC:
+                return False
+            handle.seek(-len(PNG_END), 2)
+            return handle.read(len(PNG_END)) == PNG_END
+    except OSError:
+        return False

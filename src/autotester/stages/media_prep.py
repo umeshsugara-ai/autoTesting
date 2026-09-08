@@ -126,13 +126,14 @@ def extract_frames(store: ProjectStore, source: Source,
     written: list[Path] = []
     for t_s in wanted:
         png = out_dir / frame_mod.frame_name(t_s)
-        # AT-165: `png.exists()` alone reused ANY file at the expected name --
-        # including a 0-byte or truncated leftover from an interrupted run,
-        # handed back as evidence. A frame is evidence only if it has bytes.
-        if png.exists() and png.stat().st_size > 0:
+        # AT-165: `png.exists()` reused ANY file at the expected name, and
+        # `st_size > 0` closed only the EMPTY half -- a 277KB frame truncated to
+        # 92KB by a killed ffmpeg was still served as evidence, and cached
+        # forever. The cache gates on a WHOLE png now.
+        if frame_mod.is_complete_png(png):
             written.append(png)
             continue
-        if frame_mod.extract_frame(video, t_s, png) and png.stat().st_size > 0:
+        if frame_mod.extract_frame(video, t_s, png):
             written.append(png)
     return written
 
