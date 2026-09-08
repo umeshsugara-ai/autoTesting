@@ -87,4 +87,4 @@ $ RESTORE
 classifier reject unknown values instead of downgrading them is the real fix, and it belongs in
 `D:/ai_os`, outside this project's root. Not done from inside a session bound here.
 
-## Status: ready-for-check
+## Status: checked-PASS
