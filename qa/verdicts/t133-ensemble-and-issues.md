@@ -1,294 +1,244 @@
 # Verdict — t133-ensemble-and-issues
 
 **Unit:** T-133 — Track A4: two-model ensemble + deterministic adjudication + Issue derivation + the 13-column Excel
-**Contract:** `qa/contracts/video-learning.md` (VL2, VL2b, VL3, VL4, VL5, VL6; I-VL5, I-VL6 — **authored by this check**)
-**Cycle checked: 1**
+**Contract:** `qa/contracts/video-learning.md` (VL2, VL2b, VL3, VL4, VL5, VL6; I-VL5, I-VL6)
+**Cycle checked: 2**
 **Date:** 2026-09-09
-**Checker:** fresh Mode A subagent, bound to `D:/autoTesting`. Adapter: `qa/adapter.json` (coding). Docker down; `uv` native.
+**Checker:** fresh Mode A subagent, bound to `D:/autoTesting`. Adapter: `qa/adapter.json` (coding).
+**Replaces** the cycle-1 verdict (FAIL, 3/6), which stays readable in git at `847bb28`.
 
 ---
 
-## VERDICT: FAIL
+## VERDICT: PASS
 
-**SCOREBOARD: 3/6 criteria met, 2/2 invariants hold**
+**SCOREBOARD: 6/6 criteria met, 2/2 invariants hold**
 
-Met: VL2, VL5, VL6. Not met: VL2b, VL3, VL4.
+All three cycle-1 failures (VL4, VL3, VL2b) are closed by measurement, not by claim. All nine
+issues AT-197..AT-205 were re-verified independently and moved `fixed → verified`. Three new
+issues filed, none of them a criterion failure: **AT-207** (medium), **AT-208** (medium),
+**AT-209** (low).
 
 ---
 
-## What I re-ran (my own output, not the maker's)
+## What I re-ran (my own output; no pasted result was trusted)
 
-| Command | Result |
+| Command | My result |
 |---|---|
-| `uv run pytest -q` | **exit 0** — 797 passed, 2 skipped. Matches the claim. |
-| `uv run pytest tests/test_adjudicate.py tests/test_analyze_video.py tests/test_issues.py -q` (T-133's `done_check`) | **exit 0**, 52 passed |
-| `uv run ruff check src tests scripts` | **exit 0** — "All checks passed!" |
-| `uv run autotester doctor` | **exit 0** — "doctor: clean" |
-| `done_check` at the parent commit `1bf8c36` | all three test files are **ABSENT** at `1bf8c36` (`git cat-file -e` fails for each), so the check could not have exited 0 before this unit. Claim confirmed. |
+| `uv run pytest` (bare — `addopts = "-q"` already set) | **exit 0 — 804 passed, 2 skipped**, 0 `FAILED` lines. Matches the manifest exactly. |
+| `uv run ruff check src tests scripts` | exit 0 — "All checks passed!" |
+| `uv run autotester doctor` | exit 0 — "doctor: clean" |
+| `done_check` (the five test files, widened this cycle) | exit 0, **59 passed** — matches the manifest's 59 |
+| `uv run pytest -rs` | the 2 skips are `tests/test_db.py:93` (live Mongo, opt-in) and `tests/test_ui.py:163` (POSIX bits). **`test_the_header_matches_the_real_human_sheet` is NOT among them** — the corpus is present on this host and VL6's real-workbook test actually executed. |
 
-Verification is green and the manifest's numbers are honest. **The FAIL is not about the verify;
-it is about three criteria the verify does not reach.**
+## The split — nothing dropped, nothing weakened
 
-## The 15 sabotages — all 15 discriminate; none INCONCLUSIVE
+Compared `git show 847bb28:tests/test_adjudicate.py` and `:tests/test_analyze_video.py` (17 + 12 =
+**29** test functions) against the four post-split files (**35**). Every one of the 29 is present.
+The single rename is `test_a_field_only_one_model_noticed_survives_the_merge` →
+`test_every_descriptive_list_only_one_model_noticed_survives_the_merge`, and it is a
+**strengthening**: it now asserts on `signals`, `fields`, `ui_elements` and `url` where before it
+asserted on `signals` and `url` only (that was AT-202's hiding place). Six tests are new. Shared
+fakes live once in `tests/video_fakes.py`; `obs()` gained a `prompt` parameter and the two importers
+use the one definition. **No test was silently dropped and none was weakened.**
 
-Run in an isolated worktree at HEAD (`git worktree add`, AT-101 respected — nothing stashed,
-checked out or restored in the live tree). Each anchor asserted to match **exactly once**, the file
-asserted changed, the three T-133 test files re-run, `FAILED` lines counted, the file restored
-byte-for-byte before the next.
+## Sabotage — 8 sabotages, isolated `git archive HEAD` extract, `PYTHONPATH` pinned
+
+Per C7 and AT-101: nothing was stashed, checked out or restored in the live tree. Extract at
+`%TEMP%/sb133c2`, run with `PYTHONPATH=<extract>/src` against the repo venv's interpreter. **Every
+anchor was asserted to match exactly once and the file re-read as changed before the run**; the file
+was restored byte-for-byte after each. Baseline in the extract: **0 failures**.
 
 ```
-BA severity back to max()            expected 2  measured 2   OK
-BB stop sorting the input            expected 1  measured 1   OK
-BC merge screens on name alone       expected 1  measured 2   (stronger than claimed)
-BD shift mutates the cache           expected 2  measured 2   OK
-BE agreement stops raising confidence expected 1 measured 1   OK
-BF rename a column                   expected 2  measured 2   OK
-BG At written as a number            expected 1  measured 1   OK
-BH our severity vocabulary           expected 1  measured 1   OK
-BI how-we-know from the claim        expected 2  measured 3   (stronger than claimed)
-BJ drop the tester's words           expected 1  measured 1   OK
-BK ignore the cache                  expected 2  measured 2   OK
-BL a failed provider aborts all      expected 2  measured 2   OK
-BM total failure writes an analysis  expected 1  measured 1   OK
-BN stop slicing narration            expected 2  measured 2   OK
-BO drop the chunk offsets            expected 1  measured 1   OK
+CA sort key drops prompt_name              anchor=1 changed=1  FAILED=1
+     test_adjudicate_determinism.py::test_order_still_does_not_matter_with_TWO_prompts_per_chunk
+CB cache ignores prompt_sha256             anchor=1 changed=1  FAILED=1
+     test_analyze_cache.py::test_editing_a_prompt_invalidates_its_cached_answers
+CC list_observations stops skipping        anchor=1 changed=1  FAILED=1
+     test_analyze_cache.py::test_a_half_written_observation_heals_instead_of_blocking
+CD cache read before the force test        anchor=1 changed=1  FAILED=0   -> INCONCLUSIVE (AT-209)
+CE _merge_lists drops `fields`             anchor=1 changed=1  FAILED=1
+     test_adjudicate.py::test_every_descriptive_list_only_one_model_noticed_survives_the_merge
+CF at_mmss renders a negative              anchor=1 changed=1  FAILED=1
+     test_issues.py::test_a_negative_second_is_refused_not_rendered
+CG duplicate provider labels allowed       anchor=1 changed=1  FAILED=1
+     test_analyze_video.py::test_two_providers_under_one_label_are_refused
+CH coverage counters made vacuous          anchor=1 changed=1  FAILED=2
+     test_adjudicate_determinism.py::test_a_partial_reading_says_how_partial_it_is
+     test_analyze_cache.py::test_the_analysis_records_how_many_calls_it_is_missing
 ```
 
-Baseline in the worktree: 0 failures. The two counts above mine are my sabotage variants biting
-harder than the maker's, not a weaker suite — both directions are safe.
-
-**BG verified specifically, as asked.** Reverting `issue_row` to write `issue.at_s` instead of
-`at_mmss(issue.at_s)` fails **exactly one** test, and it is
-`tests/test_issues.py::test_the_At_CELL_carries_MM_SS_not_a_number` — the workbook test added
-*after* the INCONCLUSIVE. The parametrized `at_mmss` test does **not** fire. The maker's account of
-BG is exact: the helper being right did not make the sheet right, and the fix is what made the
-sabotage bite.
-
-**The severity inversion is genuinely fixed and genuinely unique.** `worst()` verified exhaustively
-over all nine `Severity` pairs plus a 3-argument call (`worst(S3, S1, S2) == S1`) — correct in every
-case. Swept `src/` for the same pattern: the only `max()`/`min()` calls over an ordered enum are
-`adjudicate.py:96` (`t_end`, a float, correct) and unrelated numeric maxima in `core/excel.py`,
-`ledger/render.py`, `ledger/store.py`, `schema/media.py`. **No second instance of the inverted
-pattern exists in the codebase.**
+**CD is reported INCONCLUSIVE, not as a vacuous guard.** Reverting only the *ordering* — putting
+`_cached()` back above the `force` test — fails nothing, because `skip_unreadable=True` now means
+the read cannot raise, so the two orderings are behaviourally identical. The ordering is the right
+shape and the manifest's description of it is true; the finding is that AT-199's crash-safety is
+carried by **one** mechanism rather than two, and a future change that reintroduces a raise inside
+`_cached` would re-block `--force` with no test noticing. Filed AT-209 (low), with the exact test
+that would close it — I ran that test by hand and it passes.
 
 ---
 
-## FAILURES
+## Criterion by criterion
 
-### [VL4] sev: high · adjudication is NOT a function of content alone in the shipped configuration · issue: AT-197
+### VL4 — adjudication is a function of content alone · **MET** (was a cycle-1 FAIL)
 
-The determinism claim is the load-bearing one, and it does not hold.
+The sort key is now `(offset_s, provider_label, prompt_name, chunk_index)` — total over exactly the
+tuple the cache is keyed on. Measured three ways:
 
-`adjudicate` sorts by `(offset_s, provider_label, chunk_index)`. `PROMPT_NAMES` has **two**
-entries. So for one model and one chunk, the mapping-pass observation and the issues-pass
-observation are **equal under that key** — and Python's sort is stable, which hands the tie
-straight back to the caller's list order. Every downstream merge is first-seen-wins.
+- **The cycle-1 attack, re-run:** two observations differing only in `prompt_name` (one carrying
+  screens/`purpose`, the other an issue and a different summary) → **1 distinct output** across both
+  permutations, where cycle 1 measured 2, differing in `screens`, `journey`, `issues` and `summary`.
+- **500 shuffles of the real shipped shape** — 2 models × 2 prompts × 3 chunks, each observation
+  carrying a distinct `purpose`, `url`, summary and issue so that every first-seen-wins merge has
+  something to disagree about: **0 mismatches**.
+- **Sabotage CA** reverts the key and fails exactly the new two-prompt test. The property now rests
+  on a test a single-prompt fixture cannot pass by accident, and `obs()`'s own docstring records why
+  the parameter exists.
 
-Measured, not argued. Two `ModelObservation`s identical but for `prompt_name` (one carrying
-screens/`url`/`purpose`, the other an issue and a different summary), permuted:
+**I pressed for a second tie, as asked, and this is the honest answer.** One residual tie exists:
+two observations sharing `(offset_s, provider_label, prompt_name, chunk_index)` but differing in
+content still permute to 2 distinct outputs (measured). It is **not reachable from the shipped
+system** — `core/paths.source_observation()` names the cache file from exactly that tuple and
+`save_observation` overwrites it, so the store can hold at most one answer per key; a prompt edit
+rewrites the same path rather than adding a second file (verified: 12 files before a `--force`
+re-run, the same 12 names after). The key is therefore total over everything the producer can
+produce. Recorded as a question, not a failure.
 
-```
-ATTACK1 two-prompt tie: distinct outputs = 2
-   differs in: screens
-   differs in: journey
-   differs in: issues
-   differs in: summary
-```
+I also swept every other `sorted()` / `.sort()` under `src/` (31 sites). `join_screens` keys on
+`(t_start, screen_key)` — two entries tying there necessarily share a key and an overlapping
+interval and so would already have merged. `join_issues` keys on `(t_start, issue_key)` — the same
+argument through `SEAM_WINDOW_S`; I additionally confirmed its greedy chaining is stable by
+permuting three issues 8 s apart on one screen and category (**1** distinct output across three
+permutations). `stages/issues.py:133` keys the workbook rows on `(recording_label, at_s)`, which
+*can* tie, but its input list is already deterministically ordered by `adjudicate`, so the written
+sheet is deterministic. **No non-total key with a reachable tie remains.**
 
-The module docstring — *"Given the same cached observations in any order it produces byte-identical
-output"* — is false in exactly the shape this unit ships.
+### VL3 — failure is partial, and an analysis says what it is made of · **MET** (was a cycle-1 FAIL)
 
-I attacked the rest of the surface too, and the rest holds: 500 shuffles of the maker's
-single-prompt shape → **0** mismatches (his 8 were not the weakness); identical timestamps from
-different models → 1 distinct output; labels that sort in either direction (`a`/`b`, `Z`/`a`) → 1
-distinct output each; an empty ensemble produces an empty analysis without raising; a **negative**
-offset (−50.0) and a **huge** one (1e18) both pass through arithmetically and unremarkably. The
-single hole is the tie, and it is the production shape.
+`VideoAnalysis` carries `observations_used` / `observations_expected`, and `analyze` computes
+expected as `len(providers) * len(PROMPT_NAMES) * len(prep.chunks)`. Verified **end to end on disk**,
+not on the field's existence: a run over 3 chunks × 2 prompts × 2 models in which one provider was
+dead and the other died after its first call persists `"observations_used": 1,
+"observations_expected": 12` into the analysis JSON, with `is_complete` False. Total failure still
+raises `NoObservations` and writes no analysis (confirmed: the analysis path does not exist).
+Sabotage CH fails 2. **Two numbers rather than a boolean** is the right call, and the manifest's
+reasoning for it is sound.
 
-Not yet a live divergence — `analyze()` always appends in provider→prompt→chunk order, and
-`store.list_observations()` glob-sorts to the same order, so today's two producers happen to agree.
-It goes live the moment anything re-adjudicates from a differently-ordered source (T-136's scorer,
-a reordered provider list). The `sorted()` call exists so nobody has to know that.
+Two things I checked and am **filing rather than scoring**, because VL3's letter — "in a field, not
+in a log line" — is met, and the cycle-1 verdict's own fix direction said the field alone discharges
+the criterion:
 
-**Fix direction:** add `prompt_name` to the sort key so it is total over the same tuple the cache
-is keyed on, and add an order-test fixture in which two observations differ *only* in
-`prompt_name`. The current test cannot see this: every fixture in it is built by `obs()`, which
-hardcodes one prompt name.
+- **AT-207 (medium): the numbers reach no reader.** A repo-wide grep finds four sites — the two
+  fields, the property, and the one producer at `adjudicate.py:208-209` — and the only consumers
+  anywhere are two tests. No CLI command prints the ratio, the 13-column export has no channel for
+  it (correctly — the sheet's shape is the tester's), and `ui/` never mentions it. `is_complete` is
+  a `@property`, so it is not even serialised: I confirmed `is_complete` is absent from the
+  persisted JSON's keys, and a downstream reader must recompute it. A human who does not open the
+  JSON still cannot tell a full reading from a fragment. That is VL3's stated *purpose*, unrealised
+  — but it is downstream work (T-136 is the first unit that computes a number against this
+  artifact), and hardening a criterion at the moment of a passing verdict is the mirror image of
+  softening one at the moment of a failing verdict. Filed with the fix direction instead.
+- **AT-208 (medium): `expected=None` defaults to `len(shifted)`.** Any caller other than `analyze`
+  gets `used == expected` and `is_complete is True` — a default-value fallback inside the very field
+  added to stop one. Latent (`analyze` always passes the real product), reachable by the stated next
+  consumer (T-136 re-adjudicating cached observations). One line: make it required, or default to 0,
+  which `is_complete` already reads correctly as "nobody told me what was intended".
 
-### [VL3] sev: high · a 1-of-24 analysis is indistinguishable from a complete one · issue: AT-198
+### VL2b — the cache's promise is SAFE, not merely cheap · **MET** (was a cycle-1 FAIL)
 
-"Failure is partial, never total" is built and evidenced (BL, BM). But the guard stops at zero, and
-the manifest's own reasoning does not: *"an empty analysis on disk reads as 'we watched it and
-found nothing' — the opposite of what happened."* A 4 %-coverage analysis reads the same way and
-looks populated while doing it.
+Both halves re-derived by execution, not by reading the diff:
 
-Measured over 12 chunks × 2 prompts × 2 models — a full run and a run where the second model died
-after its very first call:
+- **A damaged entry degrades to a re-request.** After a clean 12-observation run I overwrote one
+  cache file with `{ this is not json` and called `analyze(force=True)` — it **completed, 12 calls**,
+  where cycle 1 measured a `ValueError` out of `analyze` that `--force` could not clear. Then I wrote
+  a second file as valid-JSON-wrong-shape (`{"schema_version":1}`) and called `analyze` **without**
+  force: it completed with exactly **1** re-request — the damaged entry alone, the other eleven still
+  free hits — and I read the file back to confirm it had been rewritten with a `prompt_sha256`.
+  Skipped means re-requested and overwritten, never treated as an answer. Sabotage CC fails 1.
+- **A cached answer is reusable only while the question is unchanged.** `observe_chunk` builds the
+  prompt and its sha256 *before* the cache is consulted, and `_cached` matches on `prompt_sha256`.
+  Sabotage CB (drop the digest from the comparison) fails exactly
+  `test_editing_a_prompt_invalidates_its_cached_answers`.
 
-```
-FULL   : (['m1','m2'], ['ingest_video_v1.md','video_issues_v1.md'], 12 screens, 12 issues)
-CRIPPLE: (['m1','m2'], ['ingest_video_v1.md','video_issues_v1.md'], 12 screens, 12 issues)
-Any field recording attempted-vs-observed? NONE
-```
+### VL2 — a cached observation is never re-requested · **MET** (re-verified, not carried over)
 
-`VideoAnalysis` carries no count of intended or obtained calls anywhere in `model_dump()`. T-136's
-recall denominator would be computed against a fragment with no way to know.
+12 provider calls on a first run over 3 chunks × 2 prompts × 2 models, **0 on the second**.
+`--force` re-spends all 12 and leaves **the same 12 filenames** — overwrite in place, not an append
+log. Adding a model costs only the model. The digest in the key did not weaken the hit rate: the
+second run's zero calls is the proof that an unedited prompt is still a free hit.
 
-**Fix direction:** persist `len(providers) * len(PROMPT_NAMES) * len(prep.chunks)` and
-`len(observations)` on the artifact. The field alone discharges the criterion; a coverage floor is
-a separate decision.
+### VL5 — offsets in code, narration sliced · **MET**
 
-### [VL2b] sev: high · a damaged cache entry kills the source, and `--force` cannot rescue it · issue: AT-199, AT-200
+Unchanged this cycle and re-checked: `shift` deep-copies before mutating, offsets are applied by the
+stage, `build_chunk_prompt` slices the transcript to the chunk, and a silent section says so rather
+than leaving a gap. The prompt still forbids the model from adding its own offset in as many words.
 
-VL2 proper is **met** and well built — I confirmed zero provider calls on a second `analyze` (0 of
-48 at 12 chunks × 2 prompts × 2 models), that `--force` **overwrites in place** (4 files before, the
-same 4 names after — no duplicates), and that widening the ensemble costs only the widening. `_cached`
-does scan `list_observations()` per call — 48 calls each re-reading up to 48 JSON files — but the
-fully-cached second run over the full 48-observation shape took **0.32 s** against a 0.71 s cold
-run, so the O(n²) is real and irrelevant at this size. Not filed.
+### VL6 — the exported sheet is the human sheet's shape, verified against the file · **MET**
 
-What fails is the *promise* the cache is sold on — safe to re-run after a crash or a code change:
+`test_the_header_matches_the_real_human_sheet` executed (it is not in the skip list) against
+`ERP_Issues_ALL.xlsx` on this host, and `test_the_At_CELL_carries_MM_SS_not_a_number` judges the
+written workbook rather than the helper. Sabotage CF (remove `at_mmss`'s negative guard) fails the
+new refusal test: `at_mmss(-5.0)` now raises instead of rendering `-1:55`.
 
-- **After a crash.** A half-written observation file is exactly what an interrupted run leaves.
-  Overwriting one of four cached files with `{ this is not json` makes the next `analyze` raise
-  `ValueError` out of `read_json`. Valid-JSON-wrong-shape raises too. And `analyze(..., force=True)`
-  **also raises** — because `_cached()` is called unconditionally at the top of `observe_chunk`,
-  *before* the `not force` test. The override is blocked by the thing it overrides. There is no CLI
-  escape short of deleting files by hand. (AT-199)
-- **After a code change.** The cache key is the prompt's *name*. Editing `video_issues_v1.md` still
-  hits every cached chunk, so the analysis silently mixes answers to two different questions with
-  no field recording which. This project treats prompts as code by rule. (AT-200)
+### I-VL5 — a merge never softens a severity · **HOLDS**
 
-**Fix direction:** skip an unreadable cache entry rather than raising (it is a cache, not a ledger —
-an absent answer costs one re-request), move the `_cached()` call inside the `not force` branch, and
-put a hash of the rendered template into `ModelObservation` and into the match.
+`worst()` unchanged and correct; agreement raises `confidence` and never `severity`.
+
+### I-VL6 — nothing in the analysis half asks a model to decide a merge · **HOLDS**
+
+`adjudicate.py`, `issues.py` and the export contain no provider call of any kind. The new
+`DuplicateProviders` guard is a refusal in `analyze`, not a merge decision.
 
 ---
 
-## Criteria met
+## The five smaller issues, each re-verified
 
-- **VL2 — a cached observation is never re-requested.** Verified by execution, not by the maker's
-  spies: 0 provider calls on a fully-cached re-run; `--force` overwrites rather than duplicates;
-  per-model keying confirmed. Sabotage BK (ignore the cache) fails 2.
-- **VL5 — offsets in code, narration sliced.** `shift` deep-copies before mutating (BD → 2);
-  offsets are applied by the stage and the prompt forbids the model from adding its own (BO → 1);
-  `build_chunk_prompt` slices the transcript to the chunk and a silent section says so rather than
-  leaving a gap (BN → 2).
-- **VL6 — the sheet is theirs.** I loaded the real workbook myself, from the corpus path the test
-  names (`C:/Users/Lenovo/Videos/Screen Recordings/ERP_Issues_ALL.xlsx` — the corpus file, not a
-  copy in the repo; `tests/test_issues.py:36` points at that absolute path). Sheet `All issues`:
-  **13 columns, identical strings in identical order** to `ISSUE_COLUMNS`; 33 rows total, i.e. **32
-  data rows** — the maker's correction of the plan's 33 is right, and it is T-136's denominator.
-  `At` cells hold strings (`'00:23'`, `'01:34'`, `'09:17'`); `Severity` cells read `High`/`Medium`,
-  matching `SEVERITY_WORDS`. BF (rename a column) fails 2, BH (our vocabulary) fails 1, BG (the
-  written cell) fails 1.
+| Issue | How I verified it | Result |
+|---|---|---|
+| AT-201 docstring claim | Read `stages/issues.py:10-21`. The present-tense "The scorer accommodates both" is gone; it now says **"No scorer exists yet — it is T-136"** and keeps the measured 12-vs-13-column facts. | closed |
+| AT-202 `fields` | Sabotage CE fails 1; the test is renamed for what it does and asserts on each list. | closed |
+| AT-203 `confidence` | Read `prompts/video_issues_v1.md:41-46`. The field is documented **with a rule tied to evidence** — high when there is nothing to interpret, low when reading intent into a half-sentence — plus "Say `low` freely" and a note that the system may raise it on agreement. A better answer than the one I asked for. | closed |
+| AT-204 duplicate labels | Ran it: two providers labelled `dup` raise `DuplicateProviders` naming the collision. Sabotage CG fails 1. | closed |
+| AT-205 negative second | Ran it: `at_mmss(-5.0)` raises `ValueError`. Sabotage CF fails 1. | closed |
 
-## Invariants
+## Ledger
 
-- **I-VL5 — a merge never softens a severity.** Holds. `worst()` correct over all nine pairs;
-  BA (back to `max()`) fails 2; agreement raises `confidence` and never `severity` (BE fails 1); no
-  second inverted-`max` site anywhere in `src/`.
-- **I-VL6 — no model decides a merge.** Holds. `adjudicate.py`, `issues.py` and the export contain
-  no provider call; the matcher is casefolded names, interval overlap and a fixed 10 s window.
+`AT-197 … AT-205` moved **`fixed → verified`** (`verified_date: 2026-09-09`), each with the
+measurement above recorded on the row — a `fixed` flag is the maker's word and none was taken on it.
+New: **AT-207** (medium, coverage numbers reach no reader), **AT-208** (medium, `expected=None`
+self-declares complete), **AT-209** (low, force-before-read ordering unevidenced — CD's
+INCONCLUSIVE). The manifest's `Issues addressed` claims exactly AT-197..AT-205, and that claim is
+accurate. AT-192, AT-193 and AT-196 remain correctly open and untouched.
 
-## The sheet: ruling on "the scorer accommodates both"
+## Contract action
 
-**Currently false; merely planned.** I loaded both real workbooks. `ERP_Issues_Trainers.xlsx` /
-`Trainer module` has **12 columns, 8 rows, no `Date`, and `Clip` where ALL says `Recording`** —
-every fact in the docstring is measured and correct. But `scripts/` contains no scorer (nothing
-matching `score`), and no file under `src/`, `tests/` or `scripts/` mentions `Clip` or the Trainers
-schema anywhere except that docstring's own sentence. The manifest's "What this does NOT claim"
-discloses the boundary honestly; the shipped code states it in the present tense. Filed AT-201
-(medium) — not scored against VL6, which covers the sheet this exporter writes.
-
-## The prompt, judged as a prompt
-
-`video_issues_v1.md` forbids all three failure modes that matter, and each is independently
-evidenced rather than merely written: inventing ("Report only what you can point at"; "Anything you
-did not see or hear in **this** section"; "return an empty list — that is a real answer, and a
-normal one"), paraphrasing narration ("verbatim from the transcript below. Never paraphrase and
-never re-transcribe" — BN bites), and adding its own offset ("Do not add any offset; the system adds
-the section's offset itself" — BO bites). That is a good prompt.
-
-The false-positive risk at scale is not in what it forbids but in what it omits: **it never mentions
-`confidence`.** `ObservedIssue.confidence` defaults to MEDIUM, the prompt maximises recall of spoken
-remarks ("**Take them at their word**"; a requested change "is a real finding"), and tells the model
-to judge the product rather than its own certainty. `join_issues` then raises confidence to HIGH on
-agreement and has **no path that lowers it** — and two models given the same "take them at their
-word" instruction are not independent on an offhand aside. The predicted shape at scale is HIGH-
-confidence S2 rows derived from asides. The recall bias is deliberate and justified (the taxonomy
-records that 10/33 real ground-truth rows were spoken change requests), and T-136 is where precision
-gets measured — so this is filed medium (AT-203) to make the measurement expected rather than
-discovered, not scored against a criterion.
-
-## Adversarial pass — could `analyze` overstate what happened?
-
-Yes, once: **AT-198** above (a fragment that looks whole). Two lesser paths, both filed:
-two providers sharing a `provider_label` collapse the ensemble to one silently — measured, provider
-A made 4 calls and provider B made 0 — though the artifact stays honest (`provider_labels=['dup']`,
-`models_agreeing=1`), so AT-204 is low. And `at_mmss(-5.0)` renders `'-1:55'`, a plausible-looking
-time; negative offsets are unvalidated all the way through (`offset_s = -50.0` shifts a screen to
-t=−40.0 without complaint), latent today, AT-205 low.
-
-One more merge defect found while attacking VL4: **`_merge_lists` unions `signals`, `ui_elements`
-and `screenshot_ts` but not `fields`** — `join_screens` over two models seeing `['email']` and
-`['password']` returns `['email']`. The function's own docstring states the rule it breaks ("if one
-model noticed a **field** the other missed, the field exists"), and
-`test_a_field_only_one_model_noticed_survives_the_merge` asserts on `signals` and `url`, not on
-`ObservedScreen.fields`. Input fields are what a generated eval fills in, so a lost field is a flow
-never exercised. AT-202, medium.
-
-## Contract action taken
-
-Authored **VL2, VL2b, VL3, VL4, VL5, VL6** and **I-VL5, I-VL6** into `qa/contracts/video-learning.md`
-with an amendment-log entry recording, per criterion, what was taken as requested and what was
-changed on evidence. VL2/VL5/VL6 are substantially as the maker asked. VL2b is a checker addition;
-VL3 was widened past "total failure refuses"; VL4 was tightened from "in any order" to "in any order
-the system actually produces". **None of the three failing criteria was softened to fit the
-artifact** — VL4 in particular is the maker's own stated property, restated so that a test can
-actually reach it.
-
-## Issues written
-
-**AT-197** (high, VL4) · **AT-198** (high, VL3) · **AT-199** (high, VL2b) · **AT-200** (high, VL2b) ·
-AT-201 (medium) · AT-202 (medium) · AT-203 (medium) · AT-204 (low) · AT-205 (low)
-
-`Issues addressed` — the manifest claims none closed by this unit; AT-192, AT-193 and AT-196 are
-correctly left open and untouched. Nothing in the ledger was moved to `fixed` by this check.
+**No criterion changed, and none was softened.** VL3 was deliberately NOT tightened to swallow
+AT-207. A routine amendment-log entry records the cycle-2 measurements (the residual unreachable
+tie, the single-mechanism crash safety, the unread coverage numbers) so the next reader does not
+re-derive them.
 
 ## Goal task
 
-**T-133 stays open.** A FAIL never closes a goal task. No `docs/FEATURES.jsonl` row is due yet; when
-this unit PASSes, one is (`user_value: high`, so with a prefilled reason for Umesh to confirm).
+**T-133 closes on this PASS.** `user_value: high`, so a `docs/FEATURES.jsonl` row is due with a
+prefilled reason for Umesh to confirm or edit — that is the maker's close-out step, not mine.
 
 ---
 
 ## Returned block
 
 ```
-VERDICT: FAIL
-SCOREBOARD: 3/6 criteria met, 2/2 invariants hold
-FAILURES:
-- [VL4] sev: high · adjudicate's sort key omits prompt_name, so in the shipped 2-model x 2-prompt
-  ensemble the merge is order-dependent: permuting two observations that differ only in prompt_name
-  changes screens, journey, issues and summary · add prompt_name to the sort key and give the order
-  test a fixture where only prompt_name differs · issue: AT-197
-- [VL3] sev: high · an analysis built from 1 of 24 intended calls is indistinguishable from a full
-  one — same provider_labels, same prompt_names, no coverage field anywhere · persist intended and
-  obtained call counts on VideoAnalysis · issue: AT-198
-- [VL2b] sev: high · a truncated cached observation raises ValueError out of analyze and --force
-  cannot get past it, because _cached() runs before the not-force test — the crash the cache exists
-  to survive bricks the source; and the key is the prompt's name, not its content, so an edited
-  prompt silently reuses the old answer · skip unreadable entries, move _cached inside the not-force
-  branch, hash the template into the key · issues: AT-199, AT-200
-ISSUES-WRITTEN: AT-197, AT-198, AT-199, AT-200, AT-201, AT-202, AT-203, AT-204, AT-205
-EXPLANATION: Verification reproduces exactly (797 passed / 2 skipped, ruff clean, doctor clean,
-done_check green and absent at the parent), all 15 sabotages discriminate with none INCONCLUSIVE,
-BG's story checks out precisely, and worst() is correct over every severity pair with no second
-inverted-max site in the codebase — this is careful work. It fails on the one claim it is built
-around: adjudication is not order-independent in the configuration it ships, because the sort key
-omits prompt_name and the determinism test's every fixture carries a single prompt name, so the tie
-the criterion is about cannot arise in it. Alongside that, the honesty guard that refuses to persist
-an empty analysis stops one step short — a 1-of-24 fragment persists looking complete — and the
-cache's crash-safety promise inverts under a truncated entry that --force cannot clear.
+VERDICT: PASS
+SCOREBOARD: 6/6 criteria met, 2/2 invariants hold
+FAILURES: none
+ISSUES-WRITTEN: AT-207 (medium), AT-208 (medium), AT-209 (low)
+EXPLANATION: All three cycle-1 failures are closed by my own measurement: 500 shuffles of the real
+two-model x two-prompt x three-chunk shape give 0 mismatches and the cycle-1 tie attack now yields
+one output (VL4); a crippled run persists observations_used=1 / observations_expected=12 on disk
+(VL3); and analyze(force=True) over a deliberately corrupted cache completes with 12 calls where it
+previously raised, while a wrong-shaped entry is re-requested and rewritten alone (VL2b). Eight
+sabotages, each anchor-matched-once and file-verified-changed in an isolated git-archive extract,
+discriminate seven of the eight guards; CD (force-before-read ordering) fails 0 and is reported
+INCONCLUSIVE, not vacuous -- skip_unreadable now carries that promise single-handed, filed AT-209.
+The test split dropped nothing (all 29 prior tests present, one renamed and strengthened). Two
+residual weaknesses are filed rather than scored: the coverage numbers reach no reader outside two
+tests, and adjudicate's expected=None default makes any caller but analyze declare itself complete.
 ```

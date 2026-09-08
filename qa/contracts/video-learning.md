@@ -300,3 +300,27 @@ recording has a sidecar.
   not fire. I-VL5/I-VL6 are checker additions; `worst()` was verified exhaustively over all nine
   severity pairs and no other inverted `max()` over an ordered enum exists under `src/`.
   Verdict: `qa/verdicts/t133-ensemble-and-issues.md` (FAIL, cycle 1).
+
+- 2026-09-09 · routine · **Measurements recorded from the cycle-2 check of `t133-ensemble-and-issues`
+  (PASS, 6/6).** No criterion changed; nothing was tightened at the moment of a passing verdict.
+  (i) **VL4's key is now total over everything the producer can produce.** The sort key gained
+  `prompt_name`; 500 shuffles of the real 2-model x 2-prompt x 3-chunk shape give 0 mismatches and
+  the cycle-1 tie attack yields 1 output. One residual tie remains -- two observations sharing
+  `(offset_s, provider_label, prompt_name, chunk_index)` and differing in content permute to 2
+  outputs -- but it is **unreachable from the shipped system**, because `core/paths.source_observation()`
+  names the cache file from exactly that tuple and `save_observation` overwrites it (measured: 12
+  files before a `--force` re-run, the same 12 names after). Every other sort under `src/` was swept:
+  `join_screens`/`join_issues` ties imply a merge would already have happened (three issues 8s apart
+  on one screen permute to 1 output), and `stages/issues.py:133`'s `(recording_label, at_s)` can tie
+  but is fed a list `adjudicate` has already ordered. (ii) **VL3 is met by the field, and the field
+  is read by nobody.** `observations_used`/`observations_expected` persist correctly (a crippled run
+  writes 1/12 to disk), but the only consumers in the repo are two tests -- no CLI, no sheet, no UI --
+  and `is_complete` is a `@property`, so it is not serialised at all. Filed AT-207 (medium) rather
+  than written into VL3, whose letter ("in a field, not in a log line") is satisfied; surfacing
+  belongs with T-136. Also filed AT-208 (medium): `adjudicate(..., expected=None)` defaults expected
+  to used, so any caller but `analyze` produces an artifact declaring itself complete. (iii) **VL2b's
+  crash safety is carried by ONE mechanism.** `list_observations(skip_unreadable=True)` is what makes
+  a truncated entry heal (sabotage fails 1); reverting the force-before-read *ordering* alone fails
+  **0** tests and was reported INCONCLUSIVE, never as a vacuous guard -- with the read unable to
+  raise, the two orderings are behaviourally identical. AT-209 (low) carries the one test that would
+  re-separate them. Verdict: `qa/verdicts/t133-ensemble-and-issues.md` (PASS, cycle 2).
