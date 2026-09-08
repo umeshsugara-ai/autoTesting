@@ -6,7 +6,7 @@ the same typer apps there, so the CLI surface a user sees is unchanged.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -156,15 +156,31 @@ def _validate_grant(expires: str, target: str, proj: Any) -> None:
         # that would widen every approval already on disk by up to 24 hours, and
         # silently lengthening a consent window is not a fix a maker gets to
         # make to a security gate on its own. Flagged for the contract instead.
+        # AT-150: print the date, not the word "tomorrow". My own test asserted
+        # only that the word appeared, so a refusal that never named a usable
+        # date would have passed it.
+        usable = (date.today() + timedelta(days=1)).isoformat()
         when = "already in the past" if expiry < date.today() else (
-            "today — consent expires at the START of the named day, so a run "
-            "today needs tomorrow's date")
+            f"today — consent expires at the START of the named day, so a run "
+            f"today needs --expires {usable}")
         typer.secho(
             f"--expires {expires} is {when}; this grant would refuse every run "
             f"it was asked about",
             fg=typer.colors.RED)
         raise typer.Exit(1)
     _warn_on_target_mismatch(target, proj)
+
+
+def _is_under(path: str, base: str) -> bool:
+    """Is `path` the same as, or genuinely beneath, `base`? (AT-149)
+
+    A bare `startswith` is the same defect AT-148 fixed in the HOST half, and
+    it survived one line below that fix in the PATH half: against a base_url of
+    `https://demo.test/app`, both `/apple-secrets` and `/appliance/admin` were
+    silently accepted as being under `/app`. A prefix is only a containment if
+    it ends at a separator."""
+    stem = base.rstrip("/")
+    return path in (stem, base) or path.startswith(stem + "/")
 
 
 def _warn_on_target_mismatch(target: str, proj: Any) -> None:
@@ -184,7 +200,7 @@ def _warn_on_target_mismatch(target: str, proj: Any) -> None:
         return
     base, want = urlparse(target), urlparse(proj.base_url)
     same_host = (base.scheme, base.netloc) == (want.scheme, want.netloc)
-    if same_host and base.path.startswith(want.path.rstrip("/")):
+    if same_host and _is_under(base.path, want.path):
         return
     typer.secho(
         f"note: {target} does not match this project's base_url "

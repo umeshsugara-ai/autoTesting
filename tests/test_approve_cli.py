@@ -167,7 +167,7 @@ def test_approve_refuses_an_expiry_of_today(root: Path) -> None:
 
     assert result.exit_code == 1
     assert "today" in result.output
-    assert "tomorrow" in result.output, "the refusal must say what date to use instead"
+    assert TOMORROW in result.output, "the refusal must name the date to use instead"
 
 
 def test_the_grant_and_the_runtime_agree_on_every_expiry_they_accept(
@@ -213,3 +213,69 @@ def test_a_genuine_sub_path_of_the_base_url_is_not_flagged(root: Path) -> None:
 
     assert result.exit_code == 0
     assert "does not match" not in result.output
+
+
+# -- AT-149 / AT-150: the same bug one line below its own fix --------------
+
+def _project_with_base(root: Path, base_url: str) -> None:
+    ProjectStore("demo", root).save_project(Project(
+        slug="demo", name="Demo", base_url=base_url, allowed_domains=["demo.test"]))
+
+
+def approve_target(target: str) -> object:
+    return runner.invoke(app, [
+        "approve", "demo", "--kind", "crawl", "--target", target,
+        "--scope", "s", "--granted-by", "umesh", "--expires", TOMORROW,
+    ])
+
+
+@pytest.mark.parametrize("target", [
+    "https://demo.test/apple-secrets",   # /app is a prefix but not a parent
+    "https://demo.test/appliance/admin",
+])
+def test_a_path_that_merely_starts_with_the_base_path_is_flagged(
+    root: Path, target: str,
+) -> None:
+    """AT-149: AT-148 fixed the naive prefix match in the HOST half, and the
+    identical bug survived ONE LINE BELOW it in the PATH half. Against a
+    base_url of `https://demo.test/app`, `/apple-secrets` was silently accepted
+    as being under `/app`. A prefix is only a containment if it ends at a
+    separator."""
+    _project_with_base(root, "https://demo.test/app")
+
+    result = approve_target(target)
+
+    assert result.exit_code == 0
+    assert "does not match" in result.output
+
+
+@pytest.mark.parametrize("target", [
+    "https://demo.test/app",             # the base itself
+    "https://demo.test/app/",            # the base, trailing slash
+    "https://demo.test/app/admin",       # a genuine child
+])
+def test_the_base_path_and_its_real_children_are_not_flagged(
+    root: Path, target: str,
+) -> None:
+    """The other side: a warning that fires on the normal case gets ignored on
+    the case it exists for."""
+    _project_with_base(root, "https://demo.test/app")
+
+    result = approve_target(target)
+
+    assert result.exit_code == 0
+    assert "does not match" not in result.output
+
+
+def test_the_expiry_refusal_prints_a_usable_date(root: Path) -> None:
+    """AT-150: the refusal said the operator needs "tomorrow's date" and never
+    printed one. My own test asserted only that the word "tomorrow" appeared,
+    so a refusal naming no usable date would have passed it — a test written
+    against the message I meant rather than the message a reader gets."""
+    result = runner.invoke(app, [
+        "approve", "demo", "--kind", "crawl", "--target", BASE_URL,
+        "--scope", "s", "--granted-by", "umesh", "--expires", date.today().isoformat(),
+    ])
+
+    assert result.exit_code == 1
+    assert TOMORROW in result.output, "the refusal must name a date, not a word"
