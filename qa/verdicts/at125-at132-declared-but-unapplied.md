@@ -1,278 +1,187 @@
 # Verdict — at125-at132-declared-but-unapplied
 
 **Date:** 2026-09-08
-**Unit:** AT-125 + AT-128 + AT-129 + AT-132
+**Unit:** AT-125 + AT-128 + AT-129 + AT-132, and (cycle 2) AT-133 + AT-134 + AT-135
 **Manifest:** `qa/manifests/at125-at132-declared-but-unapplied.md`
-**Commit checked:** `c4c878a` (verified identical to `HEAD` 13c5cd0 for `src`/`tests`/`scripts`)
+**Commit checked:** `d9396d4` (HEAD `521b79a` = manifest-only stamp; `src`/`tests`/`scripts` identical)
 **Contract:** `qa/contracts/ingest.md` (I7–I10)
-**Cycle checked: 1**
+**Cycle checked: 2**
 
-> Re-dispatch note: a previous checker on this unit died on an API auth error after one tool
-> call and wrote nothing. A crashed checker is not a verdict; this is cycle 1, not cycle 2.
-
----
-
-## VERDICT: FAIL
-
-**SCOREBOARD: 3/4 in-scope invariants hold (I7, I9, I10) — I8 fails.**
-
-Three of the four named bugs (AT-125, AT-128, AT-129) and AT-132 are genuinely closed, verified
-by my own execution against the shipped CLI, not by the manifest's transcripts. The unit fails on
-a **new instance of the exact defect it exists to close**: `load_sidecar` declares a guarantee in
-its own docstring — "a malformed sidecar must not stop an ingest" — and does not apply it. Two
-plausible malformed shapes escape its `except (OSError, ValueError)` and crash
-`autotester ingest run` with an unhandled traceback.
+> The cycle-1 FAIL verdict is preserved in git history (commit before this one). This file is the
+> cycle-2 verdict.
 
 ---
 
-## What I re-ran myself
+## VERDICT: PASS
+
+**SCOREBOARD: 4/4 in-scope invariants hold (I7, I8, I9, I10). 7/7 named issues closed.**
+
+The cycle-1 FAIL was AT-133 alone; the direction given was "fix AT-133 only — the cheapest correct
+fix also closes AT-134." The maker fixed AT-133, AT-134 and AT-135. I re-ran all of it myself.
+
+---
+
+## Verify commands (re-run by me, host, Docker down, `uv` native)
 
 | Command | Manifest claim | My result |
 |---|---|---|
-| `uv run pytest` (host, native) | 614 passed, 2 skipped | **614 passed, 2 skipped, 1 warning in 86.67s** ✔ |
+| `uv run pytest` (bare — `-q` + `addopts=-q` is `-qq`) | 623 passed, 2 skipped | **623 passed, 2 skipped, 1 warning in 70.30s** ✔ |
 | `uv run ruff check src tests scripts` | All checks passed | **All checks passed!** ✔ |
 | `uv run autotester doctor` | doctor: clean | **doctor: clean** ✔ |
 
-Note for future manifests: `addopts = "-q"` in `pyproject.toml` plus a command-line `-q` is `-qq`
-under pytest 9 and **suppresses the count line entirely**. `uv run pytest -q` prints no
-`N passed`. The documented command therefore cannot produce the number the manifest quotes; I got
-it with a bare `uv run pytest`. Not a defect in this unit — recorded so the next manifest's
-evidence block is reproducible.
+The maker adopted the `-qq` correction and its counts are now reproducible from the command it
+documents. 2 skips on host (1 in the container) — unchanged, environmental.
 
 ---
 
-## AT-125 — closed (verified through the shipped CLI)
+## 1. AT-133 — closed. My own cycle-1 repros, re-run through the real CLI at `d9396d4`
 
-My own probe, not the maker's test: `AUTOTESTER_ROOT` set to a temp dir, `providers.get`
-monkeypatched to a spy `MockProvider`, `autotester ingest register` then `autotester ingest run`
-invoked through `CliRunner` on the real `app`:
+Not the maker's tests: my own `CliRunner` probe on the real `app`, `AUTOTESTER_ROOT` in a temp dir,
+`providers.get` monkeypatched to a spy `MockProvider`, `ingest register` then `ingest run`.
 
-```
-register exit 0  src_2a9dbdd46186  (no label)  sha256=5d50d66fa9e7
-run      exit 0  demo: 1 screens, 0 flows from src_2a9dbdd46186 (review status draft)
-vision_options = [VisionOptions(fps=2.0, seed=7, max_output_tokens=65536,
-                                media_resolution='high', thinking_level='high', ...)]
-canary phrase in prompt: True
-"no speech detected" in prompt: False
-```
-
-`vision_options` is no longer `[None]`; `media_resolution='high'` now genuinely reaches the
-provider from the only shipped entry point. The sidecar canary phrase reaches the prompt.
-Both halves of AT-125 (options **and** the unfiled narration twin) are closed. Ledger row
-AT-125 → `fixed`.
-
-## AT-128 — closed
-
-`_cache_key` keys on `file_sha256`. Reproduced sabotage E in a scratch copy (below): reverting to
-`resolve()::st_size` makes a same-size re-export a cache HIT again (`assert 1 == 2`). The cache
-still does its job — the same bytes upload once. Ledger row AT-128 → `fixed`.
-
-## AT-129 — closed, with one probe finding
-
-`verify_source_bytes` is called from `ingest_video`, so it guards every caller, not just the CLI.
-Probed directly:
-
-| Input | Behaviour | Judgement |
+| sidecar content | cycle 1 | cycle 2 |
 |---|---|---|
-| `sha256=None` | returns, no refusal | correct — only text/url sources lack one |
-| bytes match | returns | correct |
-| bytes changed | `SourceChanged`, message names both digests | correct |
-| path deleted | `SourceChanged`, "which no longer exists" | correct |
-| path now a **directory** | **raw `PermissionError`**, uncaught | AT-135 |
-| Windows upper-cased path | returns (no false refusal) | correct — content-keyed, casing is irrelevant |
+| `[1,2,3]` | exit **1**, `AttributeError` | **exit 0**, prompt says "could not be read" |
+| `{"segments":["hi"]}` | exit **1**, `TypeError` | **exit 0**, "could not be read" |
+| non-JSON (`not json at all {{{`) | exit 0 (`ValueError` caught) | **exit 0**, "could not be read" |
+| `{"segments":[{start,end,text,confidence}]}` (`extra="forbid"`) | exit 0, prompt asserted **"no speech detected"** | **exit 0**, "could not be read" |
 
-**The suggested command works verbatim.** I ran `autotester ingest register demo "<path>"` in
-exactly the form the refusal prints: exit 0, a new source minted. Argument order and quoting are
-right.
+All four exit 0 through the shipped CLI. I8's best-effort promise is now applied by the path that
+ships, which is the whole point of this unit.
 
-**Re-hash cost is not a regression.** Measured on this host: `file_sha256` of a 210 MB file =
-**0.25 s** (~840 MB/s). A 200 MB recording in an ensemble loop pays ~0.25 s per `upload_and_wait`
-and ~0.25 s per ingest, against a multi-second-to-minutes upload of the same bytes. The content
-key buys correctness for a cost that is invisible next to the network call it protects. No issue
-filed; do not "optimise" this back to `st_size`.
+## 2. AT-134 — closed, and the fix does not swap one wrong answer for another
 
-## AT-132 — closed, and the design ruling the dispatch asked for
-
-Verified live: with `AUTOTESTER_ROOT` pointed at a temp dir, `RepoDocs().prompts_dir` resolves to
-`D:\autoTesting\src\autotester\prompts` — the package, not the data root. Sabotage G reproduces.
-
-**Ruling: the `_root_given` distinction is CORRECT in effect, and the mechanism is a smell — not
-a split-brain, and not a FAIL.** I checked the thing that would make it one: whether two different
-prompt directories can be in play in production. They cannot. Every `prompts_dir` consumer
-(`stages/ingest.py:46`, `expand.py:69`, `grade.py:44`, `agent_loop.py:56`,
-`ledger/relitigation.py:42`) receives `RepoDocs()` with no root from `cli.py` and `cli_video.py`.
-The only production caller that passes a root is `doctor.py`, and `doctor` never touches
-`prompts_dir` (grepped). So the second branch is reachable only from tests.
-
-I also examined the alternative the dispatch names — prompts *never* under `root`, fix the ledger
-fixture. `tests/test_ledger.py::make_docs` is not an incidental fixture: it builds a whole fake
-repo (docs/, `src/autotester/thing.py`, `src/autotester/schema/m.py`, and a stub
-`relitigation_v1.md`) under `tmp_path`. That is a deliberate stub prompt tree, and the maker is
-right that substituting one is a legitimate test move. Rewriting it to satisfy a purer rule would
-be churn, not correctness.
-
-What is genuinely wrong is the *shape* of the seam: one parameter (`root`) now carries two
-meanings, selected by a hidden boolean, so `RepoDocs()` and `RepoDocs(repo_root())` are no longer
-equivalent constructions. That is a trap for the next reader even though it cannot misfire today.
-Filed as **AT-137 (medium)**: name the seam — `RepoDocs(root, prompts_dir=...)` — rather than
-inferring it from whether `root` was passed. Follow-up, not a blocker.
-
----
-
-## Sabotage reproduction (all four, in a `git archive HEAD` scratch copy)
-
-Per AT-101 / AT-131 the live tree was never touched: `git archive HEAD | tar -x` into the
-scratchpad, `PYTHONPATH` pinned to the scratch `src` (import path confirmed to resolve there),
-each sabotage applied and reverted in the copy only. Baseline in the copy: **7 passed**.
-
-| Sabotage | Manifest claim | What I got |
-|---|---|---|
-| **D** — CLI stops passing options + transcript | 2 FAILED: `..._passes_vision_options`, `..._injects_the_sidecar_narration` | **exactly those 2** ✔ |
-| **E** — cache key back to `path::size` | 1 FAILED with `assert 1 == 2` | **`assert 1 == 2`, that one test** ✔ |
-| **F** — no byte re-validation | 2 FAILED: `..._that_changed_is_refused`, `..._writes_no_flowspec` | **exactly those 2** ✔ |
-| **G** — prompts under the data root | 3 FAILED (incl. `..._no_sidecar_still_ingests`) | **exactly those 3** ✔ |
-
-All four transcripts match reality. After AT-117 (a fabricated transcript) this was the thing most
-worth checking, and it holds.
-
-One honest wrinkle, reported because it is the kind of thing that decays into AT-117: sabotage D's
-parenthetical calls itself "the shipped state at 1c8c8e4". Restoring the *whole* parent
-`cli_video.py` produces **3** failures, not 2 — the parent also lacks the `except SourceChanged`
-handler, so `..._that_changed_is_refused` exits 1 instead of 2. The sabotage as *described* (drop
-the options and transcript arguments) reproduces the quoted 2 exactly, which I confirmed
-separately. The transcript is accurate; the parenthetical overstates what was reverted.
-
----
-
-## FAILURES
-
-- **[I8] sev: high** · `load_sidecar`'s `except (OSError, ValueError)` does not cover the malformed
-  shapes it promises to survive, so a bad sidecar **crashes the shipped CLI** ·
-  catch the parse broadly (or validate the top-level shape) so a bad sidecar degrades to
-  no-narration as the docstring says · issue: **AT-133**
-
-Reproduced end-to-end through `CliRunner` on the real `app`, not against the function:
+Same probe, the discriminating pair:
 
 ```
-sidecar = "[1,2,3]"                      -> ingest run exit=1  AttributeError
-sidecar = {"segments": ["hi"]}           -> ingest run exit=1  TypeError
+sidecar with real speech + a `confidence` key ->  "no speech detected": False
+                                                  "could not be read":  True
+absent sidecar                                ->  "no speech detected": True
+                                                  "could not be read":  False
 ```
 
-`Transcript.from_sidecar` calls `raw.get(...)` on whatever JSON decodes (an `AttributeError` if
-that is a list or a scalar) and `TranscriptSegment(**seg)` on whatever is in `segments` (a
-`TypeError` if those are not mappings). Neither is an `OSError` or a `ValueError`. The docstring
-three lines above says *"a malformed sidecar must not stop an ingest, because a reading with no
-narration is still worth having."* It stops the ingest. **This is the unit's own thesis — a
-guarantee declared, plumbed, and not applied by the path that ships — reappearing in the fix for
-it.** That is why it is a FAIL rather than a filed follow-up: the unit's claim is precisely that
-this shape was closed.
+So the unreadable case no longer asserts silence, **and the genuinely-silent case still asserts
+silence** — I checked the second half explicitly, because a fix that made everything "unreadable"
+would satisfy the failing test and destroy I8's "when no speech exists, the prompt says so".
 
-Neither shape occurs in the real corpus (I checked all 10 `*.transcript.json` files under
-`C:/Users/Lenovo/Videos/Screen Recordings/`; every one is `{segments:[{start,end,text}],
-speech_seconds}`, one additionally carrying a benign top-level `source` key). So this is latent,
-not live — which is exactly what AT-125 was too.
+## 3. AT-135 — closed. Both paths, plus the suggested command
 
----
-
-## The `load_sidecar` scope question — ruled
-
-**Correct scope, not creep.** It is the same defect as AT-125 in the same function's argument
-list: `build_ingest_prompt` took a `transcript` since T-131 and no caller passed one, so
-`{{NARRATION}}` rendered "no speech detected" on every real ingest. Fixing the options while
-leaving its twin dead would have been the narrower error. Filing an id first would have been
-tidier bookkeeping; it would not have been better work.
-
-**On the tension the dispatch names — the maker's own AT-108/AT-114 sweep held that swallowing a
-cause IS a defect, and `load_sidecar` swallows one.** That ruling applies to this code, and I am
-upholding it, at medium rather than high:
-
-```
-sidecar = {"segments":[{"start":0,"end":2,"text":"real speech","confidence":0.9}]}
-  -> ingest run exit=0, and the prompt asserts "no speech detected": True
-```
-
-`TranscriptSegment` is `extra="forbid"`, so one unexpected key from a future transcriber makes the
-whole transcript vanish, and the prompt then states a **positive falsehood** about the recording —
-that nobody spoke — while nothing anywhere records that a sidecar was present and unreadable. I8
-says the prompt must say "no speech" *when no speech exists*; this says it when speech exists. A
-best-effort load is right; a *silent* one that substitutes a confident negative claim is not. The
-degradation must remain, but it must announce itself (one line on stderr naming the sidecar and
-the parse error is enough). Filed **AT-134 (medium)**.
-
-The distinction I am drawing, so it is reusable: swallowing is acceptable when the fallback is
-**neutral** (a re-upload, an empty optional), and a defect when the fallback is an **assertion**
-the reader will believe.
-
-Other `load_sidecar` failure modes probed and found **correct**: malformed JSON → `None`; a
-segment missing a field → `None`; a `speech_seconds` of the wrong type → `None`; the sidecar path
-being a directory → `None` (the `read_text` `PermissionError` is an `OSError`). A sidecar
-"belonging to a different video" is not expressible: `from_sidecar` stamps `source_id` from the
-`Source`, and a `source_id` key inside the file is ignored, so adjacency is the only binding and
-it cannot disagree with itself. That is a defensible design; it does mean a sidecar copied next to
-the wrong recording is undetectable, which is worth knowing but is not a defect to file.
-
----
-
-## Adversarial test of the unit's headline claim
-
-The manifest claims this unit closes the "declared but never applied" shape. It bounds that claim
-to four bugs, and within those bounds it is honest. Beyond them the shape survives — I swept the
-fields the dispatch named:
-
-| Thing | Verdict |
+| Probe | Result |
 |---|---|
-| `--model` | **applied** — `providers.get(provider, **{"model": model})` |
-| `--replace` | **applied** — reaches `persist_ingest(replace=...)`, guards I6 |
-| `label`, `recorded_on` | **applied** — passed to `register_source`; the I10 "second registration's label is not applied" case is a recorded decision, not a bug |
-| `Source.duration_s` | **declared, written by nothing, read by nothing** (`MediaPrep.duration_s` is the live one) |
-| `Source.notes` | **declared, written by nothing, read by nothing** |
-| `FlowSpec.app_overview` | **written** from `observation.summary`, **read by nothing** |
+| registered path is now a **directory**, through `ingest run` | **exit 2**, `SourceChanged` text, no traceback (cycle 1: raw `PermissionError`) |
+| `verify_source_bytes` on that source, called directly | `SourceChanged` — guards every caller, not just the CLI |
+| `upload_and_wait(client, missing.mp4)` | `ProviderError: nothing to upload: … is not a readable file` (cycle 1: bare `FileNotFoundError`) |
+| `upload_and_wait(client, <a directory>)` | `ProviderError`, same shape |
+| the changed-bytes refusal's suggested command, run **verbatim** (extracted from the message by regex, `shlex.split`, fed straight to the CLI) | **exit 0**, new source minted — quoting and argument order are still right |
 
-Filed as **AT-136 (low)** — three more instances, all inert today, none a regression from this
-unit and none claimed by it. Recorded so the shape stays visible rather than being declared solved.
+## 4. Sabotages H, I, J — reproduced, separation verified literally
 
----
+`git archive HEAD | tar -x` into the scratchpad, `PYTHONPATH` pinned to the scratch `src` (import
+path confirmed resolving there); the live tree was never touched (AT-101/AT-131). Baseline in the
+copy: **16 passed**.
 
-## ISSUES-WRITTEN
+| Sabotage | Maker's claim | What I got |
+|---|---|---|
+| **H** — narrow catch + `return None` | 4 failures | **4 failed, 12 passed** — both `..._never_stops_an_ingest` params and both `..._never_reported_as_silence` params ✔ |
+| **I** — broad catch, but drop only the UNREADABLE branch (`return None`) | exactly the 2 silence cases | **2 failed, 14 passed** — exactly `..._never_reported_as_silence[[1, 2, 3]]` and `[…confidence…]` ✔ |
+| **J** — `exists()` instead of `is_file()` | 1 failure | **1 failed, 15 passed** — `test_a_source_pointing_at_a_directory_gets_a_typed_refusal` ✔ |
+| RESTORE | 16 passed | **16 passed** ✔ |
 
-- **AT-133** (high, ingest) — `load_sidecar` crashes the CLI on a sidecar shape its own docstring
-  promises to survive. **This is the FAIL.**
-- **AT-134** (medium, ingest) — a rejected sidecar degrades silently to the prompt asserting "no
-  speech detected" on a recording that has speech; nothing is logged.
-- **AT-135** (medium, ingest) — untyped refusals: `verify_source_bytes` raises a raw
-  `PermissionError` when the registered path is now a directory, and `_cache_key` now raises a bare
-  `FileNotFoundError` from `upload_and_wait` for a missing local file where the old size-key fell
-  through to the SDK-wrapping `try` that produces a `ProviderError`.
-- **AT-136** (low, ingest) — `Source.duration_s`, `Source.notes`, `FlowSpec.app_overview` remain
-  declared-and-unapplied.
-- **AT-137** (medium, ingest) — `RepoDocs.prompts_dir` behaviour depends on a hidden `_root_given`
-  flag; name the seam instead.
+The claimed separation is literally true. It is worth stating what it proves, because the maker
+over-claims it slightly: it proves the crash half and the silence half are defended by different
+tests, so a fix to either alone leaves a red test. It does not prove the tests are independent of
+the *implementation shape* — H is a superset of I by construction. The evidence supports the claim
+it is offered for.
 
-Status moved to `fixed`: **AT-125, AT-128, AT-129**. **AT-132** added as a row (found by the
-maker, fix verified here) at `fixed`. None move to `verified` — that takes a later re-check.
+## 5. Cycle-1 fixes — no regression
 
----
-
-## What a PASS needs next cycle
-
-Fix AT-133 only. Everything else here is a filed follow-up, and the four named bugs are closed.
-The cheapest correct fix also closes AT-134: catch the parse broadly, and say one line on stderr
-when a sidecar exists and could not be read.
+Re-measured live at `d9396d4`, not inferred from the green suite:
 
 ```
-VERDICT: FAIL
-SCOREBOARD: 3/4 in-scope invariants hold (I7, I9, I10 hold; I8 fails)
-FAILURES:
-- [I8] sev: high · a malformed sidecar escapes `except (OSError, ValueError)` and crashes
-  `autotester ingest run` (exit 1, AttributeError/TypeError), contradicting `load_sidecar`'s own
-  docstring guarantee · catch the parse broadly and warn on stderr instead of degrading silently ·
-  issue: AT-133
-ISSUES-WRITTEN: AT-133, AT-134, AT-135, AT-136, AT-137
-EXPLANATION: AT-125, AT-128, AT-129 and AT-132 are all genuinely closed — I drove the real CLI
-myself and measured VisionOptions(media_resolution='high') and the sidecar canary reaching the
-provider, and all four sabotage transcripts reproduce exactly. The unit fails on a new instance of
-its own thesis: load_sidecar declares in its docstring that a malformed sidecar must not stop an
-ingest, and two plausible malformed shapes crash the shipped CLI outright. The AT-132 design is
-ruled correct in effect (no production caller reaches the second branch) with the hidden
-_root_given flag filed as a follow-up rather than a blocker.
+AT-125  ingest run exit 0 · vision_options[0].media_resolution = 'high' · canary phrase in prompt: True
+AT-128  same-size re-export produces a DIFFERENT cache key: True
+AT-129  changed bytes -> SourceChanged naming both digests; deleted/dir path -> SourceChanged
+AT-132  RepoDocs().prompts_dir = D:\autoTesting\src\autotester\prompts under AUTOTESTER_ROOT=<temp>
+```
+
+`git diff --stat c4c878a HEAD -- src tests scripts` is three files: `gemini_files.py` (+3),
+`ingest.py`, `test_ingest_real_cli.py`. Nothing cycle 1 fixed was touched.
+
+## 6. The AT-108/AT-114 reconciliation — sound, not a reframe
+
+I checked the code and the contract rather than the maker's characterisation of them.
+
+- `stages/explore_node.py::capture` still **swallows** every exception and still returns `None` —
+  it was never changed to re-raise. What AT-114's fix added was `add_issue(… IssueKind.EVIDENCE,
+  f"could not screenshot this screen — {type(exc).__name__}: {exc}")`.
+- `qa/contracts/explore.md` amendment log, verbatim: *"`capture()` staying non-fatal was also
+  upheld: AT-114's defect is the SILENCE, not the survival."*
+- `_why()`/`_recover()` (AT-108) likewise keep going and record the cause.
+
+So the rule that sweep actually established is *never let a failure become a confident-looking
+silence* — not *always re-raise*. AT-134's fix is that rule at one layer up. **The reconciliation
+is sound.**
+
+One place it is *not* fully applied, and this is a new finding rather than a re-litigation: AT-108's
+other half is that the **cause is recorded** ("cause not recorded" is explicitly called the honest
+worst case, not the target). `load_sidecar`'s `except Exception` discards the exception entirely —
+no type, no message, nothing on stderr — so an operator running `autotester ingest run` gets no
+signal that a sidecar was present and unparseable, and the parse error that would tell them which
+key broke is gone. The model is told; the human is not. Cycle 1 asked for "one line on stderr naming
+the sidecar and the parse error". That half is unimplemented. It does not fail the unit — the
+defect as it mattered (a false assertion inside the ground-truth block) is closed, and this is a
+lower-severity, different consequence — but it is filed: **AT-138 (low)**.
+
+## 7. Adversarial probing of the new code
+
+| Case | Behaviour | Judgement |
+|---|---|---|
+| `Transcript(engine="unreadable")` **with** segments | `narration_block` returns the segments | Correct precedence — real narration beats a stale engine tag; unreachable from `load_sidecar`, which never mints that combination |
+| sidecar `{}` (empty object) | parses, `segments=[]`, engine `sidecar` → prompt asserts **"no speech detected"** | A confident silence claim from a file that says nothing either way — same class as AT-134, contrived trigger. **AT-139 (low)**, not a blocker |
+| sidecar `{"segments": [], "speech_seconds": 0}` | asserts "no speech detected" | **Correct** — this is exactly what a transcriber writes for a silent recording; the real corpus shape |
+| sidecar valid but for a DIFFERENT video | loads, narration injected, undetectable | Unchanged from cycle 1's ruling: `from_sidecar` stamps `source_id` from the `Source` and ignores any in-file id, so adjacency is the only binding and cannot disagree with itself. Design, not defect |
+| `except Exception` and `MemoryError` | `MemoryError` **is** an `Exception` and would be swallowed → the sidecar reads as unreadable and the ingest continues | Acceptable here: the fallback is honest, not an assertion, and the very next step uploads a video far larger than the sidecar, so a genuine OOM cannot stay hidden. `KeyboardInterrupt`/`SystemExit` are `BaseException` and correctly pass through — verified in the CLI probe, where `typer.Exit`'s `SystemExit` propagates normally |
+
+## 8. AT-136 / AT-137 — genuinely untouched, still open
+
+Confirmed by reading, not by the manifest's word: `Source.duration_s` and `Source.notes` are still
+written by nothing (`grep "duration_s=|notes="` in `src/` hits only `bench.py` and `execute.py`,
+different models); `FlowSpec.app_overview` is still written at `stages/ingest.py:237` and read by
+nothing; `core/paths.py:196,246` still carries `_root_given`. Neither file is in this commit's diff.
+
+---
+
+## ISSUES
+
+**Moved `open → fixed`:** AT-133, AT-134, AT-135.
+**Moved `fixed → verified`:** AT-125, AT-128, AT-129, AT-132 (this is the later re-check cycle 1
+said they needed; I re-measured each one live above).
+**Still open, untouched, correctly deferred:** AT-136, AT-137. Also unchanged from cycle 1's
+no-claims list: AT-126, AT-127, AT-130 (A3), AT-131, AT-123, AT-124.
+
+**ISSUES-WRITTEN (new):**
+
+- **AT-138 (low, ingest)** — `load_sidecar` discards the parse exception entirely; nothing on
+  stderr and no cause recorded anywhere, so a present-but-unreadable sidecar is invisible to the
+  operator. AT-108's rule ("cause not recorded" is the honest worst case, not the target) applies.
+- **AT-139 (low, ingest)** — a sidecar with no `segments` key (`{}`) is parsed as a valid empty
+  transcript via `raw.get("segments", [])` and the prompt then asserts "no speech detected" about a
+  recording nothing has established is silent — AT-134's class, from a malformed-file trigger.
+
+---
+
+```
+VERDICT: PASS
+SCOREBOARD: 4/4 in-scope invariants hold (I7, I8, I9, I10); 7/7 named issues closed
+FAILURES: none
+ISSUES-WRITTEN: AT-138, AT-139 (both low, both follow-ups, neither blocking)
+EXPLANATION: I re-ran my own cycle-1 AT-133 repros through the shipped CLI at d9396d4 — all four
+malformed sidecars now exit 0 and the prompt says the sidecar could not be read, while a genuinely
+absent sidecar still asserts silence, so the fix did not replace one wrong answer with another.
+AT-135's typed refusals hold in both paths and the SourceChanged message's suggested command still
+runs verbatim. Sabotages H/I/J reproduce with exactly the claimed 4/2/1 separation in a git-archive
+scratch copy, and the cycle-1 fixes (AT-125/128/129/132) all re-measure live with no regression.
+The AT-108/AT-114 reconciliation is sound on the evidence — capture() still swallows and the explore
+contract itself records that the defect was the silence, not the survival — with the one unapplied
+half (record the cause) filed as AT-138 rather than held against the unit.
 ```
