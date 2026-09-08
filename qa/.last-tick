@@ -338,3 +338,39 @@ NEXT: AT-141 + AT-115 (make C9 mean what it says). Measured and ready: T-126, T-
 have done_checks that exit 0 right now, before any of their work exists. AT-100's shape three
 times, not the twice AT-115 records.
 OPEN HUMAN GATES: AT-110 approval-forgery posture; ERP credentials (qa/gates/erp-credentials.md).
+
+## 2026-09-08 — tick: ADVANCED (12) — at147-at148 PASSED; AT-149/150 built same tick
+at147-at148 closed checked-PASS cycle 1 (verdict 73aebca). The checker probed 13 target variants
+and every one warned for the right reason, verified the midnight boundary to the second, and
+confirmed something I had ASSUMED rather than checked: store.add_approval has exactly ONE
+production caller and the UI has NO grant surface at all -- so _validate_grant covers 100% of the
+shipped grant path. My dispatch had asked whether the UI bypassed it; it does not exist.
+It also upheld my refusal to make is_expired inclusive as SOUND rather than over-cautious, while
+preferring end-of-day on the merits -- and correctly ruled it may not adopt that either. It raised
+qa/gates/at147-expiry-end-of-day.md for Umesh with a THIRD option neither of us saw: store new
+grants as <date>T23:59:59 -- intuitive meaning, ZERO retroactive widening, one line. It also named
+a sharp edge I missed: a grant issued at 23:50 with --expires <tomorrow> dies ten minutes later.
+Then two follow-ups, taken the same tick:
+AT-149 IS THE UNCOMFORTABLE ONE. AT-148 fixed a naive startswith in the HOST half of
+_warn_on_target_mismatch, and the identical bug survived ONE LINE BELOW IT in the path half --
+/apple-secrets silently accepted as under /app. I fixed a defect and reintroduced it in the same
+function in the same commit. "A prefix is only a containment if it ends at a separator" is the
+exact sentence AT-148 was about; I wrote it in a docstring and did not apply it to the next line.
+_is_under now says it once, in one place, so there is no second copy to forget.
+AT-150 is my overclaim: the manifest said the refusal "names the date"; it said the WORD
+"tomorrow" and printed none -- and my own test asserted only that the word appeared, so a refusal
+naming no usable date would have passed it. A test written against the message I MEANT rather than
+the message a reader gets.
+647 passed / 2 skipped, ruff + doctor clean. Sabotages S, T -> 2 each.
+METHOD, NOW HARDENED: sabotage T first reported ZERO failures because its anchor did not match and
+the patch applied nothing. THIRD APPEARANCE OF THAT TRAP IN TWO DAYS -- AT-140 cycle 1 (I nearly
+rewrote a correct test), the at140 checker from its own side, and here. The harness now asserts the
+anchor is present AND the file changed before any result is believed. A sabotage needs its own
+assertion, not just its own patch. Offered to the checker as a contract line, with the note that
+AT-131 was correctly ruled out of a FEATURE contract for being about method rather than artifact --
+so the question is whether it belongs in qa/loop.md instead, or nowhere.
+Checker dispatched this turn (no dangling ready-for-check). Asked it to attack _is_under with the
+cases I did not think of: `..` segments, percent-encoding, double slashes, an empty base path --
+urlparse normalises none of those, so a target can reach a different place than its path suggests.
+NEXT: AT-141 + AT-115 (make C9 mean what it says) -- the sweep's outstanding row.
+OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; NEW at147-expiry-end-of-day.
