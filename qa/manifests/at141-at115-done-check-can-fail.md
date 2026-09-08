@@ -114,4 +114,4 @@ uv run autotester doctor               doctor: clean
   before this unit began, and reopening it for a low advisory-only finding is exactly the drift that
   commitment exists to prevent.
 
-## Status: ready-for-check
+## Status: checked-PASS

@@ -40,7 +40,17 @@ def check_contains(pairs: list[list[str]]) -> list[str]:
         path = _resolve(path_str)
         if not path.exists():
             failures.append(f"missing: {path_str}")
-        elif needle not in path.read_text(encoding="utf-8"):
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            # AT-157: a directory or a binary raised an unhandled traceback.
+            # It still exited non-zero, so nothing unsafe -- but a done_check
+            # that dies with a stack trace tells its reader nothing about what
+            # is missing, which is the whole job.
+            failures.append(f"{path_str} is not readable text ({type(exc).__name__})")
+            continue
+        if needle not in text:
             failures.append(f"{path_str} does not mention {needle!r}")
     return failures
 
