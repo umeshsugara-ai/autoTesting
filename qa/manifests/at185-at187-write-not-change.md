@@ -85,4 +85,4 @@ backticks live in different AST nodes. **AT-178** — un-backticked advice at `c
 **AT-174** — the checker *designed* the causal oracle I said could not exist: trigger the refusal,
 run the quoted command as rendered, assert it stops firing. Those three are one unit, and it is next.
 
-## Status: ready-for-check
+## Status: checked-PASS

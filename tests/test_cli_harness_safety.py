@@ -35,11 +35,20 @@ def root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     return tmp_path
 
 
-WATCHED_DIRS = ("docs", "qa", "src", "scripts", "projects")
-"""AT-187: the first version watched `docs/` and the repo root only, while
-`projects/<slug>/` is where the CLI actually writes. `.goal/` is deliberately
-excluded — the /goal monitor rewrites its timestamp every few minutes, so
-including it would make this test fail on the clock rather than on a command."""
+WATCHED_DIRS = ("docs", "src", "scripts", "projects")
+"""Where a CLI command could plausibly write, and nowhere that a timer does.
+
+AT-187: the first version watched `docs/` and the repo root only, while
+`projects/<slug>/` is where the CLI actually writes.
+
+AT-189, and it is an inconsistency inside one commit: I excluded `.goal/`
+because the goal monitor rewrites it every few minutes, then added `qa/` — which
+the maker-checker pair's own automation rewrites on the same kind of timer
+(`.last-tick`, `issues.jsonl`, `verdicts/`, `.last-sweep`). 207 of the 1258
+watched files were under `qa/`, **no CLI code writes there at all**, so it
+bought nil detection and a real chance of this suite failing because a maker
+tick landed mid-run. The rule I applied to `.goal/` and not to `qa/` is the
+same rule; it is applied to both now."""
 
 
 def _repo_fingerprint() -> dict[str, tuple[int, int, str]]:
