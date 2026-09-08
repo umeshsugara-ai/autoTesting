@@ -696,3 +696,14 @@ NEXT after verdict: T-133 (Track A4 -- ensemble, adjudication, Issue derivation,
 Corpus facts for it already measured in .work/track-a-corpus-facts.md, including four that would
 each silently produce a recall of ZERO.
 OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
+
+## 2026-09-08 — checker crash on at172-at173 (cycle 1), re-dispatching
+The AT-172/173 checker terminated on an API ENOTFOUND after its first tool call. It wrote NO
+verdict: qa/verdicts/at172-* does not exist and the tree is clean apart from .goal churn. Handled
+per the standing rule -- A CRASHED CHECKER IS NOT A VERDICT AND NOT A FIX CYCLE. The manifest stays
+at Fix cycle 1 / ready-for-check and the check is re-dispatched unchanged.
+Fourth crash handled this way this session (t124 cycle 2 ENOTFOUND, AT-113 HTTP 429, at125-at132
+auth, this one ENOTFOUND). Worth noting what that record shows: the file-based handshake has now
+absorbed four infrastructure failures without losing a single verification. If the maker-checker
+exchange lived in agent memory, each would have silently dropped one.
+Sweep also due (qa/.last-sweep 14:41, ~4.5h against a 2h threshold) -- dispatched in the same turn.
