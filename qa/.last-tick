@@ -730,3 +730,52 @@ worse than none. Also asked it to name any surface where the blind spot is still
 No unit closed this tick -- stating that plainly rather than counting two dispatches as progress.
 NEXT: close out at172-at173 on its verdict, then T-133 (Track A4).
 OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
+
+## 2026-09-08 — tick: ADVANCED (22) — sweep answered the question; AT-177 built
+THE SWEEP ANSWERED THE QUESTION I ASKED ABOUT MYSELF, AND THE ANSWER IS NO. The rate is NOT falling.
+Instances per unit across 16 consecutive units: 1-2 for the first seven, 2-4 in the middle, 6 and 4
+for the last two -- FLAT TO RISING while unit size FELL. No unit since at113 has come back clean of
+this class. Decisively: BOTH ADOPTED COUNTERMEASURES PRODUCED FRESH INSTANCES OF THE CLASS INSIDE
+THEMSELVES -- at140 was built to close "no test drives the shipped CLI" and its cycle-1 test globbed
+the wrong path (AT-143); at154-at157 was built for C9 and shipped a test that could not detect
+deletion of its own exemption clause (AT-160).
+What genuinely improved is DETECTION LATENCY (sweep-found hours later -> unit-checker-found in the
+same cycle) and, once, FIX RADIUS. RECOGNITION IMPROVED; PREVENTION DID NOT MOVE. That is the
+honest finding and I am recording it as the sweep wrote it, not softening it.
+Sweep also: ledger 126 verified / 50 open / 0 fixed, goal 30/45, 700 passed, MAP and SNAPSHOT both
+re-derived byte-identical, bypass clean across 15 commits, three gates open and all accurate on
+disk (erp-credentials confirmed genuinely unanswered -- projects/erp/ has no .env at all).
+Its fixed-backlog pass cleared 11 by execution with 14 sabotages; AT-159 and AT-135 came back
+INCONCLUSIVE, were correctly NOT called vacuous, and were caught on a strengthened mutation. C7's
+clause did real work in someone else's hands.
+Built at177-cli-surface (commit 81efef9, ready-for-check) from the sweep's top row: 15 of 22 shipped
+commands had NO test driving them, including flowspec approve -- the human review gate I6 protects
+-- and all three report commands, the exact reader surfaces AT-120..AT-123 were filed against.
+A smoke matrix over all 22, walked from click's OWN TREE so a command added tomorrow is covered
+without anyone remembering to add it, plus focused tests on the surfaces that carry a decision.
+734 passed / 2 skipped, ruff + doctor clean.
+C7 CAUGHT TWO OF MY CLAIMS INSIDE THIS ONE UNIT: (1) I wrote that the matrix "would have caught
+AT-166" -- it would not; with nonexistent arguments every command short-circuits in ARGUMENT
+VALIDATION long before that bug's stage, and the sabotage came back INCONCLUSIVE. I verified which
+test actually catches it (the targeted one) and corrected the docstring. (2) my repo-level test
+asserted only "no traceback", so adding a required argument to `doctor` -- which would break the
+project's own verify step -- was also INCONCLUSIVE, because a missing argument is a USAGE error and
+prints no traceback. Now uses the banner oracle measured for AT-171.
+One test failure was MY bug and the code was right: flowspec request-edit requires --by as well as
+--note, which is correct -- taking an approval back is also a decision someone made.
+AND THE at172-at173 CHECKER RAN THE SABOTAGE I DID NOT. Pointing PREP_COMMAND back at the dead
+`autotester media prep` -- THE CANONICAL AT-163 SITE -- yields ZERO failures in my structural guard;
+only the pre-existing INSTANCE test catches it. Measured cause: the command name lives in the
+PREP_COMMAND constant and its backticks in a separate f-string, so they are DIFFERENT AST NODES and
+the collector cannot see the pair. My claim that it "finds every backtick-quoted autotester string"
+is OVERSTATED. The checker raised AT-176 to HIGH and amended the contract to say the instance test
+is NOT made redundant and may not be retired.
+That is the session's class INSIDE THE GUARD BUILT TO STOP THE SESSION'S CLASS -- exactly what the
+sweep predicted one tick earlier. NEXT UNIT, not deferred quietly.
+THE CHECKER ALSO DESIGNED THE ORACLE I SAID I COULD NOT FIND (AT-174): my premise held only for
+STATIC oracles. Test the message's CAUSAL PROMISE -- trigger the refusal, run the quoted command as
+rendered, assert it stops firing. `ingest prep` passes; `ingest frames`, the same-arity sibling that
+defeated the banner oracle, fails. That is a better answer than mine and it goes in with AT-176.
+NEXT: AT-176 + AT-178 + the AT-174 causal oracle as one unit -- make the guard actually guard its
+class. Then T-133.
+OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
