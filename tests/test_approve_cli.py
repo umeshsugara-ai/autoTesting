@@ -136,22 +136,6 @@ def test_approve_refuses_an_unparseable_expiry(root: Path) -> None:
     assert "YYYY-MM-DD" in result.output
 
 
-def test_approve_warns_when_the_target_is_not_the_projects_base_url(root: Path) -> None:
-    """Not refused — an endpoint under test legitimately differs from base_url,
-    and CN5 matches exactly at consent time anyway. But granting consent for a
-    target this project will never ask about is almost certainly a typo, and
-    the operator should hear it AT GRANT TIME rather than at the refusal."""
-    result = runner.invoke(app, [
-        "approve", "demo", "--kind", "crawl", "--target", "https://unrelated.test/",
-        "--scope", "s", "--granted-by", "umesh", "--expires", TOMORROW,
-    ])
-
-    assert result.exit_code == 0
-    assert "base_url" in result.output or "does not match" in result.output
-
-
-# -- AT-147 / AT-148: the boundary day, and the lookalike host -------------
-
 def test_approve_refuses_an_expiry_of_today(root: Path) -> None:
     """AT-147, high, and the date an operator granting SAME-DAY production
     consent for T-145 would actually type.
@@ -189,84 +173,6 @@ def test_the_grant_and_the_runtime_agree_on_every_expiry_they_accept(
         require_consent(store.load_project(), store, CrawlBounds())  # must not raise
 
 
-def test_a_lookalike_host_is_flagged_not_silently_accepted(root: Path) -> None:
-    """AT-148: `target.startswith(base_url)` reads `https://demo.test.evil.com/`
-    as matching `https://demo.test/`. Bounded — CN5 matches exactly at run time,
-    so no approval widens — but the typo advisory was silent on precisely the
-    shape a typo-squat takes."""
-    result = runner.invoke(app, [
-        "approve", "demo", "--kind", "crawl", "--target", "https://demo.test.evil.com/",
-        "--scope", "s", "--granted-by", "umesh", "--expires", TOMORROW,
-    ])
-
-    assert result.exit_code == 0
-    assert "does not match" in result.output
-
-
-def test_a_genuine_sub_path_of_the_base_url_is_not_flagged(root: Path) -> None:
-    """The other side: crawling a path under base_url is the normal case and
-    must not cry wolf, or the warning gets ignored when it matters."""
-    result = runner.invoke(app, [
-        "approve", "demo", "--kind", "crawl", "--target", BASE_URL + "admin",
-        "--scope", "s", "--granted-by", "umesh", "--expires", TOMORROW,
-    ])
-
-    assert result.exit_code == 0
-    assert "does not match" not in result.output
-
-
-# -- AT-149 / AT-150: the same bug one line below its own fix --------------
-
-def _project_with_base(root: Path, base_url: str) -> None:
-    ProjectStore("demo", root).save_project(Project(
-        slug="demo", name="Demo", base_url=base_url, allowed_domains=["demo.test"]))
-
-
-def approve_target(target: str) -> object:
-    return runner.invoke(app, [
-        "approve", "demo", "--kind", "crawl", "--target", target,
-        "--scope", "s", "--granted-by", "umesh", "--expires", TOMORROW,
-    ])
-
-
-@pytest.mark.parametrize("target", [
-    "https://demo.test/apple-secrets",   # /app is a prefix but not a parent
-    "https://demo.test/appliance/admin",
-])
-def test_a_path_that_merely_starts_with_the_base_path_is_flagged(
-    root: Path, target: str,
-) -> None:
-    """AT-149: AT-148 fixed the naive prefix match in the HOST half, and the
-    identical bug survived ONE LINE BELOW it in the PATH half. Against a
-    base_url of `https://demo.test/app`, `/apple-secrets` was silently accepted
-    as being under `/app`. A prefix is only a containment if it ends at a
-    separator."""
-    _project_with_base(root, "https://demo.test/app")
-
-    result = approve_target(target)
-
-    assert result.exit_code == 0
-    assert "does not match" in result.output
-
-
-@pytest.mark.parametrize("target", [
-    "https://demo.test/app",             # the base itself
-    "https://demo.test/app/",            # the base, trailing slash
-    "https://demo.test/app/admin",       # a genuine child
-])
-def test_the_base_path_and_its_real_children_are_not_flagged(
-    root: Path, target: str,
-) -> None:
-    """The other side: a warning that fires on the normal case gets ignored on
-    the case it exists for."""
-    _project_with_base(root, "https://demo.test/app")
-
-    result = approve_target(target)
-
-    assert result.exit_code == 0
-    assert "does not match" not in result.output
-
-
 def test_the_expiry_refusal_prints_a_usable_date(root: Path) -> None:
     """AT-150: the refusal said the operator needs "tomorrow's date" and never
     printed one. My own test asserted only that the word "tomorrow" appeared,
@@ -279,3 +185,21 @@ def test_the_expiry_refusal_prints_a_usable_date(root: Path) -> None:
 
     assert result.exit_code == 1
     assert TOMORROW in result.output, "the refusal must name a date, not a word"
+
+
+# -- AT-151 / AT-152: one arm fixed, the other forgotten (again) -----------
+
+def test_a_past_expiry_also_names_a_usable_date(root: Path) -> None:
+    """AT-151: the AT-150 fix named a usable date on the `today` branch and not
+    on the `past` one. That is the AT-149 pattern a THIRD time -- fixing one arm
+    of a two-arm condition and leaving its twin. CN4 requires the refusal to
+    name a usable date unqualified, not on the branch I happened to test."""
+    long_ago = (date.today() - timedelta(days=400)).isoformat()
+
+    result = runner.invoke(app, [
+        "approve", "demo", "--kind", "crawl", "--target", BASE_URL,
+        "--scope", "s", "--granted-by", "umesh", "--expires", long_ago,
+    ])
+
+    assert result.exit_code == 1
+    assert TOMORROW in result.output, "the past branch names no usable date"

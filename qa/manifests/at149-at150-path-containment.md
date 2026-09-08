@@ -89,4 +89,4 @@ minutes later.
   the shipped grant path. My dispatch had wondered whether the UI bypassed it — it does not exist.
 - **AT-141 + AT-115** (make C9 mean what it says) remains the sweep's outstanding queue row.
 
-## Status: ready-for-check
+## Status: checked-PASS

@@ -160,12 +160,15 @@ def _validate_grant(expires: str, target: str, proj: Any) -> None:
         # only that the word appeared, so a refusal that never named a usable
         # date would have passed it.
         usable = (date.today() + timedelta(days=1)).isoformat()
-        when = "already in the past" if expiry < date.today() else (
-            f"today — consent expires at the START of the named day, so a run "
-            f"today needs --expires {usable}")
+        # AT-151: the AT-150 fix named a usable date on the `today` branch and
+        # not on the `past` one -- the AT-149 pattern a third time, fixing one
+        # arm of a two-arm condition. Both arms now end at the same sentence,
+        # so there is no arm left to forget.
+        cause = ("already in the past" if expiry < date.today() else
+                 "today, and consent expires at the START of the named day")
         typer.secho(
-            f"--expires {expires} is {when}; this grant would refuse every run "
-            f"it was asked about",
+            f"--expires {expires} is {cause}; this grant would refuse every run "
+            f"it was asked about — use --expires {usable} or later",
             fg=typer.colors.RED)
         raise typer.Exit(1)
     _warn_on_target_mismatch(target, proj)
@@ -179,6 +182,12 @@ def _is_under(path: str, base: str) -> bool:
     `https://demo.test/app`, both `/apple-secrets` and `/appliance/admin` were
     silently accepted as being under `/app`. A prefix is only a containment if
     it ends at a separator."""
+    if ".." in path.split("/"):
+        # AT-152: `urlparse` normalises nothing, so `/app/../evil` reads as
+        # contained while resolving to `/evil`. Anything that can climb out is
+        # not "under" anything -- refuse to vouch for it rather than guess
+        # where it lands.
+        return False
     stem = base.rstrip("/")
     return path in (stem, base) or path.startswith(stem + "/")
 
