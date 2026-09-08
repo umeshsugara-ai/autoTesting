@@ -152,3 +152,30 @@ recording has a sidecar.
   make deleting it look like tidying up. Residuals tracked as AT-176 (high) and AT-178 (medium);
   AT-174 stays open with a round-trip oracle design attached in the verdict. Verdict:
   `qa/verdicts/at172-at173-dead-command-shape.md`.
+
+- 2026-09-09 · routine · **Edge cases recorded from the cycle-1 check of
+  `at176-at178-render-not-scan` (PASS).** No criterion changed. AT-176, AT-178, AT-174 and AT-189
+  are all closed by measurement: sabotage AY (`PREP_COMMAND` back to the dead `media prep`, anchor
+  matched once, file changed, isolated worktree) now fails **3** tests in the class-level guard and
+  **4** in the full suite, where at `3b765a4` it failed **0** and **1**; the collected surface is
+  **9 sites / 7 distinct commands**, including `ingest prep` and the un-backticked
+  `core/consent.py` advice. **VL1d now has a causal oracle** — trigger the refusal, run the command
+  the *runtime message* renders, assert the refusal stops — and it discriminates the registered
+  same-arity sibling that the `Usage:`-banner oracle accepts (sabotage AZ fails exactly 2, and the
+  only static test among them is the collector's own). The checker verified the discrimination is
+  carried by the unconditional `require_prepared` backstop and not by the sibling incidentally
+  erroring: a probe sibling that exits 0 and writes no `media.json` still leaves the refusal firing.
+  **Measured residuals, recorded not tightened:** (i) the collector resolves constants defined in
+  the *same file* only, so the identical construction with `PREP_COMMAND` **imported** returns `[]`
+  — AT-176's shape one `import` away (AT-192, medium; zero live instances); (ii) the documentation
+  exclusion covers `ast.Expr(Constant)` only, so a bare **f-string or `+`-concatenated**
+  documentation statement is read as advice, including this codebase's own variable-docstring
+  convention (AT-193, medium; measured zero live instances under `src/autotester`); (iii) an
+  unresolvable interpolation is dropped **silently** rather than surfaced, so "no advice here" and
+  "advice I could not read" are indistinguishable at the API (AT-195, low); (iv) a literal lowercase
+  argument is swallowed into the command by the regex (AT-194, low). None is a shipped defect — the
+  criterion is met by the shipped message, which the checker ran for real — and none is written into
+  VL1d at the moment of a passing verdict. Non-Python operator surfaces under `src/` were re-checked
+  and are empty: no `autotester <cmd>` advice in any `.md`, `.html` or `.js`, and `ui/`'s only
+  mention is a module docstring, correctly excluded. Verdict:
+  `qa/verdicts/at176-at178-render-not-scan.md`.

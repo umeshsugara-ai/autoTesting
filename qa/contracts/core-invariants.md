@@ -162,3 +162,27 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   strong as the contract criterion it closes") is where an executed check belongs, and it is the
   sweep's obligation, not `tests/`. Tightening only — it names one more file and weakens nothing, so
   it applies under the routine gate.
+- 2026-09-09 · routine · **Edge cases recorded from the cycle-1 check of `at176-at178-render-not-scan`
+  (PASS).** No criterion changed. (i) **C7's Verify clause names `uv run pytest -q`, and one member
+  of that suite is non-deterministic.**
+  `tests/test_explore_live.py::test_the_dialog_page_does_not_trap_the_crawl` asserts
+  `status.value in ("aborted_dialog","explored")`; `NodeStatus`'s third terminal value,
+  `ABORTED_ERROR`, is what a loaded host produces, and the maker observed exactly that once. The
+  checker confirmed it is a flake and not a regression — `git show --stat e2f119f` touches `tests/`
+  and `.goal/` only, so no explore code changed — over 7 consecutive clean runs (3 full suites,
+  3 isolated runs of the file, and 1 isolated run executed concurrently with a second full suite).
+  **The clause is not weakened and slot-1 is not re-scoped:** the failure direction is a false FAIL
+  on a busy machine, never a false PASS, so no verdict already given rests on it. Recorded (AT-196)
+  so the next maker or checker meeting an unrelated red suite reads this instead of learning to
+  re-run until green. (ii) **The generalisation, stated narrowly**, because the maker's version
+  ("every live test asserting one exact terminal `NodeStatus`") over-reaches — this test asserts
+  membership in a *two*-element set, and the defect is not the arity: **a live test must assert the
+  invariant it is named for, not enumerate the outcomes its author happened to observe.** Here "does
+  not trap the crawl" is already fully carried by `crawl.finished_at is not None` on the preceding
+  line; a node reaching *some* terminal status is the property, and which one is environment.
+  (iii) **A sabotage's failure COUNT is a delta, not a suite total, and both are worth stating.**
+  Sabotage AY yielded 4 full-suite failures where the manifest reported 3 — the manifest named the
+  three newly-catching tests correctly and omitted the pre-existing instance test that already
+  caught the same mutation at `3b765a4`. Accurate as a delta, and C7's "pastes real output" is met;
+  noted so the next reader compares like with like. Verdict:
+  `qa/verdicts/at176-at178-render-not-scan.md`.

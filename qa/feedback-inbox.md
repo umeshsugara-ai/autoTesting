@@ -537,3 +537,5 @@ terminal `NodeStatus` — X8's breaker is a race by construction, so asserting o
 asserting the race resolved a particular way. A checker should decide whether these assert a SET of
 acceptable statuses, gain a retry, or move behind a marker that keeps them out of the adapter's
 verify command.
+
+**FOLDED:** 2026-09-09 · checker of `at176-at178-render-not-scan` cycle 1 → `qa/contracts/core-invariants.md` C7 amendment log (routine) + ledger **AT-196** (medium). Ruling: confirmed a genuine flake, not a regression (no `stages/explore*.py` change in `e2f119f`; 7 consecutive clean runs including one under concurrent full-suite load). The `APPLIES NEXT` generalisation is upheld in substance but **narrowed**: the defect is not "pins one exact terminal status" — this test already allows two — it is that the test enumerates observed outcomes instead of asserting the invariant it is named for, which `crawl.finished_at is not None` already carries. No retry and no marker: keeping it inside the adapter's verify command is right, because its failure direction is a false FAIL, never a false PASS. Verdict: `qa/verdicts/at176-at178-render-not-scan.md`.
