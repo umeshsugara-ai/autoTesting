@@ -12,7 +12,7 @@ from pathlib import Path
 
 from autotester.core.paths import ProjectPaths
 from autotester.schema.crawl import Crawl, CrawlIssue
-from autotester.schema.enums import EdgeOutcome
+from autotester.schema.enums import EdgeOutcome, NodeStatus
 from autotester.schema.flowspec import FlowSpec, Screen
 from autotester.schema.screen_graph import ScreenEdge, ScreenNode
 from autotester.stages.crawl_report import crawl_summary
@@ -25,6 +25,14 @@ _REFUSED = (
     EdgeOutcome.OFF_DOMAIN_REFUSED,
 )
 _STOP_TONE = {"frontier empty": "positive"}
+# AT-113: an aborted node used to render the same neutral gray pill as a fully
+# explored one, so a partial crawl looked identical to a complete one at a
+# glance. A human reading the screen tree must see the difference immediately.
+_NODE_STATUS_TONE = {
+    NodeStatus.ABORTED_ERROR: "danger",
+    NodeStatus.ABORTED_DIALOG: "danger",
+    NodeStatus.EXPLORED: "positive",
+}
 
 
 def summary_stats(crawl: Crawl) -> str:
@@ -81,6 +89,7 @@ def screen_tree(slug: str, crawl: Crawl, nodes: list[ScreenNode],
             f"{escape(names.get(edge.from_node, edge.from_node))}</span>"
             if edge else "<span class='meta'>entry point</span>"
         )
+        tone = _NODE_STATUS_TONE.get(node.status, 'neutral')
         flags = []
         if node.console_errors:
             flags.append(theme.pill(f"{len(node.console_errors)} console", "danger"))
@@ -90,7 +99,7 @@ def screen_tree(slug: str, crawl: Crawl, nodes: list[ScreenNode],
             f"<li class='crawl-node' style='--depth:{node.depth}'>"
             f"{_thumb(slug, crawl.id, node)}"
             f"<span class='crawl-node-body'><strong>{escape(names[node.id])}</strong> "
-            f"{theme.pill(escape(node.status.value), 'neutral')} {''.join(flags)}<br>"
+            f"{theme.pill(escape(node.status.value), tone)} {''.join(flags)}<br>"
             f"<code>{escape(node.url_template)}</code> "
             f"<span class='meta'>depth {node.depth}</span><br>{via}</span></li>"
         )

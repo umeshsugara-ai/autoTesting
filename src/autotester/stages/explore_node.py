@@ -178,8 +178,22 @@ def _candidate_denial(rt: ExploreRuntime, node: ScreenNode, el: ElementRef) -> b
 
 
 def visit_node(rt: ExploreRuntime, node: ScreenNode) -> None:
-    """Try every allowed candidate on `node`, bounded by the per-node cap."""
+    """Try every allowed candidate on `node`, bounded by the per-node cap.
+
+    AT-113 (checker-found, gated T-145): a node the crawl could never get back
+    to used to be marked ABORTED_ERROR with NO issue filed, and — mid-loop —
+    the same failure recorded an edge but then fell through to EXPLORED
+    anyway. Neither surfaced anywhere a human would look: the crawl still
+    reported `status=completed`, `stop_reason='frontier empty'`, `issues=0`,
+    and the unreachable node entered the FlowSpec via `merge_screens` as an
+    ordinary screen — a partial crawl indistinguishable from a complete one,
+    which is the one failure mode a live production run can least afford.
+    Both paths now file a NAVIGATION issue and the node's final status always
+    matches what actually happened to it.
+    """
     if not return_to(rt, node):
+        add_issue(rt, node.id, IssueKind.NAVIGATION,
+                  "could not return to this screen before exploring it — abandoned unexplored")
         _mark(rt, node, NodeStatus.ABORTED_ERROR)
         return
     tried = 0
@@ -198,5 +212,8 @@ def visit_node(rt: ExploreRuntime, node: ScreenNode) -> None:
         if not return_to(rt, node):
             record_edge(rt, node, el, Action.BACK, EdgeOutcome.ERRORED,
                         "could not return to this screen")
-            break
+            add_issue(rt, node.id, IssueKind.NAVIGATION,
+                      "lost this screen mid-exploration — remaining controls not tried")
+            _mark(rt, node, NodeStatus.ABORTED_ERROR)
+            return
     _mark(rt, node, NodeStatus.EXPLORED)
