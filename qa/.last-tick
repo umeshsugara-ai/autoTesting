@@ -207,3 +207,28 @@ No unit closed this tick -- stating that plainly rather than counting the dispat
 NEXT: close out at125-at132 on its cycle-2 verdict, then T-132 (Track A3, host media prep) using
 the corrected C:/Users/Lenovo/Videos/Screen Recordings corpus paths.
 OPEN HUMAN GATES: AT-110 approval-forgery posture; ERP_EMAIL/ERP_PASSWORD for T-122/T-145.
+
+## 2026-09-08 — tick: ADVANCED (8) — at125-at132 closed on cycle-2 PASS
+Closed out at125-at132-declared-but-unapplied (checker PASS cycle 2, commits 45e9a21 + d9639d4,
+pushed). AT-125/128/129/132 promoted open->fixed->VERIFIED by the checker's own re-execution;
+AT-133/134/135 -> fixed.
+The AT-108/AT-114 reconciliation I offered was ruled SOUND rather than a convenient reframe -- and
+on evidence I had not cited: qa/contracts/explore.md already states verbatim that "AT-114's defect
+is the SILENCE, not the survival". The rule I argued for was the rule the contract already carried.
+ONE CORRECTION TO MY OWN MANIFEST, kept rather than dropped: I claimed the H/I/J sabotage
+separation proves both halves of AT-133/AT-134 are independently defended. H is a SUPERSET of I by
+construction, so that pair proves less than I said; it is I and J that carry the independence.
+New and both low: AT-138 (load_sidecar discards the parse exception -- the MODEL is told the
+sidecar was unreadable, the OPERATOR never is; my own AT-108 "record the cause" rule unapplied one
+level up, and the half of the checker's cycle-1 direction I did not implement) and AT-139 (a
+sidecar of {} parses as a valid EMPTY transcript, so the prompt asserts silence about a recording
+nothing established as silent -- AT-134's exact shape through a different door).
+NO NEW UNIT STARTED THIS TICK, deliberately. The overdue sweep dispatched last tick is still
+running and is about to rewrite qa/QUEUE.md, whose top row is the first entry in the backlog
+priority order -- picking a unit before it lands would be choosing against the queue I just asked
+for. It also runs the full suite, so editing src underneath it is the same tree churn I refuse for
+unit checkers. Deviating from the ADVANCED->60s rule for that reason, stated rather than silent.
+NEXT: take the sweep's top-3 queue. Standing candidates if it surfaces nothing better -- T-132
+(Track A3, host media prep, corrected C:/Users/Lenovo/Videos/Screen Recordings paths) and the
+AT-138/AT-139 pair, which are one shape and one file.
+OPEN HUMAN GATES: AT-110 approval-forgery posture; ERP_EMAIL/ERP_PASSWORD for T-122/T-145.
