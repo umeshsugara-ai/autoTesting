@@ -150,20 +150,30 @@ name, **both screens survive** and a `Conflict` records both claims with both `s
 merge never picks a winner and never overwrites: silently resolving is how a product map stops
 matching the product. The same conflict is not recorded twice on a re-merge.
 
-**Deliberate exception, judged and UPHELD by the checker (2026-09-08):** two screens found by the
-**same** crawl that share a `url_pattern` are **not** a conflict. X3 requires two states at one URL
+**Deliberate exception, judged and UPHELD by the checker (2026-09-08), and WIDENED from "the same
+crawl" to "both claims are structural" (2026-09-08, at103-conflict-scope):** two screens that both
+carry a *structural* identity and share a `url_pattern` are **not** a conflict, however many crawls
+found them. X3 requires two states at one URL
 offering different controls to be TWO screens; a single source correctly modelling an SPA is not
 two sources disagreeing, and raising a `Conflict` there would file a false one on every SPA in
 every product. Verified live on the fixture site: 7 screens across 6 url patterns, 0 conflicts.
 A `Conflict` means *sources disagree*, not *patterns collide* — this criterion pins that meaning.
 
+Only a claim with **no** structural identity — a human's or an ingested video's screen, which
+asserts a URL and nothing more — can be contradicted by a crawl. **AT-103 is CLOSED by this
+scoping** (`_is_structural` / `_disagreement`, `stages/explore_merge.py`).
+
 **Two residuals of the current rule, tracked rather than written out of it** (neither is a
 violation of this criterion as written; both are ledger issues to be closed by a later unit):
 **AT-102** — the clash test is `clash.name != incoming.name`, so a re-discovered screen at a known
 pattern under the *same* name is added as a silent duplicate with no `Conflict` to explain it;
-**AT-103** — the same-crawl exemption does not extend across crawls, so a second SPA state
-discovered by a *later* crawl at a pattern an earlier crawl already merged does file a `Conflict`
-that is not a disagreement. The exemption is right; its scope is one crawl rather than one source.
+**AT-109** — the price of scoping on identity: a **genuine product change** (a later crawl finding
+a structurally different screen at a pattern an earlier crawl claimed) is now silently two screens
+and files no `Conflict`, so the stale screen is kept forever with nothing marking it stale. That
+trade is deliberate — at this layer a product change and an SPA re-crawl are the same shape, and
+the alternative fires a false conflict on every SPA state on every re-crawl — and it costs no data
+(both screens survive, `Review` still resets to DRAFT). The remedy is a *different* mechanism,
+last-seen/staleness on `Screen`, not a re-narrowing of the exemption.
 
 ### X15 — `Screen.url_pattern` is a host-less path, not the node's browsing template
 `ScreenNode.url_template` carries a host (it is a browsing identity); `Screen.url_pattern` is a
@@ -232,3 +242,17 @@ page does not surface them.
   false conflict) recorded in the criterion rather than left implicit; **X16 was tightened** to say
   where noise is auditable and to record AT-105 (the crawl page omits it) as a tracked gap rather
   than letting the criterion read clean. The maker's offered no-fire list is folded in above.
+
+- 2026-09-08 · routine · **X14's exception re-scoped** from "the same crawl" to "both claims carry
+  a structural identity", by /checker at unit `at103-conflict-scope` (commit `ef881b9`, verdict
+  `qa/verdicts/at103-conflict-scope.md`). This is what X14's own AT-103 residual paragraph
+  prescribed on 2026-09-07 — *"the exemption is right; its scope is one crawl rather than one
+  source"* — so it records a change the criterion asked for rather than softening one to pass an
+  artifact. Verified by the checker against the pre-fix module (`git show a195fbf:…`) run beside
+  HEAD: the same SPA pair merged as crawl 1 then crawl 2 gives `conflicts=1` before and
+  `conflicts=0` after, `screens=2` both sides. X14's core is unchanged and re-proven by sabotage —
+  suppressing conflicts wholesale (`_is_structural → return True`) fails three tests, including
+  `test_a_human_authored_claim_is_still_contradicted_by_a_crawl`. **AT-103 removed from the
+  residual list (closed); AT-109 added** — the cost of the new scope, stated inside the criterion
+  rather than left implicit. No criterion is removed or weakened; X1-X13, X15, X16 are
+  byte-unchanged.
