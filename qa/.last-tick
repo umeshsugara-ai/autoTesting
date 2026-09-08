@@ -112,3 +112,38 @@ section 4 A2 assigns it here (lazy import, nothing exercises it yet -- checker t
 model call anywhere in this unit, every test on MockProvider.
 NEXT after verdict: T-132 (Track A3, host media prep) or the AT-123/AT-124 pair if a track blocks.
 OPEN HUMAN GATES: AT-110 approval-forgery posture; ERP_EMAIL/ERP_PASSWORD for T-122/T-145.
+
+## 2026-09-08 — tick: ADVANCED (5)
+Closed out t131-ingest-persists (checker PASS cycle 1, I6-I10 authored, ledger row F-037 with the
+checker's prefilled reason, SNAPSHOT regenerated, goal 64%). Both rulings I asked for went against
+me: google-genai IS a real plan deviation (AT-130, close in A3 -- my "nothing exercises it" reason
+was half wrong; uv.lock shows it resolves ONLY as a transitive pin of langchain-google-genai,
+which is the hazard a direct declaration prevents, and I never looked at the dependency graph),
+and the git-checkout hygiene line was upheld in substance but refused in a FEATURE contract
+(a contract judges the artifact, not how the maker held the tools) -> AT-131.
+Built at125-at132-declared-but-unapplied (commit c4c878a, ready-for-check): four bugs in code I
+shipped LAST tick, one shape -- something declared, plumbed, and never applied by the path that
+ships. AT-125 (no shipped caller passed VisionOptions), AT-128 (upload cache keyed on a colliding
+size), AT-129 (Source.sha256 never re-validated), AT-132 (found by my OWN test: AUTOTESTER_ROOT,
+a DATA switch, moved the PROMPT lookup -- every prompt-reading stage was one env var from
+FileNotFoundError). Also fixed an unfiled twin of AT-125: build_ingest_prompt took a transcript
+and no caller passed one, so {{NARRATION}} rendered "no speech detected" on every real ingest.
+614 passed / 2 skipped, ruff + doctor clean. Five sabotages, each biting its own tests.
+THE PATTERN, NOW FOURTH CONSECUTIVE UNIT: AT-116, AT-120, AT-122, AT-125 all have one cause -- I
+verify the mechanism I changed, not what a production run does. COUNTERMEASURE ADOPTED, not just
+noted: tests/test_ingest_real_cli.py drives the shipped CLI end to end, and it found AT-132 (a
+latent production trap) within minutes -- something four units of function-level tests could not.
+Every future unit touching a shipped entry point gets a real-entry-point test.
+TWO SELF-CORRECTIONS: my first AT-132 fix was too blunt (package-always) and broke 15 ledger tests
+that legitimately inject a stub prompt tree -- the suite caught it, not me; and I restored a
+sabotage from a STALE backup, silently reverting the refined fix, then mangled paths.py with an
+index splice and restored it from HEAD (safe there, checked first -- having destroyed an
+uncommitted prompt rewrite the same way one unit ago).
+CORPUS FACTS MEASURED (.work/track-a-corpus-facts.md), four plan assumptions wrong: corpus is at
+C:/Users/Lenovo/Videos/Screen Recordings (not D:); faster_whisper NOT in the project venv (so the
+degrade path is the DEFAULT here, not a fallback); ffmpeg 8.1.1 present; ERP_Issues_ALL.xlsx has
+32 rows, not the plan's 33 -- a RECALL DENOMINATOR, and it belongs in T-136's manifest before any
+score is computed. Two ground-truth sheets (19 Aug, 24 Aug) the plan never counted.
+Checker dispatched this turn (no dangling ready-for-check).
+NEXT after verdict: T-132 (Track A3, host media prep) using the corrected C: paths.
+OPEN HUMAN GATES: AT-110 approval-forgery posture; ERP_EMAIL/ERP_PASSWORD for T-122/T-145.
