@@ -59,6 +59,66 @@ def list_cmd(project: str = typer.Argument(..., help="project slug")) -> None:
                    f"{source.label or Path(source.path or '').name}")
 
 
+@app.command("prep")
+def media_prep_cmd(
+    project: str = typer.Argument(..., help="project slug"),
+    source_id: str = typer.Argument(..., help="a source id from `ingest list`"),
+    chunk_minutes: float = typer.Option(3.0, "--chunk-minutes"),
+    no_whisper: bool = typer.Option(False, "--no-whisper",
+                                    help="skip transcription even if it is available"),
+) -> None:
+    """Probe, chunk and transcribe a recording. RUN THIS ON THE HOST — the
+    container has no ffmpeg and no GPU."""
+    from autotester.stages import media_prep
+
+    store = ProjectStore(project)
+    source = _require_source(store, project, source_id)
+    try:
+        prep = media_prep.prepare(store, source, chunk_minutes=chunk_minutes,
+                                  use_whisper=not no_whisper)
+    except (FileNotFoundError, ValueError) as exc:
+        typer.secho(str(exc), fg=typer.colors.RED)
+        raise typer.Exit(2) from None
+
+    transcript = store.load_transcript(source_id)
+    segments = len(transcript.segments) if transcript else 0
+    tool = prep.ffmpeg_version or "no ffmpeg — one chunk on the original file"
+    typer.secho(
+        f"{source_id}: {prep.duration_s:.0f}s, {len(prep.chunks)} chunk(s), "
+        f"{segments} narration segment(s) [{tool}]",
+        fg=typer.colors.GREEN,
+    )
+
+
+@app.command("frames")
+def media_frames_cmd(
+    project: str = typer.Argument(..., help="project slug"),
+    source_id: str = typer.Argument(..., help="a source id from `ingest list`"),
+) -> None:
+    """Extract the stills the vision pass named. Needs an analysis on disk."""
+    from autotester.stages import media_prep
+
+    store = ProjectStore(project)
+    source = _require_source(store, project, source_id)
+    analysis = store.load_analysis(source_id)
+    if analysis is None:
+        typer.secho(f"{source_id} has no analysis.json yet — run `autotester ingest analyze` first",
+                    fg=typer.colors.YELLOW)
+        raise typer.Exit(2)
+
+    written = media_prep.extract_frames(store, source, analysis)
+    typer.secho(f"{source_id}: {len(written)} frame(s) written", fg=typer.colors.GREEN)
+
+
+def _require_source(store: ProjectStore, project: str, source_id: str):
+    source = next((s for s in store.list_sources() if s.id == source_id), None)
+    if source is None:
+        typer.secho(f"{project} has no source {source_id} — try `autotester ingest list`.",
+                    fg=typer.colors.RED)
+        raise typer.Exit(2)
+    return source
+
+
 @app.command("run")
 def run_cmd(
     project: str = typer.Argument(..., help="project slug"),
@@ -70,11 +130,7 @@ def run_cmd(
 ) -> None:
     """Watch one source and write the FlowSpec it produces."""
     store = ProjectStore(project)
-    source = next((s for s in store.list_sources() if s.id == source_id), None)
-    if source is None:
-        typer.secho(f"{project} has no source {source_id} — try `autotester ingest list`.",
-                    fg=typer.colors.RED)
-        raise typer.Exit(2)
+    source = _require_source(store, project, source_id)
 
     prov = providers.get(provider, **({"model": model} if model else {}))
     try:
