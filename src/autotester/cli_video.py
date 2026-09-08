@@ -49,7 +49,15 @@ def register_cmd(
 @app.command("list")
 def list_cmd(project: str = typer.Argument(..., help="project slug")) -> None:
     """Every source registered for this project."""
-    sources = ProjectStore(project).list_sources()
+    store = ProjectStore(project)
+    if store.load_project() is None:
+        # AT-179: this printed "no sources yet" and exited 0 for a project that
+        # does not exist -- indistinguishable from a real project with none.
+        # Every sibling (explore, login, flowspec status) refuses on exit 1,
+        # and a script branching on this one's exit code was told "fine".
+        typer.secho(f"no project '{project}' yet", fg=typer.colors.RED)
+        raise typer.Exit(1)
+    sources = store.list_sources()
     if not sources:
         typer.secho(f"{project} has no sources yet — `autotester ingest register` adds one.",
                     fg=typer.colors.YELLOW)
