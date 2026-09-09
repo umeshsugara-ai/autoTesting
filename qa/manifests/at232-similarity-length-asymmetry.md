@@ -123,4 +123,4 @@ output.
 - Does not claim the STOPWORDS list is complete — its own docstring states the limitation plainly
   and says to extend it only on a measured false positive, never by guess.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, verdict e660b45)
