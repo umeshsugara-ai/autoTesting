@@ -85,3 +85,33 @@ def test_a_login_case_with_no_navigate_step_falls_back_to_running_it(
     )
     crawl = run_crawl(project, session, store, observer=PageObserver(), login_case=case)
     assert crawl.status is CrawlStatus.COMPLETED
+
+
+def test_a_transient_precheck_failure_is_named_not_swallowed(tmp_path: Path) -> None:
+    """AT-273: `_already_past_login`'s own exception must not be indistinguishable
+    from a genuine "not yet authenticated" `False` -- if the precheck's own
+    `goto` raises AND the login case that runs next also fails, the crawl's
+    stop_reason must say the precheck itself glitched, not just that login
+    failed. Nothing was staged as fillable, so the case fails as it would have
+    before AT-226 existed -- this test is about the CAUSE reaching the report,
+    not about the fallback behaviour, which is unchanged and still correct."""
+    project = make_project()
+    session, page = make_session(tmp_path, project)
+
+    real_goto = page.goto
+
+    def flaky_goto(url: str, wait_until: str = "") -> None:
+        if url == SIGNIN:
+            raise RuntimeError("net::ERR_CONNECTION_RESET")
+        real_goto(url, wait_until)
+
+    page.goto = flaky_goto  # type: ignore[method-assign]
+    store = ProjectStore("demo", tmp_path)
+    grant_crawl_approval(store, project)
+
+    crawl = run_crawl(project, session, store, observer=PageObserver(), login_case=_login_case())
+
+    assert crawl.status is CrawlStatus.LOGIN_FAILED
+    assert crawl.stop_reason is not None
+    assert "precheck also failed" in crawl.stop_reason
+    assert "ERR_CONNECTION_RESET" in crawl.stop_reason

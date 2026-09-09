@@ -62,6 +62,12 @@ class ExploreRuntime:
     tool_failures: int = 0
     stop_reason: str | None = None
     seed_error: str | None = None
+    login_precheck_error: str | None = None
+    """AT-273: why `_already_past_login` fell through to `False` on an
+    exception, distinct from a genuine "not yet authenticated" `False`. Read
+    into `stop_reason` only if the login case then fails too (the precheck's
+    fallback path is safe by design; this is diagnostic, not a new failure
+    mode)."""
     return_error: str | None = None
     """Why the most recent `return_to` failed. Scratch, not persisted — it is
     read straight into the issue text at the failure site (AT-108)."""
@@ -114,11 +120,21 @@ def _bootstrap_login(rt: ExploreRuntime, case: Case) -> bool:
 
 def _already_past_login(rt: ExploreRuntime, login_url: str) -> bool:
     """Navigate to the login page named by the case and report whether the
-    app redirected away from it — the one signal AT-226's fix relies on."""
+    app redirected away from it — the one signal AT-226's fix relies on.
+
+    AT-273: a transient nav failure here must not be silently indistinguishable
+    from a genuine "not yet authenticated" `False` — `_seed` 15 lines below
+    names its own exceptions the same way, and this precheck deserved the same
+    discipline. `False` is still the safe fallback (the case runs normally
+    either way); only the CAUSE was being dropped."""
     try:
         rt.session.goto(login_url)
         rt.session.settle(timeout_ms=rt.bounds.settle_ms)
-    except Exception:
+    except NavigationRefused as exc:
+        rt.login_precheck_error = f"refused by the domain guard: {exc}"
+        return False
+    except Exception as exc:
+        rt.login_precheck_error = f"{type(exc).__name__}: {exc}"
         return False
     return urlparse(rt.session.current_url()).path != urlparse(login_url).path
 
@@ -165,6 +181,16 @@ def _bfs(rt: ExploreRuntime) -> None:
         rt.frontier.visited.append(node.id)
         rt.store.save_frontier(rt.crawl.id, rt.frontier)
     rt.stop_reason = rt.stop_reason or "frontier empty"
+
+
+def _login_failed_reason(rt: ExploreRuntime) -> str:
+    """AT-273: name the login-precheck's own swallowed cause when the case
+    then genuinely failed too, so an operator sees the precheck itself
+    glitched rather than only that login did."""
+    reason = "login case did not complete"
+    if rt.login_precheck_error:
+        reason += f" (precheck also failed: {rt.login_precheck_error})"
+    return reason
 
 
 def _terminal_status(rt: ExploreRuntime, completed: bool) -> CrawlStatus:
@@ -260,7 +286,7 @@ def run_crawl(
         started=clock(), frontier=CrawlFrontier(),
     )
     if login_case is not None and not _bootstrap_login(rt, login_case):
-        rt.stop_reason = "login case did not complete"
+        rt.stop_reason = _login_failed_reason(rt)
         return _finish(rt, CrawlStatus.LOGIN_FAILED)
     if _seed(rt) is None:
         rt.stop_reason = f"could not open base_url -- {rt.seed_error or 'cause not recorded'}"
