@@ -81,6 +81,14 @@ class FakeLocator:
     def inner_text(self) -> str:
         return ""
 
+    def fill(self, value: str) -> None:
+        """AT-226's fake: a field only 'exists' where the test registers it via
+        `page.fillable[url]` — mirrors a real Playwright locator timing out
+        when the login form was never rendered because the browser was
+        already redirected past the login page."""
+        if self.selector not in self.page.fillable.get(self.page.url, set()):
+            raise TimeoutError(f"locator not found: {self.selector!r} on {self.page.url!r}")
+
 
 class FakeSitePage:
     """A scripted site: `goto`/`click` move between urls in `SITE`."""
@@ -90,10 +98,16 @@ class FakeSitePage:
         self.history: list[str] = [url]
         self.clicks: list[str] = []
         self.shots: list[str] = []
+        self.redirects: dict[str, str] = {}
+        """AT-226: simulates a login page redirecting away when the persistent
+        profile already holds a live session — a real `goto` to `/signin` on
+        an authenticated browser never lands on `/signin`."""
+        self.fillable: dict[str, set[str]] = {}
+        """AT-226: url -> selectors that 'exist' there, for `FakeLocator.fill`."""
 
     def visit(self, url: str) -> None:
-        self.url = url
-        self.history.append(url)
+        self.url = self.redirects.get(url, url)
+        self.history.append(self.url)
 
     def locator(self, selector: str) -> FakeLocator:
         return FakeLocator(self, selector)
