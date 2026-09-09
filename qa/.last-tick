@@ -1250,3 +1250,47 @@ vacuous -- all five failures are behaviour never guarded at all." Different fail
 one the sweep keeps measuring.
 NEXT: t136-scorer cycle 2 (AT-219/220/221/222/223), then AT-228's one-line load_dotenv which
 unblocks Track A for real.
+
+## 2026-09-09 — tick: ADVANCED (34) — t136-scorer cycle 2, and the false gate is gone
+FAIL cycle 1 (3/8). Every finding held. The checker upheld the one thing I asked it to judge
+hardest -- am I using a gate to dodge a failing acceptance -- and said no. What it refused was my
+EVIDENCE, correctly.
+AT-219: my centrepiece claim was TRUE FOR THE WRONG REASON. --root read
+ProjectPaths(...).root.parent.parent, but .root IS ALREADY the repo root, so the shipped command
+looked in the drive root and refused because it was outside the repo entirely. Every CLI test
+passed --root, SO THE SHIPPING BRANCH WAS EXECUTED BY NOTHING, and T-136's done_check (passes no
+--root) was STRUCTURALLY INCAPABLE OF CLOSING even once a credential arrived. New test drives it
+WITHOUT --root, which is how it ships.
+AT-220: the refusal advised a command that did not exist AND COULD NOT -- derive_issues and analyze
+BOTH had no caller anywhere under src. Two units built, checker-PASSed, impossible to run; the
+pipeline had a hole in the middle and the one message telling a human how to proceed pointed into
+it. Now real: `ingest analyze`, `issues derive|list|export`. TRACK A IS RUNNABLE END TO END FOR THE
+FIRST TIME.
+AT-221: max() returns the FIRST maximum, so equal-similarity issues handed the choice to file
+order -- recall 0.5 vs 1.0 under permutation. AT-197'S DEFECT EXACTLY, in the module that computes
+the north star's own number. Key now ends in the content-addressed issue id.
+AT-222/223: two more flattering defaults. A source with no analysis was skipped so coverage still
+read complete (the same default AT-208 removed, one layer up); and blank recording cells keyed to
+"" which MATCHES "", scoring recall 1.0 on an empty sheet. MY FIRST FIX WAS INCOMPLETE -- the shared
+sentinel still matched itself.
+AT-228 IS THE ONE THAT MATTERS. ui/app.py loaded the repo-root .env, no CLI entry point did, so
+`providers` answered mock while a working GEMINI_API_KEY sat on disk -- AND I FILED A HUMAN_GATE
+TELLING UMESH THE SYSTEM WAS WAITING ON HIM FOR A CREDENTIAL HE HAD ALREADY GIVEN. He had to tell me
+himself. Two entry points reading the same disk disagreed and each was internally consistent, which
+is why it survived. One loader now serves both: providers -> gemini, langchain-fallback, mock.
+AND THAT FIX OPENED A SECRET LEAK, CAUGHT BY TESTS I DID NOT WRITE: a typer callback meant every
+CliRunner test pulled real credentials into the shared test process PERMANENTLY -- four provider
+tests asserting "no key present" began running with a real key. ui/app.py had solved this
+deliberately with a lifespan hook; I reopened it one door over, in a repo whose premise is that a
+secret never reaches a model, a log or an artifact. Loader now refuses inside a test process.
+EIGHT SABOTAGES. EG (deleting the CLI's load call) came back INCONCLUSIVE -- THE LEAK-GUARD MADE ITS
+OWN WIRING UNOBSERVABLE. AT-206's shape inside AT-228's fix, in the same hour. Reported inconclusive
+per C7, then closed by watching the CALL with a spy instead of its effect. All eight now discriminate.
+TWO EARLIER COUNTERMEASURES FIRED ON ME UNPROMPTED: the advice-site inventory caught the three new
+commands and demanded a deliberate update rather than absorbing them; doctor caught list_cmd defined
+in two modules (C3) before the commit. Both from at206-guards-that-guard.
+867 passed / 2 skipped, ruff + doctor clean. Checker dispatched this turn.
+NEXT: with the credential visible and the pipeline wired, T-136's real recall number is now a
+RUNNABLE SEQUENCE, not a human gate -- register erp1/2/3 -> prep -> analyze -> derive -> score.
+STILL OPEN: AT-215 (VL1c's real criterion, third sweep), AT-216, AT-224/225, AT-226/227 (the live
+Pathlynks findings), and AT-218's GRILL which only Umesh can settle.
