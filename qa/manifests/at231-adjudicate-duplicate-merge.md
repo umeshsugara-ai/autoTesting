@@ -185,4 +185,4 @@ doctor: clean
 `test_an_exact_length_tie_keeps_the_first_seen_text` fails with the exact predicted swap
 (`BBBB` winning instead of `AAAA`); restored, all 22 `test_adjudicate.py` tests green again.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 2, verdicts 9611ada + aa66986, reconciled ab1f7fe)
