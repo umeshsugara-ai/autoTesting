@@ -88,4 +88,4 @@ complete 6/6 observation coverage.
 - Does not touch `score()`'s matching logic, `window_s`, or the `threshold=0.30` default — only
   what `similarity()` refuses to score at all.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 2, verdict 44a7e84)
