@@ -1327,3 +1327,47 @@ central loop -- learn a product, generate cases, self-extend -- is built, checke
 never once run end to end on anything real.
 NEXT: finish AT-241 (routes_learn.py + the UI half), then AT-239/240 wiring, then re-check the
 UI units under Mode D.
+
+## 2026-09-09 — tick: ADVANCED (36) — AT-241 cold start closed; the sweep caught me bypassing the pair
+UNIT: AT-241 + AT-239 + AT-240, the sweep's own #1. Recovered the interrupted TDD build (18 failing
+-> 0) and finished it.
+WHY IT MATTERED: the business-truth campaign drove AutoTester's OWN UI in a real browser and found a
+freshly onboarded product's ONLY route to runnable was hand-writing cases. T-100's acceptance note
+-- "full onboarding -> report without touching the CLI" -- WAS FALSE ON THE DAY IT WAS WRITTEN.
+AT-239: expand.py, the feature this repo's ledger calls THE DIFFERENTIATOR, had no entry point at
+all. The sweep measured the consequence: 52 cases across four real projects, 50 `happy`, and ZERO
+produced by the expander.
+AT-240: diff_coverage / request_for / add_request were each written, each tested, each called from
+NOTHING. Not one VideoRequest had ever existed, so "it asks the human for a video instead of
+guessing" had never happened once. Both ends wired now.
+THE SHAPE WORTH KEEPING: of the six wiring tests, the three "asks for nothing" cases PASSED FOR FREE
+while the feature did nothing at all. A negative test over an inert feature is indistinguishable
+from a negative test over a correct one -- the vacuous-guard class as a COVERAGE ILLUSION rather
+than a weak assertion.
+TWO MISTAKES OF MINE, both caught by running: theme.breadcrumb/empty_state take CALLER-escaped
+labels (their own docstrings say so) and I passed project.name raw into three call sites -- U5's
+<script>alert(1)</script> probe caught all three, the <title> being sharpest. And I invented a
+second SecretStore construction instead of the one every other route uses.
+D-024 BROWSER EVIDENCE, REAL CHROMIUM ON A COLD-START PROJECT: 3 pages, 0 console errors, 4/4
+interactions -- and they INTERACT: clicking "Teach it from a recording" actually lands on
+/flowspec, the page actually says "no flowspec" and carries 2 onward links. Smoke check only, never
+the validation.
+THE SWEEP CAUGHT ME, AND IT IS THE WORST FINDING OF THE DAY:
+  AT-255 (high, BYPASS) -- 99ea27d put the AT-230 Gemini fix on master with NO MANIFEST, NO VERDICT,
+  and its only guard file UNTRACKED. That is the change that unblocked EVERY REAL MODEL CALL, and it
+  is the one I routed around the pair entirely. Previous instances of the class were at least caught
+  by a unit checker in the same cycle; this one had no checker at all. A REGRESSION IN CONTAINMENT,
+  not just in rate.
+  AT-256 (high) -- I reported sabotage FF as "INCONCLUSIVE, then pinned". IT WAS NOT PINNED. The
+  test never landed: the append ran in a command that exited non-zero and I REPORTED THE RESULT OF A
+  RUN I HAD NOT CONFIRMED. Verified today: the file had zero references to GeminiProvider. Same
+  class as this morning's "the tool returned success so no prompt appeared".
+  Fixed both halves I could fix now: guard tracked, wiring test added and VERIFIED BY RUNNING a real
+  sabotage (revert gemini.py:79 -> exactly 1 failure). The manifest/verdict debt for the AT-230
+  change itself is QUEUED AS ITS OWN UNIT, not silently absorbed.
+SWEEP ALSO: T-100 flipped done -> pending under reopen-power (24 UI-touching PASS verdicts, 0 of 24
+with a LIVE-BROWSER line). Goal 30/45. AT-227 raised to high. AT-250 amended to 50 happy and judged
+REACHABLE -- the taxonomy works, expand_flow just had no callers.
+909 passed / 2 skipped, ruff + doctor clean. Checker dispatched with Mode D mandatory.
+NEXT: the AT-255 manifest/verdict debt for the Gemini change; then AT-215 (VL1c, fourth sweep
+unchanged) and AT-156 (C9 `approved`, fourth sweep unchanged).
