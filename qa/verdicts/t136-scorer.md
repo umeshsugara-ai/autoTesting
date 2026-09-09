@@ -248,3 +248,254 @@ guarded at all, not about guards that fail to guard.
    the first parenthesis.
 
 T-136 stays `pending`, correctly.
+
+---
+
+# Verdict — t136-scorer (cycle 2)
+
+**Date:** 2026-09-09 · **Cycle checked: 2** · **Commit under check:** `5cba7bb`
+· **Bound to:** `d:/autoTesting`
+**Contract:** `qa/contracts/video-learning.md` — VL7–VL14, I-VL7 (unchanged this cycle; nothing
+was softened and nothing needed tightening).
+
+```
+VERDICT: PASS
+SCOREBOARD: 8/8 criteria met, 1/1 invariants hold
+FAILURES: none
+LIVE-BROWSER: not-applicable (changed paths are core/env.py, stages/score.py, cli.py, cli_video.py,
+  cli_issues.py, scripts/score_video_issues.py, docs/MAP.md, pyproject.toml, tests/*, and
+  ui/app.py — whose entire diff is swapping `load_dotenv(repo_root()/".env")` for the shared
+  `load_repo_env()` inside the existing lifespan hook. No route, template, component or rendered
+  output changed. I read the ui/app.py diff myself rather than taking the manifest's word: the
+  claim holds, and Mode D does not apply.)
+ISSUES-WRITTEN: AT-229
+EXPLANATION: Every cycle-1 finding is independently re-verified as fixed by driving the shipped
+paths, not by reading the diff: the `done_check` command with no `--root` now exits 0 and scores a
+real populated project; `ingest analyze` and `issues derive|list|export` all really run end to end
+(register -> prep -> analyze -> derive -> list -> export -> score against the real 7-row workbook);
+the match key is order-independent over 200 shuffles and over the exact permuted pair that moved
+recall 0.5/1.0 in cycle 1; blank and `name (N).ext` recording cells no longer collide or self-match;
+and coverage now reports `sources_with_no_analysis` and refuses `complete: true` while one exists.
+All seven sabotages discriminate in my own `git archive` extract, EG included — the maker's
+INCONCLUSIVE-then-pinned account of it is confirmed. T-136 itself stays `pending`: the real
+`projects/erp/` still has no registered source, so the done_check still exits 2 — but now for the
+reason it says, and the sequence that would close it is runnable.
+```
+
+## What I re-ran (my own evidence, none of it the maker's)
+
+| Command | My result |
+|---|---|
+| `uv run pytest` (bare — `addopts=-q` already set) | **867 passed, 2 skipped**, 1 warning, 157s |
+| `uv run ruff check src tests scripts` | `All checks passed!` (exit 0) |
+| `uv run autotester doctor` | `doctor: clean` (exit 0) |
+| `uv run autotester providers` | `available providers: gemini, langchain-fallback, mock` |
+| `uv run autotester issues --help` | `derive`, `list`, `export` — all three present |
+| `uv run autotester ingest --help` | `register list prep frames run` **+ `analyze`** |
+| T-136's `done_check` verbatim, real repo | exit **2**, refusal naming a command that now exists |
+| T-136's `done_check` verbatim, populated root | exit **0**, `recall 1.0`, 7/7 — **it can close** |
+
+Working tree: `.goal/*` modified and `projects/pathlynks/approvals.jsonl` untracked as the dispatch
+said. `projects/saucedemo/` and `qa/evidence/browser-…` appeared *during my own pytest run* — see
+AT-229; not this unit's drift.
+
+## 1. AT-219 driven the way it ships (VL8)
+
+`ProjectStore("erp", None).paths.issues` → `D:\autoTesting\projects\erp\issues.jsonl`, and under
+`AUTOTESTER_ROOT` → `<that root>\projects\erp\issues.jsonl`. Inside the repo, as VL8 demands.
+
+The cycle-1 verdict said "it exits 2 for the right reason now" would not be the same as "it can
+close", so I built the case that settles it. Under `AUTOTESTER_ROOT` pointed at a scratch root I
+populated with **the real 7 truth rows from `ERP_Issues_Trainers.xlsx` turned into real `Issue`
+rows through the real `ProjectStore`**, I ran the `done_check` string **verbatim, no `--root`**:
+
+```
+EXIT=0
+{"truth_rows": 7, "reported": 7, "found": 7, "missed": 0, "false_positives": 0, "recall": 1.0,
+ "coverage": {"observations_used": 0, "observations_expected": 0, "complete": false,
+              "partial_sources": [], "sources_with_no_analysis": ["src0", "src1"]}, …}
+```
+
+T-136 is no longer structurally incapable of closing. It is merely not done. Against the real
+`projects/erp/` (which still holds only `cases.jsonl`, `project.json`, `rubrics/`, `runs/`) the same
+command exits 2 with the honest refusal — and the command that refusal names now exists.
+
+## 2. AT-220 — the new commands driven, not merely listed (VL7)
+
+I did not stop at `--help`. In a scratch root, through the shipped CLI only:
+
+```
+ingest register erp "…/erp1.mp4"     -> src_a6d5d1b66aa0  (exit 0)
+ingest prep erp src_a6d5d1b66aa0     -> 30s, 1 chunk, 6 narration segments (exit 0)
+ingest analyze erp … --models mock   -> exit 2: "every provider call failed — nothing to
+                                        adjudicate. Check `autotester providers`"
+issues derive erp                    -> "erp: 2 new issue(s); 2 total" (exit 0)
+issues derive erp   (again)          -> "erp: 0 new issue(s); 2 total"  — idempotent
+issues list erp                      -> both rows, severity + MM:SS + label + title
+issues export erp                    -> "erp: 2 issue(s) -> …/projects/erp/issues.xlsx"
+score_video_issues.py (no --root)    -> exit 0: reported 2, found 0, fp 2, coverage partial
+```
+
+`ingest analyze` **reaches `analyze()`** — the exit 2 is `NoObservations` raised out of the stage
+and caught by the command, which is the stage refusing rather than the command being absent (the
+registry's `mock` provider has no queued responses by construction, so every call fails; that is the
+stub's nature, not a defect of this wiring). To get past it I wrote a real `analysis.json` through
+the real `ProjectStore`/`VideoAnalysis` and drove `issues derive` on it: it produced two real `Issue`
+rows, content-addressed and idempotent on a second run, which `list`, `export` and the scorer then
+all consumed. **Track A is genuinely runnable end to end.** No command exists-and-errors-on-first-use.
+
+`issues derive`'s own refusal names `autotester ingest analyze <project> <source-id>` — which also
+exists. The advice chain terminates in real commands at every hop.
+
+## 3. AT-228 and the leak, probed in the inverse (the premise, not the guard)
+
+The guard itself, driven both ways in one process:
+
+```
+PYTEST_CURRENT_TEST set   -> `providers` = mock ;  GEMINI_API_KEY in os.environ: False
+marker removed            -> `providers` = gemini, langchain-fallback, mock ; …: True
+```
+
+Then I went looking for a way around it rather than accepting it:
+
+- **Subprocesses the suite spawns.** The only `env=` construction in the whole test tree is
+  `tests/test_score_cli.py:162`, and it is `{**os.environ, …}` — the marker is inherited, so the
+  child is guarded too. Every other `subprocess` use in `tests/` (media, frames, shellout, score CLI)
+  inherits the environment unmodified. Nothing strips `PYTEST_CURRENT_TEST`.
+- **`CliRunner` in-process.** Verified above: nothing lands in `os.environ`.
+- **Import-time loads.** `load_repo_env()` is called only from `cli.py`'s `@app.callback()` and
+  `ui/app.py`'s lifespan — neither at module import, so collection (when the marker is not yet set)
+  loads nothing.
+- **The bypass that does exist, and why it is not a leak here.** `scripts/bench_trial.py`,
+  `scripts/regression_proof.py` and `scripts/run_pathlynks_first_cases.py` call `dotenv.load_dotenv`
+  directly, unguarded. `tests/conftest.py` and two test modules import those scripts — but only for
+  pure helpers; the `load_dotenv` calls sit inside `main()` and no test calls `main()`. So the
+  premise holds today. It holds by nobody calling those entry points from a test, which is thinner
+  than the guard, and I note it as a question rather than a finding (below).
+
+`core/redact.assert_no_raw_secrets` and the screenshot masking are untouched by this unit; `.env`
+remains gitignored and no key appears in any artifact I produced.
+
+## 4. AT-221's totality (VL13)
+
+Permuted through the real path, not the helper:
+
+- The **exact cycle-1 case** (T1/T2 at 10s, issues X/Y equally similar at 0.8, `--threshold 0.7`):
+  both orders now produce **byte-identical** report JSON, recall 1.0 either way.
+- **200 random shuffles** of an 8-issue / 8-truth-row set: every report identical to the baseline.
+- **Ids that tie.** `Issue.id` is content-addressed over project/source/screen/category/at-bucket/
+  title, so two issues *can* share an id while differing in `what_is_wrong`. I built that pair: both
+  orders yield the same recall, the same similarity and the same `false_positive_titles` — the
+  report content does not permute, which is what VL13 asks for. (The store also refuses the second
+  one — `add_issue` is idempotent on id — so `list_issues()` cannot even hand it over.)
+- **Empty ids.** I could only construct these by `object.__setattr__` past `model_post_init`, which
+  always stamps a non-empty id; with two forced-blank ids the choice does permute. Unreachable
+  through any construction path in the codebase, so it is not a finding — recorded here so the next
+  cycle knows it was tested rather than missed.
+
+## 5. AT-223 / `recording_key` hunted for a survivor (VL10)
+
+```
+'erp1.mp4 (Divya Kamboj, …)' -> 'erp1.mp4'      'clip (1).mp4' -> 'clip (1).mp4'
+'erp1.mp4(no space)'         -> 'erp1.mp4'      'clip (2).mp4' -> 'clip (2).mp4'   (distinct)
+'erp (final) cut.mp4'        -> whole cell      'a.b.mp4 (x)'  -> 'a.b.mp4'
+'ERP1.MP4' / '  erp1.mp4  '  -> 'erp1.mp4'      unicode 'रिकॉर्डिंग.mp4 (टीम)' -> 'रिकॉर्डिंग.mp4'
+'' / '   ' / None / 0        -> '\x00unknown'   'v1.2 (draft)' -> whole cell
+```
+
+I could not build a collision: no two distinct recordings map to one key, and the sentinel cannot
+equal any real cell (`\x00` is not producible from a workbook cell that reads as a filename).
+Re-measured the cycle-1 killer: an all-blank recording column against blank-labelled issues now
+scores **recall 0.0 with both rows counted as false positives**, where cycle 1 measured 1.0.
+
+The shapes that *do* keep the whole cell — a label with no extension (`erp1`), a dot that is not an
+extension (`v1.2 (draft)`), a parenthesis mid-name (`erp (final) cut.mp4`) — fail only by
+**under-matching** (a truth row finds no report, recall goes down). That is the conservative
+direction and VL10 asks only that absence and collision cannot manufacture agreement. Not charged.
+
+Also re-verified on the way past: `at_seconds` still refuses `''`, `None`, `'abc'`, `'1:2:3'`
+(TruthSheetError, never second zero); both real workbooks load off disk — Trainers 12 columns /
+7 rows, ALL 13 columns / 32 rows (VL9); `--window` measured flipping recall at 20s and
+`--threshold` at 0.9 on a fixture the bounds can bite (VL12); `stages/score.py` and the CLI contain
+no provider, network, clock or randomness (I-VL7).
+
+## 6. Sabotage — all seven re-run by me, EG included
+
+`git archive HEAD` extract at `.work/chk2-t136/x`, `PYTHONPATH` pinned to the extract's `src` +
+`tests`, full suite each time, restored by file copy — never `git stash`/`checkout`/`restore` in
+the live tree (AT-101). Each anchor **asserted to match exactly once** and the file **re-read as
+changed** before the run. Baseline in the extract: 867 passed, 2 skipped.
+
+| | Sabotage (my own mutation, not the maker's script) | Maker | Mine | |
+|---|---|---|---|---|
+| EA | `--root` default walks to the drive again | 1 | **1** | discriminating |
+| EB | tie-break drops the issue id | 1 | **1** | discriminating |
+| EC | coverage stops recording an unanalysed source | 1 | **1** | discriminating |
+| ED | `recording_key` splits on `(` always | 1 | **1** | discriminating |
+| EE | an unknown recording may match another | 4 | **4** | discriminating |
+| EF | the loader leaks into a test process | 1 | **1** | discriminating |
+| EG | the CLI stops loading `.env` | 0→1 | **1** | discriminating |
+
+**EG confirmed.** Replacing `load_repo_env()` in `cli.py`'s callback with `pass` now fails exactly
+one test. The maker's account is accurate: the guard made the wiring's *effect* unobservable inside
+a test process, so the wiring is pinned by watching the **call** (a spy on `cli.load_repo_env`)
+instead — which is the right shape, and it is the shape AT-206 asked for. Reporting the first
+attempt as INCONCLUSIVE rather than "the guard is vacuous" was correct per C7.
+
+After the last restore, `git hash-object` on all four sabotaged files matches the live tree's blobs
+exactly.
+
+## Criteria, one by one
+
+| | Verdict | Evidence |
+|---|---|---|
+| VL7 | **met** | `issues derive/list/export` and `ingest analyze` all exist **and run**; the refusal's named command produced real rows; its own refusal names another real command |
+| VL8 | **met** | no-`--root` resolves inside the repo; `done_check` verbatim exits 0 on a populated root |
+| VL9 | **met** | both workbooks read off disk: 12 cols/7 rows and 13 cols/32 rows |
+| VL10 | **met** | `At` refused for unparseable; blank → a sentinel that matches nothing; `clip (1)/(2)` distinct; all-blank sheet now 0.0 |
+| VL11 | **met** | recording ∧ window ∧ threshold all required (EE + the cycle-1 SD/SE/SF/SG remain live); each row claimed once (`remaining.remove`); leftovers counted as FPs — seen in the real run (2 reported, 0 found, 2 fp) |
+| VL12 | **met** | window 5/10 → 0.0, 20/60 → 1.0; threshold 0.1/0.5 → 1.0, 0.9/0.99 → 0.0 |
+| VL13 | **met** | identical report over 200 shuffles, over the cycle-1 pair, and over an id-tie pair |
+| VL14 | **met** | `sources_with_no_analysis` reported; `complete` false while one exists — measured in the real end-to-end run and pinned by EC |
+| I-VL7 | **holds** | no provider, network, clock or randomness in `stages/score.py` or the CLI |
+
+## Ledger
+
+- **AT-219** → **fixed** (§1) · **AT-220** → **fixed** (§2) · **AT-221** → **fixed** (§4) ·
+  **AT-222** → **fixed** (§5/VL14) · **AT-223** → **fixed** (§5) · **AT-228** → **fixed** (§3).
+- **AT-207** → **fixed**. Cycle 1 held it open because the missing-analysis case reintroduced the
+  indistinguishability it was filed about. That case is now reported as its own third state and the
+  coverage block reaches a reader in the shipped output. Only a later re-check moves any of these to
+  `verified`.
+- **AT-224** (no `Issue.project` filter) and **AT-225** (`AT-214` used twice — still duplicated,
+  228 rows) stay **open**; neither was claimed by this unit and no criterion requires them.
+- **AT-229** filed (new, medium): running `uv run pytest` writes into the repo working tree —
+  `projects/saucedemo/` (project.json, crawl/, sources/, approvals.jsonl) and
+  `qa/evidence/browser-…-checker/` appeared at 09:19 during my first suite run and are untracked.
+  A suite that dirties the tree it is judged in corrupts the sweep's own bypass detection, which
+  reads `git status`. Not this unit's doing; filed so it is on the record.
+
+## Questions, not failures
+
+- The three `scripts/*.py` that call `dotenv.load_dotenv` directly are unguarded by
+  `core/env.py`'s test-process refusal. Today no test calls their `main()`, so nothing leaks — but
+  C3 ("one concept, one place") points at the same fix that AT-228 just made for the CLI and the UI,
+  and the premise would then hold by construction rather than by nobody calling them. Worth a unit;
+  not charged here.
+- `at_seconds` reads a bare number as seconds. Both real workbooks hold `MM:SS` strings so it never
+  fires today, and an Excel time-formatted cell (a `datetime.time`) is refused rather than
+  misread — so this is not the "scored as second zero" failure. Noted only because a hand-edited
+  `29` in the `At` column would silently mean 29 seconds, which a reader might have meant as 29
+  minutes.
+- Reproductions live in `.work/chk2-t136/` (`probe_root.py`, `mk.py`, `mkanalysis.py`, `perm.py`,
+  `rk.py`, `blank.py`, `leak.py`, `vl.py`, `sab.py`, extract at `x/`), uncommitted per the project's
+  scratch rule.
+
+## T-136 itself
+
+**Stays `pending`, and for a materially better reason than last cycle.** The machinery is complete
+and every gate on it now holds; what is missing is a real reading — no source registered against the
+real `projects/erp/`, so no analysis, so no derived issues, so no recall number. That is now a
+sequence a maker can run (`ingest register → prep → analyze → issues derive → score`) with the
+credential this machine actually has, not a human gate. This PASS certifies the scorer unit, not
+T-136's acceptance.
