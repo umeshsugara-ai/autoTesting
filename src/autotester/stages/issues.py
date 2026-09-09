@@ -30,6 +30,7 @@ from autotester.schema.analysis import AnalysedIssue, VideoAnalysis
 from autotester.schema.enums import IssueOrigin
 from autotester.schema.issue import Issue
 from autotester.schema.project import Source
+from autotester.store.project_store import ProjectStore
 
 ISSUE_COLUMNS = [
     "ID", "Date", "Severity", "Type", "Title", "What is wrong", "How we know",
@@ -103,6 +104,45 @@ def derive_issues(analysis: VideoAnalysis, source: Source, project: str) -> list
         )
         for issue in analysis.issues
     ]
+
+
+def sync_source_issues(
+    store: ProjectStore,
+    source_id: str,
+    derived: list[Issue],
+    *,
+    remove_missing: bool = True,
+) -> None:
+    """Refresh one source's rows without erasing trusted history.
+
+    A complete analysis is authoritative and removes findings it no longer
+    contains.  A partial analysis may add or improve findings, but cannot prove
+    that an absent finding disappeared, so its missing rows are retained.
+    Stable ids keep both human decisions and the original discovery timestamp.
+    """
+    current = {issue.id: issue for issue in store.list_issues()}
+    incoming = {issue.id: issue for issue in derived}
+    for issue in current.values():
+        if remove_missing and issue.source_id == source_id and issue.id not in incoming:
+            store.delete_issue(issue.id)
+    for issue in derived:
+        previous = current.get(issue.id)
+        if previous is not None:
+            if not remove_missing:
+                # A partial reading is not authoritative enough to downgrade a
+                # previously complete finding.  Its genuinely new ids are still
+                # added below, but stable rows wait for a complete refresh.
+                continue
+            issue = issue.model_copy(update={
+                "status": previous.status,
+                "human_id": previous.human_id,
+                "confirm_first": previous.confirm_first,
+                "evidence_refs": list(previous.evidence_refs),
+                "created_at": previous.created_at,
+            })
+            store.update_issue(issue)
+        else:
+            store.add_issue(issue)
 
 
 def issue_row(issue: Issue) -> list[str]:

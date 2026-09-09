@@ -26,6 +26,9 @@ projects/*/rubrics/
 # large binary derived state, regenerable from the registered source
 projects/*/sources/*/chunks/
 projects/*/sources/*/frames/
+# Uploaded source originals can contain private product data. They are local
+# inputs like browser profiles, never repository deliverables.
+projects/*/sources/*/recording.*
 
 # Python
 .venv/

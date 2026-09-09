@@ -281,6 +281,12 @@ class ProjectStore(CrawlStoreMixin):
         if self._issue_ids is not None:
             self._issue_ids.add(issue.id)
 
+    def delete_issue(self, issue_id: str) -> bool:
+        removed = delete_jsonl_row(self.paths.issues, Issue, issue_id)
+        if removed and self._issue_ids is not None:
+            self._issue_ids.discard(issue_id)
+        return removed
+
     def save_screen_map(self, screen_map: ScreenMap) -> None:
         write_json(self.paths.screen_map, screen_map)
 

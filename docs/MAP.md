@@ -74,6 +74,7 @@
 | `stages/issues.py` | ISSUES: turn an adjudicated analysis into rows a human tester can read. |
 | `stages/manual_login.py` | Manual one-time login. Contract: qa/contracts/manual-login.md ML1-ML5. |
 | `stages/media_prep.py` | MEDIA PREP: make a recording readable — probe it, cut it, transcribe it. |
+| `stages/product_map.py` | PRODUCT MAP: fold every recording analysis into one navigable screen map. |
 | `stages/report_export.py` | Tester-style run reports: an Excel summary and a screen-by-screen HTML |
 | `stages/review.py` | FlowSpec review gate: nothing generates cases from an unreviewed understanding |
 | `stages/run_case_pipeline.py` | RUN_CASE_PIPELINE: the one function that runs a case and grades it. |
@@ -93,7 +94,10 @@
 | `ui/routes_crawls.py` | The explorer, on screen: crawl history, one crawl's screen graph, its |
 | `ui/routes_credentials.py` | The masked .env editor. Contract: qa/contracts/ui.md U3 — a real value is |
 | `ui/routes_flow_diagram.py` | The BFS-style companion to `routes_report.py`'s DFS per-run step flow: |
+| `ui/routes_issues.py` | Operator-facing video issue ledger and its human-compatible workbook. |
 | `ui/routes_learn.py` | The learning loop on screen — review the FlowSpec, generate cases, see the asks. |
+| `ui/routes_live.py` | Presentation-only noVNC page for watching the container's real browser. |
+| `ui/routes_product_map.py` | Product-map cards, recorded journeys, and guarded learned-frame serving. |
 | `ui/routes_project_edit.py` | Edit a project's own settings after onboarding. Contract: qa/contracts/ui.md. |
 | `ui/routes_report.py` | Run history, per-case screenshots, and portable downloads. Contract: |
 | `ui/routes_runs.py` | Trigger a real run. Contract: qa/contracts/ui-run.md RU1-RU4. Run-history |

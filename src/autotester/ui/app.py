@@ -26,7 +26,10 @@ from autotester.ui import (
     routes_crawls,
     routes_credentials,
     routes_flow_diagram,
+    routes_issues,
     routes_learn,
+    routes_live,
+    routes_product_map,
     routes_project_edit,
     routes_report,
     routes_runs,
@@ -70,6 +73,9 @@ app.include_router(routes_credentials.router)
 app.include_router(routes_settings.router)
 app.include_router(routes_learn.router)
 app.include_router(routes_sources.router)
+app.include_router(routes_product_map.router)
+app.include_router(routes_issues.router)
+app.include_router(routes_live.router)
 
 
 def _latest_run_status(slug: str) -> tuple[str | None, dict[str, int]]:
@@ -241,30 +247,3 @@ def project_detail(slug: str) -> str:
         f"{stats}{actions}"
     )
     return theme.page(name, body, active_slug=slug)
-
-
-@app.get("/live", response_class=HTMLResponse)
-def live_view() -> str:
-    """Presentation-only: an embedded noVNC viewer onto the container's virtual
-    display. Reads no project state, triggers no run (qa/contracts/docker.md D4)."""
-    body = (
-        theme.breadcrumb(("Projects", "/"), ("Live view", None))
-        + "<h1>Live view</h1>"
-        "<p class='subtitle'>Watch the real browser as a run happens.</p>"
-        "<div class='live-tip'>"
-        "<strong>A black screen below is normal.</strong> It is the container's real "
-        "display, and it is empty whenever no run is in progress — the browser window "
-        "only exists while a test is running. Open a project and press "
-        "<em>▶ Run tests</em> with this page open in a second tab to watch it work."
-        "</div>"
-        "<div class='live-tip live-tip-muted'>"
-        "Runs finish in about a second, so a run at full speed can be over before you "
-        "look. To make one watchable, set <code>AUTOTESTER_SLOW_MO_MS=1500</code> before "
-        "<code>docker compose up -d</code> — every browser action is then padded so you "
-        "can follow it step by step."
-        "</div>"
-        "<div class='live-shell'>"
-        "<iframe src='http://localhost:6080/vnc.html?autoconnect=true&resize=scale'></iframe>"
-        "</div>"
-    )
-    return theme.page("Live view", body)

@@ -12,6 +12,7 @@ import typer
 
 from autotester import providers
 from autotester.core.paths import RepoDocs
+from autotester.schema.enums import ReviewStatus
 from autotester.schema.observation import VisionOptions
 from autotester.stages.ingest import (
     FlowSpecApproved,
@@ -210,3 +211,22 @@ def analyze_cmd(
         f"{source.label or source.id} ({coverage}"
         f"{'' if analysis.is_complete else ' — PARTIAL'})",
         fg=typer.colors.GREEN if analysis.is_complete else typer.colors.YELLOW)
+
+
+@app.command("map")
+def map_product_cmd(project: str = typer.Argument(..., help="project slug")) -> None:
+    """Fold every persisted video analysis into the project's product map."""
+    from autotester.stages.product_map import attach_screenshots, build_screen_map
+
+    store = ProjectStore(project)
+    if store.load_project() is None:
+        typer.secho(f"no project '{project}' yet", fg=typer.colors.RED)
+        raise typer.Exit(1)
+    screen_map = build_screen_map(store)
+    store.save_screen_map(screen_map)
+    spec = store.load_flowspec()
+    if spec is not None and spec.review.status is not ReviewStatus.APPROVED:
+        store.save_flowspec(attach_screenshots(spec, screen_map))
+    typer.secho(
+        f"{project}: {len(screen_map.screens)} screen(s), "
+        f"{len(screen_map.journeys)} journey(s)", fg=typer.colors.GREEN)

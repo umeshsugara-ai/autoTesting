@@ -21,6 +21,7 @@ from autotester.schema.enums import (
     Confidence,
     IssueCategory,
     IssueOrigin,
+    IssueStatus,
     Severity,
     SourceKind,
 )
@@ -31,7 +32,9 @@ from autotester.stages.issues import (
     derive_issues,
     export_issues_excel,
     issue_row,
+    sync_source_issues,
 )
+from autotester.store.project_store import ProjectStore
 
 HUMAN_SHEET = Path("C:/Users/Lenovo/Videos/Screen Recordings/ERP_Issues_ALL.xlsx")
 
@@ -175,6 +178,71 @@ def test_re_deriving_the_same_analysis_gives_the_same_ids() -> None:
 
     assert [i.id for i in first] == [i.id for i in second]
     assert first[0].id
+
+
+def test_sync_replaces_only_one_sources_obsolete_rows(tmp_path: Path) -> None:
+    store = ProjectStore("erp", tmp_path)
+    source = a_source()
+    old = derive_issues(an_analysis(an_issue(title="Old finding")), source, "erp")[0]
+    other = old.model_copy(update={"id": "iss_other", "source_id": "src_other"})
+    store.add_issue(old)
+    store.add_issue(other)
+    fresh = derive_issues(an_analysis(an_issue(title="Fresh finding")), source, "erp")
+
+    sync_source_issues(store, source.id, fresh)
+
+    assert {issue.title for issue in store.list_issues()} == {"Fresh finding", "Old finding"}
+    assert next(issue for issue in store.list_issues() if issue.id == "iss_other").source_id == (
+        "src_other")
+
+
+def test_partial_sync_does_not_delete_a_previously_known_issue(tmp_path: Path) -> None:
+    store = ProjectStore("erp", tmp_path)
+    source = a_source()
+    known = derive_issues(an_analysis(an_issue()), source, "erp")[0]
+    store.add_issue(known)
+
+    sync_source_issues(store, source.id, [], remove_missing=False)
+
+    assert [issue.id for issue in store.list_issues()] == [known.id]
+
+def test_partial_sync_cannot_downgrade_a_richer_stable_issue(tmp_path: Path) -> None:
+    store = ProjectStore("erp", tmp_path)
+    source = a_source()
+    rich = derive_issues(an_analysis(an_issue(
+        severity=Severity.S1, confidence=Confidence.HIGH, models_agreeing=2,
+        model_labels=["gemini-a", "gemini-b"],
+        narration="The tester says the button fails",
+        on_screen_text="Validation failed",
+    )), source, "erp")[0]
+    store.add_issue(rich)
+    before = store.paths.issues.read_bytes()
+    thin = derive_issues(an_analysis(an_issue(
+        severity=Severity.S2, confidence=Confidence.MEDIUM)), source, "erp")
+    sync_source_issues(store, source.id, thin, remove_missing=False)
+    assert store.list_issues() == [rich]
+    assert store.paths.issues.read_bytes() == before
+
+
+def test_stable_sync_preserves_history_and_is_byte_identical(tmp_path: Path) -> None:
+    store = ProjectStore("erp", tmp_path)
+    source = a_source()
+    derived = derive_issues(an_analysis(an_issue()), source, "erp")
+    reviewed = derived[0].model_copy(update={
+        "status": IssueStatus.CONFIRMED, "human_id": "ERP-17",
+        "confirm_first": "Recheck with an admin account",
+        "evidence_refs": ["frame:00001000.png"],
+    })
+    store.add_issue(reviewed)
+    before = store.paths.issues.read_bytes()
+    sync_source_issues(store, source.id, derive_issues(an_analysis(an_issue()), source, "erp"))
+    after = store.list_issues()[0]
+    assert after.created_at == reviewed.created_at
+    assert after.status is IssueStatus.CONFIRMED
+    assert after.human_id == "ERP-17"
+    assert after.confirm_first == "Recheck with an admin account"
+    assert after.evidence_refs == ["frame:00001000.png"]
+    assert store.paths.issues.read_bytes() == before
 
 
 def test_every_issue_points_back_at_its_recording_and_second() -> None:

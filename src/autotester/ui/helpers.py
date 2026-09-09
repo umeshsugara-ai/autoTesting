@@ -198,7 +198,7 @@ def _refuse_unsafe_submission(
         ))
 
 
-def _reserved_temp_path(suffix: str) -> Path:
+def _reserved_temp_path(suffix: str, directory: Path | None = None) -> Path:
     """Reserve a unique filename via mkstemp, then hand it to the exporter to
     create fresh — the exporters all write a brand-new file, so the
     mkstemp-opened fd is closed and the placeholder removed immediately.
@@ -206,7 +206,9 @@ def _reserved_temp_path(suffix: str) -> Path:
     Lives here rather than in one route module because three download routes
     now need it (run report, portable HTML, crawl report) — C3.
     """
-    fd, tmp = tempfile.mkstemp(suffix=suffix)
+    if directory is not None:
+        directory.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(suffix=suffix, dir=directory)
     os.close(fd)
     path = Path(tmp)
     path.unlink()

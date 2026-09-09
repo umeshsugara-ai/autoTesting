@@ -77,6 +77,25 @@ def _tree_html(root: _Node) -> str:
     return f"<ul class='flow-tree'>{items}</ul>"
 
 
+def _recorded_journeys(store) -> str:
+    screen_map = store.load_screen_map()
+    if screen_map is None or not screen_map.journeys:
+        return theme.card("<p class='meta'>no recorded journeys learned yet</p>",
+                          title="Recorded journeys")
+    cards = "".join(
+        theme.card(
+            "<ul class='flow-tree'>" + "".join(
+                f"<li><span class='tree-node'>{escape(stop.name)}"
+                f" <span class='meta'>{stop.t_start:.1f}s</span></span></li>"
+                for stop in journey.stops
+            ) + "</ul>",
+            title=escape(journey.label),
+        )
+        for journey in screen_map.journeys
+    )
+    return theme.card(cards, title="Recorded journeys")
+
+
 @router.get("/projects/{slug}/flow-diagram", response_class=HTMLResponse)
 def flow_diagram(slug: str) -> str:
     store, _project = _load_project_or_404(slug)
@@ -88,20 +107,16 @@ def flow_diagram(slug: str) -> str:
         )
     )
     cases = store.list_cases()
-    if not cases:
-        body = breadcrumb + "<h1>Flow diagram</h1>" + theme.empty_state(
-            "🌳", "no cases yet — generate or add cases to see their branch structure here.",
-        )
-        return theme.page("Flow diagram", body, active_slug=slug)
     forest = _build_forest(cases)
     sections = "".join(
         theme.card(_tree_html(forest[flow_id]), title=f"Flow: {escape(flow_id)}")
         for flow_id in sorted(forest)
-    )
+    ) or theme.empty_state(
+        "🌳", "no cases yet — generate or add cases to see their branch structure here.")
     body = (
         breadcrumb + "<h1>Flow diagram</h1>"
         "<p class='subtitle'>Every case's own steps, merged on their shared prefix — where "
         "the branches actually diverge (best/worst/edge), not just a list of cases.</p>"
-        f"{sections}"
+        f"{_recorded_journeys(store)}{sections}"
     )
     return theme.page("Flow diagram", body, active_slug=slug)
