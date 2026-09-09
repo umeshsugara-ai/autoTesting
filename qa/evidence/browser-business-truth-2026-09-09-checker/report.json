@@ -1,0 +1,67 @@
+{
+  "unit": "business-truth-campaign",
+  "date": "2026-09-09",
+  "mode": "D (live feature validation) + business-goal audit",
+  "checker": "business-truth campaign, bound to d:/autoTesting",
+  "note": "First Mode D evidence directory in this repo's history. Before this run, all 86 verdicts in qa/verdicts/ carried zero LIVE-BROWSER lines and qa/evidence/ did not exist (filed as AT-243).",
+  "instrument": {
+    "app_under_test": "AutoTester's own FastAPI UI",
+    "launch": "uv run uvicorn autotester.ui.app:app --host 127.0.0.1 --port 8010",
+    "browser": "Playwright MCP, real browser, checker-driven",
+    "interaction": "forms filled and buttons clicked by the checker; the maker's screenshots were not read, and curl was used only for status-code and secret-scan probes, never as the verification of a behaviour"
+  },
+  "baseline_verify": {
+    "pytest": "818 passed, 2 skipped",
+    "ruff": "All checks passed",
+    "doctor": "clean",
+    "comment": "The harness was fully green while two headline features were unreachable by any user. That gap is the campaign's central result."
+  },
+  "pages_driven": [
+    {"url": "/", "result": "renders 4 projects, portfolio stats", "console_errors": 1},
+    {"url": "/onboard", "result": "form accepted an unseen product", "console_errors": 0},
+    {"url": "/projects/saucedemo", "result": "created; only remedy offered is '+ Add the first case'", "console_errors": 1},
+    {"url": "/projects/saucedemo/crawls", "result": "empty state + Explore now button", "console_errors": 1},
+    {"url": "/projects/saucedemo/explore", "result": "403 raw JSON on click (twice: no approval, then bounds too narrow)", "console_errors": 1},
+    {"url": "/projects/saucedemo/crawls (after crawl)", "result": "table honestly shows Screens=1 Refused=3 Issues=0, Status='completed'", "console_errors": 1}
+  ],
+  "interactions_performed": [
+    "Filled and submitted the /onboard form for an unseen product (saucedemo) -> project created, redirect to detail page",
+    "Clicked 'Explore now' with no approval -> 403, message named a runnable grant command",
+    "Granted a deliberately narrow approval (40 actions / 300s) via CLI, clicked again -> 403 naming the exact bound that failed ('actions 200 > approved 40; wall clock 600.0s > approved 300.0s')",
+    "Granted the matching approval (200 / 600) -> crawl ran headed against the live public site and completed in 3.4s",
+    "Re-loaded the crawl list and read the rendered result table"
+  ],
+  "positives_verified": [
+    "Consent gate is real: nothing outward-facing started without an approval, and bounds were checked, not merely existence (CN3/CN6 hold).",
+    "Refusal messages name a command that actually runs, with the correct arguments.",
+    "Path traversal ('../../etc/passwd'), URL-encoded traversal, an XSS payload as slug, a null byte and an uppercase slug are all refused (404/400); no raw <script> is reflected. AT-035's fix holds.",
+    "No 500 was produced by any probe.",
+    "No .env value appears verbatim in any rendered page. Three pages contain PATHLYNKS_USER_LOGIN_URL's value, but that value is the project's own non-secret base_url and is meant to render - the documented AT-078 case, not a leak.",
+    "Safety refusals inside the crawl are correct: unnamed inputs were not typed into and a form-submit control was not clicked under read_only.",
+    "The crawl list table honestly reports Screens=1, Refused=3, Issues=0 and 'frontier empty' (explore.md X16 holds)."
+  ],
+  "findings": [
+    {"id": "AT-239", "severity": "high", "summary": "stages/expand.py::expand has zero production callers - the 'differentiator' is unreachable"},
+    {"id": "AT-240", "severity": "high", "summary": "self-extension loop dead: diff_coverage/request_for/add_request have zero production callers, no VideoRequest can exist"},
+    {"id": "AT-241", "severity": "high", "summary": "cold start dead end: hand-writing cases is the only route from a new project to a runnable one"},
+    {"id": "AT-242", "severity": "high", "summary": "a crawl that learned nothing reports status 'completed'"},
+    {"id": "AT-243", "severity": "high", "summary": "Mode D never ran: 86 verdicts, zero LIVE-BROWSER lines"},
+    {"id": "AT-244", "severity": "medium", "summary": "UI button returns raw JSON 403 telling an operator to run a CLI command"},
+    {"id": "AT-245", "severity": "medium", "summary": "/runs/{unknown} returns 200 and renders a fabricated pending run"},
+    {"id": "AT-246", "severity": "low", "summary": "/crawls/{unknown} returns 200 instead of 404"},
+    {"id": "AT-247", "severity": "medium", "summary": "UI hardcodes CrawlBounds(); operator cannot set blast radius"},
+    {"id": "AT-248", "severity": "low", "summary": "favicon 404 console error on every page"},
+    {"id": "AT-249", "severity": "medium", "summary": "AT-229's evidence misattributes this campaign's artifacts to uv run pytest"}
+  ],
+  "screenshots": [
+    "01-coldstart-saucedemo-no-generate-path.png",
+    "02-explore-403-raw-json-cli-deadend.png",
+    "03-crawl-completed-learned-one-screen.png"
+  ],
+  "not_tested": [
+    "J3 recording -> FlowSpec (video ingest) end to end: needs a real recording for an unseen product; the CLI path exists but was not exercised in this pass.",
+    "J7 report readability at scale (200-case report).",
+    "J10 regression + bench re-proof.",
+    "Phase 3 recall/FP against ERP_Issues_Trainers.xlsx: the t136-scorer unit was being fixed by a concurrent maker session during this campaign and was left alone by agreement."
+  ]
+}

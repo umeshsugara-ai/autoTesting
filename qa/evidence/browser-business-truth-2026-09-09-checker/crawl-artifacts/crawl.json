@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-09-09T03:51:10.029366Z",
+  "id": "crawl_01M224MXTV6D5CMP37CDDERK1W",
+  "project": "saucedemo",
+  "status": "completed",
+  "bounds": {
+    "max_screens": 30,
+    "max_actions": 200,
+    "wall_clock_s": 600.0,
+    "max_depth": 6,
+    "per_node_action_cap": 25,
+    "dialog_repeat_limit": 3,
+    "settle_ms": 2500
+  },
+  "policy": {
+    "write_policy": "read_only",
+    "deny_patterns": [
+      "\\bdelete\\b",
+      "\\bremove\\b",
+      "\\bdeactivate\\b",
+      "\\bdisable\\b",
+      "\\barchive\\b",
+      "\\bpurge\\b",
+      "\\bdrop\\b",
+      "\\breset\\b",
+      "\\brevoke\\b",
+      "\\bterminate\\b",
+      "\\bcancel subscription\\b",
+      "\\bpay\\b",
+      "\\bcheckout\\b",
+      "\\bsend\\b",
+      "\\bsubmit\\b",
+      "\\bapprove\\b",
+      "\\breject\\b",
+      "\\bpublish\\b",
+      "\\bunsubscribe\\b"
+    ],
+    "never_click_patterns": [
+      "\\blog ?out\\b",
+      "\\blog\\b[\\s\\w]{0,10}\\bout\\b",
+      "\\bsign ?out\\b",
+      "\\bsignout\\b",
+      "\\bsign\\b[\\s\\w]{0,10}\\bout\\b"
+    ],
+    "third_party_ignore": [
+      "google-analytics.com",
+      "googletagmanager.com",
+      "doubleclick.net",
+      "facebook.net",
+      "connect.facebook.net",
+      "hotjar.com",
+      "clarity.ms",
+      "sentry.io",
+      "segment.io",
+      "intercom.io",
+      "fonts.gstatic.com",
+      "fonts.googleapis.com"
+    ],
+    "click_unnamed": false
+  },
+  "provider": "mock",
+  "started_at": "2026-09-09T03:51:10.029366+00:00",
+  "finished_at": "2026-09-09T03:51:13.437227+00:00",
+  "stop_reason": "frontier empty",
+  "screens": 1,
+  "edges": 3,
+  "actions": 0,
+  "denied": 3,
+  "issues": 0,
+  "tool_failures": 0,
+  "noise_counts": []
+}
