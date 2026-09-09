@@ -116,6 +116,29 @@ one that includes two observations differing **only** in `prompt_name` — and c
 determinism test whose every fixture carries a single `prompt_name` does not evidence this
 criterion, because the tie it exists to catch cannot occur in it.
 
+**VL4a — a single provider's own duplicate report, across its own two prompts, must merge.**
+Every recording is analysed under two prompts per provider; both can independently notice the same
+fault on the same screen using different enough wording that a name-keyed merge never matches them.
+Two (or more) reports that share a provider label, category, and seam window are ONE finding, not
+one per prompt — regardless of whether the screen names agree — because the same model saying the
+same thing twice under a different question is not two findings and is not cross-model
+corroboration (`models_agreeing` must not move). Judged on a fixture where a real cross-model report
+is *also* present in the same window and category, from a genuinely different provider whose screen
+name also fails to match: that second, independent finding must NOT be swallowed into the
+same-provider merge group.
+
+**VL4b — the text that survives a merge is chosen by an explicit, stated, and tested rule — never
+whichever observation the sort key happened to place first.** A first-seen default is itself a rule,
+but an unstated one: this module measured it silently downgrading a matched finding into a missed
+one (a terser, incidentally-generated aside beating a dedicated, more thorough description), which
+is exactly the failure VL4's own tie-discipline exists to catch, one level up — in the surviving
+*content* of a merge, not just in which merge occurs. The rule governing which text survives must be
+named in the module's own docs and covered by a test that would fail if the rule were silently
+reverted to first-seen. **The exact-tie case (two candidates equally weighted by the stated rule) is
+part of this criterion**: the module must say what happens on a tie, even if the answer is "first-seen,
+deliberately" — an untested, undocumented tie-break is the same unstated-default shape VL4 already
+rejects for ordering.
+
 ### VL5 — Offsets are applied in code; narration is sliced to the chunk
 A chunk's timestamps are moved into whole-video time by `shift`, never by the model, and the prompt
 says so in as many words. Shifting copies rather than mutates, so a cached observation read from
@@ -477,3 +500,27 @@ reason).
   `done_check` at exit 2 regardless.
 
   Verdict: `qa/verdicts/t136-scorer.md` (FAIL, cycle 1).
+
+- 2026-09-09 · routine · **VL4a/VL4b added from the cycle-1 check of
+  `at231-adjudicate-duplicate-merge` (FAIL).** No existing criterion weakened. AT-231's fix
+  (`_same_model_duplicate` + the length-preference block in `_apply_merge`) is real and both its
+  dedicated sabotages were independently re-run and confirmed exactly as the manifest predicted —
+  the code and its own tests are sound. What did **not** reproduce is the manifest's own causal
+  narrative for *why* the length-preference block matters: its table names the erp1 "Rule T3"
+  same-model pair (claimed similarity 0.180 -> 0.315 against the human sheet) as the finding whose
+  survival the fix rescues. Independently re-adjudicating the real cached observations
+  (`projects/erp/sources/*/observations/*.json`) against the real
+  `ERP_Issues_Trainers.xlsx`/`Trainer module` sheet with the shipped scorer at its default
+  window/threshold shows the Rule T3 pair never matches any truth row in ANY of the three states
+  (pre-fix, merge-fixed-but-first-seen, fully fixed) — its title+what_is_wrong similarity to the one
+  truth row it could plausibly match (E-01) tops out at 0.175, never above the 0.30 threshold. The
+  finding the length-preference fix actually rescues is the **erp2 document-type pair**: with
+  first-seen-wins, "Incorrect document type option" survives and scores 0.247 against truth row E-02
+  (below threshold, unmatched, recall 0/7); with the length-preference fix, "Document type dropdown
+  option should be 'CITS Certificate' instead of 'CIPSA Certificate'" survives and scores 0.369
+  (above threshold, matched, recall 1/7 restored) — reproduced exactly. The aggregate headline
+  numbers (6 issues -> 3, false positives 5 -> 2, recall preserved at 1/7) DID reproduce; only the
+  per-issue mechanism and the specific 0.180/0.315 figures are wrong. VL4a/VL4b are written from
+  measurement of the fix's real, confirmed behaviour (the same-provider merge bound and the
+  length-preference rule), independent of the manifest's mistaken narrative. See
+  `qa/verdicts/at231-adjudicate-duplicate-merge.md`.
