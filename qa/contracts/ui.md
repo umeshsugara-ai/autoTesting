@@ -113,6 +113,45 @@ no exempt set at all); and **AT-086** — a project whose `base_url` is byte-ide
 value cannot be created through the UI at all, by onboarding or by editing a placeholder. Both
 fail closed.
 
+### U10 — The cold start has a way out, and the gate over it swings both ways
+A project with **zero cases and no `FlowSpec`** — the state every newly onboarded product is in —
+has a route out of that state that a person can reach by clicking, and the person, not the
+machine, decides whether what the machine learned is true.
+
+- **The dead end is closed.** `ui/project_view.py::_actions_card`'s zero-case empty state offers a
+  link to `GET /projects/{slug}/flowspec` beside "+ Add the first case". Hand-writing cases one at
+  a time was previously the only remedy offered, which made the product's own generator invisible
+  to the operator it was built for.
+- **The no-FlowSpec page says so and is not itself a dead end.** `ui/routes_learn.py::flowspec_page`
+  renders a page that states no FlowSpec exists for this project and carries **at least one** onward
+  link. A page that only reports the absence would move the dead end, not close it.
+- **The gate moves in both directions from the UI.** `POST …/flowspec/approve` and
+  `POST …/flowspec/request-edit` both exist and both persist through
+  `ProjectStore.save_flowspec` after `stages/review.py::approve`/`request_edit` — the same file
+  (`projects/<slug>/flowspec.json`), the same functions the CLI uses (R2/R3/R4), no parallel state.
+  **A review page carrying only an Approve button is a rubber stamp, and this criterion pins the
+  second button so a later unit cannot quietly delete it.**
+- **An unsigned approval is refused and changes nothing.** A blank or whitespace-only signer is
+  refused (400) and `flowspec.json` is left **byte-identical** — R2's "there is no such thing as an
+  anonymous approval" holds on the UI door too, and the refusal must not be a partial write.
+- **The review free text goes through the same credential guard as the case form.** Both routes pass
+  their `by` and `note` through `ui/helpers.py::_refuse_unsafe_submission` **before** any save, with
+  the project's `SecretStore` loaded exactly as every other route loads it. `flowspec.json` is
+  git-tracked in a public repo; the reason U8/U9 exist does not stop at the case form.
+- **The queue is visible.** `GET /projects/{slug}/requests` renders the open `VideoRequest`s, and an
+  empty queue gets an honest empty state rather than a blank page. A request written to a file
+  nothing renders is, from the human's side, not asking at all.
+- **U5 covers the new surfaces.** Every project-derived string on both new GET routes — including
+  the `<title>`, which `theme.page` does not escape for you, and the labels handed to
+  `theme.breadcrumb`/`theme.empty_state`, which do not escape for you either — is `html.escape`d at
+  the call site.
+
+**Deliberately not claimed here:** that refusals from these routes are themed pages. Only the three
+`POST …/cases/generate` refusals are (expand.md X6); `approve`/`request-edit` still answer with a raw
+`{"detail": …}` blob, tracked as AT-259. Writing that into this criterion would be crediting an
+intention.
+
+
 ## No-fire list
 
 - Authentication/authorization — this is a local, single-operator tool for now (matches the
@@ -247,3 +286,27 @@ fail closed.
   and **AT-086** raised low→medium (the manifest's "has workarounds" was tested and is wrong —
   onboarding a placeholder then editing is refused too). See
   `qa/verdicts/ui-credential-guard-project-routes.md`.
+
+- 2026-09-09 · /checker (at241-cold-start unit, cycle 1) · **new criterion U10 added** — the
+  business-truth campaign proved T-100's own acceptance note ("full onboarding → report without
+  touching the CLI") false by driving this UI in a real browser, and no U-criterion covered the
+  hole, so nothing was failing while the product's promise was. U10 pins the cold-start exit, the
+  two-way gate, the unsigned-approval refusal and the credential guard on review free text.
+  Routine, non-weakening: it adds a criterion and softens none. Everything in it was re-derived by
+  this checker's own Playwright script against its own `uvicorn` on a scratch `AUTOTESTER_ROOT`
+  (18/18 interactions, evidence
+  `qa/evidence/browser-at241-cold-start-2026-09-09-checker/report.json`), not read from the maker's
+  report: a project named `<script>alert(1)</script>&'"` was onboarded through the real form, its
+  zero-case page **clicked** through to `/flowspec`, the gate driven draft → `needs_edit` →
+  `approved` with `review.status` and `review.by` **read back off disk each time**, and a
+  whitespace-only signer confirmed to leave `flowspec.json` byte-identical. U5 was re-probed on the
+  raw HTTP source rather than the DOM (`page.title()` re-decodes entities and reports a false leak):
+  both new routes emit `&lt;script&gt;…` in the body **and in `<title>`**, zero raw payloads — the
+  fourth escaping site this checker went looking for does not exist. Two residuals filed rather than
+  folded in, because neither violates a criterion: **AT-259** (the module's own
+  `approve`/`request-edit` refusals are raw JSON — the manifest's "refusals from *these* routes are
+  pages" is true only of `generate`, 4 of ~6 refusal paths on these routes are raw, and this checker
+  saw one rendered as a bare `<pre>` blob in Chromium) and **AT-262** (Generate is a ~2-minute
+  synchronous POST with no progress feedback). U1–U9 are **not** re-verified by this unit and are not
+  claimed to be; AT-243's finding that 24 UI-touching PASS verdicts carry zero `LIVE-BROWSER` lines
+  is untouched by this cycle. See `qa/verdicts/at241-cold-start.md`.

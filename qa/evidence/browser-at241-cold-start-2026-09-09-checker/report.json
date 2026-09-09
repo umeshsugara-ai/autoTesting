@@ -1,0 +1,425 @@
+{
+  "unit": "at241-cold-start",
+  "checker": "independent",
+  "base": "http://127.0.0.1:8301",
+  "pages": [
+    {
+      "label": "onboard",
+      "url": "http://127.0.0.1:8301/onboard",
+      "status": 200
+    },
+    {
+      "label": "project",
+      "url": "http://127.0.0.1:8301/projects/xss-demo",
+      "status": 200
+    },
+    {
+      "label": "flowspec-empty",
+      "url": "http://127.0.0.1:8301/projects/xss-demo/flowspec"
+    },
+    {
+      "label": "requests",
+      "url": "http://127.0.0.1:8301/projects/xss-demo/requests",
+      "status": 200
+    },
+    {
+      "label": "generate-noflow",
+      "url": "http://127.0.0.1:8301/projects/xss-demo/cases/generate"
+    },
+    {
+      "label": "flowspec-draft",
+      "url": "http://127.0.0.1:8301/projects/xss-demo/flowspec",
+      "status": 200
+    },
+    {
+      "label": "approve-unsigned",
+      "url": "http://127.0.0.1:8301/projects/xss-demo/flowspec/approve"
+    },
+    {
+      "label": "flowspec-draft2",
+      "url": "http://127.0.0.1:8301/projects/xss-demo/flowspec",
+      "status": 200
+    },
+    {
+      "label": "generate-unapproved",
+      "url": "http://127.0.0.1:8301/projects/xss-demo/cases/generate"
+    },
+    {
+      "label": "flowspec-needs-edit",
+      "url": "http://127.0.0.1:8301/projects/xss-demo/flowspec",
+      "status": 200
+    },
+    {
+      "label": "generate-real",
+      "url": "http://127.0.0.1:8301/projects/xss-demo/cases/generate"
+    },
+    {
+      "label": "requests-2",
+      "url": "http://127.0.0.1:8301/projects/xss-demo/requests",
+      "status": 200
+    }
+  ],
+  "interactions": [
+    {
+      "name": "onboard created a cold-start project (0 cases, 0 flowspec)",
+      "passed": true,
+      "detail": {
+        "cases": 0,
+        "flowspec": null,
+        "url": "http://127.0.0.1:8301/projects/xss-demo"
+      }
+    },
+    {
+      "name": "zero-case empty state offers a learn route",
+      "passed": true,
+      "detail": {
+        "flowspec_links": [
+          "/projects/xss-demo/flowspec"
+        ]
+      }
+    },
+    {
+      "name": "clicking it actually lands on the flowspec page",
+      "passed": true,
+      "detail": "http://127.0.0.1:8301/projects/xss-demo/flowspec"
+    },
+    {
+      "name": "no-flowspec page states so and offers >=1 way onward",
+      "passed": true,
+      "detail": {
+        "onward": [
+          "/projects/xss-demo/sources",
+          "/projects/xss-demo/cases/new"
+        ]
+      }
+    },
+    {
+      "name": "U5: raw HTTP source of both new GET routes carries no unescaped payload, <title> included",
+      "passed": true,
+      "detail": {
+        "flowspec": {
+          "raw_script_in_source": false,
+          "title_tag_source": "&lt;script&gt;alert(1)&lt;/script&gt;&amp;&#x27;&quot; \u00b7 FlowSpec \u2014 AutoTester"
+        },
+        "requests": {
+          "raw_script_in_source": false,
+          "title_tag_source": "&lt;script&gt;alert(1)&lt;/script&gt;&amp;&#x27;&quot; \u00b7 Video requests \u2014 AutoTester"
+        }
+      }
+    },
+    {
+      "name": "U5: neither new GET route emits a raw <script> from project.name",
+      "passed": true,
+      "detail": [
+        {
+          "page": "flowspec",
+          "raw_script_tags": 0,
+          "title": "<script>alert(1)</script>&'\" \u00b7 FlowSpec \u2014 AutoTester",
+          "title_has_raw_script": true,
+          "raw_amp_quote_in_title": true
+        },
+        {
+          "page": "requests",
+          "raw_script_tags": 0,
+          "title": "<script>alert(1)</script>&'\" \u00b7 Video requests \u2014 AutoTester",
+          "title_has_raw_script": true,
+          "raw_amp_quote_in_title": true
+        }
+      ]
+    },
+    {
+      "name": "requests page gives an honest empty state, not a blank page",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Generate with no flowspec -> themed page (not raw JSON), 0 cases written",
+      "passed": true,
+      "detail": {
+        "cases_after": 0,
+        "has_card": false
+      }
+    },
+    {
+      "name": "DRAFT spec shows the gate but NOT the Generate button",
+      "passed": true,
+      "detail": {
+        "generate_shown": false
+      }
+    },
+    {
+      "name": "unsigned approval refused AND flowspec.json byte-untouched",
+      "passed": true,
+      "detail": {
+        "before": {
+          "status": "draft"
+        },
+        "after": {
+          "status": "draft"
+        },
+        "body_head": "<html><head><meta name=\"color-scheme\" content=\"light dark\"><meta charset=\"utf-8\"></head><body><pre>{\"detail\":\"an approval needs a name \u2014 who is signing it?\"}</pre><div class=\"json-formatter-container\""
+      }
+    },
+    {
+      "name": "request-edit writes review.status=needs_edit and review.by to disk",
+      "passed": true,
+      "detail": {
+        "status": "needs_edit",
+        "by": "checker-mode-d",
+        "at": "2026-09-09T05:10:24Z",
+        "note": "screen 2 is wrong"
+      }
+    },
+    {
+      "name": "X1: Generate on an unapproved flowspec -> themed refusal, 0 cases",
+      "passed": true,
+      "detail": {
+        "cases_after": 0
+      }
+    },
+    {
+      "name": "approving from the form writes review.status=approved and review.by to disk",
+      "passed": true,
+      "detail": {
+        "status": "approved",
+        "by": "checker-mode-d",
+        "at": "2026-09-09T05:10:26Z",
+        "note": "looks right"
+      }
+    },
+    {
+      "name": "the gate moved BOTH ways from the UI (draft -> needs_edit -> approved)",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "approved spec reveals the Generate button",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Generate actually ADDS rows to cases.jsonl",
+      "passed": true,
+      "detail": {
+        "before": 0,
+        "after": 16,
+        "landed_on": "http://127.0.0.1:8302/projects/xss-demo/cases"
+      }
+    },
+    {
+      "name": "the expander produces non-happy cases (the taxonomy actually fires)",
+      "passed": true,
+      "detail": {
+        "classes": [
+          "back_refresh_midflow",
+          "deeplink_unauth",
+          "double_submit",
+          "happy",
+          "input_boundary",
+          "input_empty",
+          "input_unicode_oversize",
+          "locale_i18n",
+          "network_offline_slow",
+          "server_error",
+          "viewport_mobile"
+        ],
+        "kinds": [
+          "best",
+          "edge",
+          "worst"
+        ]
+      }
+    },
+    {
+      "name": "the cases page renders what was generated",
+      "passed": true,
+      "detail": {
+        "rows_rendered": 17
+      }
+    }
+  ],
+  "console_errors_total": 4,
+  "u5": [
+    {
+      "page": "flowspec",
+      "raw_script_tags": 0,
+      "title": "<script>alert(1)</script>&'\" \u00b7 FlowSpec \u2014 AutoTester",
+      "title_has_raw_script": true,
+      "raw_amp_quote_in_title": true
+    },
+    {
+      "page": "requests",
+      "raw_script_tags": 0,
+      "title": "<script>alert(1)</script>&'\" \u00b7 Video requests \u2014 AutoTester",
+      "title_has_raw_script": true,
+      "raw_amp_quote_in_title": true
+    },
+    {
+      "page": "flowspec-populated",
+      "raw_script_tags": 0,
+      "title": "<script>alert(1)</script>&'\" \u00b7 FlowSpec \u2014 AutoTester",
+      "title_has_raw_script": true,
+      "raw_amp_quote_in_title": true
+    }
+  ],
+  "u5_raw_source": {
+    "flowspec": {
+      "raw_script_in_source": false,
+      "title_tag_source": "&lt;script&gt;alert(1)&lt;/script&gt;&amp;&#x27;&quot; \u00b7 FlowSpec \u2014 AutoTester"
+    },
+    "requests": {
+      "raw_script_in_source": false,
+      "title_tag_source": "&lt;script&gt;alert(1)&lt;/script&gt;&amp;&#x27;&quot; \u00b7 Video requests \u2014 AutoTester"
+    }
+  },
+  "generated_classes": [],
+  "generated_kinds": [],
+  "generated_titles": [],
+  "console_errors_by_page": {
+    "onboard": [],
+    "project": [],
+    "flowspec-empty": [],
+    "requests": [],
+    "generate-noflow": [
+      "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+    ],
+    "flowspec-draft": [],
+    "approve-unsigned": [
+      "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+    ],
+    "flowspec-draft2": [],
+    "request-edit": [],
+    "generate-unapproved": [
+      "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+    ],
+    "flowspec-needs-edit": [],
+    "approve": [],
+    "generate-real": [
+      "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+    ],
+    "requests-2": [],
+    "pass2-flowspec": [],
+    "pass2-generate-real": []
+  },
+  "passed": 18,
+  "total": 18,
+  "run_note": "Two servers, both driven by the checker's OWN Playwright script (scratchpad/moded.py + gen.py), never the maker's. Pass 1 (port 8301, AUTOTESTER_ROOT=scratch, no .env in that root): the whole cold-start journey. Its last two rows FAILED only because that root had no credentials, so Generate correctly took its third refusal branch ('No model provider configured', HTTP 400, themed page, 0 cases) -- that is the branch verified, not a defect. Pass 2 (port 8302, same scratch root, the repo .env exported into the server's environment): the Generate click for real against the live gemini provider.",
+  "provider_refusal_branch_verified": {
+    "route": "POST /projects/xss-demo/cases/generate",
+    "http": 400,
+    "page_text": "No model provider configured",
+    "cases_written": 0,
+    "raw_json": false
+  },
+  "pass2_generate_real": {
+    "interactions": [
+      {
+        "name": "approved spec shows Generate",
+        "passed": true,
+        "detail": "http://127.0.0.1:8302/projects/xss-demo/flowspec"
+      },
+      {
+        "name": "Generate actually ADDS rows to cases.jsonl",
+        "passed": true,
+        "detail": {
+          "before": 0,
+          "after": 16,
+          "landed_on": "http://127.0.0.1:8302/projects/xss-demo/cases"
+        }
+      },
+      {
+        "name": "the expander produces non-happy cases (the taxonomy actually fires)",
+        "passed": true,
+        "detail": {
+          "classes": [
+            "back_refresh_midflow",
+            "deeplink_unauth",
+            "double_submit",
+            "happy",
+            "input_boundary",
+            "input_empty",
+            "input_unicode_oversize",
+            "locale_i18n",
+            "network_offline_slow",
+            "server_error",
+            "viewport_mobile"
+          ],
+          "kinds": [
+            "best",
+            "edge",
+            "worst"
+          ]
+        }
+      },
+      {
+        "name": "the cases page renders what was generated",
+        "passed": true,
+        "detail": {
+          "rows_rendered": 17
+        }
+      }
+    ],
+    "console_errors_by_page": {
+      "flowspec": [],
+      "generate-real": []
+    },
+    "generated_classes": [
+      "back_refresh_midflow",
+      "deeplink_unauth",
+      "double_submit",
+      "happy",
+      "input_boundary",
+      "input_empty",
+      "input_unicode_oversize",
+      "locale_i18n",
+      "network_offline_slow",
+      "server_error",
+      "viewport_mobile"
+    ],
+    "generated_kinds": [
+      "best",
+      "edge",
+      "worst"
+    ],
+    "generated_titles": [
+      "Sign in with email \u2014 happy path",
+      "Sign in with email \u2014 input_empty",
+      "Sign in with email \u2014 double_submit",
+      "Sign in with email \u2014 back_refresh_midflow",
+      "Sign in with email \u2014 network_offline_slow",
+      "Sign in with email \u2014 server_error",
+      "Sign in with email \u2014 viewport_mobile",
+      "Sign in with email \u2014 deeplink_unauth",
+      "Sign in with email \u2014 input_boundary",
+      "Sign in with email \u2014 input_unicode_oversize",
+      "Sign in with email \u2014 double_submit",
+      "Sign in with email \u2014 back_refresh_midflow",
+      "Sign in with email \u2014 server_error",
+      "Sign in with email \u2014 viewport_mobile",
+      "Sign in with email \u2014 locale_i18n",
+      "Sign in with email \u2014 deeplink_unauth"
+    ],
+    "generated_n": 16,
+    "console_errors_total": 0
+  },
+  "at244_residual_live": {
+    "finding": "routes_learn.py's OWN approve/request-edit refusals are raw JSON, not pages",
+    "observed": "POST /flowspec/approve with a blank signer -> HTTP 400 body {\"detail\":\"an approval needs a name - who is signing it?\"} rendered by Chromium as a raw <pre> blob, no theme.page frame, no way onward",
+    "raw_httpexception_sites_in_routes_learn": 4
+  },
+  "cli_expand_real": {
+    "default_provider": {
+      "cmd": "autotester expand cli-demo",
+      "exit": 0,
+      "cases": 10,
+      "classes_non_happy": 9
+    },
+    "explicit_gemini": {
+      "cmd": "autotester expand cli-demo --provider gemini",
+      "exit": "non-zero",
+      "outcome": "unhandled ProviderError escapes expand_cases -> full Rich traceback, 0 cases persisted ('the answer hit max_output_tokens and was truncated')"
+    }
+  },
+  "console_errors_note": "Every non-zero count is one Chromium 'Failed to load resource: 400' line, emitted by the browser for a DELIBERATE refusal (Generate refusals x3, unsigned approval x1). No page rendered a script error; all GET pages are 0.",
+  "verdict_input": "18/18 interactions passed"
+}
