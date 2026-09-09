@@ -103,4 +103,4 @@ nothing against the real matches AT-232 fixed.
   guess" discipline. If that specific pair is ever measured for real, it becomes its own
   follow-up, the same way this unit was.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, verdict 4bf3327)
