@@ -324,3 +324,156 @@ recording has a sidecar.
   **0** tests and was reported INCONCLUSIVE, never as a vacuous guard -- with the read unable to
   raise, the two orderings are behaviourally identical. AT-209 (low) carries the one test that would
   re-separate them. Verdict: `qa/verdicts/t133-ensemble-and-issues.md` (PASS, cycle 2).
+
+## Criteria — T-136, the scorer (authored by /checker, 2026-09-09)
+
+These cover `stages/score.py` and `scripts/score_video_issues.py`: the first module in this
+project whose output is a **number about the product**, which is a different kind of artifact from
+everything above it. A wrong screen map is visibly wrong; a wrong recall is a plausible number, and
+a plausible number is the one thing nobody re-derives.
+
+### VL7 — A refusal names a command that runs
+
+The scorer exits **non-zero** when it cannot score, and its message names a command **the CLI
+actually exposes**, verbatim and runnable. This is VL1d, unchanged in substance and generalised to
+this module, and it is here because the same defect has now been filed four times (AT-163, AT-172,
+AT-176, AT-206) and each fix was scoped to the file it was found in. The oracle is **running the
+named invocation**; a test asserting a substring of the command (`"issues derive" in stderr`)
+evidences that the string is present, not that the operator has anywhere to go.
+
+Naming a Python function that has no CLI entry point does not satisfy this. If nothing in the
+shipped surface can produce the artifact the refusal demands, the refusal is a dead end whether or
+not the words parse.
+
+### VL8 — The path the shipped command reads is the repo's own project directory
+
+Run with no `--root`, the scorer resolves `projects/<slug>/` **inside this repository**. A default
+that resolves elsewhere makes every refusal unfalsifiable: the command reports "no derived issues"
+for a reason that has nothing to do with whether issues exist, and no amount of pipeline work can
+ever change its answer. T-136's `done_check` passes no `--root`, so this criterion is the
+difference between a task that can close and one that cannot.
+
+Judged by **running the command exactly as `done_check` names it** and reading the path it opened.
+A test that supplies `--root` exercises the branch that is not shipped and cannot evidence this.
+
+### VL9 — Both ground-truth sheet shapes load, read off the files themselves
+
+`ERP_Issues_Trainers.xlsx` (12 columns, `Clip`) and `ERP_Issues_ALL.xlsx` (13 columns,
+`Recording`) both load, with the real workbooks read where the corpus is present and an offline
+shape test beside it. Row counts and column names are measurements, never transcriptions (VL6's
+rule, same reason).
+
+### VL10 — A cell that cannot be read is refused; a cell that is absent is not scored as agreement
+
+`At` holding something that is not MM:SS is refused rather than read as second zero — second zero
+matches whatever opens the recording, so a bad cell would *invent* a match.
+
+The same standard binds the recording cell, and for the same reason. An empty, blank or missing
+recording value is **unknown**, not a recording, and two unknowns are not the same recording. A key
+that maps two distinct recordings onto one value, or maps absence onto a value that can match, does
+not fail loudly — it moves the north star's number, in either direction, with nothing on the page
+saying so.
+
+### VL11 — A match needs the recording, the time and the text; a truth row is claimed once
+
+Same recording **AND** within the window **AND** similarity at or above the threshold. All three:
+text alone lets one loud finding claim every row, time alone matches whatever the model happened to
+say at that second. Each truth row is claimed by at most one report, and every report left over is
+counted as a false positive rather than passed over in silence.
+
+### VL12 — A declared bound changes the result or is rejected
+
+`--window` and `--threshold` are honoured, never silently ignored (core-invariants C9). Judged on a
+fixture the bounds can actually bite: a fixture whose issues are byte-identical to the truth rows
+makes both knobs unobservable and tests the fixture instead of the code.
+
+### VL13 — The score is a function of content alone
+
+Given the same truth rows and the same **set** of issues in **any order**, the scorer returns
+identical content — recall, per-row claims, and false positives. This is VL4's rule applied to the
+module that produces the number, and it is written down because this codebase has already been
+measured losing it once: a selection with a tie is decided by the caller's list order, and
+`store.list_issues()` order is a file's append order, which no one controls.
+
+Judged by **permuting the issue list**, not by argument about how unlikely a tie is. Greedy rather
+than optimal assignment is an accepted trade (it costs recall, it buys an explanation a reader can
+follow) — order-dependence is not part of that trade and is not licensed by it.
+
+### VL14 — Coverage is reported for every source that contributed an issue
+
+The report says how complete the analyses behind the scored issues are, and names the partial ones
+(VL3's purpose, finally reaching a reader). A contributing source whose analysis is **absent from
+disk** is *unknown coverage*, not zero and not silence: `complete: true` may not be reachable while
+any source that supplied a scored issue has no analysis to read. Skipping the unreadable and
+reporting on the remainder is the same claim-more-than-happened shape VL3 exists to stop, one level
+up.
+
+### I-VL7 — The scorer asks no model anything
+
+`stages/score.py` and the scoring CLI contain no provider call, no network, no clock and no
+randomness. The number that judges the ensemble may not be produced by a member of it (I-VL6, same
+reason).
+
+## Amendment log (continued)
+
+- 2026-09-09 · **START for VL7–VL14 and I-VL7** · Authored by /checker at the maker's request in the
+  `t136-scorer` manifest (cycle 1), and deliberately **not transcribed** from the seven bullets it
+  asked for: each was judged against measurement first. **Most are as requested** — VL7's
+  exit-code half, VL9, VL10's `At` half, VL11, VL12, and VL14's headline. **Four are checker
+  additions or tightenings, each because measurement contradicted the manifest:**
+
+  (i) **VL7 gained "a command that runs".** The shipped refusal names `autotester issues derive`;
+  `uv run autotester issues derive --help` answers `No such command 'issues'`, and the top-level
+  command list has no `issues` group. Worse, `stages/issues.py::derive_issues` has **no caller
+  anywhere under `src/`** — no command produces the artifact the refusal demands. The manifest's
+  bullet said "names the command that would fix it"; the criterion says *runs*, because this is the
+  fifth instance of the class (AT-163/172/176/206) and the fourth guard scoped narrowly enough to
+  miss the next one: `tests/test_cli_advice_resolves.py` sets `SRC = src/autotester` and collects
+  only from there, so `scripts/` is invisible to it. `DERIVE_HINT`'s own docstring — "Named once so
+  the advice-collector guard can see it and the CLI-resolve test can prove it is a command that
+  exists" — is false in both halves; a repo-wide grep finds `DERIVE_HINT` at exactly two sites,
+  both inside the script.
+
+  (ii) **VL8 is entirely a checker addition.** `scripts/score_video_issues.py:92` resolves its
+  default root as `ProjectPaths(args.project).root.parent.parent`. Measured: `repo_root()` is
+  `D:\autoTesting`, so that expression is `D:\` and the shipped command reads
+  `D:\projects\erp\issues.jsonl` — outside this repository. The manifest's central argument ("run
+  today, it exits 2, and that is why T-136 is not closed") is therefore not evidence about the
+  absence of derived issues: the command would exit 2 with the identical message against a fully
+  populated project. Every CLI test passes `--root`, so the branch that ships is executed by
+  nothing.
+
+  (iii) **VL13 is a checker addition.** The manifest states the ordering "is deterministic because
+  candidates sort on similarity then time". `max()` returns the **first** maximum, so a tie on both
+  keys is decided by `remaining` order. Measured: two truth rows; two issues tied against the first
+  row on similarity (0.8 / 0.8) and on time; `--threshold 0.7`. Issue order `[X, Y]` gives recall
+  **0.5**; order `[Y, X]` gives **1.0**. At the default threshold the same construction leaves the
+  *identity* of the claiming issue (and therefore `per_row.matched_title` and `similarity`)
+  order-dependent. This is AT-197's defect class — which cost T-133 a fix cycle and produced VL4's
+  tightening — reappearing in the module that computes the north star.
+
+  (iv) **VL10 was widened past `At`, and VL14 gained the missing-analysis clause.** `recording_key`
+  splits on the first `(`, so `clip (1).mp4` and `clip (2).mp4` both key to `clip` — the exact name
+  Windows gives a duplicate file — while an empty or `None` cell keys to `""`, which is matchable:
+  a sheet with a blank recording column scored against issues with a blank label was measured at
+  **recall 1.0**. And `coverage()` skips a source whose analysis is absent (`if analysis is None:
+  continue`), so with two contributing sources and one analysis on disk the report reads
+  `complete: true` — measured. AT-207 exists because a fragment and a full reading were
+  indistinguishable; that is reintroduced at source granularity inside AT-207's own fix. I-VL7 is a
+  checker addition and holds today.
+
+  **What the manifest got right, verified independently.** All ten of its sabotages (SA–SJ) were
+  re-run by the checker in an isolated `git archive HEAD` extract with `PYTHONPATH` pinned, each
+  anchor matching exactly once and each file re-read as changed, restored by file copy — every one
+  discriminating (1–13 failures), **zero INCONCLUSIVE**. AT-208 is genuinely fixed:
+  `expected=None` records 0, `is_complete` reads zero as not-complete, and the single production
+  caller (`analyze_video.py:181`) still passes the real product, so nothing regressed. AT-207's
+  coverage does read **real persisted** analyses off disk, not fixture objects. The decision to
+  leave **T-136 `pending` is correct and is upheld** — `uv run autotester providers` really reports
+  only `mock`, and `projects/erp/` really holds no `sources.jsonl`, no `analysis.json` and no
+  `issues.jsonl` — and the manifest states the shortfall first rather than burying it, which is the
+  behaviour this project wants. It is correct for a second reason the manifest does not give:
+  even with a credential, nothing in the CLI derives or persists video issues, and VL8 would hold
+  `done_check` at exit 2 regardless.
+
+  Verdict: `qa/verdicts/t136-scorer.md` (FAIL, cycle 1).
