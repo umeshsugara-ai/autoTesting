@@ -17,7 +17,7 @@ what the maker built, and the instruction was to check what the business needs.
 
 ```
 VERDICT: FAIL
-SCOREBOARD: 4/10 business requirements met, 3 partial, 3 not met
+SCOREBOARD: 4/10 business requirements met, 3 partial, 3 not met (14 findings: 6 high, 6 medium, 2 low)
 FAILURES:
 - [BR-2] sev: high · stages/expand.py::expand — the repo's own "differentiator" — has zero
   production callers; no user can generate a case from a FlowSpec · give it a CLI command and a
@@ -43,7 +43,7 @@ FAILURES:
 - [core] sev: medium · AT-229's evidence misattributes this campaign's artifacts to `uv run
   pytest`; two checker sessions shared one worktree · re-verify or withdraw · issue: AT-249
 LIVE-BROWSER: qa/evidence/browser-business-truth-2026-09-09-checker/report.json
-ISSUES-WRITTEN: AT-239, AT-240, AT-241, AT-242, AT-243, AT-244, AT-245, AT-246, AT-247, AT-248, AT-249
+ISSUES-WRITTEN: AT-239 .. AT-252 (14 rows)
 EXPLANATION: The harness is fully green — 818 tests pass, ruff clean, doctor clean — while the two
 stages the product's own promise rests on (EXPAND and COVERAGE) are unreachable by any user, and an
 operator onboarding a new product cannot get past a hand-written case form. Every contract criterion
@@ -111,6 +111,31 @@ disproved live rather than to everything unvalidated:
   This is a stated obligation, not a silent omission.
 - T-070 and T-090 are **not** reopened — they are not UI units, and T-135 already carries the
   reconnection work. They are filed as AT-239 / AT-240 with the ledger-accuracy problem named.
+
+## Second tranche — the measured consequence (added same session)
+
+Driving the report page surfaced the number that makes AT-239 concrete rather than theoretical.
+
+- **AT-250 (high)** — across **all four projects AutoTester holds 52 cases, 49 of them class
+  `happy`**. The only three that are not (`happy`, `auth_wrong_creds`, `input_empty` on pathlynks)
+  were hand-written by `scripts/run_pathlynks_first_cases.py` for T-050. **No case in any project
+  was generated.** F-012 claims a login flow yields 14 cases across 14 applicable `CaseClass`es;
+  the shipped system has produced zero outside a test fixture. A product whose north star is
+  "best / worst / edge" is running a 94% happy-path suite.
+- **AT-251 (medium)** — the report's headline `Total runs 45` counts an onboarding session and a
+  crawl as runs; both also appear in Run history as rows reading "no verdicts", so a crawl is
+  presented as a test run that produced nothing.
+- **AT-252 (medium)** — `Overall pass rate 69%` is the lifetime average across 43 re-runs of an
+  unchanged 3-case login suite (many early INCONCLUSIVEs being the since-fixed AT-044/AT-049
+  grading bugs). It reads as "69% of Pathlynks passes". It is not a product-health metric.
+
+Credit where due on the same page: F-027's informativeness fix genuinely holds — the overview,
+scoreboard and per-run breakdown are present and the FAIL/INCONCLUSIVE/"no verdicts" rows are
+reported honestly rather than smoothed away.
+
+**Revised scoreboard: 4/10 business requirements met, 3 partial, 3 not met — 14 findings
+(6 high, 6 medium, 2 low).** BR-2 moves from "not met" to "not met, and quantified": the
+generator has never produced a case.
 
 ## Not tested, stated rather than hidden
 
