@@ -1511,3 +1511,10 @@ checker dispatched (agent afeefe7c1550b83b2) told explicitly not to trust
 either prior checker's numbers and to re-derive from scratch.
 Next: await verdict; high-sev backlog unchanged (AT-110, AT-226/227/242,
 AT-232, AT-243, AT-253, AT-255/256 process debt, AT-218 gate open).
+2026-09-09T07:51:01Z · ADVANCED · at231-adjudicate-duplicate-merge cycle 2 dispatched to checker (no dangling check reconciled)
+2026-09-09T08:05:00Z · ADVANCED · at231-adjudicate-duplicate-merge CLOSED — checked-PASS cycle 2
+(verdicts 9611ada + aa66986, reconciled ab1f7fe, manifest flip f53b8d5). AT-269/AT-271 id-mislabel
+discrepancy the final checker flagged verified independently against qa/issues.jsonl: real, correct,
+non-implicating (AT-269 is the unrelated pre-existing doctor/SNAPSHOT issue; AT-271 is the actual
+misattributed-evidence fix; AT-272 records the mislabel accurately). No further action needed on it.
+Pushed f53b8d5 to origin/master (D-007, 4 commits were sitting local-only).
