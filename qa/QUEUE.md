@@ -1,21 +1,44 @@
 # qa/QUEUE.md — checker sweep queue (top-3 recommended next units)
 
-Refreshed by `/checker sweep` **2026-09-09T04:50Z** (bound to `D:/autoTesting`). Prior sweep
-2026-09-09T02:15Z, ~2.5h and 4 commits ago. Everything the prior sweep recorded was treated as
-stale and re-derived from disk.
-
-Baseline was **bare `uv run pytest`** (`addopts = "-q"` is set, so a command-line `-q` gives `-qq`
-and hides the summary; `FAILED` lines were counted). Host reports 2 skips.
+Refreshed by `/checker sweep` **2026-09-09T06:22Z** (bound to `D:/autoTesting`). Prior sweep
+2026-09-09T04:50Z, ~1.5h and 11 commits ago.
 
 ## Concurrency note (AT-101, respected)
 
-No `git stash`, `git checkout` or `git restore` ran in the live tree. The one sabotage ran in a
-`git archive HEAD` extract under the session scratchpad with `PYTHONPATH` pinned to the extract's
-`src/`. A maker session was building `src/autotester/ui/routes_learn.py`, `src/autotester/ui/*` and
-`tests/test_ui_learn.py` (the AT-241 unit) for this entire sweep: those paths and any
-`qa/manifests/at241-*` / `qa/verdicts/at241-*` were **read but never written**. This sweep wrote only
-`qa/issues.jsonl`, this file, `qa/.last-sweep`, and `.goal/goal.json`'s T-100 status (authorized by
-D-022's own `Changes-authorized` line).
+No `git stash`/`checkout`/`restore` in the live tree. My own C5 re-sabotage ran in a `git archive
+HEAD` extract with its **own `uv sync` venv**, `__file__` verified before trusting the result. A
+maker session was actively fixing `providers/gemini_schema.py`, `tests/test_gemini_schema.py`,
+`pyproject.toml`, `uv.lock` for the peer checker's AT-265..268 findings throughout this sweep —
+those paths were read but never written.
+
+**This sweep's own headline is a same-day double verdict-file overwrite, disclosed in full and
+corrected twice — see `qa/.last-sweep`'s newest entry and `qa/verdicts/at230-gemini-schema.md`.**
+
+---
+
+## TOP-3 RECOMMENDED NEXT UNITS (this sweep)
+
+1. **AT-266 (high, filed by the peer, independently confirmed by me) — pin `gemini.py:142`'s
+   response-dict validation.** Removing `schema.model_validate(response.parsed)` entirely produces
+   **zero test failures** (910 passed, twice, in two independent isolated extracts). One stub-client
+   test asserting an extra/missing/wrong-typed key raises `ProviderError` closes it — no network,
+   no key, the exact pattern `tests/test_gemini_schema.py` already uses for the request side.
+2. **AT-264 (high, this sweep) — give `generate_cases` an error boundary.** A `ProviderError`
+   mid-generation reaches the operator as a raw `text/plain` 500, not the themed page every sibling
+   refusal in the same function (`routes_learn.py:169-213`) returns. Reproduced live; not
+   hypothetical — `providers/gemini.py` genuinely raises this, and the scorer's own measured recall
+   today is 1/7, i.e. the model is already observed to misbehave on this exact path. Wrap the
+   `expand()` loop, return the same `_refusal()` the no-provider case uses.
+3. **AT-215 / AT-156 (fifth consecutive sweep, unchanged) — either build the test or downgrade the
+   claim.** VL1c's measured-placement half and C9's `approved` field remain unpinned by anything.
+   Five sweeps naming the same gap without movement is itself worth a line in the next tick: either
+   this is queued and built, or the criterion should say plainly that it is unverified.
+
+Also open from this sweep: **AT-265** (the sanitiser is a 4-keyword deny-list against a 24-key
+allow-list in the installed SDK — latent, not yet a failure) · **AT-267** (the self-reference refusal
+drops the `$ref` it is holding rather than naming it) · **AT-268** (`ingest.md`'s own no-fire list
+says `google-genai` gets declared "when the unit that first calls the API for real" lands — that
+unit landed, `pyproject.toml` still doesn't declare it).
 
 ---
 
