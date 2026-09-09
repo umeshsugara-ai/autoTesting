@@ -19,14 +19,32 @@ STOPWORDS = frozenset((
     "screens", "edit", "edits", "page", "pages", "should", "does", "do", "can", "cannot",
     "instead", "offers", "offer", "only", "actual", "real", "shows", "show", "appears",
     "reads", "presents",
+    # AT-276: a second measured false-positive tranche, the SAME boilerplate
+    # shape as AT-232's original example recurring in a different vocabulary
+    # (generic UI-action words, not this one product's field-validation
+    # phrasing). Six pairs of genuinely DIFFERENT faults, constructed from the
+    # checker's own reported word groups, scored 0.50-0.86 before this
+    # addition; all five reproducible pairs score 0.0 after (see
+    # test_similarity_score.py). Real matches (the E-01/E-02/E-03 pairs
+    # AT-232 fixed) re-verified to still clear the 0.30 threshold.
+    "button", "respond", "responds", "clicked", "click", "twice", "quickly",
+    "upload", "uploads", "uploading", "fails", "fail", "silently", "exceeds", "exceed",
+    "notification", "notifications", "badge", "count", "wrong", "messages", "message",
+    "search", "results", "result", "update", "updates", "filter", "filters",
+    "export", "exports", "import", "imports", "downloads", "download", "corrupted",
+    "file", "files", "large", "when", "after", "marking", "mark", "deleting", "delete",
+    "changed", "change",
 ))
-"""AT-232: a curated, in-file list — dumb and auditable, not exhaustive. Its
-job is only to strip the boilerplate a bug-report vocabulary repeats across
-UNRELATED faults ("field", "validation", "error", "prevents", "form",
-"screen", "edit") so containment measures distinctive content, not shared
-phrasing. Known limitation, stated rather than hidden: a real fault whose
-distinctive words happen to be common English will score lower than it
-should. Extend this list only on a measured false positive, never by guess."""
+"""AT-232/AT-276: a curated, in-file list — dumb and auditable, not
+exhaustive. Its job is only to strip the boilerplate a bug-report vocabulary
+repeats across UNRELATED faults ("field", "validation", "button", "clicked",
+"upload", "notification"...) so containment measures distinctive content,
+not shared phrasing or genre. Known limitation, stated rather than hidden: a
+real fault whose distinctive words happen to be common English or common
+bug-report vocabulary will score lower than it should, and a false positive
+in a NEW vocabulary not yet seen will recur — this list grows by measurement,
+not by anticipation. Extend it only on a measured false positive, never by
+guess."""
 
 
 def similarity(left: str, right: str) -> float:

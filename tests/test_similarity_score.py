@@ -1,0 +1,107 @@
+"""`similarity_score.py`'s STOPWORDS-filtered containment measure, directly.
+
+Split out of `test_score.py` (already at the 300-line cap) — one job (the
+similarity function itself), separate from `score()`'s matching logic.
+
+Contract: qa/contracts/video-learning.md (T-136 acceptance).
+"""
+
+from __future__ import annotations
+
+import pytest
+
+from autotester.stages.similarity_score import STOPWORDS, similarity
+
+# -- AT-276: a second measured false-positive tranche -----------------------
+# Six pairs of genuinely DIFFERENT faults sharing only generic bug-report
+# vocabulary, the same shape AT-232's own stress test found and closed for
+# ONE word set. Five reproduce the checker's own reported pairs verbatim or
+# from its named word groups; each must score BELOW the 0.30 threshold
+# score() uses, now that STOPWORDS covers this vocabulary too.
+
+FALSE_POSITIVE_PAIRS = [
+    pytest.param(
+        "Login button does not respond when clicked twice quickly on mobile",
+        "Logout button does not respond when clicked twice quickly on desktop",
+        id="login-vs-logout-button",
+    ),
+    pytest.param(
+        "Notification badge count is wrong after marking messages as read",
+        "Notification badge count is wrong after deleting messages",
+        id="badge-count-marking-vs-deleting",
+    ),
+    pytest.param(
+        "File upload fails silently when the file size exceeds the limit",
+        "Video upload fails silently when the duration exceeds ten minutes",
+        id="upload-fails-file-vs-video",
+    ),
+    pytest.param(
+        "Search results do not update when the filter is changed on Trainers",
+        "Search results do not update when the filter is changed on Applicants",
+        id="search-filter-trainers-vs-applicants",
+    ),
+    pytest.param(
+        "Export downloads a corrupted file when the report is large",
+        "Import downloads a corrupted file when the dataset is large",
+        id="export-vs-import-corrupted-file",
+    ),
+]
+
+
+@pytest.mark.parametrize("left,right", FALSE_POSITIVE_PAIRS)
+def test_generic_ui_action_vocabulary_does_not_falsely_match(left: str, right: str) -> None:
+    assert similarity(left, right) < 0.30
+
+
+# -- the real matches AT-232 fixed must still clear the threshold -----------
+# Reproduced from the real ERP_Issues_Trainers.xlsx corpus (see AT-232's own
+# manifest for the full derivation) -- a regression here would mean the
+# STOPWORDS extension traded a false-positive fix for a false-negative one.
+
+def test_the_real_asymmetric_length_match_still_clears_threshold() -> None:
+    human = (
+        "Home location offers centres only, so a trainer's actual home town cannot "
+        "be recorded. The Home location dropdown on the trainer edit drawer is "
+        "populated exclusively with training centres, drawn from the same list the "
+        "assignment screen uses. A trainer's real home town, which is a free-text "
+        "field on the application form and appears correctly on the applicant "
+        "summary, is nowhere selectable here."
+    )
+    model = "Home Location field presents training centers instead of personal location"
+
+    assert similarity(human, model) >= 0.30
+
+
+def test_the_document_type_match_still_clears_threshold() -> None:
+    human = "Document type is labelled 'CIPSA Certificate'; it should read 'CITS Certificate'"
+    model = "Incorrect document type option"
+
+    assert similarity(human, model) >= 0.30
+
+
+# -- the extension is additive, not a replacement ----------------------------
+
+def test_the_original_AT_232_boilerplate_case_still_rejects() -> None:
+    """The stress pair AT-232's own manifest introduced must still reject --
+    this extension adds vocabulary, it does not touch the mechanism."""
+    left = ("Home location field validation error prevents form submission on "
+           "the trainer edit screen")
+    right = ("Date of birth field validation error prevents form submission on "
+            "the applicant edit screen")
+
+    assert similarity(left, right) < 0.30
+
+
+def test_the_new_words_are_a_strict_superset_of_the_original_list() -> None:
+    """A sanity check on the edit itself: AT-276 must not have accidentally
+    REMOVED any of AT-232's original stopwords while adding new ones."""
+    original = frozenset((
+        "a", "an", "the", "is", "are", "was", "were", "be", "been", "being", "on", "in",
+        "at", "to", "of", "for", "with", "and", "or", "not", "no", "but", "so", "than",
+        "this", "that", "these", "those", "it", "its", "it's", "field", "fields", "error",
+        "errors", "validation", "prevents", "allows", "form", "forms", "submission",
+        "screen", "screens", "edit", "edits", "page", "pages", "should", "does", "do",
+        "can", "cannot", "instead", "offers", "offer", "only", "actual", "real", "shows",
+        "show", "appears", "reads", "presents",
+    ))
+    assert original <= STOPWORDS
