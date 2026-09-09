@@ -90,4 +90,4 @@ untouched (`grep -c "no cases persisted"` → 1, unchanged).
 - Does not touch the UI's `generate_cases` route — that's AT-264, already fixed separately this
   session, on the same underlying class of bug.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, verdicts 47899b9 + cbc0516)
