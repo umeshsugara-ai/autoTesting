@@ -1294,3 +1294,36 @@ NEXT: with the credential visible and the pipeline wired, T-136's real recall nu
 RUNNABLE SEQUENCE, not a human gate -- register erp1/2/3 -> prep -> analyze -> derive -> score.
 STILL OPEN: AT-215 (VL1c's real criterion, third sweep), AT-216, AT-224/225, AT-226/227 (the live
 Pathlynks findings), and AT-218's GRILL which only Umesh can settle.
+
+## 2026-09-09 — tick: ADVANCED (35) — status audit measured off disk, WIP recovered and scoped
+Umesh asked what is really done, what is left, and what is done-but-thinly-validated. Measured, not
+recalled.
+DONE AND PROVEN (small): the credential boundary (86 real graded runs across 4 projects); the
+maker-checker machinery itself (86 manifests / 87 verdicts, 1:1, 86 checked-PASS); media prep on
+real files; and as of today the Gemini vision path -- 3 real recordings watched, 6 issues derived,
+scored 1/7 against the team's own sheet.
+DONE BUT THINLY VALIDATED (the big middle, and the honest answer to his question): 33 live ledger
+features and 86 checked-PASS units, but ONLY 2 OF 87 VERDICTS CARRY LIVE-BROWSER EVIDENCE and both
+landed today. Mode D had never run here (AT-243). Every UI-touching PASS was granted without
+independent browser validation; the checker asked that T-100 be flipped back to pending.
+NEVER RUN IN PRODUCTION, despite being built and PASSed:
+  - ZERO FlowSpecs exist anywhere. The central "learned product" artifact has never been produced.
+  - `expand` -- the feature the repo's OWN LEDGER calls "the differentiator" -- has zero production
+    callers (AT-239). The generator has never produced a case.
+  - The self-extension loop (diff_coverage / request_for / add_request) has zero callers (AT-240).
+  - 52 cases exist and 50 ARE `happy`. best/worst/edge -- a north-star promise -- is unexercised
+    (AT-250).
+  - Cold start is a dead end: a newly onboarded product's only route to runnable is hand-writing
+    cases (AT-241). T-100's own acceptance note ("full onboarding -> report without touching the
+    CLI") is FALSE.
+REMAINING: 14/45 goal tasks pending, 80 open issues (12 high). Track C (T-150..155) entirely
+unbuilt. T-134/135/136 pending. T-122/T-145 gated on ERP creds.
+RECOVERY STATE FOUND: a previous session did TDD on AT-239/240/241 and was interrupted mid-build.
+`expand` CLI is DONE (8/8 green). coverage wiring PARTIAL (3 pass / 3 fail). UI learn routes NOT
+BUILT -- tests written, routes_learn.py absent, every request 404s. doctor RED on one 302-line test
+file. That is honest WIP, not broken code, and it is the next unit.
+THE HEADLINE I OWE HIM: the quality machinery is the thing that got built well. The PRODUCT's
+central loop -- learn a product, generate cases, self-extend -- is built, checker-PASSed, and has
+never once run end to end on anything real.
+NEXT: finish AT-241 (routes_learn.py + the UI half), then AT-239/240 wiring, then re-check the
+UI units under Mode D.
