@@ -10,6 +10,9 @@ from __future__ import annotations
 
 import pytest
 
+from autotester.schema.enums import IssueCategory, Severity
+from autotester.schema.issue import Issue
+from autotester.stages.score import TruthRow, score
 from autotester.stages.similarity_score import STOPWORDS, similarity
 
 # -- AT-276: a second measured false-positive tranche -----------------------
@@ -150,3 +153,38 @@ def test_the_floor_does_not_cost_a_genuinely_short_real_match() -> None:
         "Trainer certificate upload rejected",
         "Trainer certificate upload was rejected by the server",
     ) >= 0.30
+
+
+# -- AT-279: exact short content survives; one shared word never suffices ----
+
+def _score_short_pair(truth_text: str, issue_text: str):
+    row = TruthRow(
+        id="E-short", title=truth_text, what_is_wrong="",
+        recording="clip.mp4", at_s=10.0, row_number=2,
+    )
+    issue = Issue(
+        project="demo", source_id="src_short", recording_label="clip.mp4", at_s=10.0,
+        screen="Demo", title=issue_text, what_is_wrong="", severity=Severity.S2,
+        category=IssueCategory.FEATURE_GAP,
+    )
+    return score([row], [issue])
+
+
+def test_exact_one_token_content_is_a_full_match_through_the_real_scorer() -> None:
+    card = _score_short_pair("Timeout", "timeout!")
+
+    assert card.recall == 1.0
+    assert card.false_positives == []
+
+
+@pytest.mark.parametrize(("truth_text", "issue_text"), [
+    ("Invoice rejected", "Invoice approved"),
+    ("Password reset", "Password leaked"),
+])
+def test_one_shared_token_cannot_match_contradictory_short_reports(
+    truth_text: str, issue_text: str,
+) -> None:
+    card = _score_short_pair(truth_text, issue_text)
+
+    assert card.recall == 0.0
+    assert card.false_positives == [issue_text]
