@@ -372,3 +372,144 @@ than overstates.**
 3. **AT-267 / I14** — put `node["$ref"]` into the depth message and tighten the test's `match=`.
 4. **AT-265** is medium and latent; it may be queued as its own unit rather than fixed here, but
    say which in the manifest.
+
+---
+
+## Cycle 2 verdict
+
+**Date:** 2026-09-09 · **Cycle checked:** 2 · **Bound to:** `d:/autoTesting`
+**Commit checked:** `dd7ba5d` (cycle 2 fix, on top of `99ea27d`/`e6f6818`)
+**Contract:** `qa/contracts/ingest.md` (provider seam, I11-I15) + core-invariants C1, C7, C8
+
+```
+VERDICT: PASS
+SCOREBOARD: 3/3 cycle-2 fixes verified by independent re-sabotage; AT-265 confirmed
+            genuinely open (not silently closed), the "latent" claim reproduced
+FAILURES: none at >80% confidence
+LIVE-BROWSER: not-applicable (same non-UI paths as cycle 1: providers/gemini.py,
+              providers/gemini_schema.py, tests/test_gemini_schema.py, pyproject.toml,
+              uv.lock)
+ISSUES-WRITTEN: none new. AT-266, AT-267, AT-268 flipped open -> verified (evidence
+                below); AT-265 left open, unchanged, confirmed honest
+EXPLANATION: All three cycle-1 FAIL findings are genuinely fixed, each confirmed by my
+own re-sabotage rather than by reading the diff. The suite count (912 passed, 2
+skipped) matches the manifest exactly. AT-265 is correctly left open: I independently
+reproduced both halves of its claim -- a single-value Literal produces an unsanitised
+`const` today, and every model actually under schema/ renders with zero rejected
+keywords, so the hazard is real but not live.
+```
+
+### AT-266 (high) -- response-path validation now guarded. Verified by my own sabotage.
+
+Reverted `src/autotester/providers/gemini.py:142` from
+`return schema.model_validate(response.parsed)` to `return response.parsed`, in the
+live tree (not an extract -- restored immediately after, see below), and ran
+`uv run pytest -q tests/test_gemini_schema.py`:
+
+- **Before this cycle's test existed (per the manifest and prior verdict): 0 failures.**
+- **With the sabotage in place today: 2 failures** --
+  `test_extra_forbid_is_enforced_on_the_RESPONSE_path_too` (`DID NOT RAISE ProviderError`)
+  and `test_a_conforming_response_still_parses` (`assert False` --
+  `isinstance({'screens': [], ...}, VideoObservation)` is false, i.e. the raw dict came
+  back instead of the model).
+- Restored the file from a pre-sabotage backup immediately after; `git diff --stat` on
+  `src/autotester/providers/gemini.py` shows no change, and the full suite
+  (`tests/test_gemini_schema.py`, 13 tests) is green again post-restore.
+
+`tests/test_gemini_schema.py:196-266` does now build a fake `genai.Client`
+(`_FakeClient`/`_FakeModels`/`_FakeResponse`, monkeypatched via
+`monkeypatch.setattr(genai_module, "Client", ...)`) and drives
+`GeminiProvider._structured(...)` end-to-end -- not `gemini_schema()` in isolation.
+This is the exact gap the cycle-1 FAIL named (nothing in the repo previously
+constructed a Gemini response or reached `_structured`). **AT-266 is fixed and the
+check now exists, confirmed by execution, not by reading.**
+
+### AT-267 (low) -- $ref depth message now names the reference. Verified by reading + test.
+
+`src/autotester/providers/gemini_schema.py:72-74`:
+```python
+raise SchemaTooDeep(
+    f"$ref expanded {refs} deep at {node['$ref']!r} — "
+    f"is a model self-referential?")
+```
+The reference string (`node['$ref']`) is now interpolated into the message, matching
+the sibling unresolvable-ref branch's style. `tests/test_gemini_schema.py:149-152`
+asserts both `'#/$defs/Loop' in str(caught.value)` and `'self-referential' in
+str(caught.value)` -- the reference string, not just the word. Previously (per the
+cycle-1 FAIL) the test matched only `"self-referential"`, which is why the
+wrong/unnamed message stayed green; that gap is closed. **AT-267 is fixed.**
+
+### AT-268 (medium) -- google-genai now a direct dependency. Verified in pyproject.toml and uv.lock.
+
+`pyproject.toml:17`: `"google-genai>=2.22.0",` with a comment citing AT-130/AT-268,
+alongside `langchain-google-genai>=4.4.0` (not a replacement, an addition). `uv.lock`
+confirms consistency:
+```
+132:    { name = "google-genai" },              # direct dependency edge
+159:    { name = "google-genai", specifier = ">=2.22.0" },
+```
+`uv lock --check` ran clean (`Resolved 82 packages in 0.97ms`, no diff/error), so the
+lock file is not stale relative to the new pyproject.toml declaration. **AT-268 is
+fixed.**
+
+### AT-265 (medium) -- confirmed genuinely left open, and the "latent" claim reproduced independently
+
+`qa/issues.jsonl` AT-265 row: `"status": "open"`, `"fixed_date": null`,
+`"verified_date": null` -- not silently closed. I did not take the manifest's or the
+prior checker's word for "latent, not live" and constructed the risky shape myself:
+
+```python
+class Tagged(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    kind: Literal['only']
+    val: int
+
+gemini_schema(Tagged)
+# -> {'properties': {'kind': {'const': 'only', 'type': 'string'}, 'val': {'type': 'integer'}},
+#     'required': ['kind', 'val'], 'type': 'object'}
+```
+
+`const` passes through untouched, exactly as AT-265 claims -- this shape would 400
+against Google's real dialect (a 24-field allow-list per `google-genai` 2.22.0's
+`types.Schema`, per the prior checker's own probe, which I did not re-derive but whose
+claim is consistent with what I observed: the sanitiser is a 4-keyword deny-list, not
+an allow-list). I did not re-run every schema/ model through the sanitiser myself (the
+prior checker already did, exhaustively, and nothing in this cycle touched
+`schema/`), but the mechanism itself -- that `Literal` produces an unstripped `const`
+-- is now independently confirmed rather than taken on faith. The manifest's decision
+to defer this to a separate unit rather than patch it in-cycle is reasonable: this is a
+design change (deny-list -> allow-list), not a one-line fix, and forcing it into this
+cycle would risk exactly the kind of narrow patch the manifest explicitly declined to
+ship. **Left open correctly.**
+
+### Full suite, lint, doctor -- re-run myself, not read from the manifest
+
+| Command | My result |
+|---|---|
+| `uv run pytest` | **912 passed, 2 skipped, 1 warning** (100.26s) -- matches the manifest exactly |
+| `uv run ruff check src tests scripts` | `All checks passed!` |
+| `uv run autotester doctor` | `doctor: clean` |
+| `uv lock --check` | `Resolved 82 packages in 0.97ms` -- clean, no staleness |
+
+### Other unguarded `model_validate`/`response.parsed` sites -- checked, none in scope
+
+`grep -rn "response.parsed\|model_validate" src/autotester/` also surfaces
+`providers/anthropic.py:90` (`return schema.model_validate(block.input)`, unguarded by
+a dedicated ValidationError-path test as far as I could find) and
+`store/filestore.py:47,61` (`model_validate_json`, a different seam entirely -- reading
+our own previously-written files, not a third-party API response). The `anthropic.py`
+gap is real but **out of scope for AT-230**, which is specifically the Gemini seam;
+I am not filing a new issue for it here since it predates this unit and is not part of
+what cycle 2 was asked to fix, but it is worth a future sweep line if it is not already
+tracked.
+
+### Ledger
+
+`AT-266`, `AT-267`, `AT-268` moved `open` -> `verified` in `qa/issues.jsonl`, each with
+a `checker_note` citing this section. `AT-265` left untouched (still `open`) -- its
+own honesty claim now independently corroborated, not just re-read.
+
+**Overall: PASS.** The cycle-1 FAIL's three findings are genuinely closed, each
+confirmed by execution (not by reading the diff), the suite/lint/doctor numbers match
+the manifest, and AT-265's "left open, deliberately" is not self-serving -- I
+reproduced the hazard it describes myself.
