@@ -80,6 +80,18 @@ def test_adjudicating_twice_gives_byte_identical_output() -> None:
     assert first == second
 
 
+def test_omitting_expected_records_UNKNOWN_not_complete() -> None:
+    """AT-208. `expected=None` used to default to the number of observations
+    present, so every caller but `analyze` got an artifact declaring itself
+    COMPLETE -- a default-value fallback inside the very field added to stop
+    one. T-136's scorer re-adjudicates cached observations and is the caller
+    this protects: a fragment must never read as a full run."""
+    unknown = adjudicate([obs(PRO, screens=[screen("Home", 1.0)])], "src_1")
+
+    assert unknown.observations_expected == 0
+    assert not unknown.is_complete
+
+
 def test_a_partial_reading_says_how_partial_it_is() -> None:
     """AT-198: one answer out of twenty-four produces the same shape as
     twenty-four out of twenty-four. The numbers are the only thing that tells

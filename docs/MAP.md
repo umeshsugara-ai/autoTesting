@@ -74,6 +74,7 @@
 | `stages/report_export.py` | Tester-style run reports: an Excel summary and a screen-by-screen HTML |
 | `stages/review.py` | FlowSpec review gate: nothing generates cases from an unreviewed understanding |
 | `stages/run_case_pipeline.py` | RUN_CASE_PIPELINE: the one function that runs a case and grades it. |
+| `stages/score.py` | SCORE: compare AutoTester's issues against a human tester's own sheet. |
 | `stages/screen_identity.py` | Screen identity: turn one `PageObservation` into a `ScreenNode`. |
 | `store/crawl_store.py` | Crawl artifact persistence — split from `project_store.py` at the |
 | `store/filestore.py` | The one place any artifact is read from or written to disk. Contract: core-invariants.md C6. |

@@ -168,27 +168,15 @@ def join_issues(issues: list[tuple[str, ObservedIssue]]) -> list[AnalysedIssue]:
     return sorted(merged, key=lambda i: (i.t_start, issue_key(i)))
 
 
-def adjudicate(observations: list[ModelObservation], source_id: str, *,
-               expected: int | None = None) -> VideoAnalysis:
-    """Every model's every chunk, merged into one reading of one recording.
+def _collect(shifted: list[ModelObservation]) -> tuple[list, list, list, list[str], list[str]]:
+    """Fold every observation's parts into flat, labelled lists.
 
-    Sorted before merging so the result does not depend on the order the
-    observations happened to be loaded in — the property VL4 asks for, and the
-    one a test can actually check by shuffling the input.
-
-    **The sort key must leave no ties.** My first version omitted `prompt_name`,
-    so one model's two prompts on one chunk tied and Python's stable sort handed
-    the merge back to caller order — determinism held for every fixture I wrote
-    (all single-prompt) and failed in the shipped two-prompt shape. A tie in the
-    key IS the caller's order leaking back in, so the key names every field that
-    distinguishes one observation from another."""
-    ordered = sorted(observations, key=lambda o: (o.offset_s, o.provider_label,
-                                                  o.prompt_name, o.chunk_index))
-    shifted = [shift(o) for o in ordered]
-
+    Split out of `adjudicate` when it crossed the 50-line cap: this is pure
+    gathering, and keeping it separate leaves `adjudicate` reading as the four
+    decisions it actually makes (sort, shift, join, record coverage)."""
     screens: list[tuple[str, ObservedScreen]] = []
     issues: list[tuple[str, ObservedIssue]] = []
-    flows = []
+    flows: list = []
     summaries: list[str] = []
     questions: list[str] = []
     for obs in shifted:
@@ -201,12 +189,44 @@ def adjudicate(observations: list[ModelObservation], source_id: str, *,
         for question in obs.observation.open_questions:
             if question not in questions:
                 questions.append(question)
+    return screens, issues, flows, summaries, questions
 
+
+def adjudicate(observations: list[ModelObservation], source_id: str, *,
+               expected: int | None = None) -> VideoAnalysis:
+    """Every model's every chunk, merged into one reading of one recording.
+
+    `expected` is how many model calls the caller PLANNED. Omitting it records
+    **0, meaning unknown** — never a flattering guess (AT-208).
+
+    Sorted before merging so the result does not depend on the order the
+    observations happened to be loaded in — the property VL4 asks for, and the
+    one a test can actually check by shuffling the input.
+
+    **The sort key must leave no ties.** My first version omitted `prompt_name`,
+    so one model's two prompts on one chunk tied and Python's stable sort handed
+    the merge back to caller order — determinism held for every fixture I wrote
+    (all single-prompt) and failed in the shipped two-prompt shape. A tie in the
+    key IS the caller's order leaking back in, so the key names every field that
+    distinguishes one observation from another.
+
+    **AT-208 — why `expected=None` records 0 rather than the count present.** It
+    used to default to `len(shifted)`, so any caller that did not pass `expected`
+    got an artifact declaring itself COMPLETE: a default-value fallback inside
+    the very field added to stop one. `analyze` always passes the real product;
+    T-136's scorer re-adjudicates cached observations and is the caller this
+    protects, because a fragment reading as a full run would corrupt the one
+    number the north star is measured by."""
+    ordered = sorted(observations, key=lambda o: (o.offset_s, o.provider_label,
+                                                  o.prompt_name, o.chunk_index))
+    shifted = [shift(o) for o in ordered]
+
+    screens, issues, flows, summaries, questions = _collect(shifted)
     joined = join_screens(screens)
     return VideoAnalysis(
         source_id=source_id,
         observations_used=len(shifted),
-        observations_expected=len(shifted) if expected is None else expected,
+        observations_expected=0 if expected is None else expected,
         provider_labels=sorted({o.provider_label for o in shifted}),
         prompt_names=sorted({o.prompt_name for o in shifted}),
         screens=joined,
