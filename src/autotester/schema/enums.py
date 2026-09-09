@@ -277,3 +277,10 @@ class CrawlStatus(StrEnum):
     STOPPED_BOUND = "stopped_bound"
     LOGIN_FAILED = "login_failed"
     ABORTED = "aborted"
+    BLOCKED_NO_ACTIONS = "blocked_no_actions"
+    """AT-242: the frontier emptied with every reachable action refused by
+    policy (denied > 0) and none performed (actions_used == 0) — a crawl that
+    learned the product has controls but could act on none of them. Distinct
+    from COMPLETED (a real page with nothing denied, e.g. no interactive
+    controls at all, is genuinely fully explored) and from LOGIN_FAILED (the
+    login CASE specifically did not complete)."""

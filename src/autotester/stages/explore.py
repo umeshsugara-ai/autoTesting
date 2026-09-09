@@ -18,13 +18,14 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from urllib.parse import urlparse
 
 from autotester.browser.observe import PageObserver, observe
 from autotester.browser.session import BrowserSession, NavigationRefused
 from autotester.core.consent import require_approval
 from autotester.schema.case import Case
 from autotester.schema.crawl import Crawl, CrawlBounds, NoiseCount, SafetyPolicy
-from autotester.schema.enums import ApprovalKind, CrawlStatus, Outcome
+from autotester.schema.enums import Action, ApprovalKind, CrawlStatus, Outcome
 from autotester.schema.project import Project
 from autotester.schema.screen_graph import CrawlFrontier, ScreenNode
 from autotester.stages import explore_node
@@ -88,10 +89,38 @@ def stop_reason(rt: ExploreRuntime) -> str | None:
 
 def _bootstrap_login(rt: ExploreRuntime, case: Case) -> bool:
     """Run the human-authored login case through `run_case` — the ONLY place
-    the explorer types anything, and the only pre-crawl form submit (X10)."""
+    the explorer types anything, and the only pre-crawl form submit (X10).
+
+    **AT-226.** A persistent browser profile can already hold a live session,
+    in which case the login page itself redirects away before the case's own
+    FILL step ever runs — the field it names (e.g. `input[name="identifier"]`)
+    is not merely empty, it is not on the page at all, and `run_case` blocks
+    for the full step timeout before reporting ERRORED. Checked once, before
+    the case runs, against the case's own NAVIGATE step: if the browser lands
+    somewhere other than the login page itself, the session is already
+    authenticated and the case is skipped rather than run to a guaranteed
+    timeout. This needs no app-specific "am I on the dashboard" marker — a
+    login page that redirects away from itself has already done its job."""
+    login_step = next(
+        (s for s in sorted(case.steps, key=lambda s: s.order) if s.action is Action.NAVIGATE),
+        None,
+    )
+    if login_step is not None and _already_past_login(rt, login_step.target):
+        return True
     result = run_case(case, rt.session)
     rt.store.save_result(rt.crawl.id, result)
     return result.outcome is Outcome.COMPLETED
+
+
+def _already_past_login(rt: ExploreRuntime, login_url: str) -> bool:
+    """Navigate to the login page named by the case and report whether the
+    app redirected away from it — the one signal AT-226's fix relies on."""
+    try:
+        rt.session.goto(login_url)
+        rt.session.settle(timeout_ms=rt.bounds.settle_ms)
+    except Exception:
+        return False
+    return urlparse(rt.session.current_url()).path != urlparse(login_url).path
 
 
 def _seed(rt: ExploreRuntime) -> ScreenNode | None:
@@ -136,6 +165,20 @@ def _bfs(rt: ExploreRuntime) -> None:
         rt.frontier.visited.append(node.id)
         rt.store.save_frontier(rt.crawl.id, rt.frontier)
     rt.stop_reason = rt.stop_reason or "frontier empty"
+
+
+def _terminal_status(rt: ExploreRuntime, completed: bool) -> CrawlStatus:
+    """AT-242: `completed` (frontier empty) is not always success. When every
+    reachable action was refused by policy (denied > 0) and none was ever
+    performed (actions_used == 0), the crawl learned the product HAS controls
+    and could act on none of them — a different outcome from a genuinely
+    trivial page (nothing denied) or from hitting a bound (STOPPED_BOUND)."""
+    if not completed:
+        return CrawlStatus.STOPPED_BOUND
+    if rt.frontier.actions_used == 0 and rt.denied > 0:
+        rt.stop_reason = f"{rt.stop_reason} -- every reachable action was denied by policy"
+        return CrawlStatus.BLOCKED_NO_ACTIONS
+    return CrawlStatus.COMPLETED
 
 
 def _finish(rt: ExploreRuntime, status: CrawlStatus) -> Crawl:
@@ -224,4 +267,4 @@ def run_crawl(
         return _finish(rt, CrawlStatus.ABORTED)
     _bfs(rt)
     completed = rt.stop_reason == "frontier empty"
-    return _finish(rt, CrawlStatus.COMPLETED if completed else CrawlStatus.STOPPED_BOUND)
+    return _finish(rt, _terminal_status(rt, completed))
