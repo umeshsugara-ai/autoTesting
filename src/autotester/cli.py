@@ -7,8 +7,9 @@ from pathlib import Path
 
 import typer
 
-from autotester import cli_crawl, cli_video, providers
+from autotester import cli_crawl, cli_issues, cli_video, providers
 from autotester import doctor as doctor_module
+from autotester.core.env import load_repo_env
 from autotester.core.paths import RepoDocs
 from autotester.ledger import render, store
 from autotester.ledger.relitigation import gate_message, relitigate
@@ -26,6 +27,20 @@ app.add_typer(ledger_app, name="ledger")
 app.add_typer(flowspec_app, name="flowspec")
 app.add_typer(report_app, name="report")
 app.add_typer(cli_video.app, name="ingest")
+app.add_typer(cli_issues.app, name="issues")
+
+
+@app.callback()
+def _bootstrap() -> None:
+    """Runs before every command.
+
+    AT-228: the web UI loaded the repo-root `.env` and the CLI did not, so
+    `autotester providers` reported `mock` while a working GEMINI_API_KEY sat on
+    disk -- and a HUMAN_GATE was filed against a blocker that did not exist. Two
+    entry points reading the same disk gave different answers to "does this
+    machine have credentials", and each was internally consistent, which is why
+    nobody noticed."""
+    load_repo_env()
 
 
 @app.command()

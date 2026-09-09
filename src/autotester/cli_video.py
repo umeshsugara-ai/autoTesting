@@ -21,6 +21,7 @@ from autotester.stages.ingest import (
     persist_ingest,
     register_source,
 )
+from autotester.stages.media_prep import SourceNotPrepared, UnreadableRecording
 from autotester.store.project_store import ProjectStore
 
 app = typer.Typer(help="Learn a product's screens and flows from a screen recording.")
@@ -175,3 +176,37 @@ def run_cmd(
         f"{source.label or source.id} (review status {spec.review.status.value})",
         fg=typer.colors.GREEN,
     )
+
+
+@app.command("analyze")
+def analyze_cmd(
+    project: str = typer.Argument(..., help="project slug"),
+    source_id: str = typer.Argument(..., help="a source id from `ingest list`"),
+    models: str = typer.Option("gemini", "--models",
+                               help="comma-separated provider ids; two is the ensemble"),
+    force: bool = typer.Option(False, "--force", help="re-request cached observations"),
+) -> None:
+    """Run the ensemble over a prepared recording and adjudicate it.
+
+    AT-220: `stages/analyze_video.py::analyze` shipped checker-PASSed with NO
+    caller anywhere under `src/`. It could not be run, so the pipeline it sits in
+    the middle of could not produce anything, and the scorer's advice named a
+    command that did not exist."""
+    from autotester.stages.analyze_video import DuplicateProviders, NoObservations, analyze
+
+    store = ProjectStore(project)
+    source = _require_source(store, project, source_id)
+    provs = [providers.get(name.strip()) for name in models.split(",") if name.strip()]
+    try:
+        analysis = analyze(store, source, provs, docs=RepoDocs(), options=VisionOptions(),
+                           force=force)
+    except (SourceNotPrepared, UnreadableRecording, NoObservations, DuplicateProviders) as exc:
+        typer.secho(str(exc), fg=typer.colors.RED)
+        raise typer.Exit(2) from None
+
+    coverage = f"{analysis.observations_used}/{analysis.observations_expected} model calls"
+    typer.secho(
+        f"{project}: {len(analysis.screens)} screens, {len(analysis.issues)} issues from "
+        f"{source.label or source.id} ({coverage}"
+        f"{'' if analysis.is_complete else ' — PARTIAL'})",
+        fg=typer.colors.GREEN if analysis.is_complete else typer.colors.YELLOW)

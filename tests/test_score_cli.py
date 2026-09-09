@@ -17,6 +17,7 @@ Contract: qa/contracts/video-learning.md (T-136 acceptance).
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -145,6 +146,47 @@ def test_a_complete_analysis_says_so(tmp_path: Path) -> None:
 
     assert report["coverage"]["complete"] is True
     assert report["coverage"]["partial_sources"] == []
+
+
+def test_the_SHIPPED_command_resolves_the_repo_root_not_the_drive(tmp_path: Path) -> None:
+    r"""AT-219. The default root read `ProjectPaths(...).root.parent.parent`, but
+    `.root` IS the repo root -- so the shipped command looked in the drive root and
+    refused for the wrong reason, while every test passed `--root` and never
+    executed that branch. T-136's done_check passes no `--root`, so the task was
+    structurally incapable of closing even once a credential arrived.
+
+    Driven WITHOUT `--root`, under AUTOTESTER_ROOT, which is how the shipped
+    command resolves a project."""
+    truth = a_truth_sheet(tmp_path / "truth.xlsx", rows=2)
+    a_project(tmp_path, issues=2)
+    env = {**os.environ, "AUTOTESTER_ROOT": str(tmp_path), "PYTHONUTF8": "1"}
+
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT), "--project", "erp", "--truth", str(truth),
+         "--sheet", "Trainer module"], capture_output=True, text=True, env=env)
+
+    assert result.returncode == 0, f"the shipped path did not find the project: {result.stderr}"
+    assert json.loads(result.stdout)["found"] == 2
+
+
+def test_a_source_with_no_analysis_is_not_reported_as_complete(tmp_path: Path) -> None:
+    """AT-222. `if analysis is None: continue` made `complete: true` reachable
+    while one contributing source had no analysis at all -- the same flattering
+    default AT-208 removed, reintroduced one layer up."""
+    truth = a_truth_sheet(tmp_path / "truth.xlsx", rows=2)
+    store = a_project(tmp_path, issues=2, used=4, expected=4)
+    orphan = store.add_source(Source(project="erp", kind=SourceKind.VIDEO,
+                                     path=str(tmp_path / "erp2.mp4"), sha256="d2",
+                                     label="erp2.mp4"))
+    store.add_issue(Issue(project="erp", source_id=orphan.id, recording_label="erp2.mp4",
+                          at_s=5.0, screen="Other", title="unanalysed finding",
+                          what_is_wrong="from a source with no analysis",
+                          severity=Severity.S2, category=IssueCategory.FEATURE_GAP))
+
+    report = json.loads(run(truth, tmp_path).stdout)
+
+    assert report["coverage"]["complete"] is False
+    assert orphan.id in report["coverage"]["sources_with_no_analysis"]
 
 
 @pytest.mark.parametrize("flag,value", [("--window", "0.5"), ("--threshold", "0.99")])

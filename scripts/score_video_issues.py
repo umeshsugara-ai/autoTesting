@@ -27,7 +27,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from autotester.core.paths import ProjectPaths
 from autotester.stages.score import (
     TruthSheetError,
     load_truth,
@@ -48,9 +47,16 @@ def coverage(store: ProjectStore, source_ids: set[str]) -> dict:
     off a fragment is indistinguishable from a real one unless this is printed."""
     used = expected = 0
     partial: list[str] = []
+    unanalysed: list[str] = []
     for source_id in sorted(source_ids):
         analysis = store.load_analysis(source_id)
         if analysis is None:
+            # AT-222: this used to `continue`, so a run where one of two
+            # contributing sources had NO analysis at all still reported
+            # `complete: true`. Unknown coverage is not full coverage -- that is
+            # the whole point of the field, and skipping the unknown case
+            # reintroduced exactly the flattering default AT-208 removed.
+            unanalysed.append(source_id)
             continue
         used += analysis.observations_used
         expected += analysis.observations_expected
@@ -59,8 +65,9 @@ def coverage(store: ProjectStore, source_ids: set[str]) -> dict:
     return {
         "observations_used": used,
         "observations_expected": expected,
-        "complete": not partial and expected > 0,
+        "complete": not partial and not unanalysed and expected > 0,
         "partial_sources": partial,
+        "sources_with_no_analysis": unanalysed,
     }
 
 
@@ -89,8 +96,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{args.truth.name}/{args.sheet} has no data rows", file=sys.stderr)
         return 2
 
-    root = args.root or ProjectPaths(args.project).root.parent.parent
-    store = ProjectStore(args.project, root)
+    # AT-219: this read `ProjectPaths(args.project).root.parent.parent`, but
+    # `.root` IS ALREADY the repo root -- so the shipped command looked in `D:\`
+    # and found no issues for the wrong reason. Every test passed `--root`, so the
+    # branch that ships was executed by nothing, and T-136's done_check (which
+    # passes no --root) could never have closed even with a credential in hand.
+    # ProjectStore already resolves None to repo_root(); let it.
+    store = ProjectStore(args.project, args.root)
     issues = store.list_issues()
     if not issues:
         print(

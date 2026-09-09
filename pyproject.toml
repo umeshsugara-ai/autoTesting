@@ -41,6 +41,7 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/autotester/cli.py" = ["B008"]  # typer.Option defaults are the framework idiom
+"src/autotester/cli_issues.py" = ["B008"]  # same idiom, same reason
 
 [tool.mypy]
 python_version = "3.11"

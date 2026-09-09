@@ -137,15 +137,32 @@ def at_seconds(cell: object) -> float:
     return int(match.group(1)) * 60 + int(match.group(2))
 
 
+UNKNOWN_RECORDING = chr(0) + "unknown"
+"""What an empty recording cell keys to. AT-223: blank/None/0 all keyed to `""`,
+and `""` MATCHES `""` -- so a sheet with an empty clip column scored 1.0 recall
+against issues with empty labels. A value that cannot identify a recording must
+not be able to match one, so it gets a key nothing else can equal."""
+
+
 def recording_key(cell: object) -> str:
     """`"erp1.mp4 (Divya Kamboj, trainer pipeline)"` -> `"erp1.mp4"`.
 
     The clip cell names a file AND who recorded it AND what it covers. Comparing
-    the whole cell to a source label matches nothing; taking the leading
-    filename is what lets a truth row find its recording."""
+    the whole cell to a source label matches nothing; taking the leading filename
+    is what lets a truth row find its recording.
+
+    **AT-223 — only a parenthetical AFTER a filename is prose.** Splitting on the
+    first `(` unconditionally collapsed `clip (1).mp4` and `clip (2).mp4` to the
+    same key, which is a real Windows filename shape and would have silently
+    merged two different recordings. The split now happens only when what precedes
+    the `(` already looks like a file."""
     text = str(cell or "").strip()
+    if not text:
+        return UNKNOWN_RECORDING
     head = text.split("(")[0].strip()
-    return (head or text).casefold()
+    if "(" in text and re.search(r"\.[A-Za-z0-9]{2,4}$", head):
+        return head.casefold()
+    return text.casefold()
 
 
 def _header(sheet) -> dict[str, int]:
@@ -202,21 +219,38 @@ def score(truth: list[TruthRow], issues: list[Issue], *,
     are required: text alone would let one loud finding claim every row, and
     time alone would match whatever the model happened to say at that second.
 
-    Greedy rather than optimal (Hungarian): the assignment is tiny, the ordering
-    is deterministic because candidates sort on similarity then time, and a
-    reader can follow why a given row was claimed. An optimal matcher would
-    raise recall slightly and cost every reader the ability to check it."""
+    Greedy rather than optimal (Hungarian): the assignment is tiny and a reader
+    can follow why a given row was claimed. An optimal matcher would raise recall
+    slightly and cost every reader the ability to check it.
+
+    **AT-221 — the tie-break must be total.** I claimed the ordering was
+    deterministic; it was not. `max()` returns the FIRST maximum, so two issues
+    of equal similarity handed the choice to `list_issues()` file order, and
+    permuting them moved recall from 0.5 to 1.0. That is AT-197's defect exactly
+    -- a non-total sort key letting caller order leak in -- reappearing in the
+    module that computes the north star's own number. The key now ends in the
+    issue id, which is content-addressed and unique, so no tie survives."""
     remaining = list(issues)
     matches: list[Match] = []
 
     for row in truth:
+        if row.recording == UNKNOWN_RECORDING:
+            # AT-223, second half. Giving both sides the same sentinel was not
+            # enough -- the sentinel equals itself, so a blank truth cell still
+            # matched a blank label and scored 1.0. An unrecognisable recording
+            # must match NOTHING, including another unrecognisable one.
+            matches.append(Match(truth=row))
+            continue
         candidates = [
             (similarity(row.text, f"{i.title} {i.what_is_wrong}"), abs(i.at_s - row.at_s), i)
             for i in remaining
             if recording_key(i.recording_label) == row.recording
             and abs(i.at_s - row.at_s) <= window_s
         ]
-        best = max(candidates, key=lambda c: (c[0], -c[1]), default=None)
+        # Sorted, not `max()`: highest similarity, then closest in time, then the
+        # issue's own content-addressed id. The id makes the key TOTAL (AT-221).
+        ordered = sorted(candidates, key=lambda c: (-c[0], c[1], c[2].id))
+        best = ordered[0] if ordered else None
         if best is None or best[0] < threshold:
             matches.append(Match(truth=row))
             continue

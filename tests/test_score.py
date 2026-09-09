@@ -18,6 +18,7 @@ from autotester.schema.enums import IssueCategory, Severity
 from autotester.schema.issue import Issue
 from autotester.stages.score import (
     RECORDING_COLUMNS,
+    UNKNOWN_RECORDING,
     TruthRow,
     TruthSheetError,
     at_seconds,
@@ -110,6 +111,44 @@ def test_the_clip_cell_is_a_filename_plus_prose_and_only_the_filename_matches() 
     assert recording_key(CLIP) == "erp1.mp4"
     assert recording_key("erp2.mp4") == "erp2.mp4"
     assert recording_key(CLIP) == recording_key("ERP1.MP4 (someone else)")
+
+
+def test_a_parenthesised_filename_does_not_collide_with_its_sibling() -> None:
+    """AT-223. Splitting on the first `(` unconditionally collapsed
+    `clip (1).mp4` and `clip (2).mp4` to the same key -- a real Windows filename
+    shape, and two different recordings silently becoming one."""
+    assert recording_key("clip (1).mp4") != recording_key("clip (2).mp4")
+    assert recording_key("erp1.mp4 (Divya Kamboj, trainer pipeline)") == "erp1.mp4"
+
+
+@pytest.mark.parametrize("blank", ["", "   ", None, 0])
+def test_a_blank_recording_cell_cannot_match_anything(blank) -> None:
+    """AT-223. Blank/None/0 all keyed to `""`, and `""` MATCHES `""` -- so a
+    sheet with an empty clip column scored recall 1.0 against issues with empty
+    labels. A value that cannot identify a recording must not identify one."""
+    assert recording_key(blank) == UNKNOWN_RECORDING
+    card = score([a_row(recording=recording_key(blank))],
+                 [an_issue(recording_label="")])
+
+    assert card.found == 0, "a blank recording matched a blank label"
+
+
+def test_recall_does_not_move_when_the_issue_list_is_permuted() -> None:
+    """AT-221. `max()` returns the FIRST maximum, so two equally-similar issues
+    handed the choice to file order and recall moved 0.5 -> 1.0 under
+    permutation. That is AT-197's defect -- a non-total key letting caller order
+    leak in -- in the module that computes the north star's own number."""
+    rows = [a_row(id="E-01", title="Move button does nothing", what_is_wrong="it reverts")]
+    twins = [an_issue(title="Move button does nothing", what_is_wrong="it reverts", at_s=29.0),
+             an_issue(title="Move button does nothing", what_is_wrong="it reverts", at_s=29.0,
+                      screen="Other")]
+
+    forward = score(rows, list(twins))
+    backward = score(rows, list(reversed(twins)))
+
+    assert forward.recall == backward.recall
+    assert forward.matches[0].issue_id == backward.matches[0].issue_id, (
+        "which issue claimed the row depended on list order")
 
 
 def test_a_sheet_with_no_recording_column_is_refused_by_name(tmp_path: Path) -> None:

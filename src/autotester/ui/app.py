@@ -12,12 +12,12 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from html import escape
 
-from dotenv import load_dotenv
 from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from autotester.browser.secrets import SecretStore
-from autotester.core.paths import ProjectPaths, repo_root
+from autotester.core.env import load_repo_env
+from autotester.core.paths import ProjectPaths
 from autotester.schema.project import Project
 from autotester.store.project_store import ProjectStore
 from autotester.ui import (
@@ -52,8 +52,8 @@ async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
     present on disk. A startup hook, not a module-level call, so TestClient(app)
     (which never runs lifespan unless used as a context manager) never leaks real
     .env values into the test process."""
-    load_dotenv(repo_root() / ".env")
-    yield
+    load_repo_env()          # AT-228: the one loader the CLI also uses, so both
+    yield                    # entry points agree on which credentials exist
 
 
 app = FastAPI(title="AutoTester", lifespan=_lifespan)

@@ -15,8 +15,10 @@
 | `browser/session.py` | One real, visible browser session per project. Contract: browser-and-secrets.md B5-B9. |
 | `cli.py` | Command line. Every action the UI offers is available here first. |
 | `cli_crawl.py` | Crawl commands — `autotester explore` and `autotester report crawl`. |
+| `cli_issues.py` | `autotester issues` — turn an analysis into the sheet a human tester reads. |
 | `cli_video.py` | `autotester ingest` — register a recording and learn a FlowSpec from it. |
 | `core/consent.py` | The consent gate (D-018): nothing outward-facing starts without a human's |
+| `core/env.py` | Load the repo-root `.env` — one definition, used by every entry point. |
 | `core/excel.py` | Workbook presentation helpers shared by every Excel exporter. |
 | `core/ids.py` | Identifier generation. The ONLY place ids are minted. |
 | `core/paths.py` | Filesystem layout. The ONLY place project paths are constructed. |
