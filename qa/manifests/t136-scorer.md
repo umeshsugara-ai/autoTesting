@@ -238,4 +238,40 @@ T-136's recall number. But the reason has changed completely: it is no longer "n
 — one does, and the CLI can now see it. It is that no recording has been registered, prepped and
 analysed yet. That is a runnable sequence now, not a human gate.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+---
+
+**Closed out 2026-09-09.** `qa/verdicts/t136-scorer.md`, `Cycle checked: 2` — **PASS, 8/8
+criteria, 1/1 invariants.** Verdict `2c00dea`, pushed per D-007.
+
+**The checker proved the thing I could not.** I could show the shipped command exits 2 for the
+right reason; I could not show it would ever exit 0. It built a scratch root from the **real seven
+Trainers-workbook rows**, turned them into real `Issue`s through the real `ProjectStore`, and ran
+T-136's `done_check` string **verbatim, with no `--root`**: **exit 0, recall 1.0, 7/7.** AT-219 said
+the task was *structurally incapable of closing*; that is now disproved by execution rather than by
+my assurance.
+
+It also drove the new commands end to end rather than checking they exist — `ingest register → prep
+→ analyze --models mock → issues derive → list → export → score` — and confirmed `derive` is
+idempotent on a second run and that `ingest analyze` genuinely reaches `analyze()`. No
+exists-and-errors dead end.
+
+**AT-221 tested at 200 shuffles**, plus the exact cycle-1 pair and an id-tie pair: identical report
+every time. **AT-223 attacked with 27 cell shapes** including unicode, `name (N).ext`, mid-name
+parens and tabs: no two distinct recordings collide, and an all-blank sheet now scores **0.0** where
+it scored **1.0**.
+
+**One thing it recorded as a question rather than a finding, and it is right to worry:**
+`scripts/bench_trial.py`, `regression_proof.py` and `run_pathlynks_first_cases.py` still call
+`load_dotenv` unguarded. No test calls their `main()` today — so the no-credentials-in-a-test-process
+premise currently holds **because nobody calls them**, not by construction. That is a latent version
+of exactly the leak this unit closed.
+
+**AT-229 (medium), filed against the suite, not this unit:** `uv run pytest` writes
+`projects/saucedemo/` and `qa/evidence/browser-*-checker/` into the working tree. A suite that
+dirties the tree corrupts the sweep's own bypass detection — confirmed present after this run.
+
+**T-136 stays `pending`, and the checker did not close it.** This PASS certifies the scorer unit;
+T-136's acceptance still needs a real reading. The difference from cycle 1 is that this is now a
+runnable sequence, not a human gate.
