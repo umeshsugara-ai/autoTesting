@@ -43,6 +43,6 @@
     "agent": "langchain-fallback",
     "judge": "langchain-fallback"
   },
-  "headed": false,
+  "headed": true,
   "description": "Vidysea's Pathlynks product (dev environment). Counsellor role logs in at dev-new.vidysea.com/login; the user/student role at pathlynks.vidysea.com/signin."
 }

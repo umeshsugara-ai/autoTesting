@@ -42,3 +42,25 @@ bound, and its refusal to report a score when there is nothing to score. All of 
 tested in this unit against fixtures and against the real workbooks on disk.
 
 **Answered:** _(pending)_
+
+---
+
+**Answered: 2026-09-09 — THE GATE WAS WRONG. Umesh had already provided the credentials.**
+
+He said so directly: *"maine pathlynks and all ki credentials for the development and testing part
+.env mai tho di hui hai, use them for development purpose."* Measured immediately after: the
+repo-root `.env` (gitignored, untracked) holds **`GEMINI_API_KEY` SET**, plus all four Pathlynks
+keys. `google-genai 2.22.0` is installed, and `GeminiProvider().available()` returns **True** the
+moment `load_dotenv('.env')` runs.
+
+**Why I reported a blocker that was not there:** `src/autotester/ui/app.py:55` loads the repo-root
+`.env`; **no CLI entry point does**. So `autotester providers` answered `mock`, and I took that as
+ground truth about the machine instead of about the command. Filed as **AT-228 (high)**.
+
+This gate cost the user time waiting for something he had already given me, which is the opposite
+of what a gate is for. Recording it as answered-and-wrong rather than deleting it: a gate that was
+never real is worth more on disk than a clean gates directory.
+
+**What it does NOT retract:** no model *has* yet watched a recording, and T-136 still has no recall
+number. That part of the T-136 manifest stands. What changes is the reason — it is a one-line
+`load_dotenv` away, not a human decision.

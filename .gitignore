@@ -42,3 +42,14 @@ Thumbs.db
 
 # Crawl artifacts: screenshots of a real product under test
 projects/*/crawl/*/shots/
+# The rest of a crawl too, added 2026-09-09. D-015 gitignored only `shots/`, on the
+# assumption a crawl artifact is a readable local record. The first crawl of a REAL
+# product (Pathlynks, logged in) showed crawl.json and frontier.json carry that
+# product's internal screen structure and URLs -- and this repo is PUBLIC. A crawl of
+# the local fixture site is harmless; the rule cannot tell them apart, so it defaults
+# to not publishing either.
+projects/*/crawl/*/crawl.json
+projects/*/crawl/*/frontier.json
+projects/*/crawl/*/nodes.jsonl
+projects/*/crawl/*/edges.jsonl
+projects/*/crawl/*/issues.jsonl
