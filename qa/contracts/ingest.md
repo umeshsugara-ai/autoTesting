@@ -95,6 +95,53 @@ on content, recorded here so it is a decision rather than an accident. Changed b
 path are a NEW source; the old row is never mutated, because a `SourceRef` that already points
 into it must keep meaning what it meant.
 
+### I11 - What we send is in the vendor's dialect, and the dialect is an ALLOW-list
+Nothing leaves this repo as `response_schema` that Gemini's dialect cannot name. Concretely, for
+every model the code actually sends: no `additionalProperties` (which this repo's own C1
+`extra="forbid"` produces on every model), no `$defs`/`$ref` (references are inlined, because a
+reference the dialect cannot resolve is a 400 on every call, not a warning), and no `anyOf` union
+standing in for an optional (`X | None` collapses to `nullable`).
+**The list of rejected keywords is a floor, not the criterion.** The dialect is
+`google.genai.types.Schema`'s field set - `any_of, default, defs, description, enum, example,
+format, items, max_items, max_length, max_properties, maximum, min_items, min_length,
+min_properties, minimum, nullable, pattern, properties, property_ordering, ref, required, title,
+type` - and the SDK passes a `dict` schema through **untouched**, so anything outside that set
+reaches Google and fails there, exactly as `additionalProperties` did. A deny-list sanitiser is
+therefore a statement about the keywords someone has already been burned by. Adding a model shape
+that emits a keyword outside the allow-list re-creates AT-230, and the check for that is this
+criterion, not a memory of which four keywords hurt last time.
+
+### I12 - A keyword is only a keyword in keyword position
+Inside a `properties` map the keys are FIELD NAMES. A field called `title`, `default`, `type`,
+`format`, `items`, `enum` or `required` survives with its own subschema intact, while the same
+word as an annotation on a schema node is dropped. The invariant behind it, which is the one that
+actually 400'd (`required[3]: property is not defined`): **`required` never names a property the
+schema does not contain**, at any depth.
+
+### I13 - The wire is pinned, not just the renderer
+`providers/gemini.py` sends the sanitised dict, never the Pydantic class, and a test asserts that
+on the config the provider builds - with no client, no network and no key. A sanitiser with
+complete coverage and an unpinned call site is the exact shape AT-230 shipped in: eleven
+assertions all calling the renderer directly, and the one line that uses it defended by nothing.
+**A behaviour this contract names is not evidenced by the code containing it; it is evidenced by a
+check someone else can re-run** (C7). This applies to every clause here, I15 included.
+
+### I14 - A schema that cannot be rendered is refused HERE, before it is paid for
+An unresolvable or endlessly-expanding `$ref` raises `SchemaTooDeep` locally rather than being
+sent, and **the message identifies the offending reference by name**, because the ceiling is on
+`$ref` expansion depth and a large-but-finite model graph can reach it without being
+self-referential at all - at which point "is a model self-referential?" with no name attached
+sends the reader hunting. Counting `$ref` expansion and not structural nesting is part of the
+criterion: a JSON schema is many levels deep before any model nesting starts, and a structural cap
+refuses valid schemas.
+
+### I15 - What comes back is validated on OUR side, where the dialect cannot reach
+The provider validates the returned dict through the model and raises `ProviderError` (never a
+bare `ValidationError`, never a silent pass-through) when it does not fit. This is deliberately
+stricter than the request schema can be: `extra="forbid"` is C1's rule and Gemini's dialect has no
+way to express it, so an unexpected key is caught only here or not at all. Per I13 this needs a
+check, not merely the code - a stub response is enough; no network is required.
+
 ## No-fire list
 
 - **The golden test itself** (">=90% step recall vs a hand-written list on a real demo video") —
@@ -149,3 +196,45 @@ into it must keep meaning what it meant.
   independently that nothing was in fact lost to the accident: the committed prompt diff is a
   coherent 29-line rewrite carrying the full "align, never re-transcribe" section and exactly one
   `{{NARRATION}}` placeholder, not a degraded retype.
+- 2026-09-09 · routine · added **I11-I15**, the provider-seam response-schema criteria, at the
+  maker's request in `qa/manifests/at230-gemini-schema.md` (AT-230) · why: the change that made
+  every real model call possible had no criteria to be judged against, because this contract's
+  no-fire list had deliberately deferred "live model calls" to A3/A4 and A3 has now happened. Each
+  is a tightening; nothing is weakened. Where I authored differently from the maker's five
+  requested lines, and why:
+  **(i) I11 is stated as an allow-list, not as the maker's three-keyword deny-list.** I probed the
+  installed SDK (`google-genai` 2.22.0): `types.Schema` has exactly 24 fields, and
+  `GenerateContentConfig(response_schema=<dict>)` performs **no local validation at all** - a dict
+  containing `const`, `prefixItems`, `oneOf` or `allOf` is passed through byte-for-byte and fails
+  at Google with the same `Unknown name` 400 that `additionalProperties` produced. Constructed
+  probes confirm the current sanitiser emits `const` for a single-value `Literal`, `prefixItems`
+  for a `tuple[int, str]`, and `oneOf` for a discriminated union, and passes each through
+  untouched. **No model under `src/autotester/schema/` emits any of them today** - I rendered every
+  one of them through `gemini_schema` and the rejected-keyword set came back empty - so this is a
+  hazard rather than a live defect (AT-265), and it does not fail this unit. But writing the
+  criterion as "not these four keywords" would have made the contract a record of past injuries
+  instead of a rule, and the next model shape someone adds is the one that re-creates AT-230.
+  **(ii) I14 keeps the maker's own "naming the reference" clause even though the artifact does not
+  meet it** (the depth branch raises `$ref expanded 20 deep - is a model self-referential?` and
+  drops the `node["$ref"]` it is holding; only the unresolvable branch names anything). Softening a
+  criterion because the artifact fails it is the one thing this role may never do, and the clause
+  is right on its merits: the ceiling counts expansion depth, so a deep-but-finite graph can trip
+  it while being perfectly acyclic, and the message would then be actively misleading with no name
+  to check it against. AT-267, low.
+  **(iii) I13 and I15 carry an explicit "pinned, not merely present" clause.** The maker requested
+  I15's behaviour as a criterion and it is genuinely implemented - I drove `_structured` with a
+  stub client and a payload carrying an extra key and got `ProviderError`, not a silent pass and
+  not a bare `ValidationError`. It is guarded by nothing: reverting the `model_validate` call to
+  `return response.parsed` in a `git archive HEAD` extract passes all 910 tests, and grep confirms
+  no test in the repo constructs a Gemini response at all. That is the AT-256 shape recurring one
+  line below the line AT-256 was about, inside the very unit written to answer it, which is why the
+  clause is written into the contract rather than left as a note. C7 already says a unit is
+  complete only when a check someone else can re-run passes; I13/I15 say it where the next reader
+  of this seam will look. AT-266, high.
+  **Ruling on AT-130, which this contract's own no-fire list scheduled:** that list exempts live
+  model calls "and that is where the `google-genai` declaration (AT-130) must be closed" - naming
+  A3, the unit that first calls the API for real. This is that unit; `pyproject.toml` still
+  declares only `langchain-google-genai>=4.4.0`, so `providers/gemini.py` and `gemini_files.py`
+  import a package that resolves by somebody else's transitive pin while this repo now depends on
+  it for its headline number. The debt is due and it is one line. AT-268, medium. Verdict:
+  `qa/verdicts/at230-gemini-schema.md`.
