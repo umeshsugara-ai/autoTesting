@@ -1403,3 +1403,15 @@ Re-proved the real path first: providers -> gemini; analyze -> 3 screens, 2 issu
 (cached, zero spend); scorer -> recall 1/7, FP 5, coverage 6/6 complete.
 NEXT: AT-259 (raw HTTPException on the gate routes), AT-261 (the vacuous negatives), then AT-215
 (VL1c, fourth sweep unchanged) and AT-156 (C9 `approved`, fourth sweep unchanged).
+
+## 2026-09-09 tick — ADVANCED — at230-gemini-schema fix cycle 2 dispatched
+Cycle 1 FAIL (3/5) reconciled: AT-266 (high, response-path validation had zero
+test coverage -- proven by execution, not C7-inconclusive), AT-267 (low, $ref
+depth message didn't name the ref), AT-268 (medium, google-genai undeclared).
+All three fixed this cycle. AT-265 (deny-list vs 24-field allow-list, medium)
+left open by design -- latent not live, real fix is a bigger rendering change.
+912 passed / 2 skipped, ruff+doctor clean. Fresh checker dispatched for cycle 2
+(agent a11ad17640680e6b7, background). Process debt AT-255 (bypass) / AT-256
+(unconfirmed report) still stand, untouched by this cycle -- named explicitly
+in the manifest as not repaired.
+Next: await cycle-2 verdict.
