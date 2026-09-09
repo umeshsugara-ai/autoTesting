@@ -164,3 +164,69 @@ LIVE-BROWSER: not-applicable (src/autotester/stages/similarity_score.py, tests/t
 ISSUES-WRITTEN: none (corroborates existing AT-279, no new issue filed)
 EXPLANATION: Independently re-ran every verify command, the sabotage (3 failures at predicted 1.0 ceiling), and the real-corpus regression (recall 3/7 unchanged) in my own isolated extract. The floor genuinely suppresses the two AT-278-named examples but is not structural: it relocates the guaranteed-failure ceiling from 1 shared word to "floor value, one incidental shared word," which a shared domain noun (not just a contradictory adjective) still clears at the shipped threshold. Concurs with the primary verdict's FAIL.
 ```
+
+---
+
+## Cycle 2 re-check
+
+**Cycle checked: 2**
+**Date:** 2026-09-09
+**Checker mode:** A (unit check)
+**Commit checked:** `cbdfab13057a8f137f037c864f7eed94665f98b9`
+**Contract:** `qa/contracts/video-learning.md` (T-136 acceptance)
+
+### Evidence re-run independently
+
+1. `uv run pytest tests/test_similarity_score.py tests/test_score.py -v` -> **44 passed**.
+2. `uv run pytest` -> **945 passed, 2 skipped, 1 warning in 101.99s**.
+3. `uv run ruff check src tests scripts` -> **All checks passed!**
+4. `uv run autotester doctor` -> **doctor: clean**.
+5. The exact `cbdfab1` archive resolved imports from its own `src/`; its focused baseline was
+   **44 passed**, and after restoration its scorer file hash matched the commit blob exactly
+   (`1a3677dd6497e0897c4882fec96e58f2b6085c01`).
+6. The shipped real ERP scorer against `ERP_Issues_Trainers.xlsx` / `Trainer module` reports
+   **3/7 recall (0.4286), 3 false positives, 6/6 observations, complete coverage**. The same
+   three rows remain matched at 0.636, 0.778, and 0.667; no real-corpus semantic result moved.
+
+### Independent score-path sabotage
+
+- Disabled the exact-normalized-token branch in the isolated commit. The real `score()` regression
+  failed exactly as required: `Timeout` / `timeout!` fell to recall **0.0** and the issue became a
+  false positive. The full focused pair had exactly **1 failure**.
+- Weakened the two-shared-distinctive-token gate to one. Both real `score()` contradiction
+  regressions failed: `Invoice rejected` / `Invoice approved` and `Password reset` / `Password
+  leaked` each returned recall **1.0**, similarity **0.5**, and no false positive. The focused pair
+  had exactly **5 failures**: those two, both AT-278 erosion cases at **1.0**, and the direct
+  one-shared-word guard.
+- Restored the isolated artifact and re-ran the 44 tests green before judging it.
+
+### New nearby boundary and semantic-change check
+
+Through `score()` at the same recording and second, `Timeout` / `The timeout` remains a miss
+(0.0), while `Invoice payment rejected` / `Invoice payment approved` remains a lexical match
+(0.667). These are the declared deterministic lexical trade-off at the next boundary, not a cycle-2
+regression: the new code changes only exact normalized-token equality and one-shared-token admission,
+and the real ERP report is unchanged. An exact multi-token punctuation/case variant (`Invoice payment
+rejected` / `invoice payment rejected!`) correctly returns 1.0.
+
+### Contract judgment
+
+- **VL11: PASS.** Exact normalized one-token content now survives through `score()`, while every
+  non-identical match requires at least two shared distinctive tokens; both branches are
+  independently mutation-discriminating.
+- **VL12: PASS.** The shipped 0.30 threshold remains observable and applied.
+- **VL13: PASS.** The change is deterministic and content-only; no ordering state was introduced.
+- **I-VL7: PASS.** The changed scorer module introduces no provider, network, clock, or randomness.
+
+AT-278 and AT-279 move `open -> fixed` in the checker-owned ledger. Per ledger policy, a later
+independent re-check may move them from `fixed` to `verified`.
+
+```
+VERDICT: PASS
+SCOREBOARD: 3/3 applicable criteria met, 1/1 applicable invariants hold
+FAILURES (if any):
+- none
+LIVE-BROWSER: not-applicable (src/autotester/stages/similarity_score.py, tests/test_similarity_score.py)
+ISSUES-WRITTEN: none (AT-278 and AT-279 moved open -> fixed)
+EXPLANATION: All manifest commands reproduce, both cycle-2 branches are independently load-bearing through the real score() path, and the real ERP scorer remains 3/7 with the same matched rows and full 6/6 coverage. The new adjacent lexical cases expose the already-declared matcher trade-off but no unexpected cycle-2 semantic regression, so VL11-VL13 and I-VL7 pass.
+```
