@@ -19,7 +19,7 @@ from autotester.core.ids import run_id
 from autotester.core.paths import ProjectPaths
 from autotester.schema.crawl import CrawlBounds
 from autotester.schema.enums import IssueKind
-from autotester.stages.coverage import diff_crawl, unreached_screens
+from autotester.stages.coverage import diff_crawl, queue_requests, unreached_screens
 from autotester.stages.crawl_report import export_crawl_excel
 from autotester.stages.explore_merge import merge_screens
 from autotester.store.project_store import ProjectStore
@@ -181,6 +181,12 @@ def start_crawl(slug: str) -> RedirectResponse:
         # 403, not 500: the run was refused on purpose, and the message names the
         # exact command that grants consent (D-018).
         raise HTTPException(status_code=403, detail=str(exc)) from None
+    # AT-240, the crawl half. `diff_crawl` was rendered on the crawl page and
+    # never persisted as an ask, so a screen the crawler could not recognise
+    # stayed a paragraph nobody was accountable for.
+    spec = store.load_flowspec()
+    if spec is not None:
+        queue_requests(store, diff_crawl(spec, store.list_nodes(crawl.id)))
     return RedirectResponse(f"/projects/{slug}/crawls/{crawl.id}", status_code=303)
 
 

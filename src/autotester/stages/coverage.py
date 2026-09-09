@@ -9,12 +9,17 @@ mechanism: any URL a run's evidence reached that matches no known screen's
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from autotester.core.urls import url_template
 from autotester.schema.coverage import CoverageGap, VideoRequest
 from autotester.schema.enums import EvidenceKind
 from autotester.schema.flowspec import FlowSpec, Screen
 from autotester.schema.run import RawResult
 from autotester.schema.screen_graph import ScreenNode
+
+if TYPE_CHECKING:  # a stage names the store only in a signature (execute.py's convention)
+    from autotester.store.project_store import ProjectStore
 
 
 def _path_of(url: str) -> str:
@@ -89,6 +94,26 @@ def diff_crawl(spec: FlowSpec, nodes: list[ScreenNode]) -> list[CoverageGap]:
         )
         gaps.setdefault(gap.id, gap)
     return list(gaps.values())
+
+
+def queue_requests(store: ProjectStore, gaps: list[CoverageGap]) -> list[VideoRequest]:
+    """Persist exactly one `VideoRequest` per gap — the one place a gap becomes
+    an ask, so the run path and the crawl path cannot drift apart.
+
+    AT-240: `diff_coverage`, `request_for` and `ProjectStore.add_request` were
+    each correct and each called only from tests, so no `VideoRequest` had ever
+    been created and the north star's "it asks the human for a video instead of
+    guessing" never happened. Idempotent by construction (V3: `add_request` is
+    content-addressed on `(project, gap_id)`), so re-running a suite over the
+    same unknown route re-asks nothing.
+
+    Callers pass `diff_coverage(...)` (a run's evidence) or `diff_crawl(...)`
+    (a crawl's screens). `unreached_screens` must NEVER be passed here — V5: a
+    bounded crawl seeing less than the spec describes is expected, and asking a
+    human to re-record a screen the system already understands is the opposite
+    of self-extension.
+    """
+    return [store.add_request(request_for(gap)) for gap in gaps]
 
 
 def unreached_screens(spec: FlowSpec, nodes: list[ScreenNode]) -> list[Screen]:

@@ -157,6 +157,7 @@ def test_every_site_is_reported_with_a_line_a_human_can_open() -> None:
 
 
 EXPECTED_SITES = {
+    ("cli.py", "providers"),
     ("cli_issues.py", "ingest analyze"),
     ("cli_issues.py", "ingest list"),
     ("cli_issues.py", "issues derive"),
@@ -185,7 +186,7 @@ Two sites in `media_prep.py` share a command (the constant and the message that
 interpolates it), so this set has ten entries for eleven sites; the count is
 asserted separately."""
 
-EXPECTED_SITE_COUNT = 15
+EXPECTED_SITE_COUNT = 16
 
 
 def test_no_advice_site_can_vanish_unnoticed() -> None:

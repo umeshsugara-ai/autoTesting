@@ -1,0 +1,58 @@
+{
+  "unit": "at241-cold-start",
+  "date": "2026-09-09",
+  "base_url": "http://127.0.0.1:8137",
+  "browser": "chromium (playwright, headless)",
+  "pages": [
+    {
+      "path": "/projects/demo",
+      "label": "project page, zero cases",
+      "status": "loaded",
+      "console_errors": 0,
+      "title": "Demo Shop \u2014 AutoTester"
+    },
+    {
+      "path": "/projects/demo/flowspec",
+      "label": "cold-start flowspec page",
+      "status": "loaded",
+      "console_errors": 0,
+      "title": "Demo Shop \u00b7 FlowSpec \u2014 AutoTester"
+    },
+    {
+      "path": "/projects/demo/requests",
+      "label": "video request queue, empty",
+      "status": "loaded",
+      "console_errors": 0,
+      "title": "Demo Shop \u00b7 Video requests \u2014 AutoTester"
+    }
+  ],
+  "interactions": [
+    {
+      "did": "look for the learning route on a zero-case project page",
+      "expected": "a link to /projects/demo/flowspec exists (AT-241's fix)",
+      "observed": "1 link(s)",
+      "pass": true
+    },
+    {
+      "did": "click 'Teach it from a recording'",
+      "expected": "lands on the flowspec page, not a 404/500",
+      "observed": "url=http://127.0.0.1:8137/projects/demo/flowspec title=Demo Shop \u00b7 FlowSpec \u2014 AutoTester",
+      "pass": true
+    },
+    {
+      "did": "read the flowspec page of a product with nothing learned",
+      "expected": "says there is no flowspec, and is not a dead end",
+      "observed": "'no flowspec' present=True; onward links=2",
+      "pass": true
+    },
+    {
+      "did": "open the video-request queue with nothing queued",
+      "expected": "honest empty state, not a blank page or an error",
+      "observed": "at autotester projects + new project \u25cf live view \u2699 settings projects demo shop + new proje",
+      "pass": true
+    }
+  ],
+  "total_console_errors": 0,
+  "console_error_samples": [],
+  "note": "Maker smoke check only -- never the validation. The checker runs Mode D with its own script (D-024 / the ship rule)."
+}

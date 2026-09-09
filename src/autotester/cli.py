@@ -14,6 +14,7 @@ from autotester.core.paths import RepoDocs
 from autotester.ledger import render, store
 from autotester.ledger.relitigation import gate_message, relitigate
 from autotester.schema.enums import FeatureEventKind, UserValue
+from autotester.stages import expand as expand_stage
 from autotester.stages import manual_login as manual_login_stage
 from autotester.stages import report_export
 from autotester.stages import review as review_stage
@@ -189,6 +190,44 @@ def flowspec_request_edit(
         raise typer.Exit(1)
     store_.save_flowspec(review_stage.request_edit(spec, by, note))
     typer.secho(f"{project}: flowspec sent back for edit by {by}", fg=typer.colors.YELLOW)
+
+
+@app.command("expand")
+def expand_cases(
+    project: str,
+    provider: str = typer.Option("langchain-fallback", "--provider"),
+) -> None:
+    """Generate this project's test cases from its APPROVED FlowSpec.
+
+    AT-239: `stages/expand.py` -- the feature the ledger calls the
+    differentiator -- had no entry point at all, so across four real projects
+    49 of 52 cases were `happy` and not one had ever been generated (AT-250).
+    Persisting is deliberately done here and not inside `expand()`:
+    qa/contracts/expand.md's no-fire list makes that the caller's job."""
+    store_ = ProjectStore(project)
+    if store_.load_project() is None:
+        typer.secho(f"no project '{project}'", fg=typer.colors.RED)
+        raise typer.Exit(1)
+    spec = store_.load_flowspec()
+    if spec is None:
+        typer.secho(f"no flowspec for '{project}' yet — ingest a recording first",
+                    fg=typer.colors.RED)
+        raise typer.Exit(1)
+    model = providers.get(provider)
+    if not model.available():
+        typer.secho(f"provider '{provider}' has no credentials on this machine — "
+                    "`autotester providers` lists the ones that do", fg=typer.colors.RED)
+        raise typer.Exit(1)
+    try:
+        cases = expand_stage.expand(spec, model)
+    except review_stage.FlowSpecNotReviewed as exc:
+        typer.secho(str(exc), fg=typer.colors.YELLOW)
+        raise typer.Exit(1) from None
+    new = sum(0 if store_.has_case(case.id) else 1 for case in cases)
+    for case in cases:
+        store_.add_case(case)
+    typer.secho(f"{project}: {len(cases)} case(s) from {len(spec.flows)} flow(s), {new} new",
+                fg=typer.colors.GREEN)
 
 
 @app.command("login")

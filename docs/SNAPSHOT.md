@@ -31,11 +31,11 @@ AutoTester wins on bugs found, false positives, and time (`schema/bench.py` comp
 - 2026-09-04 updated F-031 Multimodal grading -- the judge now actually sees screenshots, not just filenames — Investigating AT-046's residual flakiness deeper led to the actual root cause, not just another timing tweak. Umesh, asked directly (AskUserQuestion) whether to fix now or defer: 'fix now.' Checker-PASSed cycle 1 after its own 3 independent fresh live Pathlynks reruns (9/9 case verdicts PASS) and direct visual comparison of a real screenshot against its verdict's reasoning.
 - 2026-09-08 updated F-038 Make a recording readable: probe, chunk, transcribe, extract frames — Track A3. Degrades rather than crashing: without ffmpeg it emits one chunk on the original file, without whisper an empty Transcript the prompt renders honestly rather than as verified silence. Took three fix cycles, all on one root -- the stage was fixed and the path an operator runs was not.
 ## Next (open goal tasks)
+- T-100 [high] ui/: FastAPI onboarding, masked .env editor, live run view, report
 - T-122 [high] Track 0 tail: login case + first logged-in ERP run (HUMAN_GATE: ERP_EMAIL/ERP_PASSWORD values)
 - T-123 [normal] Medium-issue batch: AT-087 per-field exemption, AT-076/086 config-field rule, AT-079/080, AT-065, AT-085
 - T-134 [high] Track A5: product map, journeys, issues and sources pages
 - T-135 [normal] Track A6: coverage/merge/expand loops reconnected + ARCHITECTURE update
-- T-136 [high] Track A acceptance: erp1/2/3 scored vs ERP_Issues_Trainers.xlsx with recall/FP numbers in the manifest
 ## Last decisions (computed status)
 - D-018 2026-09-08 decision ACTIVE
 - D-019 2026-09-08 fix ACTIVE

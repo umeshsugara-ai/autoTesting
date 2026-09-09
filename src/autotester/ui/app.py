@@ -21,10 +21,12 @@ from autotester.core.paths import ProjectPaths
 from autotester.schema.project import Project
 from autotester.store.project_store import ProjectStore
 from autotester.ui import (
+    project_view,
     routes_cases,
     routes_crawls,
     routes_credentials,
     routes_flow_diagram,
+    routes_learn,
     routes_project_edit,
     routes_report,
     routes_runs,
@@ -65,6 +67,7 @@ app.include_router(routes_flow_diagram.router)
 app.include_router(routes_crawls.router)
 app.include_router(routes_credentials.router)
 app.include_router(routes_settings.router)
+app.include_router(routes_learn.router)
 
 
 def _latest_run_status(slug: str) -> tuple[str | None, dict[str, int]]:
@@ -204,37 +207,6 @@ def onboard_submit(
     return RedirectResponse(f"/projects/{slug}", status_code=303)
 
 
-def _actions_card(safe_slug: str, run_button: str, case_count: int) -> str:
-    """The project's action row, plus — when it has no cases yet — a prompt
-    saying what to do next. AT-057: a project with zero cases can run nothing,
-    so a disabled Run button on its own was a dead end for a non-technical
-    user, with no route anywhere to add the case that would fix it."""
-    card = theme.card(
-        "<p class='subtitle' style='margin-bottom:1rem'>Manage this project.</p>"
-        "<div class='card-actions'>"
-        f"{run_button}"
-        f"<a class='btn' href='/projects/{safe_slug}/cases'>🧪 Cases</a>"
-        f"<a class='btn' href='/projects/{safe_slug}/cases/new'>+ Add case</a>"
-        f"<a class='btn' href='/projects/{safe_slug}/env'>🔑 Credentials</a>"
-        f"<a class='btn' href='/projects/{safe_slug}/report'>📋 Latest report</a>"
-        f"<a class='btn' href='/projects/{safe_slug}/flow-diagram'>🌳 Flow diagram</a>"
-        f"<a class='btn' href='/projects/{safe_slug}/crawls'>🕸 Crawls</a>"
-        f"<a class='btn' href='/projects/{safe_slug}/edit'>⚙ Project settings</a>"
-        "<a class='btn' href='/live'>▶ Watch live</a>"
-        "</div>",
-        title="Actions",
-    )
-    if case_count:
-        return card
-    return theme.empty_state(
-        "🧪",
-        "No cases yet — nothing can run until this project has at least one. "
-        "A case is one claim about the product, checked in a real browser.",
-        f"<a class='btn btn-primary' href='/projects/{safe_slug}/cases/new'>"
-        "+ Add the first case</a>",
-    ) + card
-
-
 @app.get("/projects/{slug}", response_class=HTMLResponse)
 def project_detail(slug: str) -> str:
     store, project = _load_project_or_404(slug)
@@ -258,7 +230,7 @@ def project_detail(slug: str) -> str:
         "<span class='btn' style='opacity:.5;cursor:default' title='no cases yet'>"
         "▶ Run tests</span>"
     )
-    actions = _actions_card(safe_slug, run_button, case_count)
+    actions = project_view._actions_card(safe_slug, run_button, case_count)
     body = (
         theme.breadcrumb(("Projects", "/"), (name, None))
         + f"<h1>{name}</h1>"

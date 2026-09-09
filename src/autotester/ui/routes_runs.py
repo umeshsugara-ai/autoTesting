@@ -20,6 +20,7 @@ from autotester.schema.enums import Action
 from autotester.schema.project import Project
 from autotester.schema.run import RawResult, Run
 from autotester.schema.verdict import Verdict
+from autotester.stages.coverage import diff_coverage, queue_requests
 from autotester.stages.run_case_pipeline import run_and_grade_case
 from autotester.store.project_store import ProjectStore
 from autotester.ui.helpers import _load_project_or_404
@@ -117,4 +118,24 @@ def trigger_run(slug: str) -> RedirectResponse:
         if session is not None:
             session.close()
     store.save_run(Run(id=run_id, project=slug, case_ids=[c.id for c in cases]))
+    _ask_for_what_it_did_not_recognise(store, run_id)
     return RedirectResponse(f"/projects/{slug}/report", status_code=303)
+
+
+def _ask_for_what_it_did_not_recognise(store: ProjectStore, run_id: str) -> None:
+    """Turn this run's coverage gaps into video requests.
+
+    AT-240: `diff_coverage`, `request_for` and `add_request` were each written,
+    each tested, and each called from nothing -- so across four real projects
+    not one `VideoRequest` had ever been created and the north star's "when it
+    meets a screen it does not know, it asks the human for a video instead of
+    guessing" had never once happened. A loop whose last link is missing is not
+    a slow loop, it is an open one.
+
+    Deliberately after `save_run`: a request is about a run that HAPPENED, and
+    failing to ask must never lose the run itself."""
+    spec = store.load_flowspec()
+    if spec is None:
+        return                      # nothing learned yet -> nothing is "unknown" (V2)
+    results = store.load_results(run_id)
+    queue_requests(store, diff_coverage(spec, results))
