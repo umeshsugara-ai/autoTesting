@@ -1,0 +1,56 @@
+{
+  "unit": "at277-ui-learning-navigation",
+  "date": "2026-09-09",
+  "checker": "independent cycle-1 checker",
+  "implementation_commit": "f1c0398",
+  "served_head": "4a0587f758f96b5aa67c63d4acb1edc786447cba",
+  "base_url": "http://127.0.0.1:8765",
+  "browser": "Codex in-app browser",
+  "interaction": "live interactive browser; screenshot emitted and visually inspected",
+  "visibility_note": "The in-app browser rejected forcing OS-window visibility in a subagent thread; the checker still drove its own live tab and inspected the rendered screenshot and accessibility tree.",
+  "journey": [
+    {
+      "step": 1,
+      "url": "/projects/checkerdemo",
+      "status": 200,
+      "assertions": [
+        "existing project has 19 cases",
+        "Actions visibly exposes FlowSpec",
+        "Actions visibly exposes Sources"
+      ]
+    },
+    {
+      "step": 2,
+      "action": "clicked FlowSpec in the normal Actions card",
+      "url": "/projects/checkerdemo/flowspec",
+      "status": 200,
+      "assertions": [
+        "existing FlowSpec visibly reports NEEDS_EDIT",
+        "Correct what it learned card is visible",
+        "Add a recording link is visible"
+      ]
+    },
+    {
+      "step": 3,
+      "action": "clicked Add a recording",
+      "url": "/projects/checkerdemo/sources",
+      "status": 200,
+      "assertions": [
+        "recording path field is visible",
+        "recording label field is visible",
+        "Add recording button is visible",
+        "canonical source table is visible"
+      ]
+    }
+  ],
+  "console_warning_error_count": 0,
+  "server_requests": [
+    "GET /projects/checkerdemo 200",
+    "GET /projects/checkerdemo/flowspec 200",
+    "GET /projects/checkerdemo/sources 200"
+  ],
+  "unrelated_requests": [
+    "GET /favicon.ico 404"
+  ],
+  "result": "pass"
+}
