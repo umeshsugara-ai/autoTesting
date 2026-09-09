@@ -116,12 +116,10 @@ disproved live rather than to everything unvalidated:
 
 Driving the report page surfaced the number that makes AT-239 concrete rather than theoretical.
 
-- **AT-250 (high)** — across **all four projects AutoTester holds 52 cases, 49 of them class
-  `happy`**. The only three that are not (`happy`, `auth_wrong_creds`, `input_empty` on pathlynks)
-  were hand-written by `scripts/run_pathlynks_first_cases.py` for T-050. **No case in any project
+- **AT-250 (high)** — across **all four projects AutoTester holds 52 cases, 50 of them class `happy`**. The only two that are not (`auth_wrong_creds`, `input_empty` on pathlynks) were hand-written by `scripts/run_pathlynks_first_cases.py` for T-050. **No case in any project
   was generated.** F-012 claims a login flow yields 14 cases across 14 applicable `CaseClass`es;
   the shipped system has produced zero outside a test fixture. A product whose north star is
-  "best / worst / edge" is running a 94% happy-path suite.
+  "best / worst / edge" is running a 96% happy-path suite.
 - **AT-251 (medium)** — the report's headline `Total runs 45` counts an onboarding session and a
   crawl as runs; both also appear in Run history as rows reading "no verdicts", so a crawl is
   presented as a test run that produced nothing.

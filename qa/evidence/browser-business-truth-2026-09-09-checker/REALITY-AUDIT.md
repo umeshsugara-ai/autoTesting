@@ -12,6 +12,31 @@ The ledger's own numbers are **31/45 tasks done (69%)**, **87 verdicts, 86 PASS,
 2. **Independent live validation** — did a checker ever drive it in a real browser? Measured:
    **2 of 87 verdicts carry `LIVE-BROWSER:` evidence**, and both are from this campaign.
 
+> ## ⚠ SUPERSEDED IN PART — re-measured later the same day
+>
+> Sections **2** and **5** below were true when measured (~10:05) and are **no longer current**.
+> The maker landed `src/autotester/ui/routes_learn.py` at **10:25** and wired the coverage loop.
+> Re-verified by me at ~10:40:
+>
+> - **AT-239 → fixed.** `autotester expand` exists in the CLI *and* the UI now has
+>   `POST /projects/{slug}/cases/generate` (`routes_learn.py:169`).
+> - **AT-240 → fixed.** `queue_requests` now has two real production call sites:
+>   `ui/routes_runs.py:141` (after a run) and `ui/routes_crawls.py:189` (after a crawl).
+>   A `VideoRequest` can be created for the first time.
+> - **AT-241 → fixed.** `routes_learn.py` adds the five routes that close the cold start:
+>   `GET /flowspec`, `POST /flowspec/approve`, `POST /flowspec/request-edit`,
+>   `POST /cases/generate`, `GET /requests` (the video-request queue).
+> - **AT-254 → stale.** The tree is green: **909 passed, 2 skipped**; `ruff` clean.
+>
+> **Still open and unchanged:** AT-253 (the agent fallback is still dead code —
+> `run_with_fallback` has no production caller), AT-242, AT-243, AT-250, and the rest.
+>
+> **These four are `fixed`, NOT `verified`.** No checker has PASSed them, the work is still
+> untracked with no manifest, `autotester doctor` is **RED** on 3 design-rule violations, and
+> **none of the new UI routes has had Mode D live-browser validation** — which is the exact gap
+> this campaign exists to close.
+
+
 ---
 
 ## 1. REALLY DONE — reachable, and I verified it myself this session
@@ -42,7 +67,7 @@ These are marked **done** in `.goal/goal.json`, **live** in `docs/FEATURES.jsonl
 | **EXPAND** — T-070 done, F-012 live, called *"the differentiator"* | Zero production callers until this session. An `autotester expand` CLI command now exists but is **uncommitted and unchecked**; there is still **no UI route**. | AT-239 |
 | **COVERAGE / "asks for a video"** — T-090 done, F-013 live | `diff_coverage`, `request_for` and now `queue_requests` all have **zero production callers**. No `VideoRequest` has ever been created. The product's self-extension promise has never once happened. | AT-240 |
 | **AGENT FALLBACK** — stated as the execution model in `ARCHITECTURE.md:87-90` | `run_with_fallback` is imported only by `tests/test_agent_loop.py`. The sentence *"the agent only pays for new or broken cases"* describes behaviour that cannot occur. | AT-253 |
-| **best / worst / edge generation** — the north star | **52 cases across all four projects, 49 of them class `happy`.** The only three that are not were hand-written by a script for T-050. **No case was ever generated.** | AT-250 |
+| **best / worst / edge generation** — the north star | **52 cases across all four projects, 50 of them class `happy`.** Only two are not, and both were hand-written by a script for T-050. **No case was ever generated.** | AT-250 |
 | **T-100 (`ui/`) — done**, acceptance note *"full onboarding → report without touching the CLI"* | Disproved live: a newly onboarded product's only route to runnable is hand-writing cases. **T-100 must be reopened to `pending`.** | AT-241 |
 | **Crawl on an unseen product — "completed"** | 1 screen, 0 actions, 3 refusals, 3.4s. A zero-learning crawl is indistinguishable by status from an exhaustive one. | AT-242 |
 
