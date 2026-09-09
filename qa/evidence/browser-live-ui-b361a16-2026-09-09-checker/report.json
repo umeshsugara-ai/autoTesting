@@ -1,0 +1,81 @@
+{
+  "check": "independent live browser product validation",
+  "date": "2026-09-09",
+  "project_root": "D:/autoTesting",
+  "release": {
+    "requested_commit": "b361a16",
+    "worktree_head": "b361a1604aff167bf9eba4b8e85db50fc268c824",
+    "origin_master": "b361a1604aff167bf9eba4b8e85db50fc268c824",
+    "server": "http://127.0.0.1:8765"
+  },
+  "instrument": {
+    "browser": "isolated Codex in-app Chromium browser",
+    "driver": "Playwright locator API exposed by the browser runtime",
+    "script": "interaction-script.js",
+    "note": "The bundled playwright-cli wrapper was probed first but did not become responsive. No evidence is credited to that probe; all assertions below come from the independent browser session and scripted clicks."
+  },
+  "data_policy": "Existing local checkerdemo project only; read-only navigation and interactions; no forms submitted and no project artifacts modified.",
+  "verdict": "FAIL",
+  "scoreboard": {
+    "operator_paths_met": 3,
+    "operator_paths_total": 5,
+    "console_error_invariant_met": true
+  },
+  "checks": [
+    {
+      "id": 1,
+      "status": "PASS",
+      "claim": "Home renders and a project can be opened.",
+      "evidence": "Home showed 7 projects and 71 cases. Clicking the Checker Demo Shop card navigated to /projects/checkerdemo, showing 19 cases, 2 allowed domains, and project actions."
+    },
+    {
+      "id": 2,
+      "status": "FAIL",
+      "claim": "checkerdemo navigation exposes FlowSpec, Cases, Reports, Crawls, and flow diagram pages where available.",
+      "evidence": "The project action card exposed Cases, Latest report, Flow diagram, and Crawls, but no FlowSpec link. The FlowSpec route itself rendered when opened directly, so the page is available but not exposed by project navigation."
+    },
+    {
+      "id": 3,
+      "status": "FAIL",
+      "claim": "The visible Add a recording path from the FlowSpec cold-start/review surface reaches a usable source UI.",
+      "evidence": "The checkerdemo FlowSpec review page rendered NEEDS_EDIT, its review note, Sign in (4 steps), Approve, and Request edit. It contained no Add a recording link (indeed no source link at all), so the required click path could not be performed. A direct /sources diagnostic was blocked by the browser client and is not treated as application evidence or as an HTTP failure."
+    },
+    {
+      "id": 4,
+      "status": "PASS",
+      "claim": "Cases and report pages render meaningful operator state, with a non-mutating detail interaction.",
+      "evidence": "Cases rendered 19 case rows with class and step counts. Latest report rendered the honest no-runs state. Crawls rendered two completed rows; clicking crawl_01M22B474QM5956JR0ZQA8M9M4 opened a detailed read-only report with screen/refusal/issue/tool-failure counts, policy, FlowSpec comparison, and timestamps."
+    },
+    {
+      "id": 5,
+      "status": "PASS",
+      "claim": "Console and HTTP/error pages are recorded per visited page.",
+      "evidence": "Nine captured page states produced zero new console warnings or errors. No application HTTP error page was encountered."
+    }
+  ],
+  "pages": [
+    {"label": "home", "url": "http://127.0.0.1:8765/", "title": "Projects — AutoTester", "console_errors_or_warnings": 0},
+    {"label": "project-overview", "url": "http://127.0.0.1:8765/projects/checkerdemo", "title": "Checker Demo Shop — AutoTester", "console_errors_or_warnings": 0},
+    {"label": "cases-list", "url": "http://127.0.0.1:8765/projects/checkerdemo/cases", "title": "Cases — AutoTester", "console_errors_or_warnings": 0},
+    {"label": "flowspec-review-direct-route", "url": "http://127.0.0.1:8765/projects/checkerdemo/flowspec", "title": "Checker Demo Shop · FlowSpec — AutoTester", "console_errors_or_warnings": 0},
+    {"label": "project-overview-return", "url": "http://127.0.0.1:8765/projects/checkerdemo", "title": "Checker Demo Shop — AutoTester", "console_errors_or_warnings": 0},
+    {"label": "latest-report", "url": "http://127.0.0.1:8765/projects/checkerdemo/report", "title": "Report — AutoTester", "console_errors_or_warnings": 0},
+    {"label": "crawls-list", "url": "http://127.0.0.1:8765/projects/checkerdemo/crawls", "title": "Crawls — AutoTester", "console_errors_or_warnings": 0},
+    {"label": "crawl-detail", "url": "http://127.0.0.1:8765/projects/checkerdemo/crawls/crawl_01M22B474QM5956JR0ZQA8M9M4", "title": "Crawl crawl_01M22B474QM5956JR0ZQA8M9M4 — AutoTester", "console_errors_or_warnings": 0},
+    {"label": "flow-diagram", "url": "http://127.0.0.1:8765/projects/checkerdemo/flow-diagram", "title": "Flow diagram — AutoTester", "console_errors_or_warnings": 0}
+  ],
+  "interaction_evidence": {
+    "project_open": "Clicked the Checker Demo Shop home card.",
+    "cases": "Clicked Cases from the project action card.",
+    "report": "Clicked Latest report from the project action card.",
+    "crawl_detail": "Clicked a concrete crawl ID from the crawl table.",
+    "flow_diagram": "Clicked Flow diagram from the project action card.",
+    "recording": "Blocked by missing visible Add a recording control on the existing FlowSpec review surface."
+  },
+  "finding": {
+    "issue_id": "AT-277",
+    "severity": "high",
+    "title": "FlowSpec and recording-source path are absent from checkerdemo's normal operator navigation"
+  }
+}
+
