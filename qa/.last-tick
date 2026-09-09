@@ -1458,3 +1458,34 @@ Next: await verdict; if PASS, T-264 closes and pull the next open high-sev
 item (candidates: AT-231/232 video-learning recall, AT-226/227/242 explore
 crawl bugs, AT-110 tamper-check, AT-218 GRILL re vacuous guards, AT-253 dead
 agent-fallback code, AT-243 LIVE-BROWSER coverage across older UI verdicts).
+
+## 2026-09-09 tick — ADVANCED — AT-231 fixed (adjudicate duplicate merge across prompts), checker dispatched
+Also handled AT-218 (GRILL row): not buildable, wrote qa/gates/at218-vacuous-guard-class.md
+naming the three options for Umesh, gate remains open pending his answer.
+AT-231: a fault reported by both ingest_video_v1 and video_issues_v1 for the
+same provider was never merged -- screen names differ enough across prompts
+that the (screen, category) key never matched. First real reading: 3 genuine
+faults reported as 6, inverting the ensemble's premise (agreement raises
+confidence -> agreement doubled noise). Fixed with _same_model_duplicate()
+merging on (label, category, seam window) regardless of screen name, never
+counted as cross-model agreement.
+Found a SECOND bug proving the first one against real data: the naive fix
+made recall drop 1/7 -> 0/7 because the merge kept whichever title sorted
+first (always the terser mapping-prompt one), silently swapping a matched
+finding (similarity 0.315) for a missed one (0.180). Fixed by keeping the
+LONGER title/what_is_wrong on merge -- measured, not assumed, against the
+real erp1.mp4 pair.
+Two independent sabotages, each restored immediately, each caught by a
+dedicated test. Real-world impact measured with zero new model calls
+(adjudicate is pure, re-run on cached observations): 6 issues -> 3 across
+3 ERP recordings, false positives 5 -> 2, recall preserved 1/7. Deliberately
+did NOT commit the regenerated real project data (projects/erp/sources/*) --
+out of scope for a library fix, separate concern re: public-repo data.
+917 passed / 2 skipped, ruff+doctor clean. Committed 791512f, pushed.
+Fresh checker dispatched (agent acee7bd88e21266b2, background) -- not
+UI-touching so Mode D not required; asked to independently re-verify the
+real-world numbers and probe whether the length-heuristic is safe or
+narrowly-fit to the one example.
+Next: await verdict; remaining high-sev backlog: AT-110, AT-226, AT-227,
+AT-232 (the SequenceMatcher threshold, sibling of AT-231), AT-242, AT-243,
+AT-253, AT-255/AT-256 (process debt, not buildable -- historical record).
