@@ -21,6 +21,38 @@ AT-210…AT-213 to `verified` mid-sweep and that is its call, not this sweep's. 
 
 ---
 
+## TOP-3 FROM THE BUSINESS-TRUTH CAMPAIGN (2026-09-09, verdict `qa/verdicts/business-truth-campaign-2026-09-09.md`)
+
+These outrank the sweep list below. They are not contract violations -- every contract passed. They
+are places where the shipped product does not do what the north star says, found by driving
+AutoTester's own UI in a real browser and onboarding a product it had never seen.
+
+1. **AT-241 + AT-239 + AT-240 -- reconnect the pipeline to a human.** `expand` (the repo's own
+   "differentiator") and the whole coverage/VideoRequest loop have **zero production callers**; a
+   newly onboarded product's only route to runnable is hand-writing cases. T-135 already exists for
+   the reconnection -- this raises it to the top and adds the UI half: an operator needs a route to
+   add a recording, review the FlowSpec, and generate cases without the CLI. T-100's own acceptance
+   note ("full onboarding -> report without touching the CLI") is currently false.
+
+2. **AT-242 -- a crawl that learned nothing must not report `completed`.** On an unseen login-gated
+   product the crawler recorded 1 screen, 0 actions, 3 refusals in 3.4s and returned a success
+   state. Needs a terminal state meaning "could not act", and -- once AT-240 is fixed -- an
+   escalation (ask for a video / credentials) instead of a silent success.
+
+3. **AT-243 -- re-check the UI units live.** Mode D has never run in this repo: 86 verdicts, zero
+   `LIVE-BROWSER:` lines, `qa/evidence/` absent until this campaign. Every UI-touching PASS was
+   granted without independent browser validation. **T-100 must be flipped back to `pending`** --
+   handed over rather than done by the checker because a concurrent maker session was writing
+   `.goal/goal.json` at the time.
+
+Also open from this campaign: AT-244 (raw JSON 403 from a UI button), AT-245 (unknown run id renders
+a fabricated pending run), AT-246 (unknown crawl id returns 200), AT-247 (UI hardcodes crawl
+bounds), AT-248 (favicon console error on every page), AT-249 (**AT-229's evidence is misattributed
+-- it blames `uv run pytest` for artifacts this campaign created; re-verify or withdraw**).
+
+
+---
+
 ## Measured state
 
 | | Prior sweep | **Measured now** |
