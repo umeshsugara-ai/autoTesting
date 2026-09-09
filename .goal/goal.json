@@ -4,15 +4,15 @@
   "north_star": "An AI automated end-to-end tester that ingests product videos/docs, derives a reviewed FlowSpec, auto-generates best/worst/edge-case evals, runs them as regression in a real visible browser, self-extends coverage by requesting videos for unknown screens, and beats an expert human tester head-to-head on the same material (bugs found, false-positive rate, time). First target: Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-09T07:57:02",
+  "updated": "2026-09-09T10:30:06",
   "progress": {
     "total": 45,
-    "done": 31,
+    "done": 30,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 14,
-    "current": "T-122",
-    "percent": 69
+    "pending": 15,
+    "current": "T-100",
+    "percent": 67
   },
   "tasks": [
     {
@@ -336,7 +336,7 @@
     {
       "id": "T-100",
       "title": "ui/: FastAPI onboarding, masked .env editor, live run view, report",
-      "status": "done",
+      "status": "pending",
       "base_criticality": "medium",
       "deps": [
         "T-050",
@@ -350,9 +350,10 @@
       "note": "Full onboarding -> report without touching the CLI.",
       "attempts": 0,
       "created": "2026-09-03T07:26:17",
-      "criticality": "low",
+      "criticality": "medium",
       "user_value": "high",
-      "completed": "2026-09-03T15:52:10"
+      "completed": "2026-09-03T15:52:10",
+      "reopen_reason": "Reopened by /checker sweep 2026-09-09T04:50Z under reopen-power, authorized by D-022 (Changes-authorized: '.goal/goal.json T-100 status') whose own flip never landed. Evidence: 24 UI-touching manifests carry VERDICT: PASS and 0 of 24 carry a LIVE-BROWSER line (AT-243); the first browser run against the surface T-100 delivered produced AT-244..248, AT-251, AT-252. done_check `pytest tests/test_ui.py` cannot see any of them. See AT-257."
     },
     {
       "id": "T-110",
@@ -1003,9 +1004,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 4.85,
-    "eta_days": 2.9
+    "velocity_per_day": 4.6,
+    "eta_days": 3.3
   },
-  "last_deterministic_tick": "2026-09-09T07:57:02",
+  "last_deterministic_tick": "2026-09-09T10:30:06",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }
