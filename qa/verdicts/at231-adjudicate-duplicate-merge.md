@@ -191,7 +191,7 @@ direction or any other. The real mechanism is the **erp2 document-type pair**:
 threshold — this is what drops recall to 0/7 without the length fix);
 `similarity(E-02.text, "Document type dropdown option should be 'CITS Certificate' instead of
 'CIPSA Certificate'" + what_is_wrong) = 0.369` (above threshold — this is what restores recall to
-1/7 with it). Filed as **AT-269 (high)**.
+1/7 with it). Filed as **AT-271 (high)**.
 
 This does not undermine the fix itself — `_same_model_duplicate` and the length-preference block
 are both real, both sabotage-confirmed, and both necessary for the aggregate result the manifest
@@ -227,10 +227,10 @@ FAILURES (if any):
   actual max 0.175, never above threshold) when the real mechanism is the erp2 document-type pair
   (0.247 -> 0.369, independently reproduced exactly) · fix direction: correct the manifest's causal
   table to name the erp2 pair with the real similarity figures, or state plainly that the specific
-  mechanism was not verified before citing it · issue: AT-269
+  mechanism was not verified before citing it · issue: AT-271
 LIVE-BROWSER: not-applicable (src/autotester/stages/adjudicate.py, tests/test_adjudicate.py — no
 route, template, component, or rendered output)
-ISSUES-WRITTEN: AT-269 (high), AT-270 (low)
+ISSUES-WRITTEN: AT-271 (high), AT-270 (low)
 EXPLANATION: The code change (src/autotester/stages/adjudicate.py's _same_model_duplicate merge
 bound and the length-preference block in _apply_merge) is correct, necessary, and fully
 sabotage-confirmed — both dedicated mutations reproduced exactly the predicted test failures, the
