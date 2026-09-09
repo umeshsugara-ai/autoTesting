@@ -1,4 +1,26 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash",
+      "Edit",
+      "Read"
+    ],
+    "deny": [
+      "Bash(sudo:*)",
+      "Bash(ssh:*)",
+      "Bash(chmod 777:*)",
+      "Bash(chmod -R 777:*)",
+      "Bash(rm -rf /)",
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~)",
+      "Bash(rm -rf $HOME)",
+      "Bash(rm -rf $HOME/*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(gh repo delete:*)",
+      "Bash(gh release delete:*)"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {
