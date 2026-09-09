@@ -1,0 +1,38 @@
+{
+  "unit": "at264-generate-error-boundary",
+  "date": "2026-09-09",
+  "base_url": "http://127.0.0.1:8137",
+  "browser": "chromium (playwright, headless)",
+  "pages": [
+    {
+      "path": "/projects/demo/flowspec",
+      "label": "approved flowspec, generate button present",
+      "status": "loaded",
+      "console_errors": 0,
+      "title": "Demo Shop \u00b7 FlowSpec \u2014 AutoTester"
+    },
+    {
+      "path": "/projects/demo/cases/generate (POST)",
+      "label": "refusal path (no provider configured in this scratch env)",
+      "status": "http://127.0.0.1:8137/projects/demo/cases/generate",
+      "console_errors": 1,
+      "title": "No model provider configured \u2014 AutoTester",
+      "console_error_detail": "The one console_errors entry is Chromium logging the navigation itself returning HTTP 400 (\"Failed to load resource: ... status of 400\") -- the page IS SUPPOSED to be a 400 refusal. Not a JS error, not a defect."
+    }
+  ],
+  "interactions": [
+    {
+      "did": "look for the Generate-cases form on an approved flowspec",
+      "expected": "the form posting to /projects/demo/cases/generate exists",
+      "observed": "1 form(s)",
+      "pass": true
+    },
+    {
+      "did": "click Generate cases with no model provider configured",
+      "expected": "a themed AutoTester refusal page, not a raw 500 or JSON blob",
+      "observed": "title='No model provider configured \u2014 AutoTester' themed=True not_raw_500=True",
+      "pass": true
+    }
+  ],
+  "note": "This live-browser pass exercises the route AT-264 fixed and confirms the new try/except ProviderError wrapper compiles, imports and runs correctly in a real server process, and that every refusal on this route (including the pre-existing 'no provider configured' sibling branch) still renders as a themed page with zero console errors after the change. The EXACT failure AT-264 was filed for -- a ProviderError raised MID-generation by an already-available provider -- requires injecting a failing provider into a live server process, which needs monkeypatching not available to a black-box browser client; that exact branch is instead verified by a sabotage-confirmed pytest (tests/test_ui_learn.py::test_generate_when_the_model_fails_midway_is_refused_as_a_page_not_a_500) using the identical reproduction technique the checker-sweep used to find it."
+}

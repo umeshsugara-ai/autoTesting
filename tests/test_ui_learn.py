@@ -195,6 +195,36 @@ def test_generate_creates_real_cases_in_the_projects_cases_file(
     assert len(store.list_cases()) > 1
 
 
+def test_generate_when_the_model_fails_midway_is_refused_as_a_page_not_a_500(
+    client: TestClient, scratch_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AT-264. Every other refusal in this route is a themed page; a
+    `ProviderError` raised by the model mid-generation used to reach the
+    operator as a raw `text/plain` 500 instead. Starved the mock's queue so it
+    raises exactly the way `providers/gemini.py` does on an unparsed response
+    or a schema mismatch -- not a synthetic exception, the real failure shape."""
+    from autotester.providers.mock import MockProvider
+
+    store = _project(scratch_root, spec=_spec(ReviewStatus.APPROVED))
+
+    class _StarvedProvider(MockProvider):
+        def available(self) -> bool:
+            return True
+
+    provider = _StarvedProvider(responses={"agent": []})  # empty queue -> ProviderError
+    import autotester.ui.routes_learn as routes_learn_module
+
+    monkeypatch.setattr(routes_learn_module, "LangChainFallbackProvider", lambda: provider)
+
+    response = client.post("/projects/demo/cases/generate", follow_redirects=False)
+
+    assert response.status_code == 400
+    assert response.headers["content-type"].startswith("text/html")
+    assert "Internal Server Error" not in response.text
+    assert "AutoTester" in response.text
+    assert store.list_cases() == [], "a partial failure must not leave partial cases"
+
+
 def test_generate_on_an_unapproved_flowspec_is_refused_as_a_page_not_raw_json(
     client: TestClient, scratch_root: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

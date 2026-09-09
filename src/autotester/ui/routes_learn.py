@@ -33,6 +33,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from autotester.browser.secrets import SecretStore
 from autotester.core.paths import ProjectPaths, RepoDocs
+from autotester.providers.base import ProviderError
 from autotester.providers.langchain_fallback import LangChainFallbackProvider
 from autotester.schema.enums import ReviewStatus
 from autotester.stages import review as review_stage
@@ -208,7 +209,23 @@ def generate_cases(slug: str):
             "credentials, so nothing was generated.",
             _link(f"/projects/{slug}/env", "Add a credential"))
 
-    for case in expand(spec, provider, RepoDocs()):
+    # AT-264: every OTHER refusal in this route is a themed page (AT-244's
+    # own rule -- "a refusal an operator reaches by clicking is part of the
+    # interface"). A model call is the one step here that can fail AFTER the
+    # gate checks pass, and it genuinely does: providers/gemini.py raises
+    # ProviderError on an unparsed response or a schema mismatch, and this
+    # project's own measured recall (1/7, real model calls) is evidence the
+    # model already misbehaves on this exact path. Uncaught, that reached the
+    # operator as a raw text/plain 500 -- the one inconsistent failure mode in
+    # an otherwise fully themed route.
+    try:
+        cases = expand(spec, provider, RepoDocs())
+    except ProviderError as exc:
+        return _refusal(
+            slug, "The model could not complete this",
+            f"Generating cases failed partway through: {exc}",
+            _link(f"/projects/{slug}/env", "Check the provider's credentials"))
+    for case in cases:
         store.add_case(case)
     return RedirectResponse(f"/projects/{slug}/cases", status_code=303)
 
