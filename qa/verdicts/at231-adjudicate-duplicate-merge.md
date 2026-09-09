@@ -244,3 +244,176 @@ was told to press hardest on. The aggregate numbers the manifest leads with (6->
 it simply never ran the scorer against the real sheet to check the specific claim, which this
 check did.
 ```
+
+---
+
+# Cycle 2 verdict
+
+**Date:** 2026-09-09 · **Cycle checked:** 2 · **Bound to:** `d:/autoTesting`
+**Commit checked:** `696784f` (cycle 2 fix, on top of `791512f` cycle 1)
+**Contract:** `qa/contracts/video-learning.md` VL3/VL4/VL4a/VL4b
+
+Task: press hardest on whether the manifest's cycle-2 correction of the misattributed evidence
+(AT-269 per the manifest's own header, actually AT-271 in the ledger — see below) is itself
+honest, re-derived from scratch, not just re-asserted with more confidence.
+
+## Pressure point 1 — independent re-derivation of the causal claim, from zero
+
+Loaded the real cached `ModelObservation`s from `projects/erp/sources/*/observations/*.json` and
+the real `ERP_Issues_Trainers.xlsx` / `Trainer module` sheet directly (`load_truth`), and called
+`autotester.stages.score.similarity()` myself — no prior checker's numbers used as a starting
+point.
+
+**(a) erp1 "Rule T3" pair — does it ever cross 0.30 against any truth row, in any state?**
+Computed similarity against all 7 truth rows for both erp1 observations:
+- `ingest_video_v1` ("...prevents stage transition"): best match `E-02` at **0.189**, and
+  explicitly against `E-01` (what the FAIL verdict named): **0.116**.
+- `video_issues_v1` ("...blocks moving trainer to next stage"): best match `E-07` at **0.234**,
+  and against `E-01`: **0.175**.
+
+No figure crosses 0.30, against any of the 7 truth rows, either title. This exactly matches the
+manifest's corrected claim ("neither figure is reproducible... its best truth match is E-07 at
+similarity 0.234, well below threshold") and exactly matches the cycle-1 FAIL verdict's own
+independently-computed 0.116/0.175 against E-01. Confirmed: the erp1 pair was never the mechanism.
+
+**(b) erp2 document-type pair vs E-02 — does it go 0.247 to 0.369 as claimed?**
+- `ingest_video_v1` ("Incorrect document type option"): similarity to `E-02` = **0.247** (below
+  the 0.30 threshold).
+- `video_issues_v1` ("Document type dropdown option should be 'CITS Certificate' instead of
+  'CIPSA Certificate'"): similarity to `E-02` = **0.369** (above threshold).
+
+Both figures match the manifest's corrected table exactly, to three decimal places, computed
+independently with no reference to the manifest's numbers while writing the script. No
+discrepancy found on the one claim I was told to press hardest on.
+
+## Pressure point 2 — aggregate headline numbers, re-run against the real pipeline
+
+Loaded the real observations, ran the real `adjudicate()` / `derive_issues()` / `score()` against
+the real truth sheet in three states, by substituting `join_issues` with reconstructions of the
+pre-fix and naive-merge-only behaviour (own code, not the maker's) while leaving every other
+function -- `adjudicate`, `_same_model_duplicate`, `_apply_merge`'s real length logic -- untouched
+for the shipped state:
+
+| State | Issues reported | False positives | Recall |
+|---|---|---|---|
+| Pre-fix (no same-model merge) | 6 | 5 | 1/7 (0.1429) |
+| Naive-merge-only (merge added, first-seen title) | 3 | 3 | 0/7 (0.0) |
+| Shipped (merge + length-preference) | 3 | 2 | 1/7 (0.1429) |
+
+Matches the manifest's claimed 6->3, 5->2, recall preserved at 1/7, and its "recall dropped to
+0/7" mid-fix discovery, exactly. Zero new model calls (cached observations only). The one
+truth-row match found in both the pre-fix and shipped states is `E-02` at similarity 0.369 via the
+`video_issues_v1` title -- confirming the erp2 pair, not erp1, is and always was the one true
+positive.
+
+## Pressure point 3 -- sabotage of the tie-break, run by me independently
+
+`git archive HEAD` into an isolated scratch directory (never `git stash`/`checkout`/`restore` on
+the live tree). Anchor `if incoming_len > existing_len:` matched exactly once; changed to `>=`;
+file re-read as changed. Because this repo's editable install can resolve imports back to the live
+tree rather than the extract (the same hazard the cycle-1 FAIL verdict flagged), I loaded the
+mutated file directly via `importlib.util.spec_from_file_location` and confirmed
+`module.__file__` pointed inside the extract before trusting anything, then re-ran
+`test_an_exact_length_tie_keeps_the_first_seen_text`'s exact construction and assertion against
+it.
+
+Result: `BBBB` (the incoming text) won the tie, exactly the predicted swap -- the un-mutated
+assertion (`merged[0].title == "AAAA"`) fails with `AssertionError: the incoming text won a tie it
+should have lost -- got 'BBBB'`. `git status --porcelain` on the live-tree copy of
+`adjudicate.py` was empty before and after; the anchor line (`if incoming_len > existing_len:`)
+is unchanged in the live tree.
+
+## Pressure point 4 -- does the manifest overcorrect or introduce a new unverified claim?
+
+Diffed `791512f` -> `696784f` for `src/autotester/stages/adjudicate.py` myself
+(`git diff 791512f 696784f -- src/autotester/stages/adjudicate.py`). Every changed line is a
+docstring or comment (rewording of `_same_model_duplicate`'s and `join_issues`' explanatory prose,
+a new AT-270 paragraph in `_apply_merge`'s docstring). The merge condition
+(`cross_model_match or _same_model_duplicate(...)`), the tie-break comparison
+(`if incoming_len > existing_len:`), and `_same_model_duplicate`'s bound are byte-identical
+between the two commits. The manifest's claim "No change to adjudicate.py's substantive merge
+logic this cycle" holds exactly. The manifest does not overcorrect, and does not stake any new
+unverified factual claim beyond the corrected causal table and the documented tie-break -- no
+overreach found.
+
+## Pressure point 5 -- file length and doctor
+
+`wc -l src/autotester/stages/adjudicate.py` -> 300 lines, exactly the manifest's claim and
+exactly the project's cap. `uv run autotester doctor` -> `doctor: clean`, exit 0 -- the
+design-rules gate that would have flagged a length overrun is confirmed live and passing.
+
+## Re-run verify commands, myself
+
+```
+$ uv run pytest tests/test_adjudicate.py -x
+......................                                                   [100%]
+22 passed in 0.05s
+
+$ uv run pytest
+918 passed, 2 skipped, 1 warning in 99.01s
+
+$ uv run ruff check src tests scripts
+All checks passed!
+
+$ uv run autotester doctor
+doctor: clean
+```
+
+Discrepancy, low-severity, noted but not FAIL-worthy: the manifest's own pasted cycle-2
+re-verification block says `917 passed, 2 skipped` for `uv run pytest`. My own run gives 918
+passed -- one more than the manifest's pasted number, consistent with `test_adjudicate.py` growing
+from 21 to 22 tests this cycle (917 + 1 = 918). The manifest's pasted total simply was not updated
+after adding the new test; it does not affect any criterion, and my own re-run is what the check
+is graded on regardless.
+
+## Ledger and manifest ID correction (finding, not a code defect)
+
+The manifest's own header reads "Issues addressed: AT-231 (high), AT-269 (high -- this cycle),
+AT-270 (low -- this cycle)", and commit `696784f`'s message is `fix(AT-269/AT-270): ...`. AT-269
+in `qa/issues.jsonl` is a different, unrelated, already-fixed issue (doctor-RED from a stale
+`docs/SNAPSHOT.md` after a governance commit, filed by `checker-sweep`, fixed before this unit's
+cycle 1 even ran). The high-severity issue this cycle's fix actually addresses -- the misattributed
+erp1/E-01 causal claim -- is AT-271, filed by the cycle-1 FAIL checker. AT-271 sat `open` in the
+ledger through all of cycle 2 because nothing referenced it by its real id.
+
+This is a paperwork defect, not a code or evidence defect -- the fix and its supporting numbers are
+independently confirmed correct twice now (cycle-1 FAIL checker, and this cycle from zero). Per
+the checker's role as ledger maintainer, I corrected it directly rather than failing the cycle over
+it: flipped AT-271 -> verified (real fix, independently re-confirmed twice), AT-270 -> verified
+(sabotage-confirmed by me), and filed AT-272 (low) recording the id mislabeling itself, so a future
+reader of the manifest or the commit message is not misdirected to the wrong ledger row. The
+cycle-1 split-verdict history (one PASS, one FAIL, reconciled by the FAIL's independent
+re-derivation) remains intact above, untouched, per the concurrent-verdict protocol -- nothing
+here erases or overwrites it.
+
+## VL4a/VL4b -- still satisfied, not re-litigated
+
+No code change to `_same_model_duplicate`'s merge bound this cycle (confirmed in pressure point
+4), so VL4a's cross-model-non-swallowing property, already sabotage- and scenario-tested in cycle
+1, is unchanged and still holds. VL4b (an explicit, stated, tested tie-break rule) is now more
+fully satisfied than at cycle 1: the tie case AT-270 flagged as unstated is now named in
+`_apply_merge`'s docstring and pinned by a dedicated test, sabotage-confirmed by me independently.
+No further gap found; not amending the contract further.
+
+```
+VERDICT: PASS
+SCOREBOARD: 6/6 pressure points clean (causal-claim re-derivation, aggregate numbers, tie-break
+sabotage, no-overcorrection diff check, file-length/doctor, VL4a/VL4b satisfaction)
+FAILURES: none at >80% confidence
+LIVE-BROWSER: not-applicable (changed paths: src/autotester/stages/adjudicate.py,
+              tests/test_adjudicate.py -- pure function, no route/template/component)
+ISSUES-WRITTEN: AT-272 (low, ledger-hygiene -- manifest/commit cite AT-269 instead of AT-271)
+EXPLANATION: Independently re-derived the exact claim this cycle was told to press hardest on --
+loading the real cached observations and the real truth sheet from scratch, with no reference to
+either prior checker's figures while computing -- and got 0.247 -> 0.369 for the erp2/E-02 pair
+and a sub-threshold 0.234 ceiling for the erp1/E-01 pair, matching the manifest's corrected table
+exactly. Re-ran the real pipeline in three states and reproduced the aggregate 6->3/5->2/1-7-recall
+numbers exactly. Sabotage-confirmed the tie-break fix myself in an isolated extract (BBBB winning
+the tie exactly as predicted when reverted). Diffed 791512f->696784f to confirm no substantive
+merge-logic change, only docstrings, as the manifest claims. File length (300) and doctor (clean)
+confirmed. The one real defect found is bookkeeping, not code: the manifest and commit message
+close out the wrong issue id (AT-269, an unrelated already-fixed issue) instead of AT-271 (the
+actual high-severity finding this fix resolves) -- corrected in the ledger directly since fixing
+qa/issues.jsonl is this role's own responsibility, filed as AT-272 for the record, and does not
+implicate the fix or its evidence, both of which are independently correct.
+```
