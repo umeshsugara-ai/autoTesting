@@ -31,6 +31,7 @@ from autotester.ui import (
     routes_report,
     routes_runs,
     routes_settings,
+    routes_sources,
     theme,
 )
 from autotester.ui.helpers import (
@@ -68,6 +69,7 @@ app.include_router(routes_crawls.router)
 app.include_router(routes_credentials.router)
 app.include_router(routes_settings.router)
 app.include_router(routes_learn.router)
+app.include_router(routes_sources.router)
 
 
 def _latest_run_status(slug: str) -> tuple[str | None, dict[str, int]]:

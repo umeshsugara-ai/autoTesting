@@ -86,9 +86,16 @@ def flowspec_page(slug: str) -> str:
         ), title="Nothing learned yet")
         return theme.page(f"{name} · FlowSpec", body, active_slug=slug)
 
-    return theme.page(f"{name} · FlowSpec",
-                      crumbs + _learned_card(spec, name) + _gate_cards(slug, spec),
-                      active_slug=slug)
+    corrective_evidence = theme.card(
+        "<p class='muted'>Show AutoTester another recording when this map is incomplete "
+        "or wrong.</p>" + _link(f"/projects/{slug}/sources", "Add a recording"),
+        title="Correct what it learned",
+    )
+    return theme.page(
+        f"{name} · FlowSpec",
+        crumbs + _learned_card(spec, name) + corrective_evidence + _gate_cards(slug, spec),
+        active_slug=slug,
+    )
 
 
 def _learned_card(spec, name: str) -> str:

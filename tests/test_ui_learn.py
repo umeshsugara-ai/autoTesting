@@ -90,6 +90,8 @@ def test_the_flowspec_page_shows_what_the_system_thinks_it_learned(
     assert "Sign in" in response.text
     assert "/signin" in response.text
     assert "draft" in response.text
+    assert "href='/projects/demo/sources'" in response.text
+    assert "Add a recording" in response.text
 
 
 def test_the_flowspec_page_of_a_project_with_no_flowspec_says_so_without_erroring(

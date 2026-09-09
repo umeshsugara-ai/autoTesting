@@ -98,6 +98,7 @@
 | `ui/routes_report.py` | Run history, per-case screenshots, and portable downloads. Contract: |
 | `ui/routes_runs.py` | Trigger a real run. Contract: qa/contracts/ui-run.md RU1-RU4. Run-history |
 | `ui/routes_settings.py` | Global AI/API provider keys. Contract: qa/contracts/ui-settings.md US1-US4. |
+| `ui/routes_sources.py` | The operator-facing recording registry. |
 | `ui/theme.py` | Shared visual system for every UI route. Contract: qa/contracts/docker.md D5. |
 | `ui/theme_style.py` | The raw CSS/font-link template for every page. Split out of `theme.py` |
 <!-- /generated:map -->
