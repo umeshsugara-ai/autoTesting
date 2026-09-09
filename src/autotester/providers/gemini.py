@@ -15,10 +15,11 @@ import os
 from pathlib import Path
 from typing import Any, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from autotester.providers.base import Provider, ProviderError
 from autotester.providers.gemini_files import upload_and_wait
+from autotester.providers.gemini_schema import gemini_schema
 from autotester.schema.observation import VisionOptions
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
@@ -71,7 +72,11 @@ class GeminiProvider(Provider):
             "max_output_tokens": opts.max_output_tokens,
         }
         if schema is not None:
-            kwargs["response_schema"] = schema
+            # AT-230: NOT the Pydantic class. google-genai renders it with
+            # `additionalProperties` (from this codebase's own C1 `extra="forbid"`)
+            # and `$defs`, both of which Gemini's dialect rejects -- every real
+            # call 400'd while the fake client in the tests accepted anything.
+            kwargs["response_schema"] = gemini_schema(schema)
         if options is not None:
             if self._model.startswith("gemini-3"):
                 kwargs["media_resolution"] = f"MEDIA_RESOLUTION_{opts.media_resolution.upper()}"
@@ -127,6 +132,18 @@ class GeminiProvider(Provider):
             input_tokens=getattr(usage, "prompt_token_count", 0) or 0,
             output_tokens=getattr(usage, "candidates_token_count", 0) or 0,
         )
+        # AT-230: `response_schema` is now a sanitised dict rather than the
+        # Pydantic class, so the SDK hands back a plain dict instead of building
+        # the model for us. Validate it here -- which is stricter anyway, because
+        # `extra="forbid"` is enforced on OUR side where Gemini's dialect cannot
+        # express it at all.
+        if isinstance(response.parsed, dict):
+            try:
+                return schema.model_validate(response.parsed)
+            except ValidationError as exc:
+                raise ProviderError(
+                    f"{self.id} returned JSON that does not fit {schema.__name__} "
+                    f"(role={role}): {exc}") from None
         return response.parsed
 
     def _unparsed_reason(self, response: Any, role: str) -> str:

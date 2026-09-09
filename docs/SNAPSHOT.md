@@ -37,8 +37,8 @@ AutoTester wins on bugs found, false positives, and time (`schema/bench.py` comp
 - T-135 [normal] Track A6: coverage/merge/expand loops reconnected + ARCHITECTURE update
 - T-136 [high] Track A acceptance: erp1/2/3 scored vs ERP_Issues_Trainers.xlsx with recall/FP numbers in the manifest
 ## Last decisions (computed status)
-- D-017 2026-09-08 decision ACTIVE
 - D-018 2026-09-08 decision ACTIVE
 - D-019 2026-09-08 fix ACTIVE
 - D-020 2026-09-08 fix ACTIVE
 - D-021 2026-09-09 fix ACTIVE
+- D-022 2026-09-09 fix ACTIVE
