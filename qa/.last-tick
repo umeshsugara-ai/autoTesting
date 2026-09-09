@@ -1518,3 +1518,8 @@ discrepancy the final checker flagged verified independently against qa/issues.j
 non-implicating (AT-269 is the unrelated pre-existing doctor/SNAPSHOT issue; AT-271 is the actual
 misattributed-evidence fix; AT-272 records the mislabel accurately). No further action needed on it.
 Pushed f53b8d5 to origin/master (D-007, 4 commits were sitting local-only).
+2026-09-09T08:18:35Z · ADVANCED · at242-crawl-blocked-status built, ready-for-check, checker dispatched
+2026-09-09T08:20:00Z · ADVANCED · at226-already-authenticated-crawl built (fix credited to concurrent
+commit 2bb3270 titled for AT-242, disclosed in manifest under "Same-file concurrent-commit
+collision"), tests+manifest committed d1a63c7, checker dispatched (agent a337d34e9a2db9934).
+No dangling ready-for-check manifest this tick.
