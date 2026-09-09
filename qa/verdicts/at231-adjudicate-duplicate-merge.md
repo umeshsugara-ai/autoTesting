@@ -417,3 +417,163 @@ actual high-severity finding this fix resolves) -- corrected in the ledger direc
 qa/issues.jsonl is this role's own responsibility, filed as AT-272 for the record, and does not
 implicate the fix or its evidence, both of which are independently correct.
 ```
+
+
+# CYCLE 2 VERDICT
+
+**Date:** 2026-09-09 · **Cycle checked:** 2 · **Bound to:** `d:/autoTesting`
+**Commit checked:** `498c0750464285f3b4800a1f41306dcce78dd0c3` · **Contract:** `qa/contracts/video-learning.md` VL3/VL4 (VL4a/VL4b)
+
+```
+VERDICT: PASS
+SCOREBOARD: 8/8 criteria met (VL3, VL4, VL4a, VL4b x2 sub-parts, plus AT-231/AT-269(->AT-271)/AT-270 close-out), 0 invariants implicated
+FAILURES: none at >80% confidence
+LIVE-BROWSER: not-applicable (changed paths this cycle: qa/manifests/at231-adjudicate-duplicate-merge.md,
+              src/autotester/stages/adjudicate.py [docstrings only], tests/test_adjudicate.py — no
+              route/template/component/rendered output; substantive merge logic unchanged since cycle 1)
+ISSUES-WRITTEN: none new (AT-271 and AT-270 confirmed independently and left at their existing
+              "verified" status; a residual noted below is already covered by the existing AT-272 row)
+EXPLANATION: I re-derived the manifest's corrected causal claim from scratch — real cached
+observations, real ERP_Issues_Trainers.xlsx, the shipped similarity() — and got the exact numbers
+the manifest now states (0.246875 -> 0.368564, i.e. 0.247 -> 0.369) and confirmed the erp1 Rule T3
+pair never crosses threshold against any truth row (0.116/0.175 vs E-01). I independently
+sabotage-confirmed the new AT-270 tie-break test in an isolated git-archive extract with its own
+uv-synced venv (__file__ verified inside the extract). The one open item is cosmetic: the manifest
+header and a source docstring both still cite the fix as "AT-269" when the real id is AT-271 — this
+exact mislabeling is already tracked and closed as low-severity ledger hygiene under AT-272, so it
+is not a new finding, just confirmed still present in the shipped source (adjudicate.py:184) in
+addition to the manifest.
+```
+
+## What I re-ran myself (this cycle, not trusting the pasted output)
+
+```
+$ uv run pytest tests/test_adjudicate.py -x -q
+......................                                                   [100%]
+22 passed
+```
+(manifest claims 22 passed — matches exactly, one more than cycle 1's 21, the new
+`test_an_exact_length_tie_keeps_the_first_seen_text`.)
+
+```
+$ uv run pytest -q
+... 917 passed, 2 skipped ...
+```
+(manifest claims 917 passed, 2 skipped — matches.)
+
+```
+$ uv run ruff check src tests scripts
+All checks passed!
+```
+
+```
+$ uv run autotester doctor
+doctor: clean
+```
+
+All four match the manifest's pasted table exactly, re-run independently rather than trusted.
+
+## Independent re-derivation of the corrected causal claim (the whole point of this cycle)
+
+This cycle exists because cycle 1 had two concurrent verdicts on one unverified table: a PASS that
+repeated the manifest's numbers without re-deriving them, and a FAIL that re-derived them and found
+the manifest had named the wrong recording pair (`erp1` "Rule T3" instead of `erp2` document-type).
+Per the dispatch instruction, I did not repeat the PASS verdict's mistake — I loaded the real files
+myself, from scratch, without reading either cycle-1 checker's derivation first.
+
+**Truth sheet, loaded directly** (`autotester.stages.score.load_truth`, path
+`C:/Users/Lenovo/Videos/Screen Recordings/ERP_Issues_Trainers.xlsx`, sheet `Trainer module`):
+- `E-02`: "Document type is labelled 'CIPSA Certificate'; it should read 'CITS Certificate'" —
+  recording `erp2.mp4`.
+- `E-01`: "Trainer cannot be moved past Shortlisted..." (the Rule T3 screen) — recording `erp1.mp4`.
+
+**Cached observations, loaded directly** (`projects/erp/sources/*/observations/*.json`, zero new
+model calls — `projects/erp/sources.jsonl` maps `src_688a991f33ad` -> `erp2.mp4`,
+`src_a6d5d1b66aa0` -> `erp1.mp4`):
+
+| Pair | Title (as stored) | `similarity()` result I computed | Manifest's claim |
+|---|---|---|---|
+| erp2 vs E-02, `ingest_video_v1` (first-seen) | "Incorrect document type option" | **0.246875** | 0.247 |
+| erp2 vs E-02, `video_issues_v1` (longer, kept by fix) | "Document type dropdown option should be 'CITS Certificate' instead of 'CIPSA Certificate'" | **0.368564** | 0.369 |
+| erp1 vs E-01, `ingest_video_v1` | "Rule T3 validation error prevents stage transition" | **0.116489** | (cycle-1 FAIL checker's own number: 0.116) |
+| erp1 vs E-01, `video_issues_v1` | "Rule T3 validation error blocks moving trainer to next stage" | **0.175159** | (cycle-1 FAIL checker's own number: 0.175) |
+
+Both pairs match to the third decimal place shown in the manifest. **The corrected claim in the
+manifest's Cycle 2 section holds exactly**: the erp2 document-type pair is the real mechanism
+(below-threshold at 0.247, above-threshold at 0.369 once the longer text survives), and the erp1
+Rule T3 pair genuinely never crosses the 0.30 threshold against its best-fit truth row in either
+observation — it was never the rescued finding, in any state.
+
+## AT-270 tie-break — independently sabotage-confirmed in an isolated extract
+
+`git archive HEAD` into `.work/checker-at231-c2b`, its own `uv sync` venv, verified
+`autotester.stages.adjudicate.__file__` resolved inside the extract (not the live editable
+install) before trusting any result.
+
+- Baseline: `uv run pytest tests/test_adjudicate.py -q` → **22 passed**.
+- Sabotage: `adjudicate.py:219` `if incoming_len > existing_len:` → `if incoming_len >= existing_len:`
+  (anchor matched exactly once).
+- Result: **exactly 1 failure** —
+  `test_an_exact_length_tie_keeps_the_first_seen_text`, with the exact predicted swap
+  (`assert 'BBBB' == 'AAAA'` — the incoming text won the tie it should have lost).
+- Restored (`>` put back); `diff` against `git show HEAD:src/autotester/stages/adjudicate.py`
+  is **byte-identical**; full `test_adjudicate.py` re-confirmed 22/22 green.
+
+Matches the manifest's cycle-2 sabotage claim exactly.
+
+## Judged against the contract
+
+- **VL4a** (a single provider's own duplicate must merge; a genuinely independent second provider
+  in the same window/category must not be swallowed) — unchanged since cycle 1, where it was
+  already independently pressure-tested (pressure point 2, both checkers) and holds. No regression
+  this cycle: `_same_model_duplicate` and the merge condition are untouched by this cycle's diff.
+- **VL4b** (the surviving text is chosen by an explicit, stated, tested rule, including the tie
+  case) — **now fully met.** The non-tie rule (longer text wins) was already tested and
+  sabotage-confirmed in cycle 1. This cycle adds the missing half: `_apply_merge`'s docstring now
+  states the tie-break explicitly ("AT-270 — the tie-break, stated explicitly. The LONGER `title +
+  what_is_wrong` survives, not first-seen. `>` (not `>=`) means an EXACT tie keeps the
+  first-seen text..."), and `test_an_exact_length_tie_keeps_the_first_seen_text` pins it,
+  independently sabotage-confirmed above. VL4b is satisfied on both its non-tie and tie halves.
+- **VL3** (an analysis carries its own coverage) — untouched by this unit's diff; not implicated.
+- **VL4** (adjudication is a pure function of content, order-independent on the shipped shape) —
+  untouched by this unit's diff; the merge-order determinism this criterion cares about was already
+  covered by `t133-ensemble-and-issues`'s own cycle-2 PASS (sort key includes `prompt_name`), not
+  re-litigated here.
+
+## Ledger — AT-231 / AT-269 / AT-270, checked honestly
+
+- **AT-231** — stays `verified`. The merge fix is real, sabotage-confirmed both cycles, unchanged
+  this cycle.
+- **AT-269, as named in this manifest's header ("Issues addressed: ... AT-269 (high — this
+  cycle)")** — **this id is wrong.** `qa/issues.jsonl` line 214 shows `AT-269` is an unrelated,
+  already-fixed issue (`docs/SNAPSHOT.md` staleness after a governance commit), not this cycle's
+  causal-claim fix. The issue this cycle actually closes is **AT-271** (filed by the cycle-1 FAIL
+  checker for the misattributed erp1/E-01 claim), which the ledger already shows flipped to
+  `verified` with a note explaining exactly this mislabeling, and the mislabeling itself is already
+  tracked as its own low-severity ledger-hygiene row, **AT-272** (`status: fixed`, "no manifest/
+  commit-message edit made; this row is the correction of record"). I independently confirm AT-272's
+  account is accurate: commit `696784f`'s message and this manifest's header both say "AT-269" where
+  they mean AT-271, and the renumbering commit (`35b3dcb`, resolving AT-269's original id collision
+  to AT-271) predates the fix commit — so the maker built against a stale id. **One residual not yet
+  in AT-272's evidence:** the mislabeling is not only in prose — `adjudicate.py:184`'s own
+  `join_issues` docstring says "corrected under AT-269", so the wrong id is now shipped inside a
+  source comment, not just the manifest/commit message. This does not change AT-272's severity
+  (cosmetic, documented, same shape) and I am not filing a new issue for it — it is additional
+  evidence for the existing AT-272 row, noted here so a future reader is not misdirected by the
+  docstring either.
+- **AT-270** — stays `verified`. Tie-break now documented and tested; independently
+  sabotage-confirmed above in an isolated extract.
+
+No new issues filed. No criterion softened. No regression found in anything cycle 1 had already
+passed.
+
+## What this verdict does and does not certify
+
+- **Certifies:** the manifest's Cycle 2 corrected causal claim (erp2/E-02, 0.247 -> 0.369) is real,
+  independently re-derived from scratch by loading the actual cached observations and the actual
+  truth workbook — not transcribed from either cycle-1 checker's numbers. AT-270's tie-break fix is
+  real and sabotage-confirmed in an isolated extract. All four verify commands re-run and match.
+- **Does not certify:** the recall number itself (still 1/7, AT-232 untouched, as both cycle-1
+  verdicts already stated) or the correctness of the manifest's/commit's issue-id bookkeeping, which
+  is wrong (AT-269 should read AT-271) but already tracked and does not affect the code's
+  correctness.
