@@ -1415,3 +1415,25 @@ left open by design -- latent not live, real fix is a bigger rendering change.
 (unconfirmed report) still stand, untouched by this cycle -- named explicitly
 in the manifest as not repaired.
 Next: await cycle-2 verdict.
+
+## 2026-09-09 tick — ADVANCED — at230-gemini-schema cycle 2 PASS closed; AT-225 ledger hygiene fixed
+Cycle 2 verdict PASS (agent a11ad17640680e6b7): AT-266/267/268 independently
+re-verified by the checker via its own sabotage (0->2 failures on the same
+mutation), not by reading the diff. AT-265 confirmed genuinely left open, not
+a cop-out. Manifest flipped to checked-PASS (cycle 2 verdict d14ce4c).
+Checker also flagged an analogous unguarded model_validate in
+providers/anthropic.py:90 -- out of scope for this unit, noted for a future
+sweep, no issue filed yet since it predates AT-230.
+Separately fixed AT-225: two unrelated rows both claimed id AT-214. Renumbered
+the doctor-RED row (checker-sweep, high) to AT-269 per AT-225's own fix
+direction; kept AT-214 on the EXPECTED_SITES row (checker-unit, filed first).
+AT-269 marked fixed -- doctor is clean on current HEAD and the SNAPSHOT
+staleness it reported was already resolved in 1aa9b1b before the collision was
+even noticed. 263 issues, zero duplicate ids, all valid JSON, doctor clean.
+Backlog still has real work: AT-255/AT-256 (the original bypass, process debt,
+not reversible -- stands as historical record) plus a long list of open
+medium/low findings across explore, ui, video-learning. Next unit to pick:
+one of the high-severity opens (AT-110 tamper-check, AT-218 GRILL re: vacuous
+guards recurring, AT-226/227/242 explore crawl bugs, AT-231/232 video-learning
+recall accuracy, AT-243 no LIVE-BROWSER coverage, AT-253 dead agent-fallback
+code, AT-264 generate_cases error boundary).
