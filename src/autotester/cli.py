@@ -13,6 +13,7 @@ from autotester.core.env import load_repo_env
 from autotester.core.paths import RepoDocs
 from autotester.ledger import render, store
 from autotester.ledger.relitigation import gate_message, relitigate
+from autotester.providers.base import ProviderError
 from autotester.schema.enums import FeatureEventKind, UserValue
 from autotester.stages import expand as expand_stage
 from autotester.stages import manual_login as manual_login_stage
@@ -222,6 +223,15 @@ def expand_cases(
         cases = expand_stage.expand(spec, model)
     except review_stage.FlowSpecNotReviewed as exc:
         typer.secho(str(exc), fg=typer.colors.YELLOW)
+        raise typer.Exit(1) from None
+    except ProviderError as exc:
+        # AT-260: expand() builds every flow's cases in memory and only
+        # returns once ALL flows succeed, so a provider failure partway
+        # through discards whatever had already been generated -- by
+        # construction, not by an extra step here. Stated plainly rather
+        # than left to a raw traceback: nothing was persisted.
+        typer.secho(f"{project}: model call failed, no cases persisted — {exc}",
+                    fg=typer.colors.RED)
         raise typer.Exit(1) from None
     new = sum(0 if store_.has_case(case.id) else 1 for case in cases)
     for case in cases:

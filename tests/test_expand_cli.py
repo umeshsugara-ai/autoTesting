@@ -190,3 +190,29 @@ def test_expand_refuses_when_the_named_provider_has_no_credentials(
     assert result.exit_code == 1
     assert "Traceback" not in result.output
     assert "credentials" in result.output
+
+
+def test_a_provider_failure_mid_expand_is_a_clean_refusal_not_a_traceback(
+    root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AT-260: a real run hit `ProviderError: the answer hit max_output_tokens
+    and was truncated` as a raw Rich traceback panel, with no cases persisted
+    and no clean signal why. This is the same refusal shape as the
+    no-credentials case above, just for a failure that happens mid-call
+    rather than before the first one."""
+    from autotester.providers.base import ProviderError
+
+    store = _seed(root)
+
+    class _Exploding(MockProvider):
+        def act(self, prompt: str, schema=None):
+            raise ProviderError("the answer hit max_output_tokens and was truncated (role=agent)")
+
+    monkeypatch.setattr("autotester.cli.providers.get", lambda _id, **_kw: _Exploding())
+
+    result = runner.invoke(app, ["expand", "demo"])
+
+    assert result.exit_code == 1
+    assert "Traceback" not in result.output
+    assert "no cases persisted" in result.output
+    assert store.list_cases() == []
