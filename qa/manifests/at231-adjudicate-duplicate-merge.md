@@ -3,9 +3,9 @@
 **Contract:** qa/contracts/video-learning.md VL3/VL4
 **Goal task:** none — issue-driven (AT-231)
 **Date:** 2026-09-09
-**Fix cycle:** 1 of 3
+**Fix cycle:** 2 of 3
 **Dual check:** no
-**Issues addressed:** AT-231 (high)
+**Issues addressed:** AT-231 (high), AT-269 (high — this cycle), AT-270 (low — this cycle)
 
 ## What changed
 
@@ -43,18 +43,35 @@ issues collapse from 6 to 3 correctly — but re-scoring against the human groun
 showed **recall dropped from 1/7 to 0/7**. The cause: `adjudicate`'s own sort key orders
 `ingest_video_v1` before `video_issues_v1` alphabetically, so the merge always kept the FIRST
 observation's title — the MAPPING prompt's terse, incidental note about the fault, not the
-BUG-SWEEP prompt's dedicated, more thorough description. On the real `erp1.mp4` pair:
+BUG-SWEEP prompt's dedicated, more thorough description.
 
-| Prompt | Title | Similarity to human sheet |
+**Correction (cycle 2 — AT-269, filed by a checker, independently re-verified before writing this
+paragraph).** The table below originally named the wrong pair: the `erp1.mp4` "Rule T3" pair,
+with similarity figures (0.180/0.315) that I had approximated by hand rather than computed from
+the real truth sheet — neither figure is reproducible, and that pair never crosses the scorer's
+0.30 threshold against ANY truth row in any of the three states (pre-fix, naive-merge, shipped
+fix). Its best truth match is `E-07` at similarity 0.234, well below threshold. **The real
+mechanism, reproduced exactly by loading the actual cached observations and the actual
+`ERP_Issues_Trainers.xlsx` sheet, is the `erp2.mp4` document-type pair, matched against `E-02`:**
+
+| Prompt | Title | Similarity to `E-02` |
 |---|---|---|
-| `ingest_video_v1` (first-seen, kept by the naive fix) | "Rule T3 validation error prevents stage transition" | 0.180 (below the 0.30 threshold) |
-| `video_issues_v1` (dedicated bug prompt) | "Rule T3 validation error blocks moving trainer to next stage" | 0.315 (above threshold, previously the ONE match) |
+| `ingest_video_v1` (first-seen, kept by the naive fix) | "Incorrect document type option" | 0.247 (below the 0.30 threshold) |
+| `video_issues_v1` (dedicated bug prompt) | "Document type dropdown option should be 'CITS Certificate' instead of 'CIPSA Certificate'" | 0.369 (above threshold — the ONE match) |
 
 Keeping first-seen silently swapped the surviving title for the weaker one and turned a matched
 finding into a missed one. Fixed by preferring the LONGER combined `title + what_is_wrong` on
 merge — a blunt, deterministic, auditable proxy for "the prompt whose whole job is describing
 this fault wrote more about it," consistent with this module's own stated preference for dumb,
 auditable rules over a cleverer model-based tie-break.
+
+**The lesson, stated plainly:** I asserted specific similarity figures for a specific pair without
+loading the real truth sheet to compute them, and they looked precise enough (0.180/0.315,
+straddling the 0.30 threshold) to read as measured fact. They were an approximation typed by hand
+against a hand-typed approximation of the truth text, for the wrong pair entirely. The aggregate
+headline numbers (6→3, 5→2, recall preserved at 1/7) were genuinely reproduced with the real
+pipeline and remain correct; only the specific causal story was wrong, and it is the exact kind of
+claim that must be re-derived, not pasted, before it goes in a manifest.
 
 ## How to verify (commands + expected)
 
@@ -115,5 +132,57 @@ that data is committed to the (public) repo.
 
 **Not UI-touching — no surface changed.** Changed paths: `src/autotester/stages/adjudicate.py`,
 `tests/test_adjudicate.py`. No route, template, component, or rendered output.
+
+## Cycle 2 — fixing the checker's FAIL, not arguing it
+
+**Verdict on cycle 1: FAIL, 1 of 6 pressure points.** The checker was right, and their own
+methodology — independently reloading the real cached observations and the real truth sheet
+rather than trusting the pasted table — is exactly what caught it. Two checkers ran concurrently on
+cycle 1: one PASSed without re-deriving the specific evidence claim, the other FAILed after doing
+so. Per the concurrent-verdict protocol the FAIL stands as this cycle's instruction, since it is
+the one backed by independent re-derivation of the exact claim in question, not a disagreement on
+the same evidence — the PASS verdict simply never checked that one paragraph.
+
+**AT-269 (high) — fixed.** The manifest's causal table above now names the correct pair (`erp2`
+document-type, matched against `E-02`, similarity 0.247 → 0.369) with figures I re-derived myself
+before writing them, using the same method the checker used: load the real cached
+`ModelObservation`s, load the real `ERP_Issues_Trainers.xlsx` sheet, and call `similarity()`
+directly — no hand-typed approximation. Confirmed the `erp1` "Rule T3" pair never crosses threshold
+against any truth row in any state, so it was never the mechanism.
+
+**AT-270 (low) — fixed.** `_apply_merge`'s tie-break (`incoming_len > existing_len`, not `>=`) is
+now stated explicitly in its docstring, with the structural reason the two real prompts are
+unlikely to tie in practice (`ingest_video_v1` has no dedicated issues-writing instruction;
+`video_issues_v1` does). A new test, `test_an_exact_length_tie_keeps_the_first_seen_text`, pins the
+tie case directly; sabotage-confirmed (`>` → `>=` makes it fail exactly as predicted, restored
+immediately after).
+
+**What did not need fixing.** The code itself — `_same_model_duplicate`'s merge bound and the
+length-preference rule — was confirmed correct and necessary by BOTH checkers, and the aggregate
+headline numbers (6→3 issues, 5→2 false positives, recall preserved at 1/7) were independently
+reproduced exactly by the FAIL checker using the real pipeline. Nothing in `adjudicate.py`'s
+substantive logic changed this cycle; only the manifest's supporting narrative and one
+now-documented-and-tested edge case.
+
+### Re-verification (cycle 2)
+
+```
+$ uv run pytest tests/test_adjudicate.py -x
+......................                                                   [100%]
+22 passed in 0.09s
+
+$ uv run pytest
+917 passed, 2 skipped
+
+$ uv run ruff check src tests scripts
+All checks passed!
+
+$ uv run autotester doctor
+doctor: clean
+```
+
+**Sabotage (new, cycle 2):** reverted `_apply_merge`'s tie-break from `>` to `>=`, confirmed
+`test_an_exact_length_tie_keeps_the_first_seen_text` fails with the exact predicted swap
+(`BBBB` winning instead of `AAAA`); restored, all 22 `test_adjudicate.py` tests green again.
 
 ## Status: ready-for-check

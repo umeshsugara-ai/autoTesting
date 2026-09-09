@@ -11,8 +11,9 @@ Two jobs, and they are separate on purpose:
 * **seams** — chunks overlap by design, so the same click is seen twice. What
   the model reports in an overlap is shifted into whole-video time here (in
   code, never by the model) and the duplicate dropped.
-* **cross-model** — two models watching the same footage describe it slightly
-  differently. Agreement raises confidence; disagreement is kept, not averaged.
+* **cross-model** — two models (or one model's two prompts, VL4a) describe the
+  same footage slightly differently. Agreement raises confidence; disagreement
+  is kept, not averaged.
 
 The merge is deliberately dumb: casefolded names, overlapping intervals, a
 fixed window. A cleverer matcher would be a second model, unauditable, and
@@ -138,22 +139,20 @@ def worst(*severities: Severity) -> Severity:
 def _same_model_duplicate(existing: AnalysedIssue, label: str, issue: ObservedIssue) -> bool:
     """AT-231: the SAME provider's own second prompt, reporting the same
     category in the same seam window, is that model repeating itself under a
-    different question -- not independent corroboration, and not two separate
-    faults that happen to share a category and a moment.
+    different question -- not independent corroboration, nor two separate
+    faults sharing a category and a moment.
 
     Screen name is deliberately NOT part of this check. `screen_key`'s own
     docstring says a model's read of a screen is unreliable enough that this
     stage never keys on the URL; it is exactly as unreliable across a model's
-    OWN two prompts on one chunk as it is across two different chunks. The
-    first real run measured this precisely: two prompts of one provider
-    described the same fault on the same screen using different enough names
-    that `issue_key` (which DOES include the screen) never matched, and the
-    ensemble's central premise -- agreement raises confidence -- reported the
-    fault twice instead of once.
+    OWN two prompts as across two chunks. Measured on the first real run: two
+    prompts of one provider described the same fault using different enough
+    screen names that `issue_key` never matched, so the ensemble's premise --
+    agreement raises confidence -- reported the fault twice instead of once.
 
     Requiring `label in existing.model_labels` keeps this from ever firing
-    across two DIFFERENT models: a genuinely independent second model whose
-    screen name also fails to match stays unmerged, exactly as before."""
+    across two DIFFERENT models: an independent second model whose screen
+    name also fails to match stays unmerged, exactly as before."""
     return (
         label in existing.model_labels
         and existing.category == issue.category
@@ -176,14 +175,14 @@ def join_issues(issues: list[tuple[str, ObservedIssue]]) -> list[AnalysedIssue]:
     model saying the same thing twice is not two models agreeing.
 
     **The title/what_is_wrong that SURVIVES a merge is the LONGER of the two,
-    not the first-seen** (`_apply_merge`). My first version kept whichever
-    text arrived first — `ingest_video_v1`'s by construction, since it sorts
-    before `video_issues_v1` alphabetically — so a same-model duplicate let
-    the MAPPING prompt's terser aside beat the BUG-SWEEP prompt's dedicated
-    finding. Measured on the first real reading: that turned a matched issue
-    into a missed one, because the surviving wording fell below the scorer's
-    similarity threshold. Length is a blunt, deterministic, auditable proxy —
-    the discipline this module's own docstring already asks for."""
+    not the first-seen** (`_apply_merge`, tie-break there). First-seen is
+    `ingest_video_v1`'s by construction — it sorts before `video_issues_v1`
+    alphabetically — so a same-model duplicate let the MAPPING prompt's terser
+    aside beat the BUG-SWEEP prompt's dedicated finding, turning a matched
+    issue into a missed one on the first real reading (the manifest's
+    at231-adjudicate-duplicate-merge.md names the exact pair, corrected under
+    AT-269). Length is a blunt, deterministic, auditable proxy for the
+    module's own stated preference over a cleverer tie-break."""
     merged: list[AnalysedIssue] = []
     for label, issue in issues:
         for existing in merged:
@@ -201,16 +200,20 @@ def join_issues(issues: list[tuple[str, ObservedIssue]]) -> list[AnalysedIssue]:
 def _apply_merge(existing: AnalysedIssue, label: str, issue: ObservedIssue) -> None:
     """Fold one more report into an already-merged issue, in place.
 
-    Split out of `join_issues` when it crossed the 50-line cap — this is the
-    body of the merge, not a second decision; `join_issues` still owns WHICH
-    pairs merge."""
+    Split out of `join_issues` at the 50-line cap; `join_issues` still owns
+    WHICH pairs merge, this is only the body.
+
+    **AT-270 — the tie-break, stated explicitly.** The LONGER `title +
+    what_is_wrong` survives, not first-seen. `>` (not `>=`) means an EXACT tie
+    keeps the existing text — deliberate: `ingest_video_v1` has no dedicated
+    issues-writing instruction, `video_issues_v1` does, so a real tie is not
+    as ambiguous as between arbitrary strings. VL4b only requires SOME stated
+    rule, not that ties be common."""
     if label not in existing.model_labels:
         existing.model_labels.append(label)
         existing.models_agreeing = len(existing.model_labels)
         existing.confidence = Confidence.HIGH
     existing.severity = worst(existing.severity, issue.severity)
-    # The LONGER title/what_is_wrong survives, not the first-seen -- see
-    # join_issues' own docstring for why first-seen was measurably wrong.
     incoming_len = len(issue.title) + len(issue.what_is_wrong)
     existing_len = len(existing.title) + len(existing.what_is_wrong)
     if incoming_len > existing_len:

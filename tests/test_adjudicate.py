@@ -210,6 +210,23 @@ def test_the_LONGER_wording_survives_a_same_model_merge_not_the_first_seen(
         "the shorter, first-seen title survived instead of the longer, more specific one")
 
 
+def test_an_exact_length_tie_keeps_the_first_seen_text() -> None:
+    """AT-270. `_apply_merge`'s `>` (not `>=`) means an exact tie in combined
+    `title + what_is_wrong` length keeps the FIRST-seen text, not the incoming
+    one. Pinned explicitly per VL4b: some stated rule must govern a merge's
+    surviving content, even for the boundary case the two real prompts rarely
+    hit exactly."""
+    first = issue("Rule T3", 13.0, category=IssueCategory.VALIDATION,
+                  title="AAAA", what_is_wrong="1234")     # combined length 8
+    second = issue("Rule T3 error", 13.0, category=IssueCategory.VALIDATION,
+                   title="BBBB", what_is_wrong="5678")    # combined length 8, exact tie
+
+    merged = join_issues([(PRO, first), (PRO, second)])
+
+    assert len(merged) == 1
+    assert merged[0].title == "AAAA", "the incoming text won a tie it should have lost"
+
+
 def test_a_DIFFERENT_model_on_a_different_screen_name_stays_separate() -> None:
     """The fix must not turn into a blanket "same category, same window merges
     everything" rule. A genuinely independent second model whose screen name
