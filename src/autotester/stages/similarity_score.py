@@ -47,6 +47,14 @@ not by anticipation. Extend it only on a measured false positive, never by
 guess."""
 
 
+MIN_DISTINCTIVE_WORDS = 2
+"""AT-278: a shorter side with fewer than this many stopword-filtered words
+left cannot produce a trustworthy containment score — at 1 word the ratio is
+necessarily 0.0 or 1.0, which is not evidence, it is the floor's own shape.
+2 is the minimum that admits any real discrimination at all (one word could
+still differ) while refusing the genuinely unfalsifiable 1-word case."""
+
+
 def similarity(left: str, right: str) -> float:
     """AT-232: containment over stopword-filtered word sets, not a
     character-sequence ratio.
@@ -66,7 +74,18 @@ def similarity(left: str, right: str) -> float:
     real pair scores 0.5 under this measure; a genuinely unrelated pair
     sharing only bug-report boilerplate ("field validation error prevents
     form submission on the ... screen") scores 0.0, because the shared words
-    are exactly what STOPWORDS strips."""
+    are exactly what STOPWORDS strips.
+
+    AT-278: STOPWORDS growth has a structural cost this fix closes rather
+    than ignores. Every word STOPWORDS strips shrinks the denominator
+    (`len(shorter)`) without necessarily shrinking the numerator, so a
+    content-bearing word added to STOPWORDS (AT-276's own extension did
+    this) can erode a short report down to a single remaining word — and a
+    1-word containment is 0.0 or 1.0 by construction, never anything an
+    unrelated pair's real distinctiveness could produce. `MIN_DISTINCTIVE_WORDS`
+    refuses to claim a match below that floor: a match this thin is not
+    evidence, it is an artefact of how many words happened to survive
+    filtering."""
     left_words = set(re.findall(r"\w+", left.casefold())) - STOPWORDS
     right_words = set(re.findall(r"\w+", right.casefold())) - STOPWORDS
     if not left_words or not right_words:
@@ -75,4 +94,6 @@ def similarity(left: str, right: str) -> float:
         (left_words, right_words) if len(left_words) <= len(right_words)
         else (right_words, left_words)
     )
+    if len(shorter) < MIN_DISTINCTIVE_WORDS:
+        return 0.0
     return len(shorter & longer) / len(shorter)

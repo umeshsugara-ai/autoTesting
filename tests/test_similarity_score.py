@@ -105,3 +105,48 @@ def test_the_new_words_are_a_strict_superset_of_the_original_list() -> None:
         "show", "appears", "reads", "presents",
     ))
     assert original <= STOPWORDS
+
+
+# -- AT-278: a STOPWORDS-eroded short report is not evidence -----------------
+# Growing STOPWORDS has a structural cost this floor closes: a content-bearing
+# word added to the list (AT-276's own extension did this) can strip a short
+# report down to one remaining word, and a 1-word containment is 0.0 or 1.0
+# by construction -- never real evidence either way. Both pairs below are
+# genuinely UNRELATED faults that AT-276's own extension alone drove to 1.0.
+
+AT_278_PAIRS = [
+    pytest.param(
+        "Certificate export downloads corrupted when large",
+        "Certificate generation crashes when the network is slow",
+        id="export-corruption-vs-network-crash",
+    ),
+    pytest.param(
+        "Trainer count updates wrong after filter change",
+        "Trainer profile photo fails to render after refresh",
+        id="count-update-vs-photo-render",
+    ),
+]
+
+
+@pytest.mark.parametrize("left,right", AT_278_PAIRS)
+def test_a_report_eroded_to_almost_nothing_does_not_falsely_match(
+    left: str, right: str,
+) -> None:
+    assert similarity(left, right) < 0.30
+
+
+def test_a_single_shared_word_is_never_evidence_of_a_match() -> None:
+    """The floor's own reasoning, made direct: two texts sharing exactly one
+    distinctive word must score 0.0, whatever that word is -- a 1-word
+    containment can only ever be 0.0 or 1.0, and 1.0 is never trustworthy."""
+    assert similarity("Certificate upload fails", "Certificate renders correctly") == 0.0
+
+
+def test_the_floor_does_not_cost_a_genuinely_short_real_match() -> None:
+    """Two distinctive words shared between a terse report and a fuller one
+    still admit a real, floor-clearing match -- the floor refuses UNDER 2
+    words, not every short pair."""
+    assert similarity(
+        "Trainer certificate upload rejected",
+        "Trainer certificate upload was rejected by the server",
+    ) >= 0.30
