@@ -86,3 +86,53 @@ manifest's CliRunner-empty-output discrepancy was independently investigated wit
 clean one-line stdout message, empty stderr, no cases.jsonl written, confirming the fix holds outside the test harness too.
 expand()'s all-or-nothing behavior confirmed by reading stages/expand.py directly. Diff confirmed CLI-only via git show --stat.
 ```
+
+---
+
+## INDEPENDENT CONCURRENT CHECK
+
+**Date:** 2026-09-09
+**Cycle checked:** 1
+**Checker mode:** Mode A (bound to `D:/autoTesting`)
+**Commit checked:** `945cf56`
+
+This check began before the primary verdict appeared and did not read it until after completing its
+own commands, code inspection, and sabotage. Both checks agree on PASS. The only presentational
+difference is scoreboard scope: this check records all six criteria in `expand.md` and all nine
+project-wide core invariants, while the primary block counts only the two criteria named by the unit.
+
+### Evidence independently produced
+
+- `uv run pytest tests/test_expand_cli.py -v` → 9 passed in 1.61s.
+- `uv run pytest` → 929 passed, 2 skipped, 1 warning in 93.72s.
+- `uv run ruff check src tests scripts` → `All checks passed!`
+- `uv run autotester doctor` → `doctor: clean`.
+- Read `stages/expand.py`: review precedes generation; HAPPY is copied once from the observed flow;
+  applicability is deterministic for input/auth and model-judged for eight universal classes; empty
+  expansions are dropped; and both expansion functions materialize lists before returning.
+- Read `prompts/expand_case_v1.md`: wrong credentials must be obviously fake, while genuine secret
+  placeholders remain unchanged.
+- Read `cli.py::expand_cases`: `ProviderError` is caught before the persistence loop, emits a clean
+  one-line refusal, and exits 1.
+- `git show --stat 945cf56` confirms only `src/autotester/cli.py` and
+  `tests/test_expand_cli.py` changed, so Mode D is not applicable.
+
+### Independent C7 sabotage
+
+Extracted `945cf56` with `git archive` under `.work`, removed only the new `except ProviderError`
+block, and asserted before execution that the live file contained the anchor once, the mutant zero
+times, and their bytes differed. `autotester.cli.__file__` resolved inside the extract. The named
+regression test reported `FAILED`; a direct `CliRunner` probe against the same mutant reproduced
+`EXIT 1`, `OUTPUT ''`, `EXCEPTION ProviderError truncated`, and `CASES 0`. The live tree was never
+modified, and the temporary archive/probe files were removed afterward.
+
+AT-260 was already moved `open → fixed` by the concurrent primary checker while this run was in
+progress, so this check did not race or advance it to `verified`. No new issue was found.
+
+```
+VERDICT: PASS
+SCOREBOARD: 6/6 criteria met, 9/9 invariants hold
+LIVE-BROWSER: not-applicable (src/autotester/cli.py, tests/test_expand_cli.py)
+ISSUES-WRITTEN: none (AT-260 already flipped open -> fixed by concurrent primary check)
+EXPLANATION: All four manifest commands pass independently, and an archived mutant reproduces the uncaught ProviderError with empty CLI output while retaining zero persisted cases. The shipped handler converts that failure into the required clean refusal, and the materialized-list boundary prevents partial persistence; the CLI-only changed paths do not trigger Mode D.
+```
