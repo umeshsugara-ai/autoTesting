@@ -577,3 +577,19 @@ passed.
   verdicts already stated) or the correctness of the manifest's/commit's issue-id bookkeeping, which
   is wrong (AT-269 should read AT-271) but already tracked and does not affect the code's
   correctness.
+
+## Note on the concurrent cycle-2 verdict above ("Cycle 2 verdict", commit 9611ada)
+
+I did not see that a checker had already landed a cycle-2 verdict (`9611ada`) until after I had
+independently derived my own numbers and drafted this section — my working file already showed
+419 lines (matching `9611ada`'s post-commit length) by the time I appended, but I appended without
+first re-reading past the cycle-1 content. No overwrite occurred (this is a pure append, confirmed
+by `git show 9611ada:...` vs current file diffing clean up to line 419), so nothing was lost. **The
+two cycle-2 verdicts agree in full: both PASS, both re-derived 0.246875/0.368564 (0.247/0.369) for
+the erp2/E-02 pair from scratch, both confirmed the erp1 pair never crosses 0.30 against any truth
+row, both independently sabotage-confirmed the AT-270 tie-break in an isolated extract, and both
+identify the same bookkeeping defect (manifest/commit cite AT-269 instead of AT-271, already
+tracked as AT-272).** Per the checker protocol, two consistent PASSes on the same cycle are wasted
+tokens, not a broken gate — recorded here as the explicit reconciliation the protocol asks for
+rather than leaving two unlinked PASS sections. `qa/issues.jsonl` was already correctly updated by
+the first (`9611ada`) checker; I made no further ledger writes.
