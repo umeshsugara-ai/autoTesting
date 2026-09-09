@@ -1,84 +1,59 @@
 # qa/QUEUE.md — checker sweep queue (top-3 recommended next units)
 
-Refreshed by `/checker sweep` **2026-09-09T08:26Z** (bound to `D:/autoTesting`). Prior sweep
-2026-09-09T06:22Z, ~2h and 20 commits ago.
+Refreshed by `/checker sweep` **2026-09-09T~16:00 IST (~10:30Z)** (bound to `D:/autoTesting`).
+Prior sweep 2026-09-09T08:26:43Z. Window covers 47 commits (880297b..HEAD): at231 cycle-2 close,
+AT-269/270/271 mislabel correction, at242, at226 (+ its own at274-fix follow-up), at273, at215,
+at232 (+ its own AT-276 follow-up), AT-253 gated (not built), at260. **Everything named in the
+prior QUEUE's top-3 (AT-273, AT-227-adjacent, AT-215) is now stale** — AT-273 and AT-215 closed
+checked-PASS this window; refreshed below against `qa/issues.jsonl` directly rather than carried
+forward.
 
-## Concurrency note (AT-101, respected)
+## Concurrency note
 
-No `git stash`/`checkout`/`restore` in the live tree. My own C5 re-sabotage ran in a `git archive
-HEAD` extract with its **own `uv sync` venv**, `__file__` verified before trusting the result. A
-maker session was actively fixing `providers/gemini_schema.py`, `tests/test_gemini_schema.py`,
-`pyproject.toml`, `uv.lock` for the peer checker's AT-265..268 findings throughout this sweep —
-those paths were read but never written.
-
-**This sweep's own headline is a same-day double verdict-file overwrite, disclosed in full and
-corrected twice — see `qa/.last-sweep`'s newest entry and `qa/verdicts/at230-gemini-schema.md`.**
-
----
-
-## TOP-3 RECOMMENDED NEXT UNITS (refreshed 2026-09-09T08:26Z sweep)
-
-AT-266/AT-267/AT-268 named below as of the last refresh are **already verified** — do not re-queue
-them; ledger confirms `verified` for all three as of this sweep.
-
-1. **AT-273 (high, filed this sweep) — give `_already_past_login` (explore.py:115-123, AT-226's own
-   precheck) the same disciplined exception handling as its sibling `_seed` 15 lines below.** The
-   bare `except Exception: return False` swallows a transient nav failure during the precheck and
-   silently reclassifies it as ordinary not-yet-authenticated, so the crawl can still fall through to
-   `run_case`'s own `goto` and hit the exact step-timeout AT-226 exists to prevent — with no signal
-   the precheck itself failed. Freshest code in the repo, sitting next to the pattern it should have
-   copied; cheap to fix (name the exception, store it on `rt` the way `_seed`/`rt.seed_error` does).
-2. **AT-227 (high) — the first-paint modal that nothing dismisses.** Still the other real-world crawl
-   stopper alongside AT-226 (which has its own fix in flight, checker already dispatched this turn —
-   do not race it). Grep for `modal|dismiss` across `stages/explore*.py` still returns nothing; the
-   first real crawl learned one screen and this is on the critical path of every downstream stage.
-3. **AT-215 / AT-156 (sixth consecutive sweep, unchanged) — either build the test or downgrade the
-   claim.** VL1c's measured-placement half and C9's `approved` field remain unpinned by anything.
-   Six sweeps naming the same gap without movement: either queue and build it, or the criterion
-   should say plainly that it is unverified.
-
-In flight, not queued: **AT-226** (already-authenticated-crawl fix built, manifest ready-for-check,
-checker dispatched concurrently this turn — see concurrency note above). Fixed-backlog carried,
-unworked again this sweep: **AT-207/208/219-223/228/230** (15 rows) — next sweep's first job.
+Read-only sweep, no stash/checkout/restore. All 47 commits in the window carry a manifest+verdict
+pair for every code-bearing fix (at231, AT-269/270/271, at242, at226, at274-fix, at273, at215,
+at232, at260) — bypass detection CLEAN. No manifest was left dangling at `ready-for-check`.
 
 ---
 
-## TOP-3 RECOMMENDED NEXT UNITS
+## TOP-3 RECOMMENDED NEXT UNITS (refreshed this sweep, from live `qa/issues.jsonl` open/high)
 
-1. **AT-255 + AT-256 (both high) — recommit and actually pin the AT-230 fix.** `99ea27d` put the
-   change that unblocked every real Gemini call on master with no manifest, no verdict, and its only
-   guard (`tests/test_gemini_schema.py`) untracked. Reverting the single wiring line
-   `providers/gemini.py:79` in a HEAD extract leaves **867 passed, 2 skipped, zero failures**. The
-   unit is not "commit the test" — the test as written cannot catch it either: all 12 assertions call
-   `gemini_schema()` directly and never construct `GeminiProvider`. The pin has to watch the
-   `response_schema` kwarg the provider actually hands the client.
+1. **AT-227 (high, explore) — the first-paint modal that nothing dismisses.** Unchanged across
+   this entire window and several sweeps before it. A Pathlynks-style mood-check modal on first
+   paint blocks the crawl's first observation; `grep -rn "modal|dismiss" stages/explore*.py`
+   still returns nothing. On the critical path of every downstream stage — the oldest real
+   crawl-stopper still open.
 
-2. **AT-231 (high) — merge the duplicate pair in `adjudicate`.** Now that a real number exists
-   (recall 1/7, 5 false positives, at least 3 of the 5 being duplicates of each other), this single
-   defect accounts for the majority of the FP count. It is the highest-leverage open scorer issue and
-   the cheapest movement available on the headline number. AT-232 (the 0.30 `SequenceMatcher`
-   threshold, `stages/score.py:214,254`) is the matching lever on the recall side and is correctly
-   ranked `high` alongside it.
+2. **AT-276 (high, video-learning, filed this window as AT-232's own follow-up) —
+   containment-over-STOPWORDS `similarity()` still false-positives on genuinely different bugs
+   that happen to share vocabulary.** Fresh, concrete, and adjacent to code the maker just
+   touched (AT-232 landed cc16284 this window) — cheapest next move on the same file while
+   context is warm.
 
-3. **AT-226 (high) + AT-227 (raised medium → high this sweep) — the crawler's two real-world
-   stoppers.** The first real crawl learned ONE screen. An already-authenticated session aborting the
-   whole crawl as `login_failed`, and a first-paint modal nothing dismisses, are both first-order
-   causes of that, on the critical path of every downstream stage. Neither has any fix in code:
-   grep for `modal|dismiss|already_authenticated` across `stages/explore*.py` and `stages/login*.py`
-   returns nothing.
+3. **AT-243 (high, core-invariants, process debt) — Mode D has NEVER run in this repo: 86+
+   verdicts, zero `LIVE-BROWSER:` lines.** Every UI-touching unit this window (at242, at226,
+   at273, at215's ffmpeg path) still went through without an independent browser drive. This is
+   a standing protocol gap, not a code defect — worth a deliberate unit rather than continuing
+   to carry it silently.
 
-Below the top-3, unchanged and still owed: **AT-215** (VL1c's measured-placement half has no test —
-**fourth** consecutive sweep unchanged, in a HIGH-criticality contract) and **AT-156** (C9's
-`approved` field pinned by nothing — **fourth** consecutive sweep).
+**Gated, not queued (HUMAN_GATE, do not build without the decision):** AT-110
+(approval-forgery — `qa/gates/at110-approval-forgery.md`, still an empty template stub),
+AT-253 (agent-fallback wiring — gated this window, `qa/gates/at253-agent-fallback-wiring.md`,
+`Answered: (pending)`), AT-147 (expiry-end-of-day, empty stub), erp-credentials (empty stub).
+AT-218's GRILL row (vacuous-guard class) carries forward below — now open across many
+consecutive sweeps with no `/grill` session run.
 
-## Gate lines (read before the TODO rows)
+- GRILL: the recurring vacuous-guard class (AT-218) — still open, unanswered, carried forward
+  again this sweep. `qa/gates/at218-vacuous-guard-class.md` confirms `**Answered:** _(not yet —
+  gate remains open)_` verbatim. This has now spanned at least seven consecutive sweeps
+  (2026-09-08 through this one) without a `/grill "AT-218"` session. Not re-filed as a new issue
+  — same ISS-id, carried.
 
-- GRILL: the recurring vacuous-guard class (AT-218) — **still open, and this sweep is the fourth
-  consecutive report of it unchanged**. See the headline in `qa/.last-sweep`.
-- HUMAN_GATE: `qa/gates/at110-approval-forgery.md` — open, not answered off-disk.
-- HUMAN_GATE: `qa/gates/erp-credentials.md` — open, no `Answered:` line at all; `projects/erp/` still
-  has no `.env`.
-- HUMAN_GATE: `qa/gates/at147-expiry-end-of-day.md` — its `**Answered:**` line is still an empty
-  template stub, not an answer.
-- `qa/gates/t136-model-credentials.md` is correctly **answered** (2026-09-09, "THE GATE WAS WRONG —
-  Umesh had already provided the credentials").
+**Fixed backlog (ledger status `fixed`, awaiting a sweep's independent re-verification before
+promotion to `verified`) — 15 rows remain after this sweep promoted AT-215/AT-232/AT-260/AT-273/
+AT-274 (all independently checker-PASSed with sabotage evidence *this window*, promoted on that
+basis):** AT-207, AT-208, AT-219, AT-220, AT-221, AT-222, AT-223, AT-225, AT-228, AT-230, AT-250,
+AT-254, AT-264, AT-269 (real underlying id, see AT-271 mislabel note), AT-272. Several of these
+(AT-207/208/219-223/228/230) have now been carried unworked across **four or more consecutive
+sweeps** — this sweep did not re-verify them either (time-boxed to the window's own churn); they
+remain the next sweep's first job, as flagged repeatedly before.
