@@ -1531,3 +1531,9 @@ concurrent-commit collision (code rode inside 2bb3270, titled for AT-242) is rea
 bypass, full verify chain clean. Ledger AT-226 flipped open->verified. Also observed on disk:
 concurrent maker closed at242-crawl-blocked-status (checked-PASS) and a sweep filed AT-273
 (explore.py silent-failure) since the last tick -- neither touched by this tick.
+2026-09-09T08:46:45Z · ADVANCED · AT-274 fixed (strengthened vacuous test), sabotage-confirmed with checker's own mutation, checker dispatched
+2026-09-09T09:00:11Z · ADVANCED · at273-login-precheck-exception built, ready-for-check, checker dispatched
+2026-09-09T09:21:00Z · ADVANCED · at273 closed checked-PASS; at215-vl1c-measured-placement built (real ffmpeg test, 3rd sweep gap), checker dispatched
+2026-09-09T09:48:21Z · ADVANCED · at215 closed checked-PASS; at232-similarity-length-asymmetry built (recall 1/7->3/7 on real data), AT-275 filed, checker dispatched
+2026-09-09T10:12:02Z · ADVANCED · at232 ledger status corrected; AT-253 gated (runtime/cost decision); at260-expand-provider-error built, checker dispatched
+2026-09-09T15:54:01+05:30 · ADVANCED · at260-expand-provider-error closed checked-PASS cycle 1; two independent checker passes, 929 passed / 2 skipped, ruff and doctor clean
