@@ -28,12 +28,12 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from difflib import SequenceMatcher
 from pathlib import Path
 
 from openpyxl import load_workbook
 
 from autotester.schema.issue import Issue
+from autotester.stages.similarity_score import similarity
 
 RECORDING_COLUMNS = ("Clip", "Recording")
 """What the recording column is called, in the two sheets that exist. Trainers
@@ -204,10 +204,6 @@ def load_truth(path: Path, sheet_name: str) -> list[TruthRow]:
         return rows
     finally:
         workbook.close()
-
-
-def similarity(left: str, right: str) -> float:
-    return SequenceMatcher(None, left.casefold(), right.casefold()).ratio()
 
 
 def score(truth: list[TruthRow], issues: list[Issue], *,

@@ -250,3 +250,51 @@ def test_the_report_names_every_truth_row_found_or_not() -> None:
     assert [r["id"] for r in report["per_row"]] == ["E-01", "E-02"]
     assert [r["found"] for r in report["per_row"]] == [True, False]
     assert report["recall"] == 0.5
+
+
+# -- AT-232: similarity must not penalise the model for being terser --------
+
+def test_a_terse_report_of_a_verbose_humans_fault_is_a_match() -> None:
+    """The real defect, reproduced without the real corpus: a ~200-word human
+    explanation and a ~20-word model report of the SAME fault, sharing only
+    a handful of distinctive words, must clear the threshold. A length-
+    symmetric measure (the old SequenceMatcher ratio) scored the real pair
+    0.023 -- crushed by length alone, not by content."""
+    verbose_human = (
+        "Home location offers centres only, so a trainer's actual home town cannot "
+        "be recorded. The Home location dropdown on the trainer edit drawer is "
+        "populated exclusively with training centres, drawn from the same list the "
+        "assignment screen uses. A trainer's real home town, which is a free-text "
+        "field on the application form and appears correctly on the applicant "
+        "summary, is nowhere selectable here, so the only values a coordinator can "
+        "save are institutions, not places a person actually lives. This blocks the "
+        "monthly travel-allowance report, which groups trainers by home town."
+    )
+    terse_model = ("Home Location field presents training centers instead of "
+                   "personal location")
+    row = a_row(title="", what_is_wrong=verbose_human)
+    issue = an_issue(title=terse_model, what_is_wrong="")
+
+    card = score([row], [issue])
+
+    assert card.found == 1
+    assert card.matches[0].similarity >= 0.30
+
+
+def test_boilerplate_bug_report_phrasing_does_not_falsely_match() -> None:
+    """Two DIFFERENT faults that happen to share generic bug-report vocabulary
+    ("field", "validation", "error", "prevents", "form", "submission",
+    "screen", "edit") must not match on that vocabulary alone -- the words
+    STOPWORDS strips are exactly the ones two unrelated bugs share by
+    accident of genre, not by content."""
+    row = a_row(title="", what_is_wrong=(
+        "Home location field validation error prevents form submission on "
+        "the trainer edit screen"))
+    issue = an_issue(title="", what_is_wrong=(
+        "Date of birth field validation error prevents form submission on "
+        "the applicant edit screen"))
+
+    card = score([row], [issue])
+
+    assert card.found == 0
+    assert card.matches[0].similarity < 0.30

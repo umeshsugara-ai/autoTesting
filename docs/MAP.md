@@ -79,6 +79,7 @@
 | `stages/run_case_pipeline.py` | RUN_CASE_PIPELINE: the one function that runs a case and grades it. |
 | `stages/score.py` | SCORE: compare AutoTester's issues against a human tester's own sheet. |
 | `stages/screen_identity.py` | Screen identity: turn one `PageObservation` into a `ScreenNode`. |
+| `stages/similarity_score.py` | How two bug reports are compared for `stages/score.py`'s T-136 scorer. |
 | `store/crawl_store.py` | Crawl artifact persistence — split from `project_store.py` at the |
 | `store/filestore.py` | The one place any artifact is read from or written to disk. Contract: core-invariants.md C6. |
 | `store/project_store.py` | Typed convenience over `filestore` for one project's directory. |
