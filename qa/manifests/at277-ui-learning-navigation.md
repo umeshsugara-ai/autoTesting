@@ -77,4 +77,4 @@ is retained.
 - It does not copy a recording. The registered immutable Source points at the existing local file,
   matching the shipped CLI's semantics.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, verdict 1cf8777)
