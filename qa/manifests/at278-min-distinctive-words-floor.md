@@ -1,12 +1,12 @@
 # Manifest — at278-min-distinctive-words-floor
 
 **Unit:** AT-278 — AT-276's own STOPWORDS extension introduces a sharper false-positive mode
-**Commit:** `7b5a167`
-**Fix cycle:** 1 of 3
+**Commit:** `cbdfab1`
+**Fix cycle:** 2 of 3
 **Dual check:** no
 **Contract:** `qa/contracts/video-learning.md` (T-136 acceptance)
 **Goal task:** none — issue-driven
-**Issues addressed:** AT-278 (high)
+**Issues addressed:** AT-278, AT-279 (high)
 
 ## Why this is a structural fix, not a third STOPWORDS patch
 
@@ -31,18 +31,17 @@ how few distinctive words a match may be built from.
 
 ## What changed
 
-- `src/autotester/stages/similarity_score.py` — new `MIN_DISTINCTIVE_WORDS = 2`. In `similarity()`,
-  after computing the stopword-filtered word sets, if the **shorter** side has fewer than 2 distinct
-  words remaining, return `0.0` — refuse to claim a match rather than let a near-empty denominator
-  produce an artefact score.
-- `tests/test_similarity_score.py` — four new tests: both AT-278 checker-constructed pairs now
-  reject, a direct minimal case (`"Certificate upload fails"` vs `"Certificate renders correctly"`
-  — exactly one shared word, must be `0.0` regardless of what that word is), and a genuine
-  2-distinctive-word real match confirming the floor doesn't cost real short matches.
+- Cycle 1 added a two-word shorter-side floor. The checker proved that boundary internally
+  inconsistent: exact `Timeout` missed, while `Invoice rejected`/`Invoice approved` matched at 0.5.
+- `src/autotester/stages/similarity_score.py::similarity` now gives exact normalized token content
+  an explicit `1.0` path. Every non-identical pair must share at least two distinctive tokens before
+  containment can score it at all; denominator size alone no longer licenses a one-token overlap.
+- `tests/test_similarity_score.py` retains the AT-278 erosion cases and adds full `score()` regressions
+  for the exact one-token positive plus both contradictory two-token negatives from AT-279.
 
 ## How to verify (commands + expected)
 
-- `uv run pytest tests/test_similarity_score.py tests/test_score.py -v` → expected: exit 0, 41 passed
+- `uv run pytest tests/test_similarity_score.py tests/test_score.py -v` → expected: exit 0, 44 passed
 - `uv run pytest` → expected: exit 0
 - `uv run ruff check src tests scripts` → expected: exit 0
 - `uv run autotester doctor` → expected: exit 0
@@ -50,11 +49,11 @@ how few distinctive words a match may be built from.
 ## Actual outputs (from maker's own run)
 
 ```
-$ uv run pytest tests/test_similarity_score.py tests/test_score.py -v
-[... 41 tests, all PASSED]
+$ uv run pytest tests/test_similarity_score.py tests/test_score.py -q
+44 passed
 
 $ uv run pytest
-942 passed, 2 skipped, 1 warning in 101.98s
+945 passed, 2 skipped, 1 warning
 
 $ uv run ruff check src tests scripts
 All checks passed!
@@ -63,31 +62,16 @@ $ uv run autotester doctor
 doctor: clean
 ```
 
-**Sabotage confirmation (C7), one mutation, restored immediately after:**
-
-Isolated `git archive HEAD` extract with its own `uv sync` venv (my own uncommitted unit layered
-onto the extract by hand, since it postdates HEAD — `similarity_score.__file__` verified inside
-the extract, not the live tree). Removed the `MIN_DISTINCTIVE_WORDS` floor check entirely. Result:
-**exactly 3 failures**, all three the floor guards, each landing at the predicted ceiling:
-
-```
-FAILED [export-corruption-vs-network-crash]: assert 1.0 < 0.3
-FAILED [count-update-vs-photo-render]: assert 1.0 < 0.3
-FAILED test_a_single_shared_word_is_never_evidence_of_a_match: assert 1.0 == 0.0
-```
-
-The other 10 tests in the file stayed green — confirming the floor is additive to AT-232/AT-276's
-own mechanism, not a replacement.
-
-Restored by overwriting with the saved copy (never `git checkout`, AT-101). Live tree confirmed
-untouched (`grep -c MIN_DISTINCTIVE_WORDS` → 3, unchanged).
+**Independent review before resubmission:** senior-software-engineer APPROVE and data-engineer
+APPROVE. Both independently ran the 44 focused tests; the data review confirmed the new cases
+exercise `score()` and recommended the deterministic exact-path + two-shared-token rule over an
+embedding/LLM matcher. The cycle-2 checker is explicitly asked to perform the independent sabotage.
 
 ## Real-corpus regression check (measured, not argued)
 
 Re-ran `scripts/score_video_issues.py` against the real `ERP_Issues_Trainers.xlsx`/`Trainer
-module` sheet after the change. **Recall stays 3/7 (0.4286), unchanged** — the floor costs nothing
-against the real matches AT-232/AT-276 already fixed; every one of them has well more than 2
-distinctive words on its shorter side.
+module` sheet after cycle 2. **Recall stays 3/7 (0.4286), unchanged**, with 3 false positives and
+complete 6/6 observation coverage.
 
 ## Live browser evidence
 
