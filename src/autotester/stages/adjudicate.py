@@ -135,37 +135,95 @@ def worst(*severities: Severity) -> Severity:
     return min(severities, key=order.index)
 
 
+def _same_model_duplicate(existing: AnalysedIssue, label: str, issue: ObservedIssue) -> bool:
+    """AT-231: the SAME provider's own second prompt, reporting the same
+    category in the same seam window, is that model repeating itself under a
+    different question -- not independent corroboration, and not two separate
+    faults that happen to share a category and a moment.
+
+    Screen name is deliberately NOT part of this check. `screen_key`'s own
+    docstring says a model's read of a screen is unreliable enough that this
+    stage never keys on the URL; it is exactly as unreliable across a model's
+    OWN two prompts on one chunk as it is across two different chunks. The
+    first real run measured this precisely: two prompts of one provider
+    described the same fault on the same screen using different enough names
+    that `issue_key` (which DOES include the screen) never matched, and the
+    ensemble's central premise -- agreement raises confidence -- reported the
+    fault twice instead of once.
+
+    Requiring `label in existing.model_labels` keeps this from ever firing
+    across two DIFFERENT models: a genuinely independent second model whose
+    screen name also fails to match stays unmerged, exactly as before."""
+    return (
+        label in existing.model_labels
+        and existing.category == issue.category
+        and abs(existing.t_start - issue.t_start) <= SEAM_WINDOW_S
+    )
+
+
 def join_issues(issues: list[tuple[str, ObservedIssue]]) -> list[AnalysedIssue]:
     """One `AnalysedIssue` per real problem, with agreement counted.
 
-    Same screen, same category, within `SEAM_WINDOW_S` — one issue. Agreement
-    raises `confidence` to HIGH because two models describing the same fault
-    independently is the strongest signal this pipeline can produce without a
-    human; it never raises `severity`, which is a property of the product and
-    not of how many models noticed."""
+    Same screen, same category, within `SEAM_WINDOW_S` — one issue (cross-model
+    corroboration). Agreement raises `confidence` to HIGH because two models
+    describing the same fault independently is the strongest signal this
+    pipeline can produce without a human; it never raises `severity`, which is
+    a property of the product and not of how many models noticed.
+
+    A SECOND report from a model already credited for this issue also merges
+    (`_same_model_duplicate`), even when the screen name differs — see its
+    docstring. That merge never raises `models_agreeing`/`confidence`: the same
+    model saying the same thing twice is not two models agreeing.
+
+    **The title/what_is_wrong that SURVIVES a merge is the LONGER of the two,
+    not the first-seen** (`_apply_merge`). My first version kept whichever
+    text arrived first — `ingest_video_v1`'s by construction, since it sorts
+    before `video_issues_v1` alphabetically — so a same-model duplicate let
+    the MAPPING prompt's terser aside beat the BUG-SWEEP prompt's dedicated
+    finding. Measured on the first real reading: that turned a matched issue
+    into a missed one, because the surviving wording fell below the scorer's
+    similarity threshold. Length is a blunt, deterministic, auditable proxy —
+    the discipline this module's own docstring already asks for."""
     merged: list[AnalysedIssue] = []
     for label, issue in issues:
         for existing in merged:
-            if (issue_key(existing) == issue_key(issue)
-                    and abs(existing.t_start - issue.t_start) <= SEAM_WINDOW_S):
-                if label not in existing.model_labels:
-                    existing.model_labels.append(label)
-                    existing.models_agreeing = len(existing.model_labels)
-                    existing.confidence = Confidence.HIGH
-                existing.severity = worst(existing.severity, issue.severity)
-                # `narration` is the tester's own words; `Issue.said_verbatim`
-                # is the derived artifact's field, populated from it later by
-                # stages/issues.py. Keeping the first non-empty one means a
-                # quote survives even when only one model transcribed it.
-                if not existing.narration and issue.narration:
-                    existing.narration = issue.narration
-                if not existing.on_screen_text and issue.on_screen_text:
-                    existing.on_screen_text = issue.on_screen_text
+            cross_model_match = (issue_key(existing) == issue_key(issue)
+                                 and abs(existing.t_start - issue.t_start) <= SEAM_WINDOW_S)
+            if cross_model_match or _same_model_duplicate(existing, label, issue):
+                _apply_merge(existing, label, issue)
                 break
         else:
             merged.append(AnalysedIssue(**issue.model_dump(),
                                         models_agreeing=1, model_labels=[label]))
     return sorted(merged, key=lambda i: (i.t_start, issue_key(i)))
+
+
+def _apply_merge(existing: AnalysedIssue, label: str, issue: ObservedIssue) -> None:
+    """Fold one more report into an already-merged issue, in place.
+
+    Split out of `join_issues` when it crossed the 50-line cap — this is the
+    body of the merge, not a second decision; `join_issues` still owns WHICH
+    pairs merge."""
+    if label not in existing.model_labels:
+        existing.model_labels.append(label)
+        existing.models_agreeing = len(existing.model_labels)
+        existing.confidence = Confidence.HIGH
+    existing.severity = worst(existing.severity, issue.severity)
+    # The LONGER title/what_is_wrong survives, not the first-seen -- see
+    # join_issues' own docstring for why first-seen was measurably wrong.
+    incoming_len = len(issue.title) + len(issue.what_is_wrong)
+    existing_len = len(existing.title) + len(existing.what_is_wrong)
+    if incoming_len > existing_len:
+        existing.title = issue.title
+        existing.what_is_wrong = issue.what_is_wrong
+    # `narration` is the tester's own words; `Issue.said_verbatim` is the
+    # derived artifact's field, populated from it later by stages/issues.py.
+    # Keeping the first non-empty one means a quote survives even when only
+    # one model transcribed it.
+    if not existing.narration and issue.narration:
+        existing.narration = issue.narration
+    if not existing.on_screen_text and issue.on_screen_text:
+        existing.on_screen_text = issue.on_screen_text
 
 
 def _collect(shifted: list[ModelObservation]) -> tuple[list, list, list, list[str], list[str]]:

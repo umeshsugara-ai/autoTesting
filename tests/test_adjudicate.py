@@ -151,6 +151,78 @@ def test_the_same_fault_reported_far_apart_stays_two_issues() -> None:
     assert len(merged) == 2
 
 
+def test_the_SAME_model_reporting_the_same_fault_under_two_prompts_merges(
+) -> None:
+    """AT-231. The first real run measured this exactly: one provider's two
+    prompts (map-the-product, find-what-is-wrong) described the same fault on
+    the same screen using different enough names that `issue_key` -- which
+    keys on screen name -- never matched, so the ensemble reported the fault
+    TWICE instead of once. Screen name is unreliable across a model's own two
+    prompts for the same reason `screen_key` never keys on the URL: the model
+    is reading it off a screenshot, imperfectly, twice."""
+    merged = join_issues([
+        (PRO, issue("Home Location field", 2.0, category=IssueCategory.WRONG_MODEL,
+                    title="Home Location field presents training centers")),
+        (PRO, issue("Personal location picker", 2.0, category=IssueCategory.WRONG_MODEL,
+                    title="Home location field misuse")),
+    ])
+
+    assert len(merged) == 1, "the same model's two prompts produced two issues, not one"
+
+
+def test_the_merge_does_not_count_as_cross_model_agreement() -> None:
+    """The same model saying the same thing twice is not two models agreeing —
+    `models_agreeing` and `confidence` must stay at the single-model baseline,
+    only `severity` (a product property, not a vote count) may move."""
+    merged = join_issues([
+        (PRO, issue("Home Location field", 2.0, category=IssueCategory.WRONG_MODEL,
+                    severity=Severity.S3)),
+        (PRO, issue("Personal location picker", 2.0, category=IssueCategory.WRONG_MODEL,
+                    severity=Severity.S1)),
+    ])
+
+    assert merged[0].models_agreeing == 1
+    assert merged[0].confidence is not Confidence.HIGH
+    assert merged[0].severity is Severity.S1, "the worse severity should still be kept"
+
+
+def test_the_LONGER_wording_survives_a_same_model_merge_not_the_first_seen(
+) -> None:
+    """A merge my first fix got wrong on real data. `adjudicate`'s own sort key
+    orders `ingest_video_v1` before `video_issues_v1` alphabetically, so on a
+    same-model duplicate the terser MAPPING prompt's incidental note always won
+    over the more thorough BUG-SWEEP prompt's dedicated finding -- purely by
+    which text happened to arrive first, not which was better. Measured
+    consequence: swapping which wording survived turned a matched finding into
+    a missed one against the human ground-truth sheet."""
+    merged = join_issues([
+        (PRO, issue("Rule T3", 13.0, category=IssueCategory.VALIDATION,
+                    title="Rule T3 validation error prevents stage transition",
+                    what_is_wrong="Submitting stage change fails with Rule T3 error.")),
+        (PRO, issue("Rule T3 error", 13.0, category=IssueCategory.VALIDATION,
+                    title="Rule T3 validation error blocks moving trainer to next stage",
+                    what_is_wrong="Attempting to save the trainer stage update fails due to a "
+                                  "Rule T3 validation error requiring center and role details.")),
+    ])
+
+    assert len(merged) == 1
+    assert merged[0].title == ("Rule T3 validation error blocks moving trainer to next stage"), (
+        "the shorter, first-seen title survived instead of the longer, more specific one")
+
+
+def test_a_DIFFERENT_model_on_a_different_screen_name_stays_separate() -> None:
+    """The fix must not turn into a blanket "same category, same window merges
+    everything" rule. A genuinely independent second model whose screen name
+    also fails to match `issue_key` must NOT be merged just because the window
+    and category line up -- only the SAME provider's own repeat does."""
+    merged = join_issues([
+        (PRO, issue("Home Location field", 2.0, category=IssueCategory.WRONG_MODEL)),
+        (FLASH, issue("Personal location picker", 2.0, category=IssueCategory.WRONG_MODEL)),
+    ])
+
+    assert len(merged) == 2, "two different models must not merge on screen mismatch"
+
+
 def test_different_categories_on_one_screen_stay_separate() -> None:
     merged = join_issues([
         (PRO, issue("Trainers", 8.0, category=IssueCategory.FEATURE_GAP)),
