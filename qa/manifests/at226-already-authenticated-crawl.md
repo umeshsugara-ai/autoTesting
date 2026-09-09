@@ -111,4 +111,10 @@ uv run autotester doctor                                                    → 
 - A login case with no NAVIGATE step, or a `goto`/`settle` exception during the check, falls back
   to running the case exactly as before the fix.
 
-## Status: ready-for-check (Fix cycle: 1)
+## Status: checked-PASS (cycle 1 verdict f718273)
+
+Checker independently re-ran the sabotage (in-place edit, AT-101), confirmed byte-clean restore,
+verified the disclosed concurrent-commit collision is real (not a bypass) by reading `2bb3270`'s
+diff directly, ran the full verify chain clean (923 passed / 2 skipped, ruff clean, doctor clean),
+and confirmed X1/X10 contract invariants hold plus both fallback paths are non-vacuous. No new
+issues opened. AT-226 closed.

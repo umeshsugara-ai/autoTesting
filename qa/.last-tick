@@ -1523,3 +1523,11 @@ Pushed f53b8d5 to origin/master (D-007, 4 commits were sitting local-only).
 commit 2bb3270 titled for AT-242, disclosed in manifest under "Same-file concurrent-commit
 collision"), tests+manifest committed d1a63c7, checker dispatched (agent a337d34e9a2db9934).
 No dangling ready-for-check manifest this tick.
+2026-09-09T08:24:33Z · ADVANCED · at242 closed checked-PASS; at226 checker + overdue Mode B sweep both dispatched (no dangling check)
+2026-09-09T08:29:00Z · ADVANCED · sweep landed (FINDINGS: 1, AT-273 filed); at226 checker still in flight
+2026-09-09T08:35:00Z · ADVANCED · at226-already-authenticated-crawl CLOSED — checked-PASS cycle 1
+(verdict f718273). Checker independently re-ran the sabotage, confirmed the disclosed same-file
+concurrent-commit collision (code rode inside 2bb3270, titled for AT-242) is real and not a hidden
+bypass, full verify chain clean. Ledger AT-226 flipped open->verified. Also observed on disk:
+concurrent maker closed at242-crawl-blocked-status (checked-PASS) and a sweep filed AT-273
+(explore.py silent-failure) since the last tick -- neither touched by this tick.
