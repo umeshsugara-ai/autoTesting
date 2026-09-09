@@ -1,7 +1,7 @@
 # qa/QUEUE.md — checker sweep queue (top-3 recommended next units)
 
-Refreshed by `/checker sweep` **2026-09-09T06:22Z** (bound to `D:/autoTesting`). Prior sweep
-2026-09-09T04:50Z, ~1.5h and 11 commits ago.
+Refreshed by `/checker sweep` **2026-09-09T08:26Z** (bound to `D:/autoTesting`). Prior sweep
+2026-09-09T06:22Z, ~2h and 20 commits ago.
 
 ## Concurrency note (AT-101, respected)
 
@@ -16,29 +16,30 @@ corrected twice — see `qa/.last-sweep`'s newest entry and `qa/verdicts/at230-g
 
 ---
 
-## TOP-3 RECOMMENDED NEXT UNITS (this sweep)
+## TOP-3 RECOMMENDED NEXT UNITS (refreshed 2026-09-09T08:26Z sweep)
 
-1. **AT-266 (high, filed by the peer, independently confirmed by me) — pin `gemini.py:142`'s
-   response-dict validation.** Removing `schema.model_validate(response.parsed)` entirely produces
-   **zero test failures** (910 passed, twice, in two independent isolated extracts). One stub-client
-   test asserting an extra/missing/wrong-typed key raises `ProviderError` closes it — no network,
-   no key, the exact pattern `tests/test_gemini_schema.py` already uses for the request side.
-2. **AT-264 (high, this sweep) — give `generate_cases` an error boundary.** A `ProviderError`
-   mid-generation reaches the operator as a raw `text/plain` 500, not the themed page every sibling
-   refusal in the same function (`routes_learn.py:169-213`) returns. Reproduced live; not
-   hypothetical — `providers/gemini.py` genuinely raises this, and the scorer's own measured recall
-   today is 1/7, i.e. the model is already observed to misbehave on this exact path. Wrap the
-   `expand()` loop, return the same `_refusal()` the no-provider case uses.
-3. **AT-215 / AT-156 (fifth consecutive sweep, unchanged) — either build the test or downgrade the
+AT-266/AT-267/AT-268 named below as of the last refresh are **already verified** — do not re-queue
+them; ledger confirms `verified` for all three as of this sweep.
+
+1. **AT-273 (high, filed this sweep) — give `_already_past_login` (explore.py:115-123, AT-226's own
+   precheck) the same disciplined exception handling as its sibling `_seed` 15 lines below.** The
+   bare `except Exception: return False` swallows a transient nav failure during the precheck and
+   silently reclassifies it as ordinary not-yet-authenticated, so the crawl can still fall through to
+   `run_case`'s own `goto` and hit the exact step-timeout AT-226 exists to prevent — with no signal
+   the precheck itself failed. Freshest code in the repo, sitting next to the pattern it should have
+   copied; cheap to fix (name the exception, store it on `rt` the way `_seed`/`rt.seed_error` does).
+2. **AT-227 (high) — the first-paint modal that nothing dismisses.** Still the other real-world crawl
+   stopper alongside AT-226 (which has its own fix in flight, checker already dispatched this turn —
+   do not race it). Grep for `modal|dismiss` across `stages/explore*.py` still returns nothing; the
+   first real crawl learned one screen and this is on the critical path of every downstream stage.
+3. **AT-215 / AT-156 (sixth consecutive sweep, unchanged) — either build the test or downgrade the
    claim.** VL1c's measured-placement half and C9's `approved` field remain unpinned by anything.
-   Five sweeps naming the same gap without movement is itself worth a line in the next tick: either
-   this is queued and built, or the criterion should say plainly that it is unverified.
+   Six sweeps naming the same gap without movement: either queue and build it, or the criterion
+   should say plainly that it is unverified.
 
-Also open from this sweep: **AT-265** (the sanitiser is a 4-keyword deny-list against a 24-key
-allow-list in the installed SDK — latent, not yet a failure) · **AT-267** (the self-reference refusal
-drops the `$ref` it is holding rather than naming it) · **AT-268** (`ingest.md`'s own no-fire list
-says `google-genai` gets declared "when the unit that first calls the API for real" lands — that
-unit landed, `pyproject.toml` still doesn't declare it).
+In flight, not queued: **AT-226** (already-authenticated-crawl fix built, manifest ready-for-check,
+checker dispatched concurrently this turn — see concurrency note above). Fixed-backlog carried,
+unworked again this sweep: **AT-207/208/219-223/228/230** (15 rows) — next sweep's first job.
 
 ---
 
