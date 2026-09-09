@@ -155,4 +155,35 @@ reverted, and the suite returned **823 passed**, six *more* cases than baseline.
 from the count going up, called it INCONCLUSIVE, and re-ran a true revert. That is the clause
 working on the person applying it, which is the only real test of it.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+---
+
+**Closed out 2026-09-09.** `qa/verdicts/at206-guards-that-guard.md`, `Cycle checked: 2` -- **PASS,
+11/11 criteria, 2/2 invariants**, fourteen sabotages all discriminating, zero INCONCLUSIVE.
+
+The checker rebuilt its predecessor's four zero-failure attacks from the cycle-1 verdict text
+rather than trusting my account of them: consent.py's site deleted -> 5 failures, doctor.py's `map`
+site -> 1, renderer-folded-plus-decoy-at-line-157 -> 3 including the composed test itself, the
+`os.environ.get` binding -> 2 via the hole report, `ffmpeg-x`/`ffprobe-x` -> 3.
+
+**Three results worth carrying forward, none of them flattering:**
+
+1. **`EXPECTED_SITE_COUNT == 11` is not what carries the weight.** Inlining the composed message
+   while leaving the constant intact keeps both the count and the set unchanged -- and still fails,
+   because the interpolation assertion catches it. The count is close to decorative.
+2. **A compensating pair inside one file is silent** (AT-214, low). Deleting `doctor.py`'s real
+   `map` advice and adding an identical live one elsewhere in the same file passes. The checker
+   declined to charge it and said why: line-independent identity is what its own cycle-1 verdict
+   prescribed, so charging it would be moving the target after I built what was asked. Filed so the
+   bound is countable rather than assumed away.
+3. **`NEVER_A_COMMAND` survives tuple and starred unpacking by accident** -- the assignment target
+   is an `ast.Tuple`, not a `Name`, so the exemption comprehension binds nothing. Right answer,
+   wrong reason. Recorded in the verdict as luck, not design.
+
+Also raised, outside anything this manifest claimed: `unresolved_in` reads only `ast.Name`
+interpolations, so `f"{CMDS[0]}"` or `f"{MESSAGES.PREP}"` would be neither collected nor reported.
+No such form exists in the codebase today.
+
+**No `.goal` task matched this slug**, so the PASS closes nothing there -- a gap in my own process,
+not the checker's: I pulled this unit from the sweep queue and never registered it as a task.
