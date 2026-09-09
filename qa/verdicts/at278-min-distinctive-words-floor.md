@@ -61,3 +61,106 @@ LIVE-BROWSER: not-applicable (src/autotester/stages/similarity_score.py, tests/t
 ISSUES-WRITTEN: AT-279
 EXPLANATION: All declared checks pass and the floor genuinely suppresses the two named AT-278 examples. Independent full-scorer probes show the chosen boundary trades that defect for an exact-short-title false negative while leaving the same denominator artefact at two distinctive words, so VL11 is not met.
 ```
+
+---
+
+## INDEPENDENT CONCURRENT CHECK
+
+**Cycle checked: 1**
+**Date:** 2026-09-09
+**Checker mode:** A (unit check), run blind to the verdict above until after independent verification completed
+**Commit checked:** `7b5a167cebcb3344d49d41f6120360d6cf6b4874`
+**Contract:** `qa/contracts/video-learning.md` (T-136 acceptance)
+
+### What I re-ran independently
+
+Own isolated extract: `git archive HEAD` into a scratch directory with its own `uv sync` venv;
+confirmed `autotester.stages.similarity_score.__file__` resolved inside the extract before
+trusting any result.
+
+1. `uv run pytest tests/test_similarity_score.py tests/test_score.py -v` -> **41 passed**.
+2. `uv run pytest` -> **942 passed, 2 skipped, in 98.83s**, exit 0.
+3. `uv run ruff check src tests scripts` -> **All checks passed!**
+4. `uv run autotester doctor` -> **doctor: clean**.
+5. Live-repo real-corpus regression:
+   `uv run python scripts/score_video_issues.py --project erp --truth "C:/Users/Lenovo/Videos/Screen Recordings/ERP_Issues_Trainers.xlsx" --sheet "Trainer module"`
+   -> **recall 0.4286 (3/7), unchanged**, matching the manifest's claim.
+6. `git show --stat 7b5a167` -> only `src/autotester/stages/similarity_score.py` and
+   `tests/test_similarity_score.py` changed. Not UI-touching; Mode D not applicable.
+
+### Independent sabotage confirmation
+
+Removed the `if len(shorter) < MIN_DISTINCTIVE_WORDS: return 0.0` guard in the isolated extract.
+`uv run pytest tests/test_similarity_score.py -v` -> **exactly 3 failures**, the other 10 tests in
+the file stay green:
+
+- `test_a_report_eroded_to_almost_nothing_does_not_falsely_match[export-corruption-vs-network-crash]`:
+  `assert 1.0 < 0.3` fails, landing at the predicted 1.0 ceiling.
+- `...[count-update-vs-photo-render]`: same, 1.0.
+- `test_a_single_shared_word_is_never_evidence_of_a_match`: `assert 1.0 == 0.0` fails, 1.0.
+
+Restored by patch (never `git checkout`); `grep -c MIN_DISTINCTIVE_WORDS` -> 3, unchanged, matching
+the manifest's own restoration discipline.
+
+### The critical press — is the floor structural, or does it push the same failure to a higher word count?
+
+Constructed pairs at shorter-side word counts of 2, 3, and 4, all genuinely unrelated faults
+sharing nothing but one incidental domain noun that recurs across many different bug reports in
+the same product ("trainer", "certificate", "payment", "video", "dashboard"):
+
+| shorter side (n words) | pair | similarity |
+|---|---|---|
+| 2 | `Trainer login fails` vs `Trainer avatar blurry` | **0.5** |
+| 2 | `Certificate download broken` vs `Certificate font tiny` | **0.5** |
+| 3 | `Trainer login page crashes` vs `Trainer avatar photo blurry` | **0.333** |
+| 3 | `Payment gateway timeout` vs `Payment icon misaligned` | **0.333** |
+| 3 | `Video player buggy` vs `Video thumbnail broken` | **0.333** |
+| 4 | `Trainer login times out repeatedly` vs `Trainer avatar image is blurry` | 0.25 (below threshold) |
+| 4 | `Dashboard widget crashes constantly` vs `Dashboard color scheme looks ugly` | 0.25 (below threshold) |
+
+At exactly the floor (shorter=2) and one word above it (shorter=3), one incidentally shared
+distinctive word between two genuinely unrelated faults still clears the shipped 0.30 threshold
+(0.5 and 0.333 respectively). Only at shorter=4 does a single incidental shared word fall below
+threshold in these constructions. This independently reproduces and corroborates the primary
+verdict's finding (`Invoice rejected`/`Invoice approved` = 0.5, `Password reset`/`Password leaked`
+= 0.5) with a different word class — not adjective-pair contradiction but a shared domain-entity
+noun, which is arguably the more common real shape in this corpus (recordings repeatedly say
+"Trainer ..." across unrelated screens). **The floor is not structural**: it moves the guaranteed-
+failure case from 1 word (0.0/1.0 ceiling, always wrong) to "the floor value + a bit," where a
+false positive is now merely *likely* rather than *certain*, but is not closed. This is the same
+instance-patch shape AT-218 names, wearing the form of a threshold rather than a word list —
+confirmed independently rather than assumed from the primary verdict's own examples.
+
+### Is refusing to score (0.0) itself defensible against real corpus data?
+
+Checked whether any real match in the ERP corpus sits at exactly 1 distinctive word on its shorter
+side (which the floor would now wrongly refuse). All three `found: true` matches in the current
+real-corpus run score 0.636, 0.778, and 0.667 — comfortably away from the floor boundary, and by
+inspection of the truth titles none is a genuine 1-distinctive-word match. **No real false negative
+was found in this corpus from the floor itself**; this narrow part of the manifest's claim holds
+independently. The defect is on the false-positive side (documented above and in the primary
+verdict), not on the disclosed false-negative trade the manifest owns.
+
+### Contract judgment (concurs with primary verdict)
+
+- **VL11: FAIL**, independently reproduced by a different construction (shared domain noun, not
+  shared adjective) at both shorter=2 and shorter=3. Same-recording/same-second matching is not
+  reliable at exactly the boundary this unit introduces.
+- **VL12: PASS** — threshold remains observable and applied.
+- **VL13: PASS** — deterministic, content-only.
+- **I-VL7: PASS** — no provider/network/clock/randomness introduced.
+
+I concur with the primary verdict's FAIL and AT-279's framing, and add corroborating evidence
+(recall regression re-run, and a second, distinct construction of the same-mechanism false
+positive at shorter=2 and shorter=3) rather than a new issue — AT-279 already covers this defect
+class.
+
+```
+VERDICT: FAIL
+SCOREBOARD: 2/3 applicable criteria met, 1/1 applicable invariants hold
+FAILURES (if any):
+- [VL11] sev: high · at MIN_DISTINCTIVE_WORDS=2, one incidentally shared domain-noun word between genuinely unrelated faults scores 0.5 (shorter=2) or 0.333 (shorter=3), both above the shipped 0.30 threshold — corroborates AT-279 with an independent construction · same fix direction as AT-279 (exact-content path + stronger shared-token requirement for non-exact short pairs, tested through score()) · issue: AT-279
+LIVE-BROWSER: not-applicable (src/autotester/stages/similarity_score.py, tests/test_similarity_score.py)
+ISSUES-WRITTEN: none (corroborates existing AT-279, no new issue filed)
+EXPLANATION: Independently re-ran every verify command, the sabotage (3 failures at predicted 1.0 ceiling), and the real-corpus regression (recall 3/7 unchanged) in my own isolated extract. The floor genuinely suppresses the two AT-278-named examples but is not structural: it relocates the guaranteed-failure ceiling from 1 shared word to "floor value, one incidental shared word," which a shared domain noun (not just a contradictory adjective) still clears at the shipped threshold. Concurs with the primary verdict's FAIL.
+```
