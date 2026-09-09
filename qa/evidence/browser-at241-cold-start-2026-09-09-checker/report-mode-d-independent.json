@@ -1,0 +1,41 @@
+{
+  "unit": "at241-cold-start",
+  "cycle": 1,
+  "date": "2026-09-09",
+  "mode": "D — checker drove its own browser",
+  "note": "Written alongside the pre-existing report.json in this directory, which belongs to a different checker run (base http://127.0.0.1:8301, 15/17, generated_classes empty). That file was read as data and NOT trusted, overwritten, or relied on: every result below was produced by this checker. The other run's empty `generated_classes` is explained — its environment had no model provider, so `generate` correctly returned its no-provider refusal.",
+  "instrument": {
+    "app": "uv run uvicorn autotester.ui.app:app --host 127.0.0.1 --port 8020",
+    "browser": "Playwright MCP, real browser, checker-driven",
+    "providers_available": "gemini, langchain-fallback, mock",
+    "fixture": "scratch project `checkerdemo` with a DRAFT login FlowSpec built from the real schema (.work/checker-setup-flowspec.py); left in DRAFT deliberately so the review gate is exercised through the UI, not bypassed"
+  },
+  "verify_rerun_by_me": {
+    "pytest": "910 passed, 2 skipped",
+    "ruff": "All checks passed",
+    "doctor": "clean"
+  },
+  "criteria": [
+    {"id": "C1", "claim": "a project with no FlowSpec renders a page that states so and offers >=1 way onward", "result": "PASS", "evidence": "GET /projects/xssprobe/flowspec -> 200, offers 'Add a recording' (/sources) and /cases/new"},
+    {"id": "C2", "claim": "the review gate refuses an unsigned approval and changes nothing", "result": "PASS", "evidence": "clicked Approve with an empty name -> 400; flowspec on disk still status=draft, by=None"},
+    {"id": "C3", "claim": "the gate moves in both directions from the UI", "result": "PASS", "evidence": "signed Approve in the browser -> status=approved, by=checker-mode-d, at=2026-09-09T05:40:15Z, note persisted. Then request-edit with name+reason -> 303, status=needs_edit, attributed."},
+    {"id": "C4", "claim": "free-text review fields go through the credential guard (U8/U9)", "result": "PASS", "evidence": "posted the real GEMINI_API_KEY value from .env as a review note -> 400 'looks like it contains a real credential'. The value was never printed to the transcript."},
+    {"id": "C5", "claim": "Generate refuses as a themed page (not raw JSON) with no FlowSpec, when unapproved (X1), or with no provider; and writes no cases", "result": "PASS", "evidence": "no-flowspec -> 400 themed page 'Nothing to generate from'; unapproved -> 400 themed page 'The flowspec is not approved yet'; cases on disk stayed 0 after both."},
+    {"id": "C6", "claim": "every coverage gap from a run or crawl becomes exactly one VideoRequest (V1-V3)", "result": "PASS", "evidence": "crawl of checkerdemo -> req_bb8e26317632 'Record a short video showing the screen/flow at /'. THE FIRST VideoRequest EVER CREATED IN THIS PRODUCT. A second crawl left the count at exactly 1 (V3 idempotency)."},
+    {"id": "C7", "claim": "both new GET routes escape project data (U5)", "result": "PASS", "evidence": "project named <script>alert(1)</script>&'\\\" -> /flowspec and /requests each returned 0 raw payload occurrences and 2 escaped; the <title> is escaped too (&lt;script&gt;...), which was the maker's own noted mistake #1 and is genuinely fixed."}
+  ],
+  "headline_result": {
+    "claim": "EXPAND is reachable from a button and produces best / worst / edge",
+    "result": "PASS",
+    "evidence": "Clicked 'Generate cases' on the approved flowspec. ~120s of real model calls produced 10 cases across 10 DISTINCT taxonomy classes from one login flow: happy (best); auth_wrong_creds (worst); input_empty, input_boundary, input_unicode_oversize, double_submit, back_refresh_midflow, network_offline_slow, viewport_mobile, deeplink_unauth (edge). A second generate left the count at exactly 10 — content-addressed, idempotent.",
+    "significance": "Before this unit, all four projects held 52 cases of which 50 were 'happy' and NONE had been generated. This is the first time the product has produced a test case."
+  },
+  "findings": [
+    {"id": "AT-263", "severity": "medium", "summary": "review-gate refusals are raw JSON while generate refusals are themed pages — inconsistent within the same file"}
+  ],
+  "screenshots": [
+    "04-generated-10-cases-best-worst-edge.png",
+    "05-first-videorequest-ever-created.png"
+  ],
+  "console_errors": "1 per page, all GET /favicon.ico 404 (AT-248, pre-existing and already filed). No other console error on any page driven."
+}
