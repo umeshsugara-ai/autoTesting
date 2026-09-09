@@ -1489,3 +1489,25 @@ narrowly-fit to the one example.
 Next: await verdict; remaining high-sev backlog: AT-110, AT-226, AT-227,
 AT-232 (the SequenceMatcher threshold, sibling of AT-231), AT-242, AT-243,
 AT-253, AT-255/AT-256 (process debt, not buildable -- historical record).
+
+## 2026-09-09 tick — ADVANCED — AT-269/270 fixed (correcting my own misattributed evidence)
+Cycle-1 on at231 had a genuine split verdict: PASS from one checker, FAIL from
+another who independently re-derived my "measured real-world impact" table and
+found it named the WRONG PAIR with invented-looking precision (0.180/0.315,
+neither reproducible). Verified this myself before touching anything: the
+erp1 Rule T3 pair NEVER crosses the 0.30 threshold in any state (best match
+E-07 at 0.234); the real mechanism is the erp2 document-type pair matched
+against E-02 (0.247 -> 0.369). I had approximated E-01's truth text by hand
+instead of loading the real sheet -- same failure class as this session's
+other "reported a result I hadn't confirmed" incidents.
+Corrected the manifest with re-derived figures, stated the lesson plainly.
+Also fixed AT-270 (low, same checker): _apply_merge's tie-break was
+undocumented/untested -- now stated explicitly + pinned by a new test,
+sabotage-confirmed. No change to adjudicate.py's substantive merge logic --
+both checkers already agreed the CODE was correct; only my narrative was wrong.
+File trimmed 302->300 lines (cap) without losing reasoning.
+918 passed / 2 skipped, ruff+doctor clean. Committed 696784f, pushed. Fresh
+checker dispatched (agent afeefe7c1550b83b2) told explicitly not to trust
+either prior checker's numbers and to re-derive from scratch.
+Next: await verdict; high-sev backlog unchanged (AT-110, AT-226/227/242,
+AT-232, AT-243, AT-253, AT-255/256 process debt, AT-218 gate open).
