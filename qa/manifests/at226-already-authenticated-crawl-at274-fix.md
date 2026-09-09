@@ -101,4 +101,4 @@ test fixture and the test itself; no production code changed.
   is resolved further — that was already correctly recorded as harmless-but-disclosed and needs no
   action.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, verdict f346d8c)
