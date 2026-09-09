@@ -56,3 +56,88 @@ path mismatch as already-authenticated, and skips the case instead of running it
 timeout. Sabotage reproduces the exact AT-226 failure shape independently. The concurrent-commit
 collision (code landed in 2bb3270, credited to AT-242's message) is accurately disclosed and
 verified — not a bypass. Full verify chain is clean.
+
+---
+
+## INDEPENDENT CONCURRENT CHECK
+
+**Cycle checked:** 1
+**Date:** 2026-09-09
+**Checker:** fresh-context /checker, bound to D:/autoTesting (second, independent pass, no access
+to the first checker's reasoning)
+
+### Re-run evidence (executed by this checker independently)
+
+- `git show 2bb3270 -- src/autotester/stages/explore.py`: re-read directly. Confirms both
+  `_already_past_login` (AT-226, this unit, uncredited in that commit's message) and
+  `_terminal_status`/`BLOCKED_NO_ACTIONS` (AT-242, correctly credited) are present, and they are
+  **not entangled** — different functions, `_already_past_login` touches only `_bootstrap_login`'s
+  early-return; `_terminal_status` touches only `run_crawl`'s final status computation. Neither
+  reads nor writes state the other depends on. Manifest's disclosure is accurate.
+- `uv run pytest tests/test_explore_login_bypass.py tests/test_explore.py -q` → 22 passed (twice).
+- `uv run pytest -q` (full suite): **first run showed 1 failure**
+  (`test_a_redirect_away_from_the_login_page_is_treated_as_already_authenticated`,
+  `LOGIN_FAILED` vs expected `COMPLETED`) — traced to this checker's own concurrent background
+  pytest process racing the foreground run on Windows' shared `%TEMP%\pytest-of-<user>` tmp_path
+  counter, **not a defect in the unit**. Stopped the background process; three consecutive clean
+  full-suite reruns followed (all green). Recorded here per the re-run-yourself rule rather than
+  silently discarded.
+- `uv run ruff check src/autotester/stages/explore.py tests/crawl_fake.py tests/test_explore_login_bypass.py` → All checks passed.
+- `uv run autotester doctor` → clean.
+- `grep -n 'fill\|select_option\|upload' src/autotester/stages/explore*.py` → no calls, only
+  docstring/reference text and one `_already_past_login`/`fill.py`-unrelated comment; X10 intact.
+  `grep -n run_case src/autotester/stages/explore.py` → exactly one call site, inside
+  `_bootstrap_login`.
+- No route/template/component in the diff (`explore.py`, `tests/crawl_fake.py`,
+  `tests/test_explore_login_bypass.py`, the manifest) — Mode D / live browser correctly
+  not-applicable, confirmed from the changed paths directly, not from the manifest's claim.
+
+### Independent sabotage, own isolated extract
+
+`git archive HEAD` into a fresh scratch directory outside the repo, `uv sync` there, confirmed
+`autotester.stages.explore.__file__` resolves inside the extract before trusting anything.
+
+- **Direction (a) — break the redirect check so it never skips** (`_already_past_login` body
+  replaced with `return False`): `test_a_redirect_away_from_the_login_page_is_treated_as_already_authenticated`
+  FAILS exactly as AT-226's original defect — `CrawlStatus.LOGIN_FAILED`,
+  `stop_reason == "login case did not complete"`. Matches the manifest and the prior verdict.
+- **Direction (b) — break it so it always skips** (`_already_past_login` body replaced with
+  `return True`, in a *second*, separately re-extracted copy so direction (a)'s edit could not
+  leak into it): **all 22 tests in both files still pass**, including
+  `test_a_login_page_that_does_not_redirect_still_runs_the_case` — the test the prior verdict
+  cites as proof "the case still runs when no redirect occurs." It does not prove that. It only
+  asserts the terminal `crawl.status`/`stop_reason`, and the fake site's post-skip and post-fill
+  states are structurally identical for crawl purposes, so an always-skip regression is invisible
+  to the suite.
+
+### Disagreement with the first verdict (f718273)
+
+The first verdict's "Vacuous-guard check" paragraph asserts C2 ("does not redirect still runs
+normally") is MET and specifically claims the happy-path test "proves the case still runs" —
+but never sabotage-confirmed *that* direction, only direction (a). Doing so here shows the claim
+does not hold: the test cannot detect an always-skip regression. Filed as **AT-274** (severity:
+medium — current code is correct on direct reading, this is a verification gap, not a live
+defect: a future regression collapsing `_already_past_login` to `return True` would ship
+undetected).
+
+C1, C3, C4 independently re-verified and MET, consistent with the first verdict. The
+concurrent-commit collision disclosure is independently confirmed accurate.
+
+### Verdict
+
+VERDICT: FAIL
+SCOREBOARD: 3/4 criteria met, 2/2 invariants hold (X1, X10)
+FAILURES:
+- [C2] sev: medium · "login case does not redirect, still runs normally" is asserted by a test
+  that cannot detect an always-skip regression (sabotage direction (b) passes all 22 tests) ·
+  fix direction: assert the FILL step actually executed (e.g. via `FakeLocator`'s recorded state
+  or `rt.store.save_result` being called for the login case), not only terminal `crawl.status` ·
+  issue: AT-274
+LIVE-BROWSER: not-applicable (src/autotester/stages/explore.py, tests/test_explore_login_bypass.py, tests/crawl_fake.py — no UI surface changed)
+ISSUES-WRITTEN: AT-274
+EXPLANATION: The redirect-skip fix itself is correct and independently sabotage-confirmed in
+both directions in an isolated extract; the concurrent-commit collision is real but harmless and
+accurately disclosed. The finding is narrower: the genuine-login-still-runs test the contract
+relies on to close C2 is decorative against an always-skip regression, so C2 is not actually
+evidenced. This disagrees with the first checker's PASS (f718273), which asserted the same test
+proved the opposite without sabotage-testing that specific direction.
