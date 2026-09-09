@@ -63,6 +63,13 @@ def test_a_login_page_that_does_not_redirect_still_runs_the_case(tmp_path: Path)
     # step succeeds there -- the case runs to completion as normal.
     assert crawl.status is CrawlStatus.COMPLETED
     assert crawl.stop_reason == "frontier empty"
+    # AT-274: crawl.status/stop_reason alone cannot tell "the case genuinely
+    # ran" apart from "the case was skipped by an always-skip regression" --
+    # a checker sabotage (_already_past_login -> unconditional True) left
+    # this test green with the login case never touched. Assert the FILL
+    # step's own side effect happened, on the exact selector/value the case
+    # names, so an always-skip mutation fails here.
+    assert (IDENTIFIER, "someone") in page.fills
 
 
 def test_a_login_case_with_no_navigate_step_falls_back_to_running_it(

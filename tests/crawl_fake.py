@@ -88,6 +88,10 @@ class FakeLocator:
         already redirected past the login page."""
         if self.selector not in self.page.fillable.get(self.page.url, set()):
             raise TimeoutError(f"locator not found: {self.selector!r} on {self.page.url!r}")
+        # AT-274: recorded so a test can assert a FILL genuinely happened,
+        # not merely that the crawl completed -- `crawl.status` alone cannot
+        # distinguish "the login case ran" from "the login case was skipped".
+        self.page.fills.append((self.selector, value))
 
 
 class FakeSitePage:
@@ -97,6 +101,7 @@ class FakeSitePage:
         self.url = url
         self.history: list[str] = [url]
         self.clicks: list[str] = []
+        self.fills: list[tuple[str, str]] = []
         self.shots: list[str] = []
         self.redirects: dict[str, str] = {}
         """AT-226: simulates a login page redirecting away when the persistent
