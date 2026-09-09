@@ -57,10 +57,15 @@ entry points a person uses**, not only from tests:
   **only** once `review.status is APPROVED`, so X1 is enforced by the interface as well as by the
   code behind it.
 
-The button's three refusal paths — **no FlowSpec**, **an unapproved FlowSpec** (X1 reaching the
-UI), and **no provider with credentials** — each return a themed page carrying a next action, never
-a raw `{"detail": …}` blob, and each writes **zero** cases. A refusal that half-persists is worse
-than one that refuses, because the operator cannot tell which of the two happened.
+The button's four refusal paths — **no FlowSpec**, **an unapproved FlowSpec** (X1 reaching the
+UI), **no provider with credentials**, and **a `ProviderError` raised mid-generation by an
+otherwise-available provider** (AT-264: the one step that runs *after* every gate check passes) —
+each return a themed page carrying a next action, never a raw `{"detail": …}` blob, and each
+writes **zero** cases. A refusal that half-persists is worse than one that refuses, because the
+operator cannot tell which of the two happened. The fourth path holds because `expand()` returns a
+fully-materialized `list[Case]` (`stages/expand.py::expand`/`expand_flow`) — an exception raised
+mid-loop propagates before the function returns anything, so `generate_cases`'s
+`for case in cases: store.add_case(case)` never runs on a partial result.
 
 **Evidenced, not asserted:** this criterion is only met while a real run of it exists. Against a
 real approved `FlowSpec` and a live provider, the button produced **16 cases across 11 classes,
@@ -101,3 +106,31 @@ spanning all three `CaseKind`s (best / worst / edge)**, and `autotester expand` 
   nothing; the default `langchain-fallback` path is unaffected. AT-250's 50-of-52 measurement over
   the four REAL projects is untouched — this evidence comes from a synthetic project, and the
   taxonomy firing once does not retroactively populate suites that were never expanded.
+
+- 2026-09-09 · /checker (at264-generate-error-boundary unit, cycle 1) · **X6 amended to name a
+  fourth refusal path** — the criterion above listed only the three gate refusals; AT-264 added a
+  fourth (a `ProviderError` raised by the model itself, after every gate check passes), and
+  `qa/issues.jsonl`'s own checker-sweep filing of AT-264 already described this as a hole X6 did not
+  cover. Routine, non-weakening: it adds detail to an existing criterion and softens nothing.
+  Re-derived independently rather than read from the manifest: reverted the fix in a `git archive
+  dc8acef` extract (never the live tree) back to the bare pre-fix loop and confirmed
+  `tests/test_ui_learn.py::test_generate_when_the_model_fails_midway_is_refused_as_a_page_not_a_500`
+  fails with the exact same `ProviderError` class `providers/gemini.py` raises in production, then
+  confirmed it passes with the fix restored; read `stages/expand.py` to confirm `expand`/
+  `expand_flow` return a fully-materialized list (not a generator), so no partial write is possible
+  by construction, not merely by the test's luck. Went further than the manifest's disclosed gap
+  ("needs monkeypatching a provider instance inside a running server process, which a black-box
+  browser client cannot do"): setting `OLLAMA_BASE_URL` before starting a real `uvicorn` process adds
+  an ollama tier to `LangChainFallbackProvider`'s chain with no code change, and driving the
+  Generate button against it — first via a plain HTTP client, then via this checker's own
+  Playwright-driven Chromium (the shared MCP browser's profile was locked by a concurrent session;
+  launched an independent `playwright.chromium` instance instead of forcing it) — reproduced the
+  *exact* AT-264 failure shape live end-to-end: a themed 400 HTML page, zero `cases.jsonl` writes,
+  one explained console error (the page's own intentional 400 navigation, not a JS defect), and the
+  three sibling routes (approve/request-edit forms, the requests page) unregressed
+  (`qa/evidence/browser-at264-generate-error-boundary-2026-09-09-checker/report.json`). Also checked
+  and confirmed safe: the interpolated `f"Generating cases failed partway through: {exc}"` message
+  carries only `ProviderError`'s own text (a finish-reason label, a schema-mismatch summary, or —
+  live — `ModuleNotFoundError: No module named 'langchain_ollama'`), never a raw API key or prompt
+  content, across every `raise ProviderError(...)` site in `providers/gemini.py` and
+  `providers/langchain_fallback.py`. See `qa/verdicts/at264-generate-error-boundary.md`.

@@ -1,0 +1,50 @@
+{
+  "date": "2026-09-09",
+  "actor": "checker",
+  "unit": "at264-generate-error-boundary",
+  "server": "http://127.0.0.1:8091",
+  "interactions": [
+    {
+      "name": "open flowspec page",
+      "ok": true,
+      "detail": "Checker Demo \u00b7 FlowSpec \u2014 AutoTester"
+    },
+    {
+      "name": "generate button visible",
+      "ok": true,
+      "detail": "button present on approved flowspec"
+    },
+    {
+      "name": "generate click -> themed refusal (not 500)",
+      "ok": true,
+      "detail": "title='The model could not complete this \u2014 AutoTester'"
+    },
+    {
+      "name": "onward link present",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "requests page still 200/renders",
+      "ok": true,
+      "detail": "Checker Demo \u00b7 Video requests \u2014 AutoTester"
+    },
+    {
+      "name": "approve form still present (already approved state)",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "console error count",
+      "ok": true,
+      "detail": "1 error(s)"
+    }
+  ],
+  "console_errors": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+    }
+  ],
+  "generated_at": "2026-09-09T06:58:38.599040+00:00"
+}
