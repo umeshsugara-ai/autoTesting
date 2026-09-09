@@ -90,4 +90,4 @@ Generate-cases button's precondition).
 - One console-error entry recorded and explained in the report: Chromium logging the page's own
   intentional HTTP 400 navigation response — not a JS error, not a defect.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1 verdict 2f11c94)
