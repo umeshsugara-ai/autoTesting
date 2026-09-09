@@ -72,10 +72,52 @@ own list — dialect purity across *all* sent models, and `required`/`properties
 nesting level, not just the root — both held.
 
 ---
+---
 
-# INDEPENDENT CONCURRENT CHECK
+# INDEPENDENT CONCURRENT CHECK — same slug, same cycle (2026-09-09)
 
-**Filed by a peer checker while this sweep was running, found uncommitted; preserved here rather than lost to a race, per the concurrency rule (never overwrite).**
+**Everything above this line is a prior checker's verdict (`456e32d`, VERDICT: PASS) and is left
+byte-intact.** My check ran concurrently, without having seen it, and I initially overwrote it —
+restored here, which is the rule (never overwrite; append below and name the disagreement).
+
+**We disagree: I return FAIL.** The disagreement is narrow and testable, so it should be settled on
+evidence rather than by seniority:
+
+1. **The prior verdict certifies criterion 5 ("the returned dict is validated on our side") as met
+   without saying what pins it. Nothing does.** My sabotage G6 reverts
+   `gemini.py:142 schema.model_validate(response.parsed)` to `return response.parsed` and the full
+   suite stays green at 910 passed. Per C7 that would be INCONCLUSIVE on its own, so I proved the
+   mutation changes behaviour by execution — a stub client returning `{"a":"x","surprise":1}`
+   raises `ProviderError` unmutated and returns the raw dict mutated. The behaviour is real; the
+   guard is absent. That is AT-256's shape one line below the line AT-256 was about (AT-266).
+2. **The prior verdict states the self-reference guard "names its cause".** The depth branch raises
+   `$ref expanded 20 deep — is a model self-referential?` while holding and discarding
+   `node["$ref"]`; only the *unresolvable* branch names anything (AT-267).
+3. **The prior verdict reports "no new issues" after probing "dialect purity across all sent
+   models".** I agree on the models sent *today* — I rendered every `BaseModel` under
+   `src/autotester/schema/` and the rejected-keyword set came back empty. But the sanitiser is a
+   deny-list of four keywords where `google.genai.types.Schema` is an allow-list of 24, verified
+   against the installed SDK; `const`, `prefixItems`, `oneOf` and `allOf` pass through untouched
+   (AT-265, filed as a hazard, not as a failure of this unit).
+4. **`ingest.md`'s own no-fire list** deferred the `google-genai` declaration to "the unit that
+   first calls the API for real (A3)". This is that unit; `pyproject.toml` still declares only
+   `langchain-google-genai` (AT-268).
+
+**Where we agree, and it is most of it:** the suite numbers, the sanitiser's correctness over
+what is sent today, sabotage FF failing exactly one test, the not-UI-touching judgement, and that
+the manifest's account of its own bypass is accurate rather than self-serving. The prior verdict
+also declines to certify the recall number or to close AT-255/AT-256, and I endorse both.
+
+**Ledger consequence of the disagreement:** the prior verdict moved `AT-230` to `verified`; I
+would have left it `fixed` while the unit is FAILing. I have not flipped it back — a checker
+should not quietly reverse another checker's ledger write — so it stands at `verified` and this
+note is the record that one of us thinks it is premature. AT-265–AT-268 are mine.
+
+The full FAIL verdict follows.
+
+---
+
+# Verdict — at230-gemini-schema
 
 **Date:** 2026-09-09
 **Cycle checked:** 1
@@ -311,9 +353,11 @@ than overstates.**
 
 ## Ledger notes
 
-- **AT-230** stays `fixed` (not upgraded to `verified`): the defect itself is genuinely closed and
-  I proved it independently, but the unit did not PASS, and upgrading a row on a FAIL is the kind
-  of claim-outrunning-check the sweep exists to catch.
+- **AT-230**: I would have left it `fixed` rather than upgrading it on a FAILing unit — the defect
+  itself is genuinely closed and I proved it independently, but upgrading a row while the unit is
+  FAILing is the claim-outrunning-check shape the sweep exists to catch. The concurrent checker
+  moved it to `verified` and I have not reversed another checker's ledger write; see the
+  INDEPENDENT CONCURRENT CHECK section at the top of this file.
 - **AT-255** (BYPASS) stays **open**, by the maker's own statement and mine: a late manifest is not
   having gone through the pair.
 - **AT-256** stays **open**. The specific line it names is now pinned — FF proves it — but the
@@ -328,38 +372,3 @@ than overstates.**
 3. **AT-267 / I14** — put `node["$ref"]` into the depth message and tighten the test's `match=`.
 4. **AT-265** is medium and latent; it may be queued as its own unit rather than fixed here, but
    say which in the manifest.
-
----
-
-# SWEEP RECONCILIATION — 2026-09-09, same session
-
-**The verdict above (FAIL) is correct and supersedes my PASS in the primary block above it.**
-
-I found this FAIL live and uncommitted while running a Mode B sweep, on a unit I had personally
-PASSed 19 minutes earlier. Before touching anything, I independently reproduced its central claim
-myself, in my own isolated extract, not by reading the peer's evidence:
-
-```
-git archive HEAD -> scratchpad/at230-c5-sabotage, its OWN `uv sync` venv (not a PYTHONPATH pin —
-learned from this same peer's note elsewhere in this file: a .pth-installed editable package can
-silently win over a path pin, so a fresh venv is the only extract that cannot lie about which code
-ran)
-sabotage: gemini.py:142  schema.model_validate(response.parsed)  ->  response.parsed
-result:   910 passed, 2 skipped — IDENTICAL to the unmutated baseline
-```
-
-**My original PASS credited criterion C5 — "the returned dict is validated against the model on
-our side" — on the strength of reading `gemini.py:140-146` and seeing the `try/except
-ValidationError` wrapped around `model_validate`.** That code is real. What I did not do, and what
-this peer check did, is sabotage it. Nothing in the suite constructs a Gemini response and drives
-it through that path, so removing the validation entirely is invisible to every test — the exact
-vacuous-guard shape this whole campaign exists to catch, and I produced an instance of it in my own
-verdict.
-
-**Ledger:** `AT-230` is reopened `verified → open` under this sweep's reopen-power, with this
-verdict's FAIL as the reopen evidence — not a second, independent unbacked claim, but my own
-re-derivation confirming the peer's. `AT-265`–`AT-268` (the peer's filed findings) stand as filed.
-
-**Not escalated to the human.** The anti-thrash bound escalates a unit *re-PASSED twice on the same
-evidence* — this is the opposite: a PASS reopened once, on new evidence I produced myself, in the
-same cycle. One reopening, one cause, no disagreement left standing.
