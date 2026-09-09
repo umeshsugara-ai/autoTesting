@@ -64,8 +64,14 @@ def _resolve(node: Any, defs: dict[str, Any], refs: int) -> Any:
 
     if "$ref" in node:
         if refs >= MAX_REF_DEPTH:
+            # AT-267: name the reference, as the unresolvable branch below
+            # already does. A deep-but-finite acyclic model 20 refs deep trips
+            # this too, and 'is it self-referential?' with nothing to check
+            # against just sent the reader looking for a cycle that may not
+            # exist.
             raise SchemaTooDeep(
-                f"$ref expanded {refs} deep — is a model self-referential?")
+                f"$ref expanded {refs} deep at {node['$ref']!r} — "
+                f"is a model self-referential?")
         name = str(node["$ref"]).rsplit("/", 1)[-1]
         if name not in defs:
             raise SchemaTooDeep(f"unresolvable $ref: {node['$ref']}")

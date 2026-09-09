@@ -14,6 +14,7 @@ from __future__ import annotations
 import pytest
 from pydantic import BaseModel, ConfigDict, Field
 
+from autotester.providers.base import ProviderError
 from autotester.providers.gemini_schema import (
     MAX_REF_DEPTH,
     SchemaTooDeep,
@@ -141,8 +142,14 @@ def test_a_self_referential_model_is_refused_not_expanded_forever() -> None:
 
     from autotester.providers.gemini_schema import _resolve
 
-    with pytest.raises(SchemaTooDeep, match="self-referential"):
+    # AT-267: the message used to say 'is a model self-referential?' without
+    # naming which $ref tripped the depth guard -- matching only the word let
+    # that stay wrong and stay green. It must name the reference, the way the
+    # unresolvable-$ref branch beside it already does.
+    with pytest.raises(SchemaTooDeep) as caught:
         _resolve(deep, defs, 0)
+    assert '#/$defs/Loop' in str(caught.value)
+    assert 'self-referential' in str(caught.value)
 
 
 def test_deep_but_finite_structure_is_not_refused() -> None:
@@ -182,3 +189,78 @@ def test_the_PROVIDER_actually_sends_the_sanitised_schema() -> None:
     assert isinstance(sent, dict)
     assert "additionalProperties" not in keys_anywhere(sent)
     assert "$ref" not in keys_anywhere(sent)
+
+
+# -- I15: the response-path validation, guarded by execution not by reading --
+
+class _FakeResponse:
+    def __init__(self, parsed: object) -> None:
+        self.parsed = parsed
+        self.usage_metadata = None
+        self.candidates: list = []
+
+
+class _FakeModels:
+    def __init__(self, parsed: object) -> None:
+        self._parsed = parsed
+
+    def generate_content(self, **_kwargs: object) -> _FakeResponse:
+        return _FakeResponse(self._parsed)
+
+
+class _FakeClient:
+    """Stands in for `genai.Client` — no network, no API key check reached."""
+
+    def __init__(self, *_args: object, **_kwargs: object) -> None:
+        pass
+
+    def __getattr__(self, name: str):
+        raise AssertionError(f"unexpected genai.Client attribute access: {name}")
+
+
+def _fake_gemini_call(monkeypatch: pytest.MonkeyPatch, parsed: object):
+    """Wire a fake `genai.Client` whose `generate_content` returns `parsed`
+    as `response.parsed`, and run one structured call through it."""
+    import google.genai as genai_module
+
+    from autotester.providers.gemini import GeminiProvider
+
+    client = _FakeClient()
+    client.models = _FakeModels(parsed)
+    monkeypatch.setattr(genai_module, "Client", lambda **kw: client)
+
+    provider = GeminiProvider(api_key="fake-key")
+    return provider._structured("prompt", VideoObservation, role="vision")
+
+
+def test_extra_forbid_is_enforced_on_the_RESPONSE_path_too(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """I15 / AT-266. `response_schema` is now a sanitised dict, so Gemini's SDK
+    hands back a plain dict instead of building the model for us — and nothing
+    in this file called `_structured` to check what happens to that dict.
+
+    A checker sabotaged `schema.model_validate(response.parsed)` back to
+    `return response.parsed` and it failed **zero** tests: the sanitiser was
+    guarded, the one line spending its guarantee was not. AT-256's shape, one
+    line below the line AT-256 was about, inside the unit written to answer it.
+
+    An extra key IS what Gemini's dialect cannot express (`additionalProperties`
+    was stripped to satisfy the wire) — so a dict Gemini happily returns can
+    still violate this repo's own C1 (`extra="forbid"`), and something on our
+    side has to be the one place that still enforces it."""
+    with pytest.raises(ProviderError, match="does not fit"):
+        _fake_gemini_call(monkeypatch, {
+            "screens": [], "issues": [], "summary": "", "open_questions": [],
+            "surprise": "an extra key Gemini's dialect cannot forbid",
+        })
+
+
+def test_a_conforming_response_still_parses(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The other half — a validator that always refuses guards nothing."""
+    result = _fake_gemini_call(monkeypatch, {
+        "screens": [], "issues": [], "summary": "ok", "open_questions": [],
+    })
+
+    assert isinstance(result, VideoObservation)
+    assert result.summary == "ok"

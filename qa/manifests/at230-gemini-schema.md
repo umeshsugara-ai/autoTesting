@@ -3,11 +3,11 @@
 **Unit:** AT-230 — sanitise the response schema Gemini is sent, so a real vision call can succeed
 **Commits:** `99ea27d` (the fix, shipped **bypassing the pair**) + `e6f6818` (the guard, tracked and
 pinned afterwards)
-**Fix cycle:** 1
+**Fix cycle:** 2
 **Dual check:** no
 **Contract:** `qa/contracts/ingest.md` (provider seam), core-invariants **C8**
 **Goal task:** none — this is issue-driven
-**Issues addressed:** AT-230 · and the process debt AT-255, AT-256 that its shipping created
+**Issues addressed:** AT-230, AT-266, AT-267, AT-268 · AT-265 acknowledged as latent, not fixed this cycle · process debt AT-255, AT-256 still stands unresolved
 
 ## Read this first: this manifest is late, and that is the point
 
@@ -126,5 +126,65 @@ component, page or template.
 - The provider sends the **sanitised** schema, not the model class — pinned without a network call.
 - A self-referential model is refused locally, naming the reference, rather than sent.
 - The returned dict is validated against the model on our side.
+
+## Status: superseded by cycle 2
+
+---
+
+## Fix cycle 2 — the checker's FAIL, and what changed
+
+**Verdict: FAIL, 3/5.** The failing checker was right on all three, and one of them is sharper than
+anything in cycle 1: **AT-266** — the response-path validation this manifest's own C5 claim rested
+on was guarded by *nothing*. A concurrent PASS checker cited the code (`gemini.py:140-146`) and
+called it certified; the FAIL checker sabotaged the same line, reverted `schema.model_validate(...)`
+to a bare `return response.parsed`, and got **zero failures across the whole suite**. Proven
+behaviour-changing by direct execution with a stub client (not a C7 INCONCLUSIVE), so the code was
+correct and the *check* did not exist. That is AT-256's shape — reporting a guard as settled without
+confirming it ran — one line below the line AT-256 was originally about, inside the unit written to
+answer it.
+
+### What changed
+
+- **AT-266 (high) — fixed.** `tests/test_gemini_schema.py` gained a fake `genai.Client` (no network,
+  no key) driving `GeminiProvider._structured` end to end: an extra key in the returned dict raises
+  `ProviderError` naming the schema; a conforming dict parses into the real model. Re-sabotaged
+  myself, same mutation: **0 failures before this test existed, 2 after.**
+- **AT-267 (low) — fixed.** The `$ref` depth refusal named no reference; the sibling unresolvable
+  branch beside it did. Now: `f"$ref expanded {refs} deep at {node['$ref']!r} — is a model
+  self-referential?"`. The test used to match only the word `"self-referential"`, which is why the
+  wrong message could stay green — it now asserts the reference string is present too.
+- **AT-268 (medium) — fixed.** `google-genai>=2.22.0` declared directly in `pyproject.toml`.
+  `providers/gemini.py` and `gemini_files.py` import it directly; it had only ever arrived as a
+  transitive dependency of `langchain-google-genai`, undeclared for the one package this repo's
+  headline recall number depends on. Closes AT-130, which `ingest.md`'s no-fire list named this unit
+  as the one required to close.
+- **AT-265 (medium) — left open, deliberately.** The checker's own finding: `gemini_schema` is a
+  deny-list against four keywords that have already 400'd, while Gemini's dialect is a 24-field
+  allow-list; `const`/`prefixItems`/`oneOf`/`allOf` pass through untouched. **Measured latent, not
+  live** — every model under `schema/` renders with zero rejected keywords today. Fixing this
+  correctly means rendering against the SDK's allow-list rather than patching another deny-list
+  entry, which is a real design change and not a fix-cycle patch. Filed, not fixed, and said so here
+  rather than closing it on a narrower change that would look done.
+
+### What is still NOT fixed, and stays named
+
+- **AT-255 (the bypass) and AT-256 (the unconfirmed report) are process findings about how this
+  change shipped.** Nothing in this cycle undoes either — a late manifest, however thorough, does
+  not make the process have happened. Neither issue is touched by this cycle.
+
+### Verify
+
+```
+uv run pytest                                     → 912 passed, 2 skipped
+uv run ruff check src tests scripts               → All checks passed!
+uv run autotester map && uv run autotester doctor → doctor: clean
+```
+
+### On the concurrent-checker collision
+
+The FAIL verdict's account of the PASS verdict is accurate: C5 was certified by reading the code,
+not by sabotaging it, and the code's correctness (confirmed by both checkers, independently) is not
+the same claim as the check existing. This manifest does not relitigate that disagreement; it
+accepts the FAIL and fixes what it found.
 
 ## Status: ready-for-check
