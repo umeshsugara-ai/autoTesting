@@ -1437,3 +1437,24 @@ one of the high-severity opens (AT-110 tamper-check, AT-218 GRILL re: vacuous
 guards recurring, AT-226/227/242 explore crawl bugs, AT-231/232 video-learning
 recall accuracy, AT-243 no LIVE-BROWSER coverage, AT-253 dead agent-fallback
 code, AT-264 generate_cases error boundary).
+
+## 2026-09-09 tick — ADVANCED — AT-264 fixed (generate_cases error boundary), checker dispatched
+Wrapped generate_cases' expand() call in try/except ProviderError, returning
+the same themed _refusal() every sibling failure path in the route already
+uses -- closing the fourth (and last) unguarded failure mode the sweep found.
+Sabotage-confirmed: reverting the fix fails the new test with the exact
+production exception path (starved MockProvider queue, same as
+providers/gemini.py's real failure shape); restored immediately after.
+913 passed / 2 skipped, ruff+doctor clean. Real live-browser evidence
+(headless Chromium, real uvicorn, approved-flowspec scratch project):
+2/2 interactions pass, 0 JS console errors. Honestly disclosed gap: the exact
+mid-generation failure branch can't be driven live without monkeypatching a
+provider inside a running server, so pytest sabotage substitutes for that one
+branch -- flagged for the checker to judge/find-a-way-around if possible.
+Committed dc8acef, pushed. Fresh checker dispatched (agent a62786b6ed48373e7,
+background) with Mode D required (UI-touching route) -- also asked to sanity
+check the exception-message interpolation for secret leakage given C1.
+Next: await verdict; if PASS, T-264 closes and pull the next open high-sev
+item (candidates: AT-231/232 video-learning recall, AT-226/227/242 explore
+crawl bugs, AT-110 tamper-check, AT-218 GRILL re vacuous guards, AT-253 dead
+agent-fallback code, AT-243 LIVE-BROWSER coverage across older UI verdicts).
