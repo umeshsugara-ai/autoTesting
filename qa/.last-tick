@@ -1155,3 +1155,57 @@ reaches no reader) and AT-208 (adjudicate expected=None declares a fragment comp
 OPEN HUMAN GATES: AT-110 approval-forgery; ERP credentials; at147-expiry-end-of-day.
 PLUS ONE NEW HUMAN ACTION: restart Claude Code (or run /permissions) to make the blanket grants live
 in this session -- I cannot do either myself.
+
+## 2026-09-09 — tick: ADVANCED (32) — at206 PASS closed, AT-214 red cleared, scorer built and ready-for-check
+at206-guards-that-guard cycle 2: PASS, 11/11, fourteen sabotages all discriminating, zero
+INCONCLUSIVE. The checker REBUILT its predecessor's four zero-failure attacks from the cycle-1
+verdict text rather than trusting my account of them. Closed out.
+Three results from that verdict worth keeping, none flattering: EXPECTED_SITE_COUNT == 11 is close
+to DECORATIVE (inlining the composed message keeps count and set unchanged and still fails, because
+the interpolation assertion is what bites); a compensating pair INSIDE one file is silent (AT-214
+low, filed so the bound is countable rather than assumed away); and NEVER_A_COMMAND survives tuple
+and starred unpacking BY ACCIDENT -- right answer, wrong reason, recorded as luck.
+SWEEP LANDED, FINDINGS 5, and the headline DID NOT MOVE: seven issues filed since the last sweep,
+found_by checker-unit on ALL SEVEN. Self-caught 0 of 7; CUMULATIVE 0 OF 23. Its sharpest line:
+at206 existed ONLY to remove vacuity from a guard, and its cycle-1 check produced four fresh
+instances of the same class INSIDE the countermeasure. Fourth generation: fix -> guard -> guard-of-
+guard -> guard-of-guard-of-guard, each vacuous in a new way.
+AND IT CAUGHT ME RED-HANDED, WHICH IS THE POINT: the && verify chain BROKE BY SCOPE. My D-021
+governance commit (1e33584) landed .claude/settings.json + DECISIONS.md WITHOUT regenerating
+SNAPSHOT -- doctor RED on HEAD, FOURTH doctor-red push. The chain is a habit I apply to UNIT
+commits; governance commits sit outside it and nothing enforces it. So the one countermeasure the
+last sweep called uncontaminated has now produced an instance of the class inside itself. Cleared
+the red in 1aa9b1b; the durable half (governance commits inside the chain) is queued, NOT done.
+It also OVERTURNED one of my claims: AT-170 did NOT close VL1c's measured-placement half. My tests
+monkeypatch subprocess.run and assert -ss-after-i, which VL1c says IN AS MANY WORDS is not the
+criterion. Filed AT-215. AT-170 itself is correctly verified -- so this is a new finding, not a
+reopen. Third sweep VL1c has gone uncovered.
+It did NOT uphold the finding I asked it to check against me: D-021 names the permissions block in
+Changes-authorized and carries Approved-by, so .claude/settings.json is authorized. Residual it
+stated rather than filed: entry and change landed in the SAME commit rather than the entry first.
+NEW UNIT: the scorer (stages/score.py + scripts/score_video_issues.py), sweep's #2.
+IT DOES NOT DELIVER T-136'S NUMBER AND I SAID SO FIRST IN THE MANIFEST. `autotester providers`
+reports ONLY mock -- no vision credential, so projects/erp has no sources, no analysis, no issues,
+and NO MODEL HAS EVER WATCHED A RECORDING. Every Track A unit so far is built against fixtures and
+mocks. That is real work; it is not a measurement. T-136 STAYS PENDING; gate filed.
+THE EXIT CODE IS THE UNIT. Run today it refuses with exit 2 against the real 7-row sheet. A scorer
+exiting 0 with `recall: 0.0` would be AT-100's class AIMED AT THE NORTH STAR'S OWN METRIC, and
+would report "we found none of the 7" when the truth is "we never looked".
+Both real workbooks now load: Trainers 12 cols/`Clip`/7 rows, ALL 13 cols/`Recording`/32 rows --
+not the plan's 33. T-133's docstring claimed "the scorer accommodates both" while no scorer existed
+(AT-201); that claim is finally true and checked.
+AT-207 folded in: coverage numbers travelled with every analysis since T-133 and were read by
+NOTHING. AT-208 folded in: adjudicate(expected=None) recorded len(shifted), so every caller but
+analyze got an artifact declaring itself COMPLETE -- a default-value fallback inside the very field
+added to stop one. This scorer is the caller it was filed to protect.
+TWO OF MY OWN MISTAKES, both caught by running not reading: a test that passed a .py file to
+openpyxl and asserted MY error (openpyxl raised first, so it proved nothing about my code); and a
+CLI fixture BYTE-IDENTICAL to the truth rows, so tightening --window/--threshold changed nothing
+and the C9 test failed against a perfect fixture rather than against the code.
+Ten sabotages, all ten discriminate (1,5,8,1,2,2,3,1,1,1), zero INCONCLUSIVE. 846 passed / 2
+skipped, ruff + doctor clean. Checker dispatched this turn.
+NEXT: AT-215 (VL1c's real criterion) + AT-216 (malformed sidecar read as absent) + the durable half
+of AT-214. AT-218 raises a GRILL -- three sweeps unchanged, every countermeasure maker-authored,
+and the checker says it cannot settle it. That is a HUMAN_GATE and it is the honest read.
+OPEN HUMAN GATES: AT-110; ERP credentials; at147-expiry; t136-model-credentials (NEW);
+AT-218 GRILL "the recurring class -- every countermeasure so far is maker-authored".
