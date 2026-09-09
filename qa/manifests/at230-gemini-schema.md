@@ -187,4 +187,4 @@ not by sabotaging it, and the code's correctness (confirmed by both checkers, in
 the same claim as the check existing. This manifest does not relitigate that disagreement; it
 accepts the FAIL and fixes what it found.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 2 verdict d14ce4c)
