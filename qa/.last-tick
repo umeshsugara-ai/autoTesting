@@ -1209,3 +1209,44 @@ of AT-214. AT-218 raises a GRILL -- three sweeps unchanged, every countermeasure
 and the checker says it cannot settle it. That is a HUMAN_GATE and it is the honest read.
 OPEN HUMAN GATES: AT-110; ERP credentials; at147-expiry; t136-model-credentials (NEW);
 AT-218 GRILL "the recurring class -- every countermeasure so far is maker-authored".
+
+## 2026-09-09 — tick: ADVANCED (33) — FIRST REAL CRAWL OF A REAL PRODUCT; t136-scorer FAILED
+Umesh asked the question that mattered: "ye autoTesting ko real browser mai testing krr rha hai kya
+ya nhi... asili use vhi hona hai." Measured answer at the time: real browser YES (22 Chromium tests,
+58s, every run) but against a FIXTURE SITE I AUTHORED MYSELF -- the target written by the process
+under test. Real product: last run Sep 7. Crawl dirs: ZERO. The crawler had never touched a real
+product in its life.
+Then he said the credentials were already in .env. THEY WERE. GEMINI_API_KEY SET, all four Pathlynks
+keys SET, gitignored, untracked. `autotester providers` said `mock` because THE CLI NEVER LOADS THE
+REPO-ROOT .env -- ui/app.py:55 does, no CLI entry point does. So I filed
+qa/gates/t136-model-credentials.md AGAINST A BLOCKER THAT DID NOT EXIST and told him Track A was
+waiting on him. AT-228. The gate is now marked answered-and-WRONG rather than deleted: a gate that
+was never real is worth more on disk than a tidy gates directory.
+RAN IT: headed Chromium, slow-mo 150ms, READ_ONLY, approval appr_333a83b240ce, bounded 12
+screens/40 actions/300s, against https://pathlynks.vidysea.com/signin. FIRST CRAWL ARTIFACT THIS
+PROJECT HAS EVER PRODUCED. 35 seconds, three findings:
+AT-226 (high) -- ALREADY AUTHENTICATED ABORTS THE CRAWL. /signin redirected to the dashboard because
+the persistent profile held a live session; the login case then waited 30s for
+input[name="identifier"] which cannot exist there, and run_crawl gave up as login_failed with 0
+screens. IT WAS LOGGED IN AND COULD HAVE CRAWLED EVERYTHING. The screenshot is the proof -- the
+Pathlynks dashboard, "Good morning, MtLiteraJabalpur!".
+AT-227 (medium) -- an in-page modal (mood check) covers the first screen; DialogBreaker handles only
+NATIVE dialogs. The fixture site has no modal, which is exactly why a self-authored fixture could
+not surface it.
+SECURITY: .gitignore covered only shots/. crawl.json and frontier.json were COMMITTABLE and now
+carry a real product's internal structure -- in a PUBLIC repo. Extended the ignore. D-015 assumed a
+crawl artifact was a harmless local record; that assumption held only while the target was fake.
+t136-scorer: FAIL, 3/8. The checker was right and the finding is humbling: my centrepiece claim --
+"it exits 2 today, and that is why T-136 is not closed" -- was TRUE FOR THE WRONG REASON. The
+--root default resolves to D:\, so the shipped command reads D:\projects\erp\ OUTSIDE THE REPO;
+every test passes --root, so the shipped branch is executed by NOTHING, and T-136's done_check is
+STRUCTURALLY INCAPABLE OF CLOSING even after a credential arrives (AT-219). The refusal names
+`autotester issues derive`, which does not exist, and derive_issues has NO CALLER anywhere in src
+(AT-220, fifth instance of that lineage). Greedy max() ties hand the choice to file order -- recall
+0.5 vs 1.0 under permutation: AT-197's class IN THE MODULE THAT COMPUTES THE NORTH STAR (AT-221).
+Plus AT-222 coverage, AT-223 key collisions.
+One thing the checker volunteered that is worth keeping: "the guards this unit built are NOT
+vacuous -- all five failures are behaviour never guarded at all." Different failure mode from the
+one the sweep keeps measuring.
+NEXT: t136-scorer cycle 2 (AT-219/220/221/222/223), then AT-228's one-line load_dotenv which
+unblocks Track A for real.
