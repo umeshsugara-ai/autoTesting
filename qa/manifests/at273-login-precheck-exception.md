@@ -97,4 +97,4 @@ in one specific, rare case.
 - Does not claim every silent-exception pattern in `explore.py` is now fixed — only this one
   named function, matching the sweep's own specific finding.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, verdict a08118d)
