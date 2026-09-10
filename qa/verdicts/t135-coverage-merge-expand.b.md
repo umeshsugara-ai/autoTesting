@@ -549,3 +549,216 @@ duplicate ids for them, per AT-293's ruled `b`-suffix convention. Two blind chec
 the same two defects is the dual check working, not a wasted cycle. My third finding, **AT-297b**
 (the repair's durability and the propriety of rewriting real project data inside a unit cycle), is
 new.
+
+---
+
+# Verdict — t135-coverage-merge-expand · CYCLE 3 (SECOND INDEPENDENT CHECKER, dual check)
+
+**Cycle checked: 3**
+**Date:** 2026-09-11
+**Project root:** `D:/autoTesting` (bound)
+**Commit under test:** `cc00e9b`
+**Contracts:** `qa/contracts/ingest.md` (I6, I7, no-fire list) · `qa/contracts/coverage.md` (V1, V3,
+V6) · `qa/contracts/expand.md` (X6) · `qa/contracts/review-gate.md` (R1)
+**Independence:** this checker did NOT read `qa/verdicts/t135-coverage-merge-expand.md`, the maker's
+browser evidence, or checker A's browser evidence. Its own port, its own uvicorn, its own Chromium.
+New issue ids carry the `b` suffix per AT-293's ruling.
+**This was the LAST fix cycle.**
+
+```
+VERDICT: PASS
+SCOREBOARD: 7/7 criteria met, 7/7 invariants hold
+FAILURES: none at criterion level
+LIVE-BROWSER: qa/evidence/browser-t135-coverage-merge-expand-2026-09-11-checkerB-c3/report.json
+ISSUES-WRITTEN: AT-298b (high), AT-299b (medium) — neither is a criterion failure
+```
+
+## 1. The core promise, driven end to end by this checker
+
+The unit's promise is a closed loop, so I drove the loop rather than judging its parts.
+
+| Step | How it was driven |
+|---|---|
+| an unknown route is observed by a run | results + run written to a real on-disk store, then **`ui/routes_runs.py::_ask_for_what_it_did_not_recognise`** — the production function the run route calls after `save_run`. Queued one request on gap `/erp/trainers/{id}`, status OPEN. (The HTTP POST itself was not driven: it launches a real browser session against a live product. Declared gap.) |
+| a human records the answer | `register_source` on a real file, real sha256 |
+| the recording's observed url is **SCHEMELESS** | `ObservedScreen.url = "demo.test/erp/trainers/7"` — the only shape `projects/erp/sources/*/analysis.json` actually contains |
+| INGEST + MERGE | **`autotester ingest run demo <src> --merge` through the real typer CLI app.** Only `providers.get` was stubbed; the command function, the store, `merge_flowspec`, `resolve_requests` and every write ran for real. Exit 0. |
+| the answer lands without destroying the review | on disk: the hand-reviewed screen survives **verbatim** (`scr_signin`, `/signin`); the recording's screen is **added** as `/erp/trainers/{id}`; v3→v4; review **APPROVED→draft** (R1 re-armed, not bypassed) |
+| the request closes | `status=fulfilled`, `fulfilled_by_source=src_a3fe7abeef64` — the **answering screen's own** source, not the merge's fallback (AT-291/checkerB) |
+| the gap stops being reported | `diff_coverage(spec, results)` → `[]` |
+| merging the same recording twice | version unchanged, `0 request(s) closed`, review not re-armed |
+
+**And the other door, in a real browser, by hand:** on
+`/projects/checkerdemo/crawls/crawl_01M22B474QM5956JR0ZQA8M9M4` I clicked *"Merge these screens into
+the FlowSpec"*. The coverage card went `1 screen(s) the FlowSpec cannot name: /` → `0 … none`, and
+`requests.jsonl` went `open` → **`fulfilled`** (`fulfilled_by_source=crawl_…`). A second click
+changed nothing. **AT-289 — the cycle-1 finding that the loop was closed on the CLI path only — is
+fixed and verified through the product's own button, not through a helper call.** 0 console errors
+on every page.
+
+The loop is closed. That is what the two previous cycles left open, and it is now true.
+
+## 2. Criterion by criterion
+
+- **ingest I6** — `--merge` reaches an APPROVED spec without `--replace` and without discarding the
+  review; `persist_ingest`'s refusal path is untouched, and the CLI refuses `--merge --replace`
+  together (exit 2, message naming the tradeoff, nothing written). **MET.**
+- **ingest I7** — `url_pattern` comes from `url_template`, is set only when a url was observed, and
+  the defending cross-seam test now feeds the **video side a schemeless url and the crawl side a
+  scheme-ful one**. *Load-bearing, re-derived:* in a `git archive cc00e9b` extract (import verified
+  to resolve to the extract before any result was trusted) I reverted `absolute_url` to the identity
+  — `test_a_video_screen_and_a_crawled_screen_of_one_url_produce_one_pattern` **fails, and nothing
+  else does**. The vacuity charged in cycle 2 is gone. **MET.**
+- **ingest no-fire list** — "merging into an existing FlowSpec" is deferred to A6, which is this
+  unit. No scope violation. **MET.**
+- **coverage V1** — both sides of every diff go through `url_template(..., keep_host=False)`;
+  `coverage.py` was not touched this cycle. **MET.**
+- **coverage V3** — one request per gap, idempotent across store calls: verified on disk through two
+  identical CLI merges and two identical button clicks. **MET.**
+- **coverage V6** — the opening direction stays wired at both entry points, and the **closing**
+  direction now is too (`cli_video.py::_merge_into_reviewed`, `ui/routes_crawls.py:252`).
+  *Load-bearing:* `resolve_requests` body → `return []` fails **exactly 8 tests**, including one per
+  door. **MET.**
+- **expand X6 (the door rule)** — the stage has a reachable door and its refusal writes nothing.
+  **MET.**
+- **review-gate R1** — a merge that changes anything returns the spec to DRAFT so EXPAND is blocked
+  until a human re-approves; a no-op merge does not re-arm it. Observed on disk both ways. **MET.**
+
+## 3. `absolute_url` — I attacked the assumption
+
+The assumption is *"the caller knows the string is absolute because it came out of an address bar."*
+
+It is **correct for every address-bar shape I could construct**: schemeless host, scheme-ful,
+`host:port`, protocol-relative `//host/x`, an already-rooted `/path`, a query, a fragment, and the
+elided `…/` prefix a browser renders. And it **is** grounded in the prompt —
+`src/autotester/prompts/ingest_video_v1.md` says *"Record the URL only when the address bar is
+legible on screen. Copy it exactly … A guessed URL is worse than none."*
+
+But nothing **enforces** it. `schema/observation.py` declares `url: str | None` with no pattern, no
+validator, no format, and `_to_screen` passes it straight through. So a model that answers with a
+hostless path or with prose is refused nowhere, and the new code handles those *worse* than cycle 2
+did: `'erp/trainers'` → `/trainers` (first segment silently eaten; cycle 2 produced the correct
+`/erp/trainers`), `'students/1'` → `/{id}`, and `'Sign in page'` → **`/`** — a false claim that the
+site root is covered, where the old code produced harmless junk.
+
+**Ruling: not a criterion failure.** I7 governs the schemeless address-bar case and that case is now
+correct end to end; the assumption is far narrower and better grounded than AT-287's deleted
+`_LOOKS_LIKE_HOST`, which had to tell `settings.json` from `example.com`; and the limit is documented
+on the function. Filed as **AT-299b (medium)** with a cheap non-guessing remedy: if the templated
+result is `/` while the raw url was not root-shaped, store `None` — I7 already makes `None` the
+normal, honest outcome, and "no pattern" beats a false claim on the root.
+
+## 4. Stored-shape sweep — repeated from scratch
+
+I re-derived every `url_pattern` / `url_template` / `url_example` value in every `.json` and `.jsonl`
+under `projects/`: **9 values, 1 distinct**, and the only value the new code mis-compares is
+`/vidysea.com/erp/trainers` in **`projects/erp/screenmap.json` (3 rows)**. That is the only one.
+Alongside it, confirmed:
+
+- the maker **did revert** the cycle-2 hand-edit — the file is back to its real, corrupt state
+  (`git diff cc00e9b~1..cc00e9b` touches no file under `projects/`), and the corruption renders live
+  on `/projects/erp/product-map` in my own browser;
+- **leaving it is genuinely harmless beyond that display.** `screenmap.json`'s `url_pattern` is read
+  in exactly one place — `ui/routes_product_map.py:45`, as escaped display text. `attach_screenshots`
+  matches on screen *name*; `routes_flow_diagram` reads journeys/stops. `projects/erp` has **no
+  `flowspec.json`**, so the value cannot reach coverage, merge or `resolve_requests`;
+- **the producer really is fixed:** I ran `build_screen_map(ProjectStore('erp'))` myself against the
+  real analyses — `['/erp/trainers', …]`, mangled **False**. It heals on the next Analyze.
+
+## 5. `scripts/migrate_url_patterns.py` judged as production code — AT-298b (high)
+
+Good: dry run by default; idempotent (a second run says "nothing to repair"); a missing root exits 2;
+unreadable/invalid JSON is skipped; the `"screens": 1` count guard is real. Driven with `--write`
+against a **sandbox copy** of the real tree it repaired exactly the 3 intended rows, was idempotent,
+and changed exactly 36 bytes — no wholesale reformat.
+
+**But its central safety claim is false, and it reproduces:**
+
+    repair('/v1.2/foo')      -> '/foo'        # first segment silently deleted
+    repair('/index.html')    -> '/'
+    repair('/settings.json') -> '/'
+    repair('/sitemap.xml')   -> '/'
+
+`_MANGLED` anchors on *any* dotted label pair in the first segment — which a genuine path segment
+has. Three documents assert the opposite: the module docstring (*"a genuine path segment carrying a
+dot (`/v1.2/foo`) is NOT matched"*), the manifest's cycle-3 AT-297b paragraph, and
+**`qa/gates/t135-url-pattern-data-migration.md`, the document a human decides on** (*"it refuses to
+touch a first path segment that merely contains a dot"*). And
+`test_a_real_path_segment_containing_a_dot_is_not_treated_as_a_host` asserts only
+`/v1/release-1.0/notes` and `/docs/settings.json` — **deeper** segments, which the anchored regex
+could never match. The test's name states a property the test cannot see, and it passes while the
+property is false. That is the same shape this project has charged twice already.
+
+Undo: `projects/` is **untracked** in git, the script takes no backup, and `apply()` rewrites the
+whole document — so a false-positive repair is not recoverable by git and, on a file not already
+`indent=2`, not even locatable by diff. Remaining production concerns are minor and do not bite at
+`--root projects`: `sorted(rglob)` materialises the tree, pathlib swallows permission errors during
+traversal, and `rglob` on Python 3.11 will descend a directory symlink.
+
+**Why an issue and not a FAIL.** It is governed by no criterion of the four contracts; it is dry-run
+by default; it has not been run against real data; and on today's real data there is **no**
+false-positive value to hit — I checked every one. **One condition, and it is not optional:
+`qa/gates/t135-url-pattern-data-migration.md` must not be answered with option A until AT-298b is
+fixed or the three false claims are struck.** A human approving an irreversible write to untracked
+data on the strength of a safety claim that is false is the worst shape this ledger records. Option B
+(re-run Analyze) is unaffected and remains the better answer.
+
+## 6. Regression risk on the other three `url_template` callers — clean
+
+`absolute_url` is called from exactly two places, both vision boundaries: `stages/ingest.py:99` and
+`stages/product_map.py:40,61`. The other three callers — `stages/coverage.py:30`,
+`stages/explore_merge.py:73`, `stages/screen_identity.py:53` — are **untouched**, confirmed by grep
+and by `git diff cc00e9b~1..cc00e9b --stat`, which lists none of them. `url_template`'s body is
+byte-unchanged this cycle; only a docstring and a new sibling function were added.
+
+## 7. Verify commands — all re-run by me, all reproduce
+
+| Command | Claimed | Mine |
+|---|---|---|
+| `uv run pytest -q` | 1042 passed, 2 skipped, exit 0 | exit **0**; 1044 collected, 2 skipped ⇒ **1042 passed, 2 skipped** ✓ |
+| `uv run ruff check src tests scripts` | exit 0 | `All checks passed!` exit **0** ✓ |
+| `uv run autotester doctor` | exit 1, exactly one violation (AGENTS.md) | `root-clutter: AGENTS.md` · `1 violation(s)` · exit **1** ✓ |
+| `uv run pytest tests/test_merge_flowspec.py tests/test_coverage.py` | 25 passed | **25 passed** ✓ |
+| `uv run python scripts/migrate_url_patterns.py` | 3 rows, 1 file, writes nothing | 3 rows in `projects\erp\screenmap.json`; `would repair 3 … across 1 file(s)`; exit 0; **file byte-unchanged** ✓ |
+
+Sabotage (all in a `git archive cc00e9b` extract whose `autotester` import was verified to resolve to
+the extract before any result was trusted): **#1** → 1 test fails, the right one · **#3** → 1 test
+fails, the right one · **#5** → **exactly 8**, both doors among them. The maker's cycle-3 sabotage
+predictions are accurate for the first time in three cycles.
+
+## 8. Ledger
+
+Appended **AT-298b** and **AT-299b** only. My own evidence independently supports the `fixed` claims
+on AT-287, AT-288, AT-289, AT-290 (both rows), AT-291 (both rows), AT-294, AT-295 and AT-297b, but I
+have **not** flipped those rows to `verified`: the primary checker is their writer, `qa/issues.jsonl`
+is being appended to by two checkers, and a lost update on eight rows is worse than a deferred flip.
+AT-296 (low — the `b`-suffix convention is not written anywhere the next second-checker will read it)
+stays open; I complied with the ruling by reading it here rather than by being told.
+
+## 9. The judgements the maker offered
+
+1. **AT-287/AT-294 fixed inside this unit — scope creep?** No. `resolve_requests` can never close a
+   video-answered gap while the pattern a recording teaches does not match the path the request was
+   raised on. My end-to-end drive is the proof: with the schemeless url the loop closes; with
+   `absolute_url` reverted the cross-seam assertion fails.
+2. **`_disagreement` → `disagreement`.** Accepted. Behaviour identical, and the rename exists so the
+   video seam and the crawl seam share one rule — which is what C1 asks for. Explore's contract prose
+   naming the private form is a docs nit, not a defect; not filed.
+3. **The `_LOOKS_LIKE_HOST` heuristic.** Moot — deleted in cycle 2. Its successor assumption is
+   attacked in §3.
+4. **AT-287 filed by the maker, not the checker.** Left standing rather than re-filed: the id is
+   cited in shipped code and in two verdicts, and renumbering would destroy the audit trail, exactly
+   as AT-293 ruled.
+
+## What this PASS does and does not certify
+
+It certifies that the self-extension loop closes **end to end on the data shape this repo actually
+contains**, through **both** doors, with a human's review preserved and re-armed. It does **not**
+certify `scripts/migrate_url_patterns.py --write` against any tree other than today's `projects/`
+(AT-298b), and it does **not** certify `absolute_url` against a vision answer that is not an
+address-bar transcription (AT-299b).
+
+*Written by /checker (checker B) after re-running every verify command, three sabotages, a full
+end-to-end drive of the loop, and its own Mode D browser session. Read-only toward code, artifacts
+and real project data throughout: every interaction ran against a sandbox copy, and
+`D:/autoTesting/projects` was confirmed unchanged afterwards.*

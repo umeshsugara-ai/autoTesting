@@ -1,0 +1,68 @@
+{
+  "unit": "t135-coverage-merge-expand",
+  "cycle": 3,
+  "checker": "checkerB (second independent checker of a CRITICAL unit)",
+  "date": "2026-09-11",
+  "commit_under_test": "cc00e9b",
+  "independence": "This checker chose its OWN port, started its OWN uvicorn, and drove its OWN Playwright Chromium. It did NOT read the maker's evidence report, checker A's evidence report, or qa/verdicts/t135-coverage-merge-expand.md. No curl was substituted for the browser.",
+  "server": {
+    "command": "uv run uvicorn autotester.ui.app:app --host 127.0.0.1 --port 54121",
+    "port": 54121,
+    "port_chosen_by": "checkerB (socket bind to port 0); distinct from checker A's 64114 / 62436 and from the maker's",
+    "AUTOTESTER_ROOT": "a SANDBOX COPY of D:/autoTesting/projects (scratchpad/sbB3/projects) — chosen deliberately so that INTERACTING (clicking the merge button, running the migration with --write) could not mutate real project data. Verified after the run: D:/autoTesting/projects/erp/screenmap.json still holds the 3 corrupt rows, git status unchanged."
+  },
+  "pages": [
+    {
+      "url": "/projects/erp/product-map",
+      "state": "before migration",
+      "console_errors": 0,
+      "observed": "8 learned screens render. THREE cards ('Trainers', 'Trainers List', 'Trainers List - Edit Drawer') show URL /vidysea.com/erp/trainers — the AT-287/AT-294 corruption, still rendered to a human. This is the deliberate, gated residue the maker declares; confirmed present and confirmed display-only."
+    },
+    {
+      "url": "/projects/checkerdemo/crawls/crawl_01M22B474QM5956JR0ZQA8M9M4",
+      "state": "before merge",
+      "console_errors": 0,
+      "observed": "'Against the FlowSpec' card: FlowSpec v1, review needs_edit, '1 screen(s) the FlowSpec cannot name: /'. requests.jsonl: req_bb8e26317632 status=open (the only VideoRequest this system has ever produced)."
+    },
+    {
+      "url": "/projects/checkerdemo/crawls/crawl_01M22B474QM5956JR0ZQA8M9M4",
+      "state": "INTERACTION 1 — clicked 'Merge these screens into the FlowSpec'",
+      "console_errors": 0,
+      "asserted_state_change": {
+        "coverage_card": "'1 screen(s) the FlowSpec cannot name: /' -> '0 screen(s) ... none'",
+        "flowspec.json": "version 1 -> 2, screens 0 -> 1, url_pattern '/', review draft",
+        "requests.jsonl": "req_bb8e26317632 status open -> FULFILLED, fulfilled_by_source=crawl_01M22B474QM5956JR0ZQA8M9M4"
+      },
+      "verdict": "AT-289 (checker A, cycle 1) is FIXED and verified through the product's own button, not through a helper call. The UI door now closes the ask, exactly as coverage.md V6 requires of the opening direction."
+    },
+    {
+      "url": "/projects/checkerdemo/crawls/crawl_01M22B474QM5956JR0ZQA8M9M4",
+      "state": "INTERACTION 2 — clicked the same button a second time (idempotence through the door)",
+      "console_errors": 0,
+      "asserted_state_change": "NONE. flowspec still v2 / 1 screen / draft; the request stays fulfilled and is not re-stamped. A merge that re-armed the review gate on every click would make the loop un-closeable (review-gate R1)."
+    },
+    {
+      "url": "/projects/erp",
+      "console_errors": 0,
+      "observed": "project page renders unregressed"
+    },
+    {
+      "url": "/projects/erp/product-map",
+      "state": "after INTERACTION 3 — ran `scripts/migrate_url_patterns.py --root <sandbox>/projects --write`",
+      "console_errors": 0,
+      "observed": "All three cards now render URL /erp/trainers. Second run of the script reports 'nothing to repair' (idempotent). Byte delta of screenmap.json is exactly 36 bytes (3 x 12 removed chars) — no wholesale reformat on this already-indent-2 file.",
+      "verdict": "The migration does what the gate document says it does, on real (copied) data, and the repaired value matches what the fixed producer regenerates."
+    }
+  ],
+  "console_errors_total": 0,
+  "non_browser_evidence_produced_by_this_checker": {
+    "full_loop_drive": "scratchpad/drive_loop.py — an unknown route observed by a real run -> ui/routes_runs.py::_ask_for_what_it_did_not_recognise queues req (gap '/erp/trainers/{id}') -> `autotester ingest run demo <src> --merge` through the REAL typer CLI (only providers.get stubbed) with a SCHEMELESS observed url 'demo.test/erp/trainers/7' -> merged spec on disk: reviewed screen survives verbatim, v3->v4, review APPROVED->draft, new screen url_pattern '/erp/trainers/{id}' -> request FULFILLED attributed to the answering screen's own source -> diff_coverage now reports []. Second identical merge: version unchanged, 0 requests closed.",
+    "sabotage_1": "absolute_url -> identity, in a git archive cc00e9b extract (import verified to resolve to the extract): tests/test_ingest_persist.py::test_a_video_screen_and_a_crawled_screen_of_one_url_produce_one_pattern FAILS and nothing else does. The cross-seam test is no longer vacuous.",
+    "sabotage_3": "_conflicts_for called without `learned`: tests/test_merge_flowspec.py::test_learning_a_pattern_another_screen_claims_records_a_conflict FAILS.",
+    "sabotage_5": "resolve_requests body -> `return []`: exactly 8 tests fail, including BOTH doors (test_coverage_wiring.py::test_the_merge_button_closes_the_request_the_crawl_answers and test_merge_flowspec_cli.py::test_the_cli_merge_closes_the_request_that_asked_for_the_recording)."
+  },
+  "declared_gaps": [
+    "No live vision-provider call: no real recording exists in-repo and a fake mp4 fails the model call rather than the merge. ONLY the observation is stubbed; the CLI command, the store, the merge, the request ledger and the coverage diff all ran for real.",
+    "The HTTP POST that starts a run was not driven (it launches a real browser session against a live product); the production function it calls after save_run, ui/routes_runs.py::_ask_for_what_it_did_not_recognise, WAS driven against a real on-disk store. The crawl half's door was driven through the actual button in a real browser."
+  ]
+}
