@@ -4,9 +4,15 @@
 **Contract:** `qa/contracts/ui.md` + `qa/contracts/browser-and-secrets.md` + `qa/contracts/core-invariants.md`  
 **Goal task:** T-161 (`user_value: high`, critical)  
 **Date:** 2026-09-10  
-**Fix cycle:** 1  
-**Implementation commit:** `4c09990`  
+**Fix cycle:** 2  
+**Implementation commit:** `4c09990` + fix `d92af87`  
 **Decision:** D-025 (supersedes D-024)
+**Issues addressed:** AT-284
+
+**Cycle 2:** Both blind cycle-1 checkers found the same pre-guard secret-echo failure: a newly
+submitted hostname-shaped credential could be interpolated by reachable-URL validation before it
+entered the redactor. `d92af87` moves that validator after `_guard_intake` and adds the exact HTTP
+reproduction. Full suite reached 100% after the fix; the focused cycle-2 security set passed 33/33.
 
 ## Submitted behavior
 
@@ -39,14 +45,14 @@ fixes for three credential/atomicity defects, then returned `Approve` with no ma
 
 ## Required independent browser check (Mode D)
 
-Use a fresh visible browser against commit `4c09990`; do not reuse maker evidence. At minimum:
+Use a fresh visible browser against `4c09990` + `d92af87`; do not reuse prior evidence. At minimum:
 
 1. Open `/onboard` and verify all intake categories coexist in one usable form.
 2. Submit a rich fake project with a scoped credential reference (no real credential), at least one
    eval/condition/use case and a URL/Drive declaration.
 3. Verify the project and Sources pages show persisted truth, while no raw credential value renders.
-4. Attack re-onboarding and cross-project duplicate credential ownership; both must refuse without
-   partial artifacts or secret echo.
+4. Attack re-onboarding, cross-project duplicate ownership, and the AT-284 hostname-shaped secret
+   in allowed-domains refusal; all must refuse without partial artifacts or secret echo.
 5. Record unexplained browser console errors.
 
 Maker browser evidence:
@@ -59,5 +65,5 @@ batch-write requirements into checker-owned criteria before judging. Do not weak
 
 ## Scope boundary
 
-Judge implementation commit `4c09990` plus this manifest. Ignore unrelated working-tree/runtime
+Judge implementation commits `4c09990` + `d92af87` plus this manifest. Ignore unrelated runtime
 artifacts (`AGENTS.md`, `.codex/`, `.goal/*`, `qa/.last-tick`, and pre-existing `projects/*`).
