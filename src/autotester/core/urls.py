@@ -34,6 +34,29 @@ def _template_segment(segment: str) -> str:
     return segment
 
 
+def absolute_url(url: str) -> str:
+    """Restore the scheme a browser hid, so the host is never read as a path.
+
+    An address bar shows an ABSOLUTE url, and every mainstream browser now hides
+    `https://` — so a vision model transcribing one returns `vidysea.com/erp/trainers`,
+    not `https://vidysea.com/erp/trainers`. `urlsplit` has no `//` to anchor on
+    there, puts the host in `.path`, and `url_template` templates it as a path
+    segment: `/vidysea.com/erp/trainers`. That is AT-294, and it is why the same
+    screen learned from a video and found by a crawl still did not collapse to
+    one row after both producers were switched to `keep_host=False` — the flags
+    agreed, the inputs did not.
+
+    This is NOT the host-shape guessing AT-287's first fix tried and failed at
+    (`settings.json` and `example.com` are indistinguishable by shape). The
+    caller here KNOWS the string is an absolute url, because it came out of an
+    address bar; only the scheme is missing. Callers holding a genuine relative
+    path must not use this.
+    """
+    if not url or "//" in url.split("?", 1)[0][:8]:
+        return url
+    return url if url.startswith("/") else f"https://{url}"
+
+
 def url_template(url: str, *, keep_host: bool = True) -> str:
     """Normalise `url` to a screen-identity path: strip query/fragment,
     collapse repeated slashes, template id/date-shaped segments, and drop a

@@ -168,3 +168,23 @@ def test_an_existing_url_pattern_is_never_overwritten_by_a_later_one() -> None:
 
     assert merged.screen("scr_1").url_pattern == "https://app.test/signin"
     assert merged is existing, "nothing was learned, so this is a no-op"
+
+
+# -- AT-295: a LEARNED pattern is a claim too, and must face the conflict rule --
+
+def test_learning_a_pattern_another_screen_claims_records_a_conflict() -> None:
+    """`_conflicts_for` iterated `added` only, so filling an empty url_pattern
+    with one another screen already claims produced two screens at one pattern
+    and NO Conflict — silently picking a winner, which is the one thing this
+    seam exists not to do."""
+    existing = approved(
+        screen("scr_1", "Trainers", "https://app.test/erp/trainers"),
+        screen("scr_2", "Trainer list", None),
+    )
+    incoming = ingested(screen("scr_2", "Trainer list", "https://app.test/erp/trainers"))
+
+    merged = merge_flowspec(existing, incoming, source_id="src_video_2")
+
+    assert merged.screen("scr_2").url_pattern == "https://app.test/erp/trainers"
+    assert len(merged.conflicts) == 1, "two screens now claim one url and nobody was told"
+    assert merged.conflicts[0].subject == "https://app.test/erp/trainers"

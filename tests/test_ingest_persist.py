@@ -252,17 +252,27 @@ def test_a_video_screen_and_a_crawled_screen_of_one_url_produce_one_pattern(
     from autotester.schema.screen_graph import ScreenNode
     from autotester.stages.explore_merge import screen_from
 
-    url = "https://demo.test/trainers/123?tab=2"
+    # The two sides genuinely differ in shape, which is the whole point:
+    # a vision model reads the address bar, and browsers HIDE the scheme, so the
+    # video side is schemeless. The crawler gets its url from the browser API and
+    # always has one. Feeding both the same scheme-ful string made the first
+    # version of this test pass vacuously (checker A, cycle 2) — it never
+    # exercised the shape that actually broke, which is the only shape
+    # `projects/erp`'s real recorded data contains.
+    from_the_address_bar = "vidysea.com/erp/trainers"
+    from_the_browser_api = "https://vidysea.com/erp/trainers"
     store = make_store(tmp_path)
     source = register_source(store, a_video(tmp_path))
     observation = VideoObservation(
-        screens=[ObservedScreen(name="Trainers", t_start=1.0, t_end=9.0, url=url)])
+        screens=[ObservedScreen(name="Trainers", t_start=1.0, t_end=9.0,
+                                url=from_the_address_bar)])
 
     from_video = ingest_video(source, "demo",
                               MockProvider(responses={"vision": [observation]}),
                               RepoDocs()).screens[0]
     from_crawl = screen_from(ScreenNode(
-        crawl_id="crawl_1", project="demo", url_example=url, url_template=url,
-        signature="sig-trainers", title="Trainers", name="Trainers"))
+        crawl_id="crawl_1", project="demo", url_example=from_the_browser_api,
+        url_template=from_the_browser_api, signature="sig-trainers",
+        title="Trainers", name="Trainers"))
 
-    assert from_video.url_pattern == from_crawl.url_pattern
+    assert from_video.url_pattern == from_crawl.url_pattern == "/erp/trainers"

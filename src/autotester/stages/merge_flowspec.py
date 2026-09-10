@@ -59,7 +59,7 @@ def _learned_url_patterns(existing: FlowSpec, incoming: FlowSpec) -> dict[str, s
     Only ever fills a `None`. An existing pattern is never overwritten — that
     would be rewriting reviewed truth, which is the one thing a merge must not do.
     """
-    lacking = {s.id: s for s in existing.screens if not s.url_pattern}
+    lacking = {s.id for s in existing.screens if not s.url_pattern}
     return {
         s.id: s.url_pattern
         for s in incoming.screens
@@ -72,15 +72,27 @@ def _new_flows(existing: FlowSpec, incoming: FlowSpec) -> list[Flow]:
     return [f for f in incoming.flows if f.id not in known]
 
 
-def _conflicts_for(existing: FlowSpec, added: list[Screen], source_id: str) -> list[Conflict]:
+def _conflicts_for(
+    existing: FlowSpec, added: list[Screen], source_id: str,
+    learned: dict[str, str] | None = None,
+) -> list[Conflict]:
     """A recording claiming a `url_pattern` an existing screen already claims
     under a different name is two sources disagreeing — both are kept and the
     human decides. `disagreement` (explore_merge) is the single place that rule
     lives, so the video seam and the crawl seam cannot drift apart."""
     by_pattern = {s.url_pattern: s for s in existing.screens if s.url_pattern}
     known = {(c.subject, tuple(c.claims)) for c in existing.conflicts}
+    # AT-295: a LEARNED pattern is a new claim on a url just as much as a new
+    # screen is. `_conflicts_for` used to iterate `added` only, so filling a
+    # screen's empty url_pattern with one another screen already claims produced
+    # two screens at one pattern and no Conflict — silently picking a winner,
+    # which is the single thing this seam exists not to do.
+    claimants = list(added) + [
+        s.model_copy(update={"url_pattern": learned[s.id]})
+        for s in existing.screens if learned and s.id in learned
+    ]
     found: list[Conflict] = []
-    for screen in added:
+    for screen in claimants:
         conflict = disagreement(by_pattern.get(screen.url_pattern), screen, source_id)
         if conflict is not None and (conflict.subject, tuple(conflict.claims)) not in known:
             found.append(conflict)
@@ -108,7 +120,7 @@ def merge_flowspec(
     added_screens = _new_screens(existing, incoming)
     added_flows = _new_flows(existing, incoming)
     new_patterns = _learned_url_patterns(existing, incoming)
-    new_conflicts = _conflicts_for(existing, added_screens, source)
+    new_conflicts = _conflicts_for(existing, added_screens, source, new_patterns)
     if not added_screens and not added_flows and not new_patterns and not new_conflicts:
         return existing
 

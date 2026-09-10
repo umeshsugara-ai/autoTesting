@@ -5,9 +5,9 @@ existing `FlowSpec`" to **A6** — this unit) · qa/contracts/coverage.md (V1, V
 qa/contracts/expand.md (X6, the door rule) · qa/contracts/review-gate.md (R1)
 **Goal task:** T-135 — Track A6: coverage/merge/expand loops reconnected + ARCHITECTURE update
 **Date:** 2026-09-11
-**Fix cycle:** 2 of max 3
+**Fix cycle:** 3 of max 3 (LAST)
 **Dual check:** required  ← `.goal/goal.json` T-135 carries `criticality: critical`
-**Issues addressed:** AT-287 (root cause, fix REPLACED in cycle 2) · AT-288 · AT-289 · AT-290 (both rows) · AT-291 (both rows) · AT-293 (new, filed by this unit) · reconciles AT-286 (the in-flight work the
+**Issues addressed:** AT-287 (root cause, fix REPLACED in cycle 2) · AT-288 · AT-289 · AT-290 (both rows) · AT-291 (both rows) · AT-293 · AT-294 · AT-295 · AT-297b · reconciles AT-286 (the in-flight work the
 2026-09-11 sweep flagged is this unit; it is now a manifest, not an untracked tree)
 
 ## Why this unit exists
@@ -253,5 +253,95 @@ Test files were re-split at the C2 cap as they grew: `test_merge_flowspec.py` (m
 - **`_GAP_KINDS` still hardcodes `("route","screen")`.** The engineering review confirmed only those
   two are ever constructed today; it remains a latent trap if a stage starts emitting
   `field`/`class` gaps. Not fixed, deliberately — out of this unit's scope.
+
+---
+
+# Cycle 3 — the last one
+
+Both checkers FAILed cycle 2 and converged, independently, on the same finding. They were right and
+my cycle-2 strategy was **half an answer**.
+
+### AT-294 (high, both) — I fixed the flags, not the inputs
+Canonicalising all four producers to `keep_host=False` made both seams call `url_template` the same
+way. It did not stop `url_template` receiving a string whose host position `urlsplit` cannot
+locate. **A browser hides `https://`**, so a vision model transcribing an address bar returns
+`vidysea.com/erp/trainers` — and that is the *only* url shape this repo's real recorded data
+contains (`projects/erp/sources/*/analysis.json`, verified: 1 distinct observed url, schemeless).
+Checker A proved my fix and my data repair contradicted each other by running the real
+`build_screen_map` and watching it regenerate the three rows I had hand-repaired.
+
+**Fixed at the boundary, not in the normaliser:** `core/urls.py::absolute_url` restores the elided
+scheme, and the two vision producers call it before templating. This is *not* the host-shape
+guessing that failed in AT-287 — `settings.json` and `example.com` are indistinguishable by shape,
+but the caller here **knows** the string is absolute, because it came out of an address bar. Only
+the scheme is missing.
+
+Verified with checker A's own probe on real data:
+`build_screen_map(ProjectStore('erp'))` → `['/erp/trainers']`, mangled: **False**.
+
+**The cross-seam test was vacuous, exactly as charged.** I fed both sides the same scheme-ful url,
+so it never exercised the shape that breaks. It now feeds the video side a **schemeless** url and
+the crawl side a scheme-ful one, and asserts both reduce to `/erp/trainers`.
+
+### AT-295 (medium, both) — my own new path bypassed my own centralised rule
+`_learned_url_patterns` could fill an empty `url_pattern` with one another screen already claims,
+seating two screens at one url with no `Conflict`, because `_conflicts_for` iterated `added` only.
+Learned fills now go through `disagreement` exactly as added screens do.
+
+### AT-297b (medium, checker B) — the hand-edit was out of process, and the ruling is accepted
+I edited real project data mid-cycle. The value was one the code could not then reproduce, the
+backup lived in gitignored `.work/`, and nothing tested it. **Reverted** — `projects/erp/screenmap.json`
+is back to its real state. Replaced by `scripts/migrate_url_patterns.py` (committed, **dry run by
+default**, idempotent, refuses a dotted first path segment) with 9 tests, and
+`qa/gates/t135-url-pattern-data-migration.md` raising the gate. **I have not run it against real
+data; that is not the maker's call.**
+
+Running the dry run on real data immediately found a crash my fixture-only tests missed — a crawl
+manifest carries `"screens": 1`, a **count**. Guarded and tested. That is the argument for the
+gate in miniature: the script met real data and was wrong about it within a minute.
+
+## Cycle 3 verify (re-run after the final edit)
+
+```
+$ uv run pytest -q
+1042 passed, 2 skipped, 1 warning in 87.46s        exit=0
+
+$ uv run ruff check src tests scripts
+All checks passed!                                  exit=0
+
+$ uv run autotester doctor
+root-clutter: AGENTS.md - scratch and evidence belong in .work/, not the repo root
+1 violation(s)                                      exit=1   (AT-283 only — the certified baseline)
+
+$ uv run pytest tests/test_merge_flowspec.py tests/test_coverage.py
+25 passed                                           exit=0
+
+$ uv run python scripts/migrate_url_patterns.py      # dry run, real data
+projects\erp\screenmap.json
+    '/vidysea.com/erp/trainers'  ->  '/erp/trainers'   (x3)
+would repair 3 url_pattern(s) across 1 file(s)      exit=0
+```
+
+## Sabotage set for cycle 3
+
+1. Revert `absolute_url` to the identity → `test_a_video_screen_and_a_crawled_screen_of_one_url_produce_one_pattern` must fail.
+2. Make `_learned_url_patterns` return `{}` → `test_a_re_recording_teaches_a_url_pattern_the_spec_lacked` must fail.
+3. Drop `learned` from the `_conflicts_for` call → `test_learning_a_pattern_another_screen_claims_records_a_conflict` must fail.
+4. Delete the `resolve_requests` call in `ui/routes_crawls.py::merge_crawl` → `test_the_merge_button_closes_the_request_the_crawl_answers` must fail.
+5. `resolve_requests` body → `return []` → 8 tests fail (checker B measured 8; my cycle-1 prediction of 3 and cycle-2 of 5 were both low).
+
+## What cycle 3 still does NOT claim
+
+- **The stored data is still corrupt** — deliberately. The gate is open; the producer is fixed, so
+  it heals on the next Analyze regardless.
+- **No live-browser run by me this cycle.** Both checkers ran their own Mode D in cycles 1 and 2
+  and must again; mine was only ever a smoke check.
+- **`_GAP_KINDS` still hardcodes `("route","screen")`** — confirmed by the engineering review as
+  correct today, latent if a stage starts emitting `field`/`class` gaps. Out of scope.
+- **`absolute_url` assumes an absolute url.** A caller holding a genuine relative path must not use
+  it; that is documented on the function. Only the two vision boundaries call it.
+
+**If this cycle fails, the unit is `STALLED`** — max fix cycles reached. I will dispatch
+`/agent-debugger` and stop for the human rather than improvise a fourth patch.
 
 ## Status: ready-for-check
