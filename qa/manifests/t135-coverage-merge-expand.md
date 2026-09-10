@@ -344,4 +344,33 @@ would repair 3 url_pattern(s) across 1 file(s)      exit=0
 **If this cycle fails, the unit is `STALLED`** — max fix cycles reached. I will dispatch
 `/agent-debugger` and stop for the human rather than improvise a fourth patch.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+**Both independent checkers PASSed cycle 3** — dual check satisfied for a `critical` unit.
+
+- `qa/verdicts/t135-coverage-merge-expand.md` — checker A, Cycle checked: 3, 5/5 criteria,
+  2/2 invariants, all five sabotages re-derived in a `git archive cc00e9b` extract, all pasted
+  outputs reproduced. Filed AT-298 (medium), AT-299 (low).
+- `qa/verdicts/t135-coverage-merge-expand.b.md` — checker B, Cycle checked: 3, 7/7 criteria,
+  7/7 invariants. Drove the whole loop end to end on a **schemeless** url through the real CLI, and
+  clicked the UI door in its own browser: coverage card `1 gap` → `0`, ask `open` → `fulfilled`.
+  Filed AT-298b (high), AT-299b (medium).
+
+**Cycles 1 and 2 both FAILed.** What the reviewers caught, kept here because it is the useful part:
+stale pasted output presented as verify evidence (AT-288); a loop closed on only one of its two
+doors (AT-289); a blast-radius claim asserted as "measured" that was false (AT-290); a host-shape
+heuristic that silently deleted path segments (AT-291); a canonicalisation that fixed the flags and
+not the inputs (AT-294); a new code path bypassing the conflict rule the same unit centralised
+(AT-295); and a hand-edit of real project data that no test defended (AT-297b).
+
+**Open, and NOT closed by this unit — the top of the next queue:**
+- **AT-298 / AT-298b** — `scripts/migrate_url_patterns.py::_MANGLED` matches a dotted FIRST path
+  segment (`/v1.2/foo` → `/foo`, `/index.html` → `/`), and this manifest, the script docstring and
+  the human gate all claimed the opposite. Its defending test asserts only DEEPER segments, so it
+  passes while its own named property is false. **The gate must not be answered with `--write`
+  until this is fixed.** The fix is the one that worked for AT-294: use the project's own
+  `base_url`/`allowed_domains` and strip a first segment only when it equals a known host — never
+  a shape guess.
+- **AT-299 / AT-299b** — `absolute_url` is right for every address-bar shape and the prompt asks
+  for exactly that, but nothing enforces it (`ObservedScreen.url` is an unconstrained `str | None`),
+  so free-form model text like `'Sign in page'` templates to `/` — a false claim on the site root.

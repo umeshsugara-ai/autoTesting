@@ -23,8 +23,19 @@ They render to a human today on `/projects/erp/product-map`. Do we repair them n
 - **The producer is fixed.** `build_screen_map(ProjectStore('erp'))` on the real analyses now
   yields `/erp/trainers`. Nothing new is corrupted, and re-running Analyze on this project heals it.
 - **The migration exists, is committed, and is tested** — `scripts/migrate_url_patterns.py`,
-  9 tests in `tests/test_migrate_url_patterns.py`. Dry run by default; idempotent; it refuses to
-  touch a first path segment that merely contains a dot.
+  9 tests in `tests/test_migrate_url_patterns.py`. Dry run by default; idempotent.
+
+> ⚠️ **CORRECTION (2026-09-11, after both cycle-3 checkers): this document previously claimed the
+> migration "refuses to touch a first path segment that merely contains a dot". THAT WAS FALSE.**
+> Verified: `repair('/v1.2/foo')` → `'/foo'`, `repair('/index.html')` → `'/'`,
+> `repair('/settings.json')` → `'/'`. Its defending test only asserted DEEPER segments, so it passed
+> while the property it was named for was untrue. Filed as **AT-298 / AT-298b**.
+>
+> **Consequence for this decision: do NOT choose option A until AT-298 is fixed.** `projects/` is
+> untracked, so `--write` has no undo. It happens to be harmless on today's data — every stored
+> `url_pattern` was swept and the only affected values are the 3 intended ones — but the guarantee
+> this document offered you was not real, and you should not have to rely on luck.
+> **Option B is unaffected and remains the recommendation.**
 - **I did NOT run it.** In cycle 2 I hand-edited this file mid-unit, and checker B was right to
   fail that: the value was one the code could not then reproduce, the backup lived in gitignored
   `.work/`, and nothing tested it. That edit has been reverted; the file is back to its real state.
