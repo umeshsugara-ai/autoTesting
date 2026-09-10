@@ -1,0 +1,55 @@
+{
+  "unit": "t135-coverage-merge-expand",
+  "cycle_checked": 1,
+  "actor": "/checker Mode A + Mode D (checkerA, primary verdict)",
+  "date": "2026-09-11",
+  "independence": "This checker started its OWN uvicorn on its OWN port and drove its OWN Playwright Chromium. The maker's qa/evidence/browser-t135-coverage-merge-expand-2026-09-11/report.json and its screenshots were NOT read or used as evidence. No curl was substituted for the browser.",
+  "server": {
+    "command": "uv run uvicorn autotester.ui.app:app --port 64114 --host 127.0.0.1",
+    "invoked_as": ".venv/Scripts/python.exe -m uvicorn autotester.ui.app:app --port 64114 --host 127.0.0.1",
+    "port": 64114,
+    "port_chosen_by": "checker (socket bind to port 0), not the maker's port",
+    "startup": "Application startup complete",
+    "cwd": "D:/autoTesting (live working tree, so the unit's uncommitted changes are the code under test)"
+  },
+  "why_ui_was_in_scope": "No file under ui/ changed. Gated on CHANGED PATHS per Mode D: core/urls.py changes what stages/coverage.py reports, and ui/routes_crawls.py:145-152 renders diff_crawl/unreached_screens in the 'Against the FlowSpec' card. Indirect UI surface -> Mode D required.",
+  "pages": [
+    {"n": 1, "url": "/projects/checkerdemo", "console_errors": 0, "result": "renders; 19 cases, review needs_edit; 13 action links present"},
+    {"n": 2, "url": "/projects/checkerdemo/crawls", "console_errors": 0, "result": "2 crawls listed with status/stop-reason/screen counts"},
+    {"n": 3, "url": "/projects/checkerdemo/crawls/crawl_01M22B474QM5956JR0ZQA8M9M4", "console_errors": 0, "result": "coverage card renders: 'FlowSpec v1 - review: NEEDS_EDIT', '1 screen(s) the FlowSpec cannot name: /', '0 known screen(s) this crawl never reached'"},
+    {"n": 4, "url": "/projects/checkerdemo/flowspec", "console_errors": 0, "result": "post-merge state renders: DRAFT, 1 screen 'Swag Labs' url_pattern '/', 1 flow 'Sign in' 4 steps"},
+    {"n": 5, "url": "/projects/erp/product-map", "console_errors": 0, "result": "8 learned screens across 3 recordings; screen 'Trainers' renders 'URL /vidysea.com/erp/trainers' -- an AT-287-mangled, VIDEO-derived host-ful url_pattern shown to a human TODAY (see finding AT-290)"}
+  ],
+  "console_errors_total": 0,
+  "console_error_note": "Zero across all five pages. AT-248's permanent favicon 404 baseline is gone, so a real error would not be hidden in noise.",
+  "interactions": [
+    {
+      "what": "Clicked 'Merge these screens into the FlowSpec' on the crawl detail page (not merely rendered it)",
+      "before_on_disk": "projects/checkerdemo/flowspec.json version=1 screens=0 review=needs_edit; coverage card showed 1 unnameable screen '/'",
+      "after_on_disk": "version=2 screens=1 review=draft; url_pattern '/'",
+      "after_in_browser": "card re-rendered 'FlowSpec v2 - review: DRAFT - 1 screen(s) added by crawl ... - needs review' and '0 screen(s) the FlowSpec cannot name: none'",
+      "verdict": "state change asserted, both in the browser and on disk"
+    },
+    {
+      "what": "Clicked the same Merge button a SECOND time (live idempotence probe of the merge seam)",
+      "result": "still 'FlowSpec v2', review still DRAFT, no version bump, no second screen",
+      "verdict": "idempotent, as merge_flowspec's docstring claims for its own half"
+    },
+    {
+      "what": "Read requests.jsonl back after the successful UI merge",
+      "expected_if_loop_closed": "req_bb8e26317632 (gap_2a0765d4adf2, the only OPEN VideoRequest in this repo) closes, since the merged spec now covers '/'",
+      "actual": "status still 'open'. Probed directly: merge_flowspec._answered_gap_ids(spec) CONTAINS gap_2a0765d4adf2 (answered=True), so the request is answerable and was simply never resolved -- resolve_requests is wired only into cli_video.py's `ingest run --merge`, not into ui/routes_crawls.py's merge route.",
+      "verdict": "FINDING AT-289 (high). The only non-CLI merge door in the product leaves an answered ask OPEN forever -- the exact defect this unit exists to end."
+    },
+    {
+      "what": "CLI door refusal: `uv run autotester ingest run checkerdemo src_nonexistent --merge --replace`",
+      "result": "'--merge and --replace are opposites: merge keeps the reviewed spec, replace discards it. Pick one.' exit=2",
+      "verdict": "refusal fires before any store/source access -- correct ordering"
+    }
+  ],
+  "state_restored": "projects/checkerdemo/flowspec.json and requests.jsonl were backed up before the interaction and restored byte-for-byte afterwards (verified back to version=1, screens=0, review=needs_edit). Disclosed rather than hidden: a checker that mutates project data must put it back.",
+  "gaps_disclosed": [
+    "No live vision-provider video ingest was driven end-to-end: no suitable recording exists in-repo. The CLI `--merge` door's happy path is therefore evidenced by tests + sabotage, not by a live model call. Stated as a gap, not counted as a pass.",
+    "The UI has no ingest route, so the video half of the merge seam has no browser surface to drive. The CRAWL half does, and it is what was driven above."
+  ]
+}

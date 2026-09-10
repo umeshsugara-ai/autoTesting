@@ -161,7 +161,7 @@ A `Conflict` means *sources disagree*, not *patterns collide* — this criterion
 
 Only a claim with **no** structural identity — a human's or an ingested video's screen, which
 asserts a URL and nothing more — can be contradicted by a crawl. **AT-103 is CLOSED by this
-scoping** (`_is_structural` / `_disagreement`, `stages/explore_merge.py`).
+scoping** (`_is_structural` / `disagreement`, `stages/explore_merge.py`).
 
 **Two residuals of the current rule, tracked rather than written out of it** (neither is a
 violation of this criterion as written; both are ledger issues to be closed by a later unit):
@@ -332,3 +332,12 @@ loads with the default `0` and is displayed as a measured zero — the same prop
   the two NEW residuals it earns (AT-123 the unguarded `stop_reason` on the CLI line, AT-124 the
   legacy artifact's default-0) are recorded inside it rather than left implicit. Authorized by
   D-015. No criterion is removed or weakened; X1-X15 are byte-unchanged.
+
+- 2026-09-11 · routine · /checker (t135-coverage-merge-expand unit, cycle 1) · **naming correction
+  only, no criterion touched**: X12's prose named the helper `_disagreement`; T-135 promoted it to
+  the public `disagreement` (and renamed its `crawl_id` parameter to `source_id`) so the video
+  merge seam and the crawl merge seam share one rule instead of growing two. Verified identical in
+  behaviour before recording it here — the diff is the two identifiers and nothing else, the
+  function body is byte-unchanged, the full suite is green, and the crawl merge was driven live in
+  a browser (the path that calls it) with the same result. Softens nothing; a contract that names a
+  symbol which no longer exists is a contract nobody can check.
