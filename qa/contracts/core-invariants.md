@@ -78,6 +78,11 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   **INCONCLUSIVE — mutation not shown to change behaviour**, and either strengthen the mutation
   (revert the actual fix hunk, not a nearby string) or state the null result as unproven. It must
   never be reported as "the guard test is vacuous" on that evidence alone.
+- **A harness must assert its own BASELINE is green before believing any result.** "Killed" is
+  read from a non-zero exit status, so an unrelated red suite — a flake, a broken import, a
+  half-applied edit — makes **every** mutation look killed and certifies a vacuous test as sound.
+  Printing the baseline is not asserting it. The harness asserts `exit == 0` on the unmutated copy
+  first, or none of its results mean anything.
 - **Verify:** `uv run pytest -q` exits 0 and the manifest pastes real output, not a summary; a
   sabotage claim in a manifest is re-run by the checker in its own harness, never read.
 
@@ -194,3 +199,17 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   can be echoed or persisted. Why: D-025 intentionally adds the first same-request raw-value intake;
   without this timing rule, a pre-guard validator can disclose a value that later guards would have
   caught. B10 carries the feature-level transaction details. No existing C5 protection is weakened.
+- 2026-09-11 · routine · **C7 gains the baseline clause: a mutation/sabotage harness must assert its
+  own baseline is green before believing any result.** Why: found in the `at300-migration-config-hardening`
+  cycle-1 check, in the maker's *own* harness — the one whose whole purpose was to end a four-test
+  vacuity streak, and which is otherwise exemplary (it satisfies both existing C7 clauses, works on a
+  copy outside the repo, and its four kills reproduced exactly). Its verdict is
+  `"KILLED" if code != 0`, and the baseline is **printed but never asserted**. This repo has a
+  documented flake (AT-196, `tests/test_explore_live.py`), so a red baseline is not hypothetical here;
+  under one, every mutation reads KILLED and a vacuous test is certified sound. That is the same
+  failure direction as the two clauses already in C7 — a harness reporting confidently about an
+  experiment that did not happen — and it is the one direction that yields a **false PASS** rather
+  than a false FAIL. It becomes load-bearing the moment `qa/feedback-inbox.md`'s standing proposal
+  (promote mutation into `qa/adapter.json` slot-1) is folded. Tightening only — adds a duty, weakens
+  nothing, so it applies under the routine gate. Ledger: **AT-307** (low). Verdict:
+  `qa/verdicts/at300-migration-config-hardening.md`.
