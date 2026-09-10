@@ -121,4 +121,28 @@ nothing without `--write` and has not been run. `projects/erp/screenmap.json` is
    the open proposal in `qa/feedback-inbox.md`, which is the checker's to fold in — I have not
    pre-empted that ruling by wiring it in.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Checker PASS, `qa/verdicts/at300-migration-config-hardening.md` (Cycle checked: 1) — 6/6 criteria,
+5/5 applicable invariants, Mode D correctly ruled not-applicable. AT-300..AT-304 closed.
+
+**The vacuous-test streak is broken, and independently so.** The checker re-ran my harness (4/4
+KILLED, reproduced verbatim) and then ran **twelve mutations of its own** with the baseline asserted
+green, ruling that **no test in this unit is vacuous for its stated property**. Nine of its
+mutations survived, but it correctly classified those as *undefended defensive branches* — no test
+is named for them — rather than as vacuous tests.
+
+**It found a real hole in my harness (AT-307):** `KILLED` is `exit != 0`, and the baseline was
+**printed but never asserted**, so a suite that was already red would certify every test
+non-vacuous — precisely when it matters most, since this repo has a documented flake (AT-196).
+Fixed in the follow-up unit; C7 tightened by the checker to require a baseline assertion.
+
+Four low residuals filed (AT-307..AT-310): the harness hole; three undefended defensive branches
+(the `ValueError` guard, the `_project_dir_of` root-containment `break`, `.is_file()`/`OSError`);
+and AT-310, which promotes my judgement #2 out of a manifest — a limitation living only in a
+manifest is read once. The checker's ruling on that is worth keeping: *declaring it is necessary
+but not sufficient.*
+
+Judgements #1 and #3 upheld. #2 upheld **and measured rather than presumed** — it confirmed
+`url_template('[::1]:8080/app')` really is `/[::1]:8080/app` and that `repair` returns `None`, then
+declined to fix it, because inventing bracket handling with no specimen is how AT-298 happened.

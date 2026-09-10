@@ -23,7 +23,7 @@ They render to a human today on `/projects/erp/product-map`. Do we repair them n
 - **The producer is fixed.** `build_screen_map(ProjectStore('erp'))` on the real analyses now
   yields `/erp/trainers`. Nothing new is corrupted, and re-running Analyze on this project heals it.
 - **The migration exists, is committed, and is tested** — `scripts/migrate_url_patterns.py`,
-  14 tests in `tests/test_migrate_url_patterns.py`. Dry run by default; idempotent.
+  covered by `tests/test_migrate_url_patterns.py`. Dry run by default; idempotent.
 
 > ✅ **RESOLVED 2026-09-11 (AT-298).** This document previously claimed the migration "refuses to
 > touch a first path segment that merely contains a dot". **That was false** — `repair('/v1.2/foo')`
@@ -36,7 +36,7 @@ They render to a human today on `/projects/erp/product-map`. Do we repair them n
 > `/v1.2/foo`, `/index.html`, `/settings.json`, `/main.js` are all left alone; so is
 > `/saucedemo.com/cart` inside the erp project, because that is not an erp host. Guessing host-ness
 > from string shape is unwinnable — this is the third time in this saga that lesson has been paid
-> for. 14 tests in `tests/test_migrate_url_patterns.py`, asserting the FIRST-segment cases that
+> for. `tests/test_migrate_url_patterns.py` asserts the FIRST-segment cases that
 > actually broke.
 >
 > **Option A is now safe to choose.** The dry run on real data is unchanged: 3 rows, 1 file.
@@ -55,6 +55,13 @@ They render to a human today on `/projects/erp/product-map`. Do we repair them n
 
 **Maker's recommendation: B, else A.** B exercises the fixed producer end to end and proves the fix
 on real data rather than asserting it. A is the cheap equivalent if a vision run is not worth it.
+
+## A note on this file
+
+It states no test COUNT. It carried one twice — "9 tests", then "14" — and went stale both times,
+because a count is a derived fact that every new test invalidates while the prose sits still
+(AT-306, filed twice). A document a human decides from should reference what can be re-run, not
+restate a number that rots.
 
 ## Answer
 

@@ -1,7 +1,10 @@
-"""Mutation-check the AT-300 unit's own tests, in a copy OUTSIDE the repo.
+"""Mutation-check a unit's own tests, in a copy OUTSIDE the repo.
 
 Each mutation reverts one specific fix. The test named for that fix must fail.
 A mutation that kills nothing means the test is vacuous for its property.
+
+`KILLED` means "the suite went red", so the baseline MUST be green or every
+result is meaningless — asserted below, per AT-307.
 """
 import shutil
 import subprocess
@@ -71,7 +74,13 @@ def run() -> tuple[int, str]:
 
 
 code, out = run()
-print(f"BASELINE: exit={code}  {out.strip().splitlines()[-1] if out.strip() else ''}")
+baseline_line = out.strip().splitlines()[-1] if out.strip() else ""
+print(f"BASELINE: exit={code}  {baseline_line}")
+# AT-307: `KILLED` is `exit != 0`, so a suite that is ALREADY red certifies every
+# test non-vacuous. The baseline was printed and never asserted, which made the
+# whole run meaningless exactly when it mattered most (this repo has a documented
+# flake, AT-196). Assert it, and refuse to report on a red baseline.
+assert code == 0, f"baseline is NOT green - every KILLED below would be a lie: {baseline_line}"
 print()
 for name, old, new, defends in MUTATIONS:
     assert ORIGINAL.count(old) == 1, f"{name}: anchor matched {ORIGINAL.count(old)} times"
