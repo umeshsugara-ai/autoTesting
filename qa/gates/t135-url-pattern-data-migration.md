@@ -25,17 +25,22 @@ They render to a human today on `/projects/erp/product-map`. Do we repair them n
 - **The migration exists, is committed, and is tested** — `scripts/migrate_url_patterns.py`,
   9 tests in `tests/test_migrate_url_patterns.py`. Dry run by default; idempotent.
 
-> ⚠️ **CORRECTION (2026-09-11, after both cycle-3 checkers): this document previously claimed the
-> migration "refuses to touch a first path segment that merely contains a dot". THAT WAS FALSE.**
-> Verified: `repair('/v1.2/foo')` → `'/foo'`, `repair('/index.html')` → `'/'`,
-> `repair('/settings.json')` → `'/'`. Its defending test only asserted DEEPER segments, so it passed
-> while the property it was named for was untrue. Filed as **AT-298 / AT-298b**.
+> ✅ **RESOLVED 2026-09-11 (AT-298).** This document previously claimed the migration "refuses to
+> touch a first path segment that merely contains a dot". **That was false** — `repair('/v1.2/foo')`
+> returned `'/foo'` and `repair('/index.html')` returned `'/'`, and the test named for that guard
+> asserted only *deeper* segments, so it passed while its own property was untrue. Both cycle-3
+> checkers filed it.
 >
-> **Consequence for this decision: do NOT choose option A until AT-298 is fixed.** `projects/` is
-> untracked, so `--write` has no undo. It happens to be harmless on today's data — every stored
-> `url_pattern` was swept and the only affected values are the 3 intended ones — but the guarantee
-> this document offered you was not real, and you should not have to rely on luck.
-> **Option B is unaffected and remains the recommendation.**
+> **Fixed, and not by a better regex.** A pattern now counts as mangled only when its first segment
+> is a host **this project declares** in its own `project.json` (`base_url` / `allowed_domains`).
+> `/v1.2/foo`, `/index.html`, `/settings.json`, `/main.js` are all left alone; so is
+> `/saucedemo.com/cart` inside the erp project, because that is not an erp host. Guessing host-ness
+> from string shape is unwinnable — this is the third time in this saga that lesson has been paid
+> for. 14 tests in `tests/test_migrate_url_patterns.py`, asserting the FIRST-segment cases that
+> actually broke.
+>
+> **Option A is now safe to choose.** The dry run on real data is unchanged: 3 rows, 1 file.
+
 - **I did NOT run it.** In cycle 2 I hand-edited this file mid-unit, and checker B was right to
   fail that: the value was one the code could not then reproduce, the backup lived in gitignored
   `.work/`, and nothing tested it. That edit has been reverted; the file is back to its real state.

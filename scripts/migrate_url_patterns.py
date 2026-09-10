@@ -7,6 +7,11 @@ templated it as a path segment — so the stored pattern became
 `/vidysea.com/erp/trainers` and matched no observed path. Every screen learned
 that way was invisible to coverage.
 
+A pattern counts as mangled ONLY when its first segment is a host the project
+itself declares in `project.json` (`base_url` / `allowed_domains`). An earlier
+version guessed from shape and silently ate real paths (`/v1.2/foo` -> `/foo`,
+`/index.html` -> `/`) while three documents claimed it did not - AT-298.
+
 The producers are fixed, so nothing new is mangled. This repairs what was
 already written. It is deliberately a script and not an in-flight edit: a
 maker hand-editing real project artifacts mid-cycle leaves a value the code
@@ -25,25 +30,52 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import sys
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from autotester.core.urls import url_template
 
-# The AT-287/AT-294 signature: a LEADING slash in front of something host-shaped.
-# Only a schemeless host-ful input, pre-fix, could produce it — a genuine path
-# segment carrying a dot (`/v1.2/foo`) is NOT matched, because the host must be
-# the FIRST segment and carry a dotted label pair.
-_MANGLED = re.compile(r"^/(?P<host>[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+(?::\d+)?)(?P<rest>/.*|$)")
+
+def known_hosts(project_dir: Path) -> set[str]:
+    """Every host this project is actually about, from its own `project.json`.
+
+    This is the whole point of the AT-298 rewrite. The first version guessed
+    from SHAPE - "a first segment with a dotted label pair is a host" - and that
+    guess is unwinnable for the third time in this saga: `/v1.2/foo`,
+    `/index.html` and `/vidysea.com/erp` are indistinguishable as strings, so it
+    ate the first two (`/v1.2/foo` -> `/foo`, `/index.html` -> `/`) while three
+    documents, including the human gate, claimed it refused them.
+
+    A project declares `base_url` and `allowed_domains`. A swallowed host can
+    only ever be one of those. So match against what the project SAYS, never
+    against what a string looks like.
+    """
+    try:
+        config = json.loads((project_dir / "project.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return set()
+    hosts = {str(d).lower() for d in config.get("allowed_domains", []) if d}
+    netloc = urlsplit(str(config.get("base_url") or "")).netloc.lower()
+    if netloc:
+        hosts.add(netloc)
+        hosts.add(netloc.split(":", 1)[0])
+    return {h for h in hosts if h}
 
 
-def repair(pattern: str) -> str | None:
-    """The corrected pattern, or None when `pattern` is not mangled."""
-    match = _MANGLED.match(pattern)
-    if match is None:
+def repair(pattern: str, hosts: set[str]) -> str | None:
+    """The corrected pattern, or None when `pattern` is not mangled.
+
+    Mangled means: the first path segment is a host THIS PROJECT declares. A
+    segment that merely looks host-shaped is left alone - it is a real path.
+    """
+    if not pattern.startswith("/") or not hosts:
         return None
-    fixed = url_template(match.group("rest") or "/", keep_host=False)
+    first, _, rest = pattern[1:].partition("/")
+    candidate = first.lower()
+    if candidate not in hosts and candidate.split(":", 1)[0] not in hosts:
+        return None
+    fixed = url_template("/" + rest if rest else "/", keep_host=False)
     return fixed if fixed != pattern else None
 
 
@@ -61,33 +93,43 @@ def _screens(doc: object) -> list[dict]:
     return screens if isinstance(screens, list) else []
 
 
+def _project_dir_of(path: Path, root: Path) -> Path:
+    """The `projects/<slug>/` directory a file belongs to, so the hosts used to
+    judge it are the ones that project itself declares."""
+    relative = path.relative_to(root)
+    return root / relative.parts[0] if len(relative.parts) > 1 else root
+
+
 def scan(root: Path) -> list[tuple[Path, list[tuple[str, str]]]]:
     """Every file needing repair, with its (before, after) pairs."""
     found: list[tuple[Path, list[tuple[str, str]]]] = []
+    hosts_by_dir: dict[Path, set[str]] = {}
     for path in sorted(root.rglob("*.json")):
         try:
             doc = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue
+        project_dir = _project_dir_of(path, root)
+        hosts = hosts_by_dir.setdefault(project_dir, known_hosts(project_dir))
         changes = [
             (screen["url_pattern"], fixed)
             for screen in _screens(doc)
             if isinstance(screen, dict) and isinstance(screen.get("url_pattern"), str)
-            and (fixed := repair(screen["url_pattern"])) is not None
+            and (fixed := repair(screen["url_pattern"], hosts)) is not None
         ]
         if changes:
             found.append((path, changes))
     return found
 
 
-def apply(path: Path) -> int:
+def apply(path: Path, hosts: set[str]) -> int:
     """Repair one file in place. Returns how many patterns changed."""
     doc = json.loads(path.read_text(encoding="utf-8"))
     changed = 0
     for screen in _screens(doc):
         if not (isinstance(screen, dict) and isinstance(screen.get("url_pattern"), str)):
             continue
-        fixed = repair(screen["url_pattern"])
+        fixed = repair(screen["url_pattern"], hosts)
         if fixed is not None:
             screen["url_pattern"] = fixed
             changed += 1
@@ -119,7 +161,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"    {before!r}  ->  {after!r}")
         total += len(changes)
         if args.write:
-            apply(path)
+            apply(path, known_hosts(_project_dir_of(path, args.root)))
 
     verb = "repaired" if args.write else "would repair"
     print(f"\n{verb} {total} url_pattern(s) across {len(found)} file(s)")
