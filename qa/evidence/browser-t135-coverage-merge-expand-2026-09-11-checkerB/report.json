@@ -1,0 +1,55 @@
+{
+  "unit": "t135-coverage-merge-expand",
+  "role": "second independent checker (dual check, .b.md)",
+  "date": "2026-09-11",
+  "mode": "D — live feature validation, checker's OWN browser",
+  "why_ui_touching": "No file under ui/ changed, but core/urls.py (AT-287) changes what stages/coverage.py reports, and ui/routes_crawls.py:150 renders exactly that via crawl_view.coverage_card(diff_crawl(...), unreached_screens(...)). Indirect surface -> Mode D applies (D-024).",
+  "server": {
+    "command": "uv run uvicorn autotester.ui.app:app --port 8791",
+    "port": 8791,
+    "note": "own port, distinct from the maker's and from checker A's; started and driven by this checker only",
+    "startup": "Application startup complete — no errors in the uvicorn log"
+  },
+  "browser": "Playwright Chromium, driven by this checker. The maker's screenshots and report.json were NOT read.",
+  "pages": [
+    {"url": "/projects/checkerdemo/crawls/crawl_01M22B474QM5956JR0ZQA8M9M4", "status": 200, "console_errors": 0, "console_warnings": 0,
+     "rendered": "'Against the FlowSpec' card renders: FlowSpec v1 · review needs_edit, '1 screen(s) the FlowSpec cannot name: /', '0 known screen(s) this crawl never reached: none'."},
+    {"url": "/projects/checkerdemo (project page)", "status": 200, "console_errors": 0, "console_warnings": 0,
+     "rendered": "Actions card, 19 cases, review DRAFT. No open-VideoRequest surface exists in the UI (consistent with coverage.md's no-fire list deferring notification to T-100)."},
+    {"url": "/projects/checkerdemo/flowspec", "status": 200, "console_errors": 0, "console_warnings": 0,
+     "rendered": "After the merge: DRAFT, note '1 screen(s) added by crawl ... needs review'; the human's 'Sign in' flow (4 steps) still listed alongside the newly added 'Swag Labs' screen — visible proof the merge added without rewriting."},
+    {"url": "/projects/checkerdemo/sources", "status": 200, "console_errors": 0, "console_warnings": 0,
+     "rendered": "Register/upload forms only. NO ingest/watch action anywhere — independently confirms the manifest's declared gap #2 (the CLI is this stage's only door)."}
+  ],
+  "console_errors_total": 0,
+  "console_warnings_total": 0,
+  "interactions": [
+    {
+      "what": "Clicked 'Merge these screens into the FlowSpec' on the crawl page (the seam whose helper this unit renamed: explore_merge._disagreement -> disagreement).",
+      "assert_state_change": "flowspec.json on disk went v1 -> v2; screen node_81feb20 'Swag Labs' url_pattern '/' added; review needs_edit -> draft with note '1 screen(s) added by crawl ...'; conflicts [] (correct — no existing screen claimed '/', so `disagreement` returned None).",
+      "result": "PASS — the renamed helper is live on the real UI path and behaves unchanged."
+    },
+    {
+      "what": "Reloaded the crawl page after the merge and re-read the coverage card (the surface stages/coverage.py feeds).",
+      "assert_state_change": "Card now reads 'FlowSpec v2 · review: DRAFT', '0 screen(s) the FlowSpec cannot name: none', '0 known screen(s) this crawl never reached: none'.",
+      "result": "PASS — coverage rendering is correct and unregressed by the AT-287 fix."
+    },
+    {
+      "what": "Clicked 'Add a recording' from the FlowSpec page and inspected the destination.",
+      "assert_state_change": "Lands on /projects/checkerdemo/sources, which offers only 'Add recording' / 'Upload recording' — no action that ever ingests one.",
+      "result": "OBSERVATION (not a defect of this unit): the UI's stated remedy for an incomplete map dead-ends before ingest. Manifest gap #2 confirmed independently."
+    }
+  ],
+  "cli_interactions_real_process": [
+    {"cmd": "uv run autotester ingest run checkerdemo src_x --merge --replace", "exit": 2,
+     "stdout": "--merge and --replace are opposites: merge keeps the reviewed spec, replace discards it. Pick one.",
+     "assert": "X6 refusal writes nothing — checked before any store is opened (the guard is the first statement in run_cmd)."},
+    {"cmd": "uv run autotester ingest run --help", "exit": 0, "assert": "--merge is a real, documented option on the real command — the door exists."}
+  ],
+  "cleanup": "projects/checkerdemo/flowspec.json restored byte-for-byte from a pre-interaction snapshot; requests.jsonl was never modified by the crawl-merge path (see finding AT-289).",
+  "gaps_disclosed": [
+    "No live vision provider was called — no suitable recording exists in-repo. The video-observation half is stubbed; every line this unit owns (merge_flowspec, resolve_requests, the CLI door, urls._split) was executed for real.",
+    "The end-to-end gap->request->merge->fulfilled loop was driven through the production function cli_video::_merge_into_reviewed in a throwaway AUTOTESTER_ROOT rather than through the typer entry point, because `--provider mock` has no queued see_video response. The typer layer above it was separately exercised as a real subprocess (refusal + --help)."
+  ],
+  "verdict_contribution": "Mode D satisfied: 4 pages, 0 console errors, 3 real interactions with asserted state changes. No UI defect found. The FAIL in the verdict comes from the doctor regression, not from this browser session."
+}
