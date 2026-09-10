@@ -1,0 +1,101 @@
+{
+  "unit": "t134-product-map-outputs",
+  "cycle_checked": 3,
+  "commit": "4de3321",
+  "date": "2026-09-10",
+  "server": {
+    "url": "http://127.0.0.1:8795",
+    "owned_session": 62895,
+    "owned_process": 43776,
+    "listener_probe": true,
+    "project_get_status": 200
+  },
+  "browser": {
+    "kind": "Codex in-app browser",
+    "independent_session": true,
+    "visibility": "background-only: this subagent surface rejected visible IAB",
+    "disclosed_gap": "The browser session was interrupted before its DevTools log query; no console error was surfaced in the browser states, and server logs showed no route 500. Exact DevTools console counts are unavailable.",
+    "pages": {
+      "/projects/demo": {
+        "status": 200,
+        "interactions": [
+          "clicked Sources from the project action card"
+        ],
+        "observed": [
+          "Sources, Product map and Issues actions were visible"
+        ],
+        "console_errors_surfaced": 0
+      },
+      "/projects/demo/sources": {
+        "status": 200,
+        "interactions": [
+          "clicked Analyze for src_prepared"
+        ],
+        "observed": [
+          "host-path registration form",
+          "upload form",
+          "two source rows",
+          "Analyze control per source",
+          "Analyze redirected to Product Map"
+        ],
+        "console_errors_surfaced": 0
+      },
+      "/projects/demo/product-map": {
+        "status": 200,
+        "observed": [
+          "2 learned screens across 2 recordings",
+          "Dashboard URL rendered as demo.test/dashboard/{id}",
+          "Login URL rendered without query or fragment",
+          "two ordered recorded journeys",
+          "learned Login frame completed with naturalWidth=1 and naturalHeight=1"
+        ],
+        "console_errors_surfaced": 0
+      },
+      "/projects/demo/issues": {
+        "status": 200,
+        "observed": [
+          "2 finding rows",
+          "13 visible headers from ID through Evidence",
+          "Download Excel href /projects/demo/issues.xlsx"
+        ],
+        "console_errors_surfaced": 0
+      }
+    }
+  },
+  "bounded_http_followups": {
+    "issues_status": 200,
+    "issues_content_type": "text/html; charset=utf-8",
+    "xlsx_href_present": true,
+    "xlsx_status": 200,
+    "xlsx_content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "xlsx_bytes": 5397,
+    "flow_diagram_status": 200,
+    "recorded_journeys_present": true,
+    "prepared_journey_present": true,
+    "frame_status": 200,
+    "frame_content_type": "image/png",
+    "frame_bytes": 68,
+    "traversal_status": 400
+  },
+  "independent_semantic_probe": {
+    "command": ".\\.venv\\Scripts\\python.exe .work\\t134_checker_probe.py",
+    "exit_code": 0,
+    "checks": 20,
+    "covered": [
+      "partial same-ID issue byte stability",
+      "partial absence retention",
+      "partial new-ID addition",
+      "complete authoritative removal",
+      "complete preservation of human status, human_id, confirmation, evidence and created_at",
+      "complete refresh of machine-derived severity and confidence",
+      "canonical screen_key folding",
+      "URL templating",
+      "complete existing frame publication",
+      "approved FlowSpec byte immutability",
+      "draft FlowSpec screenshot attachment",
+      "issues HTML escaping and exact XLSX header",
+      "frame path attacks",
+      "gitignore coverage for every accepted upload suffix plus .video fallback"
+    ]
+  }
+}

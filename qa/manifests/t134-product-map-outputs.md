@@ -97,5 +97,4 @@ Served commit `4de3321` on `http://127.0.0.1:8767` and drove the visible in-app 
 - This is pre-push local evidence. Post-push live validation remains gated on explicit push
   authorization for the named GitHub remote and branch.
 
-## Status: unchecked
-
+## Status: checked-PASS — see `qa/verdicts/t134-product-map-outputs.md`, cycle 3 PASS
