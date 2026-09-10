@@ -1,0 +1,29 @@
+{
+  "unit": "t161-unified-project-intake",
+  "mode": "maker-visible-browser-smoke",
+  "base_url": "http://127.0.0.1:8900",
+  "headed": true,
+  "checks": [
+    {
+      "name": "unified form rendered",
+      "url": "http://127.0.0.1:8900/onboard",
+      "result": "PASS",
+      "observed": "URL, allowed domains, repeatable masked credential rows, repeatable sources, evals, conditions and use cases were visible in one form."
+    },
+    {
+      "name": "rich form submitted",
+      "url": "http://127.0.0.1:8900/projects/t161-final-smoke",
+      "result": "PASS",
+      "observed": "The primary Create project action redirected to the real project page with the submitted URL and one allowed domain."
+    },
+    {
+      "name": "canonical sources visible",
+      "url": "http://127.0.0.1:8900/projects/t161-final-smoke/sources",
+      "result": "PASS",
+      "observed": "The persisted source table showed distinct eval, condition, use_case and URL rows; non-video declarations were labelled Declared rather than falsely offering video analysis."
+    }
+  ],
+  "console_errors": [],
+  "credential_value_used": false,
+  "notes": "A fake credential reference with a blank value was used; no real credential or external target was touched."
+}

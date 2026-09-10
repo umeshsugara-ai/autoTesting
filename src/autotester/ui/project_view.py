@@ -10,6 +10,60 @@ from __future__ import annotations
 from autotester.ui import theme
 
 
+def _credential_row() -> str:
+    return (
+        "<div class='intake-row credential-row'>"
+        "<input name='credential_key' placeholder='DEMO_EMAIL'>"
+        "<input type='password' name='credential_value' placeholder='value (stored only in .env)'>"
+        "<input name='credential_domains' placeholder='app.example.com'>"
+        "<input name='credential_description' placeholder='test account email'></div>"
+    )
+
+
+def _source_row() -> str:
+    return (
+        "<div class='intake-row source-row'><select name='source_kind'>"
+        "<option value=''>Choose type</option><option value='url'>URL / Drive link</option>"
+        "<option value='video'>Video path</option><option value='doc'>Document path</option>"
+        "<option value='text'>Inline text</option></select>"
+        "<input name='source_value' placeholder='link, path, or text'>"
+        "<input name='source_label' placeholder='what this source teaches'></div>"
+    )
+
+
+def intake_form() -> str:
+    """The single operator entry point for both taught and URL/account-only modes."""
+    basics = (
+        "<div class='field'><label>Project slug</label><input name='slug' "
+        "placeholder='my-product' required></div>"
+        "<div class='field'><label>Name</label><input name='name' required></div>"
+        "<div class='field'><label>URL</label><input name='base_url' type='url' required "
+        "placeholder='https://app.example.com/signin'></div>"
+        "<div class='field'><label>Allowed domains</label><input name='allowed_domains' "
+        "required placeholder='app.example.com'><span class='hint'>Comma-separated; the browser "
+        "never leaves these hosts.</span></div>"
+    )
+    teaching = (
+        "<div class='field'><label>Evals (one per line)</label>"
+        "<textarea name='evals'></textarea></div>"
+        "<div class='field'><label>Conditions / business rules</label>"
+        "<textarea name='conditions'></textarea></div>"
+        "<div class='field'><label>Use cases / taught flows</label>"
+        "<textarea name='use_cases'></textarea></div>"
+    )
+    repeaters = (
+        f"<h3>Test-account credentials</h3><div id='credential-rows'>{_credential_row()}</div>"
+        "<button type='button' data-add='credential'>Add another credential</button>"
+        f"<h3>Optional sources</h3><div id='source-rows'>{_source_row()}</div>"
+        "<button type='button' data-add='source'>Add another source</button>"
+        "<script>document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{"
+        "const kind=b.dataset.add,box=document.getElementById(kind+'-rows');"
+        "box.insertAdjacentHTML('beforeend',box.firstElementChild.outerHTML);});</script>"
+    )
+    return (f"<form method='post' action='/onboard'>{basics}{repeaters}{teaching}"
+            "<button class='btn btn-primary' type='submit'>Create project</button></form>")
+
+
 def _actions_card(safe_slug: str, run_button: str, case_count: int) -> str:
     """The project's action row, plus — when it has no cases yet — a prompt
     saying what to do next. AT-057: a project with zero cases can run nothing,

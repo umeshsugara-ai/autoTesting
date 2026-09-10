@@ -41,6 +41,50 @@ from autotester.ui.helpers import (
 router = APIRouter()
 
 
+def build_secret_ref(
+    project: Project, key: str, domains: str, description: str = "",
+    *, mask_in_screenshot: bool = True,
+) -> SecretRef:
+    """Build one scoped reference without ever including its submitted value in errors."""
+    scope = [domain.strip() for domain in domains.split(",") if domain.strip()]
+    if not scope:
+        raise HTTPException(400, "name at least one host this credential may be typed into")
+    if any(not project.allows_domain(domain.lower().lstrip(".")) for domain in scope):
+        raise HTTPException(400, "credential scope must stay inside the project's allowed domains")
+    try:
+        return SecretRef(
+            key=key.strip(), description=description.strip() or None, domains=scope,
+            mask_in_screenshot=mask_in_screenshot,
+        )
+    except ValidationError as exc:
+        why = exc.errors()[0]["msg"]
+        raise HTTPException(400, f"cannot declare this credential: {why}") from exc
+
+
+def parse_secret_rows(
+    project: Project, keys: list[str], values: list[str], domains: list[str],
+    descriptions: list[str],
+) -> tuple[list[SecretRef], dict[str, str]]:
+    """Validate repeated onboarding rows as one all-or-nothing credential batch."""
+    counts = {len(keys), len(values), len(domains), len(descriptions)}
+    if len(counts) != 1:
+        raise HTTPException(400, "credential rows are incomplete")
+    refs: list[SecretRef] = []
+    secret_values: dict[str, str] = {}
+    for key, value, scope, description in zip(keys, values, domains, descriptions, strict=True):
+        if not any(item.strip() for item in (key, value, scope, description)):
+            continue
+        if not key.strip() or not scope.strip():
+            raise HTTPException(400, "each credential needs a key and allowed domain")
+        ref = build_secret_ref(project, key, scope, description)
+        if ref.key in {item.key for item in refs}:
+            raise HTTPException(400, "credential keys must be unique")
+        refs.append(ref)
+        if value:
+            secret_values[ref.key] = value
+    return refs, secret_values
+
+
 def _secret_row(safe_slug: str, ref: SecretRef) -> str:
     """One declared key. Shows the KEY and its scope only — a SecretRef holds no
     value, and this module never touches one."""
@@ -187,22 +231,9 @@ def declare_secret(
         project, SecretStore.load(project, ProjectPaths(slug).env_file, strict=False),
         exempt=frozenset({", ".join(project.allowed_domains), *project.allowed_domains}),
     )
-    scope = [d.strip() for d in domains.split(",") if d.strip()]
-    if not scope:
-        # SecretRef allows an empty list, but such a key can never resolve
-        # anywhere -- it would fail only at typing time as a SecretScopeError.
-        raise HTTPException(400, "name at least one host this credential may be typed into")
-    try:
-        ref = SecretRef(
-            key=key.strip(), description=description.strip() or None, domains=scope,
-            mask_in_screenshot=bool(mask_in_screenshot),
-        )
-    except ValidationError as exc:
-        # Never echo the submitted key back: the likeliest wrong entry in that box is
-        # the credential VALUE itself, and echoing it would put it in the response body
-        # and the access log (AT-068). Name it only once it has proven to be key-shaped.
-        why = exc.errors()[0]["msg"]
-        raise HTTPException(400, f"cannot declare this credential: {why}") from exc
+    ref = build_secret_ref(
+        project, key, domains, description, mask_in_screenshot=bool(mask_in_screenshot),
+    )
     if project.secret(ref.key) is not None:
         raise HTTPException(400, f"'{ref.key}' is already declared on this project")
 

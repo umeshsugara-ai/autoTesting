@@ -7,8 +7,8 @@ Read this file, then `src/autotester/schema/`. That is the whole system.
 
 ## What it does
 
-Onboard a web product once (details + demo videos + docs + text). AutoTester learns its flows
-screen-by-screen, generates test cases covering **best / worst / edge**, and re-runs them in a
+Onboard any web product in one form (URL, scoped credentials, optional evals/rules/use cases/sources).
+AutoTester learns its flows screen-by-screen, generates **best / worst / edge** cases, and runs in a
 **real visible browser** after every dev cycle — so a new feature cannot silently break an old one.
 When it meets a screen it does not know, it asks the human for a video instead of guessing.
 
@@ -59,7 +59,7 @@ the previous stage's artifact. A stage never reaches into another stage's intern
 | FlowSpec review gate (draft → approved; blocks case generation until reviewed) | `stages/review.py::require_reviewed` |
 | FlowSpec → Case[] covering every applicable taxonomy class | `stages/expand.py::expand` |
 | Self-extension: unseen route → CoverageGap → deduped VideoRequest | `stages/coverage.py::diff_coverage` |
-| Web UI: onboarding, masked .env editor, run/report views, shared visual theme (thin, no second store) | `ui/app.py` + `ui/env_editor.py` + `ui/theme.py::page` |
+| Web UI: unified intake, masked .env editor, run/report views, shared visual theme (thin, no second store) | `ui/app.py` + `ui/env_editor.py` + `ui/theme.py::page` |
 | Docker: containerized app + virtual display + noVNC live-watch view (local dev only) | `Dockerfile`, `docker/entrypoint.sh`, `docker-compose.yml` |
 | Regression proof (break a fixture, confirm exactly that case FAILs) + bench (north star scorecard: seeded corpus, real trial vs human-oracle baseline) | `scripts/regression_proof.py`, `stages/bench.py::scorecard` |
 
@@ -68,7 +68,7 @@ Duplicating any of these is a bug — `autotester doctor` fails on a class or fu
 ## Data model (the core five)
 
 - **`Project`** — slug, base URL, `allowed_domains`, `write_policy`, declared `SecretRef[]` (keys and
-  their scope, never values), which provider serves each role.
+  scope, never values), and providers. Evals, conditions and use cases are typed `Source` rows.
 - **`FlowSpec`** — the system's understanding: `Screen[]` (with `InputField[]` and their constraints)
   and `Flow[]` (ordered `Step[]`). Every `Step` carries `expected: ExpectedState` and a `SourceRef`
   back to the video second it was learned from. Conflicts between sources are **flagged, not merged**.
@@ -107,7 +107,7 @@ Browser is **headed by default** (`Project.headed`), driven against a persistent
 Artifacts are plain files a human can open, edit, or delete:
 
 ```
-.env              all credentials, repo root (ignored) — see `.env.example`
+.env              all credentials from intake/editor, repo root (ignored) — see `.env.example`
 projects/<slug>/  project.json · sources/ · sources.jsonl · flowspec.json
                   cases.jsonl · rubrics/ · scripts/ · runs/<run_id>/ · requests.jsonl · knowledge.md
 profiles/<slug>/  persistent browser profile (ignored)

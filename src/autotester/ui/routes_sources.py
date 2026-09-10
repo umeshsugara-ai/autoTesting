@@ -55,14 +55,57 @@ def _refusal(slug: str, message: str, *, title: str = "Recording not found") -> 
 
 
 def _source_rows(store, slug: str) -> str:
-    return "".join(
+    def _row(source: Source) -> str:
+        reference = source.path or source.url or source.text or "—"
+        action = (
+            f"<form method='post' action='/projects/{escape(slug)}/sources/"
+            f"{escape(source.id)}/analyze'><button type='submit'>Analyze</button></form>"
+            if source.kind is SourceKind.VIDEO else "<span class='meta'>Declared</span>"
+        )
+        return (
         f"<tr><td><code>{escape(source.id)}</code></td>"
         f"<td>{escape(source.label or '—')}</td>"
-        f"<td><code>{escape(source.path or '—')}</code></td>"
-        f"<td><form method='post' action='/projects/{escape(slug)}/sources/"
-        f"{escape(source.id)}/analyze'><button type='submit'>Analyze</button></form></td></tr>"
-        for source in store.list_sources()
-    ) or "<tr><td colspan='4'>No recordings registered yet.</td></tr>"
+        f"<td>{escape(source.kind.value)}</td><td><code>{escape(reference)}</code></td>"
+        f"<td>{action}</td></tr>"
+        )
+
+    return "".join(_row(source) for source in store.list_sources()) or (
+        "<tr><td colspan='5'>No sources registered yet.</td></tr>"
+    )
+
+
+def parse_intake_sources(
+    slug: str, evals: str, conditions: str, use_cases: str,
+    kinds: list[str], values: list[str], labels: list[str],
+) -> list[Source]:
+    """Turn the unified form into canonical, content-addressed Source artifacts."""
+    sources: list[Source] = []
+    statement_groups = (
+        (SourceKind.EVAL, evals), (SourceKind.CONDITION, conditions),
+        (SourceKind.USE_CASE, use_cases),
+    )
+    for kind, block in statement_groups:
+        for statement in dict.fromkeys(line.strip() for line in block.splitlines() if line.strip()):
+            sources.append(Source(project=slug, kind=kind, text=statement, label=kind.value))
+    if len({len(kinds), len(values), len(labels)}) != 1:
+        raise HTTPException(400, "source rows are incomplete")
+    allowed = {SourceKind.VIDEO, SourceKind.DOC, SourceKind.TEXT, SourceKind.URL}
+    for raw_kind, raw_value, raw_label in zip(kinds, values, labels, strict=True):
+        if not any(item.strip() for item in (raw_kind, raw_value, raw_label)):
+            continue
+        try:
+            kind = SourceKind(raw_kind)
+        except ValueError as exc:
+            raise HTTPException(400, "that is not an offered source type") from exc
+        if kind not in allowed or not raw_value.strip():
+            raise HTTPException(400, "each source needs an offered type and reference")
+        value = raw_value.strip()
+        payload = ({"url": value} if kind is SourceKind.URL else
+                   {"text": value} if kind is SourceKind.TEXT else {"path": value})
+        sources.append(Source(
+            project=slug, kind=kind, label=raw_label.strip() or None, **payload,
+        ))
+    return sources
 
 
 @router.get("/projects/{slug}/sources", response_class=HTMLResponse)
@@ -97,7 +140,8 @@ def sources_page(slug: str) -> str:
       </form>"""
     body = (crumbs + theme.card(form, title="Register a recording already on this host")
             + theme.card(upload, title="Upload a recording") + theme.card(
-        "<table><thead><tr><th>Source</th><th>Label</th><th>Path</th><th></th></tr></thead>"
+        "<table><thead><tr><th>Source</th><th>Label</th><th>Kind</th>"
+        "<th>Reference</th><th></th></tr></thead>"
         f"<tbody>{rows}</tbody></table>",
         title=f"{name} recordings",
     ))

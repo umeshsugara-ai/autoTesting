@@ -9,6 +9,7 @@ from __future__ import annotations
 import contextlib
 import os
 import re
+import tempfile
 from pathlib import Path
 
 from autotester.browser.secrets import parse_env
@@ -45,9 +46,25 @@ def _render_value(value: str) -> str:
     )
 
 
-def set_env_value(env_path: Path, key: str, value: str) -> None:
-    """Write `key=value` into `env_path`: replaces an existing line for `key`,
-    else appends a new one. Every other line is preserved untouched.
+def _validated_updates(values: dict[str, str]) -> dict[str, str]:
+    """Render a whole batch before any write, so one bad row changes nothing."""
+    rendered: dict[str, str] = {}
+    for key, value in values.items():
+        if not _KEY_RE.fullmatch(key):
+            raise InvalidEnvValue("credential key must use UPPER_SNAKE_CASE")
+        if "\n" in value or "\r" in value:
+            raise InvalidEnvValue("credential value must not contain a newline")
+        rendered[key] = _render_value(value)
+    return rendered
+
+
+def validate_env_values(values: dict[str, str]) -> None:
+    """Public validation-only gate used before a multi-artifact intake writes."""
+    _validated_updates(values)
+
+
+def set_env_values(env_path: Path, values: dict[str, str]) -> None:
+    """Atomically replace/add a validated batch while preserving other keys.
 
     Refuses a `key` that isn't `UPPER_SNAKE_CASE`, and a `value` containing a
     `\\n`/`\\r` — either one would let a caller inject an arbitrary extra
@@ -60,32 +77,45 @@ def set_env_value(env_path: Path, key: str, value: str) -> None:
     other bits on Windows (only the read-only flag applies there), so this is
     a real restriction on POSIX deployments and harmless on Windows dev boxes.
     """
-    if not _KEY_RE.fullmatch(key):
-        raise InvalidEnvValue(f"'{key}' is not a valid .env key (expected UPPER_SNAKE_CASE)")
-    if "\n" in value or "\r" in value:
-        raise InvalidEnvValue("value must not contain a newline")
-    rendered = _render_value(value)
+    if not values:
+        return
+    rendered = _validated_updates(values)
 
     lines = env_path.read_text(encoding="utf-8").splitlines() if env_path.exists() else []
-    prefix = f"{key}="
-    new_line = f"{key}={rendered}"
     out: list[str] = []
-    replaced = False
+    replaced: set[str] = set()
     for line in lines:
-        if line.startswith(prefix):
-            out.append(new_line)
-            replaced = True
+        key, separator, _value = line.partition("=")
+        if separator and key in rendered:
+            out.append(f"{key}={rendered[key]}")
+            replaced.add(key)
         else:
             out.append(line)
-    if not replaced:
-        out.append(new_line)
+    out.extend(f"{key}={value}" for key, value in rendered.items() if key not in replaced)
 
     env_path.parent.mkdir(parents=True, exist_ok=True)
     text = "\n".join(out) + "\n"
-    fd = os.open(str(env_path), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    fd, temp_name = tempfile.mkstemp(dir=env_path.parent, prefix=".env-", suffix=".tmp")
+    temp_path = Path(temp_name)
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            fd = -1
             handle.write(text)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.chmod(temp_path, 0o600)
+        os.replace(temp_path, env_path)
+    except BaseException:
+        if fd >= 0:
+            with contextlib.suppress(OSError):
+                os.close(fd)
+        temp_path.unlink(missing_ok=True)
+        raise
     finally:
         with contextlib.suppress(OSError):
             os.chmod(env_path, 0o600)
+
+
+def set_env_value(env_path: Path, key: str, value: str) -> None:
+    """Backward-compatible one-key entry point over the atomic batch writer."""
+    set_env_values(env_path, {key: value})

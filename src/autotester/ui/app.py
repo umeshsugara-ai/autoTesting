@@ -11,14 +11,15 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from html import escape
+from pathlib import Path
 
-from fastapi import FastAPI, Form
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
-from autotester.browser.secrets import SecretStore
+from autotester.browser.secrets import SecretStore, parse_env
 from autotester.core.env import load_repo_env
 from autotester.core.paths import ProjectPaths
-from autotester.schema.project import Project
+from autotester.schema.project import Project, Source
 from autotester.stages.report_export import valid_runs_newest_first
 from autotester.store.project_store import ProjectStore
 from autotester.ui import (
@@ -38,6 +39,7 @@ from autotester.ui import (
     routes_sources,
     theme,
 )
+from autotester.ui.env_editor import InvalidEnvValue, set_env_values, validate_env_values
 from autotester.ui.helpers import (
     _load_project_or_404,
     _project_slugs,
@@ -169,55 +171,83 @@ def index() -> str:
 
 @app.get("/onboard", response_class=HTMLResponse)
 def onboard_form() -> str:
-    fields = (
-        "<div class='field'><label for='slug'>Slug</label>"
-        "<input id='slug' name='slug' placeholder='my-product' required>"
-        "<span class='hint'>lowercase letters, digits and hyphens — "
-        "becomes the folder name</span></div>"
-        "<div class='field'><label for='name'>Name</label>"
-        "<input id='name' name='name' placeholder='My Product' required></div>"
-        "<div class='field'><label for='base_url'>Base URL</label>"
-        "<input id='base_url' name='base_url' "
-        "placeholder='https://app.example.com/signin' required></div>"
-        "<div class='field'><label for='allowed_domains'>Allowed domains</label>"
-        "<input id='allowed_domains' name='allowed_domains' "
-        "placeholder='example.com, app.example.com' required>"
-        "<span class='hint'>comma-separated — the browser will never navigate "
-        "outside these</span></div>"
-        "<button class='btn btn-primary' type='submit'>Create project</button>"
-    )
-    form = f"<form method='post' action='/onboard'>{fields}</form>"
     body = (
         theme.breadcrumb(("Projects", "/"), ("Onboard", None))
         + "<h1>Onboard a project</h1>"
-        "<p class='subtitle'>This creates a project record — "
-        "nothing is tested until you add cases.</p>"
-        f"{theme.card(form)}"
+        "<p class='subtitle'>Give AutoTester a URL and test account. Add whatever you already "
+        "know; otherwise it can learn by exploring after approval.</p>"
+        f"{theme.card(project_view.intake_form())}"
     )
     return theme.page("Onboard", body)
 
 
+def _guard_intake(project: Project, sources: list[Source], values: dict[str, str]) -> Path:
+    """Apply old and newly submitted secrets before any intake artifact write."""
+    env_path = ProjectPaths(project.slug).env_file
+    present = parse_env(env_path.read_text(encoding="utf-8")) if env_path.exists() else {}
+    submitted = {ref.key for ref in project.secrets}
+    owned_elsewhere = {
+        ref.key
+        for slug in _project_slugs() if slug != project.slug
+        for existing in [ProjectStore(slug).load_project()]
+        if existing is not None
+        for ref in existing.secrets
+    }
+    if submitted.intersection(present) or submitted.intersection(owned_elsewhere):
+        raise HTTPException(
+            400, "a credential key is already in use; choose a project-specific key",
+        )
+    guard = SecretStore(project, values, present)
+    _refuse_unsafe_submission(
+        [("the name", project.name), ("the base URL", project.base_url),
+         ("allowed domains", ", ".join(project.allowed_domains)),
+         *[("a credential description", ref.description or "") for ref in project.secrets],
+         *[("an intake statement", source.text or source.path or source.url or "")
+           for source in sources],
+         *[("a source label", source.label or "") for source in sources]],
+        project, guard,
+    )
+    return env_path
+
+
 @app.post("/onboard")
-def onboard_submit(
-    slug: str = Form(...),
-    name: str = Form(...),
-    base_url: str = Form(...),
-    allowed_domains: str = Form(...),
-) -> RedirectResponse:
+async def onboard_submit(request: Request) -> RedirectResponse:
+    form = await request.form()
+    slug, name = str(form.get("slug", "")), str(form.get("name", ""))
+    base_url = str(form.get("base_url", ""))
+    allowed_domains = str(form.get("allowed_domains", ""))
     _require_slug(slug)
+    if ProjectStore(slug).load_project() is not None:
+        raise HTTPException(400, "a project with this slug already exists")
     domains = [d.strip() for d in allowed_domains.split(",") if d.strip()]
     _require_reachable_base_url(base_url, domains)  # AT-058: fail here, not mid-run
-    # AT-073: project.json is git-tracked and a project NAME renders on every
-    # page, so these boxes need the same guard the case form has.
-    _refuse_unsafe_submission(
-        [("the name", name), ("the base URL", base_url), ("allowed domains", allowed_domains)],
-        Project(slug=slug, name=slug, base_url=base_url, allowed_domains=domains),
-        SecretStore.load(
-            Project(slug=slug, name=slug, base_url=base_url, allowed_domains=domains),
-            ProjectPaths(slug).env_file, strict=False),
+    draft = Project(slug=slug, name=name, base_url=base_url, allowed_domains=domains)
+    refs, values = routes_project_edit.parse_secret_rows(
+        draft, *(
+            [str(v) for v in form.getlist(field)] for field in (
+                "credential_key", "credential_value", "credential_domains",
+                "credential_description",
+            )
+        ),
     )
-    project = Project(slug=slug, name=name, base_url=base_url, allowed_domains=domains)
-    ProjectStore(slug).save_project(project)
+    project = draft.model_copy(update={"secrets": refs})
+    sources = routes_sources.parse_intake_sources(
+        slug, str(form.get("evals", "")), str(form.get("conditions", "")),
+        str(form.get("use_cases", "")),
+        *([str(v) for v in form.getlist(field)] for field in (
+            "source_kind", "source_value", "source_label",
+        )),
+    )
+    try:
+        validate_env_values(values)
+    except InvalidEnvValue as exc:
+        raise HTTPException(400, str(exc)) from exc
+    env_path = _guard_intake(project, sources, values)
+    store = ProjectStore(slug)
+    store.save_project(project)
+    for source in sources:
+        store.add_source(source)
+    set_env_values(env_path, values)
     return RedirectResponse(f"/projects/{slug}", status_code=303)
 
 

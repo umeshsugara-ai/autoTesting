@@ -10,6 +10,9 @@ class SourceKind(StrEnum):
     DOC = "doc"
     TEXT = "text"
     URL = "url"
+    EVAL = "eval"
+    CONDITION = "condition"
+    USE_CASE = "use_case"
 
 
 class Action(StrEnum):

@@ -4,8 +4,8 @@
 **Open me when:** every session start (the hook injects me); before picking a unit. For detail go to the router in `CLAUDE.md`.
 
 ## Product
-Onboard a web product once (details + demo videos + docs + text). AutoTester learns its flows
-screen-by-screen, generates test cases covering **best / worst / edge**, and re-runs them in a
+Onboard any web product in one form (URL, scoped credentials, optional evals/rules/use cases/sources).
+AutoTester learns its flows screen-by-screen, generates **best / worst / edge** cases, and runs in a
 **real visible browser** after every dev cycle — so a new feature cannot silently break an old one.
 When it meets a screen it does not know, it asks the human for a video instead of guessing.
 North star: an expert human tester and AutoTester get the same material and the same build;
@@ -37,8 +37,8 @@ AutoTester wins on bugs found, false positives, and time (`schema/bench.py` comp
 - T-136 [high] Track A acceptance: erp1/2/3 scored vs ERP_Issues_Trainers.xlsx with recall/FP numbers in the manifest
 - T-145 [high] Live bounded READ_ONLY crawl of vidysea.com/erp with the test account
 ## Last decisions (computed status)
-- D-019 2026-09-08 fix ACTIVE
-- D-020 2026-09-08 fix ACTIVE
 - D-021 2026-09-09 fix ACTIVE
 - D-022 2026-09-09 fix ACTIVE
 - D-023 2026-09-10 decision ACTIVE
+- D-024 2026-09-10 decision SUPERSEDED (by D-025)
+- D-025 2026-09-10 decision ACTIVE

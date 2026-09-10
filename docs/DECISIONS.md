@@ -308,3 +308,53 @@ plus a durable Quick Re-Run/Profile/flow/findings/change-history artifact.
 **Approved-by:** Umesh -- direct corrected-goal instruction in this active task, 2026-09-09.
 **Links:** goal.md; D-014; D-015; D-016; D-017; T-100; T-125; T-135; T-145; T-150..T-155;
 portal-explorer skill; active /goal objective 2026-09-09
+
+## D-024 | 2026-09-10 | type: decision | status: ACTIVE
+**What:** Implement T-161 as one no-CLI onboarding form over the existing Project, SecretRef,
+Source and ProjectStore concepts. The form accepts the base URL and allowed-domain boundary,
+zero or more domain-scoped credential key declarations, optional user evals, conditions/business
+rules and use cases, plus optional source declarations. Raw credential values remain outside the
+artifact path and are entered only through the existing masked credentials editor. All submitted
+fields are validated before project or source persistence so a malformed intake cannot leave a
+partial project. Source declarations become canonical Source rows rather than a second intake-only
+registry; T-162 remains responsible for fetching and adapting Drive, audio, documents and email.
+**Why:** D-023 and the active goal require any project to begin from one operator form, while the
+current onboarding stores only name, URL and domains and then makes the operator hand-assemble
+credentials, rules and sources across separate pages. Reusing the existing typed artifacts keeps
+the UI a thin file-backed editor and preserves the secret boundary and one-concept-one-place rule.
+**Result:** T-161 owns the typed project intake fields, onboarding rendering/parsing and canonical
+source registration, with an end-to-end TestClient acceptance suite and independent headed-browser
+checker proof. Later tasks consume these inputs; this unit does not claim orchestration or adapters.
+**Changes-authorized:** src/autotester/schema/project.py; src/autotester/ui/app.py;
+src/autotester/ui/routes_project_edit.py; src/autotester/ui/routes_sources.py;
+tests/test_ui_project_intake.py; docs/ARCHITECTURE.md (Project data-model and UI intake wording);
+qa/manifests/t161-unified-project-intake.md.
+**Approved-by:** Umesh -- active /goal explicitly requires the unified form and instructed the
+maker-checker loop to continue through commit, push and live-browser validation.
+**Links:** D-023; T-161; T-162; qa/contracts/core-invariants.md; qa/contracts/ui.md
+
+## D-025 | 2026-09-10 | type: decision | status: ACTIVE
+**What:** T-161's unified onboarding form accepts both domain-scoped credential declarations and
+their optional values in the same submission, in addition to URL, user evals, conditions/business
+rules, use cases and source declarations. Values are atomically written only to the repo-root
+gitignored `.env`; Project stores SecretRef keys/scopes and Sources store non-secret statements.
+The whole submission is parsed and validated before any file write. Repeated source statements
+are content-addressed and idempotent. Source adapters/fetching remain T-162.
+**Why:** The active product goal says the user fills one form with URL and account credentials.
+D-024 kept values on a later Credentials page, preserving safety but failing that actual one-form
+experience. Atomic batch persistence is safer than sequential field writes because an invalid
+second credential cannot leave a half-configured account, while the same SecretStore boundary
+still prevents values entering project artifacts, prompts, logs or rendered responses.
+**Result:** One browser form can create a credentials-only project or a richly taught project
+without CLI or JSON editing; the existing later credentials page remains available for rotation.
+**Supersedes:** D-024 -- the earlier split-page credential approach is removed because it missed
+the user's one-form requirement; atomic secret-only persistence is both more faithful and safer.
+**Changes-authorized:** src/autotester/schema/enums.py; src/autotester/schema/project.py;
+src/autotester/ui/project_view.py; src/autotester/ui/app.py;
+src/autotester/ui/routes_project_edit.py; src/autotester/ui/routes_sources.py;
+src/autotester/ui/env_editor.py; tests/test_ui_project_intake.py; docs/ARCHITECTURE.md
+(Project data-model, UI intake and storage wording); qa/manifests/t161-unified-project-intake.md.
+**Approved-by:** Umesh -- active /goal explicitly requires the URL-and-credentials form and
+instructed autonomous maker-checker execution through commit, push and live-browser validation.
+**Links:** D-023; D-024; T-161; T-162; qa/contracts/core-invariants.md;
+qa/contracts/browser-and-secrets.md; qa/contracts/ui.md
