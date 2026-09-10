@@ -1,8 +1,8 @@
 # Manifest — t160-revised-goal-governance
 
 **Unit:** T-160 — Corrected AutoTester product-goal governance
-**Commit:** `4add220`
-**Fix cycle:** 1 of 3
+**Commit:** `4add220`; post-close lifecycle fix `df60f4d`
+**Fix cycle:** 2 of 3
 **Dual check:** yes — fresh senior-software-engineer review before checker
 **Contract:** D-023; `plan.md` section 9
 **Goal task:** T-160
@@ -39,13 +39,22 @@ uv --cache-dir .work/uv-cache run pytest -p no:cacheprovider
 Full repository suite (fresh senior reviewer): 100% passed, 2 skipped
 Repository Ruff (fresh senior reviewer): All checks passed!
 Task graph: 55 unique tasks, 0 missing dependencies, 0 cycles
-Progress/dashboard: 31 done, 24 pending, 56%, exact parity
+Post-close progress/dashboard: 32 done, 23 pending, 58%, exact parity
 tests/test_goal_done_checks.py: 300 lines (cap met)
 git diff --check: passed; Windows line-ending notices only
 autotester doctor: only unrelated untracked root AGENTS.md reported
 ```
 
-Fresh senior-software-engineer review of the final diff: **APPROVE**, no findings.
+Fresh senior-software-engineer review of cycle 1: **APPROVE**, no findings.
+Fresh cycle-2 review after the post-close check fix: **APPROVE**, no findings; full suite green.
+
+## Cycle-2 lifecycle correction
+
+Cycle 1 correctly verified the revised contract, but closing T-160 exposed that its regression test
+had pinned the transient pre-close totals (31/24/56). That made the task's own `done_check` fail
+after a legitimate PASS closeout. `df60f4d` replaces the transient constants with independent
+status-count and percentage recomputation, then checks the generated dashboard against those live
+values. The exact T-160..T-169 dependency and full command mappings remain literal and pinned.
 
 ## What this unit does not claim
 
@@ -58,4 +67,4 @@ Fresh senior-software-engineer review of the final diff: **APPROVE**, no finding
 - This is pre-push evidence. The remote push and post-push live-browser validation remain pending
   the explicitly requested confirmation of the named GitHub remote and branch.
 
-## Status: checked-PASS
+## Status: ready-for-check
