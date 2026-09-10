@@ -1,0 +1,36 @@
+{
+  "unit": "t135-coverage-merge-expand",
+  "date": "2026-09-11",
+  "actor": "maker (smoke check only — never the validation; see the ship rule)",
+  "why_this_unit_touches_a_ui_surface": "No file under ui/ changed. But D-024 demands honesty about indirect surfaces: the AT-287 fix in core/urls.py changes what stages/coverage.py reports, and ui/routes_crawls.py:150 renders crawl_view.coverage_card(diff_crawl(...), unreached_screens(...)). So the coverage card's CONTENTS are downstream of this change and were checked for regression.",
+  "server": "uv run uvicorn autotester.ui.app:app --port 8991 (real process, real projects/ data)",
+  "browser": "Playwright Chromium via MCP",
+  "pages": [
+    {"url": "/", "status": 200, "console_errors": 0,
+     "observed": "9 real projects listed; 71 cases; stat tiles render"},
+    {"url": "/projects/checkerdemo/crawls", "status": 200, "console_errors": 0,
+     "observed": "2 completed crawls listed with screens/refused/issues columns"},
+    {"url": "/projects/checkerdemo/crawls/crawl_01M22B474QM5956JR0ZQA8M9M4", "status": 200,
+     "console_errors": 0,
+     "observed": "'Against the FlowSpec' coverage card renders: FlowSpec v1, review needs_edit, '1 screen(s) the FlowSpec cannot name: /', '0 known screen(s) this crawl never reached'. Unregressed by the urls.py change, as expected — crawl-learned url_patterns are stored host-less and were never affected by AT-287."},
+    {"url": "/projects/checkerdemo", "status": 200, "console_errors": 0, "observed": "project page renders"}
+  ],
+  "interactions": [
+    {
+      "did": "Ran the REAL `autotester ingest run demo <source_id> --merge` command in a real process against a real on-disk ProjectStore (AUTOTESTER_ROOT=.work/t135-live). Only the vision model is stubbed — a genuine end-to-end run needs a real recording and a live API call, which is a declared gap.",
+      "expected": "the APPROVED FlowSpec is NOT discarded; the recording's screen is added; version bumps; review returns to draft; the VideoRequest the gap raised moves open -> fulfilled",
+      "observed": "stdout: 'demo: v4, 2 screens, 0 flows after merging the answer video (review status draft, 1 request(s) closed)', exit 0. On disk: flowspec.json v4, review=draft, screens = ['Sign in (reviewed by a human)' (host-ful 'demo.test/signin', SURVIVED verbatim), 'Student detail' ('demo.test/students/{id}', added)], review.note names the source; requests.jsonl row status=fulfilled, fulfilled_by_source=src_2a9dbdd46186.",
+      "pass": true
+    },
+    {
+      "did": "Did NOT click 'Merge these screens into the FlowSpec' on the checkerdemo crawl page",
+      "expected": "n/a",
+      "observed": "Deliberately skipped: that button is explore_merge/T-144's surface, not this unit's, and clicking it would mutate a real shared project fixture other work depends on.",
+      "pass": null
+    }
+  ],
+  "declared_gaps": [
+    "No subprocess run against a REAL video with a live vision provider — no suitable recording exists in-repo and a fake mp4 would fail the model call, not the merge. The merge/resolve logic downstream of the observation is what this unit owns, and it ran for real.",
+    "The UI has no ingest route at all (grep: persist_ingest/ingest_video appear only in cli_video.py), so the CLI is this stage's ONLY real entry point. There is no second call site to wire, unlike coverage.md V6's two."
+  ]
+}
