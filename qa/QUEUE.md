@@ -1,30 +1,33 @@
 # qa/QUEUE.md — checker sweep queue (top-3 recommended next units)
 
-Refreshed by `/checker sweep` **2026-09-10T07:14:00+05:30**; bound strictly to
-`D:/autoTesting`. Sweep window: `dab532b..3ac043f` (27 commits).
+Refreshed by `/checker sweep` **2026-09-10T10:56:00+05:30**; bound strictly to
+`D:/autoTesting`. Sweep window: `3ac043f..912aa12` (6 commits).
 
 ## Reconciliation
 
-- **T-160 cycle 2 is clean:** manifest `checked-PASS`, verdict `PASS`, cycle 2 matches, goal row
-  is `done`, and the generated dashboard reports 32/55 done, 23 pending, 58%.
-- **Handshake clean:** 102 manifests / 104 verdict files; zero `ready-for-check`, zero missing
-  verdicts, zero PASS-with-unclosed-manifest. The two verdict-only files are deliberate campaign /
-  live-release checks. The old AT-226 concurrent PASS/FAIL split is closed by the separate
-  `at226-already-authenticated-crawl-at274-fix` PASS; it is not a dangling fix cycle.
-- **Bypass detection clean:** every source-bearing change in the window is covered by the later
-  AT-276, AT-277, AT-278, T-134 or T-160 manifest/verdict chain.
-- **Baseline:** full suite passed with a repo-local cache/basetemp; Ruff passed. The literal adapter
-  commands are not executable in this managed runtime without those flags (AT-282), and doctor is
-  red only because the required project-level `AGENTS.md` is rejected as root clutter (AT-283).
-- **Maker liveness:** `qa/.last-tick` is 14.4 hours old, no `qa/.paused`, while 23 goal tasks and
-  79 ledger issues remained open when the sweep began (AT-280).
+- **T-100 cycle 1 is clean:** implementation `c1f7cc0`, independent checker PASS `7ae89d6`,
+  maker close-out `912aa12`; manifest `checked-PASS`, matching cycle, goal row `done`, and the
+  dashboard/goal state reports 33/55 done and 22 pending. Its nine owned issues are `fixed` and
+  remain for a later issue-specific re-check before `verified`.
+- **Handshake clean:** 103 manifests / 105 verdict files; zero live `ready-for-check`, zero
+  missing current-cycle verdicts, and zero PASS-with-unclosed manifests. The two verdict-only
+  files remain deliberate campaign/live-release checks.
+- **Bypass detection clean:** the only source-bearing commit in the window is T-100's `c1f7cc0`,
+  covered by its manifest, tightened contracts, matching-cycle verdict, and close-out. The other
+  commits are checker queue, manifest, contract, verdict/evidence, and maker close-out records.
+- **Baseline:** the literal adapter commands still fail before their instruments run because the
+  managed runtime cannot access the default uv cache (AT-282). With the documented repo-local
+  cache/basetemp workaround, the full suite passed at 100% with 2 skips and Ruff passed. Doctor
+  remains red only because it rejects the active untracked root `AGENTS.md` (AT-283).
+- **Maker liveness remains open:** `qa/.last-tick` is 1089 minutes old, `qa/.paused` is absent,
+  22 goal tasks and 74 ledger issues remain open, and the real SessionStart hook again emitted
+  `AUTO-CONTINUE REQUIRED` (AT-280).
 
 ## GRILL — human decision, not a build row
 
-- GRILL: recurring vacuous-guard prevention policy — unanswered across 7+ sweeps (AT-218).
-- GRILL: set the real two-mode acceptance thresholds for D-023/T-169 (bugs found, false-positive
-  ceiling, branch coverage and time), then let checker contracts encode them — the north star moved
-  after the last contract amendment and a future test file alone can otherwise Goodhart completion
+- GRILL: recurring vacuous-guard prevention policy — unanswered (AT-218).
+- GRILL: set the real two-mode acceptance thresholds for D-023/T-169 (bugs found,
+  false-positive ceiling, branch coverage and time), then let checker contracts encode them
   (AT-281).
 
 ## HUMAN_GATE — do not build as ordinary units
@@ -33,39 +36,40 @@ Refreshed by `/checker sweep` **2026-09-10T07:14:00+05:30**; bound strictly to
 - **AT-147:** choose start-of-day vs end-of-day approval expiry semantics.
 - **AT-253:** wire model fallback into execution, correct the architecture claim, or defer.
 - **ERP credentials:** T-122 and T-145 remain gated on a test account entered through the UI;
-  never use Karun's or another real user's account. The old T-136 model-key gate is answered and
-  is not a current human gate.
+  never use a live user's account. The T-136 model-key gate is answered and is not current.
 
 ## TOP-3 BUILDABLE NEXT UNITS
 
-1. **T-100 — re-close the no-CLI UI through a real independent browser.** It is already reopened
-   and directly blocks T-161. Fold the live UI findings it owns (AT-244/245/247/251/252/257/259),
-   then require Mode D evidence rather than another narrow `tests/test_ui.py` claim.
+1. **T-161 — unified no-CLI project intake.** T-100 and T-160 are now both done, so this
+   CRITICAL, high-user-value unit is newly unblocked. Keep credentials as domain-scoped
+   `SecretRef`s and accept URL, evals, conditions, use cases, and source declarations through one
+   operator-facing flow.
 
-2. **AT-227 — dismiss or safely route around first-paint in-page modals during BFS.** This is the
-   oldest open high-severity crawl stopper and sits on the T-165 completeness path. Native-dialog
-   handling does not cover DOM modals.
+2. **T-135 — reconnect coverage → FlowSpec merge → expansion.** T-134 is done and this CRITICAL
+   unit is the remaining prerequisite for the resumable learn-or-explore orchestrator T-163.
+   Preserve reviewed truth and surface every unresolved screen/video request.
 
-3. **T-135 — reconnect coverage → FlowSpec merge → expansion.** T-134 is now done, so this unit is
-   buildable and is a direct prerequisite of the learn-or-explore orchestrator T-163. Preserve
-   reviewed truth and make every unknown screen/video request visible.
+3. **AT-227 — handle first-paint in-page modals during BFS.** This is the oldest open high-severity
+   crawl stopper and sits directly on T-165's completeness path. Native-dialog handling does not
+   cover DOM modals.
 
-Next governance unblock after those: **T-126**, carrying AT-282/AT-283 plus the older fixed-ledger
-backlog. Fixed rows still awaiting an issue-specific later re-check: AT-207/208/219/220/221/222/
-223/225/228/230/250/254/264/269/272/276/277/278/279.
+Next governance unit: **T-126**, carrying AT-282/AT-283 and the older fixed-ledger backlog. Mode-D
+retrospective debt AT-243 remains open: T-100 is the first compliant re-check, not evidence for all
+historic UI PASSes.
 
 ## Revised-goal coverage
 
-- Intake: partial now, owned by T-161.
+- Intake: partial, owned by newly unblocked T-161.
 - Multi-source learning: video exists; Drive/audio/document/email/text missing, owned by T-162.
 - Learn-or-explore orchestration: stages exist separately; unified resumable coordinator missing,
-  owned by T-163.
+  owned by T-163 and dependent on T-135/T-162.
 - Portal Persona: missing, owned by T-164.
-- BFS/frontier/API completeness: partial crawler exists; forward/back/network completeness missing,
-  owned by T-165.
+- BFS/frontier/API completeness: partial crawler exists; first-paint modal recovery remains AT-227,
+  with forward/back/network completeness owned by T-165.
 - Traceable best/worst/edge compiler: partial expansion exists; provenance matrix missing, T-166.
 - Release-triggered regression: missing, T-167.
 - Unified damage-control report: partial HTML/XLSX exists; cross-layer diff missing, T-168.
 - Two-mode real acceptance: missing and threshold-gated by AT-281, T-169.
 
-Terminal state: **FINDINGS: 4** (AT-280..AT-283); existing GRILL AT-218 carried.
+Terminal state: **FINDINGS: 4** (AT-280..AT-283 persist; no new issue id); existing GRILL AT-218
+and systemic Mode-D debt AT-243 carried.

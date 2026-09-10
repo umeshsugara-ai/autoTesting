@@ -559,3 +559,7 @@ in-UI domain-bound crawl approval and explicit bounds; themed refusal paths; 404
 and crawl ids; valid persisted Run envelopes only; latest-run pass rate labelled with N cases and
 M distinct flows; zero unexplained console errors; and one Mode-D journey from onboard through
 masked credential, case/FlowSpec, approval, real run, report and portable downloads.
+
+**FOLDED:** 2026-09-10 by `/checker` into `qa/contracts/ui.md` U11 and
+`qa/contracts/ui-report.md` UR5-UR6 at `7d4c848`; independently PASSed in
+`qa/verdicts/t100-ui-reclose.md` cycle 1 with Mode-D evidence.
