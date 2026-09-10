@@ -144,6 +144,21 @@ def test_new_secret_cannot_be_smuggled_into_non_secret_inputs(
     assert not (root / ".env").exists()
 
 
+def test_new_hostname_shaped_secret_is_not_echoed_by_url_validation(
+    client: TestClient, root: Path,
+) -> None:
+    secret = "dual-fake-secret.example"
+    response = client.post("/onboard", data=_base(
+        base_url="https://demo.test/login", allowed_domains=secret,
+        credential_key=["DEMO_PASSWORD"], credential_value=[secret],
+        credential_domains=[secret], credential_description=["password"],
+    ), follow_redirects=False)
+    assert response.status_code == 400
+    assert secret not in response.text
+    assert not (root / "projects/demo").exists()
+    assert not (root / ".env").exists()
+
+
 def test_existing_root_secret_key_cannot_be_reused_or_hidden(
     client: TestClient, root: Path,
 ) -> None:

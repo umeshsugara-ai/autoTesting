@@ -220,7 +220,6 @@ async def onboard_submit(request: Request) -> RedirectResponse:
     if ProjectStore(slug).load_project() is not None:
         raise HTTPException(400, "a project with this slug already exists")
     domains = [d.strip() for d in allowed_domains.split(",") if d.strip()]
-    _require_reachable_base_url(base_url, domains)  # AT-058: fail here, not mid-run
     draft = Project(slug=slug, name=name, base_url=base_url, allowed_domains=domains)
     refs, values = routes_project_edit.parse_secret_rows(
         draft, *(
@@ -243,6 +242,7 @@ async def onboard_submit(request: Request) -> RedirectResponse:
     except InvalidEnvValue as exc:
         raise HTTPException(400, str(exc)) from exc
     env_path = _guard_intake(project, sources, values)
+    _require_reachable_base_url(base_url, domains)  # guard new secrets before any echo path
     store = ProjectStore(slug)
     store.save_project(project)
     for source in sources:
