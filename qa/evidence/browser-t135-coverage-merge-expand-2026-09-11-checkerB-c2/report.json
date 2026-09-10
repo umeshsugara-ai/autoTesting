@@ -1,0 +1,147 @@
+{
+  "checker": "B",
+  "port": 8791,
+  "root": "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--DevDocExperts\\7a8b6961-f80a-4c3b-a083-bb2fbcc5196d\\scratchpad\\root135b",
+  "pages": [
+    {
+      "label": "project list",
+      "path": "/",
+      "status": 200,
+      "title": "Projects \u2014 AutoTester",
+      "console_errors": 0
+    },
+    {
+      "label": "project home",
+      "path": "/projects/checkerdemo",
+      "status": 200,
+      "title": "Checker Demo Shop \u2014 AutoTester",
+      "console_errors": 0
+    },
+    {
+      "label": "crawls list",
+      "path": "/projects/checkerdemo/crawls",
+      "status": 200,
+      "title": "Crawls \u2014 AutoTester",
+      "console_errors": 0
+    },
+    {
+      "label": "crawl detail",
+      "path": "/projects/checkerdemo/crawls/crawl_01M22B474QM5956JR0ZQA8M9M4",
+      "status": 200,
+      "title": "Crawl crawl_01M22B474QM5956JR0ZQA8M9M4 \u2014 AutoTester",
+      "console_errors": 0
+    },
+    {
+      "label": "requests page",
+      "path": "/projects/checkerdemo/requests",
+      "status": 200,
+      "title": "Checker Demo Shop \u00b7 Video requests \u2014 AutoTester",
+      "console_errors": 0
+    },
+    {
+      "label": "product map (erp-shaped surface)",
+      "path": "/projects/checkerdemo/product-map",
+      "status": 200,
+      "title": "Checker Demo Shop \u00b7 Product map \u2014 AutoTester",
+      "console_errors": 0
+    },
+    {
+      "label": "erp product map \u2014 the rendered mangled rows",
+      "path": "/projects/erp/product-map",
+      "status": 200,
+      "title": "ERP \u00b7 Product map \u2014 AutoTester",
+      "console_errors": 0
+    }
+  ],
+  "interactions": [
+    {
+      "step": "requests BEFORE merge",
+      "value": [
+        {
+          "id": "req_bb8e26317632",
+          "gap": "gap_2a0765d4adf2",
+          "status": "open",
+          "fulfilled_by": null
+        }
+      ]
+    },
+    {
+      "step": "coverage card BEFORE (has 'Against the FlowSpec')",
+      "value": true
+    },
+    {
+      "step": "merge button visible",
+      "value": true
+    },
+    {
+      "step": "after merge click",
+      "url": "http://127.0.0.1:8791/projects/checkerdemo/crawls/crawl_01M22B474QM5956JR0ZQA8M9M4",
+      "console_errors": 0
+    },
+    {
+      "step": "requests AFTER merge",
+      "value": [
+        {
+          "id": "req_bb8e26317632",
+          "gap": "gap_2a0765d4adf2",
+          "status": "fulfilled",
+          "fulfilled_by": "crawl_01M22B474QM5956JR0ZQA8M9M4"
+        }
+      ]
+    },
+    {
+      "step": "AT-289 VERDICT: merge button closed the ask",
+      "value": true,
+      "detail": [
+        {
+          "schema_version": 1,
+          "created_at": "2026-09-09T05:44:03.566085Z",
+          "id": "req_bb8e26317632",
+          "project": "checkerdemo",
+          "gap_id": "gap_2a0765d4adf2",
+          "prompt": "Record a short video showing the screen/flow at '/' \u2014 the crawl reached '/' but no screen in the FlowSpec has this url_pattern",
+          "status": "fulfilled",
+          "fulfilled_by_source": "crawl_01M22B474QM5956JR0ZQA8M9M4"
+        }
+      ]
+    },
+    {
+      "step": "flowspec after merge",
+      "version": 2,
+      "screens": 1,
+      "review": "draft",
+      "url_patterns": [
+        "/"
+      ]
+    },
+    {
+      "step": "merge click #2 (idempotence)",
+      "version": 2,
+      "screens": 1,
+      "review": "draft",
+      "requests": [
+        "fulfilled"
+      ]
+    },
+    {
+      "step": "merge click #3 (idempotence)",
+      "version": 2,
+      "screens": 1,
+      "review": "draft",
+      "requests": [
+        "fulfilled"
+      ]
+    },
+    {
+      "step": "erp product-map shows url_pattern",
+      "has_mangled": false,
+      "has_repaired": true
+    }
+  ],
+  "console_errors_total": 0,
+  "crawl_links": [
+    "/projects/checkerdemo/crawls/crawl_01M22B474QM5956JR0ZQA8M9M4",
+    "/projects/checkerdemo/crawls/crawl_01M22B3J98YRSVW3ZPP8GE810A"
+  ],
+  "console_errors": []
+}

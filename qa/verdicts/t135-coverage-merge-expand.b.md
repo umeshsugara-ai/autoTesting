@@ -276,3 +276,276 @@ one". Two things are wrong there and only one of them is the doc — a manifest 
 the checker cannot reproduce is the failure mode the re-run rule exists to catch, and the maker
 should re-paste real output next cycle rather than the output of an earlier tree state. Fix the line
 budget and this unit is a PASS on my reading; nothing in the merge logic itself needs to change.
+
+
+---
+
+# Verdict — t135-coverage-merge-expand · CYCLE 2 (SECOND INDEPENDENT CHECKER, dual check)
+
+**Checker:** checkerB — the `.b.md` lane. `qa/verdicts/t135-coverage-merge-expand.md` was **not
+read, not appended to, not overwritten**. Formed from evidence this checker produced itself.
+**Date:** 2026-09-11
+**Cycle checked: 2**
+**Bound to:** `D:/autoTesting`
+**Adapter:** `qa/adapter.json` — coding; verify = shell; isolation = worktree-copy; done = audit-pass.
+**Isolation:** `git archive HEAD` (191be93) extracted outside the repo; `autotester.__file__`
+printed and confirmed to resolve to the extract before any sabotage result was trusted.
+**Contracts judged:** `ingest.md` I6 · I7 (+ the no-fire list deferring "merging into an existing
+FlowSpec" to A6) · `coverage.md` V1, V3, V6 · `expand.md` X6 · `review-gate.md` R1.
+
+```
+VERDICT: FAIL
+SCOREBOARD: 6/7 criteria met, 6/7 invariants hold
+FAILURES:
+- [I7] sev: high · A screen learned from a video and the same screen found by a crawl STILL do not
+  collapse to one row: url_template swallows the host of a SCHEMELESS url, and a schemeless address
+  bar is exactly what this repo's only real video data contains · fix direction: stop handing
+  url_template a string whose host position is unknown - normalise at the ingest boundary (prepend a
+  scheme, or record schemelessness on ObservedScreen); the defending test must use a schemeless url
+  on the video side and a scheme-ful one on the crawl side · issue: AT-294 (re-derived
+  independently here; already open, filed by checkerA)
+- [I6/A6-merge] sev: medium · merge_flowspec._learned_url_patterns can fill a None url_pattern that
+  an existing screen already claims, producing two screens at one pattern with NO Conflict, because
+  _conflicts_for iterates only `added` · fix direction: pass the learned-pattern fills through
+  `disagreement` before applying them · issue: AT-295 (re-derived independently here; already open)
+- [manifest claim] sev: medium · The manifest lists AT-290 as addressed, but the
+  projects/erp/screenmap.json repair is an UNTRACKED, unreproducible hand-edit with no migration -
+  the code regenerates the corruption it removed, so AT-290 is not durably fixed and stays open ·
+  fix direction: a committed, idempotent, tested migration under scripts/, run AFTER the AT-294
+  producer fix; raise a HUMAN_GATE rather than edit real project artifacts in-flight · issue: AT-297b
+LIVE-BROWSER: qa/evidence/browser-t135-coverage-merge-expand-2026-09-11-checkerB-c2/report.json
+ISSUES-WRITTEN: AT-297b
+EXPLANATION: Every pasted output in the manifest reproduces exactly, all four declared sabotages are
+load-bearing, and the AT-289 fix is confirmed live through the product's own button on my own port
+with my own browser and zero console errors. The unit still fails because cycle 2's strategy change
+fixed the producer DISAGREEMENT without fixing the defect: canonicalising to keep_host=False makes
+both seams call the same function, but on a schemeless url - the only url shape this repo's real
+recorded data actually contains - the host is still swallowed into the path, so I7's stated purpose
+is unmet and the maker's hand-repair of the affected artifact is one `analyze` away from being
+undone. The new _learned_url_patterns path also bypasses the conflict rule this same unit
+centralised.
+```
+
+---
+
+## 1. The manifest's pasted outputs — all reproduce exactly
+
+| Command | Manifest claims | I measured | |
+|---|---|---|---|
+| `uv run pytest -q` | 1032 passed, 2 skipped, exit 0 | junitxml `tests="1034" failures="0" errors="0" skipped="2"`, exit 0 → **1032 passed / 2 skipped** | OK |
+| `uv run ruff check src tests scripts` | `All checks passed!`, exit 0 | `All checks passed!`, exit 0 | OK |
+| `uv run autotester doctor` | exit 1, **exactly one** violation (AGENTS.md) | `root-clutter: AGENTS.md …` → `1 violation(s)`, exit 1 | OK |
+| `check_deliverable.py --exists …` | exit 0 | `OK 2 deliverable(s) present`, exit 0 | OK |
+| `pytest tests/test_merge_flowspec.py tests/test_coverage.py -q` | 24 passed | 24 passed, exit 0 | OK |
+
+AT-288 is genuinely closed: doctor is back to the single certified AT-283 baseline, and the cycle-1
+"27 vs 28" and "2 violations" discrepancies are gone.
+
+## 2. The four declared sabotages — all load-bearing
+
+Run in the `git archive HEAD` extract, never the live tree; anchor-hit count asserted `== 1` before
+each edit; the file restored from a pristine copy after each.
+
+1. `stages/ingest.py` `keep_host=False` → `True`: **2 fail** —
+   `test_an_observed_url_is_templated_the_same_way_the_crawler_templates_it` and
+   `test_a_video_screen_and_a_crawled_screen_of_one_url_produce_one_pattern`
+   (`AssertionError: assert 'demo.test/trainers/{id}' == '/trainers/{id}'`). As claimed.
+2. `resolve_requests` body → `return []`: **8 fail** across `test_coverage_wiring.py`,
+   `test_merge_flowspec_cli.py`, `test_merge_flowspec_requests.py`. The manifest predicted 5; the
+   real number is higher, not lower.
+3. Delete the `resolve_requests(...)` call at `ui/routes_crawls.py:252`: **1 fail** —
+   `test_the_merge_button_closes_the_request_the_crawl_answers`. As claimed.
+4. `_learned_url_patterns` → `{}`: **2 fail** —
+   `test_a_re_recording_teaches_a_url_pattern_the_spec_lacked` and
+   `test_learning_a_url_pattern_closes_the_request_that_asked_for_it`. As claimed.
+
+**Environmental, not a defect:** `tests/test_ui_sources.py::test_uploaded_recordings_are_gitignored`
+fails in the extract *baseline* with no sabotage applied — the extract has no `.git`. Green in the
+repo. Recorded so nobody charges it to the maker.
+
+## 3. Data correctness and migration — where cycle 2's strategy change actually costs
+
+**The stored-shape sweep is complete, and I did not take the maker's word for it.**
+`grep -rl url_pattern projects/` over all **989** files under `projects/` returns exactly two:
+`projects/erp/screenmap.json` (the 3 repaired rows) and `projects/checkerdemo/requests.jsonl`
+(prose inside a request prompt, not a stored pattern). No `flowspec.json`, no `crawl/**`, no
+`cases.jsonl`, no `runs/**` carries a `url_pattern` at all. **The maker's "3 rows is the complete
+set" claim is correct** — that part I uphold.
+
+**No code path writes a host-ful `url_pattern` any more, and there is no lookalike templater.**
+All four producers pass `keep_host=False` (`ingest.py:99`, `explore_merge.py:73`,
+`product_map.py:40` and `:60`, `screen_identity.py:53`). `schema/screen_graph.py`'s
+`ScreenNode.url_template` is a *field* holding a browsing identity, and `explore_merge.py:65-73`
+deliberately re-derives the pattern from `url_example` rather than reusing it. That much is clean.
+
+**But `keep_host=False` is not the same as host-less.** Measured in the extract:
+
+```
+url_template('vidysea.com/erp/trainers',         keep_host=False) -> '/vidysea.com/erp/trainers'
+url_template('https://vidysea.com/erp/trainers', keep_host=False) -> '/erp/trainers'
+```
+
+`urlsplit` has no `//` to key on, so the host lands in `.path` and survives as a path segment.
+Idempotence now holds for every input I probed — that much cycle 2 did fix — but **the two seams
+still disagree**, which is I7's entire point. This is not a hypothetical shape: all three
+`projects/erp/sources/*/analysis.json` records carry `url: 'vidysea.com/erp/trainers'`, schemeless,
+because a browser hides the scheme and the vision model transcribes what it sees. The new defending
+test picks `https://demo.test/trainers/123?tab=2` — the one input shape where the seam agrees.
+
+**The repair is undone by the code that is supposed to have been fixed.** I ran
+`stages/product_map.build_screen_map(ProjectStore('erp'))` read-only (it returns a `ScreenMap`; the
+caller persists) against the real on-disk analyses with committed cycle-2 code:
+
+```
+REGENERATED (current code, real erp data)          ON-DISK (maker-repaired)
+  Trainers                    -> '/vidysea.com/erp/trainers'   '/erp/trainers'
+  Trainers List               -> '/vidysea.com/erp/trainers'   '/erp/trainers'
+  Trainers List - Edit Drawer -> '/vidysea.com/erp/trainers'   '/erp/trainers'
+```
+
+**Was rewriting stored project data inside a unit cycle appropriate? No.** Three reasons, each
+verified rather than argued:
+
+- `git ls-files --error-unmatch projects/erp/screenmap.json` → *"did not match any file(s) known to
+  git"*. The repaired artifact is **untracked**; `git show --stat d21440c` lists 18 files, none
+  under `projects/`. The maker's own proposed isolation, `git archive HEAD`, does not contain the
+  repair — so the change under review and the change that was made are not the same change.
+- The backup `.work/screenmap.json.bak` sits under `.gitignore` line 10. The edit and its undo are
+  both one `git clean -xdf` from gone.
+- The value written is one the code cannot produce, and nothing tests it. This is a migration
+  wearing a unit's clothes. It needed a committed, idempotent, tested script under `scripts/`,
+  sequenced **after** the producer fix so it writes the value the code produces — or a HUMAN_GATE.
+  AT-290 is therefore not durably fixed. Filed as **AT-297b**.
+
+Consequence for this unit specifically: `coverage._path_of` is idempotent, so a stored
+`/vidysea.com/erp/trainers` will never match an observed `/erp/trainers`; the video-learned screen
+stays invisible, the gap stays open, and `resolve_requests` still cannot close it. That is AT-287's
+original symptom, alive for real data.
+
+## 4. `_learned_url_patterns` vs `_conflicts_for` — the gap is real
+
+`_conflicts_for(existing, added_screens, source)` (`merge_flowspec.py:71`) iterates **only**
+`added_screens`. Patterns that `_learned_url_patterns` writes onto screens that already exist never
+pass through `disagreement`. Executed in the extract:
+
+```
+existing (APPROVED): scr_a 'Trainers List' url_pattern='/erp/trainers'
+                     scr_b 'Trainers Grid' url_pattern=None
+incoming recording : scr_b 'Trainers Grid' url_pattern='/erp/trainers'  (same id -> not "added")
+
+merged screens  : [('Trainers List','/erp/trainers'), ('Trainers Grid','/erp/trainers')]
+DUPLICATE       : ['/erp/trainers']
+merged.conflicts: []            <-- GAP CONFIRMED
+```
+
+`disagreement` returns a real `Conflict` for that same pair when called directly (different names,
+non-structural clash), so the rule this unit deliberately centralised — one concept, one place — is
+bypassed by the very path cycle 2 added. `by_pattern` is also built from `existing.screens` before
+the fill, so ordering cannot save it.
+
+## 5. Idempotence end to end after the learning change — holds
+
+```
+in-process, re-recording that only teaches a pattern:
+  merge #1: version=2 screens=2 review=draft (changed)
+  merge #2..#4: the identical object is returned; version stays 2, review not re-armed
+
+in-process, genuinely new screen:
+  merge #1: version=2 screens=2 ; merge #2..#4: unchanged
+
+live UI (my own browser, port 8791):
+  click #1: version=2, 1 screen, review=draft, request -> fulfilled
+  click #2: version=2, 1 screen, review=draft, request stays fulfilled
+  click #3: version=2, 1 screen, review=draft, request stays fulfilled
+```
+
+The `_learned_url_patterns` fill is self-limiting (`lacking` no longer contains the screen once it
+has a pattern), so the second merge is a genuine no-op. R1 holds: a real change re-arms the review
+gate to DRAFT, a no-op does not.
+
+## 6. Mode D — my own port, my own browser, my own sandbox
+
+`qa/evidence/browser-t135-coverage-merge-expand-2026-09-11-checkerB-c2/report.json`
+
+Real `uvicorn` on **port 8791** (verified free before launch, killed after), pointed by
+`AUTOTESTER_ROOT` at a **copy** of `projects/` in scratch so no real artifact was written by this
+check. Own `playwright.chromium` instance — not the shared MCP browser, not the maker's PNGs.
+**7 pages, 0 console errors, 0 page errors in total.**
+
+The interaction that matters — AT-289, the only door an operator has:
+
+```
+requests BEFORE : req_bb8e26317632  gap_2a0765d4adf2  status=open  fulfilled_by=null
+  -> clicked the real "Merge these screens into the FlowSpec" button
+requests AFTER  : req_bb8e26317632  gap_2a0765d4adf2  status=fulfilled
+                  fulfilled_by_source=crawl_01M22B474QM5956JR0ZQA8M9M4
+flowspec AFTER  : v2, 1 screen, review=draft, url_patterns=['/']
+```
+
+**AT-289 is genuinely fixed** — cycle 1's finding (gap closes, ask stays OPEN) does not reproduce.
+`fulfilled_by_source` correctly falls back to the crawl id because a crawl-merged screen carries no
+`source_ref`; that is the honest answer, not the AT-291 false attribution.
+
+Also visited: `/`, `/projects/checkerdemo`, `/projects/checkerdemo/crawls`, the crawl detail (the
+"Against the FlowSpec" coverage card renders), `/projects/checkerdemo/requests`, and both
+product-map pages. `/projects/erp/product-map` renders `/erp/trainers` today (screenshot in the
+evidence dir) — which is precisely the AT-297b problem: **the human-visible surface looks repaired
+while the generator that feeds it disagrees with it.**
+
+## 7. The CLI door (X6) — exercised live, not read
+
+```
+$ autotester ingest run --help
+  --replace   overwrite an APPROVED FlowSpec, discarding its review
+  --merge     fold into the existing FlowSpec instead of replacing it, and close
+              the video requests this recording answers
+
+$ autotester ingest run checkerdemo <src> --merge --replace
+  --merge and --replace are opposites: merge keeps the reviewed spec, replace discards it. Pick one.
+  exit=2
+```
+
+A refusal that exits non-zero with a message naming the choice, writing nothing. The manifest's
+declared gap (no UI ingest route) is honest — `persist_ingest`/`ingest_video` appear only in
+`cli_video.py` — and the crawl-merge button covers the seam that does exist.
+
+## 8. Criterion-by-criterion
+
+| Criterion | Verdict | Evidence |
+|---|---|---|
+| **I6** — persistence; APPROVED never silently overwritten; merge is where the answer lands | MET | full suite green incl. `test_ingest_persist.py`; `--merge`/`--replace` refuses with exit 2; live merge kept the reviewed rows and added only new ones |
+| **I7** — one templater; video and crawl collapse to ONE row | **NOT MET** | `'vidysea.com/…'` → `/vidysea.com/erp/trainers` vs `'https://vidysea.com/…'` → `/erp/trainers`; regenerating the real erp data reproduces the corruption (AT-294) |
+| **V1** — both sides normalised by `url_template(keep_host=False)` | MET (mechanism) | `coverage.py:30`; idempotent for every input probed. Its *purpose* is defeated upstream by I7 |
+| **V3** — exactly one `VideoRequest` per gap, idempotent | MET | 3 live merge clicks left exactly one request row |
+| **V6** — wired to BOTH entry points, closing side included | MET | sabotage 3 (UI seam) and sabotage 2 (both seams) fail as required; confirmed live through the button |
+| **X6** — the stage has a door; refusals write nothing | MET | `autotester ingest run --merge` live; mutual-exclusion refusal exits 2 |
+| **R1** — a changed spec is unreviewed and blocks | MET | live: review → `draft` after a real merge; a no-op merge does not re-arm |
+
+## 9. Judgements the manifest asked for
+
+1. **Was fixing AT-287 inside this unit correct, or scope creep?** Correct — `resolve_requests`
+   cannot close a video-answered gap while the two seams produce different patterns, so it is
+   genuinely on the critical path. The problem is not that it was fixed here; it is that it is
+   **still not fixed**.
+2. **`_disagreement` → `disagreement`.** Fine. Behaviour identical, the one-place rule preserved,
+   and it is what lets the video seam and the crawl seam share the rule. The stale `explore.md` X14
+   prose is already tracked as AT-292 — a contract edit, not a code defect.
+3. **The `_LOOKS_LIKE_HOST` heuristic.** Moot — deleted in cycle 2, and deleting it was right.
+   Inferring host-ness from a schemeless string is unwinnable; the residual defect is that the
+   system still *feeds* `url_template` schemeless strings.
+4. **AT-287 filed by the maker.** Acceptable as a one-off given the id is cited in shipped code
+   comments. Not charged.
+5. **(unasked, ruled anyway) The screenmap repair.** Not appropriate as an in-unit edit — see
+   AT-297b. Ruled: it needed its own migration unit, sequenced after the producer fix.
+
+## 10. Note on independence
+
+I did not open `qa/verdicts/t135-coverage-merge-expand.md`. I did read `qa/issues.jsonl` (protocol
+step 5 requires checking the manifest's claimed `Issues addressed` against the ledger) and found
+that checkerA had already filed **AT-294** and **AT-295** for two of the three defects above, with
+evidence matching mine. I reached both independently — from the schemeless-url probe and from the
+`_conflicts_for` iteration respectively — before reading those rows, and I have **not** allocated
+duplicate ids for them, per AT-293's ruled `b`-suffix convention. Two blind checkers converging on
+the same two defects is the dual check working, not a wasted cycle. My third finding, **AT-297b**
+(the repair's durability and the propriety of rewriting real project data inside a unit cycle), is
+new.
