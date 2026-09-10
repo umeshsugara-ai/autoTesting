@@ -26,6 +26,17 @@ evidence (screenshots) was only visible by opening a run directory on disk.
   UI-only reimplementation of the export logic.
 - **UR4 — never a second source of truth.** Every route in this contract reads only through
   `ProjectStore`/`ProjectPaths`, exactly like every other UI route (design principle 8).
+- **UR5 — run history contains only real Run envelopes, in truthful order.** A directory under
+  `runs/` is listed and counted only when its persisted `Run` loads successfully, its id matches
+  the directory name, and its project matches the current project. Runs are ordered newest-first by
+  timezone-normalized `Run.created_at`, not by directory name. An unknown run id returns a themed
+  HTTP 404 rather than a fabricated empty run page.
+- **UR6 — the headline describes the newest run and names its denominator.** The displayed pass
+  rate is computed only over the selected newest run's real `case_ids`, and is labelled as a
+  latest-run metric alongside `N` cases and `M` distinct persisted flows. Historical reruns,
+  onboarding directories, crawl directories, stray files, duplicate verdict rows, and verdicts for
+  cases outside that run cannot inflate either numerator or denominator. A Mode-D browser check must
+  interact with the report and unknown-run routes and record zero unexplained console errors.
 
 ## No-fire list (out of scope for this contract)
 
@@ -45,3 +56,7 @@ evidence (screenshots) was only visible by opening a run directory on disk.
   amends F-025) — overview stat tiles, compact per-run badges, richer per-case scoreboard/
   grader/failure info, and responsive screenshot CSS. UR1-UR4 wording unchanged; checker
   confirmed no criterion was reinterpreted or weakened (`qa/verdicts/ui-report-informativeness-fix.md`).
+- 2026-09-10 · routine · **UR5–UR6 added** — folds the T-100 real-browser re-close feedback.
+  Run history now has an explicit validity and chronological-order bar, missing runs must be true
+  404s, and the headline must be a latest-run pass rate with its case and distinct-flow denominator.
+  Tightening only; UR1–UR4 are unchanged.

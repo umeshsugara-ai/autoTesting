@@ -151,6 +151,23 @@ machine, decides whether what the machine learned is true.
 `{"detail": …}` blob, tracked as AT-259. Writing that into this criterion would be crediting an
 intention.
 
+### U11 — An operator can authorize and bound a crawl without the CLI
+The UI exposes a crawl-approval form whose target is the project's exact persisted `base_url` and
+is displayed read-only: the browser never supplies or widens the target. The operator supplies the
+signer, scope, expiry, and the approval's action/time bounds; the server persists a real
+`schema.approval.RunApproval` through `ProjectStore.add_approval`. The browser converts the selected
+local expiry instant with the UTC offset for that selected date (not today's offset), so a future
+date across a daylight-saving boundary remains the instant the operator chose.
+
+The crawl-start form displays all four operator-facing `CrawlBounds` controls (`max_screens`,
+`max_actions`, `wall_clock_s`, `max_depth`), and the exact parsed object is used for both consent
+preflight and `run_crawl`; invalid or non-positive bounds fail closed. Missing, expired, malformed,
+or too-narrow consent returns a themed refusal with an in-UI recovery link and no CLI instruction.
+Unknown crawl ids return a themed HTTP 404. Review-gate refusals reached through
+`approve`/`request-edit` likewise remain inside the themed UI and give the operator a route onward.
+These behaviours require an independent interactive Mode-D run with zero unexplained console errors;
+route tests or screenshots supplied by the maker are not sufficient evidence.
+
 
 ## No-fire list
 
@@ -310,3 +327,10 @@ intention.
   synchronous POST with no progress feedback). U1–U9 are **not** re-verified by this unit and are not
   claimed to be; AT-243's finding that 24 UI-touching PASS verdicts carry zero `LIVE-BROWSER` lines
   is untouched by this cycle. See `qa/verdicts/at241-cold-start.md`.
+- 2026-09-10 · routine · **new criterion U11 added** — folds the T-100 real-browser re-close
+  feedback: an outward-facing crawl started from the UI must expose its exact target, approval and
+  four execution bounds in the UI; use the selected date's browser offset; fail through themed,
+  recoverable pages; return 404 for an unknown crawl; and survive an independent interactive run
+  without unexplained console errors. Tightening only: U1–U10 are unchanged. The previous U10
+  disclaimer about raw review refusals remains historical evidence of AT-259, while U11 makes its
+  repair part of the acceptance bar for this re-close.
