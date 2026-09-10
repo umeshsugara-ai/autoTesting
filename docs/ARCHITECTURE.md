@@ -58,7 +58,7 @@ the previous stage's artifact. A stage never reaches into another stage's intern
 | Video → FlowSpec (screens/flows, provenance to the second) | `stages/ingest.py::ingest_video` |
 | FlowSpec review gate (draft → approved; blocks case generation until reviewed) | `stages/review.py::require_reviewed` |
 | FlowSpec → Case[] covering every applicable taxonomy class | `stages/expand.py::expand` |
-| Self-extension: unseen route → CoverageGap → deduped VideoRequest | `stages/coverage.py::diff_coverage` |
+| Self-extension: unseen route → CoverageGap → deduped VideoRequest, then a recording folded into the reviewed FlowSpec and the asks it answers closed | `stages/coverage.py::diff_coverage`, `stages/merge_flowspec.py::merge_flowspec`/`::resolve_requests` |
 | Web UI: unified intake, masked .env editor, run/report views, shared visual theme (thin, no second store) | `ui/app.py` + `ui/env_editor.py` + `ui/theme.py::page` |
 | Docker: containerized app + virtual display + noVNC live-watch view (local dev only) | `Dockerfile`, `docker/entrypoint.sh`, `docker-compose.yml` |
 | Regression proof (break a fixture, confirm exactly that case FAILs) + bench (north star scorecard: seeded corpus, real trial vs human-oracle baseline) | `scripts/regression_proof.py`, `stages/bench.py::scorecard` |

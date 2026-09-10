@@ -23,6 +23,7 @@ from autotester.stages.ingest import (
     register_source,
 )
 from autotester.stages.media_prep import SourceNotPrepared, UnreadableRecording
+from autotester.stages.merge_flowspec import merge_flowspec, open_requests, resolve_requests
 from autotester.store.project_store import ProjectStore
 
 app = typer.Typer(help="Learn a product's screens and flows from a screen recording.")
@@ -147,6 +148,27 @@ def _require_source(store: ProjectStore, project: str, source_id: str):
     return source
 
 
+def _merge_into_reviewed(store: ProjectStore, spec, source) -> None:
+    """The door `merge_flowspec` needs (coverage.md V6 / expand.md X6: a stage
+    with no caller is an absent feature, not a slow one — AT-220, AT-240).
+
+    `persist_ingest`'s own refusal names this path: an APPROVED FlowSpec would
+    otherwise force `--replace`, throwing away the review to accept a recording
+    that was asked for. Merging keeps the review's truth, re-arms the gate, and
+    closes the requests this recording actually answered."""
+    merged = merge_flowspec(store.load_flowspec(), spec, source_id=source.id)
+    store.save_flowspec(merged)
+    closed = resolve_requests(store, merged, source_id=source.id)
+    typer.secho(
+        f"{merged.project}: v{merged.version}, {len(merged.screens)} screens, "
+        f"{len(merged.flows)} flows after merging {source.label or source.id} "
+        f"(review status {merged.review.status.value}, {len(closed)} request(s) closed)",
+        fg=typer.colors.GREEN,
+    )
+    for request in open_requests(store):
+        typer.secho(f"  still unanswered: {request.prompt}", fg=typer.colors.YELLOW)
+
+
 @app.command("run")
 def run_cmd(
     project: str = typer.Argument(..., help="project slug"),
@@ -155,8 +177,15 @@ def run_cmd(
     model: str = typer.Option(None, "--model", help="override the provider's default model"),
     replace: bool = typer.Option(False, "--replace",
                                  help="overwrite an APPROVED FlowSpec, discarding its review"),
+    merge: bool = typer.Option(False, "--merge",
+                               help="fold into the existing FlowSpec instead of replacing it, "
+                                    "and close the video requests this recording answers"),
 ) -> None:
     """Watch one source and write the FlowSpec it produces."""
+    if merge and replace:
+        typer.secho("--merge and --replace are opposites: merge keeps the reviewed spec, "
+                    "replace discards it. Pick one.", fg=typer.colors.RED)
+        raise typer.Exit(2)
     store = ProjectStore(project)
     source = _require_source(store, project, source_id)
 
@@ -167,6 +196,9 @@ def run_cmd(
     except SourceChanged as exc:
         typer.secho(str(exc), fg=typer.colors.RED)
         raise typer.Exit(2) from None
+    if merge:
+        _merge_into_reviewed(store, spec, source)
+        return
     try:
         persist_ingest(store, spec, replace=replace)
     except FlowSpecApproved as exc:

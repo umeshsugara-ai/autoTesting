@@ -57,3 +57,47 @@ def test_idempotent_on_path_only_output() -> None:
     once = url_template("/students/1/", keep_host=False)
     twice = url_template(once, keep_host=False)
     assert once == twice == "/students/{id}"
+
+
+# -- AT-287: one canonical stored shape, because no parser can infer host-ness --
+
+def test_a_path_shaped_pattern_survives_re_templating_unchanged() -> None:
+    """The invariant coverage actually relies on. `Screen.url_pattern` is stored
+    host-LESS by every producer, and re-templating such a value is a no-op — so
+    a stored pattern and a freshly observed URL reduce to the same identity."""
+    for url in ("https://demo.test/students/42", "https://demo.test/", "/reports/new",
+                "http://localhost/students/1"):
+        stored = url_template(url, keep_host=False)
+        assert url_template(stored, keep_host=False) == stored, url
+        assert stored.startswith("/"), stored
+
+
+def test_a_video_pattern_and_a_fresh_url_agree_on_the_path() -> None:
+    """What ingest stores and what a run observes must reduce to the same thing,
+    or the screen is invisible to coverage (AT-287)."""
+    stored = url_template("https://demo.test/students/42", keep_host=False)
+    observed = url_template("https://demo.test/students/99", keep_host=False)
+
+    assert stored == observed == "/students/{id}"
+
+
+def test_host_ful_output_is_documented_as_NOT_re_templatable() -> None:
+    """Pinned deliberately, because this asymmetry is the whole reason
+    url_pattern is stored host-less. `urlsplit("demo.test/x")` has no "//", so
+    the host becomes a path segment. A test that hid this would let a future
+    producer store host-ful again and re-introduce AT-287."""
+    host_ful = url_template("https://demo.test/students/42")
+
+    assert host_ful == "demo.test/students/{id}"
+    assert url_template(host_ful, keep_host=False) == "/demo.test/students/{id}"
+
+
+def test_no_path_segment_is_ever_swallowed() -> None:
+    """The first fix for AT-287 guessed host-ness from the string, which silently
+    DELETED a dotted first segment: "settings.json" became "/" and "v1.2/foo"
+    became "/foo". `settings.json` and `example.com` are the same shape, so the
+    guess is unwinnable in principle — hence one canonical shape instead."""
+    assert url_template("settings.json", keep_host=False) == "/settings.json"
+    assert url_template("sitemap.xml", keep_host=False) == "/sitemap.xml"
+    assert url_template("v1.2/foo", keep_host=False) == "/v1.2/foo"
+    assert url_template("reports/new", keep_host=False) == "/reports/new"

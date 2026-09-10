@@ -96,7 +96,7 @@ def _to_screen(observed: ObservedScreen, source_id: str) -> Screen:
         id=content_id("scr", {"name": observed.name, "signals": sorted(observed.signals)}),
         name=observed.name,
         signals=observed.signals,
-        url_pattern=url_template(observed.url) if observed.url else None,
+        url_pattern=url_template(observed.url, keep_host=False) if observed.url else None,
         fields=observed.fields,
         source_ref=SourceRef(source_id=source_id, t_start=observed.t_start,
                              t_end=observed.t_end),

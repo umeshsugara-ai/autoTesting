@@ -13,7 +13,6 @@ from autotester.schema.analysis import VideoAnalysis
 from autotester.schema.approval import RunApproval
 from autotester.schema.bench import BenchCorpus, BenchTrial
 from autotester.schema.case import Case
-from autotester.schema.coverage import VideoRequest
 from autotester.schema.flowspec import FlowSpec
 from autotester.schema.issue import Issue
 from autotester.schema.media import MediaPrep, Transcript
@@ -31,9 +30,10 @@ from autotester.store.filestore import (
     upsert_jsonl,
     write_json,
 )
+from autotester.store.request_store import RequestStoreMixin
 
 
-class ProjectStore(CrawlStoreMixin):
+class ProjectStore(CrawlStoreMixin, RequestStoreMixin):
     """Load and save one project's artifacts as human-editable files (C6).
 
     AT-024: `add_source`/`add_case`/`add_request` used to re-read their whole
@@ -176,20 +176,6 @@ class ProjectStore(CrawlStoreMixin):
             for model in [read_json(path, Verdict)]
             if model is not None
         ]
-
-    # -- video requests (the self-extension queue) -------------------------------
-    def add_request(self, request: VideoRequest) -> VideoRequest:
-        """Idempotent: the same gap never queues a second request."""
-        if self._request_ids is None:
-            self._request_ids = {r.id for r in self.list_requests()}
-        if request.id in self._request_ids:
-            return request
-        append_jsonl(self.paths.requests, request)
-        self._request_ids.add(request.id)
-        return request
-
-    def list_requests(self) -> list[VideoRequest]:
-        return read_jsonl(self.paths.requests, VideoRequest)
 
     # -- bench (seeded corpus + trial scorecards) --------------------------------
     def save_bench_corpus(self, corpus: BenchCorpus) -> None:

@@ -37,7 +37,7 @@ def _new_screen(store: ProjectStore, source_id: str, screen: AnalysedScreen) -> 
         id=content_id("screen", {"project": store.paths.slug, "key": key}),
         name=screen.name,
         purpose=screen.purpose,
-        url_pattern=url_template(screen.url) if screen.url else None,
+        url_pattern=url_template(screen.url, keep_host=False) if screen.url else None,
         fields=list(screen.fields),
         ui_elements=list(screen.ui_elements),
         frame_ref=_frame_ref(store, source_id, screen),
@@ -57,7 +57,7 @@ def _fold_screen(mapped: MappedScreen, source_id: str, screen: AnalysedScreen,
     if not mapped.purpose and screen.purpose:
         mapped.purpose = screen.purpose
     if not mapped.url_pattern and screen.url:
-        mapped.url_pattern = url_template(screen.url)
+        mapped.url_pattern = url_template(screen.url, keep_host=False)
     if not mapped.frame_ref and frame_ref:
         mapped.frame_ref = frame_ref
 

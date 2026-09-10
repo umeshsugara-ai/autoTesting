@@ -78,7 +78,7 @@ def screen_from(node: ScreenNode) -> Screen:
     )
 
 
-def _conflict_for(existing: Screen, incoming: Screen, crawl_id: str) -> Conflict:
+def _conflict_for(existing: Screen, incoming: Screen, source_id: str) -> Conflict:
     return Conflict(
         subject=incoming.url_pattern or incoming.id,
         claims=[
@@ -87,12 +87,12 @@ def _conflict_for(existing: Screen, incoming: Screen, crawl_id: str) -> Conflict
         ],
         source_refs=[
             existing.source_ref or SourceRef(source_id="unknown"),
-            SourceRef(source_id=crawl_id, locator=incoming.url_pattern),
+            SourceRef(source_id=source_id, locator=incoming.url_pattern),
         ],
     )
 
 
-def _disagreement(clash: Screen | None, incoming: Screen, crawl_id: str) -> Conflict | None:
+def disagreement(clash: Screen | None, incoming: Screen, source_id: str) -> Conflict | None:
     """Whether an existing screen at the same `url_pattern` actually disagrees.
 
     **A conflict means two SOURCES disagree, not that two patterns collide**
@@ -109,7 +109,7 @@ def _disagreement(clash: Screen | None, incoming: Screen, crawl_id: str) -> Conf
     """
     if clash is None or clash.name == incoming.name or _is_structural(clash):
         return None
-    return _conflict_for(clash, incoming, crawl_id)
+    return _conflict_for(clash, incoming, source_id)
 
 
 def merge_screens(
@@ -122,7 +122,7 @@ def merge_screens(
     are kept and a `Conflict` records the disagreement for the human — silently
     picking a winner is how a product map stops matching the product.
 
-    See `_disagreement` for when a shared `url_pattern` is a conflict and when
+    See `disagreement` for when a shared `url_pattern` is a conflict and when
     it is simply an SPA.
 
     Idempotent: merging the same crawl twice changes nothing, so the version is
@@ -138,7 +138,7 @@ def merge_screens(
         incoming = screen_from(node)
         if incoming.id in known_ids:
             continue
-        conflict = _disagreement(by_pattern.get(incoming.url_pattern), incoming, crawl_id)
+        conflict = disagreement(by_pattern.get(incoming.url_pattern), incoming, crawl_id)
         if conflict is not None:
             conflicts.append(conflict)
         added.append(incoming)

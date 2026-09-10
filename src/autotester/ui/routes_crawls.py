@@ -23,6 +23,7 @@ from autotester.schema.enums import IssueKind
 from autotester.stages.coverage import diff_crawl, queue_requests, unreached_screens
 from autotester.stages.crawl_report import export_crawl_excel
 from autotester.stages.explore_merge import merge_screens
+from autotester.stages.merge_flowspec import resolve_requests
 from autotester.ui import crawl_view, theme
 from autotester.ui.helpers import (
     _load_project_or_404,
@@ -244,4 +245,9 @@ def merge_crawl(slug: str, crawl_id: str) -> RedirectResponse:
     nodes = store.list_nodes(crawl_id)
     spec = merge_screens(store.load_flowspec(), nodes, slug, crawl_id=crawl_id)
     store.save_flowspec(spec)
+    # AT-289: covering a gap and leaving its ask OPEN is the V6 two-seam drift on
+    # the CLOSING side — `queue_requests` is called from both entry points, so
+    # `resolve_requests` must be too, or the only door an operator has (T-100:
+    # no CLI) closes the gap and never closes the request.
+    resolve_requests(store, spec, source_id=crawl_id)
     return RedirectResponse(f"/projects/{slug}/crawls/{crawl_id}", status_code=303)

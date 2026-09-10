@@ -154,7 +154,7 @@ def test_an_observed_url_is_templated_the_same_way_the_crawler_templates_it(
                         RepoDocs())
 
     assert spec.screens[0].url_pattern == url_template(
-        "https://demo.test/trainers/123?tab=2")
+        "https://demo.test/trainers/123?tab=2", keep_host=False)
     assert "123" not in (spec.screens[0].url_pattern or "")
 
 
@@ -235,3 +235,34 @@ def test_vision_options_reach_the_provider(tmp_path: Path) -> None:
     ingest_video(source, "demo", provider, RepoDocs(), options=options)
 
     assert provider.vision_options == [options]
+
+
+# -- I7's actual purpose, finally tested (AT-287's root cause) ----------------
+
+def test_a_video_screen_and_a_crawled_screen_of_one_url_produce_one_pattern(
+    tmp_path: Path,
+) -> None:
+    """I7's stated purpose is that "a screen learned from a video and the same
+    screen found by a crawl collapse to one row instead of two". They did not:
+    `ingest.py` stored `url_pattern` host-ful and `explore_merge.py` stored it
+    host-less, so the same screen produced TWO different patterns and never
+    collapsed. I7 was asserted but never tested across the seam — only that each
+    side called `url_template`, not that they agreed. AT-287 was the symptom.
+    """
+    from autotester.schema.screen_graph import ScreenNode
+    from autotester.stages.explore_merge import screen_from
+
+    url = "https://demo.test/trainers/123?tab=2"
+    store = make_store(tmp_path)
+    source = register_source(store, a_video(tmp_path))
+    observation = VideoObservation(
+        screens=[ObservedScreen(name="Trainers", t_start=1.0, t_end=9.0, url=url)])
+
+    from_video = ingest_video(source, "demo",
+                              MockProvider(responses={"vision": [observation]}),
+                              RepoDocs()).screens[0]
+    from_crawl = screen_from(ScreenNode(
+        crawl_id="crawl_1", project="demo", url_example=url, url_template=url,
+        signature="sig-trainers", title="Trainers", name="Trainers"))
+
+    assert from_video.url_pattern == from_crawl.url_pattern

@@ -155,3 +155,22 @@ def test_a_screen_with_no_url_pattern_is_never_reported_unreached() -> None:
     that would be a permanent false alarm on every crawl."""
     spec = FlowSpec(project="pathlynks", screens=[Screen(id="s1", name="modal")])
     assert unreached_screens(spec, [make_node("/signin")]) == []
+
+
+# -- AT-287: a screen learned from a video is not a permanent gap -------------
+
+def test_a_screen_learned_from_a_video_is_not_a_permanent_gap() -> None:
+    """`stages/ingest.py` stored `url_pattern` host-ful while the crawl stored it
+    host-less, and coverage re-templated to compare — so `demo.test/students/{id}`
+    became `/demo.test/students/{id}`, matched no observed path, and every
+    video-learned route looked unknown forever. coverage.md V1's trap in a second
+    disguise. Both producers are now canonically host-less.
+    """
+    from autotester.core.urls import url_template
+
+    ingested_pattern = url_template("https://demo.test/students/42", keep_host=False)
+    spec = FlowSpec(project="demo",
+                    screens=[Screen(id="scr_1", name="Student", url_pattern=ingested_pattern)])
+    results = [make_result("case_1", "https://demo.test/students/99")]
+
+    assert diff_coverage(spec, results) == []

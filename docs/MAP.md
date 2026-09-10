@@ -74,6 +74,7 @@
 | `stages/issues.py` | ISSUES: turn an adjudicated analysis into rows a human tester can read. |
 | `stages/manual_login.py` | Manual one-time login. Contract: qa/contracts/manual-login.md ML1-ML5. |
 | `stages/media_prep.py` | MEDIA PREP: make a recording readable — probe it, cut it, transcribe it. |
+| `stages/merge_flowspec.py` | Fold a freshly ingested FlowSpec into the reviewed one (Track A6, T-135). |
 | `stages/product_map.py` | PRODUCT MAP: fold every recording analysis into one navigable screen map. |
 | `stages/report_export.py` | Tester-style run reports: an Excel summary and a screen-by-screen HTML |
 | `stages/review.py` | FlowSpec review gate: nothing generates cases from an unreviewed understanding |
@@ -84,6 +85,7 @@
 | `store/crawl_store.py` | Crawl artifact persistence — split from `project_store.py` at the |
 | `store/filestore.py` | The one place any artifact is read from or written to disk. Contract: core-invariants.md C6. |
 | `store/project_store.py` | Typed convenience over `filestore` for one project's directory. |
+| `store/request_store.py` | Video-request persistence — split from `project_store.py` at the 300-line |
 | `ui/app.py` | Thin FastAPI viewer/editor over project files. Design principle 8: never a |
 | `ui/case_form.py` | Rendering the add-a-case form. Contract: qa/contracts/ui.md. |
 | `ui/crawl_view.py` | HTML fragments for the crawl pages — split from `routes_crawls.py` to keep |

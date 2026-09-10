@@ -37,8 +37,21 @@ def _template_segment(segment: str) -> str:
 def url_template(url: str, *, keep_host: bool = True) -> str:
     """Normalise `url` to a screen-identity path: strip query/fragment,
     collapse repeated slashes, template id/date-shaped segments, and drop a
-    trailing slash (the root `/` is kept as-is). Idempotent —
-    `url_template(url_template(u)) == url_template(u)`."""
+    trailing slash (the root `/` is kept as-is).
+
+    **Idempotent for path-shaped input only** — `url_template(p) == p` for any
+    `p` this function produced with `keep_host=False`. It is NOT idempotent over
+    its own `keep_host=True` output: `urlsplit("demo.test/x")` has no `//`, so
+    the host lands in `.path` and re-templating yields `/demo.test/x`.
+
+    That asymmetry is why `Screen.url_pattern` is stored host-LESS by every
+    producer (`stages/ingest.py`, `stages/explore_merge.py`,
+    `stages/product_map.py`, `stages/screen_identity.py`) — a path pattern, not
+    a browsing identity. AT-287: two producers stored it host-ful, coverage
+    re-templated it to compare, and the screen became invisible. Inferring
+    host-ness back out of a schemeless string is impossible in principle —
+    `settings.json` and `example.com` are the same shape — so the fix is one
+    canonical stored shape, not a smarter parser."""
     parts = urlsplit(url)
     segments = [seg for seg in parts.path.split("/") if seg != ""]
     templated = "/".join(_template_segment(seg) for seg in segments)

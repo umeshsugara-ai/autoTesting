@@ -38,6 +38,7 @@ from autotester.schema.project import Project
 from autotester.schema.run import Evidence, RawResult
 from autotester.schema.screen_graph import ScreenNode
 from autotester.schema.verdict import Verdict
+from autotester.stages.coverage import diff_crawl, queue_requests
 from autotester.store.project_store import ProjectStore
 from autotester.ui.app import app
 
@@ -215,3 +216,57 @@ def test_a_screen_the_crawl_never_reached_is_never_a_video_request(
     _crawl_reaching(monkeypatch, client, scratch_root, ["https://demo.test/"])
 
     assert ProjectStore("demo", scratch_root).list_requests() == []
+
+
+# -- AT-289: the loop's CLOSING half, through the same two seams --------------
+#
+# `queue_requests` is called from both the run route and the crawl route (V6).
+# `resolve_requests` shipped wired to the CLI only, so the product's own
+# "Merge these screens into the FlowSpec" button covered the gap and left the
+# ask OPEN forever. Against T-100's no-CLI goal that is the only door an
+# operator has. Driven through the button for the same reason as above: a test
+# that called `resolve_requests` directly would pass with the call site deleted.
+
+
+def _a_crawl_that_found(store: ProjectStore, url: str) -> str:
+    crawl = Crawl(project="demo", status=CrawlStatus.COMPLETED)
+    store.save_crawl(crawl)
+    store.add_node(ScreenNode(
+        crawl_id=crawl.id, project="demo", url_example=url, url_template=url,
+        signature=f"sig-{url}", title="New report", name="New report"))
+    return crawl.id
+
+
+def test_the_merge_button_closes_the_request_the_crawl_answers(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """Gap -> ask -> the crawl finds that very screen -> the operator merges it.
+    The ask must close, not linger. Checker A found it lingering (AT-289)."""
+    store = _project(scratch_root, screens=[Screen(id="s1", name="Home", url_pattern="/")])
+    crawl_id = _a_crawl_that_found(store, "https://demo.test/reports/new")
+    # Precondition, not the thing under test: the ask exists. (The route that
+    # queues it, POST /explore, runs a real browser crawl.)
+    queue_requests(store, diff_crawl(store.load_flowspec(), store.list_nodes(crawl_id)))
+    assert len(ProjectStore("demo", scratch_root).list_requests()) == 1, "precondition: one ask"
+
+    response = client.post(f"/projects/demo/crawls/{crawl_id}/merge", follow_redirects=False)
+
+    assert response.status_code == 303, response.text
+    requests = ProjectStore("demo", scratch_root).list_requests()
+    assert [r.status.value for r in requests] == ["fulfilled"], requests
+
+
+def test_the_merge_button_leaves_an_unrelated_ask_open(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """The mirror: merging screens that answer nothing must not close anything.
+    A closing wire that fired on every merge would lose real asks."""
+    store = _project(scratch_root, screens=[Screen(id="s1", name="Home", url_pattern="/")])
+    asked = _a_crawl_that_found(store, "https://demo.test/reports/new")
+    queue_requests(store, diff_crawl(store.load_flowspec(), store.list_nodes(asked)))
+    other = _a_crawl_that_found(store, "https://demo.test/settings")
+
+    client.post(f"/projects/demo/crawls/{other}/merge", follow_redirects=False)
+
+    statuses = [r.status.value for r in ProjectStore("demo", scratch_root).list_requests()]
+    assert "open" in statuses, statuses
