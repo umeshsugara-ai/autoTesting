@@ -65,6 +65,18 @@ PASSed cycle 2 and closed out — it is no longer a buildable unit.**
 - **Maker liveness remains the standing failure:** `qa/.last-tick` is **~1945 minutes (32.4 h)
   stale**, `qa/.paused` is absent, and the backlog is non-empty (21 pending goal tasks, 74 open
   ledger issues). AT-280 persists and is now worse than at the last sweep.
+- **⚠ A concurrent session began building T-135 in the working tree DURING this sweep (AT-286,
+  high, new).** `git status` at 01:11 showed zero modified files under `src/` or `tests/`; at 01:17
+  it showed `M src/autotester/stages/explore_merge.py` (01:13:42), `M src/autotester/store/project_store.py`
+  (01:14:31), `?? src/autotester/stages/merge_flowspec.py` (01:14:18) and `?? tests/test_merge_flowspec.py`
+  (01:15:31) — 15 insertions / 6 deletions plus two new files, uncommitted, with no manifest and no
+  `ready-for-check`. `qa/.last-tick` was never stamped. Two consequences the reader must carry:
+  **(1) this sweep's green baseline certifies HEAD `7a8d966`, not the current working tree** —
+  `explore_merge.py` changed while the suite was running; **(2) the #1 recommendation below,
+  T-135, is the unit already in flight**, so the next tick must RECONCILE that work into a
+  manifest, not start T-135 over. This is the second occurrence in three days of a session
+  building while the heartbeat says the maker is asleep (the first was AT-278/AT-279 on
+  2026-09-09) and the first to happen underneath a running sweep.
 - **Working tree:** modified `.goal/dashboard.html`, `.goal/goal.json`, `qa/.last-tick`; untracked
   `.codex/`, root `AGENTS.md` (AT-283), `projects/{checkerdemo,saucedemo,xssprobe,t161-final-smoke,t161-pushed-live}/`
   and several `projects/{erp,pathlynks}` run artifacts. All are runtime/scratch output, not
@@ -100,7 +112,10 @@ PASSed cycle 2 and closed out — it is no longer a buildable unit.**
 1. **T-135 — reconnect coverage → FlowSpec merge → expansion.** CRITICAL, unblocked (T-134 done),
    and the remaining prerequisite for the resumable learn-or-explore orchestrator T-163. Preserve
    reviewed truth and surface every unresolved screen/video request. Promoted from #2 now that
-   T-161 has closed.
+   T-161 has closed. **Take it as a RECONCILE, not a fresh start:** per AT-286 a concurrent
+   session already has `merge_flowspec.py`, `test_merge_flowspec.py`, `explore_merge.py` and
+   `project_store.py` live and uncommitted in the working tree. Adopt that work into a manifest
+   at `ready-for-check` rather than rebuilding over it.
 
 2. **T-162 — multi-source adapters: Google Drive, video, audio, document, email and text.**
    Newly the largest uncovered slice of the D-023 north star: T-161 now accepts every source
@@ -131,7 +146,10 @@ T-122/T-145 are credential-gated, T-169 is threshold-gated behind AT-281.
 - Unified damage-control report: partial HTML/XLSX exists; cross-layer diff missing, T-168.
 - Two-mode real acceptance: missing and threshold-gated by AT-281, T-169.
 
-Terminal state: **FINDINGS: 4** — AT-280 (high, maker asleep, worse), AT-281 (high, GRILL),
-AT-283 (medium, doctor vs root `AGENTS.md`, reproduced), AT-285 (low, new: self-contradicting
-T-136 gate file). AT-282 closed `wontfix` (did not reproduce). GRILL AT-218 and systemic Mode-D
-debt AT-243 carried. No reopens: nothing this sweep proved a claim unbacked by evidence.
+Terminal state: **FINDINGS: 5** — AT-280 (high, heartbeat dead 1945 min), **AT-286 (high, NEW:
+a concurrent session built T-135 source live and uncommitted underneath this sweep, heartbeat never
+stamped)**, AT-281 (high, GRILL), AT-283 (medium, doctor vs root `AGENTS.md`, reproduced), AT-285
+(low, new: self-contradicting T-136 gate file). AT-282 closed `wontfix` (did not reproduce). GRILL
+AT-218 and systemic Mode-D debt AT-243 carried. No reopens: nothing this sweep proved a claim
+unbacked by evidence. **Scope of certification: this sweep certifies HEAD `7a8d966`; the working
+tree moved under it (AT-286) and is not certified.**
