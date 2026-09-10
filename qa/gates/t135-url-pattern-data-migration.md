@@ -23,7 +23,7 @@ They render to a human today on `/projects/erp/product-map`. Do we repair them n
 - **The producer is fixed.** `build_screen_map(ProjectStore('erp'))` on the real analyses now
   yields `/erp/trainers`. Nothing new is corrupted, and re-running Analyze on this project heals it.
 - **The migration exists, is committed, and is tested** — `scripts/migrate_url_patterns.py`,
-  9 tests in `tests/test_migrate_url_patterns.py`. Dry run by default; idempotent.
+  14 tests in `tests/test_migrate_url_patterns.py`. Dry run by default; idempotent.
 
 > ✅ **RESOLVED 2026-09-11 (AT-298).** This document previously claimed the migration "refuses to
 > touch a first path segment that merely contains a dot". **That was false** — `repair('/v1.2/foo')`

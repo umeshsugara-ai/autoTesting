@@ -131,4 +131,28 @@ migration still writes nothing without `--write`, and it has not been run.
    `'Sign in page'` → `/`). Deliberately out of scope; checker A raised it as a question, not a
    defect, and it wants a ruling on AT-103 doctrine before code.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Checker PASS, `qa/verdicts/at298-migration-host-guard.md` (Cycle checked: 1) — 4/4 verify items
+reproduced, 9/9 invariants, Mode D correctly ruled not-applicable. AT-298 / AT-298b closed.
+
+**Seven residuals filed, none able to fire on today's data. All queued, not fixed here:**
+- **AT-303** (medium) — `test_a_host_with_a_port_is_matched_either_way` is **vacuous for its named
+  property**: its fixture declares both `127.0.0.1` and `127.0.0.1:46661`, so deleting the
+  `candidate.split(":",1)[0]` fallback leaves the suite green, and nothing else covers that branch.
+  **The fourth vacuous test in this sequence, inside the unit written to fix the third.**
+- **AT-300** (medium) — `allowed_domains` given as a JSON *string* iterates characters, so every
+  single-character first segment becomes strippable. This directly falsifies judgement #1's
+  "malformed config fails safe" claim.
+- **AT-301** — a `base_url` carrying userinfo injects the username as a declared host (`/user/foo`
+  → `/foo`). **AT-302** — an IPv6 literal yields `[` as a host.
+- **AT-304** — the manifest's flat-`--root` claim is half true: files directly in a flat root work,
+  files in sub-directories are silently skipped.
+- **AT-305** — judgement #3's example was wrong: `pathlynks.vidysea.com` *is* a known host for
+  `projects/pathlynks` (its `base_url` netloc is added). Exact match is endorsed as correct; the
+  limitation only bites a sub-domain present in neither field.
+- **AT-306** — the gate document said "9 tests" in one place and 14 in another. Corrected on
+  close-out, because a human reads that file to make a decision.
+
+Mutation M6 (idempotency) produced zero failures and was reported **INCONCLUSIVE** under C7's
+zero-failure clause rather than as a vacuous test — the honest reading.
