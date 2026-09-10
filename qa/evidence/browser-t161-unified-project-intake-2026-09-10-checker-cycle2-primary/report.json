@@ -1,0 +1,27 @@
+{
+  "unit": "t161-unified-project-intake",
+  "cycle": 2,
+  "checker": "primary",
+  "date": "2026-09-10",
+  "project_root": "D:\\autoTesting",
+  "implementation": ["4c09990", "d92af87"],
+  "instrument": "fresh Playwright Chromium launched with headless=false against an isolated AUTOTESTER_ROOT",
+  "result": "PASS",
+  "score": "8/8",
+  "checks": [
+    {"id": "form", "result": "PASS", "evidence": "The real /onboard page contained URL/domain fields, credential and source repeaters, evals, conditions and use cases; clicking both repeater controls produced two rows each."},
+    {"id": "rich-submit", "result": "PASS", "evidence": "A fake richly taught project submitted through the form returned 303 and rendered the canonical project detail without the submitted raw credential."},
+    {"id": "typed-sources", "result": "PASS", "evidence": "The Sources page rendered eval, condition, use-case, URL and video rows; a repeated eval appeared once and exactly the video row exposed Analyze."},
+    {"id": "re-onboard", "result": "PASS", "evidence": "Submitting the existing slug returned 400 and preserved the original project."},
+    {"id": "unset-owner-created", "result": "PASS", "evidence": "A project could declare a scoped SecretRef without setting a value."},
+    {"id": "cross-project-key", "result": "PASS", "evidence": "A second project attempting the unset owner's key returned 400 and created no project directory."},
+    {"id": "AT-284", "result": "PASS", "evidence": "A hostname-shaped fake credential reused as allowed_domains and credential_domains returned 400; the value was absent from the response page, response body, project tree and .env."},
+    {"id": "secret-placement", "result": "PASS", "evidence": "The fake rich-intake credential existed in the isolated root .env and nowhere in project/source JSON artifacts."}
+  ],
+  "console": {
+    "application_errors": 0,
+    "explained_records": 27,
+    "explanation": "24 blocked external-resource records were the sandbox denying remote Google Fonts; 3 HTTP 400 resource records were the deliberate refusal probes."
+  },
+  "screenshots": ["rich-project.png", "hostname-secret-refusal.png"]
+}
