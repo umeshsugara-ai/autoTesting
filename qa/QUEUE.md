@@ -1,59 +1,71 @@
 # qa/QUEUE.md — checker sweep queue (top-3 recommended next units)
 
-Refreshed by `/checker sweep` **2026-09-09T~16:00 IST (~10:30Z)** (bound to `D:/autoTesting`).
-Prior sweep 2026-09-09T08:26:43Z. Window covers 47 commits (880297b..HEAD): at231 cycle-2 close,
-AT-269/270/271 mislabel correction, at242, at226 (+ its own at274-fix follow-up), at273, at215,
-at232 (+ its own AT-276 follow-up), AT-253 gated (not built), at260. **Everything named in the
-prior QUEUE's top-3 (AT-273, AT-227-adjacent, AT-215) is now stale** — AT-273 and AT-215 closed
-checked-PASS this window; refreshed below against `qa/issues.jsonl` directly rather than carried
-forward.
+Refreshed by `/checker sweep` **2026-09-10T07:14:00+05:30**; bound strictly to
+`D:/autoTesting`. Sweep window: `dab532b..3ac043f` (27 commits).
 
-## Concurrency note
+## Reconciliation
 
-Read-only sweep, no stash/checkout/restore. All 47 commits in the window carry a manifest+verdict
-pair for every code-bearing fix (at231, AT-269/270/271, at242, at226, at274-fix, at273, at215,
-at232, at260) — bypass detection CLEAN. No manifest was left dangling at `ready-for-check`.
+- **T-160 cycle 2 is clean:** manifest `checked-PASS`, verdict `PASS`, cycle 2 matches, goal row
+  is `done`, and the generated dashboard reports 32/55 done, 23 pending, 58%.
+- **Handshake clean:** 102 manifests / 104 verdict files; zero `ready-for-check`, zero missing
+  verdicts, zero PASS-with-unclosed-manifest. The two verdict-only files are deliberate campaign /
+  live-release checks. The old AT-226 concurrent PASS/FAIL split is closed by the separate
+  `at226-already-authenticated-crawl-at274-fix` PASS; it is not a dangling fix cycle.
+- **Bypass detection clean:** every source-bearing change in the window is covered by the later
+  AT-276, AT-277, AT-278, T-134 or T-160 manifest/verdict chain.
+- **Baseline:** full suite passed with a repo-local cache/basetemp; Ruff passed. The literal adapter
+  commands are not executable in this managed runtime without those flags (AT-282), and doctor is
+  red only because the required project-level `AGENTS.md` is rejected as root clutter (AT-283).
+- **Maker liveness:** `qa/.last-tick` is 14.4 hours old, no `qa/.paused`, while 23 goal tasks and
+  79 ledger issues remained open when the sweep began (AT-280).
 
----
+## GRILL — human decision, not a build row
 
-## TOP-3 RECOMMENDED NEXT UNITS (refreshed this sweep, from live `qa/issues.jsonl` open/high)
+- GRILL: recurring vacuous-guard prevention policy — unanswered across 7+ sweeps (AT-218).
+- GRILL: set the real two-mode acceptance thresholds for D-023/T-169 (bugs found, false-positive
+  ceiling, branch coverage and time), then let checker contracts encode them — the north star moved
+  after the last contract amendment and a future test file alone can otherwise Goodhart completion
+  (AT-281).
 
-1. **AT-227 (high, explore) — the first-paint modal that nothing dismisses.** Unchanged across
-   this entire window and several sweeps before it. A Pathlynks-style mood-check modal on first
-   paint blocks the crawl's first observation; `grep -rn "modal|dismiss" stages/explore*.py`
-   still returns nothing. On the critical path of every downstream stage — the oldest real
-   crawl-stopper still open.
+## HUMAN_GATE — do not build as ordinary units
 
-2. **AT-276 (high, video-learning, filed this window as AT-232's own follow-up) —
-   containment-over-STOPWORDS `similarity()` still false-positives on genuinely different bugs
-   that happen to share vocabulary.** Fresh, concrete, and adjacent to code the maker just
-   touched (AT-232 landed cc16284 this window) — cheapest next move on the same file while
-   context is warm.
+- **AT-110:** choose consent-forgery posture (HMAC / audit line / accident-detection only).
+- **AT-147:** choose start-of-day vs end-of-day approval expiry semantics.
+- **AT-253:** wire model fallback into execution, correct the architecture claim, or defer.
+- **ERP credentials:** T-122 and T-145 remain gated on a test account entered through the UI;
+  never use Karun's or another real user's account. The old T-136 model-key gate is answered and
+  is not a current human gate.
 
-3. **AT-243 (high, core-invariants, process debt) — Mode D has NEVER run in this repo: 86+
-   verdicts, zero `LIVE-BROWSER:` lines.** Every UI-touching unit this window (at242, at226,
-   at273, at215's ffmpeg path) still went through without an independent browser drive. This is
-   a standing protocol gap, not a code defect — worth a deliberate unit rather than continuing
-   to carry it silently.
+## TOP-3 BUILDABLE NEXT UNITS
 
-**Gated, not queued (HUMAN_GATE, do not build without the decision):** AT-110
-(approval-forgery — `qa/gates/at110-approval-forgery.md`, still an empty template stub),
-AT-253 (agent-fallback wiring — gated this window, `qa/gates/at253-agent-fallback-wiring.md`,
-`Answered: (pending)`), AT-147 (expiry-end-of-day, empty stub), erp-credentials (empty stub).
-AT-218's GRILL row (vacuous-guard class) carries forward below — now open across many
-consecutive sweeps with no `/grill` session run.
+1. **T-100 — re-close the no-CLI UI through a real independent browser.** It is already reopened
+   and directly blocks T-161. Fold the live UI findings it owns (AT-244/245/247/251/252/257/259),
+   then require Mode D evidence rather than another narrow `tests/test_ui.py` claim.
 
-- GRILL: the recurring vacuous-guard class (AT-218) — still open, unanswered, carried forward
-  again this sweep. `qa/gates/at218-vacuous-guard-class.md` confirms `**Answered:** _(not yet —
-  gate remains open)_` verbatim. This has now spanned at least seven consecutive sweeps
-  (2026-09-08 through this one) without a `/grill "AT-218"` session. Not re-filed as a new issue
-  — same ISS-id, carried.
+2. **AT-227 — dismiss or safely route around first-paint in-page modals during BFS.** This is the
+   oldest open high-severity crawl stopper and sits on the T-165 completeness path. Native-dialog
+   handling does not cover DOM modals.
 
-**Fixed backlog (ledger status `fixed`, awaiting a sweep's independent re-verification before
-promotion to `verified`) — 15 rows remain after this sweep promoted AT-215/AT-232/AT-260/AT-273/
-AT-274 (all independently checker-PASSed with sabotage evidence *this window*, promoted on that
-basis):** AT-207, AT-208, AT-219, AT-220, AT-221, AT-222, AT-223, AT-225, AT-228, AT-230, AT-250,
-AT-254, AT-264, AT-269 (real underlying id, see AT-271 mislabel note), AT-272. Several of these
-(AT-207/208/219-223/228/230) have now been carried unworked across **four or more consecutive
-sweeps** — this sweep did not re-verify them either (time-boxed to the window's own churn); they
-remain the next sweep's first job, as flagged repeatedly before.
+3. **T-135 — reconnect coverage → FlowSpec merge → expansion.** T-134 is now done, so this unit is
+   buildable and is a direct prerequisite of the learn-or-explore orchestrator T-163. Preserve
+   reviewed truth and make every unknown screen/video request visible.
+
+Next governance unblock after those: **T-126**, carrying AT-282/AT-283 plus the older fixed-ledger
+backlog. Fixed rows still awaiting an issue-specific later re-check: AT-207/208/219/220/221/222/
+223/225/228/230/250/254/264/269/272/276/277/278/279.
+
+## Revised-goal coverage
+
+- Intake: partial now, owned by T-161.
+- Multi-source learning: video exists; Drive/audio/document/email/text missing, owned by T-162.
+- Learn-or-explore orchestration: stages exist separately; unified resumable coordinator missing,
+  owned by T-163.
+- Portal Persona: missing, owned by T-164.
+- BFS/frontier/API completeness: partial crawler exists; forward/back/network completeness missing,
+  owned by T-165.
+- Traceable best/worst/edge compiler: partial expansion exists; provenance matrix missing, T-166.
+- Release-triggered regression: missing, T-167.
+- Unified damage-control report: partial HTML/XLSX exists; cross-layer diff missing, T-168.
+- Two-mode real acceptance: missing and threshold-gated by AT-281, T-169.
+
+Terminal state: **FINDINGS: 4** (AT-280..AT-283); existing GRILL AT-218 carried.
