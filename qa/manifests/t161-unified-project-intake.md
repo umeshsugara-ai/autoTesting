@@ -1,6 +1,6 @@
 # Manifest — t161-unified-project-intake
 
-**Status:** ready-for-check  
+**Status:** checked-PASS
 **Contract:** `qa/contracts/ui.md` + `qa/contracts/browser-and-secrets.md` + `qa/contracts/core-invariants.md`  
 **Goal task:** T-161 (`user_value: high`, critical)  
 **Date:** 2026-09-10  
@@ -8,6 +8,10 @@
 **Implementation commit:** `4c09990` + fix `d92af87`  
 **Decision:** D-025 (supersedes D-024)
 **Issues addressed:** AT-284
+
+**Close-out:** Cycle 2 PASS in `qa/verdicts/t161-unified-project-intake.md` at checker commit
+`7381983`; both independent checkers scored 22/22 criteria and 9/9 invariants, including fresh
+headed-browser attacks. AT-284 is fixed.
 
 **Cycle 2:** Both blind cycle-1 checkers found the same pre-guard secret-echo failure: a newly
 submitted hostname-shaped credential could be interpolated by reachable-URL validation before it
