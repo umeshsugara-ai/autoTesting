@@ -79,14 +79,11 @@ def _is_task_specific(segment: str) -> bool:
         return False  # unbalanced quotes: not a command anyone can reason about
     if not parts:
         return False
-
     program = _program(parts)
-
     if program == "check_deliverable.py" or any(
             p.endswith("check_deliverable.py") for p in parts[:3]):
         # Its own no-assertion guard exits 2, so a bare invocation always fails.
         return True
-
     if program == "pytest" or (program.startswith("python") and "-m" in parts
                                and "pytest" in parts):
         if any(p in ("--collect-only", "--co") for p in parts):
@@ -94,14 +91,12 @@ def _is_task_specific(segment: str) -> bool:
         # A path is specific only when it names a FILE or a node id. `tests/`
         # is the whole suite wearing a path (AT-154).
         return any(p.endswith(".py") or "::" in p for p in parts)
-
     if program.startswith("python"):
         # AT-159: `python3` and a script outside scripts/ are the SAME shape
         # this branch was written for — an interpreter running a repo script.
         if "-c" in parts or "-m" in parts:
             return False
         return any(p.endswith(".py") for p in parts[1:])
-
     return False
 
 
@@ -130,7 +125,6 @@ def test_no_pending_task_has_a_done_check_that_cannot_fail() -> None:
     escape hatch is a sentence someone wrote and can be grepped for, not a
     command shape nobody noticed."""
     offenders = offenders_in(tasks())
-
     assert offenders == [], (
         "these done_checks pass on a clean repo whether or not their task was "
         f"started, and carry no waiver: {offenders}")
@@ -161,7 +155,6 @@ def test_the_waiver_rule_actually_rejects_a_hollow_waiver() -> None:
     real = [{"id": "T-z", "status": "pending", "done_check": {
         "cmd": "true",
         "waiver": "no deliverable exists until the ERP credentials are entered"}}]
-
     assert _waiver_offenders(hollow) == ["T-x", "T-y"]
     assert _waiver_offenders(real) == []
 
@@ -188,7 +181,6 @@ def test_a_waived_task_is_exempt_and_an_unwaived_one_is_not() -> None:
         "waiver": "governance-only task with no artifact to assert on"}}
     unwaived = {"id": "T-u", "status": "pending",
                 "done_check": {"cmd": "uv run autotester doctor"}}
-
     assert offenders_in([waived, unwaived]) == ["T-u"], (
         "the waiver must exempt exactly its own task and nothing else")
     assert offenders_in([waived]) == []
@@ -200,7 +192,6 @@ def test_every_pending_task_actually_has_a_done_check() -> None:
     pretence."""
     missing = [t["id"] for t in tasks()
                if t["status"] != "done" and not t.get("done_check", {}).get("cmd")]
-
     assert missing == [], f"pending tasks with no done_check: {missing}"
 
 
@@ -233,7 +224,6 @@ def test_the_guard_recognises_the_shapes_it_exists_to_catch() -> None:
     ]
     for command in rejected:
         assert not is_capable_of_failing(command), f"accepted an unfailable check: {command!r}"
-
     accepted = [
         "uv run pytest tests/test_explore.py -q",
         "uv run pytest tests/test_explore.py::test_one",
@@ -273,3 +263,38 @@ def test_check_deliverable_reports_an_unreadable_path_instead_of_crashing() -> N
     assert main(["--contains", "src", "needle"]) == 1
     assert main(["--exists", "src/autotester/cli.py"]) == 0
     assert main([]) == 2, "a check with no assertion must not be able to pass"
+
+
+def test_revised_goal_contract_is_registered() -> None:
+    data = json.loads(GOAL.read_text(encoding="utf-8"))
+    by_id = {task["id"]: task for task in data["tasks"]}
+    tests = "tests/"
+    expected = {
+        "T-160": (["T-134"], tests + "test_goal_done_checks.py::"
+                  "test_revised_goal_contract_is_registered"),
+        "T-161": (["T-100", "T-160"], tests + "test_ui_project_intake.py"),
+        "T-162": (["T-161"], tests + "test_source_adapters.py"),
+        "T-163": (["T-135", "T-162"], tests + "test_autonomous_orchestrator.py"),
+        "T-164": (["T-163"], tests + "test_portal_persona.py"),
+        "T-165": (["T-163", "T-144"], tests + "test_explore_completeness.py "
+                  "tests/test_explore_network.py"),
+        "T-166": (["T-125", "T-164", "T-165"], tests + "test_eval_compiler.py"),
+        "T-167": (["T-166", "T-110"], tests + "test_regression_trigger.py"),
+        "T-168": (["T-155", "T-164", "T-165", "T-167"], tests + "test_unified_report.py"),
+        "T-169": (["T-136", "T-145", "T-168"], tests + "test_generic_acceptance.py"),
+    }
+    expected = {key: (deps, f"uv run pytest {spec} -q") for key, (deps, spec) in expected.items()}
+    actual = {key: (by_id[key]["deps"], by_id[key]["done_check"]["cmd"]) for key in expected}
+    assert actual == expected
+    progress = data["progress"]
+    keys = ("total", "done", "in_progress", "pending", "blocked", "percent")
+    assert [progress[key] for key in keys] == [55, 31, 0, 24, 0, 56]
+    contract = data["north_star"] + (REPO_ROOT / "plan.md").read_text(encoding="utf-8")
+    phrases = ("Google Drive", "breadth-first", "Portal Persona", "API", "HTML",
+               "Excel", "screenshots", "## 9. Revised product layer")
+    assert all(phrase in contract for phrase in phrases)
+    decisions = (REPO_ROOT / "docs" / "DECISIONS.md").read_text(encoding="utf-8")
+    assert "## D-023 | 2026-09-10 | type: decision | status: ACTIVE" in decisions
+    dashboard = (REPO_ROOT / ".goal" / "dashboard.html").read_text(encoding="utf-8")
+    assert all(value in dashboard for value in
+               ("31/55 tasks", "56%", "Remaining (24)", data["north_star"]))

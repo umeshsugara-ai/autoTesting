@@ -861,3 +861,37 @@ qa/contracts/explore.md amendment for the pre-crawl approval; new qa/contracts/a
 - **Three open tracks is the real risk to the schedule**, not any single unit. If Track A slips
   again, Track C is the one to pause — it is the only track with no human ground-truth sheet
   waiting on it.
+
+---
+
+## 9. Revised product layer — any project in, regression confidence out (D-023)
+
+Tracks A/B/C are working parts, not the final product. The operator-facing product is one loop:
+
+`Project intake -> learn supplied evidence OR authenticate and BFS explore -> Portal Persona ->`
+`traceable best/worst/edge evals -> visible-browser regression -> HTML/Excel damage-control report`
+
+Exploration never claims mathematical exhaustiveness over an unbounded application. It is complete
+only when the actionable frontier is empty; a safety/time/action/depth stop is a named incomplete
+result whose denied, skipped and unreached controls remain visible. Every long stage checkpoints so
+the same run resumes rather than forgetting its frontier. The portal-explorer discipline is a
+runtime artifact contract: Quick Re-Run, portal/auth profile, screen and transition graph, taught
+flows, learned rules, findings, gotchas, screenshots, change detection and dated history.
+
+| Task | Deliverable | Depends on | Acceptance owner |
+|---|---|---|---|
+| T-160 | Register D-023, this roadmap and guarded goal coverage | T-134 | goal-specific test + checker |
+| T-161 | Unified intake schema/UI: URL, credential refs, evals, conditions, use cases and source declarations | T-100, T-160 | `test_ui_project_intake.py` |
+| T-162 | Source adapters: uploads plus Drive, video, audio, document, email and text -> one evidence model | T-161 | `test_source_adapters.py` |
+| T-163 | Resumable learn-or-explore orchestrator; taught and discovered evidence converge without overwriting review | T-135, T-162 | `test_autonomous_orchestrator.py` |
+| T-164 | Durable Portal Persona JSON + human knowledge page and change history | T-163 | `test_portal_persona.py` |
+| T-165 | Frontier-completeness, forward/back recovery and first-party API/network assertions | T-163, T-144 | `test_explore_completeness.py`, `test_explore_network.py` |
+| T-166 | Eval compiler: user rules + taught flows + persona + discoveries -> traceable best/worst/edge cases | T-125, T-164, T-165 | `test_eval_compiler.py` |
+| T-167 | Release/commit-triggered regression with explicit consent, durable run history and resumable retries | T-166, T-110 | `test_regression_trigger.py` |
+| T-168 | Unified damage-control report: changes, failures, API errors, diagrams, screenshots and Excel | T-155, T-164, T-165, T-167 | `test_unified_report.py` |
+| T-169 | Two-mode generic acceptance: rich teaching inputs and URL+credentials-only, no CLI, scored vs a human | T-136, T-145, T-161..T-168 | `test_generic_acceptance.py` |
+
+Evaluation crosses component, workflow and full-application levels with separate quality, safety
+and operational checks. A component PASS cannot close a workflow failure; a green happy path cannot
+close an unvisited branch; a denied action cannot become a pass. The 2026-09-07 statement that
+resuming an interrupted crawl was out of scope is replaced by T-163 for this revised product layer.

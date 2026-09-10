@@ -1,18 +1,18 @@
 {
   "product": "AutoTester",
   "project_path": "D:\\autoTesting",
-  "north_star": "An AI automated end-to-end tester that ingests product videos/docs, derives a reviewed FlowSpec, auto-generates best/worst/edge-case evals, runs them as regression in a real visible browser, self-extends coverage by requesting videos for unknown screens, and beats an expert human tester head-to-head on the same material (bugs found, false-positive rate, time). First target: Pathlynks.",
+  "north_star": "A reusable AI testing platform where an operator submits any project URL, domain-scoped test-account credential references, and optional evals, conditions, use cases, video, audio, documents, text, email or Google Drive sources. AutoTester learns from supplied evidence or logs in and performs bounded breadth-first exploration, preserves a durable Portal Persona, compiles traceable best/worst/edge evals, reruns them after developer releases in a real visible browser, and reports workflow/API regressions through clear HTML, Excel, text and screenshots. First acceptance targets: Vidysea ERP and Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-10T05:49:51",
+  "updated": "2026-09-10T06:22:01",
   "progress": {
-    "total": 45,
+    "total": 55,
     "done": 31,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 14,
+    "pending": 24,
     "current": "T-100",
-    "percent": 69
+    "percent": 56
   },
   "tasks": [
     {
@@ -901,6 +901,207 @@
       "created": "2026-09-08T00:46:52",
       "user_value": "normal",
       "criticality": "low"
+    },
+    {
+      "id": "T-160",
+      "title": "Revised-goal governance: D-023, complete T-160..T-169 roadmap and machine-guarded coverage",
+      "status": "pending",
+      "base_criticality": "high",
+      "deps": [
+        "T-134"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_goal_done_checks.py::test_revised_goal_contract_is_registered -q",
+        "expect_exit": 0
+      },
+      "note": "The previous 69 percent omitted mandatory capabilities from Umesh's corrected goal. D-023 registers them before more implementation can narrow the target again.",
+      "attempts": 0,
+      "created": "2026-09-10T05:58:09",
+      "user_value": "high",
+      "criticality": "high"
+    },
+    {
+      "id": "T-161",
+      "title": "Unified project intake: URL, credential refs, evals, conditions, use cases and source declarations",
+      "status": "pending",
+      "base_criticality": "critical",
+      "deps": [
+        "T-100",
+        "T-160"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_ui_project_intake.py -q",
+        "expect_exit": 0
+      },
+      "note": "One no-CLI form; credentials remain SecretRefs and raw values never enter prompts, logs or artifacts.",
+      "attempts": 0,
+      "created": "2026-09-10T05:58:09",
+      "user_value": "high",
+      "criticality": "critical"
+    },
+    {
+      "id": "T-162",
+      "title": "Multi-source adapters: Google Drive, video, audio, document, email and text into one evidence model",
+      "status": "pending",
+      "base_criticality": "high",
+      "deps": [
+        "T-161"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_source_adapters.py -q",
+        "expect_exit": 0
+      },
+      "note": "Local uploads and Drive links converge on durable content-addressed Sources with provenance and safe credential handling.",
+      "attempts": 0,
+      "created": "2026-09-10T05:58:09",
+      "user_value": "high",
+      "criticality": "critical"
+    },
+    {
+      "id": "T-163",
+      "title": "Resumable learn-or-explore orchestrator with durable per-stage checkpoints",
+      "status": "pending",
+      "base_criticality": "critical",
+      "deps": [
+        "T-135",
+        "T-162"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_autonomous_orchestrator.py -q",
+        "expect_exit": 0
+      },
+      "note": "Teaching material drives learning; otherwise credentials bootstrap BFS. Both paths merge without overwriting reviewed truth and resume after interruption.",
+      "attempts": 0,
+      "created": "2026-09-10T05:58:09",
+      "user_value": "high",
+      "criticality": "critical"
+    },
+    {
+      "id": "T-164",
+      "title": "Durable Portal Persona JSON and knowledge page with Quick Re-Run, flows, rules and history",
+      "status": "pending",
+      "base_criticality": "high",
+      "deps": [
+        "T-163"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_portal_persona.py -q",
+        "expect_exit": 0
+      },
+      "note": "Portal-explorer knowledge becomes a generic generated artifact: profile, auth, screens, transitions, taught flows, gotchas, screenshots, change detection and dated history.",
+      "attempts": 0,
+      "created": "2026-09-10T05:58:09",
+      "user_value": "high",
+      "criticality": "high"
+    },
+    {
+      "id": "T-165",
+      "title": "BFS frontier completeness, forward/back recovery and first-party API/network assertions",
+      "status": "pending",
+      "base_criticality": "critical",
+      "deps": [
+        "T-163",
+        "T-144"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_explore_completeness.py tests/test_explore_network.py -q",
+        "expect_exit": 0
+      },
+      "note": "Complete means frontier exhausted; any safety/time/action/depth bound is named as incomplete with every denied, skipped and unreached control visible.",
+      "attempts": 0,
+      "created": "2026-09-10T05:58:09",
+      "user_value": "high",
+      "criticality": "critical"
+    },
+    {
+      "id": "T-166",
+      "title": "Traceable eval compiler from user rules, taught flows, Portal Persona and discoveries",
+      "status": "pending",
+      "base_criticality": "high",
+      "deps": [
+        "T-125",
+        "T-164",
+        "T-165"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_eval_compiler.py -q",
+        "expect_exit": 0
+      },
+      "note": "Generates best/worst/edge evals with source traceability; component PASS cannot hide workflow/application failure.",
+      "attempts": 0,
+      "created": "2026-09-10T05:58:09",
+      "user_value": "high",
+      "criticality": "high"
+    },
+    {
+      "id": "T-167",
+      "title": "Commit/release-triggered visible-browser regression with consent, history and resumable retries",
+      "status": "pending",
+      "base_criticality": "high",
+      "deps": [
+        "T-166",
+        "T-110"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_regression_trigger.py -q",
+        "expect_exit": 0
+      },
+      "note": "Developer changes trigger the approved project suite; results are durable and compare against the last trusted baseline.",
+      "attempts": 0,
+      "created": "2026-09-10T05:58:09",
+      "user_value": "high",
+      "criticality": "critical"
+    },
+    {
+      "id": "T-168",
+      "title": "Unified damage-control report: regression diff, API failures, workflows, screenshots and Excel",
+      "status": "pending",
+      "base_criticality": "high",
+      "deps": [
+        "T-155",
+        "T-164",
+        "T-165",
+        "T-167"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_unified_report.py -q",
+        "expect_exit": 0
+      },
+      "note": "One operator-readable report joins taught evidence, crawl coverage, eval verdicts and change history; blocked/unvisited is never rendered as pass.",
+      "attempts": 0,
+      "created": "2026-09-10T05:58:09",
+      "user_value": "high",
+      "criticality": "high"
+    },
+    {
+      "id": "T-169",
+      "title": "Generic two-mode acceptance: rich teaching inputs and URL-plus-credentials only, no CLI",
+      "status": "pending",
+      "base_criticality": "critical",
+      "deps": [
+        "T-136",
+        "T-145",
+        "T-168"
+      ],
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_generic_acceptance.py -q",
+        "expect_exit": 0
+      },
+      "note": "Run both modes on real targets and compare bugs found, false positives, branch coverage and time against an expert human tester.",
+      "attempts": 0,
+      "created": "2026-09-10T05:58:09",
+      "user_value": "high",
+      "criticality": "critical"
     }
   ],
   "decisions": [],
@@ -997,6 +1198,76 @@
       "message": "T-154 is CRITICAL — human required",
       "task_id": "T-154",
       "acked": false
+    },
+    {
+      "ts": "2026-09-10T06:02:01",
+      "level": "warn",
+      "message": "T-160 needs review (high)",
+      "task_id": "T-160",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-10T06:02:01",
+      "level": "critical",
+      "message": "T-161 is CRITICAL — human required",
+      "task_id": "T-161",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-10T06:02:01",
+      "level": "critical",
+      "message": "T-162 is CRITICAL — human required",
+      "task_id": "T-162",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-10T06:02:01",
+      "level": "critical",
+      "message": "T-163 is CRITICAL — human required",
+      "task_id": "T-163",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-10T06:02:01",
+      "level": "warn",
+      "message": "T-164 needs review (high)",
+      "task_id": "T-164",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-10T06:02:01",
+      "level": "critical",
+      "message": "T-165 is CRITICAL — human required",
+      "task_id": "T-165",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-10T06:02:01",
+      "level": "warn",
+      "message": "T-166 needs review (high)",
+      "task_id": "T-166",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-10T06:02:01",
+      "level": "critical",
+      "message": "T-167 is CRITICAL — human required",
+      "task_id": "T-167",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-10T06:02:01",
+      "level": "warn",
+      "message": "T-168 needs review (high)",
+      "task_id": "T-168",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-10T06:02:01",
+      "level": "critical",
+      "message": "T-169 is CRITICAL — human required",
+      "task_id": "T-169",
+      "acked": false
     }
   ],
   "preferences": {
@@ -1005,9 +1276,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 4.07,
-    "eta_days": 3.7
+    "velocity_per_day": 4.2,
+    "eta_days": 5.7
   },
-  "last_deterministic_tick": "2026-09-10T05:47:01",
+  "last_deterministic_tick": "2026-09-10T06:22:01",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }

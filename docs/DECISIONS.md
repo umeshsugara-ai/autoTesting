@@ -273,3 +273,38 @@ approval AT-031 required; D-010's underlying code fix (the cap value, 150, match
 **Result:** T-135's unit `t135-reconnect-expand-coverage`; T-100 reopened to `pending` because the campaign disproved its own acceptance note ("full onboarding -> report without touching the CLI") live in a browser (AT-241).
 **Changes-authorized:** docs/ARCHITECTURE.md (Pipeline section -- name the entry points each stage is reached from; Concept-to-file table -- the expand/coverage rows and a row for ui/routes_learn.py; Status section); new src/autotester/ui/routes_learn.py; stages/coverage.py (additive `queue_requests` only -- V1-V5 functions byte-unchanged); .goal/goal.json T-100 status.
 **Links:** T-135; T-100; AT-239; AT-240; AT-241; AT-250; D-004; qa/verdicts/business-truth-campaign-2026-09-09.md; qa/QUEUE.md
+
+## D-023 | 2026-09-10 | type: decision | status: ACTIVE
+**What:** Expand AutoTester's product contract from its current video-first and bounded-crawl
+foundations into one reusable, project-agnostic testing loop. A project intake accepts a URL,
+domain-scoped credential references, optional user evals/conditions/business rules, and optional
+video/audio/document/text/email or Google Drive sources. With teaching material, AutoTester learns
+and reconciles the stated flows; without it, AutoTester authenticates and explores breadth-first.
+Both paths converge on a durable Portal Persona, traceable best/worst/edge evals, regression runs,
+and unified HTML/Excel/screenshot reporting. "Complete exploration" means the actionable BFS
+frontier was exhausted or a named safety/budget bound stopped it; skipped, denied and unreached
+actions remain visible and can never be presented as covered. Register T-160 through T-169 for
+this missing product layer. Existing Tracks A, B and C remain foundations rather than being
+reimplemented.
+**Why:** Umesh corrected the active goal on 2026-09-09: the directory must accept any project's
+URL and test-account credentials, optionally learn from user-provided evals, use cases, recordings
+or Drive material, otherwise explore the whole portal using the portal-explorer discipline, avoid
+single happy-path DFS behaviour, preserve the learned portal persona and workflows, and act as
+post-development damage control with clear issues, diagrams, text and screenshots. The current
+goal tracker contains working parts of this design but has no explicit owner for Drive and generic
+source intake, learn-or-explore orchestration, durable portal persona generation, API-derived
+evals, release-triggered regression or final two-mode acceptance. Its 69 percent therefore
+overstates progress against the corrected objective until these tasks are registered.
+**Result:** `plan.md` gains the revised product layer and acceptance sequence; `.goal/goal.json`
+gains T-160..T-169 and a north star that names both taught-input and credentials-only modes.
+Every new task carries a task-specific command or rubric that can fail. Implementation remains
+maker -> manifest -> independent checker -> PASS/fix cycle -> commit -> push -> post-push browser
+validation. Brain guidance applied: bounded iterative loops, durable checkpoints and evaluation at
+component/workflow/application levels. Portal-explorer guidance applied: browser-first operation
+plus a durable Quick Re-Run/Profile/flow/findings/change-history artifact.
+**Changes-authorized:** `plan.md` (additive revised-product-layer section), `.goal/goal.json`
+(north_star and T-160..T-169 registration), `.goal/dashboard.html` and `docs/SNAPSHOT.md`
+(generated views only).
+**Approved-by:** Umesh -- direct corrected-goal instruction in this active task, 2026-09-09.
+**Links:** goal.md; D-014; D-015; D-016; D-017; T-100; T-125; T-135; T-145; T-150..T-155;
+portal-explorer skill; active /goal objective 2026-09-09
