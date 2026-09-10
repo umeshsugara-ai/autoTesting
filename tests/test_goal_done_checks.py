@@ -173,7 +173,6 @@ def test_a_waived_task_is_exempt_and_an_unwaived_one_is_not() -> None:
     never their composition, so deleting `and not waiver_of(t)` from the
     offenders rule left the suite green — an unguarded exemption clause, which
     is C7's own INCONCLUSIVE class inside a test written to close it.
-
     This asserts the rule itself, on rows chosen so a broken composition cannot
     pass: one waived and one not, both otherwise identical."""
     waived = {"id": "T-w", "status": "pending", "done_check": {
@@ -247,7 +246,6 @@ def test_the_three_known_offenders_are_actually_fixed() -> None:
     regression on any one of them fails loudly rather than being absorbed into
     the aggregate above."""
     by_id = {t["id"]: t for t in tasks()}
-
     for task_id in ("T-126", "T-135", "T-150"):
         cmd = by_id[task_id]["done_check"]["cmd"]
         assert is_capable_of_failing(cmd), f"{task_id} regressed to {cmd!r}"
@@ -259,7 +257,6 @@ def test_check_deliverable_reports_an_unreadable_path_instead_of_crashing() -> N
     unsafe, but a `done_check` that dies with a stack trace tells its reader
     nothing about what is missing, which is its whole job."""
     from check_deliverable import main
-
     assert main(["--contains", "src", "needle"]) == 1
     assert main(["--exists", "src/autotester/cli.py"]) == 0
     assert main([]) == 2, "a check with no assertion must not be able to pass"
@@ -287,8 +284,10 @@ def test_revised_goal_contract_is_registered() -> None:
     actual = {key: (by_id[key]["deps"], by_id[key]["done_check"]["cmd"]) for key in expected}
     assert actual == expected
     progress = data["progress"]
-    keys = ("total", "done", "in_progress", "pending", "blocked", "percent")
-    assert [progress[key] for key in keys] == [55, 31, 0, 24, 0, 56]
+    assert progress["total"] == len(data["tasks"]) == 55
+    for key in ("done", "in_progress", "pending", "blocked"):
+        assert progress[key] == sum(task["status"] == key for task in data["tasks"])
+    assert progress["percent"] == round(100 * progress["done"] / progress["total"])
     contract = data["north_star"] + (REPO_ROOT / "plan.md").read_text(encoding="utf-8")
     phrases = ("Google Drive", "breadth-first", "Portal Persona", "API", "HTML",
                "Excel", "screenshots", "## 9. Revised product layer")
@@ -296,5 +295,6 @@ def test_revised_goal_contract_is_registered() -> None:
     decisions = (REPO_ROOT / "docs" / "DECISIONS.md").read_text(encoding="utf-8")
     assert "## D-023 | 2026-09-10 | type: decision | status: ACTIVE" in decisions
     dashboard = (REPO_ROOT / ".goal" / "dashboard.html").read_text(encoding="utf-8")
-    assert all(value in dashboard for value in
-               ("31/55 tasks", "56%", "Remaining (24)", data["north_star"]))
+    facts = (f'{progress["done"]}/{progress["total"]} tasks',
+             f'{progress["percent"]}%', f'Remaining ({progress["pending"]})', data["north_star"])
+    assert all(value in dashboard for value in facts)
