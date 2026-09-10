@@ -1,0 +1,67 @@
+{
+  "unit": "t160-revised-goal-governance",
+  "cycle": 2,
+  "checked_at": "2026-09-10T07:00:00+05:30",
+  "project_root": "D:/autoTesting",
+  "implementation_commit": "4add220",
+  "lifecycle_fix_commit": "df60f4d",
+  "manifest_commit": "dc31df4",
+  "browser": {
+    "driver": "independent Codex in-app browser session",
+    "url": "http://127.0.0.1:8891/.goal/dashboard.html",
+    "title": "AutoTester - Goal",
+    "assertions": {
+      "percent": 58,
+      "done": 32,
+      "total": 55,
+      "pending": 23,
+      "blocked": 0,
+      "t160_column": "Done",
+      "t160_status": "DONE",
+      "t160_dependency_after_expand": "T-134",
+      "north_star_visible": true,
+      "t161_through_t169_visible_as_pending": true,
+      "console_errors_or_warnings": 0
+    },
+    "interaction": "Expanded T-160 and observed its completion note and needs: T-134 metadata; reloaded and re-derived the final totals."
+  },
+  "independent_checks": {
+    "t160_exact_done_check_current_tree": "PASS (1 passed)",
+    "t160_exact_done_check_clean_dc31df4_archive": "PASS (1 passed)",
+    "full_pytest": "PASS (100 percent complete, 2 skipped)",
+    "ruff": "PASS (All checks passed)",
+    "doctor_current_tree": "EXPECTED OUT-OF-SCOPE FINDING: untracked user-provided root AGENTS.md",
+    "doctor_clean_dc31df4_archive": "PASS (doctor: clean)",
+    "goal_graph": "PASS (55 unique ids, 0 missing dependencies, 0 cycles)",
+    "snapshot": "PASS (byte-identical to fresh render, 44 lines)",
+    "test_file_line_cap": "PASS (300 lines)"
+  },
+  "defect_attack": {
+    "t160_is_done": true,
+    "t160_own_exact_done_check_passes_after_close": true,
+    "progress_is_recomputed_from_task_statuses": true,
+    "percent_is_recomputed_from_done_and_total": true,
+    "dashboard_facts_are_derived_from_live_progress": true,
+    "transient_31_24_56_constants_remain": false,
+    "t160_through_t169_dependencies_and_full_commands_are_literal_and_exact": true
+  },
+  "scope": {
+    "f041_present": true,
+    "f041_unit": "T-160",
+    "f041_verdict_ref": "qa/verdicts/t160-revised-goal-governance.md",
+    "remaining_implementation_tasks": [
+      "T-161",
+      "T-162",
+      "T-163",
+      "T-164",
+      "T-165",
+      "T-166",
+      "T-167",
+      "T-168",
+      "T-169"
+    ],
+    "credentials_are_references_not_values": true,
+    "no_runtime_project_artifact_is_part_of_the_submitted_commits": true,
+    "pre_push_only": true
+  }
+}
