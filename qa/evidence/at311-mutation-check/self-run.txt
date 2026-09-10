@@ -1,17 +1,27 @@
-KILLED  kills-label existence check removed (AT-311)  (pytest exit 1)
-    claims to kill : test_it_refuses_a_kills_label_naming_a_test_that_does_not_exist
+self-mutation spec rebuilt: 8 mutations
     actually failed: test_it_refuses_a_kills_label_naming_a_test_that_does_not_exist
+KILLED  empty-kills guard removed (AT-313)  (pytest exit 1)
+    claims to kill : test_it_refuses_a_mutation_whose_kills_list_is_empty
+    actually failed: test_it_refuses_a_mutation_whose_kills_list_is_empty
 KILLED  baseline assertion removed (AT-307)  (pytest exit 1)
     claims to kill : test_it_refuses_a_red_baseline
     actually failed: test_it_refuses_a_red_baseline
-KILLED  kill redefined as any non-zero exit (AT-311)  (pytest exit 1)
-    claims to kill : test_a_mutation_that_breaks_collection_is_not_a_kill, test_it_refuses_when_the_named_test_survives_but_another_fails
-    actually failed: test_a_mutation_that_breaks_collection_is_not_a_kill, test_it_refuses_when_the_named_test_survives_but_another_fails
+KILLED  kill redefined as any non-zero exit (AT-311/AT-315)  (pytest exit 1)
+    claims to kill : test_is_kill_requires_pytest_to_have_actually_run_tests
+    actually failed: test_is_kill_requires_pytest_to_have_actually_run_tests
+KILLED  kill no longer requires the NAMED test to fail  (pytest exit 1)
+    claims to kill : test_is_kill_requires_every_named_test_to_have_failed, test_it_refuses_when_the_named_test_survives_but_another_fails
+    actually failed: test_is_kill_requires_every_named_test_to_have_failed, test_it_refuses_when_the_named_test_survives_but_another_fails
+KILLED  sandbox containment removed (AT-314)  (pytest exit 1)
+    claims to kill : test_it_refuses_a_file_that_escapes_the_sandbox_by_climbing, test_it_refuses_an_absolute_file_path
+    actually failed: test_it_refuses_a_file_that_escapes_the_sandbox_by_climbing, test_it_refuses_an_absolute_file_path
 KILLED  anchor-count discipline removed  (pytest exit 1)
     claims to kill : test_it_refuses_an_anchor_that_matches_more_than_once, test_it_refuses_an_anchor_that_matches_nothing
     actually failed: test_it_refuses_an_anchor_that_matches_more_than_once, test_it_refuses_an_anchor_that_matches_nothing
 KILLED  sandbox removed - mutate the live tree  (pytest exit 1)
     claims to kill : test_the_live_tree_is_never_touched
-    actually failed: test_the_live_tree_is_never_touched
+    actually failed: test_it_refuses_an_absolute_file_path, test_the_live_tree_is_never_touched
 
-5/5 mutations killed
+8/8 mutations killed
+
+[exited with code 0]

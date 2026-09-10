@@ -20,7 +20,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
-from mutation_check import MutationError, check, failed_tests
+from mutation_check import MutationError, check, failed_tests, is_kill
 
 MODULE = '''def classify(value):
     if value > 10:
@@ -159,3 +159,65 @@ def test_the_spec_round_trips_through_json(repo: Path) -> None:
     path.write_text(json.dumps(spec()), encoding="utf-8")
 
     assert check(json.loads(path.read_text(encoding="utf-8")), repo)[0]["killed"] is True
+
+
+# -- AT-315: the kill DECISION, asserted head-on rather than inferred ---------
+#
+# A mutation cannot prove the exit-code clause: a collection error produces no
+# FAILED lines, so `expected <= failures` fails too and a weakened
+# `exit_code != 0` survives every mutation. That is how a vacuous test got into
+# the instrument built to catch vacuous tests. So the decision is a pure
+# function and these assert it directly.
+
+def test_is_kill_requires_pytest_to_have_actually_run_tests() -> None:
+    """Exit 1 means tests ran and some failed. Every OTHER non-zero code means
+    no test result was produced at all — a collection error exits 4, an internal
+    error 3 — and counting those as kills is AT-311."""
+    named = {"test_thing"}
+
+    assert is_kill(1, named, named) is True
+    assert is_kill(4, named, named) is False, "a collection error is not a kill"
+    assert is_kill(3, named, named) is False, "an internal error is not a kill"
+    assert is_kill(2, named, named) is False
+    assert is_kill(0, named, named) is False, "a green run cannot be a kill"
+
+
+def test_is_kill_requires_every_named_test_to_have_failed() -> None:
+    """A red suite is not evidence that THIS test noticed."""
+    assert is_kill(1, {"a", "b"}, {"a"}) is False
+    assert is_kill(1, {"a", "b"}, {"a", "b"}) is True
+    assert is_kill(1, {"a"}, {"a", "unrelated"}) is True
+
+
+def test_is_kill_refuses_a_claim_no_test_makes() -> None:
+    """AT-313. An empty `kills` collapsed the verdict to "some test failed,
+    attributed to nothing" — verbatim the defect this instrument refuses."""
+    with pytest.raises(MutationError, match="claimed by no test"):
+        is_kill(1, set(), {"whatever"})
+
+
+def test_it_refuses_a_mutation_whose_kills_list_is_empty(repo: Path) -> None:
+    """AT-313 through the front door: it refused a `kills` NAME that did not
+    exist, while accepting no name at all."""
+    with pytest.raises(MutationError, match="names no test"):
+        check(spec(mutation={"kills": []}), repo)
+
+
+# -- AT-314: the sandbox promise, enforced rather than documented -------------
+
+def test_it_refuses_a_file_that_escapes_the_sandbox_by_climbing(repo: Path) -> None:
+    with pytest.raises(MutationError, match="outside the sandbox"):
+        check(spec(mutation={"file": "../../../etc/passwd"}), repo)
+
+
+def test_it_refuses_an_absolute_file_path(repo: Path, tmp_path: Path) -> None:
+    """`work / mutation["file"]` DISCARDS the sandbox for an absolute right
+    operand, so the docstring's "can never touch the live tree" was a promise
+    the code did not keep."""
+    decoy = tmp_path / "decoy.py"
+    decoy.write_text("if value > 10:\n", encoding="utf-8")
+
+    with pytest.raises(MutationError, match="outside the sandbox"):
+        check(spec(mutation={"file": str(decoy)}), repo)
+
+    assert decoy.read_text(encoding="utf-8") == "if value > 10:\n", "the decoy was mutated"

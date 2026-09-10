@@ -11,6 +11,15 @@
       ]
     },
     {
+      "name": "empty-kills guard removed (AT-313)",
+      "file": "scripts/mutation_check.py",
+      "old": "        if not mutation.get(\"kills\"):\n            raise MutationError(\n                f\"mutation {mutation['name']!r} names no test in 'kills'. An unattributed \"\n                f\"kill is exactly the defect this instrument exists to refuse (AT-313).\")",
+      "new": "        pass",
+      "kills": [
+        "test_it_refuses_a_mutation_whose_kills_list_is_empty"
+      ]
+    },
+    {
       "name": "baseline assertion removed (AT-307)",
       "file": "scripts/mutation_check.py",
       "old": "    code, out = _run_pytest(work, tests)\n    if code != 0:\n        raise MutationError(\n            f\"baseline is NOT green (pytest exit {code}) \u2014 every kill below would be \"\n            f\"meaningless:\\n{out[-2000:]}\")",
@@ -20,13 +29,32 @@
       ]
     },
     {
-      "name": "kill redefined as any non-zero exit (AT-311)",
+      "name": "kill redefined as any non-zero exit (AT-311/AT-315)",
       "file": "scripts/mutation_check.py",
-      "old": "        killed = code == 1 and not survivors",
-      "new": "        killed = code != 0",
+      "old": "    return exit_code == 1 and expected <= failures",
+      "new": "    return exit_code != 0 and expected <= failures",
       "kills": [
-        "test_a_mutation_that_breaks_collection_is_not_a_kill",
+        "test_is_kill_requires_pytest_to_have_actually_run_tests"
+      ]
+    },
+    {
+      "name": "kill no longer requires the NAMED test to fail",
+      "file": "scripts/mutation_check.py",
+      "old": "    return exit_code == 1 and expected <= failures",
+      "new": "    return exit_code == 1",
+      "kills": [
+        "test_is_kill_requires_every_named_test_to_have_failed",
         "test_it_refuses_when_the_named_test_survives_but_another_fails"
+      ]
+    },
+    {
+      "name": "sandbox containment removed (AT-314)",
+      "file": "scripts/mutation_check.py",
+      "old": "        target = _inside(work, mutation[\"file\"], mutation[\"name\"])",
+      "new": "        target = work / mutation[\"file\"]",
+      "kills": [
+        "test_it_refuses_a_file_that_escapes_the_sandbox_by_climbing",
+        "test_it_refuses_an_absolute_file_path"
       ]
     },
     {

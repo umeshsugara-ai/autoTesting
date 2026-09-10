@@ -56,6 +56,27 @@ class MutationError(RuntimeError):
     """The run itself is invalid — not a verdict about any test."""
 
 
+def is_kill(exit_code: int, expected: set[str], failures: set[str]) -> bool:
+    """Whether a mutation was genuinely killed by the tests that claim to.
+
+    Both clauses are load-bearing and neither implies the other:
+
+    - `exit_code == 1` is "pytest ran tests and some failed". Any OTHER non-zero
+      code means it produced no test result at all — a collection error exits 4,
+      an internal error 3 — and the predecessor counted those as kills (AT-311).
+    - `expected <= failures` is "the tests that CLAIM to notice actually did".
+      A red suite is not evidence that THIS test noticed.
+
+    Exposed as a function because a mutation cannot prove the first clause: a
+    collection error yields no `FAILED` lines, so the second clause fails too and
+    a weakened `exit_code != 0` survives every mutation (AT-315 — a vacuous test
+    inside the instrument built to catch vacuous tests). It is asserted directly.
+    """
+    if not expected:
+        raise MutationError("a kill claimed by no test is not a kill (empty 'kills')")
+    return exit_code == 1 and expected <= failures
+
+
 def _run_pytest(cwd: Path, tests: str, *extra: str) -> tuple[int, str]:
     proc = subprocess.run(
         [sys.executable, "-m", "pytest", tests, "-o", "addopts=", "-q", "--no-header",
@@ -89,6 +110,26 @@ def _sandbox(repo: Path) -> Path:
     return work
 
 
+def _inside(work: Path, relative: str, name: str) -> Path:
+    """Resolve `relative` inside the sandbox, or refuse.
+
+    AT-314: `work / mutation["file"]` looks contained and is not — pathlib
+    DISCARDS the left operand for an absolute right one, and `../` climbs out,
+    so a spec could mutate the live tree while the docstring promised it could
+    not. A promise the code does not enforce is the same defect class as a test
+    that does not test.
+    """
+    resolved = (work / relative).resolve()
+    root = work.resolve()
+    if not resolved.is_relative_to(root):
+        raise MutationError(
+            f"mutation {name!r}: file {relative!r} resolves outside the sandbox "
+            f"({resolved}). Mutations may only touch the copy.")
+    if not resolved.is_file():
+        raise MutationError(f"mutation {name!r}: {relative!r} is not a file in the sandbox")
+    return resolved
+
+
 def check(spec: dict, repo: Path) -> list[dict]:
     """Run every mutation. Returns one result per mutation."""
     tests = spec["tests"]
@@ -102,6 +143,10 @@ def check(spec: dict, repo: Path) -> list[dict]:
     # Every named test must EXIST before anything is mutated. A label naming a
     # renamed test is the exact defect AT-311 was filed for.
     for mutation in mutations:
+        if not mutation.get("kills"):
+            raise MutationError(
+                f"mutation {mutation['name']!r} names no test in 'kills'. An unattributed "
+                f"kill is exactly the defect this instrument exists to refuse (AT-313).")
         missing = [t for t in mutation["kills"] if t not in available]
         if missing:
             raise MutationError(
@@ -116,7 +161,7 @@ def check(spec: dict, repo: Path) -> list[dict]:
 
     results = []
     for mutation in mutations:
-        target = work / mutation["file"]
+        target = _inside(work, mutation["file"], mutation["name"])
         original = target.read_text(encoding="utf-8")
         occurrences = original.count(mutation["old"])
         if occurrences != 1:
@@ -134,7 +179,7 @@ def check(spec: dict, repo: Path) -> list[dict]:
         # A kill is the NAMED test failing. Not a non-zero exit (that includes a
         # collection error, which runs nothing), and not some other test failing.
         survivors = sorted(expected - failures)
-        killed = code == 1 and not survivors
+        killed = is_kill(code, expected, failures)
 
         target.write_text(original, encoding="utf-8", newline="\n")
         if target.read_text(encoding="utf-8") != original:
