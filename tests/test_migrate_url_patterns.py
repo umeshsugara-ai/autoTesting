@@ -96,10 +96,23 @@ def test_declared_hosts_come_from_both_base_url_and_allowed_domains(tmp_path: Pa
     assert {"one.test", "two.test:8080", "two.test"} <= hosts
 
 
-def test_a_host_with_a_port_is_matched_either_way() -> None:
-    hosts = {"127.0.0.1", "127.0.0.1:46661"}
-    assert repair("/127.0.0.1:46661/index.html", hosts) == "/index.html"
-    assert repair("/127.0.0.1/index.html", hosts) == "/index.html"
+def test_a_pattern_carrying_a_port_matches_a_host_declared_without_one() -> None:
+    """AT-303. The version this replaces declared BOTH `127.0.0.1` and
+    `127.0.0.1:46661` in its fixture, so the `candidate.split(":", 1)[0]`
+    fallback could be deleted with the whole suite still green — vacuous for the
+    exact property it was named for. Declaring only the bare host is what forces
+    that branch to exist."""
+    bare_only = {"127.0.0.1"}
+
+    assert repair("/127.0.0.1:46661/index.html", bare_only) == "/index.html"
+    assert repair("/127.0.0.1/index.html", bare_only) == "/index.html"
+
+
+def test_a_pattern_without_a_port_matches_a_host_declared_with_one() -> None:
+    """The mirror direction, which needs the port form in `known_hosts`."""
+    with_port = {"127.0.0.1", "127.0.0.1:46661"}
+
+    assert repair("/127.0.0.1/index.html", with_port) == "/index.html"
 
 
 # -- the script itself -------------------------------------------------------
@@ -177,3 +190,88 @@ def test_each_project_is_judged_by_its_own_declared_hosts(tmp_path: Path) -> Non
 
     assert erp not in found
     assert found[shop] == [("/saucedemo.com/cart", "/cart")]
+
+
+# -- malformed / hostile project.json must contribute NOTHING (AT-300/301/302) --
+#
+# Each of these is written to die if its specific branch is removed. That is the
+# point: the previous four tests in this sequence all passed against the code
+# they were meant to defend.
+
+def a_config(root: Path, **fields) -> Path:
+    directory = root / "demo"
+    directory.mkdir(parents=True, exist_ok=True)
+    (directory / "project.json").write_text(json.dumps(fields), encoding="utf-8")
+    return directory
+
+
+def test_allowed_domains_given_as_a_string_contributes_no_hosts(tmp_path: Path) -> None:
+    """AT-300. A JSON string iterates CHARACTERS, so `"vidysea.com"` declared
+    every single letter as a host and made any one-character first segment
+    strippable. Malformed config must contribute nothing, not an alphabet."""
+    hosts = known_hosts(a_config(tmp_path, allowed_domains="vidysea.com", base_url=""))
+
+    assert hosts == set()
+    assert repair("/v/foo", hosts) is None, "a single-character segment was eaten"
+
+
+def test_base_url_userinfo_is_not_treated_as_a_host(tmp_path: Path) -> None:
+    """AT-301. `.netloc` is `user:pw@real.test`; splitting it on ':' made
+    `user` a declared host, so `/user/foo` repaired to `/foo`."""
+    hosts = known_hosts(a_config(tmp_path, allowed_domains=[],
+                                 base_url="https://user:pw@real.test/app"))
+
+    assert hosts == {"real.test"}
+    assert repair("/user/foo", hosts) is None
+
+
+def test_an_ipv6_base_url_does_not_declare_a_bracket_as_a_host(tmp_path: Path) -> None:
+    """AT-302. `[::1]:8080`.split(':')[0] is `[`."""
+    hosts = known_hosts(a_config(tmp_path, allowed_domains=[],
+                                 base_url="http://[::1]:8080/app"))
+
+    assert "[" not in hosts
+    assert "::1" in hosts
+
+
+def test_a_non_dict_project_json_contributes_nothing(tmp_path: Path) -> None:
+    directory = tmp_path / "demo"
+    directory.mkdir(parents=True)
+    (directory / "project.json").write_text(json.dumps(["not", "a", "dict"]), encoding="utf-8")
+
+    assert known_hosts(directory) == set()
+
+
+def test_a_nested_artifact_under_a_flat_root_is_still_judged_by_its_project(
+    tmp_path: Path,
+) -> None:
+    """AT-304, and the shape that actually broke.
+
+    My first two attempts at this test were VACUOUS — caught by mutating the fix
+    before submitting rather than by a checker afterwards. Resolving the project
+    as `root / relative.parts[0]` handles `--root projects` fine (parts[0] is
+    the slug) AND a file directly in a flat root (one part). What it cannot
+    handle is a flat `--root projects/erp` with the artifact in a SUBDIRECTORY:
+    parts[0] is then `crawl`, which holds no `project.json`, so the file is
+    silently skipped and its corruption survives the migration.
+    """
+    a_project(tmp_path, "erp")
+    nested = tmp_path / "erp" / "crawl" / "run1"
+    nested.mkdir(parents=True)
+    deep = nested / "screenmap.json"
+    deep.write_text(json.dumps({
+        "screens": [{"name": "x", "url_pattern": "/vidysea.com/erp/trainers"}]}), encoding="utf-8")
+
+    found = dict(scan(tmp_path / "erp"))
+
+    assert deep in found, "a nested artifact was silently skipped by the migration"
+    assert found[deep] == [("/vidysea.com/erp/trainers", "/erp/trainers")]
+
+
+def test_a_flat_root_that_is_itself_a_project_is_judged_by_its_own_config(tmp_path: Path) -> None:
+    """`--root projects/erp` rather than `--root projects`, artifact at the top."""
+    a_project(tmp_path, "erp", "/vidysea.com/erp/trainers")
+
+    found = dict(scan(tmp_path / "erp"))
+
+    assert [p.name for p in found] == ["screenmap.json"]

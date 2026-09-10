@@ -1,0 +1,24 @@
+BASELINE: exit=0  21 passed in 0.13s
+
+M1 allowed_domains list-guard removed
+  defends: test_allowed_domains_given_as_a_string_contributes_no_hosts
+  KILLED  1 failed, 20 passed in 0.18s
+    - test_allowed_domains_given_as_a_string_contributes_no_hosts
+
+M2 hostname/port reverted to netloc.split
+  defends: test_base_url_userinfo_is_not_treated_as_a_host / test_an_ipv6_base_url_does_not_declare_a_bracket_as_a_host
+  KILLED  2 failed, 19 passed in 0.18s
+    - test_base_url_userinfo_is_not_treated_as_a_host
+    - test_an_ipv6_base_url_does_not_declare_a_bracket_as_a_host
+
+M3 port fallback in repair removed
+  defends: test_a_pattern_carrying_a_port_matches_a_host_declared_without_one
+  KILLED  1 failed, 20 passed in 0.17s
+    - test_a_pattern_carrying_a_port_matches_a_host_declared_without_one
+
+M4 _project_dir_of reverted to depth-1
+  defends: test_a_file_nested_below_the_project_is_still_judged_by_it / flat-root
+  KILLED  1 failed, 20 passed in 0.18s
+    - test_a_nested_artifact_under_a_flat_root_is_still_judged_by_its_project
+
+target restored byte-identically; live repo never touched

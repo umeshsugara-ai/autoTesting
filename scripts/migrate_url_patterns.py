@@ -55,11 +55,34 @@ def known_hosts(project_dir: Path) -> set[str]:
         config = json.loads((project_dir / "project.json").read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return set()
-    hosts = {str(d).lower() for d in config.get("allowed_domains", []) if d}
-    netloc = urlsplit(str(config.get("base_url") or "")).netloc.lower()
-    if netloc:
-        hosts.add(netloc)
-        hosts.add(netloc.split(":", 1)[0])
+    if not isinstance(config, dict):
+        return set()
+
+    # AT-300: `allowed_domains` given as a JSON STRING iterates CHARACTERS, which
+    # made every single-character first segment strippable. A malformed config
+    # must contribute nothing, not a set of letters.
+    declared = config.get("allowed_domains")
+    hosts = (
+        {d.strip().lower() for d in declared if isinstance(d, str) and d.strip()}
+        if isinstance(declared, list) else set()
+    )
+
+    # AT-301/AT-302: `.netloc` carries userinfo (`user:pw@host`) and IPv6
+    # brackets. Splitting it on ":" made the USERNAME a declared host, so
+    # `/user/foo` repaired to `/foo`; an IPv6 literal yielded `[`. `.hostname`
+    # is the parsed host - lowercased, userinfo stripped, brackets removed -
+    # and `.port` is the port or None.
+    base = config.get("base_url")
+    if isinstance(base, str) and base:
+        try:
+            parts = urlsplit(base)
+            host, port = parts.hostname, parts.port
+        except ValueError:  # malformed authority, e.g. a bad port
+            host, port = None, None
+        if host:
+            hosts.add(host)
+            if port:
+                hosts.add(f"{host}:{port}")
     return {h for h in hosts if h}
 
 
@@ -94,10 +117,20 @@ def _screens(doc: object) -> list[dict]:
 
 
 def _project_dir_of(path: Path, root: Path) -> Path:
-    """The `projects/<slug>/` directory a file belongs to, so the hosts used to
-    judge it are the ones that project itself declares."""
-    relative = path.relative_to(root)
-    return root / relative.parts[0] if len(relative.parts) > 1 else root
+    """The project directory a file belongs to, so the hosts used to judge it
+    are the ones that project itself declares.
+
+    Walks UP looking for the `project.json` that actually governs the file.
+    AT-304: assuming the project is always exactly one level below the root
+    silently skipped anything nested deeper (`projects/erp/crawl/x/map.json`)
+    and anything under a flat `--root` that IS a project.
+    """
+    for parent in (path.parent, *path.parent.parents):
+        if (parent / "project.json").is_file():
+            return parent
+        if parent == root:
+            break
+    return root
 
 
 def scan(root: Path) -> list[tuple[Path, list[tuple[str, str]]]]:
