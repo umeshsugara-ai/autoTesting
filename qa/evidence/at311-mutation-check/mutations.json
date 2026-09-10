@@ -1,0 +1,29 @@
+{
+  "tests": "tests/test_migrate_url_patterns.py",
+  "mutations": [
+    {"name": "allowed_domains list-guard removed",
+     "file": "scripts/migrate_url_patterns.py",
+     "old": "        {d.strip().lower() for d in declared if isinstance(d, str) and d.strip()}\n        if isinstance(declared, list) else set()",
+     "new": "        {str(d).strip().lower() for d in declared if d}\n        if declared else set()",
+     "kills": ["test_allowed_domains_given_as_a_string_contributes_no_hosts"]},
+
+    {"name": "hostname/port reverted to netloc.split",
+     "file": "scripts/migrate_url_patterns.py",
+     "old": "        try:\n            parts = urlsplit(base)\n            host, port = parts.hostname, parts.port\n        except ValueError:  # malformed authority, e.g. a bad port\n            host, port = None, None\n        if host:\n            hosts.add(host)\n            if port:\n                hosts.add(f\"{host}:{port}\")",
+     "new": "        netloc = urlsplit(base).netloc.lower()\n        if netloc:\n            hosts.add(netloc)\n            hosts.add(netloc.split(\":\", 1)[0])",
+     "kills": ["test_base_url_userinfo_is_not_treated_as_a_host",
+               "test_an_ipv6_base_url_does_not_declare_a_bracket_as_a_host"]},
+
+    {"name": "port fallback in repair removed",
+     "file": "scripts/migrate_url_patterns.py",
+     "old": "    if candidate not in hosts and candidate.split(\":\", 1)[0] not in hosts:",
+     "new": "    if candidate not in hosts:",
+     "kills": ["test_a_pattern_carrying_a_port_matches_a_host_declared_without_one"]},
+
+    {"name": "_project_dir_of reverted to depth-1",
+     "file": "scripts/migrate_url_patterns.py",
+     "old": "    for parent in (path.parent, *path.parent.parents):\n        if (parent / \"project.json\").is_file():\n            return parent\n        if parent == root:\n            break\n    return root",
+     "new": "    relative = path.relative_to(root)\n    return root / relative.parts[0] if len(relative.parts) > 1 else root",
+     "kills": ["test_a_nested_artifact_under_a_flat_root_is_still_judged_by_its_project"]}
+  ]
+}

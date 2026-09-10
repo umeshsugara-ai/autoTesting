@@ -1,0 +1,17 @@
+KILLED  kills-label existence check removed (AT-311)  (pytest exit 1)
+    claims to kill : test_it_refuses_a_kills_label_naming_a_test_that_does_not_exist
+    actually failed: test_it_refuses_a_kills_label_naming_a_test_that_does_not_exist
+KILLED  baseline assertion removed (AT-307)  (pytest exit 1)
+    claims to kill : test_it_refuses_a_red_baseline
+    actually failed: test_it_refuses_a_red_baseline
+KILLED  kill redefined as any non-zero exit (AT-311)  (pytest exit 1)
+    claims to kill : test_a_mutation_that_breaks_collection_is_not_a_kill, test_it_refuses_when_the_named_test_survives_but_another_fails
+    actually failed: test_a_mutation_that_breaks_collection_is_not_a_kill, test_it_refuses_when_the_named_test_survives_but_another_fails
+KILLED  anchor-count discipline removed  (pytest exit 1)
+    claims to kill : test_it_refuses_an_anchor_that_matches_more_than_once, test_it_refuses_an_anchor_that_matches_nothing
+    actually failed: test_it_refuses_an_anchor_that_matches_more_than_once, test_it_refuses_an_anchor_that_matches_nothing
+KILLED  sandbox removed - mutate the live tree  (pytest exit 1)
+    claims to kill : test_the_live_tree_is_never_touched
+    actually failed: test_the_live_tree_is_never_touched
+
+5/5 mutations killed

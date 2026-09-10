@@ -1,0 +1,52 @@
+{
+  "tests": "tests/test_mutation_check.py",
+  "mutations": [
+    {
+      "name": "kills-label existence check removed (AT-311)",
+      "file": "scripts/mutation_check.py",
+      "old": "        missing = [t for t in mutation[\"kills\"] if t not in available]\n        if missing:\n            raise MutationError(\n                f\"mutation {mutation['name']!r} names test(s) that are not collected: \"\n                f\"{missing}. A 'kills' label is a claim, not a comment.\")",
+      "new": "        pass",
+      "kills": [
+        "test_it_refuses_a_kills_label_naming_a_test_that_does_not_exist"
+      ]
+    },
+    {
+      "name": "baseline assertion removed (AT-307)",
+      "file": "scripts/mutation_check.py",
+      "old": "    code, out = _run_pytest(work, tests)\n    if code != 0:\n        raise MutationError(\n            f\"baseline is NOT green (pytest exit {code}) \u2014 every kill below would be \"\n            f\"meaningless:\\n{out[-2000:]}\")",
+      "new": "    code, out = _run_pytest(work, tests)",
+      "kills": [
+        "test_it_refuses_a_red_baseline"
+      ]
+    },
+    {
+      "name": "kill redefined as any non-zero exit (AT-311)",
+      "file": "scripts/mutation_check.py",
+      "old": "        killed = code == 1 and not survivors",
+      "new": "        killed = code != 0",
+      "kills": [
+        "test_a_mutation_that_breaks_collection_is_not_a_kill",
+        "test_it_refuses_when_the_named_test_survives_but_another_fails"
+      ]
+    },
+    {
+      "name": "anchor-count discipline removed",
+      "file": "scripts/mutation_check.py",
+      "old": "        if occurrences != 1:\n            raise MutationError(\n                f\"mutation {mutation['name']!r}: anchor matched {occurrences} times in \"\n                f\"{mutation['file']} (need exactly 1)\")",
+      "new": "        pass",
+      "kills": [
+        "test_it_refuses_an_anchor_that_matches_more_than_once",
+        "test_it_refuses_an_anchor_that_matches_nothing"
+      ]
+    },
+    {
+      "name": "sandbox removed - mutate the live tree",
+      "file": "scripts/mutation_check.py",
+      "old": "    work = _sandbox(repo)",
+      "new": "    work = repo",
+      "kills": [
+        "test_the_live_tree_is_never_touched"
+      ]
+    }
+  ]
+}
