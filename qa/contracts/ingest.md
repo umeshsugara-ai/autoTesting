@@ -61,6 +61,11 @@ observed**; a screen with no visible address bar gets `None`, because inventing 
 report coverage of something nothing has seen. Asserting the literal templated string is not
 sufficient on its own: the defending test must assert against `url_template`'s own output, so the
 two sides of the seam cannot drift apart silently.
+**And the defending test must feed the VIDEO side a SCHEMELESS url**, because that is what a
+vision model reads off an address bar (browsers hide the scheme) and it is what this repo's real
+recordings actually contain (`projects/erp` analyses: `url: vidysea.com/erp/trainers`). A test that
+hands both seams the same `https://...` string proves only that one function is deterministic; it
+cannot see the drift this criterion exists to prevent (AT-294).
 
 ### I8 - Narration is ground truth, injected, and never re-transcribed
 When a `Transcript` exists it is injected into the prompt verbatim, and the prompt instructs the
@@ -238,3 +243,23 @@ check, not merely the code - a stub response is enough; no network is required.
   import a package that resolves by somebody else's transitive pin while this repo now depends on
   it for its headline number. The debt is due and it is one line. AT-268, medium. Verdict:
   `qa/verdicts/at230-gemini-schema.md`.
+
+- 2026-09-11 · routine · /checker (t135-coverage-merge-expand, cycle 2) · **I7 tightened with the
+  schemeless-input clause above.** Non-weakening: it adds a requirement to the defending test and
+  softens nothing. Two findings, both re-derived in a `git archive HEAD` (191be93) extract whose
+  `autotester` import was verified to resolve to the extract before any result was trusted:
+  **(i) The maker's claim that I7's stated purpose was DEFEATED before T-135 is UPHELD.** At
+  `c3da666`, `stages/ingest.py:99` and `stages/product_map.py:40,60` called `url_template(...)` with
+  the default `keep_host=True` while `stages/explore_merge.py:73` and `stages/screen_identity.py:53`
+  passed `keep_host=False`. For every screen with a visible URL the two seams produced different
+  strings, so "a screen learned from a video and the same screen found by a crawl collapse to one
+  row instead of two" could not happen — for the entire life of this criterion. I7 asserted that
+  each side calls `url_template` and never once asserted that they AGREE, which is why the contract
+  could not see it. That is a real contract finding and it is recorded here rather than in a
+  verdict that scrolls away.
+  **(ii) The cycle-2 canonicalisation does not discharge I7.** Canonicalising all four producers to
+  `keep_host=False` removes the disagreement between the FLAGS but not between the OUTPUTS:
+  `url_template('vidysea.com/erp/trainers', keep_host=False)` is `/vidysea.com/erp/trainers` while
+  the crawl's `https://vidysea.com/erp/trainers` reduces to `/erp/trainers`. Filed AT-294 (high);
+  AT-287 reopened. Judged as an artifact failure, not a contract defect — I7 is right and the code
+  does not yet meet it.

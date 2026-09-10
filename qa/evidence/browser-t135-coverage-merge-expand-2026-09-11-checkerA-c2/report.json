@@ -1,0 +1,53 @@
+{
+  "unit": "t135-coverage-merge-expand",
+  "cycle": 2,
+  "checker": "checkerA",
+  "date": "2026-09-11",
+  "mode": "D (live feature validation)",
+  "instrument": {
+    "server": "uvicorn autotester.ui.app:app --host 127.0.0.1 --port 62436",
+    "port_chosen_by": "checker (socket bind to port 0)",
+    "served_tree": "git archive HEAD (191be93) extract, NOT the live repo tree",
+    "extract_path": "<scratchpad>/ex",
+    "import_verified": "autotester.__file__ resolved to the extract before any result was trusted",
+    "projects_copied_into_extract": ["checkerdemo", "erp"],
+    "browser": "Playwright Chromium, driven by this checker (the maker's screenshots were not read)"
+  },
+  "why_ui_is_in_scope": "This cycle edits src/autotester/ui/routes_crawls.py directly (AT-289 fix), and the coverage card + product-map page render values this unit changes.",
+  "pages": [
+    {"url": "/", "console_errors": 0, "console_warnings": 0, "result": "project list renders"},
+    {"url": "/projects/checkerdemo", "console_errors": 0, "console_warnings": 0, "result": "renders"},
+    {"url": "/projects/erp", "console_errors": 0, "console_warnings": 0, "result": "renders"},
+    {"url": "/projects/erp/product-map", "console_errors": 0, "console_warnings": 0,
+     "result": "3 screens render url_pattern '/erp/trainers'; the mangled '/vidysea.com/erp/trainers' no longer appears (AT-290 checkerA data repair confirmed IN THE BROWSER)"},
+    {"url": "/projects/checkerdemo/crawls/crawl_01M22B474QM5956JR0ZQA8M9M4", "console_errors": 0, "console_warnings": 0,
+     "result": "crawl page + 'Against the FlowSpec' coverage card render"}
+  ],
+  "console_errors_total": 0,
+  "console_warnings_total": 0,
+  "interactions": [
+    {
+      "name": "AT-289 — the merge button must now CLOSE the request it answers",
+      "action": "clicked button 'Merge these screens into the FlowSpec'",
+      "before": {"flowspec_version": 1, "flowspec_screens": 0, "review": "needs_edit",
+                 "coverage_card": "1 screen(s) the FlowSpec cannot name: /",
+                 "requests.jsonl": "req_bb8e26317632 status=open, no fulfilled_by_source"},
+      "after": {"flowspec_version": 2, "flowspec_screens": 1, "screen_url_pattern": "/", "review": "draft",
+                "coverage_card": "0 screen(s) the FlowSpec cannot name: none",
+                "requests.jsonl": "req_bb8e26317632 status=fulfilled, fulfilled_by_source=crawl_01M22B474QM5956JR0ZQA8M9M4"},
+      "verdict": "PASS — the cycle-1 defect (gap covered, ask left OPEN forever) does not reproduce. Read back from disk, not from the page."
+    },
+    {
+      "name": "Idempotence through the button (checker-added, not in the manifest)",
+      "action": "clicked the same Merge button a second time",
+      "after": {"flowspec_version": 2, "flowspec_screens": 1, "conflicts": 0,
+                "requests.jsonl": "byte-identical; not re-stamped"},
+      "verdict": "PASS — no version bump, no review re-arm, no re-attribution."
+    }
+  ],
+  "live_tree_untouched": "projects/checkerdemo/requests.jsonl in D:/autoTesting still reads status=open after both clicks — every write landed in the extract.",
+  "declared_gaps": [
+    "POST /projects/{slug}/sources/{id}/analyze (the button that REGENERATES screenmap.json via stages/product_map.build_screen_map) was not clicked: it requires a live vision-provider call with credentials and cost. Instead build_screen_map(store) was executed directly against projects/erp's REAL on-disk analyses in the extract — the same function that route calls, same data. See the verdict, finding AT-294.",
+    "No CLI `autotester ingest run --merge` subprocess against a real video with a live provider (no suitable recording in-repo). The CLI merge path is covered by tests/test_merge_flowspec_cli.py, proven load-bearing by sabotage 2."
+  ]
+}
