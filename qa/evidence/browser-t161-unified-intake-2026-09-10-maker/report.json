@@ -21,6 +21,12 @@
       "url": "http://127.0.0.1:8900/projects/t161-final-smoke/sources",
       "result": "PASS",
       "observed": "The persisted source table showed distinct eval, condition, use_case and URL rows; non-video declarations were labelled Declared rather than falsely offering video analysis."
+    },
+    {
+      "name": "cycle-2 hostname-shaped secret refusal",
+      "url": "http://127.0.0.1:8900/onboard",
+      "result": "PASS",
+      "observed": "The headed browser submitted the exact AT-284 shape three times; server returned HTTP 400, the rendered document exposed no credential value, and filesystem checks confirmed no project directory or .env key was created."
     }
   ],
   "console_errors": [],
