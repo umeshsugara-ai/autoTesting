@@ -168,6 +168,23 @@ Unknown crawl ids return a themed HTTP 404. Review-gate refusals reached through
 These behaviours require an independent interactive Mode-D run with zero unexplained console errors;
 route tests or screenshots supplied by the maker are not sufficient evidence.
 
+### U12 — One intake form preserves typed truth in both bare and taught modes
+`GET /onboard` presents one usable form containing the project's URL/domain boundary, repeatable
+test-account credential rows (key, masked optional value, typing domains and description), optional
+evals, conditions/business rules, use cases, and repeatable URL/video/document/text source rows.
+`POST /onboard` accepts both a URL/account-only submission and a richly taught submission without
+requiring CLI or JSON editing. It writes the existing canonical shapes only: `Project` through
+`ProjectStore.save_project`, domain-scoped `SecretRef`s in `project.json`, non-secret teaching and
+source declarations as content-addressed `Source` rows, and raw credential values only through the
+repo-root `.env` writer. Repeated identical statements/source rows are idempotent, and only video
+sources offer video analysis.
+
+Every repeated row and non-secret field is parsed and validated before any project, source or secret
+write. A malformed later row leaves no partial project/source/`.env` state; re-onboarding cannot
+overwrite an existing project; and a key already present in the root `.env` or declared by another
+project is refused even when that other declaration is currently unset. Security of the submitted
+values themselves is additionally governed by B10 and C5; U12 does not weaken U1-U11.
+
 
 ## No-fire list
 
@@ -334,3 +351,8 @@ route tests or screenshots supplied by the maker are not sufficient evidence.
   without unexplained console errors. Tightening only: U1–U10 are unchanged. The previous U10
   disclaimer about raw review refusals remains historical evidence of AT-259, while U11 makes its
   repair part of the acceptance bar for this re-close.
+- 2026-09-10 · /checker (t161-unified-project-intake cycle 1) · **new criterion U12 added** — folds
+  D-025/T-161's one-form intake, canonical typed persistence, repeated-row atomic validation,
+  idempotent sources, re-onboarding refusal and cross-project credential-key ownership into the
+  living UI contract before judging the unit. Tightening only: U1-U11 are unchanged; raw-value
+  confidentiality is pinned separately by B10/C5 so a product-flow criterion cannot soften it.

@@ -1,0 +1,36 @@
+{
+  "unit": "t161-unified-project-intake",
+  "cycle": 1,
+  "implementation_commit": "4c09990b1392600966c1975d9191027d88c0ac6b",
+  "checker": "blind-secondary",
+  "browser": "Chromium via Python Playwright",
+  "headed": true,
+  "server": "local uvicorn on 127.0.0.1:8761",
+  "fake_project": "dual-check-t161",
+  "checks": {
+    "all_intake_categories_in_one_form": "PASS",
+    "rich_fake_project_submission": "PASS",
+    "project_page_persisted_truth": "PASS",
+    "sources_page_persisted_truth": "PASS",
+    "raw_fake_secret_absent_from_html_and_artifacts": "PASS",
+    "raw_fake_secret_present_only_in_isolated_env": "PASS",
+    "reonboarding_refused_without_overwrite": "PASS",
+    "cross_project_key_reuse_refused_without_partial_project": "PASS"
+  },
+  "console_errors": [
+    "HTTP 400 resource error for the deliberate re-onboarding refusal",
+    "HTTP 400 resource error for the deliberate cross-project key-reuse refusal"
+  ],
+  "unexplained_console_error_count": 0,
+  "screenshots": [
+    ".work/checker-t161-dual-browser-root/project.png",
+    ".work/checker-t161-dual-browser-root/sources.png"
+  ],
+  "separate_adversarial_probe": {
+    "status": "FAIL",
+    "claim": "a rejected intake can echo a newly submitted credential value",
+    "reproduction": "Submit base_url=https://demo.test/signin, allowed_domains equal to the fake credential value dual-fake-secret.example, and credential_value equal to that same value.",
+    "observed": "HTTP 400 body interpolated the allowed_domains list and contained the complete fake credential value; no project or .env was written.",
+    "root_cause": "onboard_submit invokes _require_reachable_base_url before parse_secret_rows and _guard_intake can build the all-secret guard."
+  }
+}

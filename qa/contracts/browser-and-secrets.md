@@ -72,6 +72,20 @@ wrong-host refusal, correct-host resolution, prompt gate, redaction of a resolve
 marked and may be skipped when Playwright browsers are not installed, but the domain-refusal,
 masking, and cleanup-scope tests must run without a browser.
 
+### B10 — Unified intake treats a credential batch as one guarded secret transaction
+- A route accepting new credential values validates the entire repeated batch before any artifact
+  write, then guards every same-request non-secret field against the union of pre-existing root
+  secrets and the newly submitted values. No earlier validator or refusal may echo one of those
+  values; hostname-shaped credentials are secrets too.
+- A submitted key colliding with any root `.env` key or another project's declared `SecretRef` is
+  refused, including when the other declaration has no current value. Duplicate keys inside one
+  batch are refused.
+- The `.env` batch is rendered completely before persistence and committed with a same-directory
+  owner-only temporary file, flush/fsync and atomic replace. A bad later row or failed replace leaves
+  the previous `.env` byte-identical, and rotating a key replaces every duplicate existing line.
+- Project artifacts retain only `SecretRef` keys/scopes; a refusal body, browser page, log, project
+  artifact or source artifact never contains a submitted raw value.
+
 ## Out of scope for these units
 
 Real Pathlynks credentials, live login against a production host, and any write to a real account.
@@ -111,3 +125,7 @@ page and mocks.
   NOT removed — the capability stays available for a future case that specifically needs backend
   verification, only the forced-by-default declaration on Pathlynks is gone. Non-safety-weakening:
   nothing here was ever a binding B-criterion, only a proposal that never shipped.
+- 2026-09-10 · /checker (t161-unified-project-intake cycle 1) · **new criterion B10 added** — folds
+  D-025/T-161's all-secret guard, cross-project key ownership and atomic repeated `.env` batch into
+  the credential contract before judging. Tightening only: B1-B9 are unchanged, and accepting a raw
+  value at this one UI boundary does not license it to cross into a response, log or artifact.

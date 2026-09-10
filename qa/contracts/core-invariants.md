@@ -49,6 +49,9 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   moment of typing into the browser, scoped to that `SecretRef`'s `domains` (which lie within the
   project's `allowed_domains`).
 - Every log line and stored artifact passes `core.redact.Redactor.scrub`.
+- Any route that accepts a new raw credential value must treat it as secret immediately: before any
+  same-request non-secret validator can echo or persist input, its prompt/artifact guard includes
+  the union of pre-existing root secrets and all newly submitted values.
 - `**/.env`, `profiles/`, `.work/`, and `projects/*/runs/` are gitignored.
 - **Verify:** `uv run pytest tests/test_core.py -q` exits 0; `git ls-files | grep -E "\.env$"` returns nothing.
 
@@ -186,3 +189,8 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   caught the same mutation at `3b765a4`. Accurate as a delta, and C7's "pastes real output" is met;
   noted so the next reader compares like with like. Verdict:
   `qa/verdicts/at176-at178-render-not-scan.md`.
+- 2026-09-10 · /checker (t161-unified-project-intake cycle 1) · C5 tightened for credential-accepting
+  routes: newly submitted values join pre-existing root secrets in the guard before any other field
+  can be echoed or persisted. Why: D-025 intentionally adds the first same-request raw-value intake;
+  without this timing rule, a pre-guard validator can disclose a value that later guards would have
+  caught. B10 carries the feature-level transaction details. No existing C5 protection is weakened.
