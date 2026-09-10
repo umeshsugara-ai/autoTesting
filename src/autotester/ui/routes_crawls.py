@@ -10,9 +10,10 @@ qa/contracts/ui.md.
 from __future__ import annotations
 
 from html import escape
+from math import isfinite
 
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Form
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from starlette.background import BackgroundTask
 
 from autotester.core.ids import run_id
@@ -22,7 +23,6 @@ from autotester.schema.enums import IssueKind
 from autotester.stages.coverage import diff_crawl, queue_requests, unreached_screens
 from autotester.stages.crawl_report import export_crawl_excel
 from autotester.stages.explore_merge import merge_screens
-from autotester.store.project_store import ProjectStore
 from autotester.ui import crawl_view, theme
 from autotester.ui.helpers import (
     _load_project_or_404,
@@ -33,6 +33,52 @@ from autotester.ui.helpers import (
 router = APIRouter()
 
 _XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+def _bounds_form(slug: str, label: str) -> str:
+    """The exact four operator-controlled bounds used by crawl preflight/run."""
+    safe = escape(slug)
+    fields = (
+        ("max_screens", "Maximum screens", "30", "1"),
+        ("max_actions", "Maximum actions", "200", "1"),
+        ("wall_clock_s", "Wall clock (seconds)", "600", "any"),
+        ("max_depth", "Maximum depth", "6", "1"),
+    )
+    inputs = "".join(
+        f"<div class='field'><label>{title}</label><input type='number' name='{name}' "
+        f"min='1' step='{step}' value='{value}' required></div>"
+        for name, title, value, step in fields
+    )
+    return (
+        f"<form method='post' action='/projects/{safe}/explore'>"
+        f"{inputs}<button type='submit'>{label}</button></form>"
+    )
+
+
+def _crawl_error(slug: str, status: int, title: str, detail: str) -> HTMLResponse:
+    safe = escape(slug)
+    detail = detail.split("Grant one with:", 1)[0].strip()
+    action = (
+        f"<p><a class='btn' href='/projects/{safe}/env#crawl-approval'>"
+        "Review credentials and approve crawl</a></p>"
+    )
+    body = _crumbs(slug) + f"<h1>{escape(title)}</h1>" + theme.card(
+        f"<p>{escape(detail)}</p>{action}", title="Crawl not started",
+    )
+    return HTMLResponse(theme.page(escape(title), body, active_slug=slug), status_code=status)
+
+
+def _parse_bounds(values: tuple[str, str, str, str]) -> CrawlBounds:
+    try:
+        screens, actions, seconds, depth = (
+            int(values[0]), int(values[1]), float(values[2]), int(values[3])
+        )
+    except ValueError:
+        raise ValueError("all crawl bounds must be numbers") from None
+    if screens <= 0 or actions <= 0 or seconds <= 0 or depth <= 0 or not isfinite(seconds):
+        raise ValueError("all crawl bounds must be positive")
+    return CrawlBounds(max_screens=screens, max_actions=actions,
+                       wall_clock_s=seconds, max_depth=depth)
 
 
 def _crumbs(slug: str, *tail: tuple[str, str | None]) -> str:
@@ -50,8 +96,7 @@ def crawls(slug: str) -> str:
     if not crawl_ids:
         body = _crumbs(slug) + "<h1>Crawls</h1>" + theme.empty_state(
             "🕸", "No crawls yet — explore this project to map its screens on its own.",
-            f"<form method='post' action='/projects/{safe}/explore'>"
-            "<button type='submit'>Explore now</button></form>",
+            _bounds_form(slug, "Explore now"),
         )
         return theme.page("Crawls", body, active_slug=slug)
     rows = []
@@ -76,8 +121,7 @@ def crawls(slug: str) -> str:
     )
     body = (
         _crumbs(slug) + "<h1>Crawls</h1>"
-        + f"<form method='post' action='/projects/{safe}/explore'>"
-        "<button type='submit'>Explore again</button></form>"
+        + theme.card(_bounds_form(slug, "Explore again"), title="New bounded crawl")
         + theme.card(table)
     )
     return theme.page("Crawls", body, active_slug=slug)
@@ -88,12 +132,11 @@ def crawl_page(slug: str, crawl_id: str) -> str:
     store, _project = _load_project_or_404(slug)
     _require_safe_id(crawl_id, "crawl_id")
     crawl = store.load_crawl(crawl_id)
-    safe = escape(slug)
-    safe_id = escape(crawl_id)
+    safe, safe_id = escape(slug), escape(crawl_id)
     if crawl is None:
         body = _crumbs(slug, ("Crawl", None)) + theme.empty_state(
             "❓", f"No crawl '{safe_id}' in this project.")
-        return theme.page("Crawl", body, active_slug=slug)
+        return HTMLResponse(theme.page("Crawl not found", body, active_slug=slug), status_code=404)
 
     nodes = store.list_nodes(crawl_id)
     edges = store.list_edges(crawl_id)
@@ -149,7 +192,10 @@ def download_crawl_excel(slug: str, crawl_id: str) -> FileResponse:
 
 
 @router.post("/projects/{slug}/explore")
-def start_crawl(slug: str) -> RedirectResponse:
+def start_crawl(
+    slug: str, max_screens: str = Form("30"), max_actions: str = Form("200"),
+    wall_clock_s: str = Form("600"), max_depth: str = Form("6"),
+) -> Response:
     """Synchronous, like the Run button — the same trade-off `routes_runs.py`
     already makes (no background job queue), so the page returns when the crawl
     is genuinely finished rather than promising one that never ran."""
@@ -159,14 +205,15 @@ def start_crawl(slug: str) -> RedirectResponse:
     from autotester.core.consent import ApprovalRequired
     from autotester.stages import explore as explore_stage
 
-    _store, project = _load_project_or_404(slug)
-    store = ProjectStore(slug)
+    store, project = _load_project_or_404(slug)
     try:
-        explore_stage.require_consent(project, store, CrawlBounds())
+        bounds = _parse_bounds((max_screens, max_actions, wall_clock_s, max_depth))
+    except ValueError as exc:
+        return _crawl_error(slug, 400, "Invalid crawl bounds", str(exc))
+    try:
+        explore_stage.require_consent(project, store, bounds)
     except ApprovalRequired as exc:
-        # 403, not 500: refused on purpose, and the detail names the grant
-        # command. Before `paths.ensure()` and the browser launch (AT-111).
-        raise HTTPException(status_code=403, detail=str(exc)) from None
+        return _crawl_error(slug, 403, "Crawl approval required", str(exc))
     paths = ProjectPaths(slug)
     paths.ensure()
     secrets = SecretStore.load(project, paths.env_file, strict=False)
@@ -176,11 +223,9 @@ def start_crawl(slug: str) -> RedirectResponse:
         with BrowserSession(project, secrets, paths.crawl_shots_dir(crawl_id),
                             paths, observer=observer) as session:
             crawl = explore_stage.run_crawl(project, session, store, observer=observer,
-                                            crawl_id=crawl_id)
+                                            bounds=bounds, crawl_id=crawl_id)
     except ApprovalRequired as exc:
-        # 403, not 500: the run was refused on purpose, and the message names the
-        # exact command that grants consent (D-018).
-        raise HTTPException(status_code=403, detail=str(exc)) from None
+        return _crawl_error(slug, 403, "Crawl approval required", str(exc))
     # AT-240, the crawl half. `diff_crawl` was rendered on the crawl page and
     # never persisted as an ask, so a screen the crawler could not recognise
     # stayed a paragraph nobody was accountable for.

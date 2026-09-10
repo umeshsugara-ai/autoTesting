@@ -14,7 +14,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from autotester.schema.enums import EvidenceKind, Outcome, Result
-from autotester.schema.run import RawResult
+from autotester.schema.run import RawResult, Run
 from autotester.schema.verdict import Verdict
 from autotester.store.project_store import ProjectStore
 from autotester.ui.app import app
@@ -223,6 +223,7 @@ def test_report_and_run_view_reflect_real_persisted_data(
                         evidence=[{"kind": EvidenceKind.URL, "path": "https://demo.test/ok"}])
     verdict = Verdict(run_id="run_1", case_id="case_1", result=Result.PASS,
                        grader_provider="mock", rubric_hash="rub_x")
+    store.save_run(Run(id="run_1", project="demo", case_ids=["case_1"]))
     store.save_result("run_1", result)
     store.save_verdict("run_1", verdict)
 

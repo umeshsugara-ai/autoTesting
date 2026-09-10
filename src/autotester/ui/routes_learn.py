@@ -29,7 +29,7 @@ from __future__ import annotations
 from html import escape
 
 from fastapi import APIRouter, Form, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from autotester.browser.secrets import SecretStore
 from autotester.core.paths import ProjectPaths, RepoDocs
@@ -75,7 +75,6 @@ def flowspec_page(slug: str) -> str:
     name = escape(project.name)
     crumbs = theme.breadcrumb(("Projects", "/"), (name, f"/projects/{slug}"),
                               ("FlowSpec", None))
-
     if spec is None:
         body = crumbs + theme.card(theme.empty_state(
             "🎬",
@@ -150,40 +149,68 @@ def _gate_cards(slug: str, spec) -> str:
     return body
 
 
-def _signed(slug: str, by: str, note: str) -> tuple[ProjectStore, str, str]:
-    """A signer and a guarded note, or a 400.
+def _signed(slug: str, by: str, note: str) -> tuple[ProjectStore, str, str] | HTMLResponse:
+    """A signer and a guarded note, or a themed refusal page.
 
     An approval nobody signed is not an approval (R2), and `flowspec.json` is a
     git-tracked file in a PUBLIC repo, so its free text gets the same credential
     guard the case form has (U8/U9)."""
     store, project = _load_project_or_404(slug)
     if not by.strip():
-        raise HTTPException(400, "an approval needs a name — who is signing it?")
+        return _refusal(
+            slug, "This review is not signed",
+            "An approval needs a name so the audit trail says who reviewed it.",
+            _link(f"/projects/{slug}/flowspec", "Return to the review"),
+        )
     secrets = SecretStore.load(project, ProjectPaths(slug).env_file, strict=False)
-    _refuse_unsafe_submission([("name", by), ("note", note)], project, secrets)
+    try:
+        _refuse_unsafe_submission([("name", by), ("note", note)], project, secrets)
+    except HTTPException as exc:
+        return _refusal(
+            slug, "This review cannot be saved", str(exc.detail),
+            _link(f"/projects/{slug}/flowspec", "Return to the review"),
+        )
     return store, by.strip(), note.strip()
 
 
 @router.post("/projects/{slug}/flowspec/approve")
-def approve_flowspec(slug: str, by: str = Form(""), note: str = Form("")) -> RedirectResponse:
-    store, signer, text = _signed(slug, by, note)
+def approve_flowspec(
+    slug: str, by: str = Form(""), note: str = Form("")
+) -> Response:
+    signed = _signed(slug, by, note)
+    if isinstance(signed, HTMLResponse):
+        return signed
+    store, signer, text = signed
     spec = store.load_flowspec()
     if spec is None:
-        raise HTTPException(400, "there is no flowspec to approve yet")
+        return _refusal(
+            slug, "Nothing to approve", "There is no flowspec to approve yet.",
+            _link(f"/projects/{slug}/sources", "Add a recording"),
+        )
     store.save_flowspec(review_stage.approve(spec, signer, text or None))
     return RedirectResponse(f"/projects/{slug}/flowspec", status_code=303)
 
 
 @router.post("/projects/{slug}/flowspec/request-edit")
 def request_edit_flowspec(slug: str, by: str = Form(""),
-                          note: str = Form("")) -> RedirectResponse:
+                          note: str = Form("")) -> Response:
     """The other direction. Without it the page is a rubber stamp."""
-    store, signer, text = _signed(slug, by, note)
+    signed = _signed(slug, by, note)
+    if isinstance(signed, HTMLResponse):
+        return signed
+    store, signer, text = signed
     if not text:
-        raise HTTPException(400, "say what is wrong, so the next pass can fix it")
+        return _refusal(
+            slug, "Say what needs to change",
+            "Describe what is wrong so the next learning pass can fix it.",
+            _link(f"/projects/{slug}/flowspec", "Return to the review"),
+        )
     spec = store.load_flowspec()
     if spec is None:
-        raise HTTPException(400, "there is no flowspec to send back yet")
+        return _refusal(
+            slug, "Nothing to send back", "There is no flowspec to send back yet.",
+            _link(f"/projects/{slug}/sources", "Add a recording"),
+        )
     store.save_flowspec(review_stage.request_edit(spec, signer, text))
     return RedirectResponse(f"/projects/{slug}/flowspec", status_code=303)
 

@@ -92,6 +92,33 @@ def test_an_unparseable_expiry_is_treated_as_expired_never_as_eternal() -> None:
         require([approval(expires_at="whenever")])
 
 
+@pytest.mark.parametrize(("expiry", "now", "expired"), [
+    ("2026-09-10T12:00:00+10:00", datetime(2026, 9, 10, 1, 59), False),
+    ("2026-09-10T12:00:00+10:00", datetime(2026, 9, 10, 2, 1), True),
+    ("2026-09-10T12:00:00-10:00", datetime(2026, 9, 10, 21, 59), False),
+    ("2026-09-10T12:00:00-10:00", datetime(2026, 9, 10, 22, 1), True),
+])
+def test_offset_expiry_is_compared_as_a_utc_instant(
+    expiry: str, now: datetime, expired: bool,
+) -> None:
+    assert approval(expires_at=expiry).is_expired(now) is expired
+
+
+def test_runtime_default_clock_is_utc_aware(monkeypatch: pytest.MonkeyPatch) -> None:
+    class HostClock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            if tz is None:
+                return cls(2026, 9, 10, 8, 25)
+            return cls(2026, 9, 10, 2, 55, tzinfo=tz)
+
+    monkeypatch.setattr("autotester.core.consent.datetime", HostClock)
+    granted = approval(expires_at="2026-09-10T03:55:00+00:00")
+    assert require_approval(
+        [granted], project="erp", kind=ApprovalKind.CRAWL, target=TARGET,
+    ).id == granted.id
+
+
 def test_an_approval_narrower_than_the_run_is_refused_with_the_shortfall() -> None:
     with pytest.raises(ApprovalRequired, match="actions 150 > approved 20"):
         require([approval(max_actions=20)])

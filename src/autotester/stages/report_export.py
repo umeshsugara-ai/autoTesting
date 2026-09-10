@@ -9,6 +9,7 @@ truth (design principle 8, same discipline as `ui/`).
 from __future__ import annotations
 
 import base64
+from datetime import UTC
 from html import escape
 from pathlib import Path
 
@@ -17,6 +18,7 @@ from openpyxl import Workbook
 from autotester.core.excel import autosize_columns
 from autotester.schema.case import Case
 from autotester.schema.enums import EvidenceKind
+from autotester.schema.run import Run
 from autotester.store import ProjectStore
 
 _BADGE_COLOR = {
@@ -24,12 +26,35 @@ _BADGE_COLOR = {
 }
 
 
-def _latest_run_id(store: ProjectStore) -> str:
+def _run_sort_key(run: Run) -> tuple:
+    created = run.created_at
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=UTC)
+    return created.astimezone(UTC), run.id
+
+
+def valid_runs_newest_first(store: ProjectStore) -> list[Run]:
+    """Persisted Run envelopes only; auxiliary run artifacts are not runs."""
     runs_dir = store.paths.runs_dir
-    run_ids = sorted(p.name for p in runs_dir.iterdir() if p.is_dir()) if runs_dir.exists() else []
-    if not run_ids:
+    if not runs_dir.exists():
+        return []
+    runs: list[Run] = []
+    for path in sorted((p for p in runs_dir.iterdir() if p.is_dir()), reverse=True):
+        try:
+            run = store.load_run(path.name)
+        except ValueError:
+            continue
+        if run is not None and run.id == path.name and run.project == store.paths.slug:
+            runs.append(run)
+    runs.sort(key=_run_sort_key, reverse=True)
+    return runs
+
+
+def _latest_run_id(store: ProjectStore) -> str:
+    runs = valid_runs_newest_first(store)
+    if not runs:
         raise ValueError(f"no runs exist yet for '{store.paths.slug}'")
-    return run_ids[-1]
+    return runs[0].id
 
 
 def _case_lookup(store: ProjectStore) -> dict[str, Case]:
@@ -70,13 +95,29 @@ def export_excel(
     return out_path
 
 
-def png_base64(path: Path) -> str | None:
+def png_base64(path: Path, allowed_root: Path, trusted_root: Path) -> str | None:
     """Base64-encode a screenshot for inline embedding. Public — also used by
     `ui/routes_report.py` to embed the same screenshots in the live view, so
     the live page and the portable export show identical evidence."""
-    if not path.exists():
+    trusted = trusted_root.resolve()
+    try:
+        parts = allowed_root.absolute().relative_to(trusted).parts
+    except ValueError:
         return None
-    return base64.b64encode(path.read_bytes()).decode("ascii")
+    safe_root = trusted
+    for part in parts:
+        safe_root /= part
+        if safe_root.is_symlink():
+            return None
+    resolved_safe_root = safe_root.resolve()
+    if resolved_safe_root != safe_root:
+        return None
+    candidate = path.resolve()
+    if not candidate.is_relative_to(resolved_safe_root):
+        return None
+    if not candidate.is_file():
+        return None
+    return base64.b64encode(candidate.read_bytes()).decode("ascii")
 
 
 def _case_section(store: ProjectStore, run_id: str, case: Case | None, result, verdict) -> str:
@@ -89,7 +130,7 @@ def _case_section(store: ProjectStore, run_id: str, case: Case | None, result, v
         f"<figure><img src='data:image/png;base64,{data}'>"
         f"<figcaption>{escape(shot.label or shot.path)}</figcaption></figure>"
         for shot in shots
-        for data in [png_base64(run_dir / shot.path)] if data is not None
+        for data in [png_base64(run_dir / shot.path, run_dir, store.paths.dir)] if data is not None
     )
     scoreboard = escape(verdict.scoreboard) if verdict and verdict.scoreboard else ""
     error = escape(result.error) if result.error else ""

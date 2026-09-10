@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import base64
+import subprocess
+import sys
+from datetime import timedelta
 from pathlib import Path
 
 import pytest
@@ -19,7 +22,7 @@ from autotester.schema.enums import (
 )
 from autotester.schema.flowspec import Step
 from autotester.schema.project import Project
-from autotester.schema.run import Evidence, RawResult
+from autotester.schema.run import Evidence, RawResult, Run
 from autotester.schema.verdict import Verdict
 from autotester.stages import report_export
 from autotester.store import ProjectStore
@@ -42,8 +45,8 @@ def _seed(tmp_path: Path, *, outcome: Outcome, result: Result) -> ProjectStore:
         steps=[Step(order=1, action=Action.NAVIGATE, target="/login")],
     )
     store.add_case(case)
+    store.save_run(Run(id=RUN_ID, project="demo", case_ids=[case.id]))
     run_dir = store.paths.run_dir(RUN_ID)
-    run_dir.mkdir(parents=True)
     (run_dir / "01-step01-navigate.png").write_bytes(PNG_BYTES)
     raw = RawResult(
         case_id=case.id, outcome=outcome, duration_s=1.23,
@@ -72,13 +75,85 @@ def test_export_excel_has_one_row_per_case(tmp_path: Path) -> None:
 
 
 def test_export_excel_defaults_to_the_latest_run(tmp_path: Path) -> None:
-    _seed(tmp_path, outcome=Outcome.COMPLETED, result=Result.PASS)
+    store = _seed(tmp_path, outcome=Outcome.COMPLETED, result=Result.PASS)
+    (store.paths.runs_dir / "zzz-crawl-artifacts").mkdir()
 
     out = report_export.export_excel("demo", None, tmp_path / "out.xlsx", tmp_path)
 
     wb = load_workbook(out)
     rows = list(wb.active.iter_rows(values_only=True))
     assert rows[1][0] == "Login works"
+
+
+def test_valid_runs_exclude_directories_without_a_valid_envelope(tmp_path: Path) -> None:
+    store = _seed(tmp_path, outcome=Outcome.COMPLETED, result=Result.PASS)
+    (store.paths.runs_dir / "crawl-latest").mkdir()
+    malformed = store.paths.runs_dir / "run-malformed"
+    malformed.mkdir()
+    (malformed / "run.json").write_text("not json", encoding="utf-8")
+    wrong = store.paths.runs_dir / "run-wrong-project"
+    wrong.mkdir()
+    (wrong / "run.json").write_text(
+        Run(id=wrong.name, project="other").model_dump_json(), encoding="utf-8"
+    )
+
+    assert [run.id for run in report_export.valid_runs_newest_first(store)] == [RUN_ID]
+
+
+def test_valid_runs_order_by_envelope_time_not_directory_name(tmp_path: Path) -> None:
+    store = _seed(tmp_path, outcome=Outcome.COMPLETED, result=Result.PASS)
+    first = store.load_run(RUN_ID)
+    assert first is not None
+    naive_newer = (first.created_at + timedelta(seconds=1)).replace(tzinfo=None)
+    store.save_run(Run(id="aaa-newer", project="demo", created_at=naive_newer))
+
+    assert [run.id for run in report_export.valid_runs_newest_first(store)] == ["aaa-newer", RUN_ID]
+
+
+def test_png_embedding_refuses_paths_outside_the_run(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    outside = tmp_path / "secret.txt"
+    outside.write_text("must-not-leak", encoding="utf-8")
+
+    assert report_export.png_base64(outside, run_dir, tmp_path) is None
+    assert report_export.png_base64(run_dir / ".." / outside.name, run_dir, tmp_path) is None
+
+
+def test_png_embedding_refuses_a_symlinked_allowed_directory(tmp_path: Path) -> None:
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "secret.png").write_bytes(b"must-not-leak")
+    allowed = tmp_path / "project" / "runs" / "run-1"
+    allowed.parent.mkdir(parents=True)
+    allowed.symlink_to(outside, target_is_directory=True)
+
+    assert report_export.png_base64(allowed / "secret.png", allowed, tmp_path / "project") is None
+
+
+def test_png_embedding_refuses_a_file_symlink(tmp_path: Path) -> None:
+    allowed = tmp_path / "project" / "run"
+    allowed.mkdir(parents=True)
+    outside = tmp_path / "secret.png"
+    outside.write_bytes(b"must-not-leak")
+    link = allowed / "shot.png"
+    link.symlink_to(outside)
+
+    assert report_export.png_base64(link, allowed, tmp_path / "project") is None
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows junction regression")
+def test_png_embedding_refuses_a_windows_junction(tmp_path: Path) -> None:
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "secret.png").write_bytes(b"must-not-leak")
+    allowed = tmp_path / "project" / "run"
+    allowed.parent.mkdir()
+    made = subprocess.run(
+        ["cmd", "/c", "mklink", "/J", str(allowed), str(outside)], capture_output=True,
+    )
+    assert made.returncode == 0, made.stderr.decode(errors="replace")
+    assert report_export.png_base64(allowed / "secret.png", allowed, tmp_path / "project") is None
 
 
 def test_export_excel_raises_a_clear_error_with_no_runs(tmp_path: Path) -> None:

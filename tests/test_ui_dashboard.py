@@ -62,11 +62,22 @@ def test_index_project_never_run_shows_that_state(
         "slug": "demo", "name": "Demo", "base_url": "https://demo.test",
         "allowed_domains": "demo.test",
     })
+    synthetic = ProjectStore("demo", scratch_root).paths.runs_dir / "crawl_attempt"
+    synthetic.mkdir(parents=True)
 
     response = client.get("/")
 
     assert response.status_code == 200
     assert "never run" in response.text
+
+
+def test_favicon_is_an_intentional_empty_response(
+    client: TestClient, scratch_root: Path
+) -> None:
+    response = client.get("/favicon.ico")
+
+    assert response.status_code == 204
+    assert response.content == b""
 
 
 @pytest.mark.parametrize("path", [

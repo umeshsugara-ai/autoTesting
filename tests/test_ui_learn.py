@@ -140,6 +140,8 @@ def test_approving_without_a_name_is_refused_and_changes_nothing(
                            follow_redirects=False)
 
     assert response.status_code == 400
+    assert "This review is not signed" in response.text
+    assert "<title>" in response.text and '"detail"' not in response.text
     saved = store.load_flowspec()
     assert saved is not None
     assert saved.review.status is ReviewStatus.DRAFT
@@ -175,6 +177,8 @@ def test_an_undeclared_credential_placeholder_in_the_review_note_is_refused(
                            follow_redirects=False)
 
     assert response.status_code == 400
+    assert "This review cannot be saved" in response.text
+    assert "Return to the review" in response.text and '"detail"' not in response.text
     saved = store.load_flowspec()
     assert saved is not None
     assert saved.review.status is ReviewStatus.DRAFT

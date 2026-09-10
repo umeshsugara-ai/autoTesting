@@ -10,7 +10,7 @@ says "no" teaches the operator nothing, and the next thing they do is guess.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from autotester.schema.approval import RunApproval
 from autotester.schema.enums import ApprovalKind
@@ -96,7 +96,7 @@ def require_approval(
     endpoint authorise another under the same host, which is the whole thing
     this gate exists to prevent.
     """
-    now = now or datetime.now()
+    now = now or datetime.now(UTC)
     candidates = [
         a for a in approvals
         if a.project == project and a.run_kind is kind and a.target == target

@@ -21,7 +21,7 @@ repo-root `.env`, or a signed audit line) and is a HUMAN_GATE for Umesh —
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from pydantic import Field
 
@@ -81,6 +81,8 @@ class RunApproval(Artifact):
             expiry = datetime.fromisoformat(self.expires_at)
         except ValueError:
             return True  # an unparseable expiry is an expired one, never an eternal one
-        if expiry.tzinfo is not None and now.tzinfo is None:
-            expiry = expiry.replace(tzinfo=None)
-        return now > expiry
+        if expiry.tzinfo is None:
+            expiry = expiry.replace(tzinfo=UTC)
+        if now.tzinfo is None:
+            now = now.replace(tzinfo=UTC)
+        return now.astimezone(UTC) > expiry.astimezone(UTC)

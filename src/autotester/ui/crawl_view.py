@@ -64,10 +64,11 @@ def summary_table(crawl: Crawl) -> str:
 def _thumb(slug: str, crawl_id: str, node: ScreenNode) -> str:
     if not node.screenshot_ref:
         return ""
-    path = Path(node.screenshot_ref)
-    if not path.exists():
-        path = ProjectPaths(slug).crawl_shots_dir(crawl_id) / path.name
-    data = png_base64(path)
+    paths = ProjectPaths(slug)
+    allowed_root = paths.crawl_shots_dir(crawl_id)
+    ref = Path(node.screenshot_ref)
+    path = ref if ref.is_absolute() else allowed_root / ref
+    data = png_base64(path, allowed_root, paths.dir)
     if data is None:
         return ""
     return f"<span class='thumb'><img src='data:image/png;base64,{data}' loading='lazy'></span>"

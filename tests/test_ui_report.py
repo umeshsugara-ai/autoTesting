@@ -9,9 +9,10 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from autotester.schema.enums import EvidenceKind, Outcome, Result
+from autotester.schema.case import Case
+from autotester.schema.enums import CaseClass, CaseKind, EvidenceKind, Outcome, Result
 from autotester.schema.project import Project
-from autotester.schema.run import Evidence, RawResult
+from autotester.schema.run import Evidence, RawResult, Run
 from autotester.schema.verdict import Verdict
 from autotester.store.project_store import ProjectStore
 from autotester.ui.app import app
@@ -34,7 +35,16 @@ def _seed_project_with_two_runs(scratch_root: Path) -> ProjectStore:
         Project(slug="demo", name="Demo", base_url="https://demo.test",
                  allowed_domains=["demo.test"])
     )
+    for case_id, flow_id in (
+        ("case_1", "flow_login"), ("case_2", "flow_login"), ("case_3", "flow_profile"),
+    ):
+        store.add_case(Case(
+            id=case_id, project="demo", flow_id=flow_id, kind=CaseKind.BEST,
+            case_class=CaseClass.HAPPY, title=f"Check {case_id}",
+        ))
     for run_id, result_value in (("run_1", Result.PASS), ("run_2", Result.FAIL)):
+        case_ids = ["case_1"] if run_id == "run_1" else ["case_1", "case_2", "case_3"]
+        store.save_run(Run(id=run_id, project="demo", case_ids=case_ids))
         store.save_result(run_id, RawResult(case_id="case_1", outcome=Outcome.COMPLETED))
         store.save_verdict(run_id, Verdict(
             run_id=run_id, case_id="case_1", result=result_value,
@@ -44,7 +54,8 @@ def _seed_project_with_two_runs(scratch_root: Path) -> ProjectStore:
 
 
 def test_report_lists_every_run_newest_first(client: TestClient, scratch_root: Path) -> None:
-    _seed_project_with_two_runs(scratch_root)
+    store = _seed_project_with_two_runs(scratch_root)
+    (store.paths.runs_dir / "zzz-crawl-artifacts").mkdir()
 
     response = client.get("/projects/demo/report")
 
@@ -53,6 +64,20 @@ def test_report_lists_every_run_newest_first(client: TestClient, scratch_root: P
     assert text.index("run_2") < text.index("run_1")  # newest first
     assert "/projects/demo/runs/run_1" in text
     assert "/projects/demo/runs/run_2" in text
+    assert "zzz-crawl-artifacts" not in text
+
+
+def test_run_view_returns_404_for_a_directory_without_a_run(
+    client: TestClient, scratch_root: Path
+) -> None:
+    store = _seed_project_with_two_runs(scratch_root)
+    (store.paths.runs_dir / "crawl_latest").mkdir()
+
+    response = client.get("/projects/demo/runs/crawl_latest")
+
+    assert response.status_code == 404
+    assert "Run not found" in response.text
+    assert "No case results in this run yet" not in response.text
 
 
 def test_run_view_embeds_a_real_screenshot_inline(
@@ -64,7 +89,7 @@ def test_run_view_embeds_a_real_screenshot_inline(
                  allowed_domains=["demo.test"])
     )
     run_dir = store.paths.run_dir("run_1")
-    run_dir.mkdir(parents=True, exist_ok=True)
+    store.save_run(Run(id="run_1", project="demo", case_ids=["case_1"]))
     (run_dir / "01-shot.png").write_bytes(
         bytes.fromhex("89504e470d0a1a0a0000000d49484452")  # a real (truncated) PNG header
     )
@@ -99,7 +124,8 @@ def test_run_view_says_so_honestly_when_a_case_has_no_screenshots(
 def test_report_offers_real_excel_and_html_downloads(
     client: TestClient, scratch_root: Path
 ) -> None:
-    _seed_project_with_two_runs(scratch_root)
+    store = _seed_project_with_two_runs(scratch_root)
+    (store.paths.runs_dir / "zzz-crawl-artifacts").mkdir()
 
     excel = client.get("/projects/demo/report.xlsx")
     html = client.get("/projects/demo/report.html")
@@ -111,7 +137,7 @@ def test_report_offers_real_excel_and_html_downloads(
     assert len(excel.content) > 0
     assert html.status_code == 200
     assert "text/html" in html.headers["content-type"]
-    assert b"case_1" in html.content
+    assert b"Check case_1" in html.content
 
 
 def test_downloads_404_for_an_unknown_project(client: TestClient, scratch_root: Path) -> None:
@@ -129,8 +155,12 @@ def test_report_shows_an_overview_summary_not_just_a_bare_history_table(
 
     assert response.status_code == 200
     assert "Total runs" in response.text
-    assert "Overall pass rate" in response.text
-    assert "50%" in response.text  # one PASS, one FAIL verdict across the two seeded runs
+    assert "Latest-run pass rate" in response.text
+    assert "Overall pass rate" not in response.text
+    assert "0%" in response.text  # latest run FAIL; lifetime rate would be 50%
+    assert "<div class='value'>3</div><div class='label'>cases covering 2 distinct flows" in (
+        response.text
+    )
 
 
 def test_run_history_rows_use_compact_badges_not_full_size_stat_tiles(
@@ -157,6 +187,7 @@ def test_run_view_shows_scoreboard_and_grader_not_just_a_bare_badge(
         Project(slug="demo", name="Demo", base_url="https://demo.test",
                  allowed_domains=["demo.test"])
     )
+    store.save_run(Run(id="run_1", project="demo", case_ids=["case_1"]))
     store.save_result("run_1", RawResult(case_id="case_1", outcome=Outcome.COMPLETED))
     store.save_verdict("run_1", Verdict(
         run_id="run_1", case_id="case_1", result=Result.PASS,
@@ -181,7 +212,7 @@ def test_run_view_screenshots_link_to_a_matching_lightbox_target(
                  allowed_domains=["demo.test"])
     )
     run_dir = store.paths.run_dir("run_1")
-    run_dir.mkdir(parents=True, exist_ok=True)
+    store.save_run(Run(id="run_1", project="demo", case_ids=["case_1"]))
     (run_dir / "01-shot.png").write_bytes(b"\x89PNG\r\n\x1a\n")
     store.save_result("run_1", RawResult(
         case_id="case_1", outcome=Outcome.COMPLETED,
@@ -212,7 +243,7 @@ def test_run_view_orders_the_step_flow_by_step_order_not_evidence_order(
                  allowed_domains=["demo.test"])
     )
     run_dir = store.paths.run_dir("run_1")
-    run_dir.mkdir(parents=True, exist_ok=True)
+    store.save_run(Run(id="run_1", project="demo", case_ids=["case_1"]))
     (run_dir / "a.png").write_bytes(b"\x89PNG\r\n\x1a\n")
     (run_dir / "b.png").write_bytes(b"\x89PNG\r\n\x1a\n")
     store.save_result("run_1", RawResult(
@@ -243,6 +274,7 @@ def test_run_view_shows_failure_reasons_for_a_fail(
         Project(slug="demo", name="Demo", base_url="https://demo.test",
                  allowed_domains=["demo.test"])
     )
+    store.save_run(Run(id="run_1", project="demo", case_ids=["case_1"]))
     store.save_result("run_1", RawResult(case_id="case_1", outcome=Outcome.COMPLETED))
     store.save_verdict("run_1", Verdict(
         run_id="run_1", case_id="case_1", result=Result.FAIL,

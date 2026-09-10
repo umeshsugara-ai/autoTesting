@@ -539,3 +539,23 @@ acceptable statuses, gain a retry, or move behind a marker that keeps them out o
 verify command.
 
 **FOLDED:** 2026-09-09 · checker of `at176-at178-render-not-scan` cycle 1 → `qa/contracts/core-invariants.md` C7 amendment log (routine) + ledger **AT-196** (medium). Ruling: confirmed a genuine flake, not a regression (no `stages/explore*.py` change in `e2f119f`; 7 consecutive clean runs including one under concurrent full-suite load). The `APPLIES NEXT` generalisation is upheld in substance but **narrowed**: the defect is not "pins one exact terminal status" — this test already allows two — it is that the test enumerates observed outcomes instead of asserting the invariant it is named for, which `crawl.finished_at is not None` already carries. No retry and no marker: keeping it inside the adapter's verify command is right, because its failure direction is a false FAIL, never a false PASS. Verdict: `qa/verdicts/at176-at178-render-not-scan.md`.
+
+---
+
+## 2026-09-10 · active goal + checker sweep · T-100 real-browser re-close
+
+**PATTERN:** a no-CLI product promise is not satisfied by individually green route tests. The
+operator journey must expose every safety control, count only real artifacts, explain metric
+denominators, and return truthful HTTP/browser states under one independent interactive run.
+
+**EVIDENCE:** D-022 reopened T-100 after the first business-truth browser campaign found
+AT-243/244/245/246/247/248/251/252/257/259. The 2026-09-10 Mode-B sweep ranks T-100 first because
+it directly blocks T-161. Current code still has CLI-only crawl approval, hidden default bounds,
+all-directory run enumeration, a lifetime pass-rate headline, fabricated 200 pages for missing
+run/crawl ids, raw review refusals, and a permanent favicon console error.
+
+**APPLIES NEXT:** checker should amend `ui.md`/`ui-report.md` without weakening U1-U10: require an
+in-UI domain-bound crawl approval and explicit bounds; themed refusal paths; 404 for unknown run
+and crawl ids; valid persisted Run envelopes only; latest-run pass rate labelled with N cases and
+M distinct flows; zero unexplained console errors; and one Mode-D journey from onboard through
+masked credential, case/FlowSpec, approval, real run, report and portable downloads.

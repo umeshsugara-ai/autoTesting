@@ -13,12 +13,13 @@ from contextlib import asynccontextmanager
 from html import escape
 
 from fastapi import FastAPI, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from autotester.browser.secrets import SecretStore
 from autotester.core.env import load_repo_env
 from autotester.core.paths import ProjectPaths
 from autotester.schema.project import Project
+from autotester.stages.report_export import valid_runs_newest_first
 from autotester.store.project_store import ProjectStore
 from autotester.ui import (
     project_view,
@@ -44,7 +45,7 @@ from autotester.ui.helpers import (
     _require_reachable_base_url,
     _require_slug,
 )
-from autotester.ui.routes_report import _run_counts, _run_ids_newest_first
+from autotester.ui.routes_report import _run_counts
 
 __all__ = ["_require_slug", "app"]
 
@@ -78,16 +79,21 @@ app.include_router(routes_issues.router)
 app.include_router(routes_live.router)
 
 
+@app.get("/favicon.ico", status_code=204)
+def favicon() -> Response:
+    return Response(status_code=204)
+
+
 def _latest_run_status(slug: str) -> tuple[str | None, dict[str, int]]:
     """The latest run id (or None if the project has never run) and its verdict
     counts — same lookup `routes_report.py`'s report page already does per
     project, reused here rather than a second way to compute "how did the
     last run go" (ui.md U2/U4: real persisted state, never recomputed)."""
-    run_ids = _run_ids_newest_first(slug)
-    if not run_ids:
-        return None, {}
     store = ProjectStore(slug)
-    return run_ids[0], _run_counts(store, run_ids[0])
+    runs = valid_runs_newest_first(store)
+    if not runs:
+        return None, {}
+    return runs[0].id, _run_counts(store, runs[0].id)
 
 
 def _project_card(slug: str) -> str:

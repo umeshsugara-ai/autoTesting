@@ -8,12 +8,16 @@ from html import escape
 from pathlib import Path
 
 from fastapi import APIRouter
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from starlette.background import BackgroundTask
 
-from autotester.core.paths import ProjectPaths
 from autotester.schema.enums import EvidenceKind, Result
-from autotester.stages.report_export import export_excel, export_html, png_base64
+from autotester.stages.report_export import (
+    export_excel,
+    export_html,
+    png_base64,
+    valid_runs_newest_first,
+)
 from autotester.store.project_store import ProjectStore
 from autotester.ui import theme
 from autotester.ui.helpers import (
@@ -23,13 +27,6 @@ from autotester.ui.helpers import (
 )
 
 router = APIRouter()
-
-
-def _run_ids_newest_first(slug: str) -> list[str]:
-    paths = ProjectPaths(slug)
-    if not paths.runs_dir.exists():
-        return []
-    return sorted((p.name for p in paths.runs_dir.iterdir() if p.is_dir()), reverse=True)
 
 
 def _run_counts(store: ProjectStore, run_id: str) -> dict[str, int]:
@@ -62,7 +59,7 @@ def _run_date(store: ProjectStore, run_id: str) -> str:
     return escape(run.created_at.strftime("%Y-%m-%d %H:%M")) if run else ""
 
 
-def _step_flow(run_dir: Path, evidence: list, case_index: int) -> str:
+def _step_flow(run_dir: Path, evidence: list, case_index: int, trusted_root: Path) -> str:
     """The DFS-style trace Umesh asked for: the literal ordered sequence of
     screens THIS case actually walked through — never every hypothetical
     branch (that's the deferred, explicitly-descoped BFS/mindmap idea,
@@ -76,7 +73,7 @@ def _step_flow(run_dir: Path, evidence: list, case_index: int) -> str:
     steps: list[str] = []
     lightboxes: list[str] = []
     for i, shot in enumerate(shots):
-        data = png_base64(run_dir / shot.path)
+        data = png_base64(run_dir / shot.path, run_dir, trusted_root)
         if data is None:
             continue
         lb_id = f"lb-{case_index}-{i}"
@@ -108,10 +105,23 @@ def _failure_list(failures: list) -> str:
     return f"<ul class='failure-list'>{items}</ul>"
 
 
+def _unknown_run_page(slug: str, run_id: str) -> HTMLResponse:
+    safe_slug = escape(slug)
+    body = theme.breadcrumb(
+        ("Projects", "/"), (safe_slug, f"/projects/{safe_slug}"),
+        ("Report", f"/projects/{safe_slug}/report"), ("Run not found", None),
+    ) + "<h1>Run not found</h1>" + theme.empty_state(
+        "🔎", f"No completed run envelope exists for {escape(run_id)}.",
+    )
+    return HTMLResponse(theme.page("Run not found", body, active_slug=slug), status_code=404)
+
+
 @router.get("/projects/{slug}/runs/{run_id}", response_class=HTMLResponse)
-def run_view(slug: str, run_id: str) -> str:
+def run_view(slug: str, run_id: str) -> Response:
     store, _project = _load_project_or_404(slug)
     _require_safe_id(run_id, "run_id")
+    if run_id not in {run.id for run in valid_runs_newest_first(store)}:
+        return _unknown_run_page(slug, run_id)
     safe_slug = escape(slug)
     safe_run_id = escape(run_id)
     run_dir = store.paths.run_dir(run_id)
@@ -136,7 +146,7 @@ def run_view(slug: str, run_id: str) -> str:
         error = f"<p class='scoreboard'>{escape(r.error)}</p>" if r.error else ""
         return (
             f"<div class='case-meta'>{''.join(meta)}</div>{scoreboard}{failures}{error}"
-            f"{_step_flow(run_dir, r.evidence, case_index)}"
+            f"{_step_flow(run_dir, r.evidence, case_index, store.paths.dir)}"
         )
 
     sections = "".join(
@@ -158,29 +168,31 @@ def run_view(slug: str, run_id: str) -> str:
 
 @router.get("/projects/{slug}/report", response_class=HTMLResponse)
 def report(slug: str) -> str:
-    _store, _project = _load_project_or_404(slug)
+    store, _project = _load_project_or_404(slug)
     safe_slug = escape(slug)
     breadcrumb = theme.breadcrumb(
         ("Projects", "/"), (safe_slug, f"/projects/{safe_slug}"), ("Report", None),
     )
-    run_ids = _run_ids_newest_first(slug)
-    if not run_ids:
+    runs = valid_runs_newest_first(store)
+    if not runs:
         body = breadcrumb + "<h1>Report</h1>" + theme.empty_state(
             "📋", "no runs yet — run a case against this project to see a report here.",
         )
         return theme.page("Report", body, active_slug=slug)
-    store = ProjectStore(slug)
-    latest_id = run_ids[0]
-    safe_run_id = escape(latest_id)
+    run_ids = [run.id for run in runs]
+    latest = runs[0]
+    safe_run_id = escape(latest.id)
 
-    all_counts = [_run_counts(store, rid) for rid in run_ids]
-    total_verdicts = sum(sum(c.values()) for c in all_counts)
-    total_pass = sum(c.get(Result.PASS.value, 0) for c in all_counts)
-    pass_rate = f"{round(100 * total_pass / total_verdicts)}%" if total_verdicts else "—"
+    case_ids = set(latest.case_ids)
+    passed = {v.case_id for v in store.load_verdicts(latest.id)
+              if v.result is Result.PASS and v.case_id in case_ids}
+    pass_rate = f"{round(100 * len(passed) / len(latest.case_ids))}%" if latest.case_ids else "—"
+    cases = {case.id: case for case in store.list_cases()}
+    flow_count = len({cases[case_id].flow_id for case_id in latest.case_ids if case_id in cases})
     overview = "<div class='stat-row'>" + "".join((
         theme.stat(str(len(run_ids)), "Total runs"),
-        theme.stat(pass_rate, "Overall pass rate"),
-        theme.stat(str(sum(all_counts[0].values())), "Cases in latest run"),
+        theme.stat(pass_rate, "Latest-run pass rate"),
+        theme.stat(str(len(latest.case_ids)), f"cases covering {flow_count} distinct flows"),
     )) + "</div>"
 
     downloads = (
