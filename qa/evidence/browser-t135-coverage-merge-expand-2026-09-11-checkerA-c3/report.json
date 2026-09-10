@@ -1,0 +1,64 @@
+{
+  "unit": "t135-coverage-merge-expand",
+  "cycle": 3,
+  "date": "2026-09-11",
+  "actor": "checker A (Mode D, independent — my own server, my own port, my own browser)",
+  "why_this_unit_touches_a_ui_surface": "ui/routes_crawls.py::merge_crawl changed (the resolve_requests call, AT-289), and the AT-294 fix in core/urls.py changes what stages/product_map.py writes and what /projects/{slug}/product-map renders. Gated on CHANGED PATHS per D-024, not on qa/adapter.json.",
+  "isolation": "uvicorn served from the `git archive HEAD` (cc00e9b) extract, NEVER the live tree; `autotester.__file__` verified to resolve to the extract before anything was trusted. AUTOTESTER_ROOT pointed at a COPY of the real projects/ tree, so every page rendered real recorded data while the live tree stayed byte-untouched.",
+  "server": "uv run uvicorn autotester.ui.app:app --host 127.0.0.1 --port 8977 (my own port; the maker used 8991)",
+  "browser": "Playwright Chromium via MCP (own session)",
+  "console_errors_total_across_session": 0,
+  "console_warnings_total_across_session": 0,
+  "pages": [
+    {
+      "url": "/",
+      "status": 200,
+      "console_errors": 0,
+      "observed": "9 real projects; stat tiles 9 projects / 71 cases / 3 latest-run clean / 1 failing / 5 never run. Sidebar renders the xssprobe project name escaped."
+    },
+    {
+      "url": "/projects/erp/product-map",
+      "status": 200,
+      "console_errors": 0,
+      "observed": "8 learned screens across 3 recordings. THREE cards still render URL `/vidysea.com/erp/trainers` (Trainers, Trainers List, Trainers List - Edit Drawer). This CONFIRMS two of the maker's cycle-3 claims at once: the cycle-2 hand-edit is genuinely REVERTED, and the migration has NOT been run against real data. The corrupt display is the declared, gated state, not a regression."
+    },
+    {
+      "url": "/projects/checkerdemo/crawls/crawl_01M22B474QM5956JR0ZQA8M9M4",
+      "status": 200,
+      "console_errors": 0,
+      "observed": "Pre-click: 'Against the FlowSpec' card reads FlowSpec v1 · review needs_edit · '1 screen(s) the FlowSpec cannot name: /' · '0 known screen(s) this crawl never reached'. Refused & skipped table (3 rows) and Run detail table render."
+    }
+  ],
+  "interactions": [
+    {
+      "did": "Seeded the OPEN VideoRequest the crawl's gap raises, through the product's own `queue_requests` on the real crawl nodes (2 crawls, 1 deduped request `req_bb8e26317632` at gap `gap_2a0765d4adf2` — coverage V3 idempotence observed on real data), then CLICKED the product's own 'Merge these screens into the FlowSpec' button in a real browser.",
+      "expected": "coverage gap goes to zero, the FlowSpec bumps and returns to DRAFT (review-gate R1 re-armed), and the VideoRequest the crawl answered moves open -> fulfilled (AT-289 / coverage V6 closing side)",
+      "observed": "Coverage card after redirect: 'FlowSpec v2 · review draft — 1 screen(s) added by crawl crawl_01M22B474QM5956JR0ZQA8M9M4 — needs review', '0 screen(s) the FlowSpec cannot name'. On disk: flowspec v1->v2, review needs_edit->draft, screen node_81feb20cfcd1 'Swag Labs' at '/'; requests.jsonl row status=fulfilled, fulfilled_by_source=crawl_01M22B474QM5956JR0ZQA8M9M4. 0 console errors.",
+      "pass": true,
+      "note": "This is the exact interaction checker A ran in cycle 1 and got a STILL-OPEN request from. It now closes."
+    },
+    {
+      "did": "Clicked the same Merge button a SECOND time (idempotence through the real door)",
+      "expected": "no second version bump, no duplicate screen, no duplicate or reopened request",
+      "observed": "version stays 2, screens=1, conflicts=0, requests.jsonl still exactly 1 line, still fulfilled by the same crawl. 0 console errors.",
+      "pass": true
+    },
+    {
+      "did": "Drove the real CLI door `autotester ingest run <project> <source> --provider mock --merge --replace` as a SUBPROCESS against a real on-disk store holding an APPROVED FlowSpec",
+      "expected": "refusal, exit 2, and ZERO writes",
+      "observed": "exit=2, '--merge and --replace are opposites: merge keeps the reviewed spec, replace discards it. Pick one.' FlowSpec afterwards byte-equivalent: v3, approved, screens unchanged.",
+      "pass": true
+    },
+    {
+      "did": "Drove the real `ingest run --merge` command (typer CliRunner, real run_cmd + real _merge_into_reviewed) with a seeded mock vision provider whose ObservedScreen.url is SCHEMELESS ('vidysea.com/erp/trainers') — the only url shape this repo's real recordings contain — against an APPROVED FlowSpec carrying a human-reviewed screen and one OPEN VideoRequest for '/erp/trainers'",
+      "expected": "the human's screen survives verbatim; the recording's screen lands at '/erp/trainers' and NOT '/vidysea.com/erp/trainers'; v3->v4; approved->draft; the ask closes",
+      "observed": "exit=0, 'doordemo: v4, 2 screens, 0 flows after merging the answer video (review status draft, 1 request(s) closed)'. On disk: scr_human 'Sign in (reviewed by a human)' /signin UNTOUCHED; scr_db5ddb0acdcf 'Trainers' url_pattern='/erp/trainers'; review=draft; request req_fca2b411e6ce status=fulfilled, fulfilled_by_source=src_1e3e10637d87 (the answering screen's own source, AT-291). Second invocation: v stays 4, '0 request(s) closed', no duplicate screen.",
+      "pass": true,
+      "note": "This is the single strongest run of the cycle: I6, I7, V3, V6, X6 and R1 all evidenced in one end-to-end pass, on the schemeless shape that broke in cycles 1 and 2."
+    }
+  ],
+  "declared_gaps": [
+    "No live vision model. A subprocess `ingest run --merge` with `--provider mock` cannot be seeded from the command line (MockProvider takes responses only in-process), so the merge-through-the-CLI run used typer's CliRunner against the real run_cmd rather than a separate OS process. The subprocess path WAS exercised for the refusal branch (exit 2). This reproduces, rather than accepts on trust, the maker's declared gap 1.",
+    "The UI genuinely has no ingest route (persist_ingest/ingest_video appear only in cli_video.py) — verified by grep. So the video seam has one door, not two; the crawl seam has both."
+  ]
+}
