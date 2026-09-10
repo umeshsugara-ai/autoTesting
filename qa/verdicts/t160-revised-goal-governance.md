@@ -1,0 +1,42 @@
+# Checker verdict — t160-revised-goal-governance
+
+**Date:** 2026-09-10
+**Project root:** `D:/autoTesting`
+**Manifest:** `qa/manifests/t160-revised-goal-governance.md`
+**Implementation commit:** `4add220`
+**Manifest commit:** `6acbbe2`
+**Cycle checked:** 1
+**Mode:** A + browser render/interaction
+**Verdict:** PASS
+
+## Criterion evidence
+
+1. **Corrected product contract — PASS.** D-023 and `plan.md` section 9 name one generic intake, taught-input or authenticated BFS paths, a durable Portal Persona, traceable evals, visible-browser regression, and unified HTML/Excel/text/screenshot reporting.
+2. **Complete remaining feature list — PASS.** T-160..T-169 cover governance, unified intake, source adapters, orchestration, Portal Persona, frontier/API coverage, eval compilation, release regression, unified reporting, and two-mode acceptance. The plan and goal remain explicit that T-161..T-169 are pending implementation.
+3. **Dependency and done-check specificity — PASS.** The regression test pins the exact dependency list and exact task-specific pytest command for every new task; independent inspection matched all ten rows.
+4. **Goal graph integrity — PASS.** Independent `TopologicalSorter` traversal found 55 unique task ids, no missing dependencies, and no cycle.
+5. **Progress truthfulness — PASS.** Re-derived status counts are 31 done, 0 active, 24 pending, 0 blocked; 31/55 rounds to 56%, matching `.goal/goal.json` and the dashboard.
+6. **Generated-view freshness — PASS.** The submitted commit's clean archive passes `autotester doctor`, including snapshot freshness. The dashboard rendered the corrected north star and exact goal totals in the checker browser.
+7. **Guard non-vacuity — PASS.** The exact T-160 check passed independently; its assertion is an equality over all ten dependency/command pairs plus exact progress and rendered scope values, rather than a mere non-empty/presence check. The file is exactly 300 lines.
+8. **Security and human-control boundaries — PASS.** New scope carries domain-scoped credential references rather than values, explicit consent for release-triggered runs, named safety/budget bounds, and visible denied/skipped/unreached actions. No `.env` is tracked and no credential value was introduced.
+9. **Repository invariants — PASS.** Full suite completed at 100% with two intentional skips; Ruff passed. The live worktree's only doctor finding is the explicitly unrelated untracked root `AGENTS.md`; a clean archive of `6acbbe2` returns `doctor: clean`.
+
+## Browser evidence
+
+`qa/evidence/t160-revised-goal-governance-2026-09-10-checker/report.json`
+
+The checker opened the regenerated dashboard in an independent browser, visually observed the 56% donut and 31/55 totals, confirmed T-160..T-169 are all visible as pending, expanded T-160, and observed its correction note plus `needs: T-134`. Browser console errors/warnings: 0.
+
+## Notes
+
+- The dashboard's pre-existing renderer groups high/critical rows under “Needs you · human-gated”; this unit does not alter that renderer and does not claim those tasks all require an immediate human decision.
+- The concurrent untracked `AGENTS.md`, `.codex/`, runtime project files, and `qa/.last-tick` were ignored as the manifest directs. They are absent from the submitted commits.
+- No issue was claimed as addressed and no new checker issue was required.
+
+## Final block
+
+VERDICT: PASS
+SCOREBOARD: 9/9 criteria met, 9/9 project invariants hold
+LIVE-BROWSER: qa/evidence/t160-revised-goal-governance-2026-09-10-checker
+ISSUES-WRITTEN: none
+EXPLANATION: The corrected objective is now machine-guarded, graph-valid, visibly honest about 24 remaining tasks, and independently reproducible. This PASS certifies governance coverage only; T-161 through T-169 remain product implementation work.

@@ -1,0 +1,72 @@
+{
+  "unit": "T-160",
+  "manifest": "qa/manifests/t160-revised-goal-governance.md",
+  "implementation_commit": "4add220",
+  "manifest_commit": "6acbbe2",
+  "checked_at": "2026-09-10",
+  "project_root": "D:/autoTesting",
+  "mode": "A+D",
+  "checks": {
+    "exact_done_check": {
+      "command": "python -m pytest -p no:cacheprovider --basetemp=.work/pytest-exact tests/test_goal_done_checks.py::test_revised_goal_contract_is_registered -q",
+      "exit": 0,
+      "result": "1 passed"
+    },
+    "goal_controls": {
+      "command": "python -m pytest -p no:cacheprovider --basetemp=.work/pytest-related tests/test_goal_done_checks.py tests/test_goal_criticality_vocabulary.py -q",
+      "exit": 0,
+      "result": "11 passed"
+    },
+    "full_suite": {
+      "command": "uv --cache-dir .work/uv-cache run pytest -p no:cacheprovider --basetemp=.work/pytest-t160-checker-full -q",
+      "exit": 0,
+      "result": "100% complete; 2 skipped"
+    },
+    "ruff": {
+      "command": "uv --cache-dir .work/uv-cache run ruff check src tests scripts",
+      "exit": 0,
+      "result": "All checks passed!"
+    },
+    "doctor_submitted_commit": {
+      "commit": "6acbbe2",
+      "method": "git archive to .work/checker-t160-6acbbe2, then doctor.run(Path.cwd())",
+      "exit": 0,
+      "result": "doctor: clean"
+    },
+    "doctor_live_worktree": {
+      "exit": 1,
+      "result": "root-clutter: AGENTS.md",
+      "classification": "untracked concurrent root file, absent from submitted commit"
+    },
+    "graph": {
+      "tasks": 55,
+      "unique_task_ids": 55,
+      "missing_dependencies": [],
+      "cycle": null,
+      "status_counts": {
+        "done": 31,
+        "in_progress": 0,
+        "pending": 24,
+        "blocked": 0
+      },
+      "percent": 56
+    },
+    "browser": {
+      "url": "http://127.0.0.1:8876/.goal/dashboard.html",
+      "title": "AutoTester — Goal",
+      "rendered": true,
+      "visible_assertions": [
+        "corrected north star",
+        "56%",
+        "31/55 tasks",
+        "31 done",
+        "24 pending",
+        "T-160 through T-169 listed"
+      ],
+      "interaction": "expanded the T-160 details row",
+      "interaction_result": "displayed the corrected-goal note and dependency T-134",
+      "console_errors_or_warnings": 0,
+      "screenshot_observed": true
+    }
+  }
+}
