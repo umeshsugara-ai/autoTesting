@@ -83,8 +83,26 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   half-applied edit — makes **every** mutation look killed and certifies a vacuous test as sound.
   Printing the baseline is not asserting it. The harness asserts `exit == 0` on the unmutated copy
   first, or none of its results mean anything.
+- **A harness must attribute its kill to the test that claims the property.** "Killed" read from a
+  non-zero exit status cannot distinguish *"the test named for this fix failed"* from *"an unrelated
+  test failed"* from *"the suite failed to collect at all"*. A mutation that breaks the module under
+  test exits non-zero and reads KILLED while **no test ran** — measured: a syntax-error mutation
+  reported `KILLED  1 error`, with an empty failure list. The harness must assert that the specific
+  test(s) it names as defending the mutated behaviour appear in that run's failure list, not merely
+  that the exit code moved. A `defends:` label nothing compares against is a comment, not an
+  assertion — measured: a committed harness printed `defends: test_a_file_nested_below_the_project_
+  is_still_judged_by_it` on four consecutive kills, and no test of that name exists.
+- **A unit that ADDS or REWRITES a test must mutation-test it before the manifest is submitted.**
+  For each such test, mutate the specific branch it claims to defend and require at least one
+  failure, attributed as above. A zero-failure mutation is reported INCONCLUSIVE (clause 2 above),
+  never as a pass and never as "the test is vacuous". The maker runs this; the checker still re-runs
+  its own. This is a duty on the unit, not a step in `qa/adapter.json` slot-1 — slot-1 runs on every
+  unit, most of which add no test, and a step that no-ops on most runs is a step people learn to
+  skip.
 - **Verify:** `uv run pytest -q` exits 0 and the manifest pastes real output, not a summary; a
-  sabotage claim in a manifest is re-run by the checker in its own harness, never read.
+  sabotage claim in a manifest is re-run by the checker in its own harness, never read; a unit
+  adding or rewriting a test pastes its mutation run, with a green asserted baseline and a named
+  failing test per mutation.
 
 ### C8 — Provider-agnostic
 - All model calls go through `providers.base.Provider`. No stage imports a vendor SDK directly.
@@ -213,3 +231,29 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   (promote mutation into `qa/adapter.json` slot-1) is folded. Tightening only — adds a duty, weakens
   nothing, so it applies under the routine gate. Ledger: **AT-307** (low). Verdict:
   `qa/verdicts/at300-migration-config-hardening.md`.
+- 2026-09-11 · routine · **C7 gains two clauses: kill-attribution, and a mutation duty on any unit
+  that adds or rewrites a test. This FOLDS the standing `qa/feedback-inbox.md` proposal of
+  2026-09-11T04:00.** Why, in two parts. (i) *The fold.* The maker filed a pattern against itself —
+  FOUR vacuous tests in one session (T-135 c1/c2/c3 and AT-303), every one found by a checker
+  running mutation, none by the maker re-reading its own test — and proposed making mutation a
+  required verify step. The evidence for it only got stronger: AT-300 was the first unit to
+  mutation-test itself before submitting and it self-caught a *fifth* (M4 SURVIVED on the first
+  attempt). A failure mode that recurs five times across three agents and is caught by one cheap
+  instrument every single time is exactly what a contract criterion is for. I adopted the **duty**
+  and declined the proposed **mechanism**: not `qa/adapter.json` slot-1, because that file is the
+  maker's own — and a rule the maker writes for itself is not a gate, the same reasoning that
+  refused `qa/loop.md` a home for the sabotage clause on 2026-09-08 — and because slot-1 runs on
+  every unit while most add no test. C7 already holds the anchor, zero-failure and baseline clauses;
+  this is the fourth member of one family and belongs with them. (ii) *Kill-attribution.* Found in
+  the `at306-verification-artifact-integrity` cycle-1 check, in the harness that had just been fixed
+  for AT-307. `KILLED` is still `exit != 0`, so I mutated the target into a syntax error: the module
+  never imported, pytest exited 2, and the harness printed `KILLED  1 error` with an empty failure
+  list — a mutation certified as killed by a suite that never collected. Corroborated by the
+  harness's own `defends:` field naming a test that does not exist in the file, printed confidently
+  on four consecutive kills. Same failure direction as every other C7 clause — a harness reporting
+  about an experiment that did not happen — and the one that yields a **false PASS**. AT-307 closed
+  "already red *before* the mutation"; this closes "red for the wrong reason *after* it", which
+  becomes load-bearing the moment clause (i) makes the instrument mandatory. Tightening only — adds
+  two duties, weakens none, so it applies under the routine gate. Ledger: **AT-311** (medium),
+  **AT-312** (low, the harness needs a shared parameterised home now that it is contractual).
+  Verdict: `qa/verdicts/at306-verification-artifact-integrity.md`.
