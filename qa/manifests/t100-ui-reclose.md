@@ -1,12 +1,16 @@
 # Manifest — t100-ui-reclose
 
-**Status:** ready-for-check  
+**Status:** checked-PASS  
 **Contract:** `qa/contracts/ui.md` + `qa/contracts/ui-report.md` + `qa/contracts/core-invariants.md`  
 **Goal task:** T-100 (`user_value: high`, reopened for truthful no-CLI closure)  
 **Date:** 2026-09-10  
 **Fix cycle:** 1  
 **Implementation commit:** `c1f7cc0`  
 **Issues addressed:** AT-244, AT-245, AT-246, AT-247, AT-248, AT-251, AT-252, AT-257, AT-259
+
+**Close-out:** independent `/checker` PASS at `qa/verdicts/t100-ui-reclose.md` (Cycle checked: 1),
+17/17 criteria and 9/9 invariants; headed-browser evidence at
+`qa/evidence/browser-t100-ui-reclose-2026-09-10-checker/report.json`.
 
 ## Submitted behavior
 
