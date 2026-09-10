@@ -46,8 +46,9 @@ Every failure mode points the same way: a false KILLED becomes a false PASS.
   *claims to kill* beside *actually failed*, so a mismatch is visible rather than inferred.
   Mutations run in a `copytree` **outside** the repo and the target is restored byte-identically.
 
-- **`tests/test_mutation_check.py` (new, 12 tests)** — one per refusal, against a synthetic
-  two-test module, plus the live-tree-untouched guarantee and the JSON round trip.
+- **`tests/test_mutation_check.py` (new)** — one per refusal, against a synthetic two-test module,
+  plus the live-tree-untouched guarantee and the JSON round trip. **Cycle 2 raised it to 18**, adding
+  the direct `is_kill` table and the two escape refusals.
 
 - `qa/evidence/at311-mutation-check/` — `mutations.json` (the migration unit's four, re-run through
   the new instrument), `mutations-self.json`, and both runs' output.
@@ -56,14 +57,9 @@ Every failure mode points the same way: a false KILLED becomes a false PASS.
 
 C7 applies to this unit too, so the instrument was pointed at **itself**:
 
-```
-KILLED  kills-label existence check removed (AT-311)
-KILLED  baseline assertion removed (AT-307)
-KILLED  kill redefined as any non-zero exit (AT-311)
-KILLED  anchor-count discipline removed
-KILLED  sandbox removed - mutate the live tree
-5/5 mutations killed
-```
+**Superseded by cycle 2 — this 5/5 run was real but incomplete: the checker's own mutation
+`killed = code != 0 and not survivors` survived all of it (AT-315). The authoritative run is the
+8/8 in the cycle 2 section below.**
 
 Each line printed its claimed kills beside the tests that actually failed, and they match — the
 attribution AT-311 was filed for, demonstrated on the fix for AT-311.
@@ -78,11 +74,11 @@ correctly attributed — including the M4 label that the old harness had been pr
 
 ## How to verify (commands + expected)
 
-- `uv run pytest -o addopts= -q` → `1066 passed, 2 skipped`, exit 0
+- `uv run pytest -o addopts= -q` → `1072 passed, 2 skipped`, exit 0
 - `uv run ruff check src tests scripts` → exit 0
 - `uv run autotester doctor` → exit 1, exactly one violation (untracked root `AGENTS.md`, AT-283)
 - `uv run python scripts/mutation_check.py qa/evidence/at311-mutation-check/mutations-self.json`
-  → `5/5 mutations killed`, exit 0
+  → `8/8 mutations killed`, exit 0
 - `uv run python scripts/mutation_check.py qa/evidence/at311-mutation-check/mutations.json`
   → `4/4 mutations killed`, exit 0
 - `grep -c test_a_file_nested_below_the_project_is_still_judged_by_it tests/test_migrate_url_patterns.py`
@@ -90,23 +86,8 @@ correctly attributed — including the M4 label that the old harness had been pr
 
 ## Actual outputs (from maker's own run, after the final edit)
 
-```
-$ uv run pytest -o addopts= -q
-1066 passed, 2 skipped, 1 warning in 104.22s        exit=0
-
-$ uv run ruff check src tests scripts
-All checks passed!                                   exit=0
-
-$ uv run autotester doctor
-root-clutter: AGENTS.md - scratch and evidence belong in .work/, not the repo root
-1 violation(s)                                       exit=1
-
-$ scripts/mutation_check.py … mutations-self.json    5/5 mutations killed   exit=0
-$ scripts/mutation_check.py … mutations.json         4/4 mutations killed   exit=0
-```
-
-Note the suite is ~17s slower: `test_mutation_check.py` spawns real pytest subprocesses. That is
-the honest cost of testing an instrument that runs pytest, and it is disclosed rather than hidden.
+**Superseded — captured at cycle 1. The authoritative, freshly re-run outputs are in
+"Cycle 2 verify" below.**
 
 ## Live browser evidence
 
