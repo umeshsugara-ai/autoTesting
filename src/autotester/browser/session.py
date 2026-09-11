@@ -131,8 +131,15 @@ class BrowserSession:
         return self._page
 
     def goto(self, url: str) -> Evidence:
-        check_destination(self.project, url)
-        self.page.goto(url, wait_until="domcontentloaded")
+        """Navigate to `url`. A `{{SECRET:KEY}}` value is resolved against its
+        OWN declared domains (AT-076: unlike `fill`, a navigation target may be
+        entirely a placeholder with no literal host to scope by up front) —
+        see `SecretStore.resolve_for_navigation`. `check_destination` then
+        validates the real, resolved destination exactly as it would a plain
+        URL, so the project's `allowed_domains` still bind either way."""
+        real = self.secrets.resolve_for_navigation(url) if PLACEHOLDER_RE.search(url) else url
+        check_destination(self.project, real)
+        self.page.goto(real, wait_until="domcontentloaded")
         return self._record(EvidenceKind.URL, self.page.url)
 
     def fill(self, locator: str, value: str | None, *, step_order: int | None = None) -> None:

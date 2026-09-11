@@ -154,6 +154,47 @@ class SecretStore:
             result = result.replace(f"{{{{SECRET:{key}}}}}", self._value_for(key, host))
         return result
 
+    def resolve_for_navigation(self, value: str) -> str:
+        """Substitute `{{SECRET:KEY}}` placeholders in a NAVIGATION target (AT-076).
+
+        `resolve()` requires the destination host BEFORE substitution — right
+        for `fill()`, which always has one (the current page). A navigation
+        target can be the placeholder ITSELF with no literal host around it
+        (a full login URL held as one .env value), so there is nothing to
+        check a host against until after substitution. Order flips: substitute
+        first, then check the RESULTING host against every referenced secret's
+        own declared domains — the same domains a human entered when they said
+        "may be typed into" — so an undeclared key or a wrongly-scoped
+        destination still fails closed, just after the substitution its own
+        destination requires rather than before it.
+
+        The caller (`session.goto`) still runs `check_destination` against the
+        returned value — this method enforces per-secret scope, not the
+        project's `allowed_domains`.
+        """
+        keys = PLACEHOLDER_RE.findall(value)
+        if not keys:
+            return value
+        result = value
+        for key in keys:
+            ref = self._refs.get(key)
+            if ref is None:
+                raise UndeclaredSecret(f"'{key}' is not declared in project '{self._project.slug}'")
+            raw = self._values.get(key)
+            if not raw:
+                raise MissingSecret(f"'{key}' has no value loaded")
+            result = result.replace(f"{{{{SECRET:{key}}}}}", raw)
+        host = host_of(result)
+        if not host:
+            raise SecretScopeError(f"navigation target resolves to no usable host: {value!r}")
+        for key in keys:
+            ref = self._refs[key]
+            if not any(_host_matches(host, d) for d in ref.domains):
+                raise SecretScopeError(
+                    f"'{key}' is scoped to {ref.domains or '[]'} and may not be used on '{host}'"
+                )
+        return result
+
     def _value_for(self, key: str, host: str) -> str:
         ref = self._refs.get(key)
         if ref is None:

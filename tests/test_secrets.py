@@ -135,6 +135,72 @@ def test_secret_scoped_narrower_than_the_project_allowlist_is_still_refused(
         store.resolve("{{SECRET:PATHLYNKS_EMAIL}}", "https://app.pathlynks.test")
 
 
+# -- AT-076: resolve_for_navigation, for a placeholder used as a goto target -
+
+LOGIN_URL = "https://app.pathlynks.test/login?token=xyz789"
+
+
+def loaded_with_login_url(tmp_path: Path, domains: list[str] | None = None) -> SecretStore:
+    project = Project(
+        slug="pathlynks", name="Pathlynks", base_url="https://app.pathlynks.test",
+        allowed_domains=["pathlynks.test"],
+        secrets=[SecretRef(key="PATHLYNKS_LOGIN_URL", domains=domains or ["pathlynks.test"])],
+    )
+    env = write_env(tmp_path, f"PATHLYNKS_LOGIN_URL={LOGIN_URL}\n")
+    return SecretStore.load(project, env)
+
+
+def test_resolve_for_navigation_substitutes_a_bare_placeholder(tmp_path: Path) -> None:
+    """The whole navigation target can be the placeholder — there is no
+    literal host around it to scope by up front, unlike `fill`."""
+    store = loaded_with_login_url(tmp_path)
+    assert store.resolve_for_navigation("{{SECRET:PATHLYNKS_LOGIN_URL}}") == LOGIN_URL
+
+
+def test_resolve_for_navigation_substitutes_a_placeholder_embedded_in_a_url(
+    tmp_path: Path,
+) -> None:
+    store = loaded_with_login_url(tmp_path)
+    out = store.resolve_for_navigation(
+        "https://app.pathlynks.test/sso?next={{SECRET:PATHLYNKS_LOGIN_URL}}"
+    )
+    assert out == f"https://app.pathlynks.test/sso?next={LOGIN_URL}"
+
+
+def test_resolve_for_navigation_passes_plain_urls_through_untouched(tmp_path: Path) -> None:
+    store = loaded_with_login_url(tmp_path)
+    assert store.resolve_for_navigation("https://app.pathlynks.test/") == (
+        "https://app.pathlynks.test/"
+    )
+
+
+def test_resolve_for_navigation_rejects_an_undeclared_key(tmp_path: Path) -> None:
+    store = loaded_with_login_url(tmp_path)
+    with pytest.raises(UndeclaredSecret, match="OTHER_APP_KEY"):
+        store.resolve_for_navigation("{{SECRET:OTHER_APP_KEY}}")
+
+
+def test_resolve_for_navigation_rejects_a_missing_value(tmp_path: Path) -> None:
+    project = Project(
+        slug="pathlynks", name="Pathlynks", base_url="https://app.pathlynks.test",
+        allowed_domains=["pathlynks.test"],
+        secrets=[SecretRef(key="PATHLYNKS_LOGIN_URL", domains=["pathlynks.test"])],
+    )
+    store = SecretStore(project, {})
+    with pytest.raises(MissingSecret, match="PATHLYNKS_LOGIN_URL"):
+        store.resolve_for_navigation("{{SECRET:PATHLYNKS_LOGIN_URL}}")
+
+
+def test_resolve_for_navigation_refuses_a_secret_scoped_to_a_different_domain(
+    tmp_path: Path,
+) -> None:
+    """The resolved DESTINATION is app.pathlynks.test, but the secret is only
+    scoped to some other host — the post-substitution check must still bite."""
+    store = loaded_with_login_url(tmp_path, domains=["not-the-login-host.test"])
+    with pytest.raises(SecretScopeError, match=re.escape("app.pathlynks.test")):
+        store.resolve_for_navigation("{{SECRET:PATHLYNKS_LOGIN_URL}}")
+
+
 def test_host_of_strips_scheme_port_and_case() -> None:
     assert host_of("https://App.Pathlynks.test:8443/login") == "app.pathlynks.test"
     assert host_of("app.pathlynks.test") == "app.pathlynks.test"
