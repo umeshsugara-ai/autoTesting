@@ -4,7 +4,7 @@
 **Contract:** `qa/contracts/ui.md` (U8/U9) · `qa/contracts/core-invariants.md` (C2, C7)
 **Goal task:** none — issue-driven
 **Date:** 2026-09-11
-**Fix cycle:** 3 of max 3 — **the last one**
+**Fix cycle:** 3 of max 3 — **exhausted; STALLED**
 **Dual check:** no
 **Issues addressed:** AT-345 (high, fixed) · AT-346 (medium, fixed) · AT-351 (high, fixed in cycle 2) · AT-353 (high, fixed in cycle 3) · AT-349, AT-352, AT-354 (filed, NOT fixed)
 
@@ -249,4 +249,70 @@ time), not another patch.
 - **AT-349 (low):** the confusable map is curated, not UTS #39 — the checker independently
   agreed this was filed honestly.
 
-## Status: ready-for-check
+## STALLED after fix cycle 3 — handed to Umesh
+
+Three cycles, three FAILs, all on one line. The protocol's cycle limit is reached, so this stops
+here rather than going a fourth round. **The limit is not why it should stop** — the fourth
+finding is.
+
+### What is still failing: AT-355 (high), both doors
+
+`U+202E` (RIGHT-TO-LEFT OVERRIDE) followed by the credential **written backwards** is accepted at
+`/onboard` and by the case form, lands in git-tracked `project.json` and `cases.jsonl`, and renders
+on the home index as **21 plain-type glyphs in the correct reading order** — visually identical to
+a planted plain-credential control.
+
+**It leaks *because* the guard strips it.** Verified directly:
+
+```
+fold("ZEBRA_QUILT_APIKEY_31")        -> zebraquiltapikey31
+fold("\u202e" + the reverse of it)   -> 13yekipatliuqarbez
+```
+
+`_is_ignorable` removes `U+202E` as category `Cf` — deleting the character that *causes* the
+leak — and then compares a string that is not the credential. Every previous fix in this unit
+worked by *subtracting* characters that carry no meaning. That operation is exactly wrong for a
+character whose effect is on **rendering order** rather than on content: subtracting it destroys
+the evidence of the attack.
+
+### Why a fourth patch would be the wrong call
+
+The first three failures could be read as "another family nobody enumerated". This one cannot.
+AT-355 is a character the guard **already handles**, failing in the opposite direction from the
+fix. That is a shape problem, not a coverage problem:
+
+- **Deny-listing is unbounded here.** The checker's count: 1,107,659 code points defeat the fold
+  when interleaved; the strip set covers ~4,200.
+- **The predicate's name is still wrong**, and I renamed it this cycle believing I had fixed
+  that. `_is_ignorable` claims these characters carry no meaning a reader takes off the screen.
+  The bidi controls *do* — that is their entire function.
+
+**The checker's recommendation, which I agree with:** canonicalise to an **allow-list of readable
+characters** and compare what a reader would actually see, rather than subtracting unreadable
+families one at a time. It also built a `visualOrder` detector — glyphs sorted by screen x — which
+is what caught AT-355, and that belongs in this repo rather than in a checker's scratch directory.
+
+**This is a design decision, and it is Umesh's**, not something to settle inside a fix cycle. The
+narrower option (refuse bidi controls outright instead of stripping them) closes AT-355 and leaves
+the shape unchanged, which is the choice that matters.
+
+### What DID hold, verified independently
+
+Cycle 3's own work was confirmed: AT-353 closed at both doors using the planted-control technique,
+10/10 mutations killed with attribution checked by hand, 11/11 legitimate submissions accepted
+(multi-line expect text, emoji with `U+FE0F`), `doctor` clean, suite green at 1145. AT-345, AT-346
+and AT-351 all re-verified as closed. The failure is one new finding, not a regression.
+
+### A correction I owe
+
+I deferred AT-354 on the reasoning that an acceptance test for Indic/Arabic/emoji names "cannot be
+killed by any mutation of this guard". **The checker refuted it in one line**: mutate the strip to
+`category(ch).startswith("M")` and a Hindi or Thai name folds to a stub, the guard refuses *more*,
+and the acceptance test dies. A falsifiable version costs one spec line.
+
+That is the **third** unreachability claim I have made in this repo and the third that has been
+refuted. The pattern is mine, not the code's, and it should be treated as a standing rule rather
+than a run of bad luck: **I do not get to assert that no mutation can reach a property.**
+
+## Status: STALLED
+
