@@ -100,4 +100,4 @@ route/template touched.
   commands pair two real segments), so this is a guard-correctness fix with no current-state
   behavior change.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, verdict qa/verdicts/at161-goal-neutering-any-segment.md, commit b668e49)
