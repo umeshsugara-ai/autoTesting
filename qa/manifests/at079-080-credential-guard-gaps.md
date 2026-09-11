@@ -99,4 +99,4 @@ own, with its own script, per the standing rule.
 - Does not change `_refuse_unsafe_submission`'s matching logic itself (still a substring/variant
   check against known values) — only which fields are passed into it.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, verdict qa/verdicts/at079-080-credential-guard-gaps.md, commit ec455a5)
