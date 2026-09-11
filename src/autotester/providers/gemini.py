@@ -27,6 +27,14 @@ ModelT = TypeVar("ModelT", bound=BaseModel)
 DEFAULT_MODEL = "gemini-3.6-flash"
 
 
+def _is_gemini_3(model: str) -> bool:
+    """AT-127: the SDK's own fully-qualified form (`models/gemini-3.x`) must
+    still be recognised — a bare `startswith` silently lost `media_resolution`
+    (and now `thinking_config`) for a model configured that way, with nothing
+    failing to say so."""
+    return model.removeprefix("models/").startswith("gemini-3")
+
+
 class GeminiProvider(Provider):
     """Wraps `google.genai.Client`. Never receives a raw secret — callers pass
     prompts containing `{{SECRET:KEY}}` placeholders only, per the base contract."""
@@ -78,8 +86,12 @@ class GeminiProvider(Provider):
             # call 400'd while the fake client in the tests accepted anything.
             kwargs["response_schema"] = gemini_schema(schema)
         if options is not None:
-            if self._model.startswith("gemini-3"):
+            if _is_gemini_3(self._model):
                 kwargs["media_resolution"] = f"MEDIA_RESOLUTION_{opts.media_resolution.upper()}"
+                # AT-126: the docstring already promised this; it was never applied.
+                kwargs["thinking_config"] = types.ThinkingConfig(
+                    thinking_level=opts.thinking_level.upper()
+                )
             elif opts.temperature is not None:
                 kwargs["temperature"] = opts.temperature
             if opts.system_instruction:
