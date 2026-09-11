@@ -641,3 +641,291 @@ names. AT-321 is one `check()`-level test plus three corrected prose claims. AT-
 AT-322 is a low, not a FAIL line, but it rides in the same edit. None of them touches the parts
 that are now demonstrably sound: the sandbox containment, the empty-`kills` refusal on both paths,
 the baseline assertion, the anchor discipline, or the attribution logic on unique names.
+
+---
+
+# Cycle 3 — independent re-check (the last one)
+
+**Date:** 2026-09-11
+**Manifest:** `qa/manifests/at311-mutation-check.md` (Fix cycle: 3 of max 3, LAST)
+**Contract:** `qa/contracts/core-invariants.md` C7 — kill-attribution + the mutation duty
+(2026-09-11 amendments), the baseline clause, the zero-failure clause, the anchor clause
+**Commit checked:** `baf56a1`
+**Checker:** fresh Mode A subagent, bound to `D:/autoTesting`
+**Cycle checked: 3**
+
+```
+VERDICT: PASS
+SCOREBOARD: 7/7 applicable criteria met, 0/0 invariants (this contract declares no [I*])
+FAILURES: none at >80% confidence in the false-PASS direction
+LIVE-BROWSER: not-applicable (changed paths: scripts/mutation_check.py, tests/*.py, qa/*;
+  `git show --stat baf56a1` touches nothing under src/autotester/ui/, and `grep -rn mutation_check
+  src/` returns nothing — Mode D is NOT required)
+ISSUES-WRITTEN: AT-324, AT-325, AT-326, AT-327, AT-328
+  (status moved: AT-311/312/313/314/315 fixed→verified; AT-320/321/322/323 open→fixed)
+EXPLANATION: Every verify command reproduced exactly, per-mutation rather than in aggregate. The
+two findings cycle 2 turned on are genuinely closed in code, not in prose: the AT-321
+interrupted-run test really does produce pytest exit 2 WITH real FAILED lines (I printed the
+mutated module and the raw pytest output showing the KeyboardInterrupt banner, not a collection
+error) and it really does die under a weakened `exit_code != 0`; AT-320 attribution is by full
+nodeid throughout and every attack I could build on bare-name identity either resolved correctly
+or was refused. I attacked the tool on nine further axes and found a fifth hole (AT-324) plus a
+resource leak (AT-325) — but both fail CLOSED, refusing a valid run rather than certifying an
+invalid one, which is the opposite direction from every C7 clause and from all four holes found in
+cycles 1–3. C7's question is whether this instrument can report confidently about an experiment
+that did not happen; on the evidence I produced, it cannot.
+```
+
+## 1. What I re-ran (nothing below is read from the manifest)
+
+| Command | My result | Manifest claim | Match |
+|---|---|---|---|
+| `uv run pytest -o addopts= -q` | `1077 passed, 2 skipped, 1 warning in 112.19s`, exit 0 | 1077 / 2, exit 0 | yes |
+| `uv run ruff check src tests scripts` | `All checks passed!`, exit 0 | exit 0 | yes |
+| `uv run autotester doctor` | `root-clutter: AGENTS.md … 1 violation(s)`, exit 1 | exit 1, one violation (AT-283) | yes |
+| `scripts/mutation_check.py … mutations-self.json` | **13/13 killed, 0 SURVIVED**, exit 0 | 13/13, exit 0 | yes |
+| `scripts/mutation_check.py … mutations.json` | **4/4 killed**, exit 0 | 4/4, exit 0 | yes |
+| `grep -c test_a_file_nested_below_the_project_is_still_judged_by_it tests/test_migrate_url_patterns.py` | `0` | `0` | yes |
+
+**Attribution checked per-mutation, not in aggregate** (the manifest's headline number is not the
+claim I judged). For all 17 mutations across both specs, `claims to kill` is a subset of
+`actually failed`, and every id on both sides is a **full nodeid**, never a bare name. Two
+mutations reported collateral failures beyond their claim — `attribution reverted to bare names`
+failed 6 tests while claiming 2, and `sandbox removed - mutate the live tree` failed 2 while
+claiming 1. Both are correct and **visible rather than inferred**, which is the point of the
+`claims`/`actually` pair.
+
+The migration spec's fourth mutation now prints
+`test_a_nested_artifact_under_a_flat_root_is_still_judged_by_its_project` — the label the old
+harness printed wrongly on four consecutive kills. That is AT-311 demonstrated closed on the very
+run that exposed it.
+
+## 2. Priority 1 — AT-321, closed in code, not in documentation
+
+The manifest's own warning is the right one to test against: its first attempt at this test passed
+for the wrong reason (a `SyntaxError`, i.e. exit 2 from *collection*, not from an interrupt). So I
+did not read the test — I built the scenario in my own harness and printed the artifact.
+
+**The mutated module, as the instrument actually writes it:**
+
+```python
+def classify(value):
+    if value == 999:
+        raise KeyboardInterrupt
+    if value > 0:
+        return "big"
+    return "small"
+```
+
+**The raw pytest output (tail), exit 2:**
+
+```
+FAILED tests/test_mod.py::test_small_values_are_small - AssertionError: asser...
+!!!!!! KeyboardInterrupt !!!!!!
+C:\...\mutation-check-j0gjhpcn\repo\scripts\mod.py:3: KeyboardInterrupt
+1 failed, 1 passed in 0.20s
+```
+
+That is an **interrupt after real results**, not a collection error: one test failed normally, one
+passed, and the module imported fine. `check()` on the same spec returned
+`exit=2 · killed=False · no_test_results=False ·
+failed=['tests/test_mod.py::test_small_values_are_small']` — every one of the four things the test
+asserts, produced independently of the test.
+
+**And it dies under the weakened form.** Self-spec mutation 6, `kill redefined as any non-zero
+exit` (`exit_code == 1` to `exit_code != 0`), was KILLED with
+`actually failed: …::test_an_interrupted_run_with_real_failures_is_not_a_kill,
+…::test_is_kill_requires_pytest_to_have_actually_run_tests`. So the exit-code clause is
+mutation-reachable end-to-end, exactly as cycle 2's checker predicted and cycle 2's maker denied.
+Mutation 8 (`no_test_results` weakened) independently kills the same test on its other assertion.
+
+**AT-321 is genuinely closed.** The test is not a documentation artefact.
+
+## 3. Priority 2 — AT-320, attacked on six axes
+
+Written against the real `scripts/mutation_check.py` in a scratch harness, one synthetic repo per
+attack.
+
+| Attack | Result | Judgement |
+|---|---|---|
+| Parametrised id, `kills: ["test_p"]` (bare) | REFUSED `not collected` | correct — the bare name genuinely is not an id |
+| Parametrised id, `kills: ["test_p[1]"]` | KILLED, `expected=['tests/test_mod.py::test_p[1]']` | correct, and the sibling `test_p[2]` failing too is shown, not hidden |
+| Class-based `TestSmall::test_m`, bare method name | KILLED, resolved to `tests/test_mod.py::TestSmall::test_m` | correct |
+| Same method name in **two classes of one file** | REFUSED `collect more than once` | correct refusal — **but see AT-324** |
+| `::` inside a parameter value (`test_q[1-a::b]`) | the real id is REFUSED; the mangled tail `b]` is ACCEPTED and resolves to the right nodeid | cosmetically wrong, substantively safe (the resolved `expected` is the true nodeid) |
+| Windows path separators | pytest emits `tests/test_mod.py::…` with forward slashes in `FAILED` lines even on win32 (backslashes appear only in tracebacks) | the `tests/...` form the tests assert is correct on this platform |
+| `kills` given AS a full nodeid | REFUSED `not collected` | **AT-324 — this is the fifth hole** |
+
+**Not a silent failure to match** — it is a loud refusal, which is the right direction. The defect
+is that the refusal is *unfixable by following its own instruction*: the ambiguity message says
+*"A bare name is not an identifier — name the full nodeid"*, and naming the full nodeid is then
+rejected, because `collected_tests` (`scripts/mutation_check.py:103-120`) keys its index by
+`nodeid.split("::")[-1]` **only**.
+
+Reachable in this repo today, in two commands:
+
+```
+$ kills: ["test_act_without_a_schema_raises"]
+MUTATION RUN INVALID: … collect more than once:
+  {'test_act_without_a_schema_raises': ['tests/test_langchain_fallback.py::…',
+                                        'tests/test_providers.py::…']}. … name the full nodeid.
+
+$ kills: ["tests/test_providers.py::test_act_without_a_schema_raises"]
+MUTATION RUN INVALID: … names test(s) that are not collected. A 'kills' label is a claim, not a comment.
+```
+
+Filed **AT-324 (medium)**. Not a FAIL: it cannot produce a false KILLED, and the manifest's claim
+about AT-320 — *"names now resolve to full nodeids at validation, and a name that collects more
+than once is refused outright"* — is true as written. A guard whose escape hatch does not exist is
+a real defect, in the opposite direction from everything cycles 1–3 failed on.
+
+## 4. Priority 3 — the hunt for a fifth hole
+
+Every probe the dispatch named, plus four of my own.
+
+| Probe | Result |
+|---|---|
+| `tests: []` | pytest collects the whole sandbox; run completed, kill attributed correctly. **More** coverage, not less — not a hole |
+| `tests: "tests"` (a directory) | collects the directory, kill attributed correctly — not a hole |
+| Two mutations on the **same file** | independent: `original` is re-read per mutation and restored before the next; both killed with correct attribution |
+| First mutation's restore fails | `check()` raises `could not restore …` **before** `results.append`, aborting the run rather than reporting it. The target is a temp copy, so the live tree is untouched either way — correct |
+| `kills` name colliding **between the two split files** | no collision exists: 23 test names across `test_mutation_check.py` + `test_mutation_check_judgement.py`, zero duplicates. Had one existed, the AT-320 guard would refuse — and then AT-324 would leave the maker with no legal spelling |
+| Can `startswith(("FAILED","ERROR"))` drop a legitimate test? | **No.** Collected nodeids always begin with the target path, and `_sandbox` copies only `scripts/`, `tests/`, `src/`, so no top-level path can begin with those words. Verified by construction and by a direct `collected_tests` call |
+| Can a module PRINTING a fake nodeid at import time poison `collected_tests`? | **No** — pytest captures collection-time stdout; the fake line never reaches the parse |
+| Is the restore byte-identical? | The live tree is byte-unchanged even for a CRLF source (checked `read_bytes()` before/after). The sandbox-copy normalisation is AT-316, already open, and cannot reach the repo |
+| Does `_sandbox` clean up? | **No — AT-325** |
+
+**The fifth hole is AT-324.** The sixth, if you count it, is **AT-325 (medium)**: `_sandbox`
+(`scripts/mutation_check.py:128-138`) calls `tempfile.mkdtemp` and nothing ever deletes it.
+Measured on this machine: **1789 leaked `mutation-check-*` trees**, ~1 MB each, **about 1.8 GB
+standing**. `check()` leaks one per call and the two test files call it ~15 times, so every full
+`pytest -q` leaks ~15 MB — and C7's new mutation duty makes the instrument mandatory, so the rate
+is now structural. Pure hygiene; no judgement changes. Neither is charged as a criterion failure.
+
+## 5. Priority 4 — the split lost no coverage, and the conftest move is inert
+
+Names compared mechanically, `2ac4c21` to `baf56a1`:
+
+- Cycle 2: **18** real tests in one file (the 20 `def test_` hits include
+  `test_big_values_are_big` and `test_small_values_are_small`, which are lines inside the synthetic
+  `TESTS` string literal, not tests of the suite — they moved verbatim into
+  `tests/tests_mutation_fixtures.py`).
+- Cycle 3: **23** real tests across the two files. **Dropped: none.** Added 5:
+  `test_a_suite_split_across_files_is_still_one_suite`,
+  `test_an_interrupted_run_with_real_failures_is_not_a_kill`,
+  `test_it_refuses_a_kills_name_that_collects_more_than_once`,
+  `test_a_survivor_is_reported_as_inconclusive_not_as_vacuous`,
+  `test_a_run_that_produced_no_results_says_so`.
+
+(The dispatch's "cycle 2 had 22" does not match either count; 18 to 23 is what the files say.)
+
+**`mutation_repo` in the project-wide `tests/conftest.py` does not affect the other ~1050 tests.**
+It is a plain `@pytest.fixture`, not `autouse`, so it is constructed only for the 13 tests that
+name it; the suite is `1077 passed, 2 skipped` = 1072 + the 5 new, with no test lost or newly
+skipped. No other test takes a `mutation_repo` parameter. The one real cost is a new session-wide
+import (`from tests_mutation_fixtures import MODULE, TESTS` at conftest import time), which is
+measurably harmless. File sizes after the split: 150 / 162 / 44 / 75 lines — all inside C2's cap,
+and `doctor` agrees.
+
+## 6. Priority 6 — manifest staleness: one stale pointer survives, and it is not AT-288
+
+The in-place supersessions are marked, and the numbers reproduce. But
+`qa/manifests/at311-mutation-check.md:60-62` still reads *"The authoritative run is the **8/8** in
+the cycle 2 section below"*, while line 153 marks that same 8/8 superseded and names the 13/13.
+Two statements about which run is authoritative; one is false.
+
+Filed **AT-328 (low)**, not charged. AT-288 was a stale figure presented as current with **no**
+marker anywhere; here every stale number carries its own supersession marker, so a reader following
+the chain still lands on 13/13, and both cycle-3 figures reproduced exactly for me. The lesson
+recorded: when superseding in place, update the **pointers** as well as the numbers, or point at
+"the last section" so the pointer cannot rot.
+
+## 7. Ruling on the withdrawn general rule — settled, so it stops recurring
+
+The maker proposed: *"when a property cannot be reached by mutation, extract it until it can be
+asserted directly."* Cycle 2 declined it, cycle 3 withdrew it, and this is the third session
+touching it. **The withdrawal is correct, and a narrower form is now folded into C7.**
+
+**Why the general form is refused.** Its trigger is an unfalsifiable negative, and a rule keyed on
+an unprovable premise licenses the premise — believing "no mutation exists" is precisely what stops
+the search that refutes it. It was refuted on the **first attempt both times** it was asserted in
+this repo: AT-315, then AT-321 restating it. Its failure direction is also wrong: it converts *"I
+could not think of a mutation"* into a licence to restructure code, and the restructure then reads
+as proof.
+
+**Why a narrow form belongs in C7 anyway.** The useful half is real, and leaving it unresolved for
+a fourth session is worse than ruling. Added to C7 under the routine gate:
+
+> **An unreachability claim is INCONCLUSIVE, never a justification, and extraction never discharges
+> the mutation duty.** … A unit MAY extract a property into a directly-assertable function … but
+> the extraction is an addition, not a substitute: the extracted decision must still be exercised
+> end-to-end by at least one mutation of its CALLER, or the property is recorded as unproven.
+
+This is C7's existing zero-failure principle applied one level up — to a *claim about* mutations
+rather than a *result of* one, using the same word. It **codifies what cycle 3 actually did**
+(it kept the interrupted-run mutation AND the `is_kill` table), so it imposes no new burden on this
+unit and no part of this verdict turns on it. Amendment log entry committed with this verdict.
+
+## 8. Rulings on the manifest's four standing judgements
+
+1. **The superseded `at300` harness.** Leave the file byte-intact — it is a PASSed unit's evidence,
+   and the manifest is not enough, because the risk is someone copying the file without reading a
+   manifest. A pointer is not a rewrite of the record: it is acceptable for a future unit to add a
+   header comment saying "SUPERSEDED by `scripts/mutation_check.py` (C7, 2026-09-11); do not copy",
+   changing no line of its logic and no number it printed. Not required of this unit.
+2. **`sys.executable -m pytest` vs `uv run`.** Correct as chosen, and the reasoning stands:
+   inheriting the caller's interpreter is deterministic, whereas `uv run` re-resolves an environment
+   the caller may not be in. It also makes the instrument importable and testable in-process, which
+   is how most of its 23 tests work at all.
+3. **Exit 2/3/4/5 collapsed to "no test results".** Cycle 3 already fixed the part that mattered —
+   this is no longer a code-shape question but a *report* question, and `no_test_results` is now
+   computed from `code not in (0, 1) and not failures`, which is true of the property rather than
+   the code. Do **not** distinguish 3 from 4 from 5: nothing downstream reads them, and a
+   distinction no consumer uses is a comment. Exit 2 is already distinguished where it matters.
+4. **AT-308/AT-309 riding along.** Correct to have left them out. Keeping an unrelated one-line fix
+   out of a unit under its final fix cycle is the right call; they stay open and unqueued here.
+
+## 9. Protected state — confirmed unchanged
+
+- `projects/erp/screenmap.json` — untracked, md5 `4a73116d792b26226bc499be43b4cd8b`, still carries
+  **3** `"url_pattern": "/vidysea.com/erp/trainers"` rows. **The migration was NOT run.**
+- `qa/gates/t135-url-pattern-data-migration.md` — its `Answer` section still reads
+  *"(unanswered — append `Answered: …`)"*. **The T-135 gate is unanswered**, and nothing in this
+  unit answered it off-disk.
+- `git show --stat baf56a1` touches only `qa/`, `scripts/mutation_check.py`, and `tests/`. No
+  `src/`, no UI, no `projects/` data.
+
+## 10. Not charged to this unit
+
+- **AT-326 (low) — `spec` is defined twice**, `tests/conftest.py:68` and
+  `tests/tests_mutation_fixtures.py:35`, introduced at `baf56a1` by the fixture refactor; the
+  conftest copy is byte-equivalent dead code (nothing imports it, no test takes a `spec` parameter,
+  it is not a fixture). That is a breach of C3's **text**. It is recorded rather than charged,
+  because of **AT-327 (medium)**: `check_duplicate_definitions` (`src/autotester/doctor.py:88`)
+  reads `_python_files()`, which globs `src/` only — deliberately, since `check_file_sizes` on line
+  48 *does* add `tests/*.py`. An AST scan of `tests/*.py` at `baf56a1` finds **29** duplicated
+  public top-level names, including a duplicated **test** name
+  (`test_act_without_a_schema_raises`, two files — the same collision that makes AT-324 live).
+  Inventing that enforcement scope against one unit on its last fix cycle would be judging it
+  harder than cycles 1 and 2 were judged; the checker's one absolute cuts both ways — a criterion
+  is not *strengthened* mid-verdict to fail an artifact any more than it is softened to pass one.
+  The text-vs-gate divergence is the C9 shape one level up and is filed for a decision.
+- **AT-319** (five duplicate ledger ids) — pre-existing, still open, correctly not this unit's.
+- **AT-308 / AT-309 / AT-316 / AT-317 / AT-318** — open, untouched, not claimed.
+
+## 11. What PASS here does and does not mean
+
+It means: on 17 mutations I ran myself, this instrument attributed every kill to a full nodeid,
+refused every invalid run I could construct, asserted its baseline, and reported survivors as
+INCONCLUSIVE. The four holes of cycles 1–3 are closed in code and each is defended by a mutation
+that kills its own guard.
+
+It does not mean the tool is perfect — I found a fifth hole and a leak in this cycle, and the
+maker was right not to claim there was no fifth. It means every defect now known about it makes it
+**refuse work it should accept**, not **accept evidence it should refuse**, and C7 is a contract
+about the second kind.
+
+**Goal wiring:** the manifest declares no goal task (`Goal task: none`), so nothing to close. The
+`.goal/` dashboard was deliberately not refreshed — `.goal/goal.json` and `.goal/dashboard.html`
+are modified in the working tree by another session's in-flight work, and a checker does not
+rewrite state it did not author.

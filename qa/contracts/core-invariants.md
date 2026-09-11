@@ -99,6 +99,15 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   its own. This is a duty on the unit, not a step in `qa/adapter.json` slot-1 — slot-1 runs on every
   unit, most of which add no test, and a step that no-ops on most runs is a step people learn to
   skip.
+- **An unreachability claim is INCONCLUSIVE, never a justification, and extraction never
+  discharges the mutation duty.** "No mutation can reach this property" is an unfalsifiable
+  negative; asserting it stops the search that would refute it, and it has been refuted on the
+  first attempt both times it was made here (AT-315, AT-321). A unit MAY extract a property into a
+  directly-assertable function — that is cheap and often clearer — but the extraction is an
+  addition, not a substitute: the extracted decision must still be exercised end-to-end by at
+  least one mutation of its CALLER, or the property is recorded as unproven. A direct unit
+  assertion about a pure function is evidence about that function; only the mutation is evidence
+  that the caller would notice.
 - **Verify:** `uv run pytest -q` exits 0 and the manifest pastes real output, not a summary; a
   sabotage claim in a manifest is re-run by the checker in its own harness, never read; a unit
   adding or rewriting a test pastes its mutation run, with a green asserted baseline and a named
@@ -257,3 +266,41 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   two duties, weakens none, so it applies under the routine gate. Ledger: **AT-311** (medium),
   **AT-312** (low, the harness needs a shared parameterised home now that it is contractual).
   Verdict: `qa/verdicts/at306-verification-artifact-integrity.md`.
+- 2026-09-11 · routine · **C7 gains the unreachability clause, and the maker's proposed general rule
+  is REFUSED in its general form.** Ruling on a question now in its third session. The maker
+  proposed: *"when a property cannot be reached by mutation, extract it until it can be asserted
+  directly."* Cycle 2's checker declined it; cycle 3 withdrew it; this entry settles it so it stops
+  recurring. **The withdrawal is correct.** The rule is keyed on an unfalsifiable negative, and a
+  rule keyed on an unprovable premise licenses the premise: believing "no mutation exists" is
+  precisely what stops the search that refutes it. It was refuted on the FIRST attempt both times it
+  was asserted in this repo — AT-315 (the `is_kill` clause allegedly unreachable) and AT-321 (the
+  same claim restated, killed by one `KeyboardInterrupt` mutation that makes pytest exit 2 INTERRUPTED
+  while printing real `FAILED` lines; the checker reproduced it independently at baf56a1: exit 2,
+  `failed=['tests/test_mod.py::test_small_values_are_small']`, `no_test_results=False`). Its failure
+  direction is also the wrong one: it converts "I could not think of a mutation" into a licence to
+  restructure code, and the restructure then reads as proof. **The narrow form IS adopted**, because
+  the useful half is real and leaving it unresolved for a fourth session is worse than ruling: an
+  unreachability claim is INCONCLUSIVE (the same word C7's zero-failure clause already mandates for a
+  zero-failure sabotage — this is that principle applied one level up, to a claim about mutations
+  rather than a result of one), extraction is permitted as an ADDITION, and the mutation duty is
+  discharged only by a mutation of the caller. This is exactly what `at311-mutation-check` cycle 3
+  actually did — it kept `test_an_interrupted_run_with_real_failures_is_not_a_kill` AND the `is_kill`
+  table — so the clause codifies the behaviour that was right, not a new burden, and no pending
+  verdict turns on it. Tightening only — adds a duty, weakens none, routine gate.
+  **Edge case recorded, no criterion changed: C3's text is wider than C3's gate.** C3 says "No class
+  or public top-level function name is defined in two modules", unscoped, while its Verify instrument
+  `check_duplicate_definitions` (`src/autotester/doctor.py:88`) reads `_python_files()`
+  (`doctor.py:38-43`), which globs `src/` only — deliberately, since `check_file_sizes` on line 48
+  adds `tests/*.py` and the duplicate rule does not. A checker AST scan of `tests/*.py` at baf56a1
+  found **29** duplicated public top-level names, including a duplicated TEST name
+  (`test_act_without_a_schema_raises`, `tests/test_providers.py:32` and
+  `tests/test_langchain_fallback.py:186`). So the pattern is pre-existing and project-wide, and one
+  more instance introduced by cycle 3 (`spec` in `tests/conftest.py:68` duplicating
+  `tests/tests_mutation_fixtures.py:35`) was recorded (**AT-326**) rather than charged: inventing an
+  enforcement scope against one unit on its last fix cycle would judge it harder than cycles 1 and 2
+  were judged, and the checker's one absolute cuts the other way too — a criterion is not
+  *strengthened* mid-verdict to fail an artifact any more than it is softened to pass one. The
+  text-vs-gate divergence is itself the C9 shape one level up and is filed as **AT-327** for a
+  decision (widen the rule and clear the 29, or scope C3's text to `src/` and say why test helpers
+  are exempt). Ledger: **AT-324** (medium), **AT-325** (medium), **AT-326** (low), **AT-327**
+  (medium), **AT-328** (low). Verdict: `qa/verdicts/at311-mutation-check.md`.
