@@ -90,4 +90,4 @@ uses for `response_schema`), not a live Gemini call.
   config OBJECT the SDK would receive is asserted directly, which is what a real call would also
   build from the same code path.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, verdict qa/verdicts/at126-127-gemini3-detection.md, commit f81ea1d)
