@@ -203,3 +203,59 @@ def test_an_invisible_combining_mark_spelling_is_refused_by_the_case_form(
 
     from autotester.store.project_store import ProjectStore
     assert ProjectStore("demo", scratch_root).list_cases() == []
+
+
+# -- AT-353: the renderer deletes NUL for you --------------------------------
+
+CONTROL_CHARS = {
+    "nul": "\x00",            # the HTML parser DROPS this outright
+    "start-of-heading": "\x01",
+    "escape": "\x1b",
+    "delete": "\x7f",
+}
+"""C0/C1 controls: category `Cc`, so neither the `Cf` test nor the
+default-ignorable ranges caught them.
+
+U+0000 is the dangerous one and it is worse than every bypass before it. It
+needs no decoding by the reader at all -- the HTML parser deletes it, so the
+home index renders the credential in plain type and `document.body.innerText`
+contains it verbatim. A checker read it off the page."""
+
+
+@pytest.mark.parametrize("label", sorted(CONTROL_CHARS))
+def test_a_control_character_spelling_is_refused_at_onboarding(
+    client: TestClient, scratch_root: Path, label: str
+) -> None:
+    _seed(client, scratch_root, "seedctl")
+    spelled = CONTROL_CHARS[label].join(UPPER_CREDENTIAL)
+
+    response = client.post("/onboard", data={
+        "slug": "leaky-ctl-" + label, "name": spelled,
+        "base_url": "https://demo.test", "allowed_domains": "demo.test",
+    }, follow_redirects=False)
+
+    assert response.status_code == 400, f"{label} was accepted"
+    assert not (scratch_root / "projects" / ("leaky-ctl-" + label)).exists()
+
+
+def test_a_nul_spelling_is_refused_by_the_case_form(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """The second door, again. A checker found 60 `\\u0000` escapes in
+    git-tracked `cases.jsonl`; deleting the NULs yielded the exact credential."""
+    _seed(client, scratch_root, "demo")
+    spelled = "\x00".join(UPPER_CREDENTIAL)
+
+    for field in ("title", "step_value", "step_expected"):
+        data = {
+            "title": "Log in", "case_class": "happy",
+            "step_action": ["fill"], "step_target": ["#q"],
+            "step_value": ["x"], "step_expected": [""],
+        }
+        data[field] = spelled if field == "title" else [spelled]
+        response = client.post("/projects/demo/cases", data=data,
+                               follow_redirects=False)
+        assert response.status_code == 400, f"NUL via {field} was accepted"
+
+    from autotester.store.project_store import ProjectStore
+    assert ProjectStore("demo", scratch_root).list_cases() == []

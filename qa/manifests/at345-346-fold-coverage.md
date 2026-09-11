@@ -4,9 +4,9 @@
 **Contract:** `qa/contracts/ui.md` (U8/U9) · `qa/contracts/core-invariants.md` (C2, C7)
 **Goal task:** none — issue-driven
 **Date:** 2026-09-11
-**Fix cycle:** 2 of max 3
+**Fix cycle:** 3 of max 3 — **the last one**
 **Dual check:** no
-**Issues addressed:** AT-345 (high, fixed) · AT-346 (medium, fixed) · AT-351 (high, fixed in cycle 2) · AT-349, AT-352 (filed, NOT fixed)
+**Issues addressed:** AT-345 (high, fixed) · AT-346 (medium, fixed) · AT-351 (high, fixed in cycle 2) · AT-353 (high, fixed in cycle 3) · AT-349, AT-352, AT-354 (filed, NOT fixed)
 
 ## What was wrong
 
@@ -75,13 +75,12 @@ the checker's own `expected` offered as an alternative to full coverage.
 - `uv run ruff check src scripts` → expected: `All checks passed!`
   (**not** a bare `ruff check tests` — `tests/test_explore_error_causes.py` is another session's
   uncommitted in-flight edit and reports unused imports that are not this unit's)
-- `uv run autotester doctor` → expected: ONE violation, `tests/test_explore_error_causes.py`
-  at 330 lines — the other maker loop's uncommitted in-flight file, not this unit's. Confirm
-  with `git status --porcelain tests/test_explore_error_causes.py`; this unit's files are clean.
+- `uv run autotester doctor` → expected: `doctor: clean` (the other loop committed its
+  in-flight file in 656f7f8, so the violation cycle 2 attributed to it is gone)
 - `uv run pytest tests/test_ui_credential_transforms.py tests/test_ui_credential_unicode.py -q`
-  → expected: 26 passed (counted from the run, not from arithmetic — I wrote 25 first)
+  → expected: 31 passed (counted from the run)
 - `uv run python scripts/mutation_check.py qa/evidence/at345-346-fold-coverage/mutations.json`
-  → expected: `9/9 mutations killed` (C7 — cycle 2 added three)
+  → expected: `10/10 mutations killed` (C7 — cycle 3 added one)
 
 ## Actual outputs — CYCLE 1 (superseded; cycle 2's are below)
 
@@ -189,5 +188,65 @@ this unit's files are clean. Verify with `git status --porcelain tests/test_expl
 - The live browser pass is again a maker **SKIP**; the checker's own Mode D is authoritative,
   and should re-check the **rendering** of the three new spellings, not only that the POST is
   refused.
+
+
+## Cycle 3 — FAILed again, same line, third time
+
+**Verdict:** cycle 2, **FAIL**, 0/2. The checker confirmed both cycle-1 failures genuinely
+closed — and did not take the negative on faith: it planted a U+034F-spelled name directly
+into `project.json`, watched its DOM scan report 2 leaf nodes rendering the credential,
+restored it, and watched the scan return to 0. It also **audited my hand-written
+`_DEFAULT_IGNORABLE` list against Unicode data** rather than trusting it (4174 DI code points
+vs 4199 stripped: zero under-inclusion), and found **zero false positives in 44 probes**
+including Hindi, Arabic with shadda, Thai, Hebrew with niqqud, Khmer, Korean and five emoji
+forms with U+FE0F and ZWJ.
+
+Then it reopened the leak a **third** time.
+
+**AT-353 — U+0000.** Category `Cc`, so neither the `Cf` test nor the default-ignorable ranges
+caught it. It is the sharpest bypass in this whole thread because **it needs no decoding by
+the reader at all**: the HTML parser *deletes* NUL, so the home index renders the credential
+in plain type and `document.body.innerText` contains it verbatim. Same three case-form doors
+too — 60 `\u0000` escapes in git-tracked `cases.jsonl`.
+
+### The predicate was misnamed, and that is part of why this kept happening
+
+`_is_invisible` was a promise the code did not keep — and not even the right promise. U+0001
+and U+007F render as a **visible box** in Chromium (the checker measured 348px and 356.9px
+against a 192.5px control), so *"renders as nothing"* was never the rule that mattered.
+Renamed to **`_is_ignorable`**, with the rule stated as what actually holds: none of these
+characters can carry meaning a reader takes off the screen, and all of them can be inserted
+between the characters of a credential. Twice now the implementation was chasing a mis-stated
+rule; a wrong name on a security predicate is not cosmetic.
+
+### Cycle 3 verification
+
+- `uv run pytest` → **1145 passed, 2 skipped, 1 warning**
+- `uv run ruff check src scripts` → `All checks passed!` · `uv run autotester doctor` → `doctor: clean`
+- `uv run pytest tests/test_ui_credential_transforms.py tests/test_ui_credential_unicode.py` → **31 passed**
+- mutation spec → **10/10 killed** (cycle 3 adds "AT-353 reverted: control characters are
+  ignorable again only if Cf")
+
+### This is the last cycle the protocol allows
+
+If cycle 3 FAILs, the unit flips to `STALLED` and stops for Umesh rather than going a fourth
+round. That is worth saying plainly, because the pattern here is not random: **three FAILs, all
+on one line, each a different character class nobody enumerated up front.** A fourth would be
+evidence that character-class-at-a-time is the wrong shape for this guard, not that the fourth
+class was unlucky — and the honest next move would be a design conversation (canonicalise to an
+allow-list of readable characters, rather than subtracting unreadable ones one family at a
+time), not another patch.
+
+### Still open
+
+- **AT-352 (medium):** base64/base32/hex, HTML entities, double percent-encoding, reversal.
+  Each needs a decode step the guard does not take. Scope decision, not oversight.
+- **AT-354 (low):** no standing test pins that Indic/Arabic/Hebrew/Thai/emoji names are
+  *accepted*. Deliberately **not** added in this last cycle: such a test cannot be killed by
+  any mutation of this guard, because the guard only ever refuses and over-stripping the input
+  makes it match *less*, not more. Adding an unkillable test in the final cycle would be
+  decoration. It deserves a unit that designs a falsifiable version.
+- **AT-349 (low):** the confusable map is curated, not UTS #39 — the checker independently
+  agreed this was filed honestly.
 
 ## Status: ready-for-check

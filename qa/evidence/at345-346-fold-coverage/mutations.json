@@ -7,7 +7,7 @@
     {
       "name": "format characters are no longer stripped - the zero-width leak reopens",
       "file": "src/autotester/core/redact.py",
-      "old": "    stripped = \"\".join(c for c in text if not _is_invisible(c))",
+      "old": "    stripped = \"\".join(c for c in text if not _is_ignorable(c))",
       "new": "    stripped = text",
       "kills": [
         "tests/test_ui_credential_unicode.py::test_a_unicode_spelling_of_a_credential_is_refused[zero-width-interleaved]"
@@ -54,8 +54,8 @@
     {
       "name": "stripping happens AFTER normalising - order is load-bearing, not decorative",
       "file": "src/autotester/core/redact.py",
-      "old": "    stripped = \"\".join(c for c in text if not _is_invisible(c))\n    normalised = unicodedata.normalize(\"NFKC\", stripped).translate(ASCII_CONFUSABLES)",
-      "new": "    normalised = unicodedata.normalize(\"NFKC\", text).translate(ASCII_CONFUSABLES)\n    normalised = \"\".join(c for c in normalised if not _is_invisible(c))",
+      "old": "    stripped = \"\".join(c for c in text if not _is_ignorable(c))\n    normalised = unicodedata.normalize(\"NFKC\", stripped).translate(ASCII_CONFUSABLES)",
+      "new": "    normalised = unicodedata.normalize(\"NFKC\", text).translate(ASCII_CONFUSABLES)\n    normalised = \"\".join(c for c in normalised if not _is_ignorable(c))",
       "kills": [
         "tests/test_ui_credential_unicode.py::test_format_characters_are_stripped_before_normalising"
       ]
@@ -63,7 +63,7 @@
     {
       "name": "AT-351 reverted: the strip keys on the Cf category again",
       "file": "src/autotester/core/redact.py",
-      "old": "    stripped = \"\".join(c for c in text if not _is_invisible(c))",
+      "old": "    stripped = \"\".join(c for c in text if not _is_ignorable(c))",
       "new": "    stripped = \"\".join(c for c in text if unicodedata.category(c) != \"Cf\")",
       "kills": [
         "tests/test_ui_credential_unicode.py::test_an_invisible_combining_mark_spelling_is_refused_at_onboarding[combining-grapheme-joiner]",
@@ -75,8 +75,8 @@
     {
       "name": "strip ALL Mn: the two sides fold asymmetrically and the decomposed-accent bypass reopens",
       "file": "src/autotester/core/redact.py",
-      "old": "    if unicodedata.category(ch) == \"Cf\":\n        return True",
-      "new": "    if unicodedata.category(ch) in (\"Cf\", \"Mn\"):\n        return True",
+      "old": "    if unicodedata.category(ch) in (\"Cf\", \"Cc\"):\n        return True",
+      "new": "    if unicodedata.category(ch) in (\"Cf\", \"Cc\", \"Mn\"):\n        return True",
       "kills": [
         "tests/test_ui_credential_unicode.py::test_format_characters_are_stripped_before_normalising"
       ]
@@ -88,6 +88,17 @@
       "new": "    (0x00AD, 0x00AD), (0x061C, 0x061C), (0x115F, 0x1160),",
       "kills": [
         "tests/test_ui_credential_unicode.py::test_an_invisible_combining_mark_spelling_is_refused_at_onboarding[combining-grapheme-joiner]"
+      ]
+    },
+    {
+      "name": "AT-353 reverted: control characters are ignorable again only if Cf",
+      "file": "src/autotester/core/redact.py",
+      "old": "    if unicodedata.category(ch) in (\"Cf\", \"Cc\"):\n        return True",
+      "new": "    if unicodedata.category(ch) == \"Cf\":\n        return True",
+      "kills": [
+        "tests/test_ui_credential_unicode.py::test_a_control_character_spelling_is_refused_at_onboarding[nul]",
+        "tests/test_ui_credential_unicode.py::test_a_control_character_spelling_is_refused_at_onboarding[escape]",
+        "tests/test_ui_credential_unicode.py::test_a_nul_spelling_is_refused_by_the_case_form"
       ]
     }
   ]

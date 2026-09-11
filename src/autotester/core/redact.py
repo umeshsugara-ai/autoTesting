@@ -48,6 +48,9 @@ _DEFAULT_IGNORABLE = (
 """Unicode's `Default_Ignorable_Code_Point` ranges — the code points a
 conforming renderer draws as nothing.
 
+These ranges are only PART of what `_is_ignorable` strips; the `Cf` and `Cc`
+categories carry the rest.
+
 AT-351: the first version of this fold stripped `unicodedata.category(c) ==
 "Cf"`, which covers U+200B and the bidi controls but NOT U+034F (combining
 grapheme joiner) or U+FE00 to U+FE0F (variation selectors). Those are category
@@ -73,10 +76,24 @@ and all visible. Python exposes no `Default_Ignorable_Code_Point` predicate, so
 the ranges are listed."""
 
 
-def _is_invisible(ch: str) -> bool:
-    """True when `ch` renders as nothing, so it cannot be part of what a human
-    reads — and therefore must not change whether text matches a credential."""
-    if unicodedata.category(ch) == "Cf":
+def _is_ignorable(ch: str) -> bool:
+    """True when `ch` cannot be part of the credential a human reads off the
+    page, so it must not change whether text matches one.
+
+    AT-353, and the name is deliberately no longer `_is_invisible`. That name
+    was a promise the code did not keep and, worse, a promise that was not even
+    the right one: U+0001 and U+007F render as a visible BOX in Chromium
+    (measured 348px and 356.9px against a 192.5px control), so "renders as
+    nothing" was never the real rule. Three times this guard failed at this
+    line, and twice the reason was that the implementation was chasing a
+    mis-stated rule.
+
+    The rule that actually holds: none of these characters can carry meaning a
+    reader takes off the screen, and all of them can be inserted between the
+    characters of a credential. U+0000 is the sharpest case — it needs no
+    decoding by the reader at all, because the HTML parser DELETES it, so the
+    page renders the credential in plain type."""
+    if unicodedata.category(ch) in ("Cf", "Cc"):
         return True
     code = ord(ch)
     return any(low <= code <= high for low, high in _DEFAULT_IGNORABLE)
@@ -118,9 +135,9 @@ def fold_credential(text: str) -> str:
 
     AT-351: and then the same leak reopened through U+034F and the variation
     selectors, because the strip keyed on the `Cf` category rather than on
-    whether the character renders. `_is_invisible` is the corrected test.
+    whether the character renders. `_is_ignorable` is the corrected test.
     """
-    stripped = "".join(c for c in text if not _is_invisible(c))
+    stripped = "".join(c for c in text if not _is_ignorable(c))
     normalised = unicodedata.normalize("NFKC", stripped).translate(ASCII_CONFUSABLES)
     return _FOLD_STRIP.sub("", normalised).casefold()
 
