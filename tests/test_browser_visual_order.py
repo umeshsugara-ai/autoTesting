@@ -28,6 +28,15 @@ from autotester.browser.observe import visual_text
 
 SITE = Path(__file__).resolve().parent / "fixtures" / "bidi_site"
 SECRET = "ZEBRA_QUILT_APIKEY_31"
+CSS_SECRET = "MARIGOLD_LEDGER_KEY_77"
+"""A distinct sentinel for the CSS-override field.
+
+It had `SECRET` at first, which made the test VACUOUS: three other
+fields on that page also render `SECRET`, so `SECRET in visual_text`
+was satisfied whatever the CSS field did. The mutation run caught it --
+dropping `unicode-bidi` from the mirror left that test passing and broke
+a different one. A per-case sentinel is what makes the assertion about
+the case it names."""
 
 
 @pytest.fixture(scope="module")
@@ -122,4 +131,71 @@ def test_text_that_occupies_layout_but_is_invisible_is_not_reported(page_factory
     seen = visual_text(page)
     assert SECRET not in seen, seen
     assert "Quarterly report" in seen, seen
+
+
+def test_a_secret_in_a_form_control_value_is_seen(page_factory) -> None:
+    """AT-361, filed by a checker while this unit was in flight.
+
+    A form control's value is not a text node, so a `TreeWalker(SHOW_TEXT)`
+    detector is structurally blind to it — and a case title renders ONLY inside
+    `input[name=title]`, the single field U8 is written about. The detector
+    would have returned a clean string for that page whatever the field held."""
+    page, visit = page_factory
+    visit("inputs.html")
+
+    assert SECRET not in page.inner_text("body")
+    assert SECRET in visual_text(page)
+
+
+def test_a_direction_override_inside_a_form_control_is_seen_in_reading_order(
+    page_factory,
+) -> None:
+    """The reason the value is MIRRORED and measured rather than just read off
+    `control.value`. Reading the property would report the STORED order, which
+    is the reversed string — the same blindness as `innerText`, one element
+    deeper. The mirror reorders exactly as the control does."""
+    page, visit = page_factory
+    visit("inputs.html")
+
+    stored = page.input_value("input[name=reversed]")
+    assert SECRET not in stored, stored  # stored order hides it
+
+    # Twice: once from the plain field, once from the reversed one rendered
+    # forwards. Counting pins that the override field really was read, rather
+    # than the plain field alone satisfying a substring check.
+    seen = visual_text(page)
+    # Twice: the plain field and the field reversed by an override CHARACTER.
+    # The CSS-reversed field carries its own sentinel, so it cannot stand in
+    # for either of these.
+    assert seen.count(SECRET) == 2, seen
+
+
+def test_reversal_forced_by_css_alone_is_seen(page_factory) -> None:
+    """`unicode-bidi: bidi-override` reverses rendering with NO override
+    character in the value, so nothing in the stored string is suspicious. The
+    mirror reproduces it only because it copies the control's computed
+    `unicode-bidi`; a mirror that copied only the font would render the value
+    forwards and report the reverse."""
+    page, visit = page_factory
+    visit("inputs.html")
+
+    stored = page.input_value("input[name=cssrev]")
+    assert CSS_SECRET not in stored, stored
+
+    assert CSS_SECRET in visual_text(page)
+
+
+def test_measuring_the_page_leaves_it_exactly_as_it_was(page_factory) -> None:
+    """The detector writes to the page — one offscreen span per form control —
+    and that is the only place it does. If a span is left behind, the next
+    measurement reads it as if it were content, so the page grows every time it
+    is observed. Idempotence is the property that catches it."""
+    page, visit = page_factory
+    visit("inputs.html")
+
+    first = visual_text(page)
+    second = visual_text(page)
+
+    assert first == second
+    assert page.eval_on_selector_all("body > span", "els => els.length") == 0
 

@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Inputs</title>
+<!-- AT-361: a case title renders ONLY inside input[name=title]. A
+     TreeWalker(SHOW_TEXT) detector reads nothing here, so it returns a
+     clean string no matter what the field holds. -->
+<input name="plain" value="ZEBRA_QUILT_APIKEY_31">
+<input name="reversed" value="‮13_YEKIPA_TLIUQ_ARBEZ">
+<!-- Reversal forced by CSS, with no override character in the value at
+     all: the mirror only reproduces this if it copies unicode-bidi. -->
+<input name="cssrev" style="unicode-bidi:bidi-override;direction:rtl" value="77_YEK_REGDEL_DLOGIRAM">
+<textarea name="note">Quarterly report</textarea>

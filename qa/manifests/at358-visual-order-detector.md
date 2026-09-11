@@ -7,7 +7,7 @@
 **Date:** 2026-09-11
 **Fix cycle:** 1 of max 3
 **Dual check:** no
-**Issues addressed:** AT-358 (medium, fixed)
+**Issues addressed:** AT-358 (medium, fixed) · AT-361 (medium, fixed — filed by a checker against this unit while it was in flight)
 
 ## Why this exists
 
@@ -29,13 +29,31 @@ this is the instrument that does not enumerate.
   test helper because reading other people's rendered pages is what this product does.
 - `tests/fixtures/bidi_site/` — **new**: `plain` (positive control), `clean` (negative control),
   `hidden` (the AT-355 shape), `zerowidth` (the AT-345 shape), `invisible` (`visibility:hidden`).
-- `tests/test_browser_visual_order.py` — **new**, 6 tests.
+- `tests/test_browser_visual_order.py` — **new**, 10 tests.
 
 **Every "not visible" assertion is paired with a planted positive control**, because a detector
 that always returned nothing would pass every clean-page assertion in the file. That is the
 technique two checkers used on this repo, and it is the only reason to trust a negative.
 
-## Two defects the tests found in the detector itself
+## AT-361, folded in before dispatch rather than deferred
+
+A checker reviewing the AT-355 unit filed **AT-361** against *this* work while it was in flight: a
+form control's value is **not a text node**, so a `TreeWalker(SHOW_TEXT)` detector is structurally
+blind to it — and a case title renders **only** inside `input[name=title]`, the single field U8 is
+written about. The first version of this detector would have returned a clean string for that page
+whatever the field held: a guaranteed false negative exactly where it matters most.
+
+Each control's value is now mirrored into an offscreen span carrying the control's own font,
+`direction` and `unicode-bidi`, measured per character, and removed. **Reading `control.value`
+would not do** — that reports the stored order, which is the same blindness as `innerText`, one
+element deeper.
+
+**This is the only place the detector writes to the page**, and that is a deliberate trade rather
+than an oversight: the span is absolutely positioned far offscreen, never interacted with, and
+removed in a `finally`. A test pins that measuring twice returns the same string and leaves no
+span behind, because a leaked mirror would be read as content on the next observation.
+
+## Four defects the tests and mutations found in the detector itself
 
 1. **The zero-box filter was wrong.** I wrote `rect.width === 0 && rect.height === 0`, copied from
    `enumerate.js::isVisible` where it is right for an *element*. For a one-character `Range` it is
@@ -58,6 +76,17 @@ technique two checkers used on this repo, and it is the only reason to trust a n
    see as text a reader saw — the same class of error as the DOM-order tools it replaces, pointed
    the other way.
 
+3. **A test of mine was vacuous, and only the mutation run showed it.** The CSS-override case
+   asserted `SECRET in visual_text(page)` — but three other fields on that page also render
+   `SECRET`, so the assertion was satisfied whatever the CSS field did. Dropping `unicode-bidi`
+   from the mirror left that test **passing** and broke a different one. Fixed with a per-case
+   sentinel (`MARIGOLD_LEDGER_KEY_77`), so the assertion is about the case it names.
+
+4. **`unicode-bidi` on the mirror is load-bearing**, which I would not have guessed: a control can
+   be reversed by CSS alone, with **no override character in the value at all**, so nothing about
+   the stored string looks suspicious. A mirror copying only the font renders it forwards and
+   reports the reverse.
+
 ## How to verify (commands + expected)
 
 - `uv run pytest -q` → expected: exit 0
@@ -66,13 +95,13 @@ technique two checkers used on this repo, and it is the only reason to trust a n
 - `uv run pytest tests/test_browser_visual_order.py -q` → expected: 6 passed (real Chromium;
   skips cleanly if the browser binary is absent)
 - `uv run python scripts/mutation_check.py qa/evidence/at358-visual-order-detector/mutations.json`
-  → expected: `6/6 mutations killed` (C7)
+  → expected: `10/10 mutations killed` (C7)
 
 ## Actual outputs (from maker's own run)
 
 ```
 $ uv run pytest
-1170 passed, 2 skipped, 1 warning in 228.58s (0:03:48)
+1174 passed, 2 skipped, 1 warning in 233.96s (0:03:53)
 
 $ uv run ruff check src tests scripts
 All checks passed!
@@ -87,7 +116,11 @@ KILLED  unpainted characters are kept - the AT-345 blindness returns
 KILLED  the width test regresses to the enumerate.js element form
 KILLED  the detector returns nothing at all - every clean result is vacuous
 KILLED  invisible-but-laid-out text is swept in as if a reader saw it
-6/6 mutations killed
+KILLED  AT-361 reopens: form controls are not measured at all
+KILLED  the control's value is READ instead of mirrored and measured
+KILLED  the mirror keeps the control's direction but drops unicode-bidi
+KILLED  the offscreen mirror is left in the page
+10/10 mutations killed
 ```
 
 The earlier `2 failed` in `tests/test_mutation_check.py` (AT-357 — those tests assert on a global
@@ -99,6 +132,11 @@ recur in this run. AT-357 stays open: not recurring is not the same as fixed.
 This unit's own tests **are** the live browser evidence — they drive a real Chromium against a
 real HTTP server and assert measured glyph positions, which is the only way the central claim can
 be checked at all. `qa/evidence/at358-visual-order-detector/mutations.out` carries the run.
+
+**Known limit, stated rather than discovered:** a `select`'s rendered option text is not measured.
+`input` and `textarea` are the fields U8/U9 are written about; `select` shows a value the user
+chose from a fixed list, so a credential cannot arrive there by the accident U13's threat model
+names. If that reasoning is wrong, it is wrong in a way a checker can see and charge.
 
 What is **not** done here: wiring `visual_text` into the crawl so every screen is checked in
 reading order. That is a behaviour change to the explorer with its own cost and its own failure

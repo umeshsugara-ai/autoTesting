@@ -122,4 +122,4 @@ the credential, and the answered gate's reasoning is that a guard cannot protect
 someone who already has it. If `/checker` disagrees, the place to settle it is the U11 amendment —
 **not this unit**, whose scope the gate fixed before it was built.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, verdict qa/verdicts/at355-refuse-bidi-overrides.md)

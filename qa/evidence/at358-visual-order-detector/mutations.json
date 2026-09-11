@@ -53,10 +53,47 @@
     {
       "name": "invisible-but-laid-out text is swept in as if a reader saw it",
       "file": "src/autotester/browser/visual_order.js",
-      "old": "    return window.getComputedStyle(parent).visibility !== \"hidden\";",
-      "new": "    return true;",
+      "old": "  function isVisibleElement(el) {\n    return window.getComputedStyle(el).visibility !== \"hidden\";\n  }",
+      "new": "  function isVisibleElement(el) {\n    return Boolean(el);\n  }",
       "kills": [
         "tests/test_browser_visual_order.py::test_text_that_occupies_layout_but_is_invisible_is_not_reported"
+      ]
+    },
+    {
+      "name": "AT-361 reopens: form controls are not measured at all",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "  for (const control of document.querySelectorAll(\"input, textarea\")) {",
+      "new": "  for (const control of document.querySelectorAll(\"nothing-matches-this\")) {",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_a_secret_in_a_form_control_value_is_seen",
+        "tests/test_browser_visual_order.py::test_a_direction_override_inside_a_form_control_is_seen_in_reading_order"
+      ]
+    },
+    {
+      "name": "the control's value is READ instead of mirrored and measured",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "      const local = glyphsOf(node);",
+      "new": "      const local = Array.from(value).map((ch, i) => ({ ch, x: i, y: 0 }));",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_a_direction_override_inside_a_form_control_is_seen_in_reading_order"
+      ]
+    },
+    {
+      "name": "the mirror keeps the control's direction but drops unicode-bidi",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "    span.style.unicodeBidi = style.unicodeBidi;",
+      "new": "    span.style.unicodeBidi = \"normal\";",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_reversal_forced_by_css_alone_is_seen"
+      ]
+    },
+    {
+      "name": "the offscreen mirror is left in the page",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "    } finally {\n      span.remove();\n    }",
+      "new": "    } finally {\n      void 0;\n    }",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_measuring_the_page_leaves_it_exactly_as_it_was"
       ]
     }
   ]

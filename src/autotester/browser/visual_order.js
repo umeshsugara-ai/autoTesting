@@ -40,6 +40,10 @@
     return out;
   }
 
+  function isVisibleElement(el) {
+    return window.getComputedStyle(el).visibility !== "hidden";
+  }
+
   function isRendered(node) {
     // `visibility: hidden` is the case this exists for, and it is the ONLY one.
     // Measured against a real Chromium: `display:none`, `<script>` and
@@ -49,8 +53,48 @@
     // without this the detector reports text nobody can see as if a reader saw
     // it. A tag allow/deny list was the intuitive guard and the wrong one.
     const parent = node.parentElement;
-    if (!parent) return false;
-    return window.getComputedStyle(parent).visibility !== "hidden";
+    return parent ? isVisibleElement(parent) : false;
+  }
+
+  // AT-361. A form control's value is not a text node, so the walker below is
+  // structurally blind to it -- and a case title renders ONLY inside
+  // `input[name=title]`, which is the single field U8 is written about. A
+  // text-node-only detector therefore returns a clean string for that page
+  // whatever the field holds: a guaranteed false negative exactly where it
+  // matters most.
+  //
+  // Each value is mirrored into an offscreen span carrying the control's own
+  // font, direction and unicode-bidi, measured per character, and removed. The
+  // mirror is what makes the measurement real rather than a DOM read: a value
+  // spelled with a direction override reorders inside the span exactly as it
+  // does inside the control.
+  //
+  // This is the one place the detector touches the page. The span is absolutely
+  // positioned far offscreen, is never interacted with, and is removed in a
+  // `finally`, so the page under test keeps its own state -- but it IS a write,
+  // and that is a deliberate trade, not an oversight.
+  function mirrorGlyphs(control) {
+    const value = control.value;
+    if (!value) return [];
+    const at = control.getBoundingClientRect();
+    if (at.width === 0 && at.height === 0) return [];
+    const style = window.getComputedStyle(control);
+    const span = document.createElement("span");
+    span.textContent = value;
+    span.style.cssText = "position:absolute;left:-99999px;top:0;white-space:pre;";
+    span.style.font = style.font;
+    span.style.direction = style.direction;
+    span.style.unicodeBidi = style.unicodeBidi;
+    document.body.appendChild(span);
+    try {
+      const node = span.firstChild;
+      const local = glyphsOf(node);
+      const origin = local.length ? Math.min(...local.map((g) => g.x)) : 0;
+      // Re-seated onto the control's own position so page-level ordering holds.
+      return local.map((g) => ({ ch: g.ch, x: at.left + (g.x - origin), y: at.top }));
+    } finally {
+      span.remove();
+    }
   }
 
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -61,6 +105,11 @@
       for (const glyph of glyphsOf(node)) glyphs.push(glyph);
     }
     node = walker.nextNode();
+  }
+
+  for (const control of document.querySelectorAll("input, textarea")) {
+    if (!isVisibleElement(control)) continue;
+    for (const glyph of mirrorGlyphs(control)) glyphs.push(glyph);
   }
 
   glyphs.sort((a, b) => {
