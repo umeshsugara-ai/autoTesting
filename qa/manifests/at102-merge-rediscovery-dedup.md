@@ -88,4 +88,4 @@ never the live tree (AT-101 discipline):**
 **Not UI-touching — no surface changed.** Changed paths: `src/autotester/stages/explore_merge.py`,
 `tests/test_explore_merge.py`. Pure stage logic + test, no route/template touched.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, verdict qa/verdicts/at102-merge-rediscovery-dedup.md, commit 70f3f7f)
