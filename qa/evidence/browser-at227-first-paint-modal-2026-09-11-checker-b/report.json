@@ -1,0 +1,74 @@
+{
+  "unit": "at227-first-paint-modal",
+  "actor": "checker (Mode D, independent \u2014 the maker's evidence script was not read)",
+  "run_at": "2026-09-11T05:31:08.590533+00:00",
+  "browser": "chromium, headed (headless=False), real local HTTP server",
+  "fixture": "D:\\autoTesting\\tests\\fixtures\\modal_site",
+  "interactions": "12/12 pass",
+  "console_errors_per_page": {
+    "/ (first paint, veiled)": 1,
+    "/reports.html (after dismissal)": 0
+  },
+  "results": [
+    {
+      "check": "controls behind the veil are CSS-visible AND flagged obscured",
+      "pass": true,
+      "observed": "{\"Refresh\": {\"visible\": true, \"obscured\": true}, \"Reports\": {\"visible\": true, \"obscured\": true}, \"Settings\": {\"visible\": true, \"obscured\": true}}"
+    },
+    {
+      "check": "the veil's own controls are NOT obscured (the way past it stays open)",
+      "pass": true,
+      "observed": "{\"Excited\": false, \"Focused\": false, \"Skip for now\": false, \"Tired\": false}"
+    },
+    {
+      "check": "a control reported obscured really is unclickable",
+      "pass": true,
+      "observed": "TimeoutError: Page.click: Timeout 1500ms exceeded."
+    },
+    {
+      "check": "and the page did not navigate",
+      "pass": true,
+      "observed": "http://127.0.0.1:60362/"
+    },
+    {
+      "check": "after dismissal the same controls report reachable",
+      "pass": true,
+      "observed": "{\"Refresh\": false, \"Reports\": false, \"Settings\": false}"
+    },
+    {
+      "check": "the veil's controls are gone from the DOM measurement entirely",
+      "pass": true,
+      "observed": "{\"Excited\": false, \"Focused\": false, \"Skip for now\": false, \"Tired\": false}"
+    },
+    {
+      "check": "and the same click now navigates",
+      "pass": true,
+      "observed": "http://127.0.0.1:60362/reports.html"
+    },
+    {
+      "check": "the crawl gets PAST the veil to the pages behind it",
+      "pass": true,
+      "observed": "templates=['/', '/reports.html', '/settings.html'] screens=4 stop_reason=frontier empty"
+    },
+    {
+      "check": "X16: the blocked screen is REPORTED, not silent (issues != 0)",
+      "pass": true,
+      "observed": "overlay=1 all_issues=2 kinds=['console', 'overlay']"
+    },
+    {
+      "check": "the overlay issue names what was covered AND what was reachable",
+      "pass": true,
+      "observed": "3 control(s) on this screen are covered by an in-page overlay and were not tried: Reports, Settings, Refresh. Reachable instead: Excited, Focused, Tired, Skip for now"
+    },
+    {
+      "check": "X3: the veiled state and the dashboard behind it are TWO screens",
+      "pass": true,
+      "observed": "nodes at '/': 2 sigs=['ae5f19184770', '08adab5e3294']"
+    },
+    {
+      "check": "no edge is attributed to a screen the crawl had already left",
+      "pass": true,
+      "observed": "veiled_node_found=True errored_edges=[]"
+    }
+  ]
+}
