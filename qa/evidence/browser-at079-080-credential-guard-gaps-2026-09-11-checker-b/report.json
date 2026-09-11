@@ -1,0 +1,85 @@
+{
+  "unit": "at079-080-credential-guard-gaps",
+  "cycle_checked": 1,
+  "date": "2026-09-11",
+  "actor": "/checker (Mode A + Mode D), independent",
+  "note": "This is the CHECKER's own live run. The maker's smoke pass was not read, not re-run, and no maker screenshot was opened. Own browser (Chromium via Playwright MCP), own server, own scratch AUTOTESTER_ROOT, own credential fixtures.",
+  "instrument": {
+    "server": "uv run uvicorn autotester.ui.app:app --host 127.0.0.1 --port 8137",
+    "port": 8137,
+    "autotester_root": "<scratch>/moded-root (NOT the real projects/ store)",
+    "browser": "Chromium, real headed session via Playwright MCP",
+    "curl_substituted": false
+  },
+  "fixtures": {
+    "CHK_PASSWORD": "slug-shaped credential (lowercase/digits/hyphen) - the AT-079 threat model",
+    "CHK_APIKEY": "SecretRef-key-shaped credential (uppercase/underscore) - the AT-080 threat model",
+    "both_seeded_in": "<scratch root>/.env, the shared root .env the guard matches against"
+  },
+  "interactions": [
+    {
+      "n": 1,
+      "did": "Typed slug/name/base_url/allowed_domains into the real /onboard form and CLICKED 'Create project'",
+      "asserted_state_change": "navigated to /projects/chkseed; projects/chkseed/project.json exists on disk with the typed values",
+      "result": "pass (control: the guard does not brick ordinary onboarding)"
+    },
+    {
+      "n": 2,
+      "did": "On /projects/chkseed/edit, filled the secrets form key=CHK_PASSWORD, domains=demo.test and CLICKED submit",
+      "asserted_state_change": "project.json re-read off disk: secrets == ['CHK_PASSWORD']",
+      "result": "pass (control: a legitimate key is still accepted)"
+    },
+    {
+      "n": 3,
+      "did": "AT-080 HOSTILE: same secrets form, key = the RAW .env value of CHK_APIKEY ('ZEBRA_QUILT_APIKEY_31'), CLICKED submit",
+      "asserted_state_change": "HTTP 400; page body = 'the key looks like it contains a real credential...'; outerHTML does NOT contain the raw value; project.json secrets list unchanged",
+      "result": "REFUSED correctly, no echo, no write"
+    },
+    {
+      "n": 4,
+      "did": "AT-079 HOSTILE: /onboard form, slug = the RAW .env value of CHK_PASSWORD ('zebra-quilt-nineteen-rocket'), CLICKED 'Create project'",
+      "asserted_state_change": "HTTP 400; body = 'the slug looks like it contains a real credential...'; outerHTML does NOT contain the raw value; no projects/zebra-quilt-nineteen-rocket directory created; projects/ still holds only chkseed",
+      "result": "REFUSED correctly, no echo, no write"
+    },
+    {
+      "n": 5,
+      "did": "NON-BRICK: back on /projects/chkseed/edit, declared a second legitimate key CHK_APIKEY and CLICKED submit",
+      "asserted_state_change": "project.json re-read off disk: secrets == ['CHK_PASSWORD', 'CHK_APIKEY']",
+      "result": "pass (adding `key` to the guard list does not refuse a project's legitimate second credential)"
+    },
+    {
+      "n": 6,
+      "did": "Whole-scratch-root grep for both raw credential values, excluding .env itself",
+      "asserted_state_change": "zero files",
+      "result": "NO RAW CREDENTIAL ANYWHERE ON DISK"
+    },
+    {
+      "n": 7,
+      "did": "TRANSFORM BYPASS (AT-339): /onboard form, slug = 'zebra-quilt-apikey-31', the case-and-separator transform of the real .env value 'ZEBRA_QUILT_APIKEY_31', CLICKED 'Create project'",
+      "asserted_state_change": "HTTP 303 -> /projects/zebra-quilt-apikey-31; the directory and project.json were created on disk; the guard did NOT fire",
+      "result": "ACCEPTED - a mechanically reversible form of a live credential became the directory name and the URL"
+    },
+    {
+      "n": 8,
+      "did": "Navigated to the home index / to see what the transform renders as",
+      "asserted_state_change": "outerHTML contains 'zebra-quilt-apikey-31' (true) and 'ZEBRA_QUILT_APIKEY_31' (false)",
+      "result": "the transform is rendered on the home index; the raw credential itself never is"
+    }
+  ],
+  "console_errors_per_page": {
+    "/onboard (GET)": 0,
+    "/ (GET, home index)": 0,
+    "/projects/chkseed (GET)": 0,
+    "/projects/zebra-quilt-apikey-31 (GET)": 0,
+    "/projects/chkseed/edit (GET)": 0,
+    "/projects/chkseed/secrets (POST, refused)": 1,
+    "/onboard (POST, refused)": 1
+  },
+  "console_errors_session_total": 2,
+  "console_error_explanation": "Both non-zero counts are the browser's own 'Failed to load resource: the server responded with a status of 400 (Bad Request)' line for the deliberately refused POST. No app-side JS error, no unexplained error on any GET page.",
+  "residual_observed_live": [
+    "AT-339 (filed): matching is a case-SENSITIVE plain substring test over 4 variants (literal, unquote_plus, whitespace-stripped x2). A credential's case-and-separator transform therefore passes. Live-reproduced at interaction 7/8. Not a U9 violation - no RAW value reaches disk - and the manifest explicitly disclaims changing the matching logic, so filed rather than charged.",
+    "Both refusals answer with a raw {\"detail\": ...} JSON blob rendered as plain text in Chromium, not a themed page with a route onward - the same AT-259 pattern already tracked for the review-gate routes. Not a U9 violation (U9 pins the guard, not the presentation) and not claimed by this manifest."
+  ],
+  "cleanup": "Scratch AUTOTESTER_ROOT and the uvicorn process are disposable and outside the repo; the real projects/ store and the real root .env were never written by this run."
+}
