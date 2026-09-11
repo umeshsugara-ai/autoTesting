@@ -17,7 +17,7 @@ from fastapi import HTTPException
 
 from autotester.browser.secrets import SecretStore, host_of
 from autotester.core.paths import repo_root
-from autotester.core.redact import PLACEHOLDER_RE
+from autotester.core.redact import BIDI_OVERRIDES, PLACEHOLDER_RE
 from autotester.schema.project import Project
 from autotester.store.project_store import ProjectStore
 
@@ -125,6 +125,27 @@ def _credential_variants(text: str) -> list[str]:
     ]
 
 
+def _refuse_direction_override(value: str, field: str) -> None:
+    """Refuse text carrying a bidi OVERRIDE, on its own terms (AT-355).
+
+    Checked before the credential comparison, and never folded away, because
+    subtracting the override is what let the leak through: it deletes the
+    character that causes the reordering and then compares a string that is not
+    the credential, while a reader sees the credential in plain type.
+
+    The message names the override rather than claiming a credential, because
+    this fires on text holding no credential at all -- saying otherwise would
+    send the user hunting for a secret that is not there, which is the same
+    false diagnosis the "split across" message made in AT-339.
+    """
+    if any(override in value for override in BIDI_OVERRIDES):
+        raise HTTPException(400, (
+            f"{field} contains a text-direction override character. It makes text "
+            f"render in a different order than it is stored, so what you see is not "
+            f"what is saved. Remove it and type the value plainly."
+        ))
+
+
 def _refuse_unsafe_value(
     value: str, project: Project, secrets: SecretStore, *, field: str = "this field",
     exempt: frozenset[str] = frozenset(),
@@ -143,6 +164,7 @@ def _refuse_unsafe_value(
     """
     if not value:
         return
+    _refuse_direction_override(value, field)
     referenced = PLACEHOLDER_RE.findall(value)
     if referenced:
         for key in referenced:

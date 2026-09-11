@@ -99,6 +99,27 @@ def _is_ignorable(ch: str) -> bool:
     return any(low <= code <= high for low, high in _DEFAULT_IGNORABLE)
 
 
+BIDI_OVERRIDES = ("\u202d", "\u202e")
+"""LEFT-TO-RIGHT and RIGHT-TO-LEFT OVERRIDE: the two characters that force
+rendering direction per character regardless of content.
+
+AT-355. These are the one family the fold cannot handle by subtraction, and
+subtracting them is what let the leak through: `_is_ignorable` removes them as
+category `Cf`, deleting the character that CAUSES the reordering, and then
+compares a string that is not the credential --
+
+    fold("ZEBRA_QUILT_APIKEY_31")  -> zebraquiltapikey31
+    fold(RLO + its reverse)        -> 13yekipatliuqarbez
+
+while a reader sees the credential in plain type, in the correct order. Every
+other fix in this family worked by subtracting more; here that makes it
+strictly worse, so `ui/helpers.py` REFUSES text containing one instead.
+
+Deliberately just the overrides. U+200E/U+200F (LRM/RLM) and the isolates are
+ordinary punctuation in Hebrew and Arabic and do not reverse a pure-ASCII run;
+refusing them would cost real input for no gain, and false-positive rate is a
+term in this product's north star."""
+
 MIN_FOLDED_LEN = 8
 """Folded matching needs a floor, because folding is a HEURISTIC widening: it
 deliberately matches strings that are not byte-equal to any secret, so a very

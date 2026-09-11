@@ -1,0 +1,55 @@
+{
+  "tests": ["tests/test_ui_credential_bidi.py"],
+  "mutations": [
+    {
+      "name": "the override check never runs - AT-355 reopens at both doors",
+      "file": "src/autotester/ui/helpers.py",
+      "old": "    _refuse_direction_override(value, field)",
+      "new": "    pass  # _refuse_direction_override(value, field)",
+      "kills": [
+        "tests/test_ui_credential_bidi.py::test_the_at355_spelling_is_refused_at_onboarding",
+        "tests/test_ui_credential_bidi.py::test_the_at355_spelling_is_refused_by_the_case_form",
+        "tests/test_ui_credential_bidi.py::test_a_bidi_override_is_refused_at_onboarding[right-to-left-override]",
+        "tests/test_ui_credential_bidi.py::test_a_bidi_override_is_refused_at_onboarding[left-to-right-override]",
+        "tests/test_ui_credential_bidi.py::test_the_refusal_names_the_override_rather_than_claiming_a_credential"
+      ]
+    },
+    {
+      "name": "only the RIGHT-to-left override is refused, LRO walks through",
+      "file": "src/autotester/core/redact.py",
+      "old": "BIDI_OVERRIDES = (\"\\u202d\", \"\\u202e\")",
+      "new": "BIDI_OVERRIDES = (\"\\u202e\",)",
+      "kills": [
+        "tests/test_ui_credential_bidi.py::test_a_bidi_override_is_refused_at_onboarding[left-to-right-override]"
+      ]
+    },
+    {
+      "name": "the check is widened to LRM/RLM too - legitimate Hebrew is refused",
+      "file": "src/autotester/core/redact.py",
+      "old": "BIDI_OVERRIDES = (\"\\u202d\", \"\\u202e\")",
+      "new": "BIDI_OVERRIDES = (\"\\u202d\", \"\\u202e\", \"\\u200e\", \"\\u200f\")",
+      "kills": [
+        "tests/test_ui_credential_bidi.py::test_ordinary_bidi_punctuation_is_still_accepted[right-to-left-mark]",
+        "tests/test_ui_credential_bidi.py::test_ordinary_bidi_punctuation_is_still_accepted[left-to-right-mark]"
+      ]
+    },
+    {
+      "name": "the refusal blames a credential instead of naming the override",
+      "file": "src/autotester/ui/helpers.py",
+      "old": "            f\"{field} contains a text-direction override character. It makes text \"\n            f\"render in a different order than it is stored, so what you see is not \"\n            f\"what is saved. Remove it and type the value plainly.\"",
+      "new": "            f\"{field} looks like it contains a real credential.\"",
+      "kills": [
+        "tests/test_ui_credential_bidi.py::test_the_refusal_names_the_override_rather_than_claiming_a_credential"
+      ]
+    },
+    {
+      "name": "the override is checked AFTER the credential comparison, so the fold hides it first",
+      "file": "src/autotester/ui/helpers.py",
+      "old": "    _refuse_direction_override(value, field)\n    referenced",
+      "new": "    referenced",
+      "kills": [
+        "tests/test_ui_credential_bidi.py::test_the_at355_spelling_is_refused_at_onboarding"
+      ]
+    }
+  ]
+}

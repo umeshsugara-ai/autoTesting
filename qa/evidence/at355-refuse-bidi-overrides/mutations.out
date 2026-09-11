@@ -1,0 +1,17 @@
+KILLED  the override check never runs - AT-355 reopens at both doors  (pytest exit 1)
+    claims to kill : tests/test_ui_credential_bidi.py::test_a_bidi_override_is_refused_at_onboarding[left-to-right-override], tests/test_ui_credential_bidi.py::test_a_bidi_override_is_refused_at_onboarding[right-to-left-override], tests/test_ui_credential_bidi.py::test_the_at355_spelling_is_refused_at_onboarding, tests/test_ui_credential_bidi.py::test_the_at355_spelling_is_refused_by_the_case_form, tests/test_ui_credential_bidi.py::test_the_refusal_names_the_override_rather_than_claiming_a_credential
+    actually failed: tests/test_ui_credential_bidi.py::test_a_bidi_override_is_refused_at_onboarding[left-to-right-override], tests/test_ui_credential_bidi.py::test_a_bidi_override_is_refused_at_onboarding[right-to-left-override], tests/test_ui_credential_bidi.py::test_the_at355_spelling_is_refused_at_onboarding, tests/test_ui_credential_bidi.py::test_the_at355_spelling_is_refused_by_the_case_form, tests/test_ui_credential_bidi.py::test_the_refusal_names_the_override_rather_than_claiming_a_credential
+KILLED  only the RIGHT-to-left override is refused, LRO walks through  (pytest exit 1)
+    claims to kill : tests/test_ui_credential_bidi.py::test_a_bidi_override_is_refused_at_onboarding[left-to-right-override]
+    actually failed: tests/test_ui_credential_bidi.py::test_a_bidi_override_is_refused_at_onboarding[left-to-right-override]
+KILLED  the check is widened to LRM/RLM too - legitimate Hebrew is refused  (pytest exit 1)
+    claims to kill : tests/test_ui_credential_bidi.py::test_ordinary_bidi_punctuation_is_still_accepted[left-to-right-mark], tests/test_ui_credential_bidi.py::test_ordinary_bidi_punctuation_is_still_accepted[right-to-left-mark]
+    actually failed: tests/test_ui_credential_bidi.py::test_ordinary_bidi_punctuation_is_still_accepted[left-to-right-mark], tests/test_ui_credential_bidi.py::test_ordinary_bidi_punctuation_is_still_accepted[right-to-left-mark]
+KILLED  the refusal blames a credential instead of naming the override  (pytest exit 1)
+    claims to kill : tests/test_ui_credential_bidi.py::test_the_refusal_names_the_override_rather_than_claiming_a_credential
+    actually failed: tests/test_ui_credential_bidi.py::test_the_refusal_names_the_override_rather_than_claiming_a_credential
+KILLED  the override is checked AFTER the credential comparison, so the fold hides it first  (pytest exit 1)
+    claims to kill : tests/test_ui_credential_bidi.py::test_the_at355_spelling_is_refused_at_onboarding
+    actually failed: tests/test_ui_credential_bidi.py::test_a_bidi_override_is_refused_at_onboarding[left-to-right-override], tests/test_ui_credential_bidi.py::test_a_bidi_override_is_refused_at_onboarding[right-to-left-override], tests/test_ui_credential_bidi.py::test_the_at355_spelling_is_refused_at_onboarding, tests/test_ui_credential_bidi.py::test_the_at355_spelling_is_refused_by_the_case_form, tests/test_ui_credential_bidi.py::test_the_refusal_names_the_override_rather_than_claiming_a_credential
+
+5/5 mutations killed
