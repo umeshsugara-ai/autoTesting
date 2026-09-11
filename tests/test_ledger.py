@@ -18,7 +18,8 @@ from autotester.schema.ledger import FeatureEvent, RelitigationVerdict
 
 
 def make_docs(tmp_path: Path) -> RepoDocs:
-    docs = RepoDocs(tmp_path)
+    # AT-137: prompts_dir named explicitly rather than inferred from `root`.
+    docs = RepoDocs(tmp_path, prompts_dir=tmp_path / "src" / "autotester" / "prompts")
     docs.docs_dir.mkdir()
     docs.architecture.write_text(
         "# X\n\n**Purpose:** p\n**Open me when:** w\n\n## What it does\n\nIt tests things.\n",
@@ -38,6 +39,21 @@ def make_docs(tmp_path: Path) -> RepoDocs:
     prompt = docs.prompts_dir / "relitigation_v1.md"
     prompt.write_text("{{RETIRED_ROWS}}\n---\n{{UNIT}}", encoding="utf-8")
     return docs
+
+
+# -- AT-137: prompts_dir named explicitly, not inferred from `root` alone ---
+
+def test_an_explicit_prompts_dir_wins_over_root(tmp_path: Path) -> None:
+    stub = tmp_path / "some" / "other" / "prompts"
+    docs = RepoDocs(tmp_path, prompts_dir=stub)
+    assert docs.prompts_dir == stub
+
+
+def test_root_alone_still_behaves_exactly_as_before(tmp_path: Path) -> None:
+    """No behaviour change (C2) for a caller that never adopts the explicit
+    form — this is the AT-132 fallback the docstring already documents."""
+    docs = RepoDocs(tmp_path)
+    assert docs.prompts_dir == tmp_path / "src" / "autotester" / "prompts"
 
 
 def row(events: list[FeatureEvent], **kw) -> FeatureEvent:

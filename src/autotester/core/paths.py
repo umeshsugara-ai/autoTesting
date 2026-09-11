@@ -191,9 +191,10 @@ def work_dir(root: Path | None = None) -> Path:
 class RepoDocs:
     """Repo-level documents: the living map, the ledger, the history, the router."""
 
-    def __init__(self, root: Path | None = None) -> None:
+    def __init__(self, root: Path | None = None, *, prompts_dir: Path | None = None) -> None:
         self.root = root or repo_root()
         self._root_given = root is not None
+        self._prompts_dir_override = prompts_dir
 
     @property
     def docs_dir(self) -> Path:
@@ -242,7 +243,15 @@ class RepoDocs:
 
         An EXPLICIT `root` still wins: substituting a stub prompt tree is a
         legitimate thing for a test to do, and the defect was never explicit
-        injection — it was the env var leaking into a path it does not own."""
+        injection — it was the env var leaking into a path it does not own.
+
+        AT-137: that fallback used to be the ONLY way to substitute a prompt
+        tree — an inferred side effect of passing `root`, not a named act.
+        Pass `prompts_dir=` explicitly instead when that is what's meant;
+        `root` alone still behaves exactly as before for every caller that
+        never adopts the explicit form (no behaviour change, C2)."""
+        if self._prompts_dir_override is not None:
+            return self._prompts_dir_override
         if self._root_given:
             return self.root / "src" / "autotester" / "prompts"
         return Path(__file__).resolve().parents[1] / "prompts"
