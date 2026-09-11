@@ -1,0 +1,96 @@
+{
+  "unit": "at227-first-paint-modal",
+  "date": "2026-09-11",
+  "run_by": "maker (smoke pass, NOT the unit's validation -- the checker runs its own)",
+  "browser": "chromium via playwright, real navigation against a local HTTP server",
+  "pages": [
+    {
+      "url_template": "/",
+      "title": "Modal dashboard",
+      "status": "explored",
+      "reachable_controls": [
+        "Excited",
+        "Focused",
+        "Tired",
+        "Skip for now"
+      ],
+      "covered_controls": [
+        "Reports",
+        "Settings",
+        "Refresh"
+      ]
+    },
+    {
+      "url_template": "/",
+      "title": "Modal dashboard",
+      "status": "explored",
+      "reachable_controls": [
+        "Reports",
+        "Settings",
+        "Refresh"
+      ],
+      "covered_controls": []
+    },
+    {
+      "url_template": "/reports.html",
+      "title": "Reports",
+      "status": "explored",
+      "reachable_controls": [
+        "Back to dashboard",
+        "Export"
+      ],
+      "covered_controls": []
+    },
+    {
+      "url_template": "/settings.html",
+      "title": "Settings",
+      "status": "explored",
+      "reachable_controls": [
+        "Back to dashboard",
+        "Save preferences"
+      ],
+      "covered_controls": []
+    }
+  ],
+  "console_error_count": 0,
+  "console_errors": [],
+  "interactions": [
+    {
+      "did": "loaded the dashboard with the modal on first paint",
+      "expected": "Refresh, Reports, Settings reported obscured",
+      "observed": "Refresh, Reports, Settings reported obscured",
+      "pass": true
+    },
+    {
+      "did": "checked the modal's own controls",
+      "expected": "Skip for now reachable",
+      "observed": "Skip for now reachable",
+      "pass": true
+    },
+    {
+      "did": "clicked the covered 'Reports' link with a short timeout",
+      "expected": "intercepted",
+      "observed": "intercepted",
+      "pass": true
+    },
+    {
+      "did": "clicked 'Skip for now'",
+      "expected": "Reports no longer obscured",
+      "observed": "Reports no longer obscured",
+      "pass": true
+    },
+    {
+      "did": "ran the full crawl from the veiled first paint",
+      "expected": "/reports.html and /settings.html reached",
+      "observed": "/reports.html and /settings.html reached",
+      "pass": true
+    },
+    {
+      "did": "looked for the blocked screen in the report",
+      "expected": "1 overlay issue, naming the covered controls",
+      "observed": "1 overlay issue, naming the covered controls",
+      "pass": true
+    }
+  ],
+  "all_interactions_passed": true
+}

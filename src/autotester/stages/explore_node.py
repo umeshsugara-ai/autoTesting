@@ -18,6 +18,7 @@ from autotester.schema.crawl import CrawlIssue
 from autotester.schema.enums import Action, EdgeOutcome, IssueKind, NodeStatus
 from autotester.schema.screen_graph import ElementRef, ScreenEdge, ScreenNode
 from autotester.stages import explore
+from autotester.stages.explore_return import return_to, why_lost
 from autotester.stages.explore_safety import classify_request, deny_reason, link_is_safe
 from autotester.stages.screen_identity import node_from
 
@@ -84,14 +85,15 @@ def drain(rt: ExploreRuntime, node_id: str) -> bool:
     return tripped
 
 
-def _enqueue(rt: ExploreRuntime, new: ScreenNode, edge_id: str) -> None:
+def _enqueue(rt: ExploreRuntime, new: ScreenNode, edge: ScreenEdge) -> None:
     if new.id in rt.nodes or new.depth > rt.bounds.max_depth:
         return
     if rt.frontier.screens_found >= rt.bounds.max_screens:
         return
-    new = new.model_copy(update={"discovered_by": edge_id,
+    new = new.model_copy(update={"discovered_by": edge.id,
                                  "screenshot_ref": capture(rt, new)})
     rt.nodes[new.id] = new
+    rt.discovery[new.id] = edge
     rt.store.add_node(new)
     rt.frontier.queue.append(new.id)
     rt.frontier.screens_found += 1
@@ -130,59 +132,8 @@ def try_action(rt: ExploreRuntime, node: ScreenNode, el: ElementRef) -> ScreenEd
     if new.id == node.id:
         return record_edge(rt, node, el, action, EdgeOutcome.SAME_SCREEN, None, node.id)
     edge = record_edge(rt, node, el, action, EdgeOutcome.NAVIGATED, None, new.id)
-    _enqueue(rt, new, edge.id)
+    _enqueue(rt, new, edge)
     return edge
-
-
-def return_to(rt: ExploreRuntime, node: ScreenNode) -> bool:
-    """Get the browser back onto `node` so the next candidate starts from the
-    same place. Back first, then the node's own URL, then the base URL."""
-    rt.return_error = None  # never report a previous node's cause as this one's
-    try:
-        if rt.session.current_url() == node.url_example:
-            return True
-        rt.session.go_back()
-        rt.session.settle(timeout_ms=rt.bounds.settle_ms)
-        if _fingerprint(rt, node.depth) == node.id:
-            return True
-        rt.session.goto(node.url_example)
-        rt.session.settle(timeout_ms=rt.bounds.settle_ms)
-        if _fingerprint(rt, node.depth) == node.id:
-            return True
-        rt.return_error = "back and the node URL both landed on a different screen"
-        _recover(rt)
-        return False
-    except Exception as exc:
-        rt.return_error = f"{type(exc).__name__}: {exc}"
-        _recover(rt)
-        return False
-
-
-def _why(rt: ExploreRuntime) -> str:
-    """The cause `return_to` recorded, or an explicit admission that none was.
-
-    AT-108: the old text said only *that* the crawl lost a screen. "Cause not
-    recorded" is still worse than a cause, but it is honest, and it is the
-    string that tells a reader the gap is in this crawler rather than in the
-    product it was looking at."""
-    return rt.return_error or "cause not recorded"
-
-
-def _fingerprint(rt: ExploreRuntime, depth: int) -> str:
-    return node_from(observe(rt.session), rt.crawl.id, rt.project.slug, depth).id
-
-
-def _recover(rt: ExploreRuntime) -> None:
-    """Last resort: put the browser back on the base URL. A failure here is
-    the most serious thing that can happen mid-crawl — every screen visited
-    after it is suspect — so it is recorded rather than passed over (AT-108)."""
-    try:
-        rt.session.goto(rt.project.base_url)
-        rt.session.settle(timeout_ms=rt.bounds.settle_ms)
-    except Exception as exc:
-        rt.return_error = (f"{rt.return_error or 'return failed'}; recovery to "
-                           f"{rt.project.base_url} also failed — "
-                           f"{type(exc).__name__}: {exc}")
 
 
 def _mark(rt: ExploreRuntime, node: ScreenNode, status: NodeStatus) -> None:
@@ -202,7 +153,8 @@ def _candidate_denial(rt: ExploreRuntime, node: ScreenNode, el: ElementRef) -> b
         record_edge(rt, node, el, Action.CLICK, outcome, reason)
         rt.denied += 1
         return True
-    if el.role == "link" and el.href and not link_is_safe(el, rt.project):
+    if (el.role == "link" and el.href
+            and not link_is_safe(el, rt.project, rt.session.current_url())):
         record_edge(rt, node, el, Action.NAVIGATE, EdgeOutcome.OFF_DOMAIN_REFUSED,
                     "href outside allowed domains")
         add_issue(rt, node.id, IssueKind.NAVIGATION,
@@ -210,6 +162,34 @@ def _candidate_denial(rt: ExploreRuntime, node: ScreenNode, el: ElementRef) -> b
         rt.denied += 1
         return True
     return False
+
+
+def _report_overlay(rt: ExploreRuntime, node: ScreenNode) -> None:
+    """File ONE issue naming the controls this screen covered up (AT-227).
+
+    The failure this replaces was silent in the worst way: the crawl spent its
+    whole per-node budget clicking controls under a "How are you feeling
+    today?" veil, learned one screen, and still reported `status=completed`,
+    `issues=0` -- a blocked crawl indistinguishable from a complete one. The
+    veil's OWN controls are not obscured, so the crawl still gets past it by
+    ordinary means; what it must not do is pass over the obstruction without
+    saying it was there.
+    """
+    covered = [el for el in node.elements if el.visible and el.enabled and el.obscured]
+    if not covered:
+        return
+    reachable = [el.name or el.selector for el in node.elements
+                 if el.visible and el.enabled and not el.obscured]
+    add_issue(rt, node.id, IssueKind.OVERLAY,
+              f"{len(covered)} control(s) on this screen are covered by an in-page "
+              f"overlay and were not tried: {_names(covered)}. Reachable instead: "
+              f"{', '.join(reachable[:8]) or 'nothing'}")
+
+
+def _names(elements: list[ElementRef], limit: int = 8) -> str:
+    shown = [el.name or el.selector for el in elements[:limit]]
+    more = len(elements) - len(shown)
+    return ", ".join(shown) + (f" (+{more} more)" if more > 0 else "")
 
 
 def visit_node(rt: ExploreRuntime, node: ScreenNode) -> None:
@@ -229,14 +209,16 @@ def visit_node(rt: ExploreRuntime, node: ScreenNode) -> None:
     if not return_to(rt, node):
         add_issue(rt, node.id, IssueKind.NAVIGATION,
                   "could not return to this screen before exploring it — abandoned "
-                  f"unexplored: {_why(rt)}")
+                  f"unexplored: {why_lost(rt)}")
         _mark(rt, node, NodeStatus.ABORTED_ERROR)
         return
+    _report_overlay(rt, node)
     tried = 0
     for el in node.elements:
         if tried >= rt.bounds.per_node_action_cap or explore.stop_reason(rt):
             break
-        if not el.visible or not el.enabled or _candidate_denial(rt, node, el):
+        if (not el.visible or not el.enabled or el.obscured
+                or _candidate_denial(rt, node, el)):
             continue
         tried += 1
         rt.frontier.actions_used += 1
@@ -247,10 +229,10 @@ def visit_node(rt: ExploreRuntime, node: ScreenNode) -> None:
             return
         if not return_to(rt, node):
             record_edge(rt, node, el, Action.BACK, EdgeOutcome.ERRORED,
-                        f"could not return to this screen: {_why(rt)}")
+                        f"could not return to this screen: {why_lost(rt)}")
             add_issue(rt, node.id, IssueKind.NAVIGATION,
                       "lost this screen mid-exploration — remaining controls not "
-                      f"tried: {_why(rt)}")
+                      f"tried: {why_lost(rt)}")
             _mark(rt, node, NodeStatus.ABORTED_ERROR)
             return
     _mark(rt, node, NodeStatus.EXPLORED)

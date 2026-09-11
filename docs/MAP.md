@@ -68,6 +68,7 @@
 | `stages/explore.py` | EXPLORE: a bounded, safety-gated BFS crawl of a (usually logged-in) app. |
 | `stages/explore_merge.py` | Fold a crawl's screen graph into the reviewed FlowSpec (Track B5). |
 | `stages/explore_node.py` | One node's worth of exploring: try each safe candidate action, record what |
+| `stages/explore_return.py` | Getting the browser back onto a screen the crawl has already seen. |
 | `stages/explore_safety.py` | The explorer's inner safety guard (Track B4, D-016). |
 | `stages/grade.py` | GRADE: an independent, stateless judge reads a Rubric + a RawResult's evidence. |
 | `stages/ingest.py` | INGEST: turn a video Source into a FlowSpec, provenance-tracked to the second. |

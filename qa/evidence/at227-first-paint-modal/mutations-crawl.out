@@ -1,0 +1,30 @@
+KILLED  occlusion probe disarmed - every element reports reachable  (pytest exit 1)
+    claims to kill : tests/test_explore_modal.py::test_controls_behind_the_veil_are_marked_obscured
+    actually failed: tests/test_explore_modal.py::test_controls_behind_the_veil_are_marked_obscured, tests/test_explore_modal.py::test_no_edge_is_recorded_from_a_screen_the_crawl_had_already_left, tests/test_explore_modal.py::test_the_blocked_screen_is_reported_not_silent
+KILLED  occlusion probe removed entirely from the emitted element  (pytest exit 1)
+    claims to kill : tests/test_explore_modal.py::test_controls_behind_the_veil_are_marked_obscured
+    actually failed: tests/test_explore_modal.py::test_controls_behind_the_veil_are_marked_obscured, tests/test_explore_modal.py::test_no_edge_is_recorded_from_a_screen_the_crawl_had_already_left, tests/test_explore_modal.py::test_the_blocked_screen_is_reported_not_silent
+KILLED  covered controls are tried again instead of skipped  (pytest exit 1)
+    claims to kill : tests/test_explore_modal.py::test_no_edge_is_recorded_from_a_screen_the_crawl_had_already_left
+    actually failed: tests/test_explore_modal.py::test_no_edge_is_recorded_from_a_screen_the_crawl_had_already_left
+KILLED  the overlay is passed over silently (the original AT-227 failure)  (pytest exit 1)
+    claims to kill : tests/test_explore_modal.py::test_the_blocked_screen_is_reported_not_silent
+    actually failed: tests/test_explore_modal.py::test_the_blocked_screen_is_reported_not_silent
+KILLED  the overlay issue no longer names what was covered  (pytest exit 1)
+    claims to kill : tests/test_explore_modal.py::test_the_blocked_screen_is_reported_not_silent
+    actually failed: tests/test_explore_modal.py::test_the_blocked_screen_is_reported_not_silent
+KILLED  return_to short-circuits on the URL alone (AT-227 first half)  (pytest exit 1)
+    claims to kill : tests/test_explore_modal.py::test_no_edge_is_recorded_from_a_screen_the_crawl_had_already_left
+    actually failed: tests/test_explore_modal.py::test_no_edge_is_recorded_from_a_screen_the_crawl_had_already_left
+KILLED  the discovering edge is never replayed - a stateful screen is unreachable  (pytest exit 1)
+    claims to kill : tests/test_explore_modal.py::test_the_crawl_gets_past_the_modal
+    actually failed: tests/test_explore_modal.py::test_a_replay_that_lands_elsewhere_is_a_failure_not_a_near_miss, tests/test_explore_modal.py::test_the_crawl_gets_past_the_modal
+KILLED  the replay does not verify where it landed  (pytest exit 1)
+    claims to kill : tests/test_explore_modal.py::test_a_replay_that_lands_elsewhere_is_a_failure_not_a_near_miss
+    actually failed: tests/test_explore_modal.py::test_a_replay_that_lands_elsewhere_is_a_failure_not_a_near_miss
+KILLED  a failed replay stops naming WHICH control it replayed (the AT-108 shape)  (pytest exit 1)
+    claims to kill : tests/test_explore_modal.py::test_a_replay_that_lands_elsewhere_is_a_failure_not_a_near_miss
+    actually failed: tests/test_explore_modal.py::test_a_replay_that_lands_elsewhere_is_a_failure_not_a_near_miss
+
+9/9 mutations killed
+EXIT=0

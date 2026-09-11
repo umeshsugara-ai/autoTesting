@@ -37,3 +37,5 @@ Recommendation there is unchanged: **option B, re-run Analyze on `erp`.**
 ## Answer
 
 _(unanswered — append `Answered: <ISO date> — <choice> — <where>` below before acting)_
+
+**Answered:** 2026-09-11 — **Option C: AT-227 (first-paint in-page modals during BFS), then B (T-163)** — Umesh, in conversation, in reply to the maker's HUMAN_GATE ask.

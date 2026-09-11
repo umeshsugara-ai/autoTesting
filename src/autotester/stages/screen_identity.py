@@ -34,7 +34,18 @@ def _normalise_name(name: str) -> str:
 def structural_signature(elements: list[ElementRef]) -> str:
     """Content hash of the sorted, deduplicated `(role, normalised-name)` set
     of VISIBLE, non-row elements. Row/list-item elements are excluded so two
-    list pages differing only in row data collapse to one signature."""
+    list pages differing only in row data collapse to one signature.
+
+    AT-227 deliberately does NOT exclude `obscured` elements here, though it
+    adds that flag and uses it elsewhere. A modal state and the screen behind
+    it are already two signatures by the `visible` rule alone -- dismissing the
+    veil makes the veil's own controls `display:none`. Excluding obscured
+    elements on top of that would additionally collapse ONE modal shown over
+    TWO different pages into a single node, which would claim that one screen
+    has two different outcomes for the same action. Identity stays with what
+    the page RENDERS; reachability is a separate question, answered by
+    `explore_node` when it picks candidates.
+    """
     keys = {
         f"{el.role}|{_normalise_name(el.name)}"
         for el in elements

@@ -159,38 +159,65 @@ def test_never_click_still_widens_with_extra_patterns() -> None:
 
 # -- link safety --------------------------------------------------------------
 
-def test_same_domain_relative_link_is_safe() -> None:
-    project = make_project()
-    link = el("Students", role="link")
-    link.href = "/erp/students"
-    assert link_is_safe(link, project) is True
+PAGE = "https://www.vidysea.com/erp/dashboard/"
+"""The page the links under test are ON — `link_is_safe` resolves against it,
+exactly as the navigation does (AT-333)."""
+
+BACKSLASH_HREFS = ["\\evil.test/x", "/a\\b", "\\\\evil.test"]
+"""Hrefs `host_of` deliberately fails closed on (AT-007). Held as a name so the
+literals are written once, in Python, and never retyped into a decorator."""
+
+
+def _link(href: str) -> ElementRef:
+    link = el("x", role="link")
+    link.href = href
+    return link
+
+
+def test_same_domain_root_relative_link_is_safe() -> None:
+    assert link_is_safe(_link("/erp/students"), make_project(), PAGE) is True
+
+
+@pytest.mark.parametrize("href", ["students", "students/1/", "./students", "../up"])
+def test_document_relative_links_are_safe(href: str) -> None:
+    """AT-333: every one of these was REFUSED as off-domain, because the raw
+    href was fed to `host_of`, which reads `students/1/` as the host
+    `students`. They point at the same origin as the page they are on."""
+    assert link_is_safe(_link(href), make_project(), PAGE) is True
 
 
 def test_external_link_is_not_safe() -> None:
-    project = make_project()
-    link = el("External", role="link")
-    link.href = "https://example.com/"
-    assert link_is_safe(link, project) is False
+    assert link_is_safe(_link("https://example.com/"), make_project(), PAGE) is False
 
 
 def test_javascript_and_mailto_links_are_never_safe() -> None:
-    project = make_project()
     for href in ("javascript:void(0)", "mailto:x@y.com", "tel:+1234567890"):
-        link = el("x", role="link")
-        link.href = href
-        assert link_is_safe(link, project) is False
+        assert link_is_safe(_link(href), make_project(), PAGE) is False
 
 
 def test_link_with_no_href_is_not_safe() -> None:
-    project = make_project()
-    assert link_is_safe(el("x", role="link"), project) is False
+    assert link_is_safe(el("x", role="link"), make_project(), PAGE) is False
 
 
 def test_protocol_relative_link_is_not_safe() -> None:
-    project = make_project()
-    link = el("x", role="link")
-    link.href = "//evil.test/phish"
-    assert link_is_safe(link, project) is False
+    assert link_is_safe(_link("//evil.test/phish"), make_project(), PAGE) is False
+
+
+@pytest.mark.parametrize("href", BACKSLASH_HREFS)
+def test_a_backslash_href_is_refused_not_waved_through(href: str) -> None:
+    """AT-333's second half. `host_of` deliberately fails CLOSED on a backslash
+    (AT-007: Chromium treats it as a path separator, so urlparse and the
+    browser disagree about which host the navigation will reach). The old
+    `if not host: return not href.startswith("//")` then read that empty host
+    as "relative, therefore safe" — turning a deliberate fail-closed into a
+    fail-open. A resolved URL with no host is now refused."""
+    assert link_is_safe(_link(href), make_project(), PAGE) is False
+
+
+def test_an_off_domain_link_resolved_from_an_off_domain_page_is_refused() -> None:
+    """The base URL is an input, so it gets its own test: a relative link is
+    safe because of the page it sits on, not on its own."""
+    assert link_is_safe(_link("students"), make_project(), "https://evil.test/x/") is False
 
 
 # -- request classification (X9) ----------------------------------------------

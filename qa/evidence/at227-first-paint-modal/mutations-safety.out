@@ -1,0 +1,11 @@
+KILLED  link safety judges the raw href instead of the resolved URL (AT-333)  (pytest exit 1)
+    claims to kill : tests/test_explore_safety.py::test_document_relative_links_are_safe[../up], tests/test_explore_safety.py::test_document_relative_links_are_safe[./students], tests/test_explore_safety.py::test_document_relative_links_are_safe[students/1/], tests/test_explore_safety.py::test_document_relative_links_are_safe[students], tests/test_explore_safety.py::test_same_domain_root_relative_link_is_safe
+    actually failed: tests/test_explore_safety.py::test_document_relative_links_are_safe[../up], tests/test_explore_safety.py::test_document_relative_links_are_safe[./students], tests/test_explore_safety.py::test_document_relative_links_are_safe[students/1/], tests/test_explore_safety.py::test_document_relative_links_are_safe[students], tests/test_explore_safety.py::test_same_domain_root_relative_link_is_safe
+KILLED  an empty host is waved through again (AT-333's fail-open)  (pytest exit 1)
+    claims to kill : tests/test_explore_safety.py::test_a_backslash_href_is_refused_not_waved_through[/a\\b], tests/test_explore_safety.py::test_a_backslash_href_is_refused_not_waved_through[\\\\evil.test], tests/test_explore_safety.py::test_a_backslash_href_is_refused_not_waved_through[\\evil.test/x]
+    actually failed: tests/test_explore_safety.py::test_a_backslash_href_is_refused_not_waved_through[/a\\b], tests/test_explore_safety.py::test_a_backslash_href_is_refused_not_waved_through[\\\\evil.test], tests/test_explore_safety.py::test_a_backslash_href_is_refused_not_waved_through[\\evil.test/x]
+KILLED  the allowed-domain check is dropped, keeping only 'has a host'  (pytest exit 1)
+    claims to kill : tests/test_explore_safety.py::test_an_off_domain_link_resolved_from_an_off_domain_page_is_refused, tests/test_explore_safety.py::test_external_link_is_not_safe, tests/test_explore_safety.py::test_protocol_relative_link_is_not_safe
+    actually failed: tests/test_explore_safety.py::test_an_off_domain_link_resolved_from_an_off_domain_page_is_refused, tests/test_explore_safety.py::test_external_link_is_not_safe, tests/test_explore_safety.py::test_protocol_relative_link_is_not_safe
+
+3/3 mutations killed

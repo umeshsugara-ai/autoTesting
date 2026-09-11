@@ -1,0 +1,42 @@
+{
+  "tests": [
+    "tests/test_explore_safety.py"
+  ],
+  "mutations": [
+    {
+      "name": "link safety judges the raw href instead of the resolved URL (AT-333)",
+      "file": "src/autotester/stages/explore_safety.py",
+      "old": "    target = urljoin(base_url, el.href)",
+      "new": "    target = el.href",
+      "kills": [
+        "tests/test_explore_safety.py::test_document_relative_links_are_safe[students]",
+        "tests/test_explore_safety.py::test_document_relative_links_are_safe[students/1/]",
+        "tests/test_explore_safety.py::test_document_relative_links_are_safe[./students]",
+        "tests/test_explore_safety.py::test_document_relative_links_are_safe[../up]",
+        "tests/test_explore_safety.py::test_same_domain_root_relative_link_is_safe"
+      ]
+    },
+    {
+      "name": "an empty host is waved through again (AT-333's fail-open)",
+      "file": "src/autotester/stages/explore_safety.py",
+      "old": "    return bool(host) and project.allows_domain(host)",
+      "new": "    if not host:\n        return not el.href.startswith(\"//\")\n    return project.allows_domain(host)",
+      "kills": [
+        "tests/test_explore_safety.py::test_a_backslash_href_is_refused_not_waved_through[\\\\evil.test/x]",
+        "tests/test_explore_safety.py::test_a_backslash_href_is_refused_not_waved_through[/a\\\\b]",
+        "tests/test_explore_safety.py::test_a_backslash_href_is_refused_not_waved_through[\\\\\\\\evil.test]"
+      ]
+    },
+    {
+      "name": "the allowed-domain check is dropped, keeping only 'has a host'",
+      "file": "src/autotester/stages/explore_safety.py",
+      "old": "    return bool(host) and project.allows_domain(host)",
+      "new": "    return bool(host)",
+      "kills": [
+        "tests/test_explore_safety.py::test_external_link_is_not_safe",
+        "tests/test_explore_safety.py::test_an_off_domain_link_resolved_from_an_off_domain_page_is_refused",
+        "tests/test_explore_safety.py::test_protocol_relative_link_is_not_safe"
+      ]
+    }
+  ]
+}

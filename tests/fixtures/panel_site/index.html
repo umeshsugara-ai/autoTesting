@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Panel page</title>
+
+<!-- A ONE-SHOT in-page state, the realistic cousin of the modal: a first-run
+     panel that opens once per browser and never again. The screen it reveals
+     therefore has no URL that reaches it AND cannot be restored by replaying
+     the action that discovered it -- which is the only situation in which
+     `_replay_discovery`'s landing check can be told apart from `return True`. -->
+
+<h1>Panel page</h1>
+<button id="open-panel">Open panel</button>
+<a id="other-link" href="./other.html">Other</a>
+
+<div id="panel" hidden>
+  <button id="panel-action">Panel action A</button>
+</div>
+
+<script>
+  document.getElementById("open-panel").addEventListener("click", () => {
+    if (localStorage.getItem("panelSeen") === "1") return;  // one-shot, on purpose
+    localStorage.setItem("panelSeen", "1");
+    document.getElementById("panel").hidden = false;
+  });
+</script>

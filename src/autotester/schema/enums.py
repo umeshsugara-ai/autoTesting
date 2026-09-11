@@ -267,6 +267,12 @@ class IssueKind(StrEnum):
     NETWORK = "network"
     NAVIGATION = "navigation"
     DIALOG = "dialog"
+    OVERLAY = "overlay"
+    """A screen whose controls were covered by an in-page overlay (AT-227).
+    A PRODUCT observation, not a tool failure: the screen really was
+    uninteractable in the state the crawl met it, and saying so is the
+    difference between a blocked crawl and a crawl that looks complete."""
+
     EVIDENCE = "evidence"
     """The crawler itself failed to record something (AT-114). Kept distinct
     from the four kinds above because those describe the PRODUCT under test and

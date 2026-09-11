@@ -1,0 +1,88 @@
+{
+  "tests": [
+    "tests/test_explore_modal.py"
+  ],
+  "mutations": [
+    {
+      "name": "occlusion probe disarmed - every element reports reachable",
+      "file": "src/autotester/browser/enumerate.js",
+      "old": "    const top = document.elementFromPoint(x, y);\n    if (!top) return false;",
+      "new": "    const top = document.elementFromPoint(x, y);\n    if (top) return false;\n    if (!top) return false;",
+      "kills": [
+        "tests/test_explore_modal.py::test_controls_behind_the_veil_are_marked_obscured"
+      ]
+    },
+    {
+      "name": "occlusion probe removed entirely from the emitted element",
+      "file": "src/autotester/browser/enumerate.js",
+      "old": "      obscured: isObscured(el),",
+      "new": "      obscured: false,",
+      "kills": [
+        "tests/test_explore_modal.py::test_controls_behind_the_veil_are_marked_obscured"
+      ]
+    },
+    {
+      "name": "covered controls are tried again instead of skipped",
+      "file": "src/autotester/stages/explore_node.py",
+      "old": "        if (not el.visible or not el.enabled or el.obscured\n                or _candidate_denial(rt, node, el)):",
+      "new": "        if (not el.visible or not el.enabled\n                or _candidate_denial(rt, node, el)):",
+      "kills": [
+        "tests/test_explore_modal.py::test_no_edge_is_recorded_from_a_screen_the_crawl_had_already_left"
+      ]
+    },
+    {
+      "name": "the overlay is passed over silently (the original AT-227 failure)",
+      "file": "src/autotester/stages/explore_node.py",
+      "old": "    covered = [el for el in node.elements if el.visible and el.enabled and el.obscured]\n    if not covered:\n        return",
+      "new": "    covered = [el for el in node.elements if el.visible and el.enabled and el.obscured]\n    if covered or not covered:\n        return",
+      "kills": [
+        "tests/test_explore_modal.py::test_the_blocked_screen_is_reported_not_silent"
+      ]
+    },
+    {
+      "name": "the overlay issue no longer names what was covered",
+      "file": "src/autotester/stages/explore_node.py",
+      "old": "              f\"{len(covered)} control(s) on this screen are covered by an in-page \"\n              f\"overlay and were not tried: {_names(covered)}. Reachable instead: \"\n              f\"{', '.join(reachable[:8]) or 'nothing'}\")",
+      "new": "              f\"{len(covered)} control(s) on this screen are covered by an in-page \"\n              f\"overlay and were not tried. Reachable instead: \"\n              f\"{', '.join(reachable[:8]) or 'nothing'}\")",
+      "kills": [
+        "tests/test_explore_modal.py::test_the_blocked_screen_is_reported_not_silent"
+      ]
+    },
+    {
+      "name": "return_to short-circuits on the URL alone (AT-227 first half)",
+      "file": "src/autotester/stages/explore_return.py",
+      "old": "        if (rt.session.current_url() == node.url_example\n                and _fingerprint(rt, node.depth) == node.id):\n            return True",
+      "new": "        if rt.session.current_url() == node.url_example:\n            return True",
+      "kills": [
+        "tests/test_explore_modal.py::test_no_edge_is_recorded_from_a_screen_the_crawl_had_already_left"
+      ]
+    },
+    {
+      "name": "the discovering edge is never replayed - a stateful screen is unreachable",
+      "file": "src/autotester/stages/explore_return.py",
+      "old": "        replay_failed = _replay_discovery(rt, node, depth)\n        if replay_failed is None:\n            return True",
+      "new": "        replay_failed = \"replay disabled\"\n        if replay_failed is None:\n            return True",
+      "kills": [
+        "tests/test_explore_modal.py::test_the_crawl_gets_past_the_modal"
+      ]
+    },
+    {
+      "name": "the replay does not verify where it landed",
+      "file": "src/autotester/stages/explore_return.py",
+      "old": "    if _fingerprint(rt, node.depth) == node.id:\n        return None\n    return f\"re-performing {edge.name or edge.target!r} landed on a different screen\"",
+      "new": "    return None",
+      "kills": [
+        "tests/test_explore_modal.py::test_a_replay_that_lands_elsewhere_is_a_failure_not_a_near_miss"
+      ]
+    },
+    {
+      "name": "a failed replay stops naming WHICH control it replayed (the AT-108 shape)",
+      "file": "src/autotester/stages/explore_return.py",
+      "old": "    return f\"re-performing {edge.name or edge.target!r} landed on a different screen\"",
+      "new": "    return \"the replay landed on a different screen\"",
+      "kills": [
+        "tests/test_explore_modal.py::test_a_replay_that_lands_elsewhere_is_a_failure_not_a_near_miss"
+      ]
+    }
+  ]
+}

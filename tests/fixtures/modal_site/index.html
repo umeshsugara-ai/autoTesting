@@ -1,0 +1,46 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Modal dashboard</title>
+<style>
+  body { font-family: sans-serif; margin: 0; }
+  #dashboard { padding: 24px; }
+  #veil {
+    position: fixed; inset: 0; background: rgba(0,0,0,.55);
+    display: flex; align-items: center; justify-content: center;
+  }
+  #veil[hidden] { display: none !important; }
+  #card { background: #fff; padding: 24px; border-radius: 8px; }
+</style>
+
+<!-- The dashboard behind the modal. Every control here is display:visible and
+     enabled, and every one of them is unreachable until the modal is gone --
+     which is exactly the state AT-227 found on the real Pathlynks dashboard. -->
+<div id="dashboard">
+  <h1>Dashboard</h1>
+  <a id="reports-link" href="reports.html">Reports</a>
+  <a id="settings-link" href="settings.html">Settings</a>
+  <button id="refresh">Refresh</button>
+</div>
+
+<!-- The in-page modal: ordinary DOM, not a native dialog, so DialogBreaker
+     never sees it. -->
+<div id="veil">
+  <div id="card">
+    <h2>How are you feeling today?</h2>
+    <button id="mood-excited">Excited</button>
+    <button id="mood-focused">Focused</button>
+    <button id="mood-tired">Tired</button>
+    <button id="skip-modal">Skip for now</button>
+  </div>
+</div>
+
+<script>
+  // Dismissal is client-side only: no navigation, no history entry, same URL.
+  // A reload brings the modal back, which is what lets the crawl return to
+  // the modal screen after exploring past it.
+  for (const id of ["mood-excited", "mood-focused", "mood-tired", "skip-modal"]) {
+    document.getElementById(id).addEventListener("click", () => {
+      document.getElementById("veil").hidden = true;
+    });
+  }
+</script>

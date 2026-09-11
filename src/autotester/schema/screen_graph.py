@@ -25,6 +25,12 @@ class ElementRef(BaseModel):
     selector: str
     enabled: bool = True
     visible: bool = True
+    obscured: bool = Field(
+        default=False,
+        description="CSS-visible but covered by something else (a modal veil, a "
+        "sticky bar) -- unreachable to a human, so never a crawl candidate and "
+        "never part of the screen's structural signature (AT-227)",
+    )
     href: str | None = None
     is_form_submit: bool = False
     in_row: bool = Field(

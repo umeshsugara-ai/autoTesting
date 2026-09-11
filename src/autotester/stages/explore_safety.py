@@ -14,6 +14,7 @@ X5-X9 (lands at T-143, when the contract itself is written).
 from __future__ import annotations
 
 import re
+from urllib.parse import urljoin
 
 from autotester.browser.secrets import host_of
 from autotester.schema.crawl import DEFAULT_NEVER_CLICK_PATTERNS, DialogEvent, SafetyPolicy
@@ -89,19 +90,26 @@ def deny_reason(el: ElementRef, policy: SafetyPolicy) -> str | None:
     return None
 
 
-def link_is_safe(el: ElementRef, project: Project) -> bool:
+def link_is_safe(el: ElementRef, project: Project, base_url: str) -> bool:
     """A link the explorer may `goto` directly: same-domain, not a scheme the
-    browser would treat specially (`javascript:`, `mailto:`, `tel:`)."""
-    if not el.href:
+    browser would treat specially (`javascript:`, `mailto:`, `tel:`).
+
+    AT-333: the href is resolved against `base_url` — the page the link is ON —
+    with the SAME `urljoin` the navigation itself uses, so the guard judges the
+    URL the browser will actually visit. Judging the raw href instead made two
+    separate mistakes at once. It refused every document-relative link, because
+    `host_of` force-prefixes `//` and so read `reports.html` as a *hostname*;
+    and it allowed anything `host_of` fails closed on (a backslash, AT-007),
+    because an empty host was read as "relative, therefore safe". A resolved
+    absolute URL always has a host, so no host now means refuse.
+    """
+    if not el.href or el.href.startswith(_UNSAFE_SCHEMES):
         return False
-    if el.href.startswith(_UNSAFE_SCHEMES):
+    target = urljoin(base_url, el.href)
+    if target.startswith(_UNSAFE_SCHEMES):
         return False
-    host = host_of(el.href)
-    if not host:
-        # a relative href ("/students/1") has no host of its own -- safe,
-        # it resolves against the current (already-allowed) page.
-        return not el.href.startswith("//")
-    return project.allows_domain(host)
+    host = host_of(target)
+    return bool(host) and project.allows_domain(host)
 
 
 def classify_request(url: str, project: Project, policy: SafetyPolicy) -> str:

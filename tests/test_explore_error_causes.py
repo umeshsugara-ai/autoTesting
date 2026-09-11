@@ -19,7 +19,7 @@ import pytest
 from crawl_fake import grant_crawl_approval, make_project, make_session
 
 from autotester.browser.observe import PageObserver
-from autotester.stages import explore_node
+from autotester.stages import explore_return
 from autotester.stages.explore import run_crawl
 from autotester.store.project_store import ProjectStore
 
@@ -112,7 +112,7 @@ def test_a_failed_recovery_says_so_instead_of_passing_silently() -> None:
         bounds=SimpleNamespace(settle_ms=10),
         return_error="back failed",
     )
-    explore_node._recover(rt)  # type: ignore[arg-type]
+    explore_return._recover(rt)  # type: ignore[arg-type]
 
     assert "browser gone" in (rt.return_error or "")
     assert "back failed" in (rt.return_error or ""), "the original cause was overwritten"

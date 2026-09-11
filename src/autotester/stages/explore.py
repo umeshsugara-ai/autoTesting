@@ -27,7 +27,7 @@ from autotester.schema.case import Case
 from autotester.schema.crawl import Crawl, CrawlBounds, NoiseCount, SafetyPolicy
 from autotester.schema.enums import Action, ApprovalKind, CrawlStatus, Outcome
 from autotester.schema.project import Project
-from autotester.schema.screen_graph import CrawlFrontier, ScreenNode
+from autotester.schema.screen_graph import CrawlFrontier, ScreenEdge, ScreenNode
 from autotester.stages import explore_node
 from autotester.stages.execute import run_case
 from autotester.stages.explore_safety import DialogBreaker
@@ -55,6 +55,10 @@ class ExploreRuntime:
     started: float
     frontier: CrawlFrontier
     nodes: dict[str, ScreenNode] = field(default_factory=dict)
+    discovery: dict[str, ScreenEdge] = field(default_factory=dict)
+    """node id -> the edge that first reached it. AT-227: a screen that is only
+    a client-side STATE of another (a dismissed modal) has no URL, so replaying
+    this edge is the only way back."""
     noise: dict[str, int] = field(default_factory=dict)
     edges: int = 0
     denied: int = 0

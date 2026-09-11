@@ -1,6 +1,6 @@
 // Enumerate interactive elements on the current page. Loaded by
 // browser/observe.py via page.evaluate(). Returns an array of
-// {role, name, selector, enabled, visible, href, is_form_submit, in_row,
+// {role, name, selector, enabled, visible, obscured, href, is_form_submit, in_row,
 // target_blank, tag} objects, one per interactive element found.
 //
 // Selector priority: data-testid > a stable (non-generated-looking) #id >
@@ -14,6 +14,28 @@
     if (rect.width === 0 && rect.height === 0) return false;
     const style = window.getComputedStyle(el);
     return style.visibility !== "hidden" && style.display !== "none";
+  }
+
+  // AT-227: CSS visibility is not reachability. A control under a modal veil
+  // has a non-zero rect and no `display:none`/`visibility:hidden` -- every
+  // measure isVisible() knows says "visible" -- and a human cannot click it.
+  // Ask the browser who is actually on top at the control's centre instead.
+  function isObscured(el) {
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return false;
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    // elementFromPoint returns null for ANY point outside the viewport, so a
+    // below-the-fold control would come back "obscured" and the crawl would
+    // shrink instead of widening. Unknown is not obscured -- this probe only
+    // ever removes a candidate, so it must fail open.
+    if (x < 0 || y < 0 || x > window.innerWidth || y > window.innerHeight) return false;
+    const top = document.elementFromPoint(x, y);
+    if (!top) return false;
+    // `top` inside `el` (an icon in a button) or `el` inside `top` (a wrapper
+    // reported because the control is pointer-events:none) are both the
+    // element itself, not something covering it.
+    return !(el === top || el.contains(top) || top.contains(el));
   }
 
   function roleOf(el) {
@@ -115,6 +137,7 @@
       selector: selectorFor(el, role, name),
       enabled: !el.disabled,
       visible: isVisible(el),
+      obscured: isObscured(el),
       href: el.getAttribute("href") || null,
       is_form_submit: tag === "button" && (type === "" || type === "submit") &&
         !!el.closest("form") || (tag === "input" && type === "submit"),
