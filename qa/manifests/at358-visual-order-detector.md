@@ -28,7 +28,8 @@ this is the instrument that does not enumerate.
 - `src/autotester/browser/observe.py::visual_text(page)` — **new**. In `browser/` rather than in a
   test helper because reading other people's rendered pages is what this product does.
 - `tests/fixtures/bidi_site/` — **new**: `plain` (positive control), `clean` (negative control),
-  `hidden` (the AT-355 shape), `zerowidth` (the AT-345 shape), `invisible` (`visibility:hidden`).
+  `hidden` (the AT-355 shape), `zerowidth` (the AT-345 shape), `invisible` (`visibility:hidden`),
+  `inputs` (form-control values, an override character, and reversal by CSS alone).
 - `tests/test_browser_visual_order.py` — **new**, 10 tests.
 
 **Every "not visible" assertion is paired with a planted positive control**, because a detector
@@ -92,7 +93,7 @@ span behind, because a leaked mirror would be read as content on the next observ
 - `uv run pytest -q` → expected: exit 0
 - `uv run ruff check src tests scripts` → expected: `All checks passed!`
 - `uv run autotester doctor` → expected: `doctor: clean`
-- `uv run pytest tests/test_browser_visual_order.py -q` → expected: 6 passed (real Chromium;
+- `uv run pytest tests/test_browser_visual_order.py -q` → expected: 10 passed (real Chromium;
   skips cleanly if the browser binary is absent)
 - `uv run python scripts/mutation_check.py qa/evidence/at358-visual-order-detector/mutations.json`
   → expected: `10/10 mutations killed` (C7)
