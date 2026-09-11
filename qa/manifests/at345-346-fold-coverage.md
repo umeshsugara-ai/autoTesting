@@ -1,0 +1,120 @@
+# Manifest — at345-346-fold-coverage
+
+**Unit:** AT-345 / AT-346 — the transforms AT-339's fold still let through
+**Contract:** `qa/contracts/ui.md` (U8/U9) · `qa/contracts/core-invariants.md` (C2, C7)
+**Goal task:** none — issue-driven
+**Date:** 2026-09-11
+**Fix cycle:** 1 of max 3
+**Dual check:** no
+**Issues addressed:** AT-345 (high, fixed) · AT-346 (medium, fixed) · AT-349 (filed, NOT fixed)
+
+## What was wrong
+
+A checker, attacking the fix I shipped one cycle earlier, walked a live `.env` credential past the
+guard in six more forms. All were live-reproduced on its own server before this unit existed.
+
+**The worst is not the one that sounds worst.** A **zero-width space between every character**
+(U+200B) was accepted into git-tracked `project.json` — and because U+200B has no width, the
+project name **renders as the exact credential on the home index**. A human reading the page sees
+the secret, while every byte-comparison in the system says it is a different string. That is worse
+than AT-339 itself.
+
+The rest: `+`, `~`, `/`, `:` as separators; full-width Latin (`casefold` does not NFKC-normalise);
+the Turkish dotless `ı`; and — separately, AT-346 — `zebra%5Fquilt%5Fapikey%5F31`, because
+`contains_folded` was applied to the raw text only and never to `_credential_variants`, so each
+guard covered exactly the half the other did not: the `%5F` survived folding intact, and the
+`unquote_plus` form that would have exposed it was only ever compared byte-for-byte.
+
+## What changed
+
+- `src/autotester/core/redact.py::fold_credential` — strip Unicode format characters (category
+  `Cf`), then NFKC, then `ASCII_CONFUSABLES`, then separators, then case. `_FOLD_STRIP` widened
+  past `[\s-_.]` to the punctuation a human actually substitutes.
+- `src/autotester/core/redact.py::ASCII_CONFUSABLES` — a curated homoglyph map (Cyrillic, Greek,
+  the Turkish dotless i, dash-likes).
+- `src/autotester/ui/helpers.py` — both call sites fold **every** variant, not just the raw text.
+- `tests/test_ui_credential_unicode.py` — **new file** (C2 split at the 300-line cap): does the
+  guard see through Unicode *spelling*? `test_ui_credential_transforms.py` keeps the ASCII-shaped
+  substitutions. They fail for different reasons and are fixed in different lines.
+
+## The confusable map is deliberately partial, and says so
+
+`ASCII_CONFUSABLES` is a curated list, **not** an implementation of UTS #39. It covers the
+homoglyph families that appear in Latin-script credentials and will not catch an exotic script
+nobody has tried. **AT-349 is filed for the completeness gap** so the bound is visible rather than
+assumed — this is the honest version of "state which transform classes are out of scope", which
+the checker's own `expected` offered as an alternative to full coverage.
+
+## What the mutation run corrected (first pass 3/6)
+
+1. **`+` does NOT need the widened separator class.** `unquote_plus` turns `+` into a **space**,
+   which AT-339's original `[\s-_.]` already stripped — so that case is caught by AT-346's
+   composition, not by the widening. My `kills` claim was simply wrong, the harness refused it, and
+   the parametrised table now carries a comment saying so, because the next reader would otherwise
+   draw the same false conclusion I did.
+2. **The AT-346 mutation touches one call site, and the joined guard still catches a single-field
+   submission** — the same redundancy AT-339 hit. Only the *message* distinguishes them, so that is
+   what the new test asserts.
+3. **"Order is load-bearing" was an unproven claim in a docstring.** It is now measured: for `e` +
+   U+200B + combining acute, strip-then-NFKC yields U+00E9 while NFKC-then-strip leaves a bare
+   combining mark — different strings, so a credential containing an accented character can be
+   spelled past a guard that gets the order wrong. Pinned by a test instead of asserted in prose.
+
+## Deliberate scope boundaries
+
+- `assert_no_raw_secrets` is still **not** folded — AT-347's question, filed by the checker and
+  left for a decision rather than settled quietly here. Folding a gate that *raises* trades a leak
+  for dead runs.
+- The `MIN_FOLDED_LEN = 8` floor is unchanged and still means short credentials get no folded
+  protection. The checker measured this last cycle (refused at 8+, accepted at 6–7) and did not
+  charge it; nothing here changes that trade.
+
+## How to verify (commands + expected)
+
+- `uv run pytest -q` → expected: exit 0, no failures
+- `uv run ruff check src scripts` → expected: `All checks passed!`
+  (**not** a bare `ruff check tests` — `tests/test_explore_error_causes.py` is another session's
+  uncommitted in-flight edit and reports unused imports that are not this unit's)
+- `uv run autotester doctor` → expected: `doctor: clean`
+- `uv run pytest tests/test_ui_credential_transforms.py tests/test_ui_credential_unicode.py -q`
+  → expected: 20 passed
+- `uv run python scripts/mutation_check.py qa/evidence/at345-346-fold-coverage/mutations.json`
+  → expected: `6/6 mutations killed` (C7)
+
+## Actual outputs (from maker's own run)
+
+```
+$ uv run pytest
+1133 passed, 2 skipped, 1 warning in 187.46s (0:03:07)
+
+$ uv run ruff check src ... scripts
+All checks passed!
+
+$ uv run autotester doctor
+doctor: clean
+
+$ uv run pytest tests/test_ui_credential_transforms.py tests/test_ui_credential_unicode.py
+20 passed, 1 warning in 1.22s
+
+$ uv run python scripts/mutation_check.py qa/evidence/at345-346-fold-coverage/mutations.json
+KILLED  format characters are no longer stripped - the zero-width leak reopens
+KILLED  NFKC normalisation dropped - full-width Latin walks through
+KILLED  the confusable map is never applied - the dotless i walks through
+KILLED  the separator class narrows back to AT-339's (not the + form: unquote_plus makes that a space)
+KILLED  the fold stops composing with the variants (AT-346) - percent-escapes walk through
+KILLED  stripping happens AFTER normalising - order is load-bearing, not decorative
+6/6 mutations killed
+```
+
+One more thing the run caught: my first docstrings contained `\s` in non-raw strings, which emitted
+45 `DeprecationWarning: invalid escape sequence` across the suite (1 → 45). Fixed; back to 1.
+
+## Live browser evidence
+
+**SKIP — stated gap, not a pass.** The maker did not run a live browser this cycle. The zero-width
+case in particular has a *rendering* claim — that the home index shows the exact credential — which
+a `TestClient` cannot verify and which was originally demonstrated by a checker in a real browser
+with a screenshot. **The checker must run Mode D and treat its own result as authoritative**, and
+should specifically re-check that the rendering leak is closed, not merely that the POST is refused.
+
+## Status: ready-for-check

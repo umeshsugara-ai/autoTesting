@@ -36,17 +36,14 @@ UPPER_CREDENTIAL = "ZEBRA_QUILT_APIKEY_31"
 against it exercised the one casing where a plain substring test happens to
 work -- which is why the case class survived AT-073, AT-074 and AT-079."""
 
-
 @pytest.fixture
 def scratch_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setenv("AUTOTESTER_ROOT", str(tmp_path))
     return tmp_path
 
-
 @pytest.fixture
 def client() -> TestClient:
     return TestClient(app)
-
 
 def _project_with_credential(client: TestClient, scratch_root: Path, *, value: str = "") -> None:
     client.post("/onboard", data={
@@ -60,14 +57,12 @@ def _project_with_credential(client: TestClient, scratch_root: Path, *, value: s
         env_line = "DEMO_PASSWORD=" + value + chr(10)
         (scratch_root / ".env").write_text(env_line, encoding="utf-8")
 
-
 def _add_case(client: TestClient, value: str):
     return client.post("/projects/demo/cases", data={
         "title": "Log in", "case_class": CaseClass.HAPPY.value,
         "step_action": [Action.FILL.value], "step_target": ["input[type=password]"],
         "step_value": [value], "step_expected": [""],
     }, follow_redirects=False)
-
 
 # -- AT-074: trivially-recoverable encodings ---------------------------------
 
@@ -84,7 +79,6 @@ def test_a_url_encoded_credential_is_refused(
     assert response.status_code == 400
     assert ProjectStore("demo", scratch_root).list_cases() == []
 
-
 def test_a_credential_broken_by_a_space_is_refused(
     client: TestClient, scratch_root: Path
 ) -> None:
@@ -95,7 +89,6 @@ def test_a_credential_broken_by_a_space_is_refused(
 
     assert response.status_code == 400
     assert ProjectStore("demo", scratch_root).list_cases() == []
-
 
 def test_a_case_and_separator_transform_of_a_credential_is_refused(
     client: TestClient, scratch_root: Path
@@ -127,7 +120,6 @@ def test_a_case_and_separator_transform_of_a_credential_is_refused(
     assert response.status_code == 400, transformed
     assert not (scratch_root / "projects" / transformed).exists()
 
-
 def test_a_credential_with_its_separators_stripped_is_refused(
     client: TestClient, scratch_root: Path
 ) -> None:
@@ -139,7 +131,6 @@ def test_a_credential_with_its_separators_stripped_is_refused(
 
     assert response.status_code == 400
     assert ProjectStore("demo", scratch_root).list_cases() == []
-
 
 def test_a_short_env_value_does_not_start_refusing_ordinary_text(
     client: TestClient, scratch_root: Path
@@ -178,7 +169,6 @@ def test_a_short_env_value_does_not_start_refusing_ordinary_text(
     }, follow_redirects=False)
     assert leak.status_code == 400
 
-
 def test_a_folded_credential_in_one_field_is_blamed_on_that_field(
     client: TestClient, scratch_root: Path
 ) -> None:
@@ -206,7 +196,6 @@ def test_a_folded_credential_in_one_field_is_blamed_on_that_field(
     assert "the slug looks like it contains a real credential" in response.text
     assert "split across" not in response.text
 
-
 def test_a_folded_credential_split_across_two_fields_is_refused(
     client: TestClient, scratch_root: Path
 ) -> None:
@@ -233,3 +222,74 @@ def test_a_folded_credential_split_across_two_fields_is_refused(
     assert response.status_code == 400
     assert "split across" in response.text
     assert ProjectStore("demo", scratch_root).list_cases() == []
+
+# -- AT-345/AT-346: what the first fold still let through ---------------------
+
+def _seed(client: TestClient, scratch_root: Path, slug: str) -> None:
+    """A project that declares DEMO_PASSWORD, so the guard has a value to match."""
+    (scratch_root / ".env").write_text(
+        f"DEMO_PASSWORD={UPPER_CREDENTIAL}\n", encoding="utf-8")
+    client.post("/onboard", data={
+        "slug": slug, "name": slug.title(), "base_url": "https://demo.test",
+        "allowed_domains": "demo.test",
+    })
+    client.post(f"/projects/{slug}/secrets", data={
+        "key": "DEMO_PASSWORD", "domains": "demo.test", "mask_in_screenshot": "on",
+    })
+
+TRANSFORMS = {
+    # `+` is here for completeness, but note it is NOT caught by the separator
+    # class: `unquote_plus` turns it into a SPACE, which AT-339's original fold
+    # already stripped. It is a composition catch (AT-346), and a mutation
+    # narrowing the separator class leaves this case passing.
+    "plus-separator": UPPER_CREDENTIAL.replace("_", "+"),
+    "tilde-separator": UPPER_CREDENTIAL.replace("_", "~"),
+    "slash-separator": UPPER_CREDENTIAL.replace("_", "/"),
+    "colon-separator": UPPER_CREDENTIAL.replace("_", ":"),
+    "percent-encoded-underscore": UPPER_CREDENTIAL.lower().replace("_", "%5F"),
+    "percent-encoded-hyphen": UPPER_CREDENTIAL.lower().replace("_", "%2D"),
+}
+
+@pytest.mark.parametrize("label", sorted(TRANSFORMS))
+def test_a_reversible_transform_of_a_credential_is_refused(
+    client: TestClient, scratch_root: Path, label: str
+) -> None:
+    """AT-345/AT-346, every case live-reproduced by a checker against its own
+    server before this fix existed.
+
+    The percent-encoded two are AT-346, a composition hole rather than a new
+    transform class: `contains_folded` was applied to the raw text only and
+    never to `_credential_variants`, so `%5F` survived folding while
+    `unquote_plus` -- which would have exposed it -- was only ever compared
+    byte-for-byte. Each guard covered exactly the half the other did not.
+    """
+    _seed(client, scratch_root, "seedx")
+    value = TRANSFORMS[label]
+
+    response = client.post("/onboard", data={
+        "slug": "leaky-" + label, "name": value,
+        "base_url": "https://demo.test", "allowed_domains": "demo.test",
+    }, follow_redirects=False)
+
+    assert response.status_code == 400, f"{label}: {value!r} was accepted"
+    assert not (scratch_root / "projects" / ("leaky-" + label)).exists()
+
+def test_a_percent_encoded_credential_in_one_field_is_blamed_on_that_field(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """AT-346's composition, isolated to the per-field guard.
+
+    Detection is redundant -- the joined guard would also catch this -- so the
+    message is the only discriminator, exactly as for AT-339. Reverting
+    composition at this call site makes the refusal claim the credential is
+    "split across" one field, which is false and unactionable."""
+    _seed(client, scratch_root, "seedpe")
+
+    response = client.post("/onboard", data={
+        "slug": "leaky-pe", "name": UPPER_CREDENTIAL.lower().replace("_", "%5F"),
+        "base_url": "https://demo.test", "allowed_domains": "demo.test",
+    }, follow_redirects=False)
+
+    assert response.status_code == 400
+    assert "the name looks like it contains a real credential" in response.text
+    assert "split across" not in response.text

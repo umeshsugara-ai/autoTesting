@@ -1,0 +1,64 @@
+{
+  "tests": [
+    "tests/test_ui_credential_transforms.py",
+    "tests/test_ui_credential_unicode.py"
+  ],
+  "mutations": [
+    {
+      "name": "format characters are no longer stripped - the zero-width leak reopens",
+      "file": "src/autotester/core/redact.py",
+      "old": "    stripped = \"\".join(c for c in text if unicodedata.category(c) != \"Cf\")",
+      "new": "    stripped = text",
+      "kills": [
+        "tests/test_ui_credential_unicode.py::test_a_unicode_spelling_of_a_credential_is_refused[zero-width-interleaved]"
+      ]
+    },
+    {
+      "name": "NFKC normalisation dropped - full-width Latin walks through",
+      "file": "src/autotester/core/redact.py",
+      "old": "    normalised = unicodedata.normalize(\"NFKC\", stripped).translate(ASCII_CONFUSABLES)",
+      "new": "    normalised = stripped.translate(ASCII_CONFUSABLES)",
+      "kills": [
+        "tests/test_ui_credential_unicode.py::test_a_unicode_spelling_of_a_credential_is_refused[full-width-latin]"
+      ]
+    },
+    {
+      "name": "the confusable map is never applied - the dotless i walks through",
+      "file": "src/autotester/core/redact.py",
+      "old": "    normalised = unicodedata.normalize(\"NFKC\", stripped).translate(ASCII_CONFUSABLES)",
+      "new": "    normalised = unicodedata.normalize(\"NFKC\", stripped)",
+      "kills": [
+        "tests/test_ui_credential_unicode.py::test_a_unicode_spelling_of_a_credential_is_refused[turkish-dotless-i]"
+      ]
+    },
+    {
+      "name": "the separator class narrows back to AT-339's - plus and friends walk through (not the + form: unquote_plus makes that a space)",
+      "file": "src/autotester/core/redact.py",
+      "old": "_FOLD_STRIP = re.compile(r\"[\\s\\-_.+~/:|,;!?*=^'\\\"`()\\[\\]{}<>\\\\]+\")",
+      "new": "_FOLD_STRIP = re.compile(r\"[\\s\\-_.]+\")",
+      "kills": [
+        "tests/test_ui_credential_transforms.py::test_a_reversible_transform_of_a_credential_is_refused[tilde-separator]",
+        "tests/test_ui_credential_transforms.py::test_a_reversible_transform_of_a_credential_is_refused[slash-separator]",
+        "tests/test_ui_credential_transforms.py::test_a_reversible_transform_of_a_credential_is_refused[colon-separator]"
+      ]
+    },
+    {
+      "name": "the fold stops composing with the variants (AT-346) - percent-escapes walk through",
+      "file": "src/autotester/ui/helpers.py",
+      "old": "    variants = _credential_variants(value)\n    if (any(not redactor.is_clean(v) for v in variants)\n            or any(redactor.contains_folded(v) for v in variants)):",
+      "new": "    variants = _credential_variants(value)\n    if (any(not redactor.is_clean(v) for v in variants)\n            or redactor.contains_folded(value)):",
+      "kills": [
+        "tests/test_ui_credential_transforms.py::test_a_percent_encoded_credential_in_one_field_is_blamed_on_that_field"
+      ]
+    },
+    {
+      "name": "stripping happens AFTER normalising - order is load-bearing, not decorative",
+      "file": "src/autotester/core/redact.py",
+      "old": "    stripped = \"\".join(c for c in text if unicodedata.category(c) != \"Cf\")\n    normalised = unicodedata.normalize(\"NFKC\", stripped).translate(ASCII_CONFUSABLES)",
+      "new": "    normalised = unicodedata.normalize(\"NFKC\", text).translate(ASCII_CONFUSABLES)\n    normalised = \"\".join(c for c in normalised if unicodedata.category(c) != \"Cf\")",
+      "kills": [
+        "tests/test_ui_credential_unicode.py::test_format_characters_are_stripped_before_normalising"
+      ]
+    }
+  ]
+}

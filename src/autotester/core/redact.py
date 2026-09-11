@@ -7,13 +7,37 @@ prompt, a log file, or an artifact on disk. Only placeholders travel.
 from __future__ import annotations
 
 import re
+import unicodedata
 from collections.abc import Iterable
 from typing import Any
 
 MASK = "[REDACTED]"
 PLACEHOLDER_RE = re.compile(r"\{\{SECRET:([A-Z0-9_]+)\}\}")
 
-_FOLD_STRIP = re.compile(r"[\s\-_.]+")
+_FOLD_STRIP = re.compile(r"[\s\-_.+~/:|,;!?*=^'\"`()\[\]{}<>\\]+")
+r"""The punctuation a human actually substitutes for a separator. Widened from
+`[\s-_.]` by AT-345, where `+`, `~`, `/` and `:` each carried a live credential
+into a git-tracked file."""
+
+ASCII_CONFUSABLES = str.maketrans({
+    "\u0131": "i",  # Turkish dotless i -- NFKC leaves it, casefold leaves it
+    "\u0130": "i",  # Turkish dotted capital I
+    "\u0430": "a", "\u0435": "e", "\u043e": "o", "\u0440": "p",  # Cyrillic a e o r
+    "\u0441": "c", "\u0445": "x", "\u0443": "y", "\u0456": "i",  # Cyrillic s h u i
+    "\u0458": "j", "\u04bb": "h", "\u0432": "b",
+    "\u03bf": "o", "\u03b1": "a", "\u03bd": "v", "\u03c1": "p",  # Greek o a n r
+    "\u2044": "/", "\u2010": "-", "\u2011": "-", "\u2012": "-",  # dash-likes
+    "\u2013": "-", "\u2014": "-", "\u2212": "-",
+})
+"""Characters that LOOK like ASCII letters a credential is made of.
+
+Deliberately partial, and said plainly rather than implied: this is a curated
+list, NOT an implementation of UTS #39 confusables. It covers the homoglyph
+families that actually appear in Latin-script credentials -- Cyrillic, Greek,
+the Turkish dotless i a checker used to walk a live value past the guard -- and
+it will not catch an exotic script nobody has tried yet. AT-349 tracks the
+completeness gap so this bound is visible instead of assumed."""
+
 MIN_FOLDED_LEN = 8
 """Folded matching needs a floor, because folding is a HEURISTIC widening: it
 deliberately matches strings that are not byte-equal to any secret, so a very
@@ -25,8 +49,14 @@ the real value is still refused at any length, by `is_clean`."""
 
 
 def fold_credential(text: str) -> str:
-    """Casefold and drop separators, so the forms of a credential that anyone
-    can reverse in their head compare equal.
+    r"""Normalise away the forms of a credential that anyone can reverse in
+    their head, so they compare equal.
+
+    Order is load-bearing. Format characters go FIRST: a zero-width space
+    between every letter would otherwise sit inside each pair NFKC and the
+    confusable map are trying to see. Then NFKC (full-width Latin, the Kelvin
+    sign, other compatibility forms), then the confusable map, then separators,
+    then case.
 
     AT-339: a checker put slug `zebra-quilt-apikey-31` past the guard for the
     live value `ZEBRA_QUILT_APIKEY_31`; it became the on-disk directory name,
@@ -35,8 +65,16 @@ def fold_credential(text: str) -> str:
     whitespace (AT-071) but never CASE -- because every test in the suite used
     a value that was already lowercase-with-hyphens, the one casing where a
     substring test happens to work.
+
+    AT-345: the first version of this fold covered only `[\s-_.]` and a plain
+    `casefold`, and a checker walked four more forms of the same live value
+    into git-tracked files. The worst was a ZERO-WIDTH space between every
+    character: U+200B has no width, so the project name rendered as the exact
+    credential on the home index -- a human reading the page saw the secret.
     """
-    return _FOLD_STRIP.sub("", text).casefold()
+    stripped = "".join(c for c in text if unicodedata.category(c) != "Cf")
+    normalised = unicodedata.normalize("NFKC", stripped).translate(ASCII_CONFUSABLES)
+    return _FOLD_STRIP.sub("", normalised).casefold()
 
 
 class Redactor:

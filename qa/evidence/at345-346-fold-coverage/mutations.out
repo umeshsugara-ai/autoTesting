@@ -1,0 +1,20 @@
+KILLED  format characters are no longer stripped - the zero-width leak reopens  (pytest exit 1)
+    claims to kill : tests/test_ui_credential_unicode.py::test_a_unicode_spelling_of_a_credential_is_refused[zero-width-interleaved]
+    actually failed: tests/test_ui_credential_unicode.py::test_a_unicode_spelling_of_a_credential_is_refused[zero-width-interleaved], tests/test_ui_credential_unicode.py::test_format_characters_are_stripped_before_normalising
+KILLED  NFKC normalisation dropped - full-width Latin walks through  (pytest exit 1)
+    claims to kill : tests/test_ui_credential_unicode.py::test_a_unicode_spelling_of_a_credential_is_refused[full-width-latin]
+    actually failed: tests/test_ui_credential_unicode.py::test_a_unicode_spelling_of_a_credential_is_refused[full-width-latin], tests/test_ui_credential_unicode.py::test_format_characters_are_stripped_before_normalising
+KILLED  the confusable map is never applied - the dotless i walks through  (pytest exit 1)
+    claims to kill : tests/test_ui_credential_unicode.py::test_a_unicode_spelling_of_a_credential_is_refused[turkish-dotless-i]
+    actually failed: tests/test_ui_credential_unicode.py::test_a_unicode_spelling_of_a_credential_is_refused[turkish-dotless-i]
+KILLED  the separator class narrows back to AT-339's - plus and friends walk through (not the + form: unquote_plus makes that a space)  (pytest exit 1)
+    claims to kill : tests/test_ui_credential_transforms.py::test_a_reversible_transform_of_a_credential_is_refused[colon-separator], tests/test_ui_credential_transforms.py::test_a_reversible_transform_of_a_credential_is_refused[slash-separator], tests/test_ui_credential_transforms.py::test_a_reversible_transform_of_a_credential_is_refused[tilde-separator]
+    actually failed: tests/test_ui_credential_transforms.py::test_a_reversible_transform_of_a_credential_is_refused[colon-separator], tests/test_ui_credential_transforms.py::test_a_reversible_transform_of_a_credential_is_refused[slash-separator], tests/test_ui_credential_transforms.py::test_a_reversible_transform_of_a_credential_is_refused[tilde-separator]
+KILLED  the fold stops composing with the variants (AT-346) - percent-escapes walk through  (pytest exit 1)
+    claims to kill : tests/test_ui_credential_transforms.py::test_a_percent_encoded_credential_in_one_field_is_blamed_on_that_field
+    actually failed: tests/test_ui_credential_transforms.py::test_a_percent_encoded_credential_in_one_field_is_blamed_on_that_field
+KILLED  stripping happens AFTER normalising - order is load-bearing, not decorative  (pytest exit 1)
+    claims to kill : tests/test_ui_credential_unicode.py::test_format_characters_are_stripped_before_normalising
+    actually failed: tests/test_ui_credential_unicode.py::test_format_characters_are_stripped_before_normalising
+
+6/6 mutations killed

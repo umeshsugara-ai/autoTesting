@@ -106,9 +106,15 @@ def _credential_variants(text: str) -> list[str]:
 
     AT-339: case and separator transforms are NOT handled here, because they
     need both sides folded and only the redactor holds the values — see
-    `Redactor.contains_folded`, checked alongside these variants at each call
+    `Redactor.contains_folded`, applied to EVERY form in this list at each call
     site. Adding a `.casefold()` entry to this list would have done nothing:
     the stored value would still be compared in its original case.
+
+    AT-346: the fold used to be applied to the raw text only, never to these
+    variants, so each guard covered exactly the half the other did not —
+    `zebra%5Fquilt%5Fapikey%5F31` survived folding with its escapes intact, and
+    the `unquote_plus` form that would have exposed it was only ever compared
+    byte-for-byte. Composition is the point: decode, THEN fold.
     """
     decoded = unquote_plus(text)
     return [
@@ -156,8 +162,9 @@ def _refuse_unsafe_value(
         # data the system itself already stored, never fresh input (AT-083).
         return
     redactor = secrets.redactor()
-    if (any(not redactor.is_clean(v) for v in _credential_variants(value))
-            or redactor.contains_folded(value)):
+    variants = _credential_variants(value)
+    if (any(not redactor.is_clean(v) for v in variants)
+            or any(redactor.contains_folded(v) for v in variants)):
         raise HTTPException(400, (
             f"{field} looks like it contains a real credential. Values are stored in "
             f"the repository in plain text and appear in screenshots, so they must "
@@ -197,8 +204,9 @@ def _refuse_unsafe_submission(
     fresh = [(label, text.strip()) for label, text in texts if text.strip() not in exempt]
     joined = "".join(text for _label, text in fresh)
     redactor = secrets.redactor()
-    if joined and (any(not redactor.is_clean(v) for v in _credential_variants(joined))
-                   or redactor.contains_folded(joined)):
+    joined_variants = _credential_variants(joined)
+    if joined and (any(not redactor.is_clean(v) for v in joined_variants)
+                   or any(redactor.contains_folded(v) for v in joined_variants)):
         raise HTTPException(400, (
             "a real credential appears to be split across "
             f"{', '.join(sorted({label for label, _t in fresh}))}. Declare it in Project "

@@ -81,7 +81,9 @@ and is left for the checker to raise on its own evidence rather than settled qui
 - `uv run pytest -q` → expected: exit 0, no failures
 - `uv run ruff check src tests scripts` → expected: `All checks passed!`
 - `uv run autotester doctor` → expected: `doctor: clean`
-- `uv run pytest tests/test_ui_credential_transforms.py -q` → expected: 10 passed
+- `uv run pytest tests/test_ui_credential_transforms.py -q` → expected: 7 passed
+  (AT-348: this said 10. It was the one verify command whose ACTUAL output I never pasted,
+  so the number was written from intent rather than from a run — the AT-306 class again.)
 - `uv run python scripts/mutation_check.py qa/evidence/at339-credential-guard-case-folding/mutations.json`
   → expected: `6/6 mutations killed` (C7)
 
@@ -118,4 +120,4 @@ by a checker in a live browser. **The checker should run Mode D and treat its ow
 authoritative** — a checker's live pass is the validation here regardless, since the maker never
 validates its own ship.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, verdict qa/verdicts/at339-credential-guard-case-folding.md)
