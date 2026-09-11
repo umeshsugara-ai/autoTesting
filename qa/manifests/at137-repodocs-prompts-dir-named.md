@@ -85,4 +85,4 @@ never the live tree (AT-101 discipline):**
 **Not UI-touching — no surface changed.** Changed paths: `src/autotester/core/paths.py`,
 `tests/test_ledger.py`. Pure path-resolution logic + tests, no route/template touched.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, verdict qa/verdicts/at137-repodocs-prompts-dir-named.md, commit d639adb)
