@@ -575,3 +575,20 @@ itself is not a gate (same reasoning that refused `qa/loop.md` a home for the sa
 the contract's amendment log; verdict `qa/verdicts/at306-verification-artifact-integrity.md`.
 
 2026-09-11 · maker (decision delegated by Umesh: "take the best decision as per the goal and keep going") · PATTERN: a guard with no written threat model cannot terminate, because the acceptance line moves with whoever is judging it. EVIDENCE: at345-346-fold-coverage took three fix cycles and three checker FAILs on one line of fold_credential; execution improved monotonically every cycle (1145 green, 10/10 mutations killed with attribution hand-verified, 11/11 false-positive probes accepted, doctor clean) while the score stayed pinned at 0/2. qa/contracts/ui.md U8/U9 pin a BYTE-FOR-BYTE property that none of AT-345/351/353/355 actually violates -- the cycle-1 checker said so and filed rather than charged on exactly that reading -- so what was really enforced was an unwritten rendering-equivalence standard whose edge MOVED mid-cycle when cycle 3 promoted a filed-only class to a charged failure on a fresh measurement. APPLIES NEXT: every guard in this repo that refuses input (the consent gate AT-110, the crawl safety deny-lists, assert_no_raw_secrets AT-347). PROPOSED AMENDMENT for /checker to fold as U11 in qa/contracts/ui.md: (1) state the threat model -- the credential guard defends against ACCIDENTAL exposure (a human pasting a value into a text box, an agent writing one into a git-tracked file) and NOT against a party who already holds the value, since anyone who can construct a deliberate re-spelling read it out of .env first; this is AT-110's tamper-evidence-not-tamper-proofing posture in another costume. (2) Name the in-scope transform classes: case, separator substitution, percent-encoding, whitespace, zero-width and format characters, control characters, and the curated homoglyph set. (3) Name the OUT-of-scope classes explicitly rather than leaving them to be discovered: bidi reordering beyond the override refusal, base64/base32/hex, HTML entities, double percent-encoding, reversal, and homoglyphs outside the curated map (AT-349, AT-352, AT-355's residue). (4) Add the rule the stall diagnosis identified: MOVING A CLASS FROM FILED TO CHARGED IS AN AMENDMENT, NOT A MEASUREMENT -- a checker may file a new class at any time, but charging it against a unit built before the class existed requires the contract to say so first. Gate with the full reasoning: qa/gates/at355-guard-shape.md. Diagnosis: qa/debug/at345-346-fold-coverage-cycle3.md.
+
+**FOLDED:** 2026-09-11 by `/checker` (contract maintenance) into `qa/contracts/ui.md` as **U13** —
+not U11: U11 (crawl authorisation) and U12 (unified intake) already exist, so the proposal's
+number was stale, not the proposal. **Criticality ruled ROUTINE (documents, does not narrow),**
+with the reasoning and the three pieces of evidence in that contract's amendment log: U8/U9 pin
+raw values and byte-for-byte reassembly, so out-of-scope text removes nothing a criterion ever
+said; no shipped defence is authorised away and the in-scope set is now a floor whose removal is
+CRITICAL; and AT-349/AT-352/AT-356 stay OPEN at their filed severities — out of scope means not
+charged, not closed. All four requested contents are carried (threat model, in-scope classes,
+out-of-scope classes by name, amendment-not-a-measurement). Independent judgement on the maker's
+two calls: **option B rightly rejected** (unbounded on the false-positive axis; AT-078/AT-086 are
+measured precedents; it would not close AT-349 at all, since homoglyphs live inside an
+allow-list), and the narrow half of A **upheld** as an in-scope criterion. The `visualOrder`
+detector is **not** discharged by this amendment — filed as **AT-358** (medium). The gate's
+"three refuted unreachability claims" item was treated as a **separate** amendment with its own
+criticality judgement (also ROUTINE, a duty added) and folded into
+`qa/contracts/core-invariants.md` **C7**.

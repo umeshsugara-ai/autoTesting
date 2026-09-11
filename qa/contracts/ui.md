@@ -186,6 +186,59 @@ project is refused even when that other declaration is currently unset. Security
 values themselves is additionally governed by B10 and C5; U12 does not weaken U1-U11.
 
 
+### U13 — The credential guard's spelling threat model is written down, and its edge does not move
+The guard that U8, U9, U10 and U12 each invoke (`ui/helpers.py::_refuse_unsafe_submission`)
+defends against **ACCIDENTAL exposure**: a hurried human pasting a credential into a text box, or
+an agent writing one into a git-tracked file. It does **not** defend against a party who already
+holds the value. That distinction is load-bearing rather than convenient — every spelling declared
+out of scope below must be *constructed* from the credential, so whoever built it read the value
+out of `.env` first, and no guard can protect a secret from someone who has it. This is
+`consent.md` CN3's tamper-evidence-not-tamper-proofing posture (AT-110) on a second boundary.
+
+**In scope.** These are the transforms that arrive by accident — a paste out of a terminal or a
+PDF carrying stray marks, a re-type with different punctuation, a value copied through a URL bar.
+A finding in any of them is a FAIL against U8/U9, not a filing:
+case; separator substitution across the punctuation set in `core.redact._FOLD_STRIP`; single
+percent-encoding and `+`-decoding (`ui.helpers._credential_variants`); whitespace of every kind,
+including interleaved; zero-width and default-ignorable code points (`core.redact._DEFAULT_IGNORABLE`);
+format characters (category `Cf`); control characters (category `Cc`, `U+0000` included); the
+curated homoglyph set in `core.redact.ASCII_CONFUSABLES`; and the bidi **overrides**
+`U+202D`/`U+202E`, which are **refused outright rather than folded away** — subtracting them
+deletes the character that causes the reordering and then compares a string that is not the
+credential, so the deny-list's usual widen-to-see-more move makes this one class strictly worse
+(AT-355). This list is a **floor, not a ceiling**: removing any strip or refusal named here is a
+CRITICAL amendment, never a simplification a later unit may make on its own.
+
+**Out of scope, by name.** Each of these needs deliberate construction by someone holding the
+value, and all but the first need a decoding step the reader must take on purpose: bidi handling
+beyond the override refusal (`U+200E`/`U+200F` and the embeddings and isolates are ordinary
+punctuation in Hebrew and Arabic text and do not reverse a pure-ASCII run — refusing them costs
+real input, and false-positive rate is a term in the north star); base64, base32 and hex;
+HTML numeric and named entities; double percent-encoding; plain reversal with no direction
+control; homoglyphs outside the curated map (AT-349); and visible combining marks (AT-356).
+Out of scope means **filed, never charged** — it does not mean closed and it does not mean
+forgotten: AT-349, AT-352 and AT-356 stay open at their recorded severities, and this criterion is
+not a licence to close them.
+
+**Moving a class from FILED to CHARGED is an amendment, not a measurement.** A checker may file a
+new spelling class at any time, at whatever severity the evidence supports. **Charging** one
+against a unit requires this criterion to name it first; moving a class in or out is a contract
+amendment under the criticality gate, decided away from any pending verdict. A fresh measurement
+proving an out-of-scope class real is evidence *for* such an amendment, never a substitute for one.
+This clause exists because the opposite happened: three fix cycles and three FAILs on one line of
+`fold_credential`, each charging a class no written criterion covered, with the boundary redrawn at
+cycle 3 on a fresh measurement (`qa/debug/at345-346-fold-coverage-cycle3.md`, gate
+`qa/gates/at355-guard-shape.md`). A loop whose acceptance line the judge moves mid-cycle cannot
+terminate, whatever the maker builds.
+
+**Two things this criterion does not do.** It does not adopt an allow-list of readable characters:
+that is unbounded with the sign flipped, its failure mode is refusing legitimate input, and AT-078
+and AT-086 are two measured occasions when this guard made a real project uneditable — reopening
+it needs a written character inventory and its own gate, not a quiet retry. And an enumeration is
+itself a deny-list, so this criterion does not discharge the positive rendering detector
+(`visualOrder`, the only instrument that caught AT-355 and still living in a checker's evidence
+directory) — that port is tracked as **AT-358** and is owed regardless of anything written here.
+
 ## No-fire list
 
 - Authentication/authorization — this is a local, single-operator tool for now (matches the
@@ -356,3 +409,39 @@ values themselves is additionally governed by B10 and C5; U12 does not weaken U1
   idempotent sources, re-onboarding refusal and cross-project credential-key ownership into the
   living UI contract before judging the unit. Tightening only: U1-U11 are unchanged; raw-value
   confidentiality is pinned separately by B10/C5 so a product-flow criterion cannot soften it.
+- 2026-09-11 · /checker (contract maintenance, no unit in flight) · **new criterion U13 added** —
+  folds the 2026-09-11 maker inbox entry (*"a guard with no written threat model cannot
+  terminate"*) and the answered gate `qa/gates/at355-guard-shape.md` (option C plus the narrow
+  half of A, decided by the maker under Umesh's delegation). **Criticality: ROUTINE, and the
+  judgement was close enough to state.** The proposal reads as a NARROWING — it declares spelling
+  classes out of scope — and a narrowing of a safety boundary is the one amendment a checker may
+  not apply alone. It is not one, on three pieces of evidence. (i) **Nothing written is removed.**
+  U8/U9 pin *raw* values and byte-for-byte reassembly; none of AT-345/AT-349/AT-351/AT-352/AT-353/
+  AT-355/AT-356 is a raw value, which is exactly why the checker who first met this class **filed
+  rather than charged** it. The standard three cycles later charged against — rendering
+  equivalence — was written in verdict prose and nowhere in this contract, so out-of-scope text
+  subtracts nothing that a criterion ever said. (ii) **No shipped defence is authorised away.**
+  Every in-scope class named here is defended in code today (`core/redact.py::fold_credential`,
+  `_is_ignorable`, `_DEFAULT_IGNORABLE`, `ASCII_CONFUSABLES`; `ui/helpers.py::_credential_variants`,
+  `_refuse_direction_override`), and U13 makes that set a floor whose removal is CRITICAL — so the
+  criterion ends **stronger** than the silence it replaces: the AT-345/AT-351/AT-353 fixes and the
+  bidi-override refusal are contract-bound for the first time. (iii) **The out-of-scope classes
+  stay open in the ledger at their filed severities** (AT-349 low, AT-352 medium, AT-356 medium);
+  out of scope means *not charged*, not *closed*. This documents a boundary the contract already
+  had rather than moving one, which is the routine lane. The one genuine change in what may be
+  enforced — a future checker can no longer charge an unlisted class — is the amendment-not-a-
+  measurement rule, and it is procedural, reversible by a gated amendment, and the direct remedy
+  for the non-termination measured in `qa/debug/at345-346-fold-coverage-cycle3.md`.
+  **Independent judgement on the two calls the maker made:** option B (allow-list) was **rightly
+  rejected** — it is unbounded on the false-positive axis, `false-positive rate` is a scored term
+  in the north star, AT-078/AT-086 are measured precedents of this guard bricking a real project,
+  the product ingests arbitrary third-party selectors/JWTs/multilingual expectation text so "the
+  scripts the product actually stores" cannot be enumerated in advance, and it would not close
+  AT-349 at all since homoglyphs live *inside* an allow-list. The narrow half of A is **upheld**
+  as the in-scope bidi-override refusal. **Not discharged by this amendment:** the `visualOrder`
+  positive detector, filed as **AT-358** (medium). U1-U12 are unchanged and none is softened;
+  `at355-refuse-bidi-overrides` is `ready-for-check` as this is written and U13 **tightens**
+  against it (it makes that refusal a criterion), so the "never amend toward a pending verdict"
+  rule is satisfied in the safe direction. Numbered U13 because U11 (crawl authorisation) and U12
+  (unified intake) already exist — the inbox entry's "fold as U11" is a stale number, not a stale
+  proposal.
