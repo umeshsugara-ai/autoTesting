@@ -317,3 +317,170 @@ EXPLANATION: All four of AT-341's named points are genuinely fixed — read fres
   same unit, at a call site the fix did not trace — not evidence the fixed sinks are wrong, but
   evidence the credential boundary (B4/C5) is not yet fully closed for this unit.
 ```
+
+## Cycle 3 — LAST ALLOWED CYCLE, extra adversarial rigor
+
+**Date:** 2026-09-11
+**Mode:** A (unit check), cycle 3, EXTRA adversarial rigor — credential boundary CRITICAL,
+FAILed twice already (AT-341 cycle 1, AT-350 cycle 2). If this FAILs, the unit goes STALLED.
+Fresh checker instance, no access to any prior checker's or the maker's reasoning — cycle 1 and
+cycle 2 verdicts and the ledger read fresh from disk, the code re-read from zero.
+
+### AT-350's fix confirmed genuine, not just claimed
+
+Read the current source directly (not trusted from the manifest's narrative):
+
+1. **`src/autotester/browser/secrets.py:226-230`** — new `SecretStore.scrub_optional(text)`:
+   `return self.redactor().scrub(text) if text else text`. A shared one-liner, correctly
+   passes `None`/empty text through unchanged.
+2. **`src/autotester/stages/explore.py::_finish` (line 217)** — `"stop_reason":
+   rt.session.secrets.scrub_optional(rt.stop_reason),  # AT-350` — scrubbed at the single write
+   site, exactly the "better" structural approach the cycle-2 verdict's `expected` field named
+   (covers `login_precheck_error`, `seed_error`, and any future source of `stop_reason` by
+   construction, not by enumerating call sites).
+3. **`src/autotester/stages/execute.py::_result` (lines 105-106)** and
+   **`src/autotester/stages/explore_node.py::add_issue`/`record_edge` (lines 54, 68)** — cycle-2's
+   own hand-written scrub calls now route through the same shared `scrub_optional` helper (DRY
+   cleanup, no behavior change — confirmed by reading all three call sites).
+
+### Independent re-run, own isolated extract, never the live tree
+
+`git archive HEAD | tar -x` into a fresh scratch dir (`C:\...\scratchpad\at076_check3`), own
+`uv sync` venv, confirmed `autotester.__file__` resolves inside the extract (not `D:\autoTesting`).
+Confirmed `tests/test_explore_secret_scrubbing.py` is tracked as of HEAD (`git ls-files` — no
+manual copy needed, contrary to what the manifest's cycle-3 sabotage section implied might be
+necessary; commit `656f7f8` already includes it).
+
+**Baseline asserted green (C7) before trusting any mutation:** the seven touched/relevant test
+files (`test_browser.py test_browser_navigation_secrets.py test_secrets.py test_execute.py
+test_explore_error_causes.py test_explore_secret_scrubbing.py test_explore.py`) — 89 passed, exit 0.
+
+- **Mutation D — reverted `_finish`'s `scrub_optional` call** (anchor
+  `"stop_reason": rt.session.secrets.scrub_optional(rt.stop_reason),  # AT-350` matched exactly
+  once; diffed to confirm the file changed before running): **exactly the 1 predicted test
+  failed** — `test_a_seed_failures_exception_message_is_scrubbed_in_the_persisted_crawl` — with
+  `zorro-battery-42` visible verbatim in the assertion diff (`'zorro-battery-42' is contained
+  here: pp.test/?t=zorro-battery-42`). Attribution confirmed by test name, not just exit code.
+- **Restored from the saved original, re-confirmed green** (`test_explore_secret_scrubbing.py`
+  alone, 3 passed) before proceeding — the baseline-before-mutation discipline applied to the
+  restore too, not only the first mutation.
+- **Mutation E — made the shared `SecretStore.scrub_optional` a no-op** (`return text` in place
+  of `return self.redactor().scrub(text) if text else text`; anchor matched exactly once,
+  diffed to confirm): **exactly the 4 predicted tests failed across three files** —
+  `test_a_secret_value_inside_an_exception_message_is_scrubbed_before_persisting` (execute.py),
+  `test_add_issue_scrubs_a_secret_out_of_the_detail_before_persisting` and
+  `test_record_edge_scrubs_a_secret_out_of_the_reason_before_persisting` (explore_node.py), and
+  `test_a_seed_failures_exception_message_is_scrubbed_in_the_persisted_crawl` (explore.py) —
+  proving the DRY refactor genuinely wires every caller through the shared helper, not just the
+  ones it was written against.
+- Both mutations restored from saved originals; **live tree (`D:\autoTesting`) confirmed
+  untouched** — `git status --porcelain` on the four touched paths stayed clean throughout this
+  entire check.
+
+**One environment artifact surfaced and set aside, not charged to this unit:** running the FULL
+`uv run pytest -q` inside the isolated extract (rather than the targeted file list) produced one
+failure — `test_ui_sources.py::test_uploaded_recordings_are_gitignored`, which shells out to
+`git check-ignore` and fails with `fatal: not a git repository` because a `git archive` extract
+has no `.git` directory. This is a pre-existing property of the isolation methodology itself (the
+test existed unchanged at both the cycle-1 and cycle-2 commits), not something cycle 3 touched or
+regressed, and has nothing to do with the credential boundary. Re-running the actual required
+verify commands in their proper environment — the live tree — settles it cleanly (next section).
+
+### Verify commands re-run myself, in the live tree (the correct environment for ordinary verify,
+### per the default coding adapter — the isolated extract is for sabotage/mutation only)
+
+- `uv run pytest tests/test_browser.py tests/test_browser_navigation_secrets.py tests/test_secrets.py tests/test_execute.py tests/test_explore_error_causes.py tests/test_explore_secret_scrubbing.py tests/test_explore.py -q`
+  → **89 passed**, exit 0.
+- `uv run pytest -q` (full suite, live tree) → **exit 0**, one skip (the real-Chromium test,
+  expected — browsers not installed in this env).
+- `uv run ruff check src tests scripts` → **All checks passed!**
+- `uv run autotester doctor` → **doctor: clean**
+
+All match the manifest's claims exactly.
+
+### Adversarial sixth-sink hunt (required by this dispatch — genuinely tried, not just confirmed)
+
+(a) **`manual_login.py`** — read in full (`src/autotester/stages/manual_login.py`). Loads
+`SecretStore.load(project, paths.env_file, strict=False)` but never calls `resolve`,
+`resolve_for_navigation`, or references any `SecretRef` value — `session.goto(project.base_url)`
+navigates to the project's own configured base URL, not a placeholder. No path for a resolved
+secret to reach an exception message here. **`cli_video.py`** — grepped the whole `src/` tree for
+`goto(` / `.fill(` call sites; `cli_video.py` performs no browser navigation of its own (it drives
+video/recording ingestion, not live navigation). No other stage calls `session.goto` outside
+`execute.py` (already scrubbed via `_result`), `explore.py` (already scrubbed via `_finish`), and
+`explore_node.py`'s `_perform`/`try_action` (already scrubbed via `record_edge`/`add_issue`, and
+its `except NavigationRefused`/`except Exception` handlers both route through those, confirmed by
+re-reading `explore_node.py:117-139`). No new sink found.
+
+(b) **`scrub_optional`/`Redactor.scrub` correctness on adversarial inputs**, verified directly
+against the live-tree source (read-only, no mutation): (i) already-partially-redacted text —
+`scrub` is idempotent by construction (replacing a value that isn't present is a no-op), so
+calling it twice or on text that already contains `[REDACTED]:KEY` from an earlier pass changes
+nothing further; no double-redaction artifact. (ii) two different secrets embedded in one
+message — `Redactor.__init__` sorts `self._values` longest-first and `scrub` **loops over every
+value**, not just the first match, replacing each independently. Confirmed live:
+`Redactor({'K1':'secretone','K2':'secrettwo'}).scrub('boom at secretone and also secrettwo in one
+string')` → `'boom at [REDACTED]:K1 and also [REDACTED]:K2 in one string'` — both distinct secrets
+masked in a single string. This directly answers checklist item (b): the scrub discipline is
+structurally sound for the multi-secret case, not merely untested.
+
+(c) **UI rendering chain re-verified end to end**, not assumed safe because persistence is now
+scrubbed: `src/autotester/ui/crawl_view.py:42,51` and `src/autotester/ui/routes_crawls.py:112` and
+`src/autotester/cli_crawl.py:107` all render `crawl.stop_reason` — read from the persisted `Crawl`
+model, which is scrubbed once at `_finish` before `save_crawl` ever runs, so every reader downstream
+is safe by construction. `src/autotester/ui/routes_report.py:146` renders `r.error` (`RawResult.error`)
+— scrubbed at `execute.py::_result` before the `RawResult` is ever built or persisted. Both chains
+traced from write site to render site; no UI surface reads an unscrubbed field.
+
+### Contract criteria judged (B2, B3, B6) + core-invariants C5
+
+- **B2** — untouched, unaffected either direction, still covered by its own tests.
+- **B3** (domain scoping enforced) — met; cycles 1-3's combined mutation evidence (this unit's own
+  resolution-order/domain-scope logic, `check_destination`'s message, and now three
+  persistence-layer scrub call sites) all independently proven load-bearing.
+- **B6** (bounded navigation) — met functionally and its refusal message is clean (unchanged since
+  cycle 2, re-confirmed by reading `session.py:61-71` again).
+- **B4/core-invariants C5 (evidence is clean)** — **now fully closed for this unit.** All four
+  named sinks across three cycles (`check_destination`'s message, `execute.py::_result`,
+  `explore_node.py::add_issue`/`record_edge`, `explore.py::_finish`'s `stop_reason`) are genuinely
+  scrubbed, independently mutation-tested with exactly the predicted failures each time, and the
+  sixth-sink hunt against `manual_login.py`/`cli_video.py`, the multi-secret scrub case, and the
+  full UI render chain found nothing further. The manifest's own disclosed-gap scope ("only the
+  four sinks two independent checker cycles traced and reproduced") is honestly stated and, as far
+  as this cycle's adversarial search can tell, is now the complete set.
+
+### Verdict block
+
+```
+VERDICT: PASS
+SCOREBOARD: 4/4 criteria met (B2, B3, B6, B4/core-invariants C5), 1/1 invariant holds
+FAILURES (if any): none
+LIVE-BROWSER: not-applicable (src/autotester/browser/secrets.py, src/autotester/browser/session.py,
+  src/autotester/stages/explore.py, execute.py, explore_node.py — browser-session internals and
+  non-UI stage code, no route/template changed; FakePage-backed unit tests and a real run_crawl
+  with a monkeypatched goto are this project's established instrument for this layer, consistent
+  with cycles 1-2; the UI render chain (crawl_view.py, routes_crawls.py, cli_crawl.py,
+  routes_report.py) was traced read-only from write site to render site rather than driven live,
+  since none of those templates/routes changed in this unit and the property being checked is
+  "does the persisted value ever carry a secret", answered by the persistence-layer proof, not by
+  a browser click)
+ISSUES-WRITTEN: AT-350 flipped open -> fixed (three independent mutation kills: reverted the
+  single-write-site scrub call, and separately neutered the shared helper — both produced exactly
+  their predicted failure sets, live tree confirmed untouched throughout)
+EXPLANATION: All three cycles' named defects (AT-341's three sinks, AT-350's fourth) are genuinely
+  fixed, re-confirmed by reading current source from zero and by independently re-breaking two
+  distinct points (the single write-site call, and the shared helper itself) in an isolated
+  git-archive extract — each mutation produced exactly its predicted failure set with correct
+  attribution, never a bare exit-code read. All four verify commands re-run clean in the live tree
+  (89/89 on the targeted files, full suite exit 0 with one expected skip, ruff clean, doctor
+  clean); the one red result seen along the way (test_uploaded_recordings_are_gitignored inside
+  the isolated extract) is a pre-existing git-check-ignore environment artifact of extracting
+  without a .git directory, present since before this unit and unrelated to the credential
+  boundary — traced to its root cause and set aside, not charged. A genuine sixth-sink hunt (not a
+  restatement of the fifth) checked manual_login.py, cli_video.py, the Redactor's handling of two
+  distinct secrets in one string (confirmed both masked independently, live), and the full
+  UI-render chain from persisted field to template (both stop_reason and RawResult.error trace
+  back to their single scrub-before-persist write site) — and found nothing further. The
+  credential boundary this contract's B4/C5 exist to hold is closed for everything this unit
+  touches.
+```
