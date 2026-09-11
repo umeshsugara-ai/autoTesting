@@ -55,3 +55,12 @@ def test_root_clutter_is_flagged(tmp_path: Path) -> None:
     root = make_repo(tmp_path)
     (root / "_scratch_run.log").write_text("noise", encoding="utf-8")
     assert any(v.rule == "root-clutter" for v in doctor.run(root))
+
+
+def test_a_second_ai_tools_instruction_file_is_not_root_clutter(tmp_path: Path) -> None:
+    """AT-283: AGENTS.md is a real project-instruction surface (parallel to CLAUDE.md
+    for a different AI tool), not scratch — it must not trip the same gate a stray
+    log file does."""
+    root = make_repo(tmp_path)
+    (root / "AGENTS.md").write_text("# instructions\n", encoding="utf-8")
+    assert not any(v.rule == "root-clutter" for v in doctor.run(root))

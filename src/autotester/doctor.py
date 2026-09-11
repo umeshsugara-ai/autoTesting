@@ -18,11 +18,13 @@ MAX_FUNCTION_LINES = 50
 BANNED_NAME_HINTS = ("_v2", "_new", "_old", "_copy", "_final", "_temp")
 ALLOWED_ROOT_ENTRIES = {
     ".claude", ".dockerignore", ".git", ".gitignore", ".goal", ".python-version", ".venv",
-    ".work", "CLAUDE.md", "README.md", "docker", "docker-compose.yml", "Dockerfile", "docs",
-    "goal.md", "plan.md", "profiles", "projects", "pyproject.toml", "qa", "scripts", "src",
-    "tests",
+    ".work", "AGENTS.md", "CLAUDE.md", "README.md", "docker", "docker-compose.yml", "Dockerfile",
+    "docs", "goal.md", "plan.md", "profiles", "projects", "pyproject.toml", "qa", "scripts",
+    "src", "tests",
     "uv.lock",
 }
+"""AGENTS.md sits beside CLAUDE.md (AT-283): a second AI tool's project-instruction file at the
+same root, not scratch or evidence — the thing check_root_clean actually exists to catch."""
 
 
 @dataclass(frozen=True)
