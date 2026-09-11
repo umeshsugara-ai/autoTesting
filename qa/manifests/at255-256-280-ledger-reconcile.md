@@ -90,4 +90,4 @@ inside a deleted isolated extract, never the live tree).
 - Does not claim `qa/.last-tick` can never go stale again — AT-280 is dismissed as a transient,
   now-resolved condition, not a structural fix; a fresh staleness would be a new finding.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, verdict qa/verdicts/at255-256-280-ledger-reconcile.md, commit bdf88f8)
