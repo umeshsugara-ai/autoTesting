@@ -14,6 +14,7 @@ from autotester.schema.crawl import DialogEvent
 from autotester.schema.screen_graph import ElementRef, PageObservation
 
 _ENUMERATE_JS = (Path(__file__).with_name("enumerate.js")).read_text(encoding="utf-8")
+_VISUAL_ORDER_JS = (Path(__file__).with_name("visual_order.js")).read_text(encoding="utf-8")
 
 DialogAction = Callable[[str], str]  # dialog_type -> "accept" | "dismiss"
 
@@ -88,6 +89,24 @@ def enumerate_elements(page: Any) -> list[ElementRef]:
     """Run `enumerate.js` and validate its output into `ElementRef`s."""
     raw = page.evaluate(_ENUMERATE_JS)
     return [ElementRef(**item) for item in raw]
+
+
+def visual_text(page: Any) -> str:
+    """The page's text in VISUAL reading order — what a reader sees, not what
+    the DOM stores.
+
+    AT-358. Every instrument this module had (`innerText`, element names, the
+    enumerated controls) reports DOCUMENT order, and a bidi override makes the
+    two disagree: AT-355 stored a credential backwards and rendered it
+    forwards, so every DOM-order check called the page clean while a human
+    could read the secret off it in plain type. Characters that paint no box
+    are dropped, so a zero-width space or a NUL the parser deleted cannot hide
+    inside the result either.
+
+    This is an observation capability, not a test helper: reading other
+    people's rendered pages is what this product does.
+    """
+    return str(page.evaluate(_VISUAL_ORDER_JS))
 
 
 def observe(session: Any) -> PageObservation:

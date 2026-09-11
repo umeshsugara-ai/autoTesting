@@ -1,0 +1,63 @@
+{
+  "tests": [
+    "tests/test_browser_visual_order.py"
+  ],
+  "mutations": [
+    {
+      "name": "glyphs are not sorted by screen position - document order returns",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "  glyphs.sort((a, b) => {\n    const rowA = Math.round(a.y / ROW_TOLERANCE);\n    const rowB = Math.round(b.y / ROW_TOLERANCE);\n    return rowA === rowB ? a.x - b.x : rowA - rowB;\n  });",
+      "new": "  // glyphs left in document order",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_the_detector_sees_what_the_dom_hides"
+      ]
+    },
+    {
+      "name": "the detector reads innerText instead of measuring glyphs",
+      "file": "src/autotester/browser/observe.py",
+      "old": "    return str(page.evaluate(_VISUAL_ORDER_JS))",
+      "new": "    return str(page.inner_text(\"body\"))",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_the_detector_sees_what_the_dom_hides",
+        "tests/test_browser_visual_order.py::test_a_zero_width_interleaved_secret_is_seen_as_it_renders"
+      ]
+    },
+    {
+      "name": "unpainted characters are kept - the AT-345 blindness returns",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "      if (rect.width === 0) continue;",
+      "new": "      if (false) continue;",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_a_zero_width_interleaved_secret_is_seen_as_it_renders"
+      ]
+    },
+    {
+      "name": "the width test regresses to the enumerate.js element form",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "      if (rect.width === 0) continue;",
+      "new": "      if (rect.width === 0 && rect.height === 0) continue;",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_a_zero_width_interleaved_secret_is_seen_as_it_renders"
+      ]
+    },
+    {
+      "name": "the detector returns nothing at all - every clean result is vacuous",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "  return glyphs.map((g) => g.ch).join(\"\");",
+      "new": "  return \"\";",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_the_detector_sees_a_plainly_rendered_secret",
+        "tests/test_browser_visual_order.py::test_the_detector_reports_nothing_on_a_clean_page"
+      ]
+    },
+    {
+      "name": "invisible-but-laid-out text is swept in as if a reader saw it",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "    return window.getComputedStyle(parent).visibility !== \"hidden\";",
+      "new": "    return true;",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_text_that_occupies_layout_but_is_invisible_is_not_reported"
+      ]
+    }
+  ]
+}
