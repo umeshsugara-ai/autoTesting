@@ -1,12 +1,48 @@
 # Manifest — at076-navigation-secret-escape-hatch
 
 **Unit:** AT-076 — a fail-closed lockout with no working escape hatch for navigate targets
-**Contract:** `qa/contracts/browser-and-secrets.md` (B2, B3, B6)
+**Contract:** `qa/contracts/browser-and-secrets.md` (B2, B3, B6), `qa/contracts/core-invariants.md` (C5)
 **Goal task:** none — issue-driven
 **Date:** 2026-09-11
-**Fix cycle:** 1 of max 3
+**Fix cycle:** 2 of max 3
 **Dual check:** no
-**Issues addressed:** AT-076 (medium)
+**Issues addressed:** AT-076 (medium), AT-341 (critical, found by cycle-1 checker, fixed this cycle)
+
+## Cycle 2 — what the cycle-1 checker found and how it's fixed
+
+**Cycle 1 FAILed** (verdict `qa/verdicts/at076-navigation-secret-escape-hatch.md`, commit
+`bb23965`): the fix wired `resolve_for_navigation` ahead of the pre-existing, unaudited
+`check_destination`, whose own refusal message embeds the full `url` verbatim — including a
+resolved secret, when a secret-bearing navigate target is refused for being outside
+`project.allowed_domains`. That unredacted message reaches disk via two sinks:
+`stages/execute.py`'s `RawResult.error` and `stages/explore_node.py`'s `record_edge`/`add_issue`.
+Filed as **AT-341** (critical).
+
+**Fixed, all four points the checker's `expected` field named:**
+
+1. `src/autotester/browser/session.py::check_destination` — the refusal message now names only
+   the already-computed `host` (never secret) or `"an unparseable destination"`, never the raw
+   `url`. This is a GENERAL fix, not scoped to the secret-navigation path — every caller benefits,
+   because the message was never safe to build from the raw destination in the first place.
+2. `src/autotester/stages/execute.py::_result` — `error`/`hitl_prompt` are now scrubbed through
+   `session.secrets.redactor()` before ever reaching a `RawResult`, the same boundary `_record`
+   already holds for evidence paths — defense-in-depth against ANY exception's message, not only
+   `NavigationRefused`.
+3. `src/autotester/stages/explore_node.py::add_issue` / `record_edge` — `detail`/`reason` are now
+   scrubbed the same way before reaching `CrawlIssue`/`ScreenEdge`.
+4. **Regression tests added at all three levels**, per the checker's explicit ask (not just
+   `pytest.raises(NavigationRefused)`):
+   - `tests/test_browser.py::test_refusal_message_never_embeds_the_raw_destination` — unit-level,
+     `check_destination` directly.
+   - `tests/test_browser_navigation_secrets.py::test_goto_still_refuses_a_resolved_destination_outside_project_domains`
+     — strengthened with a token-bearing value, now asserts the token is absent from both the
+     exception message AND `session.state.evidence`.
+   - `tests/test_execute.py::test_a_secret_value_inside_an_exception_message_is_scrubbed_before_persisting`
+     — a NON-`NavigationRefused` exception (simulating a third-party error echoing page state)
+     proves the `_result` scrub is generic, not keyed to one exception type.
+   - `tests/test_explore_error_causes.py::test_add_issue_scrubs_a_secret_out_of_the_detail_before_persisting`
+     and `test_record_edge_scrubs_a_secret_out_of_the_reason_before_persisting` — direct unit
+     tests against `explore_node.add_issue`/`record_edge`.
 
 ## What was wrong
 
@@ -45,8 +81,8 @@ be a `.env` value.
 
 ## How to verify (commands + expected)
 
-- `uv run pytest tests/test_browser.py tests/test_browser_navigation_secrets.py tests/test_secrets.py -q`
-  → expected: exit 0, 49 passed
+- `uv run pytest tests/test_browser.py tests/test_browser_navigation_secrets.py tests/test_secrets.py tests/test_execute.py tests/test_explore_error_causes.py -q`
+  → expected: exit 0, 69 passed (15 + 5 + 30 + 9 + 10)
 - `uv run pytest -q` → expected: exit 0
 - `uv run ruff check src tests scripts` → expected: exit 0
 - `uv run autotester doctor` → expected: `doctor: clean`
@@ -54,11 +90,16 @@ be a `.env` value.
 ## Actual outputs (from maker's own run)
 
 ```
-$ uv run pytest tests/test_browser.py tests/test_browser_navigation_secrets.py tests/test_secrets.py -q
-.................................................                        [100%]  (49 passed)
+$ uv run pytest tests/test_browser.py tests/test_browser_navigation_secrets.py tests/test_secrets.py tests/test_execute.py tests/test_explore_error_causes.py -q
+.....................................................................    [100%]  (69 passed)
 
 $ uv run pytest -q
-[all dots, exit 0]
+[all dots, exit 0] — one PRE-EXISTING unrelated failure seen once mid-cycle
+(tests/test_mutation_check.py::test_the_sandbox_is_removed_when_the_run_finishes, a known
+concurrent-session temp-dir race, passes clean in isolation) and one unrelated in-flight
+concurrent session's own file (tests/test_ui_credential_transforms.py, AT-339, not touched by
+this unit) — neither reproduces on a clean re-run excluding that file; full suite including it
+is exit 0 after the concurrent session's own unit settled.
 EXIT: 0
 
 $ uv run ruff check src tests scripts
@@ -69,34 +110,31 @@ doctor: clean
 ```
 
 **Sabotage confirmation (C7), isolated `git archive HEAD` extract with its own `uv sync` venv,
-never the live tree (AT-101 discipline).** Given this touches the credential boundary — a hard
-boundary per this project's own CLAUDE.md — all three defense layers were mutated and tested
-**independently**, not just the one whose test happens to fail first:
+never the live tree (AT-101 discipline) — cycle 2, all FOUR defense layers now, tested
+independently:**
 
-1. **Baseline**: extract + uncommitted diff layered on (including the new untracked test file,
-   copied in manually since `git apply` only carries tracked-file diffs) → `uv sync` → confirmed
-   `autotester.__file__` resolves inside the extract → 49 passed, exit 0.
-2. **Mutation 1 — disable `goto`'s resolution call entirely** (`real = url`, no
-   `resolve_for_navigation` call at all): **exactly the 3 predicted goto-level tests failed**
-   (bare placeholder, embedded placeholder, misbound-domain test — each for a different reason,
-   all traceable to the missing resolution), the other 46 stayed green.
-3. **Restored, then mutation 2 — remove `resolve_for_navigation`'s own host-vs-`ref.domains`
-   check** (the per-secret scoping clause): **exactly the 2 predicted tests failed** — one at the
-   `SecretStore` unit level (`test_resolve_for_navigation_refuses_a_secret_scoped_to_a_different_domain`)
-   and one at the `BrowserSession` integration level
-   (`test_goto_refuses_a_secret_scoped_to_a_different_domain_than_it_resolves_to`) — the other 47
-   stayed green.
-4. **Restored, then mutation 3 — remove `goto`'s `check_destination` call on the resolved value**:
-   **3 failures**, including the two PRE-EXISTING B6 tests
-   (`test_goto_refuses_before_touching_the_page`, `test_real_headless_launch_navigates_a_data_url`
-   — confirming this call is load-bearing for the ORIGINAL behavior too, not only this unit's new
-   one) plus the new defense-in-depth test
-   (`test_goto_still_refuses_a_resolved_destination_outside_project_domains`).
+1. **Baseline**: extract + full cycle-1+cycle-2 uncommitted diff layered on → `uv sync` →
+   confirmed `autotester.__file__` resolves inside the extract → all touched test files green,
+   exit 0.
+2. **Mutation A — revert `check_destination`'s host-only message fix**: **exactly the 2 predicted
+   tests failed** (`test_refusal_message_never_embeds_the_raw_destination`,
+   `test_goto_still_refuses_a_resolved_destination_outside_project_domains`), reproducing the
+   original AT-341 leak live (`SUPERSECRETTOKEN123` visible in the assertion diff).
+3. **Restored, then mutation B — revert `execute.py::_result`'s scrub**: **exactly the 1
+   predicted test failed** (`test_a_secret_value_inside_an_exception_message_is_scrubbed_before_persisting`,
+   `hunter2` visible in the assertion diff) — proving this defense-in-depth layer independent of
+   `check_destination`'s own fix (this test uses a non-`NavigationRefused` exception).
+4. **Restored, then mutation C — revert `explore_node.py`'s `add_issue`/`record_edge` scrubs**:
+   **exactly the 2 predicted tests failed** (`test_add_issue_scrubs_a_secret_out_of_the_detail_before_persisting`,
+   `test_record_edge_scrubs_a_secret_out_of_the_reason_before_persisting`, both showing
+   `zorro-battery-42` unmasked).
+5. (Cycle 1's mutations 1–3 on the resolution/domain-scoping logic itself were already proven in
+   cycle 1 and are unchanged by cycle 2 — not re-run here, since cycle 2 touched none of that code.)
 
-All three gates (resolution-happens-at-all, per-secret domain scope, project-level
-`check_destination`) independently proven load-bearing. Extract deleted after each mutation was
-confirmed and restored from the saved originals; live tree confirmed unchanged throughout
-(`git status --porcelain` on the four touched paths, before and after).
+All four gates (resolution-happens-at-all, per-secret domain scope, `check_destination`'s
+message, and the two persistence-layer scrubs) independently proven load-bearing. Extract deleted
+after each mutation was confirmed and restored from saved originals; live tree confirmed
+unchanged throughout.
 
 ## Live browser evidence
 
@@ -119,5 +157,9 @@ covers the real-browser path for `check_destination`, unchanged by this unit.
 - Does not claim every possible navigation-target shape is covered — only that a placeholder,
   bare or embedded in a literal URL, resolves correctly and stays within both the secret's own
   declared domains and the project's `allowed_domains`.
+- Does not claim every exception-message sink in the whole codebase is now scrubbed — only the
+  three the cycle-1 checker traced and reproduced (`check_destination`'s message,
+  `execute.py::_result`, `explore_node.py::add_issue`/`record_edge`). A different, untraced sink
+  carrying a raw secret would be a fresh finding, the same discipline this whole chain follows.
 
 ## Status: ready-for-check

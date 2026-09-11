@@ -121,6 +121,18 @@ def test_destination_outside_allowed_domains_is_refused() -> None:
             check_destination(project, bad)
 
 
+def test_refusal_message_never_embeds_the_raw_destination(tmp_path: Path) -> None:
+    """AT-341: `url` can carry a resolved secret value (AT-076), so the
+    refusal message must never build itself from `url` — only from the
+    already-extracted host, which is never secret. Holds for every caller,
+    not only a secret-bearing one."""
+    project = make_project()
+    with pytest.raises(NavigationRefused) as excinfo:
+        check_destination(project, "https://evil.test/some-distinctive-marker-xyz")
+    assert "some-distinctive-marker-xyz" not in str(excinfo.value)
+    assert "evil.test" in str(excinfo.value)
+
+
 def test_goto_refuses_before_touching_the_page(tmp_path: Path) -> None:
     s = session_with_fake_page(tmp_path)
     with pytest.raises(NavigationRefused):

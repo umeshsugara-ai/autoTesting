@@ -59,10 +59,15 @@ class SessionState:
 
 
 def check_destination(project: Project, url: str) -> str:
-    """Return the host if `url` is inside the project's domains, else raise (B6)."""
+    """Return the host if `url` is inside the project's domains, else raise (B6).
+
+    AT-341: `url` can carry a resolved secret (AT-076), so the message never
+    embeds `url` itself — only the already-extracted, never-secret HOST.
+    """
     host = host_of(url)
     if not host or not project.allows_domain(host):
-        raise NavigationRefused(f"'{url}' is outside allowed domains {project.allowed_domains}")
+        where = f"host {host!r}" if host else "an unparseable destination"
+        raise NavigationRefused(f"{where} is outside allowed domains {project.allowed_domains}")
     return host
 
 
@@ -132,11 +137,10 @@ class BrowserSession:
 
     def goto(self, url: str) -> Evidence:
         """Navigate to `url`. A `{{SECRET:KEY}}` value is resolved against its
-        OWN declared domains (AT-076: unlike `fill`, a navigation target may be
-        entirely a placeholder with no literal host to scope by up front) —
-        see `SecretStore.resolve_for_navigation`. `check_destination` then
-        validates the real, resolved destination exactly as it would a plain
-        URL, so the project's `allowed_domains` still bind either way."""
+        OWN declared domains (AT-076: unlike `fill`, the whole target may be a
+        placeholder, with no host to scope by up front — see
+        `SecretStore.resolve_for_navigation`); `check_destination` then binds
+        `allowed_domains` on the resolved destination, same as any URL."""
         real = self.secrets.resolve_for_navigation(url) if PLACEHOLDER_RE.search(url) else url
         check_destination(self.project, real)
         self.page.goto(real, wait_until="domcontentloaded")

@@ -36,6 +36,11 @@ class FakeLocator:
     def click(self) -> None:
         if self.selector == "button.broken":
             raise RuntimeError("element not attached to the DOM")
+        if self.selector == "button.leaks-a-secret":
+            # Simulates a third-party exception (e.g. Playwright's own error
+            # text sometimes echoes nearby DOM/page state) embedding a value
+            # that was typed into the page moments earlier.
+            raise RuntimeError("timeout waiting for element near text 'hunter2'")
         self.page.clicks.append(self.selector)
 
     def select_option(self, value: str | None) -> None:
@@ -238,6 +243,27 @@ def test_missing_secret_blocks_for_a_human_instead_of_erroring(tmp_path: Path) -
     assert result.outcome is Outcome.BLOCKED_HITL
     assert result.error is None
     assert "PATHLYNKS_PASSWORD" in result.hitl_prompt
+
+
+def test_a_secret_value_inside_an_exception_message_is_scrubbed_before_persisting(
+    tmp_path: Path,
+) -> None:
+    """AT-341: an exception's own message can embed a raw secret value (not
+    only the named NavigationRefused case AT-076 introduced) — `_result`
+    scrubs `error`/`hitl_prompt` through the session's own redactor before
+    they ever reach a RawResult, the same boundary `_record` already holds
+    for evidence paths."""
+    steps = [
+        Step(order=1, action=Action.FILL, target="input[name=password]",
+             value="{{SECRET:PATHLYNKS_PASSWORD}}"),
+        Step(order=2, action=Action.CLICK, target="button.leaks-a-secret"),
+    ]
+    session = session_with_fake_page(tmp_path)
+    result = run_case(make_case(steps), session)
+
+    assert result.outcome is Outcome.ERRORED
+    assert "hunter2" not in result.error
+    assert "REDACTED" in result.error
 
 
 # -- E4 persistence round-trips through ProjectStore -------------------------

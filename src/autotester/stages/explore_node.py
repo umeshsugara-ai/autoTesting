@@ -48,8 +48,11 @@ def capture(rt: ExploreRuntime, node: ScreenNode) -> str | None:
 
 def add_issue(rt: ExploreRuntime, node_id: str, kind: IssueKind, detail: str,
               *, first_party: bool = True) -> None:
+    # AT-341: `detail` is often an exception's own message, which can embed a
+    # resolved secret (AT-076) — scrub before this reaches disk, same as evidence.
     issue = CrawlIssue(crawl_id=rt.crawl.id, project=rt.project.slug, kind=kind,
-                       node_id=node_id, detail=detail, first_party=first_party)
+                       node_id=node_id, detail=rt.session.secrets.redactor().scrub(detail),
+                       first_party=first_party)
     rt.store.add_crawl_issue(issue)
     if kind is IssueKind.EVIDENCE:
         rt.tool_failures += 1  # AT-120: never inflate the product's issue total
@@ -60,9 +63,10 @@ def add_issue(rt: ExploreRuntime, node_id: str, kind: IssueKind, detail: str,
 def record_edge(rt: ExploreRuntime, node: ScreenNode, el: ElementRef, action: Action,
                 outcome: EdgeOutcome, reason: str | None = None,
                 to_node: str | None = None) -> ScreenEdge:
+    scrubbed = rt.session.secrets.redactor().scrub(reason) if reason else reason
     edge = ScreenEdge(crawl_id=rt.crawl.id, from_node=node.id, to_node=to_node,
                       action=action, target=el.selector, name=el.name,
-                      outcome=outcome, reason=reason)
+                      outcome=outcome, reason=scrubbed)
     rt.store.add_edge(edge)
     rt.edges += 1
     return edge

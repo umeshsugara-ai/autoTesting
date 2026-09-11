@@ -68,11 +68,16 @@ def test_goto_still_refuses_a_resolved_destination_outside_project_domains(
     URL, so a secret whose own declared domains are wrong or stale cannot
     navigate the browser outside the project's allowed_domains."""
     s = _session_with_secret_url(
-        tmp_path, key="ROGUE_URL", ref_domains=["evil.test"], value="https://evil.test/steal",
+        tmp_path, key="ROGUE_URL", ref_domains=["evil.test"],
+        value="https://evil.test/steal?token=SUPERSECRETTOKEN123",
     )
-    with pytest.raises(NavigationRefused):
+    with pytest.raises(NavigationRefused) as excinfo:
         s.goto("{{SECRET:ROGUE_URL}}")
     assert s.page.url == LOGIN
+    # AT-341: check_destination's own refusal message must never embed the
+    # resolved secret value — a host is not secret, the URL it came from is.
+    assert "SUPERSECRETTOKEN123" not in str(excinfo.value)
+    assert "SUPERSECRETTOKEN123" not in " ".join(e.path for e in s.state.evidence)
 
 
 def test_goto_refuses_a_secret_scoped_to_a_different_domain_than_it_resolves_to(
