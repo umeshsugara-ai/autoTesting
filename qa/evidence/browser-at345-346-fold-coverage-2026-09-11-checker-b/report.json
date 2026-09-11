@@ -1,0 +1,91 @@
+{
+  "unit": "at345-346-fold-coverage",
+  "cycle_checked": 1,
+  "date": "2026-09-11",
+  "actor": "checker (Mode A + Mode D), independent",
+  "browser": "Chromium via playwright MCP, driven by this checker",
+  "server": "own uvicorn on 127.0.0.1:8791 with AUTOTESTER_ROOT=<scratch>, repo projects/ untouched",
+  "seeded_env": ".env with DEMO_PASSWORD=ZEBRA_QUILT_APIKEY_31 in the scratch root only",
+  "console_errors": 0,
+  "console_warnings": 0,
+  "interactions": [
+    {
+      "what": "home index GET /, DOM scan for any leaf node whose text renders as the credential once invisible marks are dropped",
+      "result": "14 matching nodes; document.body.innerText does NOT contain the literal credential (byte_equal=false on every one)"
+    },
+    {
+      "what": "pixel-width measurement of interleaved spellings against a plain-credential control in the page's own font",
+      "control_px": 192.5,
+      "measured": {
+        "U+200B ZWSP (closed by this unit)": 192.5,
+        "U+034F COMBINING GRAPHEME JOINER": 192.5,
+        "U+FE00 VARIATION SELECTOR-1": 192.5,
+        "U+FE0F VARIATION SELECTOR-16": 191.5,
+        "U+180B MONGOLIAN FVS-1": 196.9,
+        "U+17D2 KHMER VIRIAM": 369.4
+      },
+      "result": "U+034F, U+FE00 and U+FE0F render PIXEL-IDENTICAL to the plain credential - the exact AT-345 rendering leak, reopened with non-Cf characters"
+    },
+    {
+      "what": "full-page screenshot of the home index",
+      "file": "home-index-renders-credential.png",
+      "result": "multiple project cards read literally ZEBRA_QUILT_APIKEY_31 to a human reader"
+    }
+  ],
+  "on_disk_attack": {
+    "script": "attack.py",
+    "route": "POST /onboard (U9)",
+    "accepted_and_written_to_git_tracked_project_json": [
+      "U+034F CGJ interleaved (renders exactly as credential)",
+      "U+FE00 VS-1 interleaved (renders exactly as credential)",
+      "U+FE0F VS-16 interleaved (renders exactly as credential)",
+      "U+180B Mongolian FVS interleaved",
+      "U+17D2 Khmer viriam interleaved",
+      "U+3164 Hangul filler interleaved (renders as blank gaps)",
+      "U+2800 Braille blank interleaved (renders as blank gaps)",
+      "RTL override U+202E + reversed",
+      "plain reversed",
+      "base64",
+      "HTML numeric entities",
+      "regional indicator symbols",
+      "Armenian homoglyphs (AT-349 class)",
+      "Cherokee homoglyphs (AT-349 class)"
+    ]
+  },
+  "u8_case_form_attack": {
+    "script": "u8.py",
+    "route": "POST /projects/u8/cases",
+    "U+200B ZWSP": "REFUSED on title, step_value, step_expected, and split (unit's own fix holds)",
+    "U+034F / U+FE00 / U+FE0F": "ACCEPTED on title, step_value and step_expected; refused only on the split/concatenation path",
+    "cases_jsonl_contains_string_that_renders_as_credential": true,
+    "cases_jsonl_contains_credential_byte_for_byte": false
+  },
+  "regression_of_the_six_at345_forms": {
+    "script": "fp.py / six-form block",
+    "zero-width U+200B": "REFUSED 400",
+    "full-width Latin": "REFUSED 400",
+    "Turkish dotless i": "REFUSED 400",
+    "+ separator": "REFUSED 400",
+    "~ separator": "REFUSED 400",
+    "/ separator": "REFUSED 400",
+    ": separator": "REFUSED 400",
+    "%5F (AT-346)": "REFUSED 400"
+  },
+  "false_positive_probe": {
+    "script": "fp2.py",
+    "submissions": 36,
+    "legitimate_inputs_refused_by_the_credential_guard": 0,
+    "covered": [
+      "URL with query + fragment", "JSON body", "CSS selector", "XPath",
+      "code snippet with + and ==", "French/Turkish/Hindi/Cyrillic/Greek names",
+      "regex", "bcrypt prefix", "markdown table", "emoji", "SQL with LIKE '%zebra%'",
+      "semver with +build", "Windows file path", "JWT-shaped token"
+    ],
+    "result": "the widened fold did not brick a single legitimate submission in this probe"
+  },
+  "plus_claim_verification": {
+    "script": "plus.py",
+    "maker_claim": "`+` is caught by unquote_plus composition, not by the widened separator class",
+    "measured": "with AT-339's narrow [\\s\\-_.] class: + is caught ONLY when variant composition is applied (raw-only = False, with-variants = True); ~ / : are caught by neither. Claim CONFIRMED."
+  }
+}
