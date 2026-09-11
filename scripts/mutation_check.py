@@ -116,7 +116,13 @@ def collected_tests(cwd: Path, tests: str | list[str]) -> dict[str, set[str]]:
     for line in out.splitlines():
         nodeid = line.strip()
         if "::" in nodeid and not nodeid.startswith(("FAILED", "ERROR")):
+            # Keyed BOTH ways (AT-324). The ambiguity guard tells the author to
+            # "name the full nodeid", and keying only on the bare name meant that
+            # remedy was then refused as "not collected" — a guard whose own
+            # instruction does not work. Live in this repo: two test files share
+            # `test_act_without_a_schema_raises`.
             collected.setdefault(nodeid.split("::")[-1], set()).add(nodeid)
+            collected.setdefault(nodeid, {nodeid})
     return collected
 
 
@@ -125,9 +131,15 @@ def failed_tests(output: str) -> set[str]:
     return {m.group("nodeid") for m in FAILED.finditer(output)}
 
 
-def _sandbox(repo: Path) -> Path:
-    """A copy OUTSIDE the repo, so a mutation can never touch the live tree."""
-    work = Path(tempfile.mkdtemp(prefix="mutation-check-")) / "repo"
+def _sandbox(repo: Path) -> tuple[Path, Path]:
+    """A copy OUTSIDE the repo, so a mutation can never touch the live tree.
+
+    Returns `(work, owned_root)`. `owned_root` is the temp directory THIS call
+    created, and is the only thing cleanup is ever allowed to delete — see
+    `_discard`.
+    """
+    owned_root = Path(tempfile.mkdtemp(prefix="mutation-check-"))
+    work = owned_root / "repo"
     for directory in ("scripts", "tests", "src"):
         if (repo / directory).is_dir():
             shutil.copytree(repo / directory, work / directory,
@@ -135,7 +147,31 @@ def _sandbox(repo: Path) -> Path:
     for name in ("pyproject.toml", "conftest.py"):
         if (repo / name).is_file():
             shutil.copy2(repo / name, work / name)
-    return work
+    return work, owned_root
+
+
+def _discard(owned_root: Path) -> None:
+    """Delete a sandbox this module created, and refuse anything else.
+
+    AT-325 was a leak: `_sandbox` copied scripts/ tests/ src/ per run and never
+    removed them — 1824 `mutation-check-*` trees had accumulated, and C7 makes
+    these runs mandatory, so it grows with every unit.
+
+    The containment check is not ceremony. The first fix deleted
+    `work.parent`, which is correct only while `work` really is a sandbox — and
+    this module's own mutation spec contains `work = repo`, which would have
+    turned cleanup into "delete the real tree's parent". A destructive operation
+    keyed on an unverified path is AT-314 wearing different clothes, so the only
+    deletable thing is the directory this module made, under the system temp
+    dir, with our own prefix.
+    """
+    root = owned_root.resolve()
+    temp = Path(tempfile.gettempdir()).resolve()
+    if not root.is_relative_to(temp) or not root.name.startswith("mutation-check-"):
+        raise MutationError(
+            f"refusing to delete {root} — cleanup may only remove a sandbox this "
+            f"module created under {temp}")
+    shutil.rmtree(root, ignore_errors=True)
 
 
 def _inside(work: Path, relative: str, name: str) -> Path:
@@ -165,7 +201,14 @@ def check(spec: dict, repo: Path) -> list[dict]:
     if not mutations:
         raise MutationError("spec declares no mutations")
 
-    work = _sandbox(repo)
+    work, owned_root = _sandbox(repo)
+    try:
+        return _check_in(work, spec, tests, mutations)
+    finally:
+        _discard(owned_root)
+
+
+def _check_in(work: Path, spec: dict, tests: str | list[str], mutations: list) -> list[dict]:
     collected = collected_tests(work, tests)
 
     # Every named test must EXIST before anything is mutated. A label naming a

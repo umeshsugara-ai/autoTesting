@@ -285,4 +285,23 @@ Ruff and doctor each caught one more (F811 on an imported fixture; the 300-line 
 **If this cycle fails, the unit is `STALLED`** — max cycles reached. `/agent-debugger` runs, its
 report goes to `qa/debug/`, and it stops for the human rather than a fourth patch.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Checker PASS at cycle 3, `qa/verdicts/at311-mutation-check.md` — 7/7 applicable criteria, all six
+verify commands reproduced with attribution checked per-mutation. Cycles 1 and 2 both FAILed.
+AT-311 · AT-312 · AT-313 · AT-314 · AT-315 · AT-320 · AT-321 · AT-322 · AT-323 closed.
+
+**The withdrawn general rule is settled.** The checker ruled the withdrawal correct — the rule was
+keyed on an unfalsifiable negative and was refuted on the first attempt both times it was asserted
+(AT-315, AT-321) — and folded a narrow form into C7 instead: *an unreachability claim is
+INCONCLUSIVE, never a justification, and extraction never discharges the mutation duty; the
+extracted decision must still be exercised by at least one mutation of its caller.* Stronger than
+what I proposed: mine let the claim license skipping the mutation, this one makes the claim worth
+nothing and keeps the duty.
+
+**Fifth hole found (AT-324)** — the ambiguity guard's own prescribed remedy was rejected — plus
+**AT-325** (1824 leaked sandboxes) and three low residuals (AT-326/AT-327 duplicate `spec` and C3's
+scope over `tests/`, filed for a decision rather than charged; AT-328 a stale forward pointer in the
+cycle-1 block). Both new holes **fail closed**, the opposite direction from all four earlier ones.
+
+AT-324 and AT-325 are addressed in `qa/manifests/at324-mutation-check-leak-and-remedy.md`.

@@ -148,3 +148,64 @@ def test_a_suite_split_across_files_is_still_one_suite(mutation_repo: Path) -> N
     # The named test lives in the OTHER file; running only the first would have
     # reported it survived.
     assert "tests/test_mod_more.py::test_in_the_other_half" in result["failed"]
+
+
+# -- AT-324 / AT-325: a guard whose remedy works, and a sandbox that is cleaned --
+
+
+def test_a_kills_entry_may_be_the_full_nodeid_the_guard_asks_for(
+    mutation_repo: Path,
+) -> None:
+    """AT-324. The ambiguity guard says "name the full nodeid", and naming one
+    was then refused as "not collected" — the guard's own prescribed remedy did
+    not work. Live in this repo: two test files share
+    `test_act_without_a_schema_raises`."""
+    result = check(spec(mutation={"kills": ["tests/test_mod.py::test_small_values_are_small"]}),
+                   mutation_repo)[0]
+
+    assert result["killed"] is True
+    assert result["expected"] == ["tests/test_mod.py::test_small_values_are_small"]
+
+
+def test_the_sandbox_is_removed_when_the_run_finishes(mutation_repo: Path) -> None:
+    """AT-325. Every run copied scripts/ tests/ src/ and left them behind; 1824
+    `mutation-check-*` trees had accumulated. C7 makes this instrument mandatory,
+    so the leak grows with every unit."""
+    import tempfile
+
+    before = set(Path(tempfile.gettempdir()).glob("mutation-check-*"))
+
+    check(spec(), mutation_repo)
+
+    assert set(Path(tempfile.gettempdir()).glob("mutation-check-*")) == before
+
+
+def test_the_sandbox_is_removed_even_when_the_run_is_refused(mutation_repo: Path) -> None:
+    """A refused run leaks just as much as a completed one — more often, since a
+    bad spec is the common case while an author is writing it."""
+    import tempfile
+
+    before = set(Path(tempfile.gettempdir()).glob("mutation-check-*"))
+
+    with pytest.raises(MutationError):
+        check(spec(mutation={"kills": ["test_does_not_exist"]}), mutation_repo)
+
+    assert set(Path(tempfile.gettempdir()).glob("mutation-check-*")) == before
+
+
+def test_cleanup_refuses_to_delete_anything_it_did_not_create(tmp_path: Path) -> None:
+    """The first AT-325 fix deleted `work.parent`, which is only correct while
+    `work` really is a sandbox. This module's own spec contains `work = repo`,
+    which would have turned cleanup into "delete the real tree's parent" — a
+    destructive operation keyed on an unverified path, which is AT-314 again.
+    """
+    from mutation_check import _discard
+
+    victim = tmp_path / "precious"
+    victim.mkdir()
+    (victim / "data.txt").write_text("keep me", encoding="utf-8")
+
+    with pytest.raises(MutationError, match="refusing to delete"):
+        _discard(victim)
+
+    assert (victim / "data.txt").read_text(encoding="utf-8") == "keep me"

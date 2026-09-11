@@ -1,6 +1,6 @@
 KILLED  kills-label existence check removed (AT-311)  (pytest exit 1)
     claims to kill : tests/test_mutation_check.py::test_it_refuses_a_kills_label_naming_a_test_that_does_not_exist
-    actually failed: tests/test_mutation_check.py::test_it_refuses_a_kills_label_naming_a_test_that_does_not_exist
+    actually failed: tests/test_mutation_check.py::test_it_refuses_a_kills_label_naming_a_test_that_does_not_exist, tests/test_mutation_check.py::test_the_sandbox_is_removed_even_when_the_run_is_refused
 KILLED  empty-kills guard removed (AT-313)  (pytest exit 1)
     claims to kill : tests/test_mutation_check_judgement.py::test_it_refuses_a_mutation_whose_kills_list_is_empty
     actually failed: tests/test_mutation_check_judgement.py::test_it_refuses_a_mutation_whose_kills_list_is_empty
@@ -9,7 +9,7 @@ KILLED  nodeid ambiguity guard removed (AT-320)  (pytest exit 1)
     actually failed: tests/test_mutation_check_judgement.py::test_it_refuses_a_kills_name_that_collects_more_than_once
 KILLED  attribution reverted to bare names (AT-320)  (pytest exit 1)
     claims to kill : tests/test_mutation_check.py::test_a_real_mutation_is_killed_and_attributed, tests/test_mutation_check.py::test_failed_tests_reads_names_out_of_pytest_output
-    actually failed: tests/test_mutation_check.py::test_a_real_mutation_is_killed_and_attributed, tests/test_mutation_check.py::test_a_suite_split_across_files_is_still_one_suite, tests/test_mutation_check.py::test_failed_tests_reads_names_out_of_pytest_output, tests/test_mutation_check.py::test_it_refuses_when_the_named_test_survives_but_another_fails, tests/test_mutation_check.py::test_the_spec_round_trips_through_json, tests/test_mutation_check_judgement.py::test_an_interrupted_run_with_real_failures_is_not_a_kill
+    actually failed: tests/test_mutation_check.py::test_a_kills_entry_may_be_the_full_nodeid_the_guard_asks_for, tests/test_mutation_check.py::test_a_real_mutation_is_killed_and_attributed, tests/test_mutation_check.py::test_a_suite_split_across_files_is_still_one_suite, tests/test_mutation_check.py::test_failed_tests_reads_names_out_of_pytest_output, tests/test_mutation_check.py::test_it_refuses_when_the_named_test_survives_but_another_fails, tests/test_mutation_check.py::test_the_spec_round_trips_through_json, tests/test_mutation_check_judgement.py::test_an_interrupted_run_with_real_failures_is_not_a_kill
 KILLED  baseline assertion removed (AT-307)  (pytest exit 1)
     claims to kill : tests/test_mutation_check.py::test_it_refuses_a_red_baseline
     actually failed: tests/test_mutation_check.py::test_it_refuses_a_red_baseline
@@ -37,5 +37,14 @@ KILLED  sandbox removed - mutate the live tree  (pytest exit 1)
 KILLED  multi-file suite reduced to the first file only  (pytest exit 1)
     claims to kill : tests/test_mutation_check.py::test_a_suite_split_across_files_is_still_one_suite
     actually failed: tests/test_mutation_check.py::test_a_suite_split_across_files_is_still_one_suite
+KILLED  nodeid key removed - the guard's own remedy rejected (AT-324)  (pytest exit 1)
+    claims to kill : tests/test_mutation_check.py::test_a_kills_entry_may_be_the_full_nodeid_the_guard_asks_for
+    actually failed: tests/test_mutation_check.py::test_a_kills_entry_may_be_the_full_nodeid_the_guard_asks_for
+KILLED  sandbox cleanup removed (AT-325)  (pytest exit 1)
+    claims to kill : tests/test_mutation_check.py::test_the_sandbox_is_removed_even_when_the_run_is_refused, tests/test_mutation_check.py::test_the_sandbox_is_removed_when_the_run_finishes
+    actually failed: tests/test_mutation_check.py::test_the_sandbox_is_removed_even_when_the_run_is_refused, tests/test_mutation_check.py::test_the_sandbox_is_removed_when_the_run_finishes
+KILLED  cleanup containment check removed (AT-325 footgun)  (pytest exit 1)
+    claims to kill : tests/test_mutation_check.py::test_cleanup_refuses_to_delete_anything_it_did_not_create
+    actually failed: tests/test_mutation_check.py::test_cleanup_refuses_to_delete_anything_it_did_not_create
 
-13/13 mutations killed
+16/16 mutations killed
