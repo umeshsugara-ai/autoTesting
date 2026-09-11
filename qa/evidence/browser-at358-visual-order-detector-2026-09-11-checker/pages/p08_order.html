@@ -1,0 +1,15 @@
+<!doctype html><meta charset="utf-8"><title>order</title>
+<p>CONTROL_ALPHA_11</p>
+<!-- source order spells BACKWARDS; float:right reverses it visually to READTHIS -->
+<div style="width:600px">
+<span style="float:right">S</span><span style="float:right">I</span><span style="float:right">H</span><span style="float:right">T</span><span style="float:right">D</span><span style="float:right">A</span><span style="float:right">E</span><span style="float:right">R</span>
+</div>
+<div style="clear:both"></div>
+<!-- grid reorder: source "ZY" renders "YZ" -->
+<div style="display:grid;grid-template-columns:20px 20px;width:100px">
+<span style="order:2">Z</span><span style="order:1">Y</span>
+</div>
+<!-- absolute positioning out of source order -->
+<div style="position:relative;height:30px">
+<span style="position:absolute;left:100px">GAMMA</span><span style="position:absolute;left:0px">BETA</span>
+</div>

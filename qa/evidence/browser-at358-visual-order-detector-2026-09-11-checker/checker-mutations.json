@@ -1,0 +1,12 @@
+{
+  "tests": ["tests/test_browser_visual_order.py"],
+  "mutations": [
+    {
+      "name": "CHECKER: the bidi fixture stores the secret FORWARDS - the premise test's only claim",
+      "file": "tests/fixtures/bidi_site/hidden.html",
+      "old": "<p id=\"label\">‮13_YEKIPA_TLIUQ_ARBEZ</p>",
+      "new": "<p id=\"label\">ZEBRA_QUILT_APIKEY_31</p>",
+      "kills": ["tests/test_browser_visual_order.py::test_the_dom_calls_the_bidi_page_clean"]
+    }
+  ]
+}

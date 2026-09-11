@@ -1,0 +1,81 @@
+{
+  "unit": "at358-visual-order-detector",
+  "cycle_checked": 1,
+  "date": "2026-09-11",
+  "actor": "checker (Mode A + Mode D, own browser)",
+  "instrument": "probe.py in this directory - real headless Chromium, own HTTP server over pages/, calls autotester.browser.observe.visual_text and screenshots each page full-page. Screenshots are the 'what a human sees' side; the returned string is the 'what the detector reports' side.",
+  "console_errors": 0,
+  "planted_positive_control": "CONTROL_ALPHA_11 appears on every probe page and was reported on every one of them, so no negative below is the detector simply returning nothing.",
+  "measured": {
+    "p01_control.html": "CONTROL_ALPHA_11",
+    "p02_scalex.html": "CONTROL_ALPHA_1122_TERCES_XELACS",
+    "p03_rotate.html": "CONTROL_ALPHA_1133_TERCES_ETATOR",
+    "p04_pseudo.html": "CONTROL_ALPHA_11",
+    "p05_shadow.html": "CONTROL_ALPHA_11",
+    "p06_canvas_svg.html": "CONTROL_ALPHA_11SVGTEXT_SECRET_66",
+    "p07_iframe.html": "CONTROL_ALPHA_11",
+    "p08_order.html": "CONTROL_ALPHA_11READTHISYZBETAGAMMA",
+    "p09_vertical.html": "CONTROL_ALPHA_11VERTICAL_SECRET_88",
+    "p10_hiddenish.html": "CONTROL_ALPHA_11OPACITY_SECRET_91TRANSPARENT_SECRET_92INDENT_SECRET_94CLIPPED_SECRET_95OFFSCREEN_SECRET_96NESTEDVISIBLE_SECRET_99",
+    "p11_controls.html": "CONTROL_ALPHA_11PASSWORD_SECRET_A1DISABLED_SECRET_A5BUTTONTEXT_A8CLIPPEDINPUT_SECRET_A9"
+  },
+  "false_negatives_human_sees_detector_silent": [
+    "::before / ::after generated content (p04) - PSEUDOBEFORE_SECRET_44 and PSEUDOAFTER_SECRET_45 render, neither reported (generated content has no text node, so TreeWalker(SHOW_TEXT) never sees it)",
+    "shadow DOM (p05) - SHADOW_SECRET_55 in an open shadow root and SHADOWINPUT_SECRET_56 in a shadow-root <input> both render, neither reported (the TreeWalker does not cross a shadow boundary and querySelectorAll does not either)",
+    "<iframe> content (p07) - IFRAME_SECRET_77 renders, not reported (same-origin frame, never traversed)",
+    "canvas text (p06) - CANVAS_SECRET_65 painted with fillText, not reported. SVG <text> IS reported, so the SVG half is covered.",
+    "placeholder (p11) - PLACEHOLDER_SECRET_A6 renders in an empty field and is not reported; mirrorGlyphs early-returns on empty control.value. AT-361's ledger row names placeholder and title/alt as part of the owed coverage set.",
+    "<select> option text (p11) - SELECT_SECRET_A3 renders, not reported. This one IS disclosed in the manifest."
+  ],
+  "false_positives_detector_reports_human_cannot_see": [
+    "opacity: 0 (p10) - OPACITY_SECRET_91 reported; screenshot shows nothing there",
+    "color: transparent (p10) - TRANSPARENT_SECRET_92 reported; screenshot shows nothing there",
+    "text-indent: -9999px (p10) - INDENT_SECRET_94 reported; pushed off-screen, invisible",
+    "position:absolute; left:-9999px (p10) - OFFSCREEN_SECRET_96 reported in full; invisible",
+    "overflow:hidden clipping (p10, p11) - CLIPPED_SECRET_95 and CLIPPEDINPUT_SECRET_A9 reported in full; the screenshot shows only 'CLIPP' / 'CLIP'",
+    "type=password (p11) - PASSWORD_SECRET_A1 returned in cleartext while the reader sees only bullets. The mirror span copies font/direction/unicode-bidi but not the masking, so a password field is un-masked by the instrument. B7 masks exactly this field before a screenshot."
+  ],
+  "correctly_handled": [
+    "font-size: 0 (TINYINPUT/FONTZERO) dropped by the width filter",
+    "display:none dropped",
+    "visibility:hidden dropped, including nested visibility:visible inside it correctly KEPT (NESTEDVISIBLE_SECRET_99 reported, which is right - it renders)",
+    "type=hidden input dropped (zero box)",
+    "an <input> inside a visibility:hidden wrapper dropped",
+    "float:right reversing source order -> reported as READTHIS (reading order, not source order)",
+    "grid `order` reordering -> reported YZ, not source ZY",
+    "absolute positioning out of source order -> reported BETAGAMMA by x",
+    "writing-mode: vertical-rl -> reported top-to-bottom in reading order",
+    "transform scaleX(-1) / rotate(180deg) -> reported in the flipped screen order; the glyphs themselves are mirrored and unreadable to a human, so this is not an exposure channel"
+  ],
+  "page_left_alone": {
+    "method": "p12_state.html: scrolled to y=2732, focused #f1, selected 10 chars of a paragraph, snapshotted state, called visual_text, snapshotted again.",
+    "scrollY": "2732 -> 2732",
+    "activeElement": "f1 -> f1",
+    "selection": "'SELECTABLE' -> 'SELECTABLE'",
+    "input_values": "FIELD_ONE_VALUE / TEXTAREA_VALUE unchanged",
+    "body_children": "5 -> 5",
+    "body_innerHTML_length": "228 -> 228",
+    "leftover_body_span_count": 0,
+    "idempotent": true,
+    "throw_path": "p13_throw.html with document.createRange replaced by a thrower, so glyphsOf raises INSIDE mirrorGlyphs' try. Result: page.evaluate raised 'Error: boom' as expected, and body > span count afterwards was 0 with body.innerHTML back to just the input. The finally does hold."
+  },
+  "c7_mutation_rerun": {
+    "command": "uv run python scripts/mutation_check.py qa/evidence/at358-visual-order-detector/mutations.json",
+    "result": "10/10 mutations killed, reproduced by the checker",
+    "attribution_checked_by_hand": "For all 10, every nodeid in 'claims to kill' appears in 'actually failed'; every exit code was 1 (tests ran and failed, not a collection error).",
+    "vacuity_fix_confirmed": "The 'drops unicode-bidi' mutation failed exactly ONE test - test_reversal_forced_by_css_alone_is_seen, the case whose sentinel was changed to CSS_SECRET. Under the old shared SECRET sentinel that test could not have been the one to notice. The per-case sentinel is proven by mutation, not by reading.",
+    "other_tests_in_the_file": "Nine of the ten tests appear in at least one attributed failure list. The tenth, test_the_dom_calls_the_bidi_page_clean, appears in none - it has no mutation at all.",
+    "checker_supplied_mutation": {
+      "spec": "checker-mutations.json in this directory",
+      "mutation": "tests/fixtures/bidi_site/hidden.html stores the secret FORWARDS instead of behind U+202E",
+      "result": "KILLED (pytest exit 1) - actually failed: tests/test_browser_visual_order.py::test_the_dom_calls_the_bidi_page_clean",
+      "meaning": "The un-mutated test is mutation-REACHABLE and non-vacuous. The gap is the missing mutation in the maker's spec, not a bad test."
+    }
+  },
+  "repo_commands_rerun_by_checker": {
+    "uv run pytest -q": "exit 0 (1174 passed, 2 skipped)",
+    "uv run ruff check src tests scripts": "All checks passed!",
+    "uv run autotester doctor": "doctor: clean",
+    "tests/test_mutation_check.py": "green in this run; AT-357 did not recur"
+  }
+}
