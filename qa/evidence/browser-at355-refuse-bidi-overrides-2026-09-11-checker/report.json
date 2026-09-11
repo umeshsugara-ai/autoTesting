@@ -1,0 +1,77 @@
+{
+  "unit": "at355-refuse-bidi-overrides",
+  "cycle_checked": 1,
+  "date": "2026-09-11",
+  "actor": "checker (Mode D, own browser)",
+  "instrument": "Playwright (chromium, visible), server: uvicorn autotester.ui.app:app on 127.0.0.1:8731",
+  "root": "scratch AUTOTESTER_ROOT (never the repo tree); .env DEMO_PASSWORD=ZEBRA_QUILT_APIKEY_31",
+  "note": "The maker's own Live-browser section is a declared SKIP. Nothing below reads any maker screenshot or script.",
+
+  "detector": {
+    "name": "visualOrder (glyphs sorted by screen x, then y-band)",
+    "method": "per-character Range.getBoundingClientRect over every text node; zero-area and whitespace glyphs dropped; sorted by (y-band, x); joined",
+    "v2_addition": "form-control VALUES are mirrored into an offscreen span carrying the control's computed font/direction/unicode-bidi and measured the same way -- a text-node-only walker reads NOTHING from <input value>, and the case title renders exactly there on the Cases page",
+    "control_1_synthetic": {
+      "planted": "U+202E + reverse('ZEBRA_QUILT_APIKEY_31') injected as a DOM text node",
+      "textContent_contains_credential": false,
+      "visual_order_contains_credential": true,
+      "visual_order_string": "ZEBRA_QUILT_APIKEY_31<U+202E>",
+      "conclusion": "detector proven: it reads what a person sees, not what is stored"
+    },
+    "control_2_page_level": {
+      "page": "/projects/demo/cases",
+      "planted_into": "input[name=title] -- the element the case title actually renders in",
+      "innerText_contains_credential": false,
+      "visual_order_contains_credential": true,
+      "conclusion": "detector proven ON THE PAGE the negative is asserted about, so the negative is meaningful"
+    }
+  },
+
+  "refusals_driven_in_a_real_browser": [
+    {
+      "door": "POST /onboard (form filled + real click on 'Create project')",
+      "field": "name",
+      "payload": "U+202E + reverse(credential)",
+      "http_status": 400,
+      "body": "{\"detail\":\"the name contains a text-direction override character. It makes text render in a different order than it is stored, so what you see is not what is saved. Remove it and type the value plainly.\"}",
+      "project_written": false
+    },
+    {
+      "door": "POST /projects/demo/cases (form filled + real click on submit)",
+      "field": "title",
+      "payload": "U+202E + reverse(credential)",
+      "http_status": 400,
+      "body": "{\"detail\":\"the title contains a text-direction override character. ...\"}",
+      "case_written": false
+    }
+  ],
+
+  "rendering_assertions": [
+    {"page": "/", "dom_contains_credential": false, "visual_order_contains_credential": false,
+     "visual_contains_reversed": false, "bidi_override_present_in_html": false,
+     "refused_project_listed": false},
+    {"page": "/projects/demo/cases", "dom_contains_credential": false,
+     "visual_order_contains_credential": false, "visual_contains_reversed": false,
+     "bidi_override_present_in_html": false, "detector": "v2 (covers input values)"}
+  ],
+
+  "false_positive_assertions_live": [
+    {
+      "action": "POST /onboard with a real Hebrew project name carrying U+200F (RLM) and a U+2067/U+2069 isolate pair",
+      "name_codepoints": "5de 5e2 5e8 5db 5ea 20 200f 20 2067 41 43 4d 45 2069 20 5d1 5d3 5d9 5e7 5d4",
+      "http": "accepted -- redirected to /projects/hebrewlive",
+      "page_title": "rendered the Hebrew name verbatim",
+      "home_index": {"hebrew_project_listed": true, "rlm_preserved_in_html": true,
+                     "isolate_preserved_in_html": true},
+      "conclusion": "the narrow scope holds live: legitimate bidi punctuation survives creation, persistence and rendering"
+    }
+  ],
+
+  "console": {
+    "total_errors": 2,
+    "explained": "both are the two deliberate 400 refusals this run triggered (/onboard and /projects/demo/cases)",
+    "unexplained_errors": 0
+  },
+
+  "verdict_contribution": "PASS -- the refusal is real at both doors in a real browser, nothing reaches disk, neither page renders the credential in glyph order under a detector proven on that page, and legitimate Hebrew/Arabic bidi punctuation is still accepted end to end."
+}
