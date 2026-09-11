@@ -111,6 +111,21 @@ def test_a_name_clash_on_the_same_url_keeps_both_and_records_a_conflict() -> Non
     assert any("Student detail" in c for c in conflict.claims)
 
 
+def test_a_same_named_rediscovery_merges_instead_of_duplicating() -> None:
+    """AT-102: a non-structural screen re-discovered at the SAME url_pattern
+    under the SAME name is the crawl finding what the spec already knows
+    (under a fresh node id, so it can't be caught by the known-ids check
+    alone) — not a new screen, and not a disagreement either."""
+    spec = FlowSpec(project="erp", screens=[
+        Screen(id="scr_old", name="Students", url_pattern="/students/{id}"),
+    ])
+    merged = merge_screens(spec, [make_node(name="Students")], "erp", crawl_id="crawl_1")
+
+    assert len(merged.screens) == 1
+    assert merged.screens[0].id == "scr_old"
+    assert merged.conflicts == []
+
+
 def test_the_same_conflict_is_not_recorded_twice_on_re_merge() -> None:
     spec = FlowSpec(project="erp", screens=[
         Screen(id="scr_human", name="Student list", url_pattern="/students/{id}"),

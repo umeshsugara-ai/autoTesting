@@ -112,6 +112,15 @@ def disagreement(clash: Screen | None, incoming: Screen, source_id: str) -> Conf
     return _conflict_for(clash, incoming, source_id)
 
 
+def _is_rediscovery(clash: Screen | None, incoming: Screen) -> bool:
+    """AT-102: a non-structural screen re-discovered at the SAME pattern under
+    the SAME name is not a new screen and not a disagreement either — it is
+    the crawl finding what the spec already knows, under a fresh node id.
+    Recording it as an addition gave the spec two identically-named screens
+    on one pattern with nothing (no conflict) explaining why."""
+    return clash is not None and clash.name == incoming.name and not _is_structural(clash)
+
+
 def merge_screens(
     spec: FlowSpec | None, nodes: list[ScreenNode], project: str, *, crawl_id: str
 ) -> FlowSpec:
@@ -123,7 +132,7 @@ def merge_screens(
     picking a winner is how a product map stops matching the product.
 
     See `disagreement` for when a shared `url_pattern` is a conflict and when
-    it is simply an SPA.
+    it is simply an SPA, and `_is_rediscovery` for when it is neither.
 
     Idempotent: merging the same crawl twice changes nothing, so the version is
     not bumped and the review is not reset a second time.
@@ -138,7 +147,10 @@ def merge_screens(
         incoming = screen_from(node)
         if incoming.id in known_ids:
             continue
-        conflict = disagreement(by_pattern.get(incoming.url_pattern), incoming, crawl_id)
+        clash = by_pattern.get(incoming.url_pattern)
+        if _is_rediscovery(clash, incoming):
+            continue
+        conflict = disagreement(clash, incoming, crawl_id)
         if conflict is not None:
             conflicts.append(conflict)
         added.append(incoming)
