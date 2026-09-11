@@ -1,0 +1,63 @@
+{
+  "tests": [
+    "tests/test_ui_credential_transforms.py"
+  ],
+  "mutations": [
+    {
+      "name": "case folding removed - the AT-339 bypass is open again",
+      "file": "src/autotester/core/redact.py",
+      "old": "    return _FOLD_STRIP.sub(\"\", text).casefold()",
+      "new": "    return _FOLD_STRIP.sub(\"\", text)",
+      "kills": [
+        "tests/test_ui_credential_transforms.py::test_a_case_and_separator_transform_of_a_credential_is_refused"
+      ]
+    },
+    {
+      "name": "separator folding removed - stripping the hyphens walks through",
+      "file": "src/autotester/core/redact.py",
+      "old": "_FOLD_STRIP = re.compile(r\"[\\s\\-_.]+\")",
+      "new": "_FOLD_STRIP = re.compile(r\"[\\s]+\")",
+      "kills": [
+        "tests/test_ui_credential_transforms.py::test_a_case_and_separator_transform_of_a_credential_is_refused",
+        "tests/test_ui_credential_transforms.py::test_a_credential_with_its_separators_stripped_is_refused"
+      ]
+    },
+    {
+      "name": "the folded check is never consulted by the field guard",
+      "file": "src/autotester/ui/helpers.py",
+      "old": "    if (any(not redactor.is_clean(v) for v in _credential_variants(value))\n            or redactor.contains_folded(value)):",
+      "new": "    if any(not redactor.is_clean(v) for v in _credential_variants(value)):",
+      "kills": [
+        "tests/test_ui_credential_transforms.py::test_a_folded_credential_in_one_field_is_blamed_on_that_field"
+      ]
+    },
+    {
+      "name": "the folded check is never consulted by the joined-fields guard",
+      "file": "src/autotester/ui/helpers.py",
+      "old": "    if joined and (any(not redactor.is_clean(v) for v in _credential_variants(joined))\n                   or redactor.contains_folded(joined)):",
+      "new": "    if joined and any(not redactor.is_clean(v) for v in _credential_variants(joined)):",
+      "kills": [
+        "tests/test_ui_credential_transforms.py::test_a_folded_credential_split_across_two_fields_is_refused"
+      ]
+    },
+    {
+      "name": "the folded-length floor is removed - short values refuse ordinary text",
+      "file": "src/autotester/core/redact.py",
+      "old": "            if len(folded) >= MIN_FOLDED_LEN",
+      "new": "            if len(folded) >= 0",
+      "kills": [
+        "tests/test_ui_credential_transforms.py::test_a_short_env_value_does_not_start_refusing_ordinary_text"
+      ]
+    },
+    {
+      "name": "the floor is raised past the real credential - the bypass reopens quietly",
+      "file": "src/autotester/core/redact.py",
+      "old": "MIN_FOLDED_LEN = 8",
+      "new": "MIN_FOLDED_LEN = 100",
+      "kills": [
+        "tests/test_ui_credential_transforms.py::test_a_case_and_separator_transform_of_a_credential_is_refused",
+        "tests/test_ui_credential_transforms.py::test_a_credential_with_its_separators_stripped_is_refused"
+      ]
+    }
+  ]
+}

@@ -155,34 +155,6 @@ def test_a_credential_shaped_key_is_refused(
     assert project.secret(key_shaped_password) is None
 
 
-# -- AT-074: trivially-recoverable encodings ---------------------------------
-
-def test_a_url_encoded_credential_is_refused(
-    client: TestClient, scratch_root: Path
-) -> None:
-    """AT-074: `is_clean` is a plain substring test, so a percent-encoded value
-    passed straight through and was written to a tracked file."""
-    from urllib.parse import quote_plus
-    _project_with_credential(client, scratch_root, value=REAL_PASSWORD)
-
-    response = _add_case(client, quote_plus(REAL_PASSWORD))
-
-    assert response.status_code == 400
-    assert ProjectStore("demo", scratch_root).list_cases() == []
-
-
-def test_a_credential_broken_by_a_space_is_refused(
-    client: TestClient, scratch_root: Path
-) -> None:
-    half = len(REAL_PASSWORD) // 2
-    _project_with_credential(client, scratch_root, value=REAL_PASSWORD)
-
-    response = _add_case(client, f"{REAL_PASSWORD[:half]} {REAL_PASSWORD[half:]}")
-
-    assert response.status_code == 400
-    assert ProjectStore("demo", scratch_root).list_cases() == []
-
-
 # -- AT-075: error bodies must not echo raw input ----------------------------
 
 def test_an_unknown_case_class_is_not_echoed_back(
@@ -249,3 +221,12 @@ def test_setting_one_value_leaves_the_others_intact(scratch_root: Path) -> None:
     parsed = parse_env(env.read_text(encoding="utf-8"))
     assert parsed["FIRST_KEY"] == "changed #again"
     assert parsed["SECOND_KEY"] == "  second  "
+
+
+# -- AT-339: the guard matched case-SENSITIVELY ------------------------------
+
+UPPER_CREDENTIAL = "ZEBRA_QUILT_APIKEY_31"
+"""A real `.env` value in the shape API keys actually take: upper snake case.
+`REAL_PASSWORD` above is already lowercase-with-hyphens, so every test written
+against it exercised the one casing where a plain substring test happens to
+work -- which is why this class survived AT-073, AT-074 and AT-079."""

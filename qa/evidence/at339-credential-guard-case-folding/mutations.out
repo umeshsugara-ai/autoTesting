@@ -1,0 +1,20 @@
+KILLED  case folding removed - the AT-339 bypass is open again  (pytest exit 1)
+    claims to kill : tests/test_ui_credential_transforms.py::test_a_case_and_separator_transform_of_a_credential_is_refused
+    actually failed: tests/test_ui_credential_transforms.py::test_a_case_and_separator_transform_of_a_credential_is_refused, tests/test_ui_credential_transforms.py::test_a_folded_credential_in_one_field_is_blamed_on_that_field, tests/test_ui_credential_transforms.py::test_a_folded_credential_split_across_two_fields_is_refused
+KILLED  separator folding removed - stripping the hyphens walks through  (pytest exit 1)
+    claims to kill : tests/test_ui_credential_transforms.py::test_a_case_and_separator_transform_of_a_credential_is_refused, tests/test_ui_credential_transforms.py::test_a_credential_with_its_separators_stripped_is_refused
+    actually failed: tests/test_ui_credential_transforms.py::test_a_case_and_separator_transform_of_a_credential_is_refused, tests/test_ui_credential_transforms.py::test_a_credential_with_its_separators_stripped_is_refused, tests/test_ui_credential_transforms.py::test_a_folded_credential_in_one_field_is_blamed_on_that_field, tests/test_ui_credential_transforms.py::test_a_folded_credential_split_across_two_fields_is_refused
+KILLED  the folded check is never consulted by the field guard  (pytest exit 1)
+    claims to kill : tests/test_ui_credential_transforms.py::test_a_folded_credential_in_one_field_is_blamed_on_that_field
+    actually failed: tests/test_ui_credential_transforms.py::test_a_folded_credential_in_one_field_is_blamed_on_that_field
+KILLED  the folded check is never consulted by the joined-fields guard  (pytest exit 1)
+    claims to kill : tests/test_ui_credential_transforms.py::test_a_folded_credential_split_across_two_fields_is_refused
+    actually failed: tests/test_ui_credential_transforms.py::test_a_folded_credential_split_across_two_fields_is_refused
+KILLED  the folded-length floor is removed - short values refuse ordinary text  (pytest exit 1)
+    claims to kill : tests/test_ui_credential_transforms.py::test_a_short_env_value_does_not_start_refusing_ordinary_text
+    actually failed: tests/test_ui_credential_transforms.py::test_a_short_env_value_does_not_start_refusing_ordinary_text
+KILLED  the floor is raised past the real credential - the bypass reopens quietly  (pytest exit 1)
+    claims to kill : tests/test_ui_credential_transforms.py::test_a_case_and_separator_transform_of_a_credential_is_refused, tests/test_ui_credential_transforms.py::test_a_credential_with_its_separators_stripped_is_refused
+    actually failed: tests/test_ui_credential_transforms.py::test_a_case_and_separator_transform_of_a_credential_is_refused, tests/test_ui_credential_transforms.py::test_a_credential_with_its_separators_stripped_is_refused, tests/test_ui_credential_transforms.py::test_a_folded_credential_in_one_field_is_blamed_on_that_field, tests/test_ui_credential_transforms.py::test_a_folded_credential_split_across_two_fields_is_refused
+
+6/6 mutations killed
