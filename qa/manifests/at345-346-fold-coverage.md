@@ -75,13 +75,15 @@ the checker's own `expected` offered as an alternative to full coverage.
 - `uv run ruff check src scripts` → expected: `All checks passed!`
   (**not** a bare `ruff check tests` — `tests/test_explore_error_causes.py` is another session's
   uncommitted in-flight edit and reports unused imports that are not this unit's)
-- `uv run autotester doctor` → expected: `doctor: clean`
+- `uv run autotester doctor` → expected: ONE violation, `tests/test_explore_error_causes.py`
+  at 330 lines — the other maker loop's uncommitted in-flight file, not this unit's. Confirm
+  with `git status --porcelain tests/test_explore_error_causes.py`; this unit's files are clean.
 - `uv run pytest tests/test_ui_credential_transforms.py tests/test_ui_credential_unicode.py -q`
-  → expected: 20 passed
+  → expected: 26 passed (counted from the run, not from arithmetic — I wrote 25 first)
 - `uv run python scripts/mutation_check.py qa/evidence/at345-346-fold-coverage/mutations.json`
-  → expected: `6/6 mutations killed` (C7)
+  → expected: `9/9 mutations killed` (C7 — cycle 2 added three)
 
-## Actual outputs (from maker's own run)
+## Actual outputs — CYCLE 1 (superseded; cycle 2's are below)
 
 ```
 $ uv run pytest
