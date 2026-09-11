@@ -1,0 +1,102 @@
+{
+  "control-plain-credential": {
+    "slug": "atk0",
+    "status": 400,
+    "verdict": "REFUSED"
+  },
+  "U+0000 NUL (AT-353)": {
+    "slug": "atk1",
+    "status": 400,
+    "verdict": "REFUSED"
+  },
+  "U+001B ESC": {
+    "slug": "atk2",
+    "status": 400,
+    "verdict": "REFUSED"
+  },
+  "U+200B ZWSP (AT-345)": {
+    "slug": "atk3",
+    "status": 400,
+    "verdict": "REFUSED"
+  },
+  "U+034F CGJ (AT-351)": {
+    "slug": "atk4",
+    "status": 400,
+    "verdict": "REFUSED"
+  },
+  "U+2800 BRAILLE BLANK": {
+    "slug": "atk5",
+    "status": 200,
+    "verdict": "ACCEPTED-to-disk"
+  },
+  "U+E000 PUA": {
+    "slug": "atk6",
+    "status": 200,
+    "verdict": "ACCEPTED-to-disk"
+  },
+  "U+F8FF PUA end": {
+    "slug": "atk7",
+    "status": 200,
+    "verdict": "ACCEPTED-to-disk"
+  },
+  "U+100000 PUA plane 16": {
+    "slug": "atk8",
+    "status": 200,
+    "verdict": "ACCEPTED-to-disk"
+  },
+  "U+0378 unassigned (Cn)": {
+    "slug": "atk9",
+    "status": 200,
+    "verdict": "ACCEPTED-to-disk"
+  },
+  "U+05EB unassigned (Cn)": {
+    "slug": "atk10",
+    "status": 200,
+    "verdict": "ACCEPTED-to-disk"
+  },
+  "U+FDD0 noncharacter": {
+    "slug": "atk11",
+    "status": 200,
+    "verdict": "ACCEPTED-to-disk"
+  },
+  "U+FFFE noncharacter": {
+    "slug": "atk12",
+    "status": 200,
+    "verdict": "ACCEPTED-to-disk"
+  },
+  "U+0301 combining acute (visible Mn)": {
+    "slug": "atk13",
+    "status": 200,
+    "verdict": "ACCEPTED-to-disk"
+  },
+  "U+0335 combining short stroke": {
+    "slug": "atk14",
+    "status": 200,
+    "verdict": "ACCEPTED-to-disk"
+  },
+  "U+20E0 combining enclosing": {
+    "slug": "atk15",
+    "status": 200,
+    "verdict": "ACCEPTED-to-disk"
+  },
+  "U+A4A0 (So)": {
+    "slug": "atk16",
+    "status": 200,
+    "verdict": "ACCEPTED-to-disk"
+  },
+  "U+1D159 musical null notehead": {
+    "slug": "atk17",
+    "status": 200,
+    "verdict": "ACCEPTED-to-disk"
+  },
+  "U+202E RLO then reversed": {
+    "slug": "atk18",
+    "status": 200,
+    "verdict": "ACCEPTED-to-disk"
+  },
+  "U+2066 LRI isolate": {
+    "slug": "atk19",
+    "status": 400,
+    "verdict": "REFUSED"
+  }
+}

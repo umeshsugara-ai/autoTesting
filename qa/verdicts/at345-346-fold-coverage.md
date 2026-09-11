@@ -438,3 +438,269 @@ widening of the strip could start refusing real names with nothing to catch it.
    code points. The durable shape is a positive test — *"does this text, rendered, read as the
    credential?"* — rather than a list of things that do not render. That is a scope decision, so
    it is raised here and not imposed.
+
+---
+
+# VERDICT — cycle 3 (FINAL CYCLE THE PROTOCOL ALLOWS)
+
+**Date:** 2026-09-11
+**Unit:** at345-346-fold-coverage
+**Contract:** `qa/contracts/ui.md` U8/U9 · `qa/contracts/core-invariants.md` C2, C7
+**Cycle checked: 3**
+**Checker:** fresh Mode A + Mode D subagent, bound to `d:/autoTesting`, no builder context
+
+```
+VERDICT: FAIL
+SCOREBOARD: 0/2 criteria met, 2/2 invariants hold
+```
+
+I am saying it plainly, as asked: **this cycle FAILs, and the unit should flip to `STALLED` for
+Umesh rather than take a fourth round.** Not because cycle 3's work was poor — it is the best of
+the three, and I confirmed every claim it makes — but because a fourth character class walked a
+live credential onto a rendered page, and that is now evidence about the *shape* of the guard
+rather than about the class.
+
+## What I re-ran (my own execution, nothing read from the manifest)
+
+| Command | Manifest expected | My result |
+|---|---|---|
+| `uv run pytest -q` | 1145 passed, 2 skipped, 1 warning | **exit 0**, no failures (run twice) |
+| `uv run ruff check src scripts` | `All checks passed!` | **`All checks passed!`** |
+| `uv run autotester doctor` | `doctor: clean` | **`doctor: clean`** |
+| `uv run pytest tests/test_ui_credential_transforms.py tests/test_ui_credential_unicode.py` | 31 passed | **31 passed** in 2.86s |
+| `uv run python scripts/mutation_check.py …/mutations.json` | 10/10 killed | **10/10 mutations killed** |
+
+**C2 holds** (`doctor: clean`; both test files and `redact.py` inside the 300-line cap).
+
+## C7 — 10/10, attribution checked by hand, and it holds
+
+Not read off the summary line. For each of the ten mutations I compared its `claims to kill`
+list against the `actually failed` list in my own run; **every claimed nodeid appears in the
+observed failures for all ten**, including cycle 3's new one:
+
+> `AT-353 reverted: control characters are ignorable again only if Cf` — claims
+> `…_refused_at_onboarding[nul]`, `[escape]`, `…_nul_spelling_is_refused_by_the_case_form`;
+> observed failures contain all three (plus `[delete]` and `[start-of-heading]`).
+
+Both doors are represented in that mutation's kill set, which is exactly what cycle 2 demanded.
+**C7 holds.**
+
+## 1. AT-353 is genuinely CLOSED — with a proven detector, not a silent negative
+
+- `POST /onboard` with the NUL spelling: **HTTP 400**, no `project.json` written.
+- `POST /projects/seed/cases` with the NUL spelling in `title`: **HTTP 400**.
+- **The rendering claim, checked in my own Chromium.** I walked every text node looking for the
+  credential *verbatim* — the AT-353 shape, where the parser has already deleted the NULs.
+- **Positive control, matching cycle 2's technique.** I planted two projects **directly into
+  `project.json`**, bypassing the guard: `ctlplain` (plain credential) and `ctlnul` (NUL-spelled).
+  My scan found **both**, each with `domLength 21`, `verbatimInDom true`, and an identical
+  **172.0px** text width — reproducing cycle 2's measurement that the parser deletes NUL.
+- I then removed the planted controls and re-scanned: `document.body.textContent.includes(CRED)`
+  → **false**. The detector fires when there is something to find, and its negative is real.
+
+AT-353 is closed at both doors. AT-345, AT-346 and AT-351 remain closed (U+200B, U+034F, U+2066
+and the percent-escape composition all refused 400 in my own run).
+
+## 2. I kept attacking — and the fourth class is the sharpest one yet
+
+**AT-355 (high) — `U+202E` RIGHT-TO-LEFT OVERRIDE plus the reversed credential is accepted by
+both doors and renders as the exact credential in plain type.**
+
+```
+POST /onboard  name = U+202E + "13_YEKIPA_TLIUQ_ARBEZ"
+  -> HTTP 200, projects/atk18/project.json written
+
+GET /  (my Chromium, per-character Range rects, glyphs sorted by screen x)
+  DOM order    : U+202E 1 3 _ Y E K I P A _ T L I U Q _ A R B E Z
+  VISUAL order : Z E B R A _ Q U I L T _ A P I K E Y _ 3 1      <- 21 glyphs
+  visualOrder.includes("ZEBRA_QUILT_APIKEY_31")  ->  TRUE
+  plain-credential control: 21 glyphs, same reading order, same type
+```
+
+Screenshot `home-index-all-spellings.png`: that card is indistinguishable from the two planted
+plain-credential controls at the bottom of the same page.
+
+**The case form too.** `title`, `step_value` and `step_expected` each accepted it (HTTP 200), and
+git-tracked `cases.jsonl` now carries **7 `\u202e` escapes**.
+`at355-rlo-renders-credential-on-cases-page.png` shows **`ZEBRA_QUILT_APIKEY_31` in plain type
+inside the case-title boxes** of the Cases page.
+
+**Why the guard cannot see it, and this is the part that matters:**
+
+```
+fold_credential(U+202E + reversed)  ==  fold_credential(reversed)   ->  True
+```
+
+`_is_ignorable` strips `U+202E` as category `Cf`. **The guard deletes the one character that
+makes the text render as the credential, and then compares a string that is not one.** The strip
+is not merely blind to this attack; the strip *is* the attack's enabler.
+
+**Why this is not already covered by AT-352.** AT-352's row does name "RTL-override reversal", and
+I weighed leaving it there. I cannot: AT-352 is filed on the rationale that *each of its spellings
+needs a decode step the reader must take* — and measured, this one needs **none**. The browser
+performs the reordering and prints plain type. That is word for word the standard on which the
+cycle-2 checker charged AT-353 ("it needs no decoding by the reader at all") and declined the rest
+of AT-352. The scoping was right; the factual premise for this one arm of it was wrong, and I have
+now measured it. AT-355 is filed as that arm, at high, with AT-352 keeping its other arms.
+
+**Also accepted to disk, and NOT charged** (they render as something a reader must work at, which
+is the AT-352 line the previous two checkers drew, and I am not moving that line in the final
+cycle):
+
+| spelling | accepted | what Chromium draws | call |
+|---|---|---|---|
+| **U+202E + reversed** | yes | **21 glyphs, plain type, identical to control** | **AT-355, charged** |
+| U+0335 combining short stroke | yes | the credential **struck through**, 41 glyphs, zero added width | AT-356 (medium), filed |
+| U+0301 combining acute | yes | accented letters, readable with effort | AT-356 |
+| U+2800 braille blank | yes | visibly spaced `Z E B R A …` (matches cycle 2) | AT-352 class |
+| U+E000 / U+F8FF / U+100000 PUA | yes | visible tofu, +10.33px each | AT-352 class |
+| U+0378, U+05EB unassigned `Cn` | yes | visible tofu | AT-352 class |
+| U+FDD0, U+FFFE noncharacters | yes | visible tofu | AT-352 class |
+| U+A4A0 `So`, U+1D159 musical | yes | visible glyphs | AT-352 class |
+
+Lone surrogates are **not reproducible** through this door — a urlencoded body is utf-8 decoded and
+a lone surrogate cannot be encoded into one. Recorded as not-reachable, not as a finding.
+
+**The exhaustive number, because it is the argument.** `enumerate.py` walked all 0x110000 code
+points: **1,107,659 of them defeat the fold when interleaved** (Cn 826,065 · Co 137,468 ·
+Lo 127,329 · So 6,605 · Mn 1,687 · …). The deny-list covers about **4,200**. Cycle 2 audited the
+declared ranges against Unicode data and found zero under-inclusion *within* Default_Ignorable —
+that audit was sound, and it is also the point: the set being audited is four thousand out of a
+million.
+
+## 3. False positives — 11 probes, ZERO refusals
+
+The specific worry in the dispatch, tested through the real UI:
+
+| probe | result |
+|---|---|
+| `expect` with a real newline (3 lines) | **accepted 200** |
+| `expect` with a real tab | **accepted 200** |
+| `expect` multi-line **and** tabs | **accepted 200** |
+| `expect` with CRLF | **accepted 200** |
+| title with emoji + **U+FE0F** (`Checkout ✔️ flow`) | **accepted 200** |
+| title with a ZWJ family sequence | **accepted 200** |
+| title with a keycap (`1️⃣`) | **accepted 200** |
+| title Hindi · Arabic with shadda · Thai · accented Latin | **accepted 200** |
+
+All eleven render correctly on the Cases page (see the screenshot). **The widened strip does not
+brick legitimate multi-line text, and an emoji title is not refused.**
+
+One methodological note that matters, because my first pass got this wrong and it is the trap the
+cycle-2 checker also flagged: reusing one step target makes `add_case` idempotent and the form
+answers **400 — "this project already has a case with exactly these steps"**. That is AT-060, not
+the guard. Every probe above was given a unique step target, and I read the 400 bodies to tell the
+two apart in both directions.
+
+## 4. The rename `_is_invisible` → `_is_ignorable` — right diagnosis, and the new name is STILL wrong
+
+The maker's claim that the wrong name was part of the defect is **correct and well argued**: a
+predicate promising "renders as nothing" was measurably false (U+0001 and U+007F draw visible
+boxes), and a security predicate that promises the wrong thing invites the next implementation to
+chase the wrong rule. Renaming was the right move.
+
+But the new stated rule — *"none of these characters can carry meaning a reader takes off the
+screen"* — **is false for the characters the predicate itself strips.** U+202E carries meaning a
+reader takes off the screen: it reorders everything after it. So does U+202B, and so do the
+isolates in U+2066–U+2069. `_is_ignorable` is more honest than `_is_invisible` and still names a
+property its members do not have. Twice the implementation chased a mis-stated rule; the rule is
+still mis-stated, and AT-355 is what that costs. **The bidi controls are not ignorable — they are
+*layout* characters, and the only safe handling is to refuse text containing them, not to erase
+them before comparing.**
+
+## 5. The AT-354 deferral — the reasoning is wrong, and there is a falsifiable version
+
+The maker argues an acceptance test for Indic/Arabic/emoji names "cannot be killed by any
+mutation of this guard, because the guard only ever refuses and over-stripping the input makes it
+match *less*, not more."
+
+**That is false, and C7 already says so in the sentence written for exactly this situation:**
+*"An unreachability claim is INCONCLUSIVE, never a justification … it has been refuted on the first
+attempt both times it was made here (AT-315, AT-321)."* This is the third time, and it is refuted
+again — by a mutation of the very line this unit added:
+
+> `strip ALL Mn` is already in this unit's spec as a mutation. Widen it a little differently —
+> strip `Mn` **and** `Mc` (Devanagari and Thai vowel signs), or simply
+> `unicodedata.category(ch).startswith("M")` — and a Hindi or Thai name folds down to a stub. The
+> guard then refuses **more**, not less: `contains_folded` is a substring test evaluated on the
+> *folded* value, so over-stripping shortens the candidate toward a collision instead of
+> lengthening it away from one. An acceptance test naming `परीक्षण मामला` dies on that mutation.
+
+So the falsifiable version it should have written is one line of spec plus one parametrised test:
+*"strip every category beginning with `M`"* as the mutation, killed by
+`test_ordinary_unicode_text_is_still_accepted[hindi|arabic|thai|emoji-vs16]`. That is cheap, it is
+not decoration, and it would have cost less than the paragraph arguing it was impossible. AT-354
+stays **open**, and its ledger row now records that the deferral's stated reason was tested and
+does not hold.
+
+I will say the fair half too: the *instinct* behind it — do not add a test that cannot fail — is
+the right instinct and is exactly what C7 asks for. The error was stopping at "I could not think of
+a mutation", which is the failure mode C7 names by name.
+
+## My read on the shape, since you asked
+
+**Character-class-at-a-time is the wrong shape for this guard, and AT-355 proves it more strongly
+than a fourth unlucky class would.** Three cycles subtracted families that "do not render". AT-355
+is not a family anybody forgot — it is a character the guard **already strips**, which leaks
+*because* it strips it. No amount of widening the deny-list closes that; widening makes it worse,
+since every newly-stripped format character is another character whose layout effect the
+comparison is now blind to.
+
+An **allow-list of readable characters is sounder**, and I would scope it this way:
+
+1. **Canonicalise, then require.** NFKC the text, then require every remaining character to be in a
+   small positive set — letters, marks and digits of the scripts the product actually stores, plus
+   ordinary punctuation and whitespace. Anything outside it is refused **as unrenderable input**,
+   with a message naming the offending code point. That refusal is honest and actionable in a way
+   "looks like a credential" is not.
+2. **Bidi controls get their own rule, not a strip.** Any of `U+202A`–`U+202E`, `U+2066`–`U+2069`,
+   `U+200E`/`U+200F`, `U+061C` in a stored field is refused outright. They exist to change reading
+   order; a project name never needs one.
+3. **Keep the fold for what it was actually good at** — case, separators, confusables, percent
+   escapes. Those are reversals a human performs, the fold catches them well, and all of that work
+   from three cycles survives the change.
+4. **Then write the positive test cycle 2 asked for:** *does this text, rendered in a real browser,
+   read as the credential?* The `visualOrder` probe in this evidence directory is a working
+   implementation — sort glyphs by screen x, compare — and it is the only detector in this thread
+   that caught AT-355. It belongs in the repo, not in a checker's scratch directory.
+
+That is a design conversation with Umesh, not a fourth patch, which is why the honest outcome here
+is STALLED.
+
+## FAILURES
+
+- **[U8] sev: high** · `POST /projects/{slug}/cases` accepts `U+202E` + the reversed credential in
+  `title`, `step_value` and `step_expected` (HTTP 200 each); git-tracked `cases.jsonl` carries 7
+  `\u202e` escapes and the Cases page renders `ZEBRA_QUILT_APIKEY_31` in plain type in the title
+  boxes · fix direction: refuse bidi-control characters outright instead of stripping them before
+  the comparison; do not extend the deny-list · issue: **AT-355**
+- **[U9] sev: high** · `POST /onboard` accepts the same spelling (HTTP 200, `project.json`
+  written) and the home index renders the exact credential, 21 glyphs, visually identical to a
+  planted plain-credential control · same fix direction · issue: **AT-355**
+
+## Issues written
+
+- **AT-355** (high, open) — bidi-override spelling accepted at both doors and rendered as the
+  exact credential; the guard's own `Cf` strip erases the character that causes it.
+- **AT-356** (medium, open) — zero-width **visible** combining marks (U+0335, U+0301) interleaved
+  between every character are accepted at both doors and render the credential legibly (struck
+  through / accented). Not charged: reading it takes looking past the marks, which is the AT-352
+  line the previous two checkers drew and I am not moving it in the final cycle.
+- **AT-354** (low) — note appended: the deferral's stated reason ("no mutation can kill it") was
+  tested and does not hold; the mutation *strip every category beginning with M* kills such a test.
+- **AT-352, AT-349, AT-347** — unchanged; I agree with how each is scoped.
+
+## What I am NOT charging
+
+The unit did everything cycle 2 asked for, and did it well. AT-353 is closed at both doors with a
+mutation that names U+0000 explicitly and dies at both. The false-positive probe is clean at 11/11.
+The rename was the right call even though the new name is still inaccurate. The mutation harness is
+honest and its attribution holds on all ten. C2 and C7 both hold. None of that is in dispute — the
+FAIL rests entirely on AT-355, which I reproduced in my own browser, with a positive control, and
+which I would defend at well over 80% confidence.
+
+**Evidence:** `qa/evidence/browser-at345-346-fold-coverage-2026-09-11-checker/` —
+`report.json`, `enumerate.py`, `attack.py`, `caseform.py`, `attack-results.json`,
+`caseform-results.json`, `home-index-all-spellings.png`,
+`at355-rlo-renders-credential-on-cases-page.png`. My server ran on a scratch `AUTOTESTER_ROOT`
+outside the repo; no repo project was created, edited or deleted by this check. Console errors: 0.

@@ -1,0 +1,101 @@
+{
+  "attacks": {
+    "RLO-reordered in title": {
+      "status": 200,
+      "verdict": "ACCEPTED-to-disk",
+      "body": ""
+    },
+    "RLO-reordered in step_value": {
+      "status": 200,
+      "verdict": "ACCEPTED-to-disk",
+      "body": ""
+    },
+    "RLO-reordered in step_expected": {
+      "status": 200,
+      "verdict": "ACCEPTED-to-disk",
+      "body": ""
+    },
+    "RLO-reordered in step_target": {
+      "status": 400,
+      "verdict": "REFUSED",
+      "body": "{\"detail\":\"this project already has a case with exactly these steps: 'a case'. Change a step to make it a different case, or rename the existing one from the ca"
+    },
+    "comb-stroke in title": {
+      "status": 200,
+      "verdict": "ACCEPTED-to-disk",
+      "body": ""
+    },
+    "comb-stroke in step_value": {
+      "status": 200,
+      "verdict": "ACCEPTED-to-disk",
+      "body": ""
+    },
+    "NUL in title (AT-353 control)": {
+      "status": 400,
+      "verdict": "REFUSED",
+      "body": "{\"detail\":\"the title looks like it contains a real credential. Values are stored in the repository in plain text and appear in screenshots, so they must never b"
+    },
+    "plain credential in title (control)": {
+      "status": 400,
+      "verdict": "REFUSED",
+      "body": "{\"detail\":\"the title looks like it contains a real credential. Values are stored in the repository in plain text and appear in screenshots, so they must never b"
+    }
+  },
+  "false_positives": {
+    "expect with a real newline": {
+      "status": 200,
+      "accepted": true,
+      "body": ""
+    },
+    "expect with a real tab": {
+      "status": 200,
+      "accepted": true,
+      "body": ""
+    },
+    "expect multi-line + tabs": {
+      "status": 200,
+      "accepted": true,
+      "body": ""
+    },
+    "expect with CRLF": {
+      "status": 200,
+      "accepted": true,
+      "body": ""
+    },
+    "title with emoji + U+FE0F": {
+      "status": 200,
+      "accepted": true,
+      "body": ""
+    },
+    "title with emoji ZWJ family": {
+      "status": 200,
+      "accepted": true,
+      "body": ""
+    },
+    "title with keycap 1\ufe0f\u20e3": {
+      "status": 200,
+      "accepted": true,
+      "body": ""
+    },
+    "title Hindi": {
+      "status": 200,
+      "accepted": true,
+      "body": ""
+    },
+    "title Arabic with shadda": {
+      "status": 200,
+      "accepted": true,
+      "body": ""
+    },
+    "value with accented Latin": {
+      "status": 200,
+      "accepted": true,
+      "body": ""
+    },
+    "expect with Thai": {
+      "status": 200,
+      "accepted": true,
+      "body": ""
+    }
+  }
+}

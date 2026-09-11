@@ -1,0 +1,93 @@
+{
+  "unit": "at345-346-fold-coverage",
+  "cycle": 3,
+  "date": "2026-09-11",
+  "actor": "/checker Mode A + Mode D, fresh subagent, bound to d:/autoTesting",
+  "instrument": {
+    "browser": "Chromium via playwright MCP, driven by this checker",
+    "server": "own uvicorn 127.0.0.1:8743, scratch AUTOTESTER_ROOT outside the repo",
+    "env": "DEMO_PASSWORD=ZEBRA_QUILT_APIKEY_31 in the scratch root's .env only",
+    "note": "no repo project was created, edited or deleted by this check"
+  },
+  "console": {"errors": 0, "warnings": 0, "unexplained": 0},
+
+  "at353_is_closed": {
+    "verdict": "CLOSED, on my own evidence",
+    "onboard_post_nul_spelling": "HTTP 400, no project.json written",
+    "case_form_nul_in_title": "HTTP 400",
+    "detector": "walk every text node; a node is a leak when its text contains the credential VERBATIM (the AT-353 shape: the parser has deleted the NULs)",
+    "positive_control": "planted ctlplain (plain credential) and ctlnul (NUL-spelled) DIRECTLY into project.json, bypassing the guard",
+    "with_controls_planted": "both detected; domLength 21 for BOTH, verbatimInDom true for both, textWidth 172px identical -- the NULs are deleted by the parser exactly as cycle 2 measured",
+    "controls_removed_then_rescanned": "document.body.textContent.includes(CRED) -> FALSE",
+    "conclusion": "the detector demonstrably fires, and its negative on the guard-accepted set is real"
+  },
+
+  "kept_attacking_onboard": {
+    "method": "interleave one code point between every character of the live credential, POST /onboard, then measure what Chromium draws",
+    "refused_400": [
+      "control plain credential", "U+0000 NUL", "U+001B ESC", "U+200B ZWSP",
+      "U+034F CGJ", "U+2066 LRI"
+    ],
+    "accepted_to_disk_200": [
+      "U+2800 BRAILLE BLANK", "U+E000 PUA", "U+F8FF PUA", "U+100000 PUA plane 16",
+      "U+0378 unassigned Cn", "U+05EB unassigned Cn", "U+FDD0 noncharacter",
+      "U+FFFE noncharacter", "U+0301 combining acute", "U+0335 combining short stroke",
+      "U+20E0 combining enclosing", "U+A4A0 So", "U+1D159 musical symbol",
+      "U+202E RLO + reversed credential"
+    ],
+    "exhaustive_fold_enumeration": "enumerate.py walked all 0x110000 code points: 1107659 defeat the fold when interleaved (Cn 826065, Co 137468, Lo 127329, So 6605, Mn 1687, ...). The deny-list covers ~4200 of them.",
+    "lone_surrogates": "not reachable through the HTTP form: urlencoded bodies are utf-8 decoded and a lone surrogate cannot be encoded. Recorded as not-reproducible rather than as a finding."
+  },
+
+  "rendering_measurements": {
+    "method": "per-character Range.getBoundingClientRect; glyphs sorted by screen x give the VISUAL reading order, which is what a human takes off the page",
+    "plain_credential_control": {"glyphs": 21, "textWidth": 172.0},
+    "U+202E RLO + reversed": {
+      "domOrder": "RLO + 13_YEKIPA_TLIUQ_ARBEZ",
+      "domHasCred": false,
+      "visualOrder": "ZEBRA_QUILT_APIKEY_31",
+      "visualHasCred": true,
+      "glyphs": 21,
+      "note": "pixel-for-pixel the plain-credential control; NO decoding step by the reader"
+    },
+    "U+0335 comb stroke": {"glyphs": 41, "visual": "Z-E-B-R-A... struck through", "readable": true},
+    "U+0301 comb acute": {"glyphs": 41, "visual": "accented letters", "readable": "with effort"},
+    "U+2800 braille": {"glyphs": 41, "visual": "visibly spaced Z E B R A ...", "matches cycle 2": true},
+    "PUA / Cn / noncharacter / So / musical": {"glyphs": 41, "visual": "visible tofu boxes", "deltaPx_per_char": 10.33}
+  },
+
+  "the_finding": {
+    "id": "AT-355",
+    "severity": "high",
+    "claim": "U+202E RIGHT-TO-LEFT OVERRIDE plus the reversed credential is accepted by BOTH doors and renders as the exact credential in plain type",
+    "onboard": "HTTP 200, project.json written, home index renders ZEBRA_QUILT_APIKEY_31 (21 glyphs, visual order)",
+    "case_form": "HTTP 200 on title, step_value and step_expected; git-tracked cases.jsonl carries 7 \\u202e escapes; the cases page renders the credential in plain type in the title boxes",
+    "screenshots": [
+      "home-index-all-spellings.png",
+      "at355-rlo-renders-credential-on-cases-page.png"
+    ],
+    "why_the_guard_cannot_see_it": "fold_credential(U+202E + reversed) == fold_credential(reversed) -- _is_ignorable strips U+202E as Cf, so the guard DELETES the one character that makes the text render as the credential, then compares a string that is not one",
+    "why_it_is_not_AT-352": "AT-352's filed rationale is that each of its spellings needs a decode step the reader must take. Measured, this one needs none: the browser performs the reordering and prints plain type. That is verbatim the standard on which AT-353 was charged."
+  },
+
+  "false_positives": {
+    "probes": 11,
+    "refusals": 0,
+    "accepted": [
+      "expect with a real newline", "expect with a real tab",
+      "expect multi-line + tabs", "expect with CRLF",
+      "title with emoji + U+FE0F", "title with emoji ZWJ family",
+      "title with keycap 1 + U+FE0F + U+20E3", "title Hindi",
+      "title Arabic with shadda", "value with accented Latin", "expect with Thai"
+    ],
+    "note": "each probe was given a UNIQUE step target so AT-060's duplicate-content 400 could never be mistaken for a credential refusal. A first pass that reused one target DID produce 400s, whose body was the duplicate-case message, not the guard's."
+  },
+
+  "verify_commands_rerun": {
+    "uv run pytest -q": "exit 0",
+    "uv run ruff check src scripts": "All checks passed!",
+    "uv run autotester doctor": "doctor: clean",
+    "uv run pytest tests/test_ui_credential_transforms.py tests/test_ui_credential_unicode.py": "31 passed",
+    "uv run python scripts/mutation_check.py qa/evidence/at345-346-fold-coverage/mutations.json": "10/10 mutations killed, attribution checked by hand on all ten"
+  }
+}
