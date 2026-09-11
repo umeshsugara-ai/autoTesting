@@ -6,9 +6,9 @@ test owes a run showing each new test dies when the behaviour it names is revert
 kill-attribution clause.
 **Goal task:** none (ledger issue batch)
 **Date:** 2026-09-11
-**Fix cycle:** 2 of max 3
+**Fix cycle:** 3 of max 3 (LAST)
 **Dual check:** no
-**Issues addressed:** AT-311 · AT-312 · AT-313 · AT-314 · AT-315
+**Issues addressed:** AT-311 · AT-312 · AT-313 · AT-314 · AT-315 · AT-320 · AT-321 · AT-322 · AT-323
 
 ## Why this unit exists
 
@@ -150,17 +150,7 @@ The spec grew from 5 mutations to 8 (the three new guards each earn one), and th
 refactored decision were rebuilt — the first attempt was **refused** for a stale anchor rather than
 reported, which is the discipline working on the maker for the second time in two cycles.
 
-```
-KILLED  kills-label existence check removed (AT-311)
-KILLED  empty-kills guard removed (AT-313)
-KILLED  baseline assertion removed (AT-307)
-KILLED  kill redefined as any non-zero exit (AT-311/AT-315)
-KILLED  kill no longer requires the NAMED test to fail
-KILLED  sandbox containment removed (AT-314)
-KILLED  anchor-count discipline removed
-KILLED  sandbox removed - mutate the live tree
-8/8 mutations killed
-```
+**Superseded by cycle 3 — this 8/8 run was real but measured a tool with four more defects in it (AT-320..AT-323). The authoritative run is the 13/13 below.**
 
 Every line's `claims to kill` is a subset of `actually failed`. The last mutation also fails an
 unrelated test, which is correct and visible rather than hidden — that is what attribution is for.
@@ -169,8 +159,8 @@ The migration spec was re-run unchanged: **4/4 killed**.
 ## Cycle 2 verify (re-run after the final edit)
 
 ```
-$ uv run pytest -o addopts= -q
-1072 passed, 2 skipped, 1 warning in 109.64s       exit=0
+$ uv run pytest -o addopts= -q   # SUPERSEDED, see cycle 3
+1072 passed, 2 skipped
 
 $ uv run ruff check src tests scripts
 All checks passed!                                  exit=0
@@ -179,7 +169,7 @@ $ uv run autotester doctor
 root-clutter: AGENTS.md - scratch and evidence belong in .work/, not the repo root
 1 violation(s)                                      exit=1
 
-$ scripts/mutation_check.py … mutations-self.json   8/8 mutations killed   exit=0
+$ scripts/mutation_check.py … mutations-self.json   8/8 killed  # SUPERSEDED by 13/13
 $ scripts/mutation_check.py … mutations.json        4/4 mutations killed   exit=0
 ```
 
@@ -195,5 +185,104 @@ that runs pytest, rather than mocking the thing under test.
 - **AT-319 (five duplicate ledger ids) is not addressed** — pre-existing, correctly not charged to
   this unit, and renumbering would break citations across a dozen verdicts.
 - **AT-308/AT-309 remain open**, unchanged from cycle 1's judgement #4.
+
+---
+
+# Cycle 3 — the last one
+
+Cycle 2 FAILed. The checker reproduced every finding against the committed code, and one of them
+demolished this unit's central argument.
+
+### AT-321 — my "unreachable clause" claim was FALSE, and it was my second
+Cycle 2 argued that no mutation could reach `exit_code == 1`, so the decision had to be **extracted**
+into `is_kill` and asserted directly. The premise silently assumed every non-1 non-zero exit is a
+*collection* error. **pytest exit 2 is INTERRUPTED and prints the FAILED lines of tests that already
+failed.** The checker built the mutation in one attempt.
+
+`test_an_interrupted_run_with_real_failures_is_not_a_kill` is now that mutation, at `check()` level:
+one test fails normally, a later one raises `KeyboardInterrupt`, the run exits 2 **with** real
+failures — so a weakened `!= 0` calls it killed and the correct `== 1` does not.
+
+**The extraction stays, but its justification does not.** `is_kill` is a cheap direct assertion
+beside the mutation, not proof that no mutation exists. And the proposed general rule — *"when a
+property cannot be reached by mutation, extract it until it can be asserted directly"* — is
+**withdrawn**. The checker declined to adopt it and was right: this was the second unreachability
+claim from me falsified by a single attempt. *"I could not think of a mutation" is not "no mutation
+exists."*
+
+### AT-320 — the fourth hole: a bare name is not an identifier
+`collected_tests` and `failed_tests` both did `split("::")[-1]`, so a same-named test in another
+file or class satisfied attribution and a mutation could be reported killed by a module it never
+touched — **verbatim AT-311's second failure mode, inside the fix for AT-311.** Names now resolve to
+full nodeids at validation, and a name that collects more than once is refused outright.
+
+### AT-322 / AT-323 — two false statements in the report
+`collected_nothing` claimed pytest ran nothing about an interrupted run that produced results; it is
+now `no_test_results`, true only when no failures were reported. And every survivor was labelled
+"vacuous for its property" — the exact phrasing C7's zero-failure clause forbids on that evidence.
+Survivors now read **INCONCLUSIVE**.
+
+## What the C2 split exposed, which no finding named
+
+`tests/test_mutation_check.py` hit 310 lines, so it split by responsibility (what the instrument
+**refuses** vs what it **concludes**). That immediately exposed a real false-negative: `tests`
+accepted a **single file**, so a suite split at the very cap this project enforces would only
+half-run — and **a mutation could look survived because the test that notices lives in the other
+half.** Same class as everything else here. `tests` now takes a list, with a test and its own
+mutation.
+
+## Cycle 3 — the recursive obligation, discharged again
+
+```
+13/13 mutations killed        (0 SURVIVED)
+```
+
+One mutation per guard, including the four new ones. Every line's `claims to kill` is a subset of
+`actually failed`, now in **full nodeids**. The migration spec re-ran unchanged: **4/4 killed**.
+
+The run was repeated **after** the fixture refactor, because the earlier 13/13 measured a tree that
+no longer existed — evidence certifies the tree it was measured on, which is AT-288's lesson applied
+without being told.
+
+## Cycle 3 verify (re-run after the final edit)
+
+```
+$ uv run pytest -o addopts= -q
+1077 passed, 2 skipped, 1 warning in 115.23s       exit=0
+
+$ uv run ruff check src tests scripts
+All checks passed!                                  exit=0
+
+$ uv run autotester doctor
+root-clutter: AGENTS.md - scratch and evidence belong in .work/, not the repo root
+1 violation(s)                                      exit=1   (AT-283 only)
+
+$ scripts/mutation_check.py … mutations-self.json   13/13 mutations killed   exit=0
+$ scripts/mutation_check.py … mutations.json         4/4 mutations killed    exit=0
+```
+
+## Two defects I caught in my own work this cycle, and how
+
+Recorded because the *how* is the only technique that has worked all session — inspect the artifact,
+not the intention:
+
+1. **A 0-byte evidence file.** A backgrounded `&` subshell died with its parent, so a run I was about
+   to cite had never executed. Caught by checking the file's SIZE, not the exit code.
+2. **A test that passed for the wrong reason.** The first interrupted-run attempt re-indented the
+   line into a `SyntaxError`, so `exit == 2` came from a *collection error*, not an interrupt —
+   AT-322's exact confusion, reproduced inside the test written to fix it. The assertions now pin the
+   reason (`failed` non-empty, `no_test_results is False`), not just the code.
+
+Ruff and doctor each caught one more (F811 on an imported fixture; the 300-line cap).
+
+## What cycle 3 does NOT claim
+
+- **That there is no fifth hole.** The checker has found four in three cycles, in a tool built to
+  find exactly this. I have no basis for the claim and am not making it.
+- **That the extraction in cycle 2 was necessary.** It was a choice; the mutation existed.
+- **AT-308 / AT-309 / AT-319** remain open and untouched.
+
+**If this cycle fails, the unit is `STALLED`** — max cycles reached. `/agent-debugger` runs, its
+report goes to `qa/debug/`, and it stops for the human rather than a fourth patch.
 
 ## Status: ready-for-check

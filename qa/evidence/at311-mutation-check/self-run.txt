@@ -1,27 +1,41 @@
-self-mutation spec rebuilt: 8 mutations
-    actually failed: test_it_refuses_a_kills_label_naming_a_test_that_does_not_exist
+KILLED  kills-label existence check removed (AT-311)  (pytest exit 1)
+    claims to kill : tests/test_mutation_check.py::test_it_refuses_a_kills_label_naming_a_test_that_does_not_exist
+    actually failed: tests/test_mutation_check.py::test_it_refuses_a_kills_label_naming_a_test_that_does_not_exist
 KILLED  empty-kills guard removed (AT-313)  (pytest exit 1)
-    claims to kill : test_it_refuses_a_mutation_whose_kills_list_is_empty
-    actually failed: test_it_refuses_a_mutation_whose_kills_list_is_empty
+    claims to kill : tests/test_mutation_check_judgement.py::test_it_refuses_a_mutation_whose_kills_list_is_empty
+    actually failed: tests/test_mutation_check_judgement.py::test_it_refuses_a_mutation_whose_kills_list_is_empty
+KILLED  nodeid ambiguity guard removed (AT-320)  (pytest exit 1)
+    claims to kill : tests/test_mutation_check_judgement.py::test_it_refuses_a_kills_name_that_collects_more_than_once
+    actually failed: tests/test_mutation_check_judgement.py::test_it_refuses_a_kills_name_that_collects_more_than_once
+KILLED  attribution reverted to bare names (AT-320)  (pytest exit 1)
+    claims to kill : tests/test_mutation_check.py::test_a_real_mutation_is_killed_and_attributed, tests/test_mutation_check.py::test_failed_tests_reads_names_out_of_pytest_output
+    actually failed: tests/test_mutation_check.py::test_a_real_mutation_is_killed_and_attributed, tests/test_mutation_check.py::test_a_suite_split_across_files_is_still_one_suite, tests/test_mutation_check.py::test_failed_tests_reads_names_out_of_pytest_output, tests/test_mutation_check.py::test_it_refuses_when_the_named_test_survives_but_another_fails, tests/test_mutation_check.py::test_the_spec_round_trips_through_json, tests/test_mutation_check_judgement.py::test_an_interrupted_run_with_real_failures_is_not_a_kill
 KILLED  baseline assertion removed (AT-307)  (pytest exit 1)
-    claims to kill : test_it_refuses_a_red_baseline
-    actually failed: test_it_refuses_a_red_baseline
-KILLED  kill redefined as any non-zero exit (AT-311/AT-315)  (pytest exit 1)
-    claims to kill : test_is_kill_requires_pytest_to_have_actually_run_tests
-    actually failed: test_is_kill_requires_pytest_to_have_actually_run_tests
+    claims to kill : tests/test_mutation_check.py::test_it_refuses_a_red_baseline
+    actually failed: tests/test_mutation_check.py::test_it_refuses_a_red_baseline
+KILLED  kill redefined as any non-zero exit (AT-311/AT-315/AT-321)  (pytest exit 1)
+    claims to kill : tests/test_mutation_check_judgement.py::test_an_interrupted_run_with_real_failures_is_not_a_kill, tests/test_mutation_check_judgement.py::test_is_kill_requires_pytest_to_have_actually_run_tests
+    actually failed: tests/test_mutation_check_judgement.py::test_an_interrupted_run_with_real_failures_is_not_a_kill, tests/test_mutation_check_judgement.py::test_is_kill_requires_pytest_to_have_actually_run_tests
 KILLED  kill no longer requires the NAMED test to fail  (pytest exit 1)
-    claims to kill : test_is_kill_requires_every_named_test_to_have_failed, test_it_refuses_when_the_named_test_survives_but_another_fails
-    actually failed: test_is_kill_requires_every_named_test_to_have_failed, test_it_refuses_when_the_named_test_survives_but_another_fails
+    claims to kill : tests/test_mutation_check.py::test_it_refuses_when_the_named_test_survives_but_another_fails, tests/test_mutation_check_judgement.py::test_is_kill_requires_every_named_test_to_have_failed
+    actually failed: tests/test_mutation_check.py::test_it_refuses_when_the_named_test_survives_but_another_fails, tests/test_mutation_check_judgement.py::test_is_kill_requires_every_named_test_to_have_failed
+KILLED  no_test_results ignores whether tests reported (AT-322)  (pytest exit 1)
+    claims to kill : tests/test_mutation_check_judgement.py::test_an_interrupted_run_with_real_failures_is_not_a_kill
+    actually failed: tests/test_mutation_check_judgement.py::test_an_interrupted_run_with_real_failures_is_not_a_kill
+KILLED  survivor called vacuous again (AT-323)  (pytest exit 1)
+    claims to kill : tests/test_mutation_check_judgement.py::test_a_survivor_is_reported_as_inconclusive_not_as_vacuous
+    actually failed: tests/test_mutation_check_judgement.py::test_a_survivor_is_reported_as_inconclusive_not_as_vacuous
 KILLED  sandbox containment removed (AT-314)  (pytest exit 1)
-    claims to kill : test_it_refuses_a_file_that_escapes_the_sandbox_by_climbing, test_it_refuses_an_absolute_file_path
-    actually failed: test_it_refuses_a_file_that_escapes_the_sandbox_by_climbing, test_it_refuses_an_absolute_file_path
+    claims to kill : tests/test_mutation_check_judgement.py::test_it_refuses_a_file_that_escapes_the_sandbox_by_climbing, tests/test_mutation_check_judgement.py::test_it_refuses_an_absolute_file_path
+    actually failed: tests/test_mutation_check_judgement.py::test_it_refuses_a_file_that_escapes_the_sandbox_by_climbing, tests/test_mutation_check_judgement.py::test_it_refuses_an_absolute_file_path
 KILLED  anchor-count discipline removed  (pytest exit 1)
-    claims to kill : test_it_refuses_an_anchor_that_matches_more_than_once, test_it_refuses_an_anchor_that_matches_nothing
-    actually failed: test_it_refuses_an_anchor_that_matches_more_than_once, test_it_refuses_an_anchor_that_matches_nothing
+    claims to kill : tests/test_mutation_check.py::test_it_refuses_an_anchor_that_matches_more_than_once, tests/test_mutation_check.py::test_it_refuses_an_anchor_that_matches_nothing
+    actually failed: tests/test_mutation_check.py::test_it_refuses_an_anchor_that_matches_more_than_once, tests/test_mutation_check.py::test_it_refuses_an_anchor_that_matches_nothing
 KILLED  sandbox removed - mutate the live tree  (pytest exit 1)
-    claims to kill : test_the_live_tree_is_never_touched
-    actually failed: test_it_refuses_an_absolute_file_path, test_the_live_tree_is_never_touched
+    claims to kill : tests/test_mutation_check.py::test_the_live_tree_is_never_touched
+    actually failed: tests/test_mutation_check.py::test_the_live_tree_is_never_touched, tests/test_mutation_check_judgement.py::test_it_refuses_an_absolute_file_path
+KILLED  multi-file suite reduced to the first file only  (pytest exit 1)
+    claims to kill : tests/test_mutation_check.py::test_a_suite_split_across_files_is_still_one_suite
+    actually failed: tests/test_mutation_check.py::test_a_suite_split_across_files_is_still_one_suite
 
-8/8 mutations killed
-
-[exited with code 0]
+13/13 mutations killed

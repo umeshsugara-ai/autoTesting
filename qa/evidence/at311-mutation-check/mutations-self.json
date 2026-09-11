@@ -1,10 +1,13 @@
 {
-  "tests": "tests/test_mutation_check.py",
+  "tests": [
+    "tests/test_mutation_check.py",
+    "tests/test_mutation_check_judgement.py"
+  ],
   "mutations": [
     {
       "name": "kills-label existence check removed (AT-311)",
       "file": "scripts/mutation_check.py",
-      "old": "        missing = [t for t in mutation[\"kills\"] if t not in available]\n        if missing:\n            raise MutationError(\n                f\"mutation {mutation['name']!r} names test(s) that are not collected: \"\n                f\"{missing}. A 'kills' label is a claim, not a comment.\")",
+      "old": "        missing = [t for t in mutation[\"kills\"] if t not in collected]\n        if missing:\n            raise MutationError(\n                f\"mutation {mutation['name']!r} names test(s) that are not collected: \"\n                f\"{missing}. A 'kills' label is a claim, not a comment.\")",
       "new": "        pass",
       "kills": [
         "test_it_refuses_a_kills_label_naming_a_test_that_does_not_exist"
@@ -20,6 +23,25 @@
       ]
     },
     {
+      "name": "nodeid ambiguity guard removed (AT-320)",
+      "file": "scripts/mutation_check.py",
+      "old": "        # AT-320: an ambiguous name cannot attribute a kill to anything.\n        ambiguous = {t: sorted(collected[t]) for t in mutation[\"kills\"] if len(collected[t]) > 1}\n        if ambiguous:\n            raise MutationError(\n                f\"mutation {mutation['name']!r} names test(s) that collect more than once: \"\n                f\"{ambiguous}. A bare name is not an identifier \u2014 name the full nodeid.\")",
+      "new": "        pass",
+      "kills": [
+        "test_it_refuses_a_kills_name_that_collects_more_than_once"
+      ]
+    },
+    {
+      "name": "attribution reverted to bare names (AT-320)",
+      "file": "scripts/mutation_check.py",
+      "old": "    return {m.group(\"nodeid\") for m in FAILED.finditer(output)}",
+      "new": "    return {m.group(\"nodeid\").split(\"::\")[-1] for m in FAILED.finditer(output)}",
+      "kills": [
+        "test_failed_tests_reads_names_out_of_pytest_output",
+        "test_a_real_mutation_is_killed_and_attributed"
+      ]
+    },
+    {
       "name": "baseline assertion removed (AT-307)",
       "file": "scripts/mutation_check.py",
       "old": "    code, out = _run_pytest(work, tests)\n    if code != 0:\n        raise MutationError(\n            f\"baseline is NOT green (pytest exit {code}) \u2014 every kill below would be \"\n            f\"meaningless:\\n{out[-2000:]}\")",
@@ -29,12 +51,13 @@
       ]
     },
     {
-      "name": "kill redefined as any non-zero exit (AT-311/AT-315)",
+      "name": "kill redefined as any non-zero exit (AT-311/AT-315/AT-321)",
       "file": "scripts/mutation_check.py",
       "old": "    return exit_code == 1 and expected <= failures",
       "new": "    return exit_code != 0 and expected <= failures",
       "kills": [
-        "test_is_kill_requires_pytest_to_have_actually_run_tests"
+        "test_is_kill_requires_pytest_to_have_actually_run_tests",
+        "test_an_interrupted_run_with_real_failures_is_not_a_kill"
       ]
     },
     {
@@ -45,6 +68,24 @@
       "kills": [
         "test_is_kill_requires_every_named_test_to_have_failed",
         "test_it_refuses_when_the_named_test_survives_but_another_fails"
+      ]
+    },
+    {
+      "name": "no_test_results ignores whether tests reported (AT-322)",
+      "file": "scripts/mutation_check.py",
+      "old": "            \"no_test_results\": code not in (0, 1) and not failures,",
+      "new": "            \"no_test_results\": code not in (0, 1),",
+      "kills": [
+        "test_an_interrupted_run_with_real_failures_is_not_a_kill"
+      ]
+    },
+    {
+      "name": "survivor called vacuous again (AT-323)",
+      "file": "scripts/mutation_check.py",
+      "old": "            print(f\"    SURVIVING      : {', '.join(r['survivors'])}\"\n                  f\"  <- INCONCLUSIVE: this mutation did not make them fail\")",
+      "new": "            print(f\"    SURVIVING      : {', '.join(r['survivors'])}\"\n                  f\"  <- vacuous for its property\")",
+      "kills": [
+        "test_a_survivor_is_reported_as_inconclusive_not_as_vacuous"
       ]
     },
     {
@@ -74,6 +115,15 @@
       "new": "    work = repo",
       "kills": [
         "test_the_live_tree_is_never_touched"
+      ]
+    },
+    {
+      "name": "multi-file suite reduced to the first file only",
+      "file": "scripts/mutation_check.py",
+      "old": "    return [tests] if isinstance(tests, str) else list(tests)",
+      "new": "    return [tests] if isinstance(tests, str) else [list(tests)[0]]",
+      "kills": [
+        "test_a_suite_split_across_files_is_still_one_suite"
       ]
     }
   ]

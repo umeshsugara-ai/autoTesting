@@ -1,14 +1,14 @@
 KILLED  allowed_domains list-guard removed  (pytest exit 1)
-    claims to kill : test_allowed_domains_given_as_a_string_contributes_no_hosts
-    actually failed: test_allowed_domains_given_as_a_string_contributes_no_hosts
+    claims to kill : tests/test_migrate_url_patterns.py::test_allowed_domains_given_as_a_string_contributes_no_hosts
+    actually failed: tests/test_migrate_url_patterns.py::test_allowed_domains_given_as_a_string_contributes_no_hosts
 KILLED  hostname/port reverted to netloc.split  (pytest exit 1)
-    claims to kill : test_an_ipv6_base_url_does_not_declare_a_bracket_as_a_host, test_base_url_userinfo_is_not_treated_as_a_host
-    actually failed: test_an_ipv6_base_url_does_not_declare_a_bracket_as_a_host, test_base_url_userinfo_is_not_treated_as_a_host
+    claims to kill : tests/test_migrate_url_patterns.py::test_an_ipv6_base_url_does_not_declare_a_bracket_as_a_host, tests/test_migrate_url_patterns.py::test_base_url_userinfo_is_not_treated_as_a_host
+    actually failed: tests/test_migrate_url_patterns.py::test_an_ipv6_base_url_does_not_declare_a_bracket_as_a_host, tests/test_migrate_url_patterns.py::test_base_url_userinfo_is_not_treated_as_a_host
 KILLED  port fallback in repair removed  (pytest exit 1)
-    claims to kill : test_a_pattern_carrying_a_port_matches_a_host_declared_without_one
-    actually failed: test_a_pattern_carrying_a_port_matches_a_host_declared_without_one
+    claims to kill : tests/test_migrate_url_patterns.py::test_a_pattern_carrying_a_port_matches_a_host_declared_without_one
+    actually failed: tests/test_migrate_url_patterns.py::test_a_pattern_carrying_a_port_matches_a_host_declared_without_one
 KILLED  _project_dir_of reverted to depth-1  (pytest exit 1)
-    claims to kill : test_a_nested_artifact_under_a_flat_root_is_still_judged_by_its_project
-    actually failed: test_a_nested_artifact_under_a_flat_root_is_still_judged_by_its_project
+    claims to kill : tests/test_migrate_url_patterns.py::test_a_nested_artifact_under_a_flat_root_is_still_judged_by_its_project
+    actually failed: tests/test_migrate_url_patterns.py::test_a_nested_artifact_under_a_flat_root_is_still_judged_by_its_project
 
 4/4 mutations killed

@@ -49,7 +49,7 @@ import tempfile
 from pathlib import Path
 
 FAILED = re.compile(r"^FAILED\s+(?P<nodeid>\S+)", re.MULTILINE)
-NO_TESTS_RAN = 5  # pytest's exit code when the selection collects nothing
+INTERRUPTED = 2  # pytest ran tests and was then interrupted — FAILED lines are real
 
 
 class MutationError(RuntimeError):
@@ -67,34 +67,62 @@ def is_kill(exit_code: int, expected: set[str], failures: set[str]) -> bool:
     - `expected <= failures` is "the tests that CLAIM to notice actually did".
       A red suite is not evidence that THIS test noticed.
 
-    Exposed as a function because a mutation cannot prove the first clause: a
-    collection error yields no `FAILED` lines, so the second clause fails too and
-    a weakened `exit_code != 0` survives every mutation (AT-315 — a vacuous test
-    inside the instrument built to catch vacuous tests). It is asserted directly.
+    Both clauses ARE reachable by mutation, and the pair is separated by an
+    INTERRUPTED run: pytest exits 2 while printing the `FAILED` lines of tests
+    that already failed, so `exit_code == 2` with `expected <= failures` says
+    killed under a weakened `!= 0` and not-killed under the correct `== 1`.
+
+    An earlier version of this docstring claimed no mutation could reach the
+    first clause. That was false (AT-321): it assumed every non-1 non-zero exit
+    is a *collection* error. The claim was falsified by one attempt, and it was
+    the second unreachability claim from this maker to be. "I could not think of
+    a mutation" is not "no mutation exists" — `test_an_interrupted_run_...`
+    below is the mutation-reachable proof, and the table test remains as the
+    cheaper direct assertion beside it.
     """
     if not expected:
         raise MutationError("a kill claimed by no test is not a kill (empty 'kills')")
     return exit_code == 1 and expected <= failures
 
 
-def _run_pytest(cwd: Path, tests: str, *extra: str) -> tuple[int, str]:
+def _targets(tests: str | list[str]) -> list[str]:
+    """`tests` may name one file or several — a suite split at the 300-line cap
+    (C2) is still ONE suite for mutation purposes, and running only half of it
+    would let a mutation look survived because its test lives in the other half."""
+    return [tests] if isinstance(tests, str) else list(tests)
+
+
+def _run_pytest(cwd: Path, tests: str | list[str], *extra: str) -> tuple[int, str]:
     proc = subprocess.run(
-        [sys.executable, "-m", "pytest", tests, "-o", "addopts=", "-q", "--no-header",
-         "-p", "no:cacheprovider", *extra],
+        [sys.executable, "-m", "pytest", *_targets(tests), "-o", "addopts=", "-q",
+         "--no-header", "-p", "no:cacheprovider", *extra],
         cwd=cwd, capture_output=True, text=True)
     return proc.returncode, proc.stdout + proc.stderr
 
 
-def collected_tests(cwd: Path, tests: str) -> set[str]:
-    """Test function names pytest can actually collect."""
+def collected_tests(cwd: Path, tests: str | list[str]) -> dict[str, set[str]]:
+    """Every collected test, as `bare name -> {full nodeid, ...}`.
+
+    AT-320: a bare name is NOT an identifier. Both sides used to
+    `split("::")[-1]`, so a same-named test in another file or class satisfied
+    attribution and a mutation could be reported killed by a module it never
+    touched — verbatim AT-311's second failure mode, inside the fix for AT-311.
+    """
     code, out = _run_pytest(cwd, tests, "--collect-only")
     if code != 0:
-        raise MutationError(f"cannot collect {tests}: pytest exit {code}\n{out[-2000:]}")
-    return {line.split("::")[-1].strip() for line in out.splitlines() if "::" in line}
+        raise MutationError(
+            f"cannot collect {tests}: pytest exit {code}" + chr(10) + out[-2000:])
+    collected: dict[str, set[str]] = {}
+    for line in out.splitlines():
+        nodeid = line.strip()
+        if "::" in nodeid and not nodeid.startswith(("FAILED", "ERROR")):
+            collected.setdefault(nodeid.split("::")[-1], set()).add(nodeid)
+    return collected
 
 
 def failed_tests(output: str) -> set[str]:
-    return {m.group("nodeid").split("::")[-1] for m in FAILED.finditer(output)}
+    """Full nodeids of failed tests — never bare names (AT-320)."""
+    return {m.group("nodeid") for m in FAILED.finditer(output)}
 
 
 def _sandbox(repo: Path) -> Path:
@@ -138,7 +166,7 @@ def check(spec: dict, repo: Path) -> list[dict]:
         raise MutationError("spec declares no mutations")
 
     work = _sandbox(repo)
-    available = collected_tests(work, tests)
+    collected = collected_tests(work, tests)
 
     # Every named test must EXIST before anything is mutated. A label naming a
     # renamed test is the exact defect AT-311 was filed for.
@@ -147,11 +175,18 @@ def check(spec: dict, repo: Path) -> list[dict]:
             raise MutationError(
                 f"mutation {mutation['name']!r} names no test in 'kills'. An unattributed "
                 f"kill is exactly the defect this instrument exists to refuse (AT-313).")
-        missing = [t for t in mutation["kills"] if t not in available]
+        missing = [t for t in mutation["kills"] if t not in collected]
         if missing:
             raise MutationError(
                 f"mutation {mutation['name']!r} names test(s) that are not collected: "
                 f"{missing}. A 'kills' label is a claim, not a comment.")
+        # AT-320: an ambiguous name cannot attribute a kill to anything.
+        ambiguous = {t: sorted(collected[t]) for t in mutation["kills"] if len(collected[t]) > 1}
+        if ambiguous:
+            raise MutationError(
+                f"mutation {mutation['name']!r} names test(s) that collect more than once: "
+                f"{ambiguous}. A bare name is not an identifier — name the full nodeid.")
+        mutation["_nodeids"] = {next(iter(collected[t])) for t in mutation["kills"]}
 
     code, out = _run_pytest(work, tests)
     if code != 0:
@@ -175,7 +210,7 @@ def check(spec: dict, repo: Path) -> list[dict]:
 
         code, out = _run_pytest(work, tests)
         failures = failed_tests(out)
-        expected = set(mutation["kills"])
+        expected = mutation["_nodeids"]  # full nodeids, resolved at validation (AT-320)
         # A kill is the NAMED test failing. Not a non-zero exit (that includes a
         # collection error, which runs nothing), and not some other test failing.
         survivors = sorted(expected - failures)
@@ -188,7 +223,11 @@ def check(spec: dict, repo: Path) -> list[dict]:
         results.append({
             "name": mutation["name"], "killed": killed, "exit": code,
             "expected": sorted(expected), "failed": sorted(failures), "survivors": survivors,
-            "collected_nothing": code in (NO_TESTS_RAN, 2, 3, 4),
+            # AT-322: exit 2 is INTERRUPTED, not "collected nothing" — a run
+            # can be interrupted after real tests have already failed. Claiming
+            # pytest ran nothing about a run that produced results is the same
+            # false-report class this instrument exists to refuse.
+            "no_test_results": code not in (0, 1) and not failures,
         })
     return results
 
@@ -201,9 +240,13 @@ def report(results: list[dict]) -> int:
         print(f"    claims to kill : {', '.join(r['expected'])}")
         print(f"    actually failed: {', '.join(r['failed']) or '(nothing)'}")
         if r["survivors"]:
-            print(f"    SURVIVING      : {', '.join(r['survivors'])}  <- vacuous for its property")
-        if r["collected_nothing"]:
-            print("    NOTE: that exit code means pytest ran nothing — not a kill")
+            # AT-323: a survivor is INCONCLUSIVE, not proven vacuous. C7's
+            # zero-failure clause forbids the stronger word on this evidence —
+            # the mutation may simply not have changed observable behaviour.
+            print(f"    SURVIVING      : {', '.join(r['survivors'])}"
+                  f"  <- INCONCLUSIVE: this mutation did not make them fail")
+        if r["no_test_results"]:
+            print("    NOTE: pytest produced no test results — not a kill")
         if not r["killed"]:
             worst = 1
     print()
