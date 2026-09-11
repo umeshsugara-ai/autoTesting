@@ -144,3 +144,62 @@ def test_format_characters_are_stripped_before_normalising(
 
     assert response.status_code == 400
     assert not (scratch_root / "projects" / "leaky-order").exists()
+
+
+# -- AT-351: invisible does not mean category Cf -----------------------------
+
+INVISIBLE_MARKS = {
+    "combining-grapheme-joiner": "\u034f",   # Mn, not Cf
+    "variation-selector-1": "\ufe00",        # Mn, not Cf
+    "variation-selector-16": "\ufe0f",       # Mn, not Cf
+}
+"""Zero-width code points that `unicodedata.category(c) != "Cf"` does not
+catch. A checker measured these rendering at 192.5/192.5/191.5px against a
+192.5px plain-credential control -- i.e. pixel-identical -- and read the
+credential straight off the home index in a real browser."""
+
+
+@pytest.mark.parametrize("label", sorted(INVISIBLE_MARKS))
+def test_an_invisible_combining_mark_spelling_is_refused_at_onboarding(
+    client: TestClient, scratch_root: Path, label: str
+) -> None:
+    """AT-351: the AT-345 rendering leak, one code point sideways.
+
+    Stripping category `Cf` closed U+200B and its relatives. It does not close
+    U+034F or the variation selectors, which are category `Mn` -- so the exact
+    same defect reopened on the exact line AT-345 rewrote."""
+    _seed(client, scratch_root, "seedinv")
+    spelled = INVISIBLE_MARKS[label].join(UPPER_CREDENTIAL)
+
+    response = client.post("/onboard", data={
+        "slug": "leaky-" + label, "name": spelled,
+        "base_url": "https://demo.test", "allowed_domains": "demo.test",
+    }, follow_redirects=False)
+
+    assert response.status_code == 400, f"{label} was accepted"
+    assert not (scratch_root / "projects" / ("leaky-" + label)).exists()
+
+
+@pytest.mark.parametrize("label", sorted(INVISIBLE_MARKS))
+def test_an_invisible_combining_mark_spelling_is_refused_by_the_case_form(
+    client: TestClient, scratch_root: Path, label: str
+) -> None:
+    """The second door the checker opened: the same spellings reached
+    git-tracked `cases.jsonl` through `title`, `step_value` and `step_expected`.
+    One fix closes both, but only a test on each proves it."""
+    _seed(client, scratch_root, "demo")
+    spelled = INVISIBLE_MARKS[label].join(UPPER_CREDENTIAL)
+
+    for field in ("title", "step_value", "step_expected"):
+        data = {
+            "title": "Log in", "case_class": "happy",
+            "step_action": ["fill"], "step_target": ["#q"],
+            "step_value": ["x"], "step_expected": [""],
+        }
+        data[field] = spelled if field == "title" else [spelled]
+        response = client.post("/projects/demo/cases", data=data,
+                               follow_redirects=False)
+        assert response.status_code == 400, f"{label} via {field} was accepted"
+
+    from autotester.store.project_store import ProjectStore
+    assert ProjectStore("demo", scratch_root).list_cases() == []

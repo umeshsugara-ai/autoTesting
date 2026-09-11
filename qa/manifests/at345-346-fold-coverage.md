@@ -4,9 +4,9 @@
 **Contract:** `qa/contracts/ui.md` (U8/U9) · `qa/contracts/core-invariants.md` (C2, C7)
 **Goal task:** none — issue-driven
 **Date:** 2026-09-11
-**Fix cycle:** 1 of max 3
+**Fix cycle:** 2 of max 3
 **Dual check:** no
-**Issues addressed:** AT-345 (high, fixed) · AT-346 (medium, fixed) · AT-349 (filed, NOT fixed)
+**Issues addressed:** AT-345 (high, fixed) · AT-346 (medium, fixed) · AT-351 (high, fixed in cycle 2) · AT-349, AT-352 (filed, NOT fixed)
 
 ## What was wrong
 
@@ -116,5 +116,76 @@ case in particular has a *rendering* claim — that the home index shows the exa
 a `TestClient` cannot verify and which was originally demonstrated by a checker in a real browser
 with a screenshot. **The checker must run Mode D and treat its own result as authoritative**, and
 should specifically re-check that the rendering leak is closed, not merely that the POST is refused.
+
+
+## Cycle 2 — the checker FAILed cycle 1, and it was right
+
+**Verdict:** `qa/verdicts/at345-346-fold-coverage.md`, cycle 1, **FAIL**, 0/2 criteria.
+The checker confirmed everything cycle 1 claimed — all six AT-345 forms and AT-346's
+percent-escape composition genuinely closed, verified by its own POSTs, 6/6 mutations
+re-killed, 0 false positives in 36 legitimate submissions — and then **reopened the same
+rendering leak one code point sideways**.
+
+**AT-351.** `fold_credential` stripped `unicodedata.category(c) == "Cf"`. U+034F (combining
+grapheme joiner) and U+FE00–U+FE0F (variation selectors) are category **`Mn`**. They survive
+that strip and NFKC, they render as nothing, and the checker measured them at
+192.5/192.5/191.5px against a 192.5px plain-credential control — pixel-identical — then read
+the credential off the home index in a real browser. It also found the same three spellings
+reaching git-tracked `cases.jsonl` through `title`, `step_value` and `step_expected`.
+
+Fixed by keying on **invisibility** — Unicode's `Default_Ignorable_Code_Point` ranges, listed
+explicitly because Python exposes no predicate for them — rather than on a category.
+
+### The justification I first wrote for that was wrong, twice
+
+I claimed keying on invisibility mattered because stripping all `Mn` "would silently mangle
+every Hindi, Arabic and accented-Latin string the system stores". Both halves were false:
+
+1. **`fold_credential` never rewrites anything.** It is a comparison function; stored text is
+   untouched either way. There was no corruption to fear.
+2. **The mutation proved it.** Stripping all `Mn` did not make my Hindi/Arabic test fail —
+   that test asserts those names are *accepted*, and they still are. The test could not fail
+   for the reason it named, which is the vacuous class C7 exists to refuse. **Deleted, not
+   relabelled**; ordinary non-ASCII acceptance is already covered elsewhere in the file.
+
+Measured, the real harm runs the **other way — a leak, not a false positive**:
+
+```
+stored   CAFE_QUILT_APIKEY_31 with a precomposed U+00C9
+spelled  the same value, with E + U+200B + combining acute
+
+keying on invisibility:  both fold to cafequiltapikey31 (e-acute)   MATCH
+stripping all Mn:        the spelled form loses its accent          MISS
+```
+
+Stripping *visible* combining marks folds the two sides **asymmetrically**, because a stored
+value tends to carry a precomposed character while a hostile input carries a decomposed one —
+reopening the very class of bypass this fold exists to close. The mutation is re-attributed to
+the test that actually dies, and the docstring now says this instead of the wrong thing.
+
+### Cycle 2 verification
+
+- `uv run pytest` → **1140 passed, 2 skipped, 1 warning**
+- `uv run ruff check src scripts <this unit's three test files>` → `All checks passed!`
+- `uv run python scripts/mutation_check.py qa/evidence/at345-346-fold-coverage/mutations.json`
+  → **9/9 mutations killed** (three added this cycle: revert to `Cf`; strip all `Mn`; empty
+  the default-ignorable ranges)
+
+`uv run autotester doctor` reports one violation — `tests/test_explore_error_causes.py` at 330
+lines. **That file is the other maker loop's uncommitted in-flight work**, not this unit's;
+this unit's files are clean. Verify with `git status --porcelain tests/test_explore_error_causes.py`.
+
+### Still open, and the checker should weigh them
+
+- **AT-352 (medium, filed by the checker, NOT fixed):** base64/base32/hex, HTML entities,
+  double percent-encoding and reversal all still write to disk. Not closed here because U8/U9
+  pin byte-for-byte reassembly and each of these needs a decode step the guard does not
+  currently take — a scope decision, not an oversight.
+- **AT-349 (low, filed by me):** the confusable map is curated, not UTS #39. The checker
+  independently agreed this was filed honestly and landed its Armenian/Cherokee probes inside
+  it.
+- The live browser pass is again a maker **SKIP**; the checker's own Mode D is authoritative,
+  and should re-check the **rendering** of the three new spellings, not only that the POST is
+  refused.
 
 ## Status: ready-for-check

@@ -38,6 +38,50 @@ the Turkish dotless i a checker used to walk a live value past the guard -- and
 it will not catch an exotic script nobody has tried yet. AT-349 tracks the
 completeness gap so this bound is visible instead of assumed."""
 
+_DEFAULT_IGNORABLE = (
+    (0x00AD, 0x00AD), (0x034F, 0x034F), (0x061C, 0x061C), (0x115F, 0x1160),
+    (0x17B4, 0x17B5), (0x180B, 0x180F), (0x200B, 0x200F), (0x202A, 0x202E),
+    (0x2060, 0x206F), (0x3164, 0x3164), (0xFE00, 0xFE0F), (0xFEFF, 0xFEFF),
+    (0xFFA0, 0xFFA0), (0xFFF0, 0xFFF8), (0x1BCA0, 0x1BCA3), (0x1D173, 0x1D17A),
+    (0xE0000, 0xE0FFF),
+)
+"""Unicode's `Default_Ignorable_Code_Point` ranges — the code points a
+conforming renderer draws as nothing.
+
+AT-351: the first version of this fold stripped `unicodedata.category(c) ==
+"Cf"`, which covers U+200B and the bidi controls but NOT U+034F (combining
+grapheme joiner) or U+FE00 to U+FE0F (variation selectors). Those are category
+`Mn`, they survived the strip and NFKC, and a checker measured them rendering
+at 192.5px against a 192.5px plain-credential control — pixel-identical — then
+read the credential off the home index in a real browser. Same defect as
+AT-345, one code point sideways, on the line AT-345 had just rewritten.
+
+The test has to be INVISIBILITY, not a category -- and the reason is a LEAK,
+not the text corruption first claimed here. `fold_credential` only ever
+compares; it never rewrites stored text. What stripping all of `Mn` does is
+fold the two sides ASYMMETRICALLY, because a stored value tends to carry a
+precomposed character while a hostile input carries a decomposed one:
+
+    stored `CAFE_QUILT_APIKEY_31` with a precomposed U+00C9, versus the same
+    value spelled `E` + U+200B + combining acute --
+      keying on invisibility: both fold to `cafequiltapikey31` (e-acute), MATCH
+      stripping all `Mn`:      the spelled form loses its accent,          MISS
+
+which reopens the very class of bypass this fold exists to close. Arabic
+shadda U+0651, Devanagari vowel signs and combining acute U+0301 are all `Mn`
+and all visible. Python exposes no `Default_Ignorable_Code_Point` predicate, so
+the ranges are listed."""
+
+
+def _is_invisible(ch: str) -> bool:
+    """True when `ch` renders as nothing, so it cannot be part of what a human
+    reads — and therefore must not change whether text matches a credential."""
+    if unicodedata.category(ch) == "Cf":
+        return True
+    code = ord(ch)
+    return any(low <= code <= high for low, high in _DEFAULT_IGNORABLE)
+
+
 MIN_FOLDED_LEN = 8
 """Folded matching needs a floor, because folding is a HEURISTIC widening: it
 deliberately matches strings that are not byte-equal to any secret, so a very
@@ -71,8 +115,12 @@ def fold_credential(text: str) -> str:
     into git-tracked files. The worst was a ZERO-WIDTH space between every
     character: U+200B has no width, so the project name rendered as the exact
     credential on the home index -- a human reading the page saw the secret.
+
+    AT-351: and then the same leak reopened through U+034F and the variation
+    selectors, because the strip keyed on the `Cf` category rather than on
+    whether the character renders. `_is_invisible` is the corrected test.
     """
-    stripped = "".join(c for c in text if unicodedata.category(c) != "Cf")
+    stripped = "".join(c for c in text if not _is_invisible(c))
     normalised = unicodedata.normalize("NFKC", stripped).translate(ASCII_CONFUSABLES)
     return _FOLD_STRIP.sub("", normalised).casefold()
 
