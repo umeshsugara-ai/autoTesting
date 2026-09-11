@@ -188,4 +188,4 @@ Deliberately not "fixed": with no reproducible case, any fix would be the unfals
 forbids. It matters beyond this unit — a test the mutation harness needs green, failing 1 run in
 14, silently invalidates future mutation evidence.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, verdict qa/verdicts/at227-first-paint-modal.md, commit 1ad5496)
