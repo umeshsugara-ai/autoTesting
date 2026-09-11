@@ -300,8 +300,8 @@ what I proposed: mine let the claim license skipping the mutation, this one make
 nothing and keeps the duty.
 
 **Fifth hole found (AT-324)** — the ambiguity guard's own prescribed remedy was rejected — plus
-**AT-325** (1824 leaked sandboxes) and three low residuals (AT-326/AT-327 duplicate `spec` and C3's
-scope over `tests/`, filed for a decision rather than charged; AT-328 a stale forward pointer in the
-cycle-1 block). Both new holes **fail closed**, the opposite direction from all four earlier ones.
+**AT-325** (1824 leaked sandboxes) plus AT-326 (low) and AT-327 (medium) — duplicate `spec` and C3's
+scope over `tests/`, filed for a decision rather than charged — and AT-328 (low), a stale forward
+pointer in the cycle-1 block. Both new holes **fail closed**, the opposite direction from all four earlier ones.
 
 AT-324 and AT-325 are addressed in `qa/manifests/at324-mutation-check-leak-and-remedy.md`.

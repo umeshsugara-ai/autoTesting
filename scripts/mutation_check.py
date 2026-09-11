@@ -161,9 +161,13 @@ def _discard(owned_root: Path) -> None:
     `work.parent`, which is correct only while `work` really is a sandbox — and
     this module's own mutation spec contains `work = repo`, which would have
     turned cleanup into "delete the real tree's parent". A destructive operation
-    keyed on an unverified path is AT-314 wearing different clothes, so the only
-    deletable thing is the directory this module made, under the system temp
-    dir, with our own prefix.
+    keyed on an unverified path is AT-314 wearing different clothes.
+
+    What this actually enforces is ownership **by convention** — under the system
+    temp dir AND carrying this module's prefix — not ownership by creation
+    (AT-329). It cannot tell its own sandbox from a concurrent run's, which is
+    exactly why `check()` never sweeps by glob: it deletes only the root handed
+    to it by its own `_sandbox` call.
     """
     root = owned_root.resolve()
     temp = Path(tempfile.gettempdir()).resolve()

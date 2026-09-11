@@ -209,3 +209,33 @@ def test_cleanup_refuses_to_delete_anything_it_did_not_create(tmp_path: Path) ->
         _discard(victim)
 
     assert (victim / "data.txt").read_text(encoding="utf-8") == "keep me"
+
+
+def test_cleanup_refuses_a_sandbox_shaped_name_outside_the_temp_dir(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AT-329: the guard is `not under temp OR wrong prefix`, and the sibling
+    test above only exercises the PREFIX clause — it hands in a path already
+    inside temp, so dropping the under-temp clause survived it.
+
+    Reaching the other clause needs a path that is NOT under the temp dir, and
+    `tmp_path` always is — which is very likely why this half went undefended.
+    So the temp root is moved instead, leaving a directory whose name looks
+    exactly like a sandbox sitting outside it.
+    """
+    import tempfile
+
+    from mutation_check import _discard
+
+    impostor = tmp_path / "mutation-check-not-really"
+    impostor.mkdir()
+    (impostor / "data.txt").write_text("keep me", encoding="utf-8")
+
+    elsewhere = tmp_path / "a-different-temp-root"
+    elsewhere.mkdir()
+    monkeypatch.setattr(tempfile, "gettempdir", lambda: str(elsewhere))
+
+    with pytest.raises(MutationError, match="refusing to delete"):
+        _discard(impostor)
+
+    assert (impostor / "data.txt").read_text(encoding="utf-8") == "keep me"

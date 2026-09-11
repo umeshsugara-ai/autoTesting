@@ -126,4 +126,56 @@ Nothing under `src/autotester/ui/`; `grep -rn mutation_check src/` returns nothi
    C3's enforcement scope over `tests/`) are NOT addressed here — you filed them for a decision
    rather than charging them, and that decision is yours.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Checker PASS, `qa/verdicts/at324-mutation-check-leak-and-remedy.md` (Cycle checked: 1) — 7/7
+criteria, all outputs reproduced, attribution checked per-mutation across all 20. AT-324 and AT-325
+closed. Mode D correctly ruled not-applicable.
+
+**Three corrections to this manifest, from the verdict:**
+
+1. **I claimed the self-mutation caught the footgun "before a checker did". That is not verifiable.**
+   The first fix was never committed, so the claim is absent from the record; the checker neither
+   charged nor certified it, which is right. I should not have stated it as established. It also
+   corrected my blast radius: `work.parent` would have been pytest's tmp base, not `D:/`.
+2. **The size discrepancy is resolved and I was right, but that is not the interesting part** — the
+   checker showed its own working: it had sampled 20 CLI-shaped sandboxes and extrapolated across a
+   population dominated by near-empty fixture ones (~40 CLI runs × 1.39 MB ≈ 0.056 GB). It corrected
+   AT-325's evidence field itself. Severity was never about the bytes.
+3. **Judgement #2 accepted, with a better shape than mine for closing it later:** ownership *by
+   construction* — `check()` exports its `owned_root`, `_sandbox` nests inside it, the outer
+   `finally` reclaims all of them. No glob, no cross-process candidate. Its probe A3 also confirmed
+   my reason for rejecting a sweep: `_discard` will delete another process's `mutation-check-*` tree
+   without complaint, so a sweep would be AT-314 a third time.
+
+## Addendum — AT-329 and AT-332, fixed in this unit before close-out
+
+**AT-329** (filed not charged): `_discard`'s guard is `not under temp OR wrong prefix`, and the
+committed test only exercised the **prefix** clause — dropping the under-temp clause SURVIVED.
+
+Writing the missing test is what made the lesson concrete: it **failed**, because pytest's
+`tmp_path` *is* under the system temp dir, so the "impostor" was a legitimate sandbox by the
+convention. That is very likely why the clause went undefended — the natural way to write the test
+cannot reach it. The temp root is monkeypatched instead.
+
+The generalisable form, which is not "test both branches": **a compound condition needs one mutation
+per clause**, because a test written the obvious way satisfies the easy half and never touches the
+other. The spec now mutates each clause separately — **18/18 killed, 0 SURVIVED.**
+
+The docstring also overclaimed and is corrected: `_discard` enforces ownership **by convention**
+(under temp + our prefix), not ownership by creation. It cannot tell its own sandbox from a
+concurrent run's — which is exactly why `check()` deletes only the root its own `_sandbox` returned.
+
+**AT-332**: the `at311` close-out called AT-327 "low" where it is medium in both the ledger and the
+amendment log. Corrected. A close-out summarises findings; it does not restate their severity.
+
+**Still open, deliberately:** AT-326 / AT-327 (C3's enforcement scope over `tests/` — the checker
+filed these for a decision rather than charging them, and that decision is not the maker's),
+AT-330, AT-331, and the ~38-sandbox residue described above.
+
+```
+$ uv run pytest -o addopts= -q      1082 passed, 2 skipped        exit=0
+$ uv run ruff check src tests scripts   All checks passed!        exit=0
+$ uv run autotester doctor          1 violation (AGENTS.md)       exit=1
+$ scripts/mutation_check.py … mutations-self.json   18/18 killed  exit=0
+```

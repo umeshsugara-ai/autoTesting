@@ -153,6 +153,24 @@
       "kills": [
         "test_cleanup_refuses_to_delete_anything_it_did_not_create"
       ]
+    },
+    {
+      "name": "cleanup under-temp clause dropped (AT-329)",
+      "file": "scripts/mutation_check.py",
+      "old": "    if not root.is_relative_to(temp) or not root.name.startswith(\"mutation-check-\"):",
+      "new": "    if not root.name.startswith(\"mutation-check-\"):",
+      "kills": [
+        "test_cleanup_refuses_a_sandbox_shaped_name_outside_the_temp_dir"
+      ]
+    },
+    {
+      "name": "cleanup prefix clause dropped (AT-329)",
+      "file": "scripts/mutation_check.py",
+      "old": "    if not root.is_relative_to(temp) or not root.name.startswith(\"mutation-check-\"):",
+      "new": "    if not root.is_relative_to(temp):",
+      "kills": [
+        "test_cleanup_refuses_to_delete_anything_it_did_not_create"
+      ]
     }
   ]
 }

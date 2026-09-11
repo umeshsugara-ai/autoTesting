@@ -45,6 +45,12 @@ KILLED  sandbox cleanup removed (AT-325)  (pytest exit 1)
     actually failed: tests/test_mutation_check.py::test_the_sandbox_is_removed_even_when_the_run_is_refused, tests/test_mutation_check.py::test_the_sandbox_is_removed_when_the_run_finishes
 KILLED  cleanup containment check removed (AT-325 footgun)  (pytest exit 1)
     claims to kill : tests/test_mutation_check.py::test_cleanup_refuses_to_delete_anything_it_did_not_create
+    actually failed: tests/test_mutation_check.py::test_cleanup_refuses_a_sandbox_shaped_name_outside_the_temp_dir, tests/test_mutation_check.py::test_cleanup_refuses_to_delete_anything_it_did_not_create
+KILLED  cleanup under-temp clause dropped (AT-329)  (pytest exit 1)
+    claims to kill : tests/test_mutation_check.py::test_cleanup_refuses_a_sandbox_shaped_name_outside_the_temp_dir
+    actually failed: tests/test_mutation_check.py::test_cleanup_refuses_a_sandbox_shaped_name_outside_the_temp_dir
+KILLED  cleanup prefix clause dropped (AT-329)  (pytest exit 1)
+    claims to kill : tests/test_mutation_check.py::test_cleanup_refuses_to_delete_anything_it_did_not_create
     actually failed: tests/test_mutation_check.py::test_cleanup_refuses_to_delete_anything_it_did_not_create
 
-16/16 mutations killed
+18/18 mutations killed
