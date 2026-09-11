@@ -204,4 +204,4 @@ if unavailable) already covers the real-browser path for `check_destination`, un
   two checkers did not think to trace would still be a fresh finding, the same discipline this
   whole three-cycle chain has followed throughout.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 3, verdict qa/verdicts/at076-navigation-secret-escape-hatch.md, commit 045ea39)
