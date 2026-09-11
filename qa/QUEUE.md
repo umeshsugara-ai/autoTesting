@@ -1,155 +1,128 @@
 # qa/QUEUE.md — checker sweep queue (top-3 recommended next units)
 
-Refreshed by `/checker sweep` **2026-09-11T01:20:00+05:30**; bound strictly to
-`D:/autoTesting`. Sweep window: `714348f..7a8d966` (8 commits). Supersedes the
-2026-09-10T10:56 queue, whose top-3 is now stale: **T-161 is built, FAILed cycle 1, fixed,
-PASSed cycle 2 and closed out — it is no longer a buildable unit.**
+Refreshed by `/checker sweep` **2026-09-11T13:45:00+05:30**; bound strictly to
+`D:/autoTesting`. Sweep window: `7a8d966..eb75e61` (~63 commits, 21 source-bearing). Supersedes
+the 2026-09-11T01:20 queue: **T-135 landed (dual-check PASS cycle 3) and AT-227 landed
+(concurrent-checker PASS cycle 1) — neither is buildable anymore.**
 
 ## Reconciliation
 
-- **T-161 cycle 2 is clean and closed:** implementation `4c09990` + fix `d92af87`, cycle-1 FAIL
-  `dfc5a03`, resubmit `ad755a4`, cycle-2 PASS `7381983` (22/22 criteria, 9/9 invariants, two
-  independent checkers, fresh headed-browser attacks), goal close-out `7a8d966`. Manifest is
-  `checked-PASS` at fix cycle 2 and the verdict's `Cycle checked: 2` matches. AT-284 (pre-guard
-  hostname-secret echo) is `fixed`. Goal moved 33/55 → **34/55 done, 21 pending**.
-- **The concurrent AT-278/AT-279 session LANDED — it was neither abandoned nor left uncommitted.**
-  The 2026-09-09T11:16Z tick recorded the maker backing off rather than racing a live, uncommitted
-  fix in the same two files. That work is now fully on disk and in history: `cbdfab1`
-  (fix AT-278/AT-279) → `b848201` (resubmit cycle 2) → `44a7e84` (checker PASS cycle 2) →
-  `7682c4c` (close-out). All four are ancestors of HEAD; the manifest reads
-  `## Status: checked-PASS (cycle 2, verdict 44a7e84)`; the verdict file carries two independent
-  cycle-1 FAILs followed by the cycle-2 PASS; both ledger rows are `fixed`. `git status` shows
-  **no modified file under `src/` or `tests/`** — nothing from that session remains uncommitted.
-  The stale `qa/.last-tick` is a maker-liveness problem (AT-280), not lost work.
-- **Handshake clean:** 104 manifests / 106 verdict files; **every** manifest is `checked-PASS`;
-  zero live `ready-for-check`, zero missing current-cycle verdicts, zero PASS-with-unclosed
-  manifests. The two verdict-only files remain the deliberate campaign/live-release checks.
-- **Bypass detection clean:** the only source-bearing commits in the window are `4c09990` and
-  `d92af87`, both covered by the T-161 manifest, the tightened contracts, a matching-cycle verdict
-  and a close-out. The other six commits are manifest, contract, verdict, browser-evidence and
-  goal/docs records. `4c09990`'s `docs/DECISIONS.md` entry is **D-025** (supersedes D-024) with
-  `Approved-by: Umesh` and a `Changes-authorized` list that covers every source file it touched —
-  Lab Protocol authorization is intact.
-- **Baseline re-derived by this checker, green:**
-  `uv --cache-dir .work/uv-cache run pytest -p no:cacheprovider --basetemp=.work/pytest-sweep-0911 -q`
-  → **exit 0, 100%**; `uv --cache-dir .work/uv-cache run ruff check src tests scripts` → exit 0,
-  `All checks passed!`; `uv --cache-dir .work/uv-cache run autotester doctor` → exit 1 with
-  **one** violation, the untracked root `AGENTS.md` (AT-283).
-- **AT-282 does not reproduce and is closed `wontfix`.** This sweep ran the *literal* adapter
-  commands: `uv run ruff check src tests scripts` → exit 0; `uv run autotester doctor` → exit 1
-  reporting only AT-283, i.e. the instrument ran; `uv run pytest -q --collect-only` → exit 0. The
-  default uv cache was reachable here, so the blocked-cache condition belongs to one managed
-  checker sandbox, not to this repo, and the project has no fix to make. Recorded as closed with
-  the non-reproduction rather than left open to be re-flagged every sweep. A future sweep runtime
-  that hits it again files a fresh id.
-- **Inbox clean:** the newest entry (2026-09-10, T-100 real-browser re-close) is marked FOLDED
-  into `ui.md` U11 and `ui-report.md` UR5–UR6 at `7d4c848`. T-161's contract-maintenance request
-  was folded in-cycle by the cycle-1 checker (`dfc5a03` amended `ui.md`, `browser-and-secrets.md`
-  and `core-invariants.md`), and the cycle-2 verdict scores against the tightened U1–U12 / B1–B10 /
-  C1–C9 — nothing weakened. No unfolded actionable entry remains; the older unfolded rows are the
-  documented deliberate/external ones.
-- **Contract staleness:** none new. No criterion references a removed feature, and U12/B10/C5 are
-  the newest amendments rather than a contradiction of anything older.
-- **Enforcement liveness:** `settings.json` carries the `mc-sessionstart` / `mc-precommit` hooks
-  plus the Lab-Protocol session hooks and the DECISIONS append guard; `qa/hooks/` and
-  `.claude/hooks/` both hold the referenced scripts; the repo has **581 commits**; `qa/loop.md`
-  lists all seven terminal states with a real progress signal. Loop-design: it cannot spin, but
-  it **can still Goodhart / run a wrong answer to completion on T-169**, because no human
-  acceptance floor exists — that is AT-281, unchanged.
-- **Silent-failure hunt** over the T-161 source diff (`schema/enums.py`, `ui/app.py`,
-  `ui/env_editor.py`, `ui/project_view.py`, `ui/routes_project_edit.py`, `ui/routes_sources.py`):
-  **no new finding.** The new `except BaseException` in `env_editor.set_env_values` closes the
-  stray fd, unlinks the temp file and **re-raises**; the `InvalidEnvValue` / `ValidationError` /
-  `ValueError` handlers all surface a refusal to the caller; no default-value fallback masks a
-  failure.
-- **Maker liveness remains the standing failure:** `qa/.last-tick` is **~1945 minutes (32.4 h)
-  stale**, `qa/.paused` is absent, and the backlog is non-empty (21 pending goal tasks, 74 open
-  ledger issues). AT-280 persists and is now worse than at the last sweep.
-- **⚠ A concurrent session began building T-135 in the working tree DURING this sweep (AT-286,
-  high, new).** `git status` at 01:11 showed zero modified files under `src/` or `tests/`; at 01:17
-  it showed `M src/autotester/stages/explore_merge.py` (01:13:42), `M src/autotester/store/project_store.py`
-  (01:14:31), `?? src/autotester/stages/merge_flowspec.py` (01:14:18) and `?? tests/test_merge_flowspec.py`
-  (01:15:31) — 15 insertions / 6 deletions plus two new files, uncommitted, with no manifest and no
-  `ready-for-check`. `qa/.last-tick` was never stamped. Two consequences the reader must carry:
-  **(1) this sweep's green baseline certifies HEAD `7a8d966`, not the current working tree** —
-  `explore_merge.py` changed while the suite was running; **(2) the #1 recommendation below,
-  T-135, is the unit already in flight**, so the next tick must RECONCILE that work into a
-  manifest, not start T-135 over. This is the second occurrence in three days of a session
-  building while the heartbeat says the maker is asleep (the first was AT-278/AT-279 on
-  2026-09-09) and the first to happen underneath a running sweep.
-- **Working tree:** modified `.goal/dashboard.html`, `.goal/goal.json`, `qa/.last-tick`; untracked
-  `.codex/`, root `AGENTS.md` (AT-283), `projects/{checkerdemo,saucedemo,xssprobe,t161-final-smoke,t161-pushed-live}/`
-  and several `projects/{erp,pathlynks}` run artifacts. All are runtime/scratch output, not
-  unlanded source. This sweep committed with a narrow pathspec only.
-- **Mode-D debt (AT-243) is shrinking, not closed:** T-100-reclose and now T-161 are the first two
-  units with genuine independent `LIVE-BROWSER:` evidence. They are not retroactive evidence for
-  the historic UI PASSes; AT-243 stays open.
+- **Massive window, clean handshake.** 119 manifests / 122 verdicts (2 deliberate verdict-only
+  campaign/live-release files + 1 `.b.md` dual-check for `t135-coverage-merge-expand`, same as
+  every prior sweep). Exactly **one** manifest is not `checked-PASS`:
+  `at345-346-fold-coverage.md`, at `ready-for-check`, fix cycle 3 of 3 (the last one), verdict on
+  disk carries only cycles 1 and 2 (both FAIL). This is **disclosed, in-flight work** (the maker's
+  own dispatch note at `.last-tick` 07:20:36Z names it as the third and final cycle, submitted as
+  commit `eb75e61`) — not a dispatch gap, not a bypass.
+- **Bypass detection, 21 source-bearing commits, CLEAN.** 19 map directly to a manifest
+  (`at102`, `at339`, `at076` ×2, `at079-080`, `at345-346` ×2, `at324`, `at311` ×3, `at298`,
+  `at300`, `at283`, `t135` — its fix commit `cc00e9b` inside the same unit whose manifest landed
+  in a sibling commit). The two that don't:
+  - `d21440c` (`feat(coverage): close the self-extension loop`, T-135 cycle-2 fix) is inside the
+    T-135 unit's own history (between "submit cycle 2" `191be93` and its cycle-3 PASS) — commit
+    granularity, not a bypass.
+  - `508d164` (`fix(AT-338)`, one-line schema docstring correction, doc-only, no behaviour
+    change) landed without its own manifest. Disclosed honestly in the commit body ("found by the
+    second independent checker on at227, not by me"). Judged **acceptable trivial-mode work**
+    under this project's own CLAUDE.md ("typo, single command, read-only → normal mode, no
+    ceremony") — a docstring correction with no behaviour change is the same class. **Independently
+    re-verified by this sweep**: `structural_signature()` (`stages/screen_identity.py`) still
+    filters on `el.visible and not el.in_row` only (obscured NOT excluded), matching the corrected
+    schema description exactly. AT-338 promoted `fixed → verified`.
+- **AT-283 also independently re-verified and promoted `fixed → verified`:** `uv run autotester
+  doctor` → **clean, exit 0**, no root-`AGENTS.md` violation. This sweep's own doctor run (not a
+  pasted claim) confirms the fix.
+- **Baseline, green:** `uv run pytest -q` → full suite, exit 0, 2 skipped, 0 failed. `uv run ruff
+  check src tests scripts` → exit 0, "All checks passed!". `uv run autotester doctor` → clean.
+- **Fixed-ledger backlog: 55 rows (was 11 at the last sweep), NOT independently re-derived this
+  sweep beyond AT-338/AT-283.** This is the same shape flagged by 5+ consecutive prior sweeps
+  ("next sweep's first job") — this sweep chose breadth (bypass/handshake/gates/goal coverage
+  across a 63-commit window) over re-deriving 55 fixed claims by sabotage, which would have
+  consumed the whole budget on one channel. **Disclosed as a persistence flag, not a new finding.**
+  The backlog is concentrated in the mutation-check tooling chain (AT-207/208/219-223/228,
+  AT-298b/300-304/306/307/320-325) and the credential-guard chain (AT-076/079/080/102/339). Every
+  row in the credential-guard and at345-346 chains already carries a matching-cycle checker PASS
+  with its own sabotage/mutation evidence in the verdict — re-deriving them is lower-value than
+  the still-untouched older rows.
+- **No reopens.** Nothing this sweep proved unbacked by evidence.
+- **Inbox clean:** all entries folded (checked 2026-09-09 flaky-test entry and 2026-09-10 T-100
+  entry, both `FOLDED` with commit references; nothing new since).
+- **Contract staleness:** none new found this window.
+- **Enforcement liveness, confirmed by execution:** `.claude/settings.json` carries `SessionStart`
+  / `PreToolUse` / `SessionEnd` hooks; repo at **661 commits**; `docs/DECISIONS.md` has **26**
+  entries (non-empty, alive); doctor/ruff/pytest all ran clean under this session's own start.
+- **Silent-failure hunt over the window's `src/` diff:** the four new `except Exception as exc`
+  blocks (`explore.py::return_to`/`_replay_discovery`/`_recover`) all name the exception type and
+  message and propagate it into `rt.return_error` / a typed return — none swallow. No new finding.
+- **Goal coverage: 35/55 done, 20 pending** (was 34/55). T-135 closing moved it by one. No drift —
+  matches disk exactly.
+- **Gates reconciled:**
+  - `next-unit-scope.md` **is answered** (2026-09-11, Option C then B — Umesh, in conversation).
+    Option C (AT-227) is now closed. Option B (T-163) is correctly still blocked, because its own
+    declared prerequisite T-162 has no contract.
+  - `t162-contract-approval.md` genuinely unanswered — real, current HUMAN_GATE, correctly not
+    idling anything else (the maker worked 10+ smaller open-issue units instead, exactly as the
+    gate's own "What is NOT blocked" section said it would).
+  - `at110-approval-forgery.md`, `at147-expiry-end-of-day.md` (empty `**Answered:**` stub),
+    `at253-agent-fallback-wiring.md`, `erp-credentials.md`, `t135-url-pattern-data-migration.md`
+    (superseded in substance by cycle-3 evidence but never formally answered) — all still
+    genuinely open, no off-disk answer found in this window's 63 commits.
+  - `at218-vacuous-guard-class.md` GRILL — still open, no `/grill` run against it. Now the **6th+**
+    consecutive sweep carrying it unchanged.
+  - `t136-model-credentials.md` — answered but self-contradicting (AT-285, carried, unchanged).
 
 ## GRILL — human decision, not a build row
 
-- GRILL: recurring vacuous-guard prevention policy — unanswered (AT-218).
-- GRILL: set the real two-mode acceptance thresholds for D-023/T-169 (bugs found, false-positive
-  ceiling, branch coverage and time), then let checker contracts encode them (AT-281).
+- GRILL: recurring vacuous-guard prevention policy — unanswered (AT-218), 6th+ consecutive sweep.
+- GRILL: set the real two-mode acceptance thresholds for D-023/T-169 (AT-281), carried.
 
 ## HUMAN_GATE — do not build as ordinary units
 
-- **AT-110:** choose consent-forgery posture (HMAC / audit line / accident-detection only).
-  `qa/gates/at110-approval-forgery.md` still has no `Answered:` line at all.
-- **AT-147:** choose start-of-day vs end-of-day approval expiry semantics. The gate file's
-  `**Answered:**` line at `qa/gates/at147-expiry-end-of-day.md:67` is an **empty stub** — the
-  three options (A keep / B move / C end-of-day for new grants only, the checker's recommendation)
-  are on disk, the decision is not. No commit, manifest or verdict in the window answers it
-  off-disk.
-- **AT-253:** wire model fallback into execution, correct the architecture claim, or defer.
-- **ERP credentials:** T-122 and T-145 remain gated on a test account entered through the UI;
-  never use a live user's account.
-- *Not current:* the T-136 model-key gate **is answered** (2026-09-09, "the gate was wrong — the
-  credentials were already in `.env`"). Its file still carries a contradictory stale
-  `**Answered:** _(pending)_` line above the real answer — filed this sweep as **AT-285** (low).
+- **T-162 contract approval** (`qa/gates/t162-contract-approval.md`, NEW since last sweep):
+  Umesh picks Option A (interview now) / B (CTO-brief HLD first) / C (different next unit) / D
+  (pause). Blocks T-162 and therefore T-163.
+- **AT-110:** consent-forgery posture. Still no `Answered:` line.
+- **AT-147:** start-of-day vs end-of-day expiry. `Answered:` line is an empty stub.
+- **AT-253:** wire model fallback, correct the ARCHITECTURE claim, or defer.
+- **ERP credentials:** T-122/T-145 gated on a test account entered through the UI.
+- *Not current:* T-136 model-key gate is answered; its stale contradictory stub is AT-285.
 
-## TOP-3 BUILDABLE NEXT UNITS
+## TOP-3 BUILDABLE NEXT UNITS (non-gated)
 
-1. **T-135 — reconnect coverage → FlowSpec merge → expansion.** CRITICAL, unblocked (T-134 done),
-   and the remaining prerequisite for the resumable learn-or-explore orchestrator T-163. Preserve
-   reviewed truth and surface every unresolved screen/video request. Promoted from #2 now that
-   T-161 has closed. **Take it as a RECONCILE, not a fresh start:** per AT-286 a concurrent
-   session already has `merge_flowspec.py`, `test_merge_flowspec.py`, `explore_merge.py` and
-   `project_store.py` live and uncommitted in the working tree. Adopt that work into a manifest
-   at `ready-for-check` rather than rebuilding over it.
+1. **AT-335 (high) — the modal crawl is non-deterministic**, ~1 run in 14 loses the
+   dismissed-dashboard screen after a modal closes. Freshly relevant: lands right after AT-227
+   (first-paint modal handling) just closed, and is the next real crawl-completeness defect on
+   T-165's path, no gate.
+2. **Fixed-ledger reconciliation** — re-derive a batch of the 55 `fixed` rows by sabotage,
+   starting with the oldest untouched cohort (AT-207/208/219-223/228), promoting what holds and
+   reopening what doesn't. Flagged by 5 consecutive sweeps as "next sweep's first job"; this
+   sweep again did not clear it (see Reconciliation above) — pure checker/governance work, no
+   gate, buildable by a sweep immediately.
+3. **AT-243 (high) — Mode D systemic debt.** Shrinking (T-100-reclose, T-161, several
+   concurrent-checker units now carry real `LIVE-BROWSER:` evidence) but still open; the historic
+   UI-PASS backlog before that point has no retroactive live-browser evidence.
 
-2. **T-162 — multi-source adapters: Google Drive, video, audio, document, email and text.**
-   Newly the largest uncovered slice of the D-023 north star: T-161 now accepts every source
-   *declaration* through one form, but only video is actually ingested, so the intake promise
-   currently outruns the pipeline. It is the second prerequisite for T-163 alongside T-135, and it
-   is buildable today with no human gate.
-
-3. **AT-227 — handle first-paint in-page modals during BFS.** The oldest open high-severity crawl
-   stopper, sitting directly on T-165's completeness path. Native-dialog handling does not cover
-   DOM modals.
-
-Next governance unit: **T-126**, now carrying AT-283 and AT-285 plus the older fixed-ledger backlog
-(AT-282 is closed and drops off it). Deferred-with-cause: AT-110/AT-147/AT-253 are gate-blocked,
-T-122/T-145 are credential-gated, T-169 is threshold-gated behind AT-281.
+Separately, **answering `qa/gates/t162-contract-approval.md`** unblocks the largest single slice
+of value (T-162 → T-163, both `criticality: critical`) — not a "unit" but the highest-leverage
+single action available.
 
 ## Revised-goal coverage
 
-- Intake: **covered** — T-161 closed with independent Mode-D evidence (was `partial`).
-- Multi-source learning: partial — video exists; Drive/audio/document/email/text missing, owned by
-  T-162. Widened by T-161: declarations are now accepted for sources nothing can yet ingest.
-- Learn-or-explore orchestration: stages exist separately; unified resumable coordinator missing,
-  owned by T-163 and dependent on T-135 + T-162.
-- Portal Persona: missing, owned by T-164.
-- BFS/frontier/API completeness: partial crawler exists; first-paint modal recovery remains AT-227,
-  with forward/back/network completeness owned by T-165.
-- Traceable best/worst/edge compiler: partial expansion exists; provenance matrix missing, T-166.
+- Intake: covered (T-161).
+- Multi-source learning: partial — video only; T-162 gated on contract approval.
+- Learn-or-explore orchestration: T-135 done; T-163 blocked on T-162.
+- Portal Persona: missing, T-164.
+- BFS/frontier/API completeness: partial; AT-227 (first-paint modal) closed this window; AT-335
+  (modal non-determinism) is the next crawl-completeness defect; forward/back/network completeness
+  still T-165.
+- Traceable best/worst/edge compiler: partial, T-166.
 - Release-triggered regression: missing, T-167.
-- Unified damage-control report: partial HTML/XLSX exists; cross-layer diff missing, T-168.
-- Two-mode real acceptance: missing and threshold-gated by AT-281, T-169.
+- Unified damage-control report: partial, T-168.
+- Two-mode real acceptance: missing, threshold-gated by AT-281, T-169.
 
-Terminal state: **FINDINGS: 5** — AT-280 (high, heartbeat dead 1945 min), **AT-286 (high, NEW:
-a concurrent session built T-135 source live and uncommitted underneath this sweep, heartbeat never
-stamped)**, AT-281 (high, GRILL), AT-283 (medium, doctor vs root `AGENTS.md`, reproduced), AT-285
-(low, new: self-contradicting T-136 gate file). AT-282 closed `wontfix` (did not reproduce). GRILL
-AT-218 and systemic Mode-D debt AT-243 carried. No reopens: nothing this sweep proved a claim
-unbacked by evidence. **Scope of certification: this sweep certifies HEAD `7a8d966`; the working
-tree moved under it (AT-286) and is not certified.**
+Terminal state: **FINDINGS: 0 new** — every channel checked this sweep (bypass, handshake,
+inbox, contract staleness, enforcement, goal coverage, gates, silent-failure) came back clean or
+matched a previously-disclosed, still-accurate carried item (AT-218, AT-281, AT-285, AT-243, the
+fixed-ledger backlog, the t162 gate). Two ledger promotions made (AT-338, AT-283:
+`fixed → verified`, independently re-derived). No reopens. Ledger after this sweep: 202 verified /
+90 open (6 high, 27 medium, 57 low) / 55 fixed / 2 wontfix / 2 dismissed.
