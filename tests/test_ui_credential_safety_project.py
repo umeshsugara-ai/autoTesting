@@ -99,6 +99,30 @@ def test_a_credential_in_the_secret_description_is_refused(
     assert REAL_PASSWORD not in project.model_dump_json()
 
 
+def test_a_credential_shaped_slug_at_onboarding_is_refused(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """AT-079: `slug` becomes the directory name, every page's URL, and text on
+    the home index — an ordinary credential shape (lowercase/digits/hyphens,
+    which REAL_PASSWORD already is) was never checked, only its regex SHAPE."""
+    (scratch_root / ".env").write_text(f"DEMO_PASSWORD={REAL_PASSWORD}\n", encoding="utf-8")
+    client.post("/onboard", data={
+        "slug": "seed2", "name": "Seed2", "base_url": "https://demo.test",
+        "allowed_domains": "demo.test",
+    })
+    client.post("/projects/seed2/secrets", data={
+        "key": "DEMO_PASSWORD", "domains": "demo.test", "mask_in_screenshot": "on",
+    })
+
+    response = client.post("/onboard", data={
+        "slug": REAL_PASSWORD, "name": "Leaky", "base_url": "https://demo.test",
+        "allowed_domains": "demo.test",
+    }, follow_redirects=False)
+
+    assert response.status_code == 400
+    assert not (scratch_root / "projects" / REAL_PASSWORD).exists()
+
+
 def test_a_credential_in_a_project_rename_is_refused(
     client: TestClient, scratch_root: Path
 ) -> None:
@@ -111,6 +135,24 @@ def test_a_credential_in_a_project_rename_is_refused(
 
     assert response.status_code == 400
     assert ProjectStore("demo", scratch_root).load_project().name == "Demo"
+
+
+def test_a_credential_shaped_key_is_refused(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """AT-080: `key` is the FIRST box on the secrets form and was never checked
+    — an all-uppercase-with-underscores credential satisfies SecretRef's own
+    key pattern, so only the description/scope boxes stood in the way."""
+    key_shaped_password = "HUNTER2_THIS_IS_THE_REAL_ONE"
+    _project_with_credential(client, scratch_root, value=key_shaped_password)
+
+    response = client.post("/projects/demo/secrets", data={
+        "key": key_shaped_password, "domains": "demo.test",
+    })
+
+    assert response.status_code == 400
+    project = ProjectStore("demo", scratch_root).load_project()
+    assert project.secret(key_shaped_password) is None
 
 
 # -- AT-074: trivially-recoverable encodings ---------------------------------

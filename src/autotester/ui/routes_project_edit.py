@@ -224,10 +224,12 @@ def declare_secret(
     the repo-root `.env`. `SecretRef`'s own validators do the checking — this
     route only turns their ValidationError into a readable 400."""
     store, project = _load_project_or_404(slug)
-    # AT-073: this box is one field away from the Key box on the same form, and
-    # project.json is git-tracked -- a value pasted here would be committed.
+    # AT-073/AT-080: `key` is the FIRST box on this form and was never checked --
+    # an all-uppercase credential satisfies SecretRef's own key pattern, so only
+    # the description/scope boxes stood between a pasted value and a git-tracked
+    # project.json. Checked alongside them now, not just the ones beside it.
     _refuse_unsafe_submission(
-        [("the description", description), ("the scope", domains)],
+        [("the key", key), ("the description", description), ("the scope", domains)],
         project, SecretStore.load(project, ProjectPaths(slug).env_file, strict=False),
         exempt=frozenset({", ".join(project.allowed_domains), *project.allowed_domains}),
     )

@@ -198,8 +198,12 @@ def _guard_intake(project: Project, sources: list[Source], values: dict[str, str
             400, "a credential key is already in use; choose a project-specific key",
         )
     guard = SecretStore(project, values, present)
+    # AT-079: `slug` becomes the directory name, every page's URL, and text on
+    # the home index -- an ordinary credential shape (lowercase/digits/hyphens)
+    # was never checked here, only its regex SHAPE was (_require_slug).
     _refuse_unsafe_submission(
-        [("the name", project.name), ("the base URL", project.base_url),
+        [("the slug", project.slug),
+         ("the name", project.name), ("the base URL", project.base_url),
          ("allowed domains", ", ".join(project.allowed_domains)),
          *[("a credential description", ref.description or "") for ref in project.secrets],
          *[("an intake statement", source.text or source.path or source.url or "")
