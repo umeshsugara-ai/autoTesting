@@ -1,0 +1,43 @@
+{
+  "unit": "at227-first-paint-modal",
+  "date": "2026-09-11",
+  "run_by": "checker (independent Mode A verification, own browser session, not the maker's script)",
+  "browser": "chromium via Playwright MCP, real navigation against tests/fixtures/modal_site served by an ad-hoc python -m http.server on 127.0.0.1:8931",
+  "method": "drove real mouse-simulated clicks (Playwright actionability engine), read document.elementFromPoint independently, never read or reused the maker's report.json or screenshots",
+  "interactions": [
+    {
+      "did": "navigated to / (first paint)",
+      "expected": "the modal veil renders over the dashboard",
+      "observed": "snapshot shows both the dashboard controls (Reports, Settings, Refresh) and the veil's mood buttons + Skip for now present in the DOM simultaneously",
+      "pass": true
+    },
+    {
+      "did": "evaluated document.elementFromPoint at the centre of #reports-link",
+      "expected": "the #veil element, not the link itself, is hit",
+      "observed": "topElementId: 'veil', isVeilCovering: true",
+      "pass": true
+    },
+    {
+      "did": "issued a real Playwright click on a#reports-link (mouse-based, actionability-checked, no override)",
+      "expected": "the click times out because a real pointer event cannot reach the link",
+      "observed": "TimeoutError after 5000ms: Playwright's own actionability log reports '<div id=\"veil\">...</div> intercepts pointer events' on every retry — a covered control is genuinely unclickable, not merely flagged as such by the app's own code",
+      "pass": true
+    },
+    {
+      "did": "clicked button#skip-modal (on the veil, therefore reachable)",
+      "expected": "the veil is dismissed client-side, same URL, no navigation",
+      "observed": "page URL stayed http://127.0.0.1:8931/, title unchanged, veil removed from hit-testing",
+      "pass": true
+    },
+    {
+      "did": "re-clicked a#reports-link after dismissal",
+      "expected": "the same control that failed to click 30 seconds earlier now succeeds and the crawl-relevant screen changes",
+      "observed": "click succeeded immediately; page navigated to http://127.0.0.1:8931/reports.html, title 'Reports' — a genuine state change, not a rendering check",
+      "pass": true
+    }
+  ],
+  "console_errors_relevant_to_app": 0,
+  "console_errors_note": "one favicon.ico 404 logged by the browser itself on every load of this fixture (no favicon file exists); unrelated to the modal/overlay behaviour under test and not attributable to the unit's code changes",
+  "all_interactions_passed": true,
+  "conclusion": "Independently reproduces the two claims load-bearing for X3/X16/AT-227: (1) a control genuinely covered by an in-page overlay cannot be clicked by a real pointer, confirmed via Playwright's own interception diagnostics, not a heuristic; (2) dismissing the overlay produces a real, verifiable state change (navigation succeeds) rather than merely a visual one. This corroborates the maker's smoke pass on the two hardest-to-fake claims; the crawl-traversal and mutation claims (state graph shape, kill counts) are verified separately via the project's own test suite and scripts/mutation_check.py, re-run independently by the checker."
+}
