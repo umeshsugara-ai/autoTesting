@@ -47,8 +47,13 @@ unit written one cycle after AT-314 was fixed.
 
 I did not find it by reading my diff. The self-mutation run reported
 `>>> SURVIVED  sandbox removed - mutate the live tree`, and a survivor means a test stopped
-detecting something; chasing *why* led to the footgun. **This is the first time in this sequence
-that the instrument caught a defect of mine before a checker did.**
+detecting something; chasing *why* led to the footgun.
+
+~~**This is the first time in this sequence that the instrument caught a defect of mine before a
+checker did.**~~ **RETRACTED** — the first fix was never committed, so that claim is not in the
+record and cannot be verified either way. The checker neither charged nor certified it, which is
+correct. Also corrected: `work.parent` would have been pytest's tmp base, not a real tree's parent,
+unless the mutation had been real code.
 
 `_discard` now owns only what `_sandbox` created, and
 `test_cleanup_refuses_to_delete_anything_it_did_not_create` hands it a `precious/` directory and
@@ -56,44 +61,28 @@ asserts the contents survive.
 
 ## Mutation evidence (C7)
 
-```
-16/16 mutations killed        (0 SURVIVED)
-```
-
-Three new mutations, one per new guard: the nodeid key (AT-324), the cleanup call (AT-325), and the
-containment check (the footgun). The two pre-existing cleanup-adjacent anchors were rebuilt for the
-new `(work, owned_root)` signature.
+**Superseded by the addendum — 16/16 was measured before AT-329 added a mutation per CLAUSE of the
+cleanup guard. The authoritative run is 18/18, in the addendum below.**
 
 ## How to verify (commands + expected)
 
-- `uv run pytest -o addopts= -q` → `1081 passed, 2 skipped`, exit 0
+- `uv run pytest -o addopts= -q` → `1082 passed, 2 skipped`, exit 0 (1081 before the addendum)
 - `uv run ruff check src tests scripts` → exit 0
 - `uv run autotester doctor` → exit 1, exactly one violation (untracked root `AGENTS.md`, AT-283)
 - `uv run python scripts/mutation_check.py qa/evidence/at311-mutation-check/mutations-self.json`
-  → `16/16 mutations killed`, exit 0
+  → `18/18 mutations killed`, exit 0
 - `uv run python scripts/mutation_check.py qa/evidence/at311-mutation-check/mutations.json`
   → `4/4 mutations killed`, exit 0
 
 ## Actual outputs (from maker's own run, after the final edit)
 
-```
-$ uv run pytest -o addopts= -q
-1081 passed, 2 skipped, 1 warning in 119.54s       exit=0
+**Superseded — captured before the addendum. The authoritative outputs are at the end of this
+file (1082 passed, 18/18 killed).**
 
-$ uv run ruff check src tests scripts
-All checks passed!                                  exit=0
-
-$ uv run autotester doctor
-root-clutter: AGENTS.md - scratch and evidence belong in .work/, not the repo root
-1 violation(s)                                      exit=1
-
-$ scripts/mutation_check.py … mutations-self.json   16/16 mutations killed   exit=0
-```
-
-The 1824 pre-existing leaked sandboxes were deleted. **Measurement discrepancy, disclosed rather
-than resolved:** the cycle-3 verdict reported ~1.8 GB standing; I measured **0.06 GB** over the same
-1824 directories. I could not reproduce the larger figure and am not repeating it. The *count* is
-agreed; the size is not.
+The 1824 pre-existing leaked sandboxes were deleted. **Measurement discrepancy — RESOLVED in the
+close-out:** the cycle-3 verdict reported ~1.8 GB; I measured 0.06 GB. The checker re-derived its
+own figure, found it had extrapolated from an unrepresentative sample, and corrected the ledger
+itself. 0.06 GB stands. Severity never turned on the bytes.
 
 ## A leak this unit does NOT close, and why not
 
