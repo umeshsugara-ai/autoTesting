@@ -108,10 +108,20 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   least one mutation of its CALLER, or the property is recorded as unproven. A direct unit
   assertion about a pure function is evidence about that function; only the mutation is evidence
   that the caller would notice.
+- **An unreachability claim costs one mutation run, not one paragraph.** A manifest that claims no
+  mutation can reach a property must paste the mutation it actually **tried** and the run showing
+  zero failures, reported as INCONCLUSIVE per clause 2 above. Prose reasoning toward the same
+  conclusion is not evidence and is not accepted: the claim has now been made three times in this
+  repo (AT-315, AT-321, AT-354) and refuted by a checker on the first attempt every time, and the
+  clause above — which already forbids it by name and cites the precedent — did not stop the third.
+  A rule that is violated by *not being read* is repaired by making it cost something mechanical, not
+  by writing it more firmly. The duty converts a belief into an artifact a checker can judge, and a
+  claim submitted without one is treated as an unproven property, not as a justification.
 - **Verify:** `uv run pytest -q` exits 0 and the manifest pastes real output, not a summary; a
   sabotage claim in a manifest is re-run by the checker in its own harness, never read; a unit
   adding or rewriting a test pastes its mutation run, with a green asserted baseline and a named
-  failing test per mutation.
+  failing test per mutation; a manifest containing an unreachability claim pastes the attempted
+  mutation and its INCONCLUSIVE run alongside it.
 
 ### C8 — Provider-agnostic
 - All model calls go through `providers.base.Provider`. No stage imports a vendor SDK directly.
@@ -304,3 +314,17 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   decision (widen the rule and clear the 29, or scope C3's text to `src/` and say why test helpers
   are exempt). Ledger: **AT-324** (medium), **AT-325** (medium), **AT-326** (low), **AT-327**
   (medium), **AT-328** (low). Verdict: `qa/verdicts/at311-mutation-check.md`.
+- 2026-09-11 · /checker (contract maintenance, no unit in flight) · **C7 extended** — a separate
+  amendment from the same turn's `ui.md` U13 fold, with its own criticality judgement:
+  **ROUTINE (a duty added, nothing softened).** Folds the durable fix proposed by
+  `qa/debug/at345-346-fold-coverage-cycle3.md` §5 and restated in `qa/gates/at355-guard-shape.md`:
+  an unreachability claim must paste the mutation actually attempted and its INCONCLUSIVE run.
+  Adopted because the diagnosis's attribution is sound and independently re-derivable — the
+  instrument (`scripts/mutation_check.py`) was audited against all five clauses by two checkers and
+  holds, and the contract already forbade the move by name citing AT-315/AT-321, so neither is the
+  cause; what recurs is the maker reaching "no mutation can reach this" by failing to think of one,
+  which is cheaper than the search. A mechanical duty is the only form of the rule that is not
+  discharged by prose. Deliberately placed in C7 and **not** in `qa/adapter.json` or `qa/loop.md`,
+  for the reason that already declined the 2026-09-11 slot-1 mutation proposal: a rule the maker
+  writes for itself is not a gate. Evidence: AT-354 refuted in one line (mutating the strip to
+  `category(ch).startswith("M")` kills the test the maker called unkillable).
