@@ -80,4 +80,4 @@ never the live tree (AT-101 discipline):**
 - AT-336 (a re-filing of this same finding by a later checker run) is dismissed as a duplicate,
   not independently fixed — this unit's fix closes both.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, verdict qa/verdicts/at283-agents-md-root-clutter.md, commit e6bd4df)
