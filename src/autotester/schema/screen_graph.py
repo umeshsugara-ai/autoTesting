@@ -28,8 +28,11 @@ class ElementRef(BaseModel):
     obscured: bool = Field(
         default=False,
         description="CSS-visible but covered by something else (a modal veil, a "
-        "sticky bar) -- unreachable to a human, so never a crawl candidate and "
-        "never part of the screen's structural signature (AT-227)",
+        "sticky bar) -- unreachable to a human, so never a crawl candidate, and "
+        "reported in an OVERLAY issue so a blocked screen is never silent (AT-227). "
+        "Deliberately NOT used by screen identity: `stages/screen_identity.py::"
+        "structural_signature` keys on `visible` alone, and its docstring says why "
+        "(AT-338 -- this description asserted the opposite for one cycle)",
     )
     href: str | None = None
     is_form_submit: bool = False
