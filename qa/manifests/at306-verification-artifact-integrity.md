@@ -96,4 +96,4 @@ AssertionError: baseline is NOT green - every KILLED below would be a lie: no te
    the `_project_dir_of` root-containment `break`). You classified them as undefended branches
    rather than vacuous tests, and they are unreachable through `main()`. Left open deliberately.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, verdict qa/verdicts/at306-verification-artifact-integrity.md)
