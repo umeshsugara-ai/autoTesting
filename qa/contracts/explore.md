@@ -163,10 +163,8 @@ Only a claim with **no** structural identity — a human's or an ingested video'
 asserts a URL and nothing more — can be contradicted by a crawl. **AT-103 is CLOSED by this
 scoping** (`_is_structural` / `disagreement`, `stages/explore_merge.py`).
 
-**Two residuals of the current rule, tracked rather than written out of it** (neither is a
-violation of this criterion as written; both are ledger issues to be closed by a later unit):
-**AT-102** — the clash test is `clash.name != incoming.name`, so a re-discovered screen at a known
-pattern under the *same* name is added as a silent duplicate with no `Conflict` to explain it;
+**One residual of the current rule, tracked rather than written out of it** (not a violation of
+this criterion as written; a ledger issue to be closed by a later unit):
 **AT-109** — the price of scoping on identity: a **genuine product change** (a later crawl finding
 a structurally different screen at a pattern an earlier crawl claimed) is now silently two screens
 and files no `Conflict`, so the stale screen is kept forever with nothing marking it stale. That
@@ -174,6 +172,11 @@ trade is deliberate — at this layer a product change and an SPA re-crawl are t
 the alternative fires a false conflict on every SPA state on every re-crawl — and it costs no data
 (both screens survive, `Review` still resets to DRAFT). The remedy is a *different* mechanism,
 last-seen/staleness on `Screen`, not a re-narrowing of the exemption.
+
+**AT-102 CLOSED** (unit `at102-merge-rediscovery-dedup`, commit `c29d322`, verified by /checker
+2026-09-11) — a non-structural screen re-discovered at a known `url_pattern` under the SAME name
+now merges instead of duplicating (`_is_rediscovery`, `stages/explore_merge.py`); see the
+amendment log entry below.
 
 ### X15 — `Screen.url_pattern` is a host-less path, not the node's browsing template
 `ScreenNode.url_template` carries a host (it is a browsing identity); `Screen.url_pattern` is a
@@ -341,3 +344,19 @@ loads with the default `0` and is displayed as a measured zero — the same prop
   function body is byte-unchanged, the full suite is green, and the crawl merge was driven live in
   a browser (the path that calls it) with the same result. Softens nothing; a contract that names a
   symbol which no longer exists is a contract nobody can check.
+
+- 2026-09-11 · routine · /checker (at102-merge-rediscovery-dedup unit, cycle 1) · **X14's AT-102
+  residual CLOSED**. A new `_is_rediscovery(clash, incoming)` helper in `stages/explore_merge.py`
+  catches the case `disagreement()` deliberately leaves alone — clash non-structural, same name,
+  same `url_pattern` — and `merge_screens` now skips the add instead of appending a second,
+  identically-named `Screen` row. Verified by this checker in an isolated `git archive HEAD`
+  extract with its own `uv sync` venv (`autotester.__file__` resolved inside the extract):
+  mutating `_is_rediscovery` to `return False` reproduces the exact original defect shape
+  (`assert 2 == 1` in `test_a_same_named_rediscovery_merges_instead_of_duplicating`) while the
+  other 14 tests in `tests/test_explore_merge.py` stay green, and the full suite (`uv run pytest -q`)
+  is green on the live tree. The three dispatch paths — SPA (add, no conflict), genuine conflict
+  (add + Conflict), re-discovery (skip) — were checked exhaustive by hand over all
+  clash-exists × clash-structural × same-name combinations: a structural clash always takes the
+  SPA path regardless of name (X3 requires two structurally distinct states at one URL to be two
+  screens, so a name collision between them is not evidence of duplication), so no combination
+  falls through uncaught. No criterion is removed or weakened; X1-X13, X15, X16 are byte-unchanged.
