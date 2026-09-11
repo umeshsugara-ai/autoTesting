@@ -1,0 +1,61 @@
+{
+  "unit": "at345-346-fold-coverage",
+  "cycle": 2,
+  "date": "2026-09-11",
+  "actor": "/checker Mode A + Mode D, fresh subagent, bound to d:/autoTesting",
+  "instrument": {
+    "browser": "Chromium via playwright MCP, driven by this checker",
+    "server": "own uvicorn 127.0.0.1:8731, scratch AUTOTESTER_ROOT outside the repo",
+    "note": "no repo project was created or modified by this check"
+  },
+  "console": {"errors": "each one is an expected 400 refusal from an attack POST", "unexplained": 0},
+  "cycle1_failures_rechecked": {
+    "AT-351 U9 onboarding": "CLOSED - U+034F/U+FE00/U+FE0F refused 400, nothing written",
+    "AT-351 U8 case form": "CLOSED - 24/24 refused across title/step_value/step_expected/step_target for six invisible marks; cases.jsonl holds no invisible-spelled case",
+    "AT-351 rendering claim": "CLOSED - home index leaf-node scan (invisibles stripped) = 0 hits; widths reproduce cycle 1 exactly (control 192.5px; U+034F 192.5, U+FE00 192.5, U+FE0F 191.5)",
+    "detector_positive_control": "a U+034F-spelled name planted DIRECTLY into project.json (guard bypassed) made the same scan report 2 leaf nodes rendering the credential -> the 0 above is a real negative, not a dead instrument. Screenshot positive-control-planted-leak.png; restored afterwards."
+  },
+  "default_ignorable_audit": {
+    "method": "di_audit.py - Other_Default_Ignorable_Code_Point fetched verbatim from unicode.org/Public/14.0.0/ucd/PropList.txt this session; Variation_Selector ranges FE00-FE0F / 180B-180D / 180F / E0100-E01EF; Cf read from this machine's unicodedata (unidata_version 14.0.0); exclusions per the DerivedCoreProperties definition",
+    "DI_code_points": 4174,
+    "guard_strips": 4199,
+    "DI_not_stripped": "none - zero under-inclusion",
+    "stripped_but_not_DI": "U+0600-0605, U+06DD, U+070F, U+0890-0891, U+08E2, U+FFF9-FFFB, U+110BD, U+110CD, U+13430-13438 (all Cf; false-positive direction, measured harmless)"
+  },
+  "attack_results_live": {
+    "refused_400": ["U+034F","U+FE00","U+FE0F","U+200B","U+180B","U+180F","U+115F","U+1160","U+3164","U+FFA0","U+17B4","U+17B5","U+E0041 tag","U+E0100","U+1D173","U+1D17A","U+2065","U+FFF0","U+00AD","U+FEFF","plain credential control"],
+    "accepted_303_and_written": {
+      "U+0000 NUL": "LEAK - see finding AT-353",
+      "U+0001 / U+0008 / U+001B": "accepted; render as visible tofu (348px vs 192.5px control) - not a rendering leak",
+      "U+007F DEL": "accepted; preserved in the DOM and renders visibly (356.9px vs 192.5px control) - not a rendering leak",
+      "U+2800 BRAILLE BLANK": "accepted; renders 405.2px vs 192.5px control, visibly spaced Z(sp)E(sp)B... - not a rendering leak, belongs to AT-352"
+    }
+  },
+  "finding_AT-353": {
+    "severity": "high",
+    "criteria": ["U9","U8"],
+    "summary": "U+0000 NUL interleaved between every character passes the guard, and the HTML parser DROPS U+0000, so the home index renders the exact credential in plain type and document.body.innerText contains it verbatim",
+    "u9_evidence": "POST /onboard name=Z\u0000E\u0000B... -> 303, projects/ctl-0/project.json written with 20 NULs. On GET /: the <a> text node is literally ZEBRA_QUILT_APIKEY_31 (code points 5A 45 42 52 41 5F ...), innerText contains the credential, rendered width 168.8px == a plain-credential control rendered the same way. Removing only the ctl-0 nodes makes innerText clean, so the hit is attributable to that project alone. Screenshot at353-nul-renders-credential-on-home-index.png",
+    "u8_evidence": "POST /projects/seed/cases accepted the NUL spelling on title, step_value and step_expected (303 each); git-tracked cases.jsonl now holds 60 \u0000 escapes and three fields that yield the exact credential when the NULs are deleted",
+    "why_chargeable": "U+0000 is category Cc - not Cf and not Default_Ignorable - so _is_invisible misses it, but it renders as nothing, which is the predicate's own stated definition ('True when ch renders as nothing'). No decoding step a reader must deliberately take is involved: the renderer strips it. Same defect class as AT-345 and AT-351, third cycle, same line.",
+    "fix_direction": "add the C0/C1 controls and U+007F to _is_invisible, or key on 'the HTML renderer drops or zero-widths it' rather than on Default_Ignorable alone; U+0000 at minimum"
+  },
+  "false_positives": {
+    "fold_level_probes": 27,
+    "ui_level_probes": 17,
+    "refused": 0,
+    "covered": ["Hindi", "Hindi with ZWNJ", "Arabic", "Arabic with shadda", "Arabic number sign U+0600", "Thai", "Hebrew", "Hebrew with niqqud", "emoji plain", "emoji with U+FE0F VS16", "emoji ZWJ family", "emoji keycap with VS16", "emoji flag", "Khmer", "Korean", "accented Latin", "Turkish", "CSS selector", "XPath", "URL", "JWT", "regex", "semver", "Windows path", "SQL LIKE", "the English word zebra"]
+  },
+  "self_corrections_judged": {
+    "asymmetric_fold_leak": "CONFIRMED independently (asym.py). Stored CAFE_QUILT_APIKEY_31 with precomposed U+00C9 vs input E+U+200B+U+0301: keying on invisibility -> both fold to caf(e-acute)quiltapikey31, MATCH; stripping all Mn -> input loses the accent, MISS. The maker's corrected justification is right and its first one was wrong.",
+    "deleted_test": "Deleting was right, and nothing was lost from the repo: git show 7b5f55c is additions only, so the vacuous test never reached a commit. The property it named is now pinned by a mutation ('strip ALL Mn') that genuinely dies against test_format_characters_are_stripped_before_normalising. Residual, filed as AT-354 not charged: no standing test pins acceptance of Indic/Arabic/Hebrew/Thai/emoji names."
+  },
+  "commands_rerun": {
+    "uv run pytest": "1140 passed, 2 skipped, 1 warning in 196.28s (exit 0)",
+    "uv run ruff check src scripts": "All checks passed!",
+    "uv run ruff check tests/test_ui_credential_unicode.py tests/test_ui_credential_transforms.py": "All checks passed!",
+    "uv run autotester doctor": "doctor: clean (the other loop's in-flight file is no longer over the cap; git status --porcelain tests/test_explore_error_causes.py shows ' M', confirming it is uncommitted work of another session and not this unit's)",
+    "uv run pytest tests/test_ui_credential_transforms.py tests/test_ui_credential_unicode.py": "26 passed",
+    "uv run python scripts/mutation_check.py qa/evidence/at345-346-fold-coverage/mutations.json": "9/9 mutations killed, every claims-to-kill nodeid present in actually-failed for all nine"
+  }
+}

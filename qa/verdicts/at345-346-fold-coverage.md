@@ -198,3 +198,243 @@ The `MIN_FOLDED_LEN = 8` floor is doing its job and I have no false-positive fin
    `Café` to `Cafe` and could start refusing real names. Strip only the **zero-width, non-combining**
    ones; do not take my finding as a licence to strip every mark.
 4. AT-352 either closed or explicitly declared, in the code's own docstring, alongside AT-349.
+
+---
+
+# Verdict — at345-346-fold-coverage (cycle 2)
+
+**Cycle checked:** 2
+**Date:** 2026-09-11
+**Checker:** fresh Mode A + Mode D subagent, bound to `d:/autoTesting`. No maker reasoning, no
+session context, no reading of the cycle-1 checker's scripts. Every command below was re-run by
+this checker; nothing was taken from the manifest's pasted output.
+**Contract:** `qa/contracts/ui.md` U8/U9 · `qa/contracts/core-invariants.md` C2, C7
+**Evidence produced by this check:**
+`qa/evidence/browser-at345-346-fold-coverage-2026-09-11-checker-cycle2/` (`report.json`,
+`at353-nul-renders-credential-on-home-index.png`, `positive-control-planted-leak.png`, and my
+four probes `di_audit.py`, `attack.py`, `fp.py`, `asym.py`).
+
+---
+
+```
+VERDICT: FAIL
+SCOREBOARD: 0/2 criteria met, 2/2 invariants hold
+FAILURES:
+- [U9] sev: high · U+0000 NUL interleaved between every character passes the guard, and the HTML
+  parser DROPS U+0000 — so the home index renders the exact credential in plain type and
+  `document.body.innerText` contains it verbatim · `_is_invisible` must implement its own stated
+  definition ("renders as nothing"): add the C0/C1 controls, U+0000 at minimum · issue: AT-353
+- [U8] sev: high · the same NUL spelling is accepted by the case form on `title`, `step_value`
+  and `step_expected` and lands in git-tracked `cases.jsonl` (60 `\u0000` escapes; deleting the
+  NULs yields the exact credential) · same one-line fix closes both · issue: AT-353
+LIVE-BROWSER: qa/evidence/browser-at345-346-fold-coverage-2026-09-11-checker-cycle2/ (my own
+Chromium via playwright, my own uvicorn on a scratch AUTOTESTER_ROOT; every console error is an
+expected 400 from one of my attack POSTs, 0 unexplained)
+ISSUES-WRITTEN: AT-353 (high), AT-354 (low)
+EXPLANATION: Both cycle-1 failures are genuinely closed and I proved it with a working detector
+rather than a silent negative — U+034F/U+FE00/U+FE0F are refused at both doors, the home-index
+leaf scan finds 0 nodes rendering the credential, and a name planted directly into project.json
+makes that same scan report 2, so the zero is real. The declared Default_Ignorable ranges are
+CORRECT AND COMPLETE: audited against Unicode 14 data (Other_DI fetched from unicode.org, Cf from
+this machine's unicodedata), the guard's strip set is a strict superset of DI — zero
+under-inclusion — and every code point the FAIL-hunt named (U+180B-180F, the Hangul fillers,
+U+17B4-17B5, the tag characters, the musical symbols) is refused live. Zero false positives in 44
+probes: real Hindi, Arabic (incl. shadda and U+0600), Thai, Hebrew (incl. niqqud), Khmer, Korean,
+and five emoji forms including U+FE0F and ZWJ sequences all pass and render correctly. But the
+leak reopened a THIRD time on the same line: U+0000 is category `Cc`, so `_is_invisible` misses
+it, and unlike base64 or U+2800 it needs no reader-side decoding at all — the renderer deletes it
+for you.
+```
+
+---
+
+## What I re-ran (Mode A, my own execution)
+
+| Command | Manifest expected | My result |
+|---|---|---|
+| `uv run pytest` | 1140 passed, 2 skipped, 1 warning | **1140 passed, 2 skipped, 1 warning** in 196.28s (exit 0) |
+| `uv run ruff check src scripts` | `All checks passed!` | **`All checks passed!`** |
+| `uv run ruff check` (this unit's test files) | `All checks passed!` | **`All checks passed!`** |
+| `uv run autotester doctor` | ONE violation, another loop's file | **`doctor: clean`** — see note below |
+| `uv run pytest tests/test_ui_credential_transforms.py tests/test_ui_credential_unicode.py` | 26 passed | **26 passed** in 2.41s |
+| `uv run python scripts/mutation_check.py …/mutations.json` | `9/9 mutations killed` | **`9/9 mutations killed`** |
+
+**On `doctor`:** the manifest warned me to expect one violation from
+`tests/test_explore_error_causes.py`. By the time I ran it, `doctor` was clean.
+`git status --porcelain tests/test_explore_error_causes.py` returns ` M` — the file is indeed
+another session's uncommitted in-flight work, and that session has since brought it under the cap.
+Either way nothing is charged to this unit, and `git show --stat 7b5f55c` shows this unit's cycle-2
+commit touching six files, all its own.
+
+## C7 — kill ATTRIBUTION verified by hand, all nine
+
+Not "9/9" read off a summary line. For each mutation I compared its `claims to kill` list against
+the `actually failed` list; **every claimed nodeid appears in the observed failures for all nine**:
+
+| Mutation | Claimed | Present in observed failures |
+|---|---|---|
+| format characters not stripped | `…is_refused[zero-width-interleaved]` | yes (plus 7 more) |
+| NFKC dropped | `…is_refused[full-width-latin]` | yes |
+| confusable map not applied | `…is_refused[turkish-dotless-i]` | yes |
+| separator class narrowed | `[tilde-]`, `[slash-]`, `[colon-separator]` | yes, all three |
+| fold stops composing (AT-346) | `…percent_encoded…blamed_on_that_field` | yes |
+| strip AFTER normalise | `test_format_characters_are_stripped_before_normalising` | yes |
+| **revert to `Cf`** | 3 x onboarding + 1 x case form | yes, all four (plus 2 more) |
+| **strip ALL `Mn`** | `test_format_characters_are_stripped_before_normalising` | yes |
+| **DI ranges emptied** | `…refused_at_onboarding[combining-grapheme-joiner]` | yes |
+
+And I re-read `scripts/mutation_check.py` against C7's clauses myself: green-baseline assertion
+(l.241), anchor-matched-exactly-once (l.248), file-actually-changed (l.256), and `is_kill`
+requiring `exit_code == 1 and expected <= failures` (l.85) so a collection collapse cannot read as
+a kill. **C7 holds.** One cosmetic note, not a finding: the ninth mutation is named *"the
+default-ignorable ranges are emptied"* but removes only the `(0x034F, 0x034F)` entry. The mutation
+is real and correctly attributed; the name overstates it.
+
+## Are the declared Default_Ignorable ranges right? Audited, not trusted
+
+`di_audit.py`. I did not take the hand-written tuple list on faith:
+
+- `Other_Default_Ignorable_Code_Point` — fetched **verbatim** from
+  `unicode.org/Public/14.0.0/ucd/PropList.txt` during this check.
+- `Variation_Selector` — FE00-FE0F, 180B-180D, **180F** (added in Unicode 14), E0100-E01EF.
+- `Cf` — enumerated from **this machine's** `unicodedata` (`unidata_version 14.0.0`).
+- Exclusions per the DerivedCoreProperties definition (White_Space, FFF9-FFFB, the prepended
+  concatenation marks, 13430-1343F).
+
+```
+DI code points : 4174        guard strips : 4199
+DI NOT stripped by the guard (under-inclusion == leak) : (none)
+stripped but NOT DI (over-inclusion == false positive) :
+    U+0600..U+0605, U+06DD, U+070F, U+0890..U+0891, U+08E2,
+    U+FFF9..U+FFFB, U+110BD, U+110CD, U+13430..U+13438
+```
+
+**Zero under-inclusion** — the strip set is a strict superset of Unicode 14's DI. The
+over-inclusion is all `Cf` (Arabic/Syriac/Kaithi prepended concatenation marks, interlinear
+annotation, Egyptian format controls); it pushes toward false positives, and I measured none,
+including a name beginning with U+0600. Live, every code point the FAIL-hunt named is refused 400:
+U+180B, U+180F, U+115F, U+1160, U+3164, U+FFA0, U+17B4, U+17B5, U+E0041 (tag), U+E0100, U+1D173,
+U+1D17A, U+2065, U+FFF0 — 21 attack spellings, all refused, plus the plain control.
+
+## The cycle-1 FAIL — both halves closed, with a proven detector
+
+- **U9.** `POST /onboard` refused U+034F, U+FE00, U+FE0F (400 each); no `project.json` written.
+- **U8.** `POST /projects/seed/cases` refused all three marks (and U+200B, U+3164, U+E0041) on
+  **`title`, `step_value`, `step_expected` and `step_target`** — 24/24 at 400 — while a legitimate
+  case carrying an emoji title, a Hindi name, an Arabic value and a Thai expectation was accepted
+  and is the only invisible-free row in `cases.jsonl`.
+- **The RENDERING claim, which is the one a POST status cannot answer.** In my own Chromium at
+  `GET /`, scanning every leaf node with the invisibles stripped: **0 nodes render the credential**,
+  and `innerText` contains it nowhere. Widths reproduce cycle 1 exactly — control 192.5px, U+034F
+  192.5, U+FE00 192.5, U+FE0F 191.5.
+- **Why that zero is trustworthy.** I planted a U+034F-spelled name **directly into
+  `project.json`**, bypassing the guard, in my scratch root. The same scan then reported **2 leaf
+  nodes rendering `ZEBRA_QUILT_APIKEY_31`** (`positive-control-planted-leak.png`). I restored the
+  file and the scan went back to 0. The detector works; the negative is real.
+
+## The FAIL — AT-353, the third cycle of the same defect
+
+`_is_invisible` (redact.py:76) says in its own docstring: *"True when `ch` renders as nothing."*
+It implements `Cf` **or** Default_Ignorable. **U+0000 is neither, and it renders as nothing** —
+in fact worse than nothing: the HTML tokenizer **deletes** it.
+
+```
+POST /onboard  name = Z NUL E NUL B NUL R NUL A NUL _ NUL Q ... 3 NUL 1
+  -> 303, projects/ctl-0/project.json written, 20 NULs preserved on disk
+
+GET /  (my Chromium)
+  the <a> text node  : U+005A U+0045 U+0042 U+0052 U+0041 U+005F ...   <- the NULs are GONE
+  rendered text      : ZEBRA_QUILT_APIKEY_31
+  rendered width     : 168.8px == a plain-credential control rendered identically
+  document.body.innerText.includes("ZEBRA_QUILT_APIKEY_31")  ->  TRUE
+  removing only the ctl-0 nodes  ->  FALSE   (the hit is attributable to that project alone)
+```
+
+Screenshot: `at353-nul-renders-credential-on-home-index.png`.
+
+**U8 too.** `POST /projects/seed/cases` accepted the NUL spelling on `title`, `step_value` and
+`step_expected` (303 each). Git-tracked `cases.jsonl` now carries **60 `\u0000` escapes**, and
+three fields yield the exact credential the instant the NULs are deleted.
+
+**Why this is chargeable and not another AT-352.** AT-352 (base64, hex, entities, reversal) needs
+a decoding step a reader must deliberately take, which is why I agree with the previous checker
+that it was filed rather than charged. U+0000 needs **no step at all** — the browser performs the
+reassembly and prints the credential in plain type. That is word for word the harm AT-345 was
+opened for and the harm this unit's own docstring claims closed. It is the same line, the same
+predicate, and the third consecutive cycle.
+
+Three near neighbours I checked and am **not** charging, because they are visible on screen and so
+belong to the AT-352 class:
+
+| spelling | accepted | rendered width vs 192.5px control | verdict |
+|---|---|---|---|
+| **U+0000 NUL** | yes | **192.5px — identical, NULs deleted by the parser** | **AT-353, charged** |
+| U+0001 / U+0008 / U+001B | yes | 348px — visible tofu boxes | not a rendering leak |
+| U+007F DEL | yes | 356.9px — visible tofu | not a rendering leak |
+| U+2800 BRAILLE BLANK | yes | 405.2px — reads as a visibly spaced Z E B R A ... | not a rendering leak (AT-352) |
+
+## The cost side — the wider strip did NOT start refusing real text
+
+44 probes, **0 false positives** (`fp.py` at the fold level, and 17 more through the real UI):
+Hindi, Hindi with ZWNJ, Arabic, Arabic with shadda, a name led by U+0600, Thai, Hebrew, Hebrew
+with niqqud, Khmer, Korean, accented Latin, Turkish — and five emoji forms: plain, **U+FE0F
+VS16**, a **ZWJ family sequence**, keycaps, and a flag. All accepted at `/onboard` and all render
+correctly on the home index. **An emoji in a case title is not refused**, which was the specific
+worry: the widened strip removes the variation selector only from the *comparison*, and
+`fold_credential` never rewrites what is stored.
+
+## The two self-corrections, judged independently
+
+**1. "My first justification was wrong; the real harm is a LEAK, not corruption." — CORRECT, and
+I reproduced the measurement** (`asym.py`):
+
+```
+stored  CAFE_QUILT_APIKEY_31 with precomposed U+00C9
+input   the same value spelled  E + U+200B + U+0301
+  keying on invisibility : stored 'cafequiltapikey31' (e-acute)  input the same   MATCH
+  stripping all Mn       : stored keeps the accent, input loses it                MISS  <- leak
+```
+
+The maker is right on both counts: `fold_credential` only ever compares, so no stored text was
+ever at risk, and stripping visible combining marks folds the two sides asymmetrically because a
+stored value tends to carry the precomposed character while hostile input carries the decomposed
+one. The corrected docstring says the true thing.
+
+**2. "I deleted `test_real_combining_marks_are_not_stripped` as vacuous." — the right call, and
+cheaper than it sounds.** `git show 7b5f55c -- tests/test_ui_credential_unicode.py` is **additions
+only**: the vacuous test never reached a commit, so no committed coverage was lost. The test
+asserted Hindi/Arabic names are *accepted*, and they are accepted under both the real predicate
+and the mutant — it could not fail for the reason it named, which is exactly the class C7 refuses.
+Crucially, the property it was *supposed* to defend is now pinned by something that CAN fail: the
+`strip ALL Mn` mutation dies against `test_format_characters_are_stripped_before_normalising`,
+which I re-ran and watched die. Relabelling would have been worse than deleting.
+
+One residual, **filed as AT-354 (low), not charged**: after the deletion no standing test pins
+acceptance of Indic / Arabic / Hebrew / Thai / emoji names —
+`test_ordinary_unicode_text_is_still_accepted` covers Café, Japanese and Greek only. I measured
+today's behaviour clean, so this is a regression-coverage gap rather than a defect: the next
+widening of the strip could start refusing real names with nothing to catch it.
+
+## Also verified (not re-charged)
+
+- **C2** — `doctor: clean`; `redact.py` and both test files are inside the 300-line cap. Holds.
+- **Isolation** — my server ran on a scratch `AUTOTESTER_ROOT` outside the repo. No repo project
+  was created, edited, or deleted by this check; my two PNGs and four probes are the only files I
+  wrote, all inside my own evidence directory.
+- **AT-347, AT-349, AT-352** stay open and I agree with how each is scoped. My Armenian/Cherokee
+  and braille findings land inside AT-349 and AT-352 respectively.
+
+## What a cycle-3 fix needs to show me
+
+1. `_is_invisible` covers U+0000 — and, since the predicate's own contract is "renders as
+   nothing", state in the docstring which side of that line the remaining C0/C1 controls sit on
+   rather than leaving it to the next checker to measure.
+2. A mutation that removes exactly that addition, killed by a test naming U+0000 explicitly, at
+   **both** doors (onboarding and the case form) — the case-form half is where `cases.jsonl` took
+   the hit.
+3. The false-positive probe re-run. This is the last cycle where "no test pins Indic/Arabic/emoji
+   acceptance" (AT-354) is free.
+4. Note for the contract's owner, not for the maker: three cycles have now been spent enumerating
+   code points. The durable shape is a positive test — *"does this text, rendered, read as the
+   credential?"* — rather than a list of things that do not render. That is a scope decision, so
+   it is raised here and not imposed.
