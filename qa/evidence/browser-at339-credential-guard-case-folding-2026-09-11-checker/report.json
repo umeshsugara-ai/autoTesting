@@ -1,0 +1,28 @@
+{
+  "unit": "at339-credential-guard-case-folding",
+  "cycle_checked": 1,
+  "date": "2026-09-11",
+  "actor": "checker (Mode D, independent)",
+  "note": "The maker declared a SKIP for live browser evidence. This run is the checker's own and is authoritative. Own uvicorn, own Chromium, own scratch AUTOTESTER_ROOT.",
+  "server": {
+    "command": "AUTOTESTER_ROOT=D:/autoTesting/.work/checker-at339-root uv run python -m uvicorn autotester.ui.app:app --host 127.0.0.1 --port 8412",
+    "scratch_root": "D:/autoTesting/.work/checker-at339-root",
+    "env_seeded_with": "DEMO_PASSWORD=<a synthetic 21-char credential, upper snake case> (the real repo .env was NOT used for any leak probe)"
+  },
+  "interactions": [
+    {"n": 1, "action": "GET /onboard", "result": "200, form rendered", "assert": "pass"},
+    {"n": 2, "action": "POST /onboard slug=seed, credential key DEMO_PASSWORD", "result": "400 'a credential key is already in use; choose a project-specific key'", "assert": "pass (U12 cross-project key ownership; expected, key exists in scratch .env)"},
+    {"n": 3, "action": "POST /onboard slug=seed (no credential row)", "result": "303 -> /projects/seed", "assert": "pass, control project created"},
+    {"n": 4, "action": "CONTROL - POST /onboard slug='zebra-quilt-apikey-31' (the AT-339 bypass, lowercased + hyphenated)", "result": "400 'the slug looks like it contains a real credential ...'", "assert": "PASS - the AT-339 bypass is closed live; message is the PER-FIELD one, not 'split across', so contains_folded fired in _refuse_unsafe_value"},
+    {"n": 5, "action": "BYPASS PROBE - POST /onboard slug='plus-bypass', name='ZEBRA+QUILT+APIKEY+31' (separator '+' instead of '_')", "result": "303 ACCEPTED -> /projects/plus-bypass; page <title> is the credential", "assert": "FINDING - projects/plus-bypass/project.json on disk carries name='ZEBRA+QUILT+APIKEY+31'; s.replace('+','_') == the live .env value"},
+    {"n": 6, "action": "BYPASS PROBE - POST /onboard slug='zw-bypass', name = the credential with U+200B ZERO WIDTH SPACE between every character", "result": "303 ACCEPTED -> /projects/zw-bypass", "assert": "FINDING - project.json carries the interleaved string; it RENDERS as the exact credential (zero-width chars are invisible)"},
+    {"n": 7, "action": "GET / (home index)", "result": "200; rendered link text includes 'ZEBRA+QUILT+APIKEY+31'; document.body.innerText with U+200B stripped contains the exact credential 'ZEBRA_QUILT_APIKEY_31'", "assert": "FINDING - this is precisely the AT-339 consequence (directory name, page URL, home-index text) reproduced through two transforms the fold does not cover"},
+    {"n": 8, "action": "screenshot GET / full page", "result": "home-index-credentials-rendered.png", "assert": "evidence"}
+  ],
+  "console_errors": {
+    "count": 2,
+    "explained": true,
+    "detail": "Both are 'Failed to load resource: 400 (Bad Request)' on POST /onboard - interactions 2 and 4, i.e. the two DELIBERATE refusals. Zero unexplained console errors."
+  },
+  "verdict_contribution": "The unit's own claim (case + [\s-_.] separator folding closes AT-339) is CONFIRMED live. Three further transform classes that the fold does not cover were found and filed as AT-345/AT-346; they are not U8/U9 violations by this unit (same precedent as AT-074 filed against the unit that introduced U8)."
+}
