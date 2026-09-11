@@ -214,7 +214,7 @@ def _terminal_status(rt: ExploreRuntime, completed: bool) -> CrawlStatus:
 def _finish(rt: ExploreRuntime, status: CrawlStatus) -> Crawl:
     crawl = rt.crawl.model_copy(update={
         "status": status,
-        "stop_reason": rt.stop_reason,
+        "stop_reason": rt.session.secrets.scrub_optional(rt.stop_reason),  # AT-350
         "finished_at": _now_iso(),
         "screens": len(rt.nodes),
         "edges": rt.edges,

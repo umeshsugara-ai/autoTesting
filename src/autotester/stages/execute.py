@@ -96,14 +96,13 @@ def _result(
     hitl_prompt: str | None = None,
 ) -> RawResult:
     # AT-341: an exception's own message (any exception, not only a named one)
-    # can embed a resolved value — the same boundary `_record` already holds
+    # can embed a resolved secret — the same boundary `_record` already holds
     # for evidence paths applies here before this ever reaches disk.
-    redactor = session.secrets.redactor()
     return RawResult(
         case_id=case.id,
         outcome=outcome,
         duration_s=round(time.monotonic() - start, 3),
-        error=redactor.scrub(error) if error else error,
-        hitl_prompt=redactor.scrub(hitl_prompt) if hitl_prompt else hitl_prompt,
+        error=session.secrets.scrub_optional(error),
+        hitl_prompt=session.secrets.scrub_optional(hitl_prompt),
         evidence=list(session.state.evidence),
     )

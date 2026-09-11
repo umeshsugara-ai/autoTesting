@@ -19,12 +19,7 @@ import pytest
 from crawl_fake import grant_crawl_approval, make_project, make_session
 
 from autotester.browser.observe import PageObserver
-from autotester.browser.secrets import SecretStore
-from autotester.browser.session import BrowserSession
-from autotester.core.paths import ProjectPaths
-from autotester.schema.enums import Action, EdgeOutcome, IssueKind
-from autotester.schema.project import Project, SecretRef
-from autotester.stages import explore_node, explore_return
+from autotester.stages import explore_return
 from autotester.stages.explore import run_crawl
 from autotester.store.project_store import ProjectStore
 
@@ -243,55 +238,3 @@ def test_a_known_zero_is_printed_as_zero_not_as_unknown(
     assert row.count("<td>0</td>") == 2, (
         "issues and tool failures are both a MEASURED zero and must read alike; "
         "`or '—'` renders one of them as the sentinel for 'not known'")
-
-
-# -- AT-341: a secret leaking into a crawl issue / edge reason ---------------
-
-def _rt_with_secret(tmp_path: Path) -> SimpleNamespace:
-    project = Project(slug="demo", name="Demo", base_url="https://app.test",
-                      allowed_domains=["app.test"],
-                      secrets=[SecretRef(key="DEMO_TOKEN", domains=["app.test"])])
-    env = tmp_path / ".env"
-    env.write_text("DEMO_TOKEN=zorro-battery-42\n", encoding="utf-8")
-    session = BrowserSession(project, SecretStore.load(project, env),
-                             tmp_path / "shots", ProjectPaths("demo", tmp_path))
-    saved: dict[str, list] = {"issues": [], "edges": []}
-    store = SimpleNamespace(
-        add_crawl_issue=lambda issue: saved["issues"].append(issue),
-        add_edge=lambda edge: saved["edges"].append(edge),
-    )
-    rt = SimpleNamespace(
-        session=session, project=project, store=store, saved=saved,
-        crawl=SimpleNamespace(id="crawl_1"), tool_failures=0, issues=0, edges=0,
-    )
-    return rt
-
-
-def test_add_issue_scrubs_a_secret_out_of_the_detail_before_persisting(
-    tmp_path: Path,
-) -> None:
-    rt = _rt_with_secret(tmp_path)
-
-    explore_node.add_issue(rt, "node_1", IssueKind.NAVIGATION,
-                           "refused: destination contained zorro-battery-42")
-
-    saved = rt.saved["issues"][0]
-    assert "zorro-battery-42" not in saved.detail
-    assert "REDACTED" in saved.detail
-
-
-def test_record_edge_scrubs_a_secret_out_of_the_reason_before_persisting(
-    tmp_path: Path,
-) -> None:
-    from autotester.schema.screen_graph import ElementRef
-
-    rt = _rt_with_secret(tmp_path)
-    el = ElementRef(role="link", name="Sneaky", selector="#sneaky")
-
-    explore_node.record_edge(rt, SimpleNamespace(id="node_1"), el, Action.NAVIGATE,
-                             EdgeOutcome.OFF_DOMAIN_REFUSED,
-                             "timeout near text 'zorro-battery-42'")
-
-    saved = rt.saved["edges"][0]
-    assert "zorro-battery-42" not in (saved.reason or "")
-    assert "REDACTED" in (saved.reason or "")

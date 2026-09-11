@@ -223,6 +223,12 @@ class SecretStore:
         """A `Redactor` that masks every value in .env, declared or not (AT-004)."""
         return Redactor(self._all_values())
 
+    def scrub_optional(self, text: str | None) -> str | None:
+        """`redactor().scrub(text)`, passing `None`/empty text through unchanged.
+        AT-341/AT-350: the shared one-liner every exception-derived free-text
+        field (an error, a stop_reason, an issue detail) needs before disk."""
+        return self.redactor().scrub(text) if text else text
+
     def guard_prompt(self, text: str) -> str:
         """Raise if `text` carries any raw .env value. Call before every model call."""
         assert_no_raw_secrets(text, self._all_values().values())
