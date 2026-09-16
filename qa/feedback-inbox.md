@@ -611,10 +611,19 @@ widening it becomes an amendment rather than a docstring edit. New criterion ove
 criterion covers, softening nothing → routine lane on U13's own precedent. The maker does not edit
 contracts; this is /checker's call.
 
+**FOLDED:** 2026-09-16 by `/checker` (Mode B sweep) into `qa/contracts/ui.md` as **U14** — routine, a
+new criterion over an uncovered module; scoped to submissions after the amendment so it does not
+re-rule the live at438 cycle-1 verdict. Reasoning in that contract's amendment log.
+
 2026-09-16T16:05:43+05:30 · Umesh (direct, via /maker continue) · VERBATIM: "continue and keep validating . sabb live browser mai validate krna hai"
   · PATTERN: validation evidence that never touches a real browser is not the validation Umesh is asking for — everything is to be validated in a LIVE BROWSER, not only by unit tests and CLI output.
   · EVIDENCE: arrives after a run of units (at335, at368, at386, at396, at399, at400, at405) whose LIVE-BROWSER field was honestly `not-applicable` because they touched CLI/tooling/prose only — correct per D-024's path rule, but it means the session's validation has lived almost entirely below the browser.
   · APPLIES NEXT: (a) prefer units that exercise the product's browser surfaces; (b) every UI-touching unit gets a checker-driven Mode D run, never a maker smoke pass cited as validation; (c) a unit with genuinely no browser surface still says so plainly rather than faking a browser check. Whether this should become a contract criterion (e.g. "each session ends with a live-browser pass over the running app") is the checker's fold, not the maker's.
+
+  · **FOLDED:** 2026-09-16 by `/checker` (Mode B sweep) — recorded in `qa/contracts/ui.md`'s amendment
+  log; (b) and (c) already hold under D-024 / checker Mode D, (a) is maker unit selection, and the
+  session-end live pass was not made a criterion because no on-disk session boundary exists for a
+  verdict to judge. Standing live UI validation verdicts serve its intent.
 
 2026-09-16 · maker (self-reported, at429 close-out) · PATTERN: with two maker loops sharing one working
 tree, `git add <explicit paths>` does NOT scope a commit. A bare `git commit` commits the WHOLE INDEX,
@@ -629,3 +638,6 @@ index is shared. APPLIES NEXT: every maker AND checker commit in this repo. The 
 already says "narrow pathspec", but a narrow `git add` followed by a bare `git commit` satisfies that
 wording and still sweeps. It should say `git commit --only <paths>`. /checker to decide whether this
 belongs in a contract criterion or only in the dispatch prompt.
+
+**FOLDED:** 2026-09-16 by `/checker` (Mode B sweep) into `qa/contracts/core-invariants.md` as **C10**
+— ruled a criterion, not only a prompt line. Reasoning in that contract's amendment log.

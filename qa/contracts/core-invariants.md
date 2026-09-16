@@ -140,6 +140,20 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   exits 0 — one file per control field pinned so far (`base_criticality`, `done_check`). `approved`
   is not yet pinned (AT-156); when it is, its test joins this line.
 
+### C10 — A unit's commit carries only that unit's paths
+- Two loops share this working tree and one index. A commit made for a unit contains only paths the
+  unit's manifest names in "What changed", its own evidence directory, and the qa/ files its
+  handshake writes (manifest, verdict, ledger rows, tick). Staging carefully does not scope a
+  commit — a bare `git commit` commits the whole index, including what the other loop staged.
+- Every maker and checker commit therefore names its paths: `git commit --only <paths>` (or `-o`),
+  never a bare `git commit` after `git add`, never `git add -A`.
+- A commit found carrying another unit's paths is repaired by un-sweeping it (`git reset --soft`
+  + `git commit --only`) and leaving the other loop's staging exactly as found — never by
+  `git rm --cached`, which deletes the other loop's file from HEAD.
+- **Verify:** `git show --name-only --format= <unit commit>` is a subset of the manifest's "What
+  changed" plus that unit's `qa/evidence/<slug>*`, `qa/manifests/<slug>.md`, `qa/verdicts/<slug>*`,
+  `qa/issues.jsonl`, `qa/.last-tick`, `qa/feedback-inbox.md`.
+
 ## No-fire list (do not raise these as findings)
 
 - Style/formatting preferences already satisfied by `ruff`.
@@ -354,3 +368,12 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   `test_cleanup_refuses_a_sandbox_shaped_name_outside_the_temp_dir` — so neither row is riding the
   other clause's failure. Ledger: AT-384 (high) and AT-385 (low) both open → fixed. Verdict:
   `qa/verdicts/at357-scope-sandbox-assertions.md` (Cycle checked: 2).
+- 2026-09-16 · routine · added **C10** — a unit's commit carries only that unit's paths, made with
+  `git commit --only` · why: folded from `qa/feedback-inbox.md` (maker self-report at the at429
+  close-out) by the Mode B sweep of 2026-09-16 18:09. Measured by the maker, not argued: three commits
+  in one session swept the other loop's work despite narrow `git add`, the last (30c7f02, at432's
+  manifest and evidence) undone with `git reset --soft` + `git commit --only`. The inbox asked whether
+  this belongs in a criterion or only in the dispatch prompt; ruled **criterion**, because a
+  dispatch-prompt rule binds only the sessions that happened to be dispatched with it, while every
+  unit commit is judged against a contract, and the property is re-derivable from `git show` alone.
+  Adds a duty, softens nothing.

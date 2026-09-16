@@ -239,6 +239,37 @@ itself a deny-list, so this criterion does not discharge the positive rendering 
 (`visualOrder`, the only instrument that caught AT-355 and still living in a checker's evidence
 directory) — that port is tracked as **AT-358** and is owed regardless of anything written here.
 
+### U14 — The positive rendering detector has a written acceptance line
+`src/autotester/browser/visual_order.js` (`visual_text`, the port AT-358 owed) is the instrument that
+answers "what text did a reader see". Until this criterion it had **no** criterion: U13 names it only
+to say it is not covered, yet checker verdicts charged U13 against it three cycles running (at379) and
+again at at438 cycle 1. A module whose acceptance line is invented per verdict cannot terminate
+(`qa/debug/at379-scrollable-pane-reachability-cycle3.md`). This criterion is that line.
+
+- **(a) Scroll-invariance floor — charged.** The multiset of glyphs `visual_text` reports must not
+  change when the window or any scrollable container is scrolled anywhere in its range. The scrolls
+  are performed in a real browser, never computed from rects.
+- **(b) No new false negative on visible text — charged.** A change to the detector must not stop
+  reporting text a reader can see on a page where the pre-change detector reported it, and must not
+  visibly change the page it observes (a probe that restarts an animation, reflows, or leaves a node
+  behind). **North-star tie-break, written down:** where suppressing a false positive and keeping a
+  true positive conflict, keeping the visible text wins — a missed leak is the failure this detector
+  exists to prevent (AT-355), and a false positive costs a reviewer a look, not a bug.
+- **(c) What this does not see — contract-owned.** The list below is the detector's disclosed blind
+  set. A class on it is **filed, never charged** (U13's rule applies unchanged: moving a class from
+  filed to charged is an amendment, not a measurement). Widening or narrowing it is an amendment to
+  this file, not a docstring edit in `visual_order.js`. As of this amendment: the scroll/clip
+  interaction classes held by gate `qa/gates/at416-clip-vs-reach-direction.md` (AT-379, AT-408,
+  AT-416, AT-417 — the strict-xfail rows of the invariance probe) and AT-440 (five display types
+  missing from `HIDES_ON`).
+- **Scope in time.** Charged against manifests whose `Fix cycle` is submitted after the commit that
+  adds this criterion. The at438-display-contents cycle-1 verdict and the classes it filed (AT-442 to
+  AT-445) are that verdict's to own; this criterion neither discharges nor adds to them.
+- **Verify:** `uv run pytest -q tests/test_browser_scroll_invariance.py tests/test_browser_visual_order.py`
+  exits 0 with every xfail strict and each xfail's reason naming a class listed in (c); the checker's
+  Mode D run drives its own browser over the unit's changed shape and one shape from each fixture the
+  change touches, and records a before/after report count for (b).
+
 ## No-fire list
 
 - Authentication/authorization — this is a local, single-operator tool for now (matches the
@@ -445,3 +476,26 @@ directory) — that port is tracked as **AT-358** and is owed regardless of anyt
   rule is satisfied in the safe direction. Numbered U13 because U11 (crawl authorisation) and U12
   (unified intake) already exist — the inbox entry's "fold as U11" is a stale number, not a stale
   proposal.
+- 2026-09-16 · routine · added **U14** — the positive rendering detector (`visual_order.js`) gets a
+  written acceptance line: (a) scroll-invariance floor, (b) no new false negative on visible text with
+  the north-star tie-break written down, (c) a contract-owned does-not-see list · why: folded from
+  `qa/feedback-inbox.md` (at379 stall diagnosis, 2026-09-16) by the Mode B sweep of 2026-09-16 18:09.
+  Routine, not critical: a new criterion over a module no criterion covered — it narrows nothing U1-U13
+  say, and U13's own precedent (a criterion added to stop a moving acceptance line) is the lane.
+  Re-derived before folding: `grep -rn "visual_text\|visual_order" qa/contracts/` returned only U13's
+  two "not covered" mentions, while `qa/verdicts/at438-display-contents.md` cycle 1 charged U13
+  against the detector — the pattern the inbox entry names, recurring the same day. The invariance
+  property is already a committed, checker-PASSed test (`tests/test_browser_scroll_invariance.py`,
+  at423 cycle 2). **Pending verdict rule:** at438 is live at cycle 1 FAIL; U14 is explicitly
+  scoped to later submissions and does not re-rule AT-442..AT-445, so it amends neither toward nor
+  against that verdict. The (c) list names only classes already filed and gated, so nothing is
+  closed by being listed.
+- 2026-09-16 · routine · Mode D live-browser duty restated from Umesh's direct instruction ("sabb live
+  browser mai validate krna hai", inbox 2026-09-16T16:05) · no criterion text changed: a UI-touching
+  unit already cannot PASS without a checker-driven browser run (D-024, checker Mode D) and a maker
+  smoke report is never cited as that run; a unit with no browser surface states `not-applicable`
+  with its changed paths. The proposed "each session ends with a live-browser pass" was **not**
+  adopted as a criterion: a session leaves no on-disk boundary a checker can re-derive, so it would
+  be a criterion no verdict can judge (AT-218's vacuous class). Its intent is served instead by the
+  standing live UI validation verdicts (`qa/verdicts/live-2026-09-16-ui.md`), which the queue keeps
+  scheduling.
