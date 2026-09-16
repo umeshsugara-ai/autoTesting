@@ -21,10 +21,46 @@ yet), a Google Drive credential/OAuth story on top of this project's existing `.
 model (`BR-6`, C5 — credentials never reach a model/log/screenshot), and a decision about whether
 every source kind converges on today's `Source` model or needs its own shape.
 
-## What is NOT blocked by this
+## What IS blocked by this — CORRECTED 2026-09-16T15:30+05:30 (AT-420, high)
 
-Nothing else in the backlog depends on T-162/T-163. The maker will keep working smaller open
-issues (bounded, non-gated) while this is open, rather than idle.
+**This section said the opposite, and it was never true.** It read:
+
+> Nothing else in the backlog depends on T-162/T-163. The maker will keep working smaller open
+> issues (bounded, non-gated) while this is open, rather than idle.
+
+The second sentence is exactly what has happened for five days. The first sentence is false, and
+**not because it went stale** — every row below carries `created: 2026-09-10T05:58:09`, committed
+in `4add220` on 2026-09-10, a full day *before* this gate was raised on 2026-09-11. It was wrong
+when it was written.
+
+`T-163` is depended on, directly or transitively, by **six further pending tasks** — re-derived
+from `.goal/goal.json`, field `deps`:
+
+| Task | Criticality | `deps` | Title |
+|---|---|---|---|
+| T-164 | high | `['T-163']` | Durable Portal Persona JSON + knowledge page |
+| T-165 | **critical** | `['T-163','T-144']` | BFS frontier completeness, forward/back recovery |
+| T-166 | high | `['T-125','T-164','T-165']` | Traceable eval compiler from user rules |
+| T-167 | **critical** | `['T-166','T-110']` | Commit-triggered visible-browser regression |
+| T-168 | high | `['T-155','T-164','T-165','T-167']` | Unified damage-control report |
+| T-169 | **critical** | `['T-136','T-145','T-168']` | Generic two-mode acceptance |
+
+So the true blast radius is **8 pending tasks — T-162, T-163 and these six — of which five are
+`critical`** (T-162, T-163, T-165, T-167, T-169), not the two this gate advertised.
+
+**Why this mattered more than a wrong sentence.** The claim is what set this gate's urgency: it
+licensed "the maker will keep working smaller open issues rather than idle" as an acceptable
+holding pattern. That reading was reasonable if two tasks were waiting. With eight waiting and five
+of them critical, the cost of leaving this unanswered is roughly four times what the gate stated,
+and the entire back half of the goal backlog is behind it.
+
+**A distinction worth keeping.** `at365`'s premise was true and went stale — a periodic re-derive
+would have caught it. This one was **false on arrival**, and nothing on a timer would ever have
+caught it. The two need different remedies; AT-415 covers the first, and this is the argument that
+it does not cover the second.
+
+Nothing about the decision changes: the four options below stand exactly as written, and Option A's
+four design questions are still the right ones.
 
 ## Options
 
