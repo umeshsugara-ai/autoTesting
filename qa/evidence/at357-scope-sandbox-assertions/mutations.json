@@ -30,6 +30,24 @@
       "kills": [
         "tests/test_mutation_sandbox.py::test_the_sandbox_really_is_created_under_the_private_root"
       ]
+    },
+    {
+      "name": "AT-384: the PREFIX clause is dropped from cleanup's guard",
+      "file": "scripts/mutation_check.py",
+      "old": "    if not root.is_relative_to(temp) or not root.name.startswith(\"mutation-check-\"):",
+      "new": "    if not root.is_relative_to(temp):",
+      "kills": [
+        "tests/test_mutation_sandbox.py::test_cleanup_refuses_to_delete_anything_it_did_not_create"
+      ]
+    },
+    {
+      "name": "AT-384: the UNDER-TEMP clause is dropped from cleanup's guard",
+      "file": "scripts/mutation_check.py",
+      "old": "    if not root.is_relative_to(temp) or not root.name.startswith(\"mutation-check-\"):",
+      "new": "    if not root.name.startswith(\"mutation-check-\"):",
+      "kills": [
+        "tests/test_mutation_sandbox.py::test_cleanup_refuses_a_sandbox_shaped_name_outside_the_temp_dir"
+      ]
     }
   ]
 }

@@ -7,5 +7,11 @@ KILLED  AT-357: cleanup sweeps the temp dir by glob and eats a concurrent run's 
 KILLED  AT-357: the temp-root redirection is dropped, so every leak assertion goes vacuous  (pytest exit 1)
     claims to kill : tests/test_mutation_sandbox.py::test_the_sandbox_really_is_created_under_the_private_root
     actually failed: tests/test_mutation_sandbox.py::test_the_sandbox_really_is_created_under_the_private_root
+KILLED  AT-384: the PREFIX clause is dropped from cleanup's guard  (pytest exit 1)
+    claims to kill : tests/test_mutation_sandbox.py::test_cleanup_refuses_to_delete_anything_it_did_not_create
+    actually failed: tests/test_mutation_sandbox.py::test_cleanup_refuses_to_delete_anything_it_did_not_create
+KILLED  AT-384: the UNDER-TEMP clause is dropped from cleanup's guard  (pytest exit 1)
+    claims to kill : tests/test_mutation_sandbox.py::test_cleanup_refuses_a_sandbox_shaped_name_outside_the_temp_dir
+    actually failed: tests/test_mutation_sandbox.py::test_cleanup_refuses_a_sandbox_shaped_name_outside_the_temp_dir
 
-3/3 mutations killed
+5/5 mutations killed

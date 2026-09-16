@@ -25,19 +25,26 @@ from mutation_check import MutationError, check
 from tests_mutation_fixtures import spec
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def private_temp(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """A temp root belonging to THIS test, so leak assertions are not global.
 
-    AUTOUSE, and that is load-bearing rather than tidiness. Scoping it to the
-    three leak tests left every OTHER test in this file calling `check()`
-    against the machine-wide temp dir — and the mutation that makes cleanup
-    sweep by glob then deleted the outer mutation harness's own sandbox from
-    underneath it, mid-run, and the run died with a FileNotFoundError instead of
-    reporting a kill. The hazard being mutated reached out of the sandbox and
-    destroyed the instrument measuring it. Every test in this module is hermetic
-    now, which is also the honest reading of what "sandbox" was supposed to mean.
+    **Requested explicitly, never autouse (AT-384).** It was autouse for one
+    cycle and that silently removed an EXISTING mutation kill. `_discard`'s
+    guard is `not under-temp OR wrong prefix`; moving the temp root means
+    `tmp_path/"precious"` stops being under temp, the first clause
+    short-circuits, and `test_cleanup_refuses_to_delete_anything_it_did_not_create`
+    never reaches the PREFIX clause it is named for. Measured: the pre-change
+    tree kills an edit deleting that clause, the autouse tree survives it with
+    everything green. A fixture that makes a destructive operation's guard
+    untestable is the exact vacuity C7 refuses — introduced by the unit that
+    congratulated itself for catching vacuity elsewhere.
 
+    Autouse was only ever load-bearing BEFORE the file split, when tests that
+    did not need it shared a module with tests that did and their real-temp
+    `check()` calls let a mutated glob-sweep escape. The split removed that, and
+    nobody revisited the fixture. Every test in this file that calls `check()`
+    requests it by name; the two cleanup-guard tests must NOT have it.
 
     AT-357. These tests used to diff `gettempdir().glob("mutation-check-*")`
     across the run, which is a statement about the whole machine: any OTHER
