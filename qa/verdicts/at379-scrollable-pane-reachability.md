@@ -559,3 +559,17 @@ capability row for the nested case whose falsifying edit reddens only it, and sw
 coordinate after scrolling (keep both). AT-410 and AT-411 are filed, not charged: AT-410 now carries
 the cause, so the AT-398 fix is small — force the layout before the glyph loop, or measure, discard
 and measure again — and it belongs in its own unit, not this one.
+
+---
+
+### Addendum (same day, after the cycle-2 commit) — AT-411 was already fixed by the other loop
+
+Section 6's finding was filed as AT-411 and is a **duplicate**. Between my ledger read and my
+commit, the other maker loop's at396 checker filed the same thing as **AT-407** and its maker
+restored the file in `5e9ae80` — *"fix(AT-407): re-track tests/test_flake_probe.py — it was not
+swept in"*. Re-verified after the fact: `git cat-file -e HEAD:tests/test_flake_probe.py` now
+succeeds. The blob restored is `fafe7e7`'s (`55a68a2`) rather than `ef9e819`'s (`0f1c12f`), so it
+carries that loop's own then-uncommitted delta — correct, since that delta is its own work, and
+better than the narrower restore my issue proposed. AT-411 is marked `fixed` in the ledger with the
+duplication recorded rather than deleted; the finding was real when made. **The FAIL stands on
+AT-408, AT-409 and AT-412, none of which is affected.**
