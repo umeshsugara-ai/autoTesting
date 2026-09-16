@@ -1,0 +1,712 @@
+{
+  "unit": "at429-content-visibility-hidden",
+  "cycle": 1,
+  "cases": [
+    {
+      "case": "auto_onscreen",
+      "sentinels": {
+        "AUTOONSCREEN_A": {
+          "painted_ground_truth": true,
+          "blanked_nodes": 1,
+          "old_reported": true,
+          "new_reported": true,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVENAUTOONSCREEN_A",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVENAUTOONSCREEN_A",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "auto_offscreen_cis",
+      "sentinels": {
+        "AUTOOFFSCREEN_B": {
+          "painted_ground_truth": true,
+          "blanked_nodes": 1,
+          "old_reported": true,
+          "new_reported": true,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVENAUTOOFFSCREEN_B",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVENAUTOOFFSCREEN_B",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "auto_offscreen_cis_px",
+      "sentinels": {
+        "AUTOOFFNESTED_C": {
+          "painted_ground_truth": true,
+          "blanked_nodes": 1,
+          "old_reported": true,
+          "new_reported": true,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVENAUTOOFFNESTED_C",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVENAUTOOFFNESTED_C",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "hidden_then_visible_by_script",
+      "sentinels": {
+        "TOGGLED_D": {
+          "painted_ground_truth": true,
+          "blanked_nodes": 1,
+          "old_reported": true,
+          "new_reported": true,
+          "new_false_negative": false,
+          "new_false_positive": false
+        },
+        "AFTERLINE_E": {
+          "painted_ground_truth": true,
+          "blanked_nodes": 1,
+          "old_reported": true,
+          "new_reported": true,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVENTOGGLED_DAFTERLINE_E",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVENTOGGLED_DAFTERLINE_E",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "hidden_then_auto_by_script",
+      "sentinels": {
+        "TOGGLEDNEST_F": {
+          "painted_ground_truth": true,
+          "blanked_nodes": 1,
+          "old_reported": true,
+          "new_reported": true,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVENTOGGLEDNEST_F",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVENTOGGLEDNEST_F",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "inline_span_hidden_with_sibling",
+      "sentinels": {
+        "SPANX_G": {
+          "painted_ground_truth": true,
+          "blanked_nodes": 1,
+          "old_reported": true,
+          "new_reported": false,
+          "new_false_negative": true,
+          "new_false_positive": false
+        },
+        "VISIBLESIB_H": {
+          "painted_ground_truth": true,
+          "blanked_nodes": 1,
+          "old_reported": true,
+          "new_reported": true,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVENSPANX_GVISIBLESIB_H",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVENVISIBLESIB_H",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "inline_block_span_hidden_with_sibling",
+      "sentinels": {
+        "IBX_I": {
+          "painted_ground_truth": false,
+          "blanked_nodes": 1,
+          "old_reported": true,
+          "new_reported": false,
+          "new_false_negative": false,
+          "new_false_positive": false
+        },
+        "VISIBLESIB_J": {
+          "painted_ground_truth": true,
+          "blanked_nodes": 1,
+          "old_reported": true,
+          "new_reported": true,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVENVISIBLESIB_JIBX_I",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVENVISIBLESIB_J",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "display_contents_hidden",
+      "sentinels": {
+        "DCONTENTS_K": {
+          "painted_ground_truth": true,
+          "blanked_nodes": 1,
+          "old_reported": false,
+          "new_reported": false,
+          "new_false_negative": true,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVEN",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVEN",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "td_hidden",
+      "sentinels": {
+        "TDCELL_L": {
+          "painted_ground_truth": false,
+          "blanked_nodes": 1,
+          "old_reported": true,
+          "new_reported": false,
+          "new_false_negative": false,
+          "new_false_positive": false
+        },
+        "TDOTHER_M": {
+          "painted_ground_truth": true,
+          "blanked_nodes": 1,
+          "old_reported": true,
+          "new_reported": true,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVENTDCELL_LTDOTHER_M",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVENTDOTHER_M",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "tr_hidden",
+      "sentinels": {
+        "TRCELL_N": {
+          "painted_ground_truth": true,
+          "blanked_nodes": 1,
+          "old_reported": true,
+          "new_reported": true,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVENTRCELL_N",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVENTRCELL_N",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "custom_el_inline_hidden_direct",
+      "sentinels": {
+        "CUSTOMDIRECT_O": {
+          "painted_ground_truth": true,
+          "blanked_nodes": 1,
+          "old_reported": true,
+          "new_reported": false,
+          "new_false_negative": true,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVENCUSTOMDIRECT_O",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVEN",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "custom_el_inline_hidden_nested",
+      "sentinels": {
+        "CUSTOMNEST_P": {
+          "painted_ground_truth": true,
+          "blanked_nodes": 1,
+          "old_reported": true,
+          "new_reported": true,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVENCUSTOMNEST_P",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVENCUSTOMNEST_P",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "custom_el_block_hidden_nested",
+      "sentinels": {
+        "CUSTOMBLOCKNEST_Q": {
+          "painted_ground_truth": false,
+          "blanked_nodes": 1,
+          "old_reported": false,
+          "new_reported": false,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVEN",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVEN",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "nested_3_levels",
+      "sentinels": {
+        "DEEP3_R": {
+          "painted_ground_truth": false,
+          "blanked_nodes": 1,
+          "old_reported": false,
+          "new_reported": false,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVEN",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVEN",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "hidden_ancestor_auto_between",
+      "sentinels": {
+        "HIDAUTO_S": {
+          "painted_ground_truth": false,
+          "blanked_nodes": 1,
+          "old_reported": false,
+          "new_reported": false,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVEN",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVEN",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "hidden_ancestor_auto_direct_text",
+      "sentinels": {
+        "HIDAUTODIRECT_T": {
+          "painted_ground_truth": false,
+          "blanked_nodes": 1,
+          "old_reported": false,
+          "new_reported": false,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVEN",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVEN",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "hidden_ancestor_inline_span",
+      "sentinels": {
+        "HIDSPAN_U": {
+          "painted_ground_truth": false,
+          "blanked_nodes": 1,
+          "old_reported": false,
+          "new_reported": false,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVEN",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVEN",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "hidden_until_found",
+      "sentinels": {
+        "UNTILFOUND_V": {
+          "painted_ground_truth": false,
+          "blanked_nodes": 1,
+          "old_reported": true,
+          "new_reported": false,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVENUNTILFOUND_V",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVEN",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "input_hidden",
+      "sentinels": {
+        "INPUTVAL_W": {
+          "painted_ground_truth": false,
+          "blanked_nodes": 1,
+          "old_reported": true,
+          "new_reported": false,
+          "new_false_negative": false,
+          "new_false_positive": false
+        },
+        "INPUTOK_X": {
+          "painted_ground_truth": true,
+          "blanked_nodes": 1,
+          "old_reported": true,
+          "new_reported": true,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVENINPUTVAL_WINPUTOK_X",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVENINPUTOK_X",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "textarea_hidden",
+      "sentinels": {
+        "TEXTAREAVAL_Y": {
+          "painted_ground_truth": false,
+          "blanked_nodes": 1,
+          "old_reported": true,
+          "new_reported": false,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVENTEXTAREAVAL_Y",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVEN",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "input_in_hidden_block",
+      "sentinels": {
+        "INPUTINHID_Z": {
+          "painted_ground_truth": false,
+          "blanked_nodes": 1,
+          "old_reported": false,
+          "new_reported": false,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVEN",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVEN",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "body_hidden",
+      "sentinels": {
+        "CONTROLPOSITIVE_SEVENTYSEVEN": {
+          "painted_ground_truth": false,
+          "blanked_nodes": 1,
+          "old_reported": false,
+          "new_reported": false,
+          "new_false_negative": false,
+          "new_false_positive": false
+        },
+        "BODYP_AA": {
+          "painted_ground_truth": false,
+          "blanked_nodes": 1,
+          "old_reported": false,
+          "new_reported": false,
+          "new_false_negative": false,
+          "new_false_positive": false
+        },
+        "BODYTEXT_AB": {
+          "painted_ground_truth": false,
+          "blanked_nodes": 1,
+          "old_reported": true,
+          "new_reported": false,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "BODYTEXT_AB",
+      "old_console_errors": 0,
+      "new_text": "",
+      "new_console_errors": 0,
+      "control_new": false
+    },
+    {
+      "case": "html_hidden",
+      "sentinels": {
+        "CONTROLPOSITIVE_SEVENTYSEVEN": {
+          "painted_ground_truth": false,
+          "blanked_nodes": 1,
+          "old_reported": false,
+          "new_reported": false,
+          "new_false_negative": false,
+          "new_false_positive": false
+        },
+        "BODYTEXT_AC": {
+          "painted_ground_truth": false,
+          "blanked_nodes": 1,
+          "old_reported": false,
+          "new_reported": false,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "",
+      "old_console_errors": 0,
+      "new_text": "",
+      "new_console_errors": 0,
+      "control_new": false
+    },
+    {
+      "case": "ruby_rt_hidden",
+      "sentinels": {
+        "KANJI_AD": {
+          "painted_ground_truth": true,
+          "blanked_nodes": 1,
+          "old_reported": true,
+          "new_reported": true,
+          "new_false_negative": false,
+          "new_false_positive": false
+        },
+        "RUBYRT_AE": {
+          "painted_ground_truth": true,
+          "blanked_nodes": 1,
+          "old_reported": true,
+          "new_reported": false,
+          "new_false_negative": true,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVENRUBYRT_AEKANJI_AD",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVENKANJI_AD",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "li_marker_hidden_item",
+      "sentinels": {
+        "LIITEM_AF": {
+          "painted_ground_truth": false,
+          "blanked_nodes": 1,
+          "old_reported": false,
+          "new_reported": false,
+          "new_false_negative": false,
+          "new_false_positive": false
+        },
+        "LIOK_AG": {
+          "painted_ground_truth": true,
+          "blanked_nodes": 1,
+          "old_reported": false,
+          "new_reported": true,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVENLLIIIOTKE_MA_GAF",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVENLIOK_AG",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "button_hidden",
+      "sentinels": {
+        "BUTTONTXT_AH": {
+          "painted_ground_truth": false,
+          "blanked_nodes": 1,
+          "old_reported": true,
+          "new_reported": false,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVENBUTTONTXT_AH",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVEN",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "layout_hidden_first",
+      "sentinels": {
+        "HIDDEN_S2": {
+          "painted_ground_truth": false,
+          "blanked_nodes": 1,
+          "old_reported": false,
+          "new_reported": false,
+          "new_false_negative": false,
+          "new_false_positive": false
+        },
+        "AUTO_S1": {
+          "painted_ground_truth": true,
+          "blanked_nodes": 1,
+          "old_reported": false,
+          "new_reported": true,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVENHAIUDTDOE_NS1_S2",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVENAUTO_S1",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "layout_auto_first",
+      "sentinels": {
+        "HIDDEN_S2": {
+          "painted_ground_truth": false,
+          "blanked_nodes": 1,
+          "old_reported": true,
+          "new_reported": false,
+          "new_false_negative": false,
+          "new_false_positive": false
+        },
+        "AUTO_S1": {
+          "painted_ground_truth": true,
+          "blanked_nodes": 1,
+          "old_reported": true,
+          "new_reported": true,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVENAUTO_S1HIDDEN_S2",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVENAUTO_S1",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "layout_hidden_plain_after",
+      "sentinels": {
+        "HIDDEN_S2": {
+          "painted_ground_truth": false,
+          "blanked_nodes": 1,
+          "old_reported": false,
+          "new_reported": false,
+          "new_false_negative": false,
+          "new_false_positive": false
+        },
+        "PLAIN_S3": {
+          "painted_ground_truth": true,
+          "blanked_nodes": 1,
+          "old_reported": false,
+          "new_reported": true,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVENHPLIDADINE_NS_3S2",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVENPLAIN_S3",
+      "new_console_errors": 0,
+      "control_new": true
+    },
+    {
+      "case": "committed_fixture",
+      "sentinels": {
+        "CVHIDDEN_DIRECT_SENTINEL_61": {
+          "painted_ground_truth": false,
+          "blanked_nodes": 1,
+          "old_reported": false,
+          "new_reported": false,
+          "new_false_negative": false,
+          "new_false_positive": false
+        },
+        "CVHIDDEN_NESTED_SENTINEL_62": {
+          "painted_ground_truth": false,
+          "blanked_nodes": 1,
+          "old_reported": false,
+          "new_reported": false,
+          "new_false_negative": false,
+          "new_false_positive": false
+        },
+        "CVAUTO_ONSCREEN_SENTINEL_63": {
+          "painted_ground_truth": true,
+          "blanked_nodes": 1,
+          "old_reported": false,
+          "new_reported": true,
+          "new_false_negative": false,
+          "new_false_positive": false
+        }
+      },
+      "old_text": "CONTROLPOSITIVE_SEVENTYSEVENQuarterly report for the trainers listCCVVAHUIDTDOE_NO_NDSICRREECETN__SSEENNTTININEELL__6613",
+      "old_console_errors": 0,
+      "new_text": "CONTROLPOSITIVE_SEVENTYSEVENQuarterly report for the trainers listCVAUTO_ONSCREEN_SENTINEL_63",
+      "new_console_errors": 0,
+      "control_new": true
+    }
+  ],
+  "chromium": "151.0.7922.34",
+  "summary": {
+    "instrument": "own headless Chromium via Playwright; own probe pages (probe.py); ground truth = viewport screenshot differs when the sentinel's characters are blanked after scrollIntoView; OLD = git show dbe6185^, NEW = bound-tree file (read-only)",
+    "cases": 30,
+    "positive_control_reported_new": 28,
+    "positive_control_note": "body_hidden and html_hidden put the control itself inside content-visibility:hidden; ground truth shows it unpainted there, so its absence is correct",
+    "console_errors_total": 0,
+    "false_negatives_new_code": [
+      [
+        "inline_span_hidden_with_sibling",
+        "SPANX_G"
+      ],
+      [
+        "display_contents_hidden",
+        "DCONTENTS_K"
+      ],
+      [
+        "custom_el_inline_hidden_direct",
+        "CUSTOMDIRECT_O"
+      ],
+      [
+        "ruby_rt_hidden",
+        "RUBYRT_AE"
+      ]
+    ],
+    "false_negatives_CREATED_by_fix (old reported, new drops, ink painted)": [
+      [
+        "inline_span_hidden_with_sibling",
+        "SPANX_G"
+      ],
+      [
+        "custom_el_inline_hidden_direct",
+        "CUSTOMDIRECT_O"
+      ],
+      [
+        "ruby_rt_hidden",
+        "RUBYRT_AE"
+      ]
+    ],
+    "false_positives_new_code": [],
+    "interleave_old_code_reproduced": [
+      "CONTROLPOSITIVE_SEVENTYSEVENHAIUDTDOE_NS1_S2",
+      "CONTROLPOSITIVE_SEVENTYSEVENQuarterly report for the trainers listCCVVAHUIDTDOE_NO_NDSICRREECETN__SSEENNTTININEELL__6613"
+    ],
+    "screenshot": "false-negatives-new-code.png (shot.py): SPANX_G, CUSTOMDIRECT_O, RUBYRT_AE, DCONTENTS_K visibly painted; new visual_text = 'CONTROLPOSITIVE_SEVENTYSEVEN1: VISIBLESIB_H2: 3: KANJI_AD4: 5: VISIBLESIB_J'; computed display inline/inline/ruby-text/contents with contentVisibility hidden and checkVisibility True/True/True/False"
+  }
+}
