@@ -1,0 +1,47 @@
+{
+  "unit": "at455-other-project-grant-reason",
+  "cycle_checked": 1,
+  "date": "2026-09-16",
+  "instrument": "headed Playwright Python (chromium), checker-owned script; run 2 (run 1 read the banner with inner_text, which applies the pill CSS text-transform, so the saved-banner assertion was an instrument error; rows and note were identical in run 1)",
+  "server": "uvicorn autotester.ui.app from throwaway copy (git archive HEAD + 2 unit files), port 8049",
+  "data": "synthetic AUTOTESTER_ROOT: regression-demo cases.jsonl + project.json only; approvals seeded via ProjectStore.add_approval",
+  "seeded": [
+    "CRAWL project=another-project (intact, unexpired, same target)",
+    "CRAWL expired 2020",
+    "READ in-force-shaped",
+    "CRAWL in force"
+  ],
+  "steps": [
+    {
+      "step": "seeded-four-grants",
+      "rows": [
+        "InForceCrawl"
+      ],
+      "notes": [
+        "2 more on file are expired, edited after granting, or for another target or project, and are not honoured."
+      ],
+      "expected_rows": [
+        "InForceCrawl"
+      ],
+      "expected_note": "2 more on file are expired, edited after granting, or for another target or project, and are not honoured.",
+      "pass_": true,
+      "console_errors": 0
+    },
+    {
+      "step": "save-new-crawl-grant-via-form",
+      "rows": [
+        "InForceCrawl",
+        "CheckerSaved"
+      ],
+      "notes": [
+        "2 more on file are expired, edited after granting, or for another target or project, and are not honoured."
+      ],
+      "expected_note": "2 more on file are expired, edited after granting, or for another target or project, and are not honoured.",
+      "banner_saved": true,
+      "pass_": true,
+      "console_errors": 0
+    }
+  ],
+  "console_errors": [],
+  "result": "PASS"
+}
