@@ -16,8 +16,11 @@ from urllib.parse import unquote_plus
 from fastapi import HTTPException
 
 from autotester.browser.secrets import SecretStore, host_of
+from autotester.browser.session import NavigationRefused, check_destination
 from autotester.core.paths import repo_root
 from autotester.core.redact import BIDI_OVERRIDES, PLACEHOLDER_RE
+from autotester.schema.enums import Action
+from autotester.schema.flowspec import Step
 from autotester.schema.project import Project
 from autotester.store.project_store import ProjectStore
 
@@ -95,6 +98,32 @@ def _require_reachable_base_url(base_url: str, domains: list[str]) -> None:
             "that base URL does not look like an address the browser can open. Enter the "
             "product's URL, e.g. https://app.example.com/signin."
         ))
+
+
+def _require_reachable_navigate_steps(steps: list[Step], project: Project) -> None:
+    """Refuse a case whose navigate step could never run (AT-432) — AT-058's
+    dead-on-arrival class, one level below the project's base URL.
+
+    Decided by `check_destination`, the function that refuses the step at run
+    time, so creation and execution cannot disagree. `{{SECRET:KEY}}` targets are
+    skipped: the whole target may be a placeholder (AT-076), gated at run time
+    against its own domains. The message is ours, not `check_destination`'s,
+    which names the host unconditionally — `host_of` returns a pseudo-host for
+    garbage, so a pasted credential would echo back (AT-088)."""
+    for step in steps:
+        if step.action is not Action.NAVIGATE or PLACEHOLDER_RE.search(step.target):
+            continue
+        try:
+            check_destination(project, step.target)
+        except NavigationRefused as exc:
+            host = host_of(step.target)
+            if host and _HOSTNAME_RE.fullmatch(host):
+                raise HTTPException(400, (
+                    f"this case could never run: step {step.order} navigates to '{host}', which "
+                    f"is not covered by allowed domains {project.allowed_domains}."
+                )) from exc
+            raise HTTPException(400, f"this case could never run: step {step.order} needs a "
+                                     "full URL, e.g. https://app.example.com/signin.") from exc
 
 
 def _project_slugs() -> list[str]:

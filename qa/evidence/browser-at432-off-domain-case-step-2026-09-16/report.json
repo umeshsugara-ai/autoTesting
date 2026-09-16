@@ -1,0 +1,33 @@
+{
+  "unit": "at432-off-domain-case-step",
+  "kind": "maker-smoke",
+  "_note": "MAKER SMOKE, NOT VALIDATION. The unit checker runs its own Mode D in its own browser.",
+  "date": "2026-09-16",
+  "server": "uv run uvicorn autotester.ui.app:app --host 127.0.0.1 --port 8021, with the fix applied",
+  "data_isolation": "AUTOTESTER_ROOT = git-archive-HEAD scratch copy with projects/pathlynks, erp, vidysea-erp deleted; only regression-demo (allowed_domains ['127.0.0.1']). Nothing under d:/autoTesting/projects/ read or written.",
+  "browser": "Playwright MCP, real Chromium",
+  "pages": [
+    {"url": "/projects/regression-demo/cases/new", "console_errors": 0},
+    {"url": "/projects/regression-demo/cases (after the refused submit)", "console_errors": 1, "attribution": "the deliberate HTTP 400 from the off-domain submit itself"},
+    {"url": "/projects/regression-demo/cases (after the accepted submit)", "console_errors": 0}
+  ],
+  "interactions": [
+    {
+      "did": "counted cases, filled the REAL /cases/new form with one step `navigate https://evil.test/`, clicked the real 'Add case' button",
+      "expected": "400 naming the off-domain host; no case saved",
+      "observed": "HTTP 400: \"this case could never run: step 1 navigates to 'evil.test', which is not covered by allowed domains ['127.0.0.1'].\" Case count 44 before and 44 after; the probe title absent from the cases page.",
+      "pass": true
+    },
+    {
+      "did": "filled the same real form with `navigate http://127.0.0.1:9999/index.html` and clicked the same 'Add case' button",
+      "expected": "the guard still says yes to an in-domain target",
+      "observed": "redirected to /projects/regression-demo/cases; count 44 -> 45; in-domain probe listed; off-domain probe still absent; 0 console errors",
+      "pass": true
+    }
+  ],
+  "limits_observed": [
+    "The refusal renders as RAW JSON replacing the whole page, typed steps lost. Pre-existing and already filed as AT-439 (low) by the at430 checker; not introduced or fixed here.",
+    "The count was read by counting '/cases/<id>/delete' form actions on the cases page. That regex was checked against a known state first: it read 44, and the independent live validation earlier the same day established regression-demo holds exactly 44 cases.",
+    "Placeholder, subdomain, relative-target and non-navigate paths proven by tests, not driven in the browser."
+  ]
+}

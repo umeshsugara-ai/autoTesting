@@ -38,6 +38,7 @@ from autotester.ui.case_form import (
 from autotester.ui.helpers import (
     _load_project_or_404,
     _refuse_unsafe_submission,
+    _require_reachable_navigate_steps,
     _require_safe_id,
 )
 
@@ -182,6 +183,7 @@ async def create_case(slug: str, request: Request) -> RedirectResponse:
     )
     if not steps:
         raise HTTPException(400, "a case needs at least one step")
+    _require_reachable_navigate_steps(steps, project)
 
     case = Case(
         project=slug,
