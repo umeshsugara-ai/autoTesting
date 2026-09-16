@@ -641,3 +641,19 @@ belongs in a contract criterion or only in the dispatch prompt.
 
 **FOLDED:** 2026-09-16 by `/checker` (Mode B sweep) into `qa/contracts/core-invariants.md` as **C10**
 — ruled a criterion, not only a prompt line. Reasoning in that contract's amendment log.
+
+2026-09-16 · maker (self-correction, at438 cycle 3) · PATTERN: CORRECTS my own earlier entry today
+recommending `git commit --only <paths>`. That entry is incomplete and, as written, still sweeps.
+`--only` does keep OTHER paths that someone else staged out of the commit, but it commits the ENTIRE
+working-tree content of every path it names. On a file both loops edit (qa/issues.jsonl,
+qa/.last-tick), `--only` therefore commits the other loop's uncommitted lines together with your own.
+EVIDENCE: the at438 cycle-2 checker declined `--only` for exactly this reason, because the ledger held
+the other loop's uncommitted AT-431/AT-433 edits and a new AT-446 row. It built the commit in a
+TEMPORARY index instead (`GIT_INDEX_FILE=<tmp>`, seeded from HEAD, with only its own rows added), then
+reset its paths in the shared index. The maker's own `.last-tick` commits today picked up extra lines
+("2 ++" and "4 ++" where one line was appended), which is this same sweep, on a file where it happens
+to be harmless. APPLIES NEXT: the whole rule is: (1) for a path only you edit, `git commit --only
+<path>`; (2) for a SHARED path (ledger, .last-tick, feedback-inbox), commit HEAD plus only your own
+change, built in a temporary index or written as a blob with `git hash-object` and
+`git update-index --cacheinfo`, never from the working tree. /checker: fold the corrected rule, not
+the earlier one.
