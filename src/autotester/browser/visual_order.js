@@ -18,14 +18,29 @@
 // that claim does not hold. Each is a page where a credential could render in
 // plain type while this returns a clean string:
 //   - text inside an open shadow root, and text in a same-origin <iframe>;
-//   - ::before / ::after generated content;
-//   - a <select>'s rendered option text;
-//   - text painted into <canvas>, and <svg> <text> elements;
+//   - CSS generated content, the WHOLE class and not two members of it:
+//     ::before, ::after, ::marker — an ordinary <ol>'s own "1." / "2."
+//     numbering is generated content and is not reported — and ::first-letter
+//     / ::first-line when they inject or transform. AT-371 was filed because
+//     this line named ::before/::after and stopped, which under-named the
+//     class it was disclosing;
+//   - a <select>'s rendered option text — including a <select size="4">, which
+//     shows its options permanently with no interaction at all;
+//   - text painted into <canvas>;
 //   - a `title` tooltip (renders on hover) or an `alt` string (renders only
 //     when the image fails).
 // Extending the walk into shadow roots and frames is real work with its own
 // failure modes — a unit, not a line. Until then the limit is written down, so
 // a clean result is read for what it is.
+//
+// SEEN, BUT BY ACCIDENT RATHER THAN BY DESIGN (AT-374). <svg><text> IS
+// reported. It sat in the list above for one cycle and that was a false
+// statement in a limits block, which is worse than no block: the sentence
+// above promises each entry is a page where a credential renders while this
+// returns clean, and that was never true of SVG text. It works because SVG
+// text nodes are text nodes like any other, so the walker finds them without
+// knowing what they are. Nothing pins it, so it is not claimed as a capability
+// either — it is recorded here, under a heading that does not lie about it.
 (() => {
   const ROW_TOLERANCE = 4; // px; sub-pixel and font-metric jitter within a line
   const BULLET = "•";
@@ -42,9 +57,30 @@
     return opacity;
   }
 
+  // `-webkit-text-security` turns a run into bullets with no `type=password`
+  // anywhere — on a plain <span> as readily as on an input (AT-372). Reporting
+  // the characters would put in cleartext exactly what the screen masks, which
+  // is the password defect one property to the left.
+  function masksText(el) {
+    const style = window.getComputedStyle(el);
+    const value = style.webkitTextSecurity ||
+      style.getPropertyValue("-webkit-text-security");
+    return Boolean(value) && value !== "none";
+  }
+
   function paintsInk(el) {
     const style = window.getComputedStyle(el);
     if (style.visibility === "hidden") return false;
+    // A CLOSED <details> lays its body out and shows nothing (AT-372): the
+    // browser holds it at `content-visibility:hidden` so find-in-page can still
+    // reach it, which is precisely a reader NOT seeing it.
+    //
+    // Called with DEFAULT options on purpose — display and content-visibility
+    // only. `{opacityProperty: true, visibilityProperty: true}` would subsume
+    // the two rules below, and a rule whose failure another rule covers cannot
+    // be falsified: the opacity and visibility mutations would survive and C7's
+    // kills would become vacuous. Each rule answers for itself.
+    if (el.checkVisibility && !el.checkVisibility()) return false;
     // A zero alpha paints a box and shows nothing — reporting it is the
     // DOM-order error pointed the other way (AT-363).
     //
@@ -74,9 +110,22 @@
   }
 
   function isReachable(rect, clip) {
-    // Off the left edge or above the top cannot be scrolled to. Further down or
-    // right can be, so those stay.
-    if (rect.right <= 0 || rect.bottom <= 0) return false;
+    // Off the DOCUMENT's left edge or above its top cannot be scrolled to.
+    // Further down or right can be, so those stay.
+    //
+    // The scroll offsets are load-bearing (AT-373). The first version of this
+    // rule tested `rect.right <= 0` against the VIEWPORT, and a client rect is
+    // viewport-relative, so on a scrolled page everything above the fold tested
+    // as unreachable and silently vanished from the result. That is a false
+    // NEGATIVE of the AT-355 shape — a credential rendering in plain type while
+    // this returns a clean string — manufactured by the fix for the false
+    // positives. The next unit wires this into a crawl that scrolls, so it
+    // would have shipped straight into the one caller that triggers it.
+    //
+    // The clip intersection below stays viewport-relative and is correct that
+    // way: a clipping ancestor and its content scroll together.
+    if (rect.right + window.scrollX <= 0) return false;
+    if (rect.bottom + window.scrollY <= 0) return false;
     if (!clip) return true;
     return rect.right > clip.left && rect.left < clip.right &&
            rect.bottom > clip.top && rect.top < clip.bottom;
@@ -84,7 +133,7 @@
 
   // ---- measurement --------------------------------------------------------
 
-  function glyphsOf(node, clip, checkReachable) {
+  function glyphsOf(node, clip, checkReachable, mask) {
     const text = node.nodeValue;
     const out = [];
     for (let i = 0; i < text.length; i += 1) {
@@ -104,7 +153,8 @@
       // blindness the instrument exists to remove.
       if (rect.width === 0) continue;
       if (checkReachable && !isReachable(rect, clip)) continue;
-      out.push({ ch: text[i], text: text[i], x: rect.left, y: rect.top });
+      const ch = mask ? BULLET : text[i];
+      out.push({ ch, text: ch, x: rect.left, y: rect.top });
     }
     return out;
   }
@@ -125,7 +175,12 @@
     // credential in cleartext into an observation string (AT-363) — the
     // opposite of this module's job — so what a reader sees is what is
     // reported. An empty control shows its placeholder, which renders.
-    const shown = control.type === "password"
+    // `-webkit-text-security` masks a control with no `type=password` on it at
+    // all (AT-372), so the two cases are one rule. A placeholder is NEVER
+    // masked: a masked field still shows its placeholder in plain type.
+    const hasValue = Boolean(control.value);
+    const masked = control.type === "password" || masksText(control);
+    const shown = hasValue && masked
       ? BULLET.repeat(control.value.length)
       : (control.value || control.placeholder || "");
     if (!shown) return [];
@@ -164,7 +219,8 @@
   while (node) {
     const parent = node.parentElement;
     if (node.nodeValue && node.nodeValue.trim() && parent && paintsInk(parent)) {
-      for (const item of glyphsOf(node, clipRect(parent), true)) items.push(item);
+      const glyphs = glyphsOf(node, clipRect(parent), true, masksText(parent));
+      for (const item of glyphs) items.push(item);
     }
     node = walker.nextNode();
   }

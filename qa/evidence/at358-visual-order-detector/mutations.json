@@ -136,12 +136,13 @@
       ]
     },
     {
-      "name": "AT-363: a password field's value is reported in cleartext",
+      "name": "AT-363: a control the screen masks is reported in cleartext",
       "file": "src/autotester/browser/visual_order.js",
-      "old": "    const shown = control.type === \"password\"\n      ? BULLET.repeat(control.value.length)\n      : (control.value || control.placeholder || \"\");",
-      "new": "    const shown = control.value || control.placeholder || \"\";",
+      "old": "    const masked = control.type === \"password\" || masksText(control);",
+      "new": "    const masked = false;",
       "kills": [
-        "tests/test_browser_visual_order.py::test_a_password_field_is_reported_as_the_bullets_it_shows"
+        "tests/test_browser_visual_order.py::test_a_password_field_is_reported_as_the_bullets_it_shows",
+        "tests/test_browser_visual_order.py::test_a_masked_run_is_reported_as_the_bullets_it_shows"
       ]
     },
     {
@@ -160,6 +161,42 @@
       "new": "ZEBRA_QUILT_APIKEY_31",
       "kills": [
         "tests/test_browser_visual_order.py::test_the_dom_calls_the_bidi_page_clean"
+      ]
+    },
+    {
+      "name": "AT-372: a masked INPUT (-webkit-text-security) is reported in cleartext",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "    const masked = control.type === \"password\" || masksText(control);",
+      "new": "    const masked = control.type === \"password\";",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_a_masked_run_is_reported_as_the_bullets_it_shows"
+      ]
+    },
+    {
+      "name": "AT-372: a masked TEXT RUN is reported in cleartext",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "      const glyphs = glyphsOf(node, clipRect(parent), true, masksText(parent));",
+      "new": "      const glyphs = glyphsOf(node, clipRect(parent), true, false);",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_a_masked_run_is_reported_as_the_bullets_it_shows"
+      ]
+    },
+    {
+      "name": "AT-372: a CLOSED <details> body is reported as text a reader saw",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "    if (el.checkVisibility && !el.checkVisibility()) return false;",
+      "new": "    if (false) return false;",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_text_a_reader_cannot_see_is_not_reported[closed-details]"
+      ]
+    },
+    {
+      "name": "AT-373: reachability is tested against the VIEWPORT, so scrolling loses text",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "    if (rect.right + window.scrollX <= 0) return false;\n    if (rect.bottom + window.scrollY <= 0) return false;",
+      "new": "    if (rect.right <= 0 || rect.bottom <= 0) return false;",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_the_result_does_not_depend_on_where_the_page_is_scrolled"
       ]
     }
   ]

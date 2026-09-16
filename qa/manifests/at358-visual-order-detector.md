@@ -5,10 +5,88 @@
 `qa/contracts/browser-and-secrets.md` (B4, B7) · `qa/contracts/core-invariants.md` (C2, C7)
 **Goal task:** none — issue-driven
 **Date:** 2026-09-16
-**Fix cycle:** 2 of max 3
+**Fix cycle:** 3 of max 3 — **the last one**
 **Dual check:** no
-**Issues addressed:** AT-358 (medium) · AT-361 (medium) · AT-362 (high, cycle-1 FAIL) ·
-AT-363 (medium, cycle-1 FAIL) · AT-364 (low, cycle-1 FAIL)
+**Issues addressed:** AT-358 (medium) · AT-361 (medium) · AT-362, AT-363, AT-364 (cycle-1 FAIL,
+verified fixed by the cycle-2 checker) · AT-371, AT-372, AT-373, AT-374 (cycle-2 FAIL)
+
+## Cycle 3 — the four cycle-2 findings, all answered
+
+The cycle-2 verdict confirmed every cycle-1 failure was genuinely answered and then failed the unit
+on a second independent sweep of ordinary page constructs. It also stated its own bound: *"I probed
+28 constructs across 6 pages… I will not extend the list again on cycle 3 — a channel found after
+this is a new issue against the next unit, not a FAIL of this one."* This cycle takes all four
+findings at face value and fixes rather than argues.
+
+| Finding | sev | Answer |
+|---|---|---|
+| **AT-373** — the `isReachable` rule added in cycle 2 made the result **scroll-dependent** | medium | **Fixed in code + pinned by a test.** The one I would not have accepted as prose either. |
+| **AT-372** — a closed `<details>` body reported; a `-webkit-text-security` run returned in cleartext | medium | **Fixed in code + pinned**, both of them. |
+| **AT-371** — the limits block named `::before`/`::after` and stopped, missing `::marker` | medium | **Disclosed** — the block now names the generated-content **class**, not two members of it. |
+| **AT-374** — `<svg><text>` was listed as not seen, and is seen | low | **Corrected.** Moved out of the limits block under a heading that does not lie about it. |
+
+### AT-373 is the one that mattered, and it was self-inflicted
+
+The cycle-2 fix for the false positives manufactured a false **negative of the AT-355 shape** — the
+exact defect this whole module exists to catch. A client rect is viewport-relative, so testing
+`rect.right <= 0` meant that on a scrolled page everything above the fold tested as unreachable and
+silently vanished from the result. The next unit wires this into a crawl **that scrolls**, so it
+would have shipped directly into the one caller that triggers it.
+
+Fixed by taking the two axes against the document (`+ window.scrollX` / `+ window.scrollY`). The
+clipping-ancestor intersection stays viewport-relative, which is correct — a clipping ancestor and
+its content scroll together. The test asserts **equality** of the whole string before and after
+scrolling to the bottom, not a substring: it pins that nothing moves in *or* out.
+
+### The password branch turned out to be dead code — and it is staying
+
+`test_a_password_field_is_reported_as_the_bullets_it_shows` **survived** the mutation that removes
+the `type === "password"` branch, because Chromium implements password masking *as*
+`-webkit-text-security`, so the new `masksText()` rule already covers it. Measured directly rather
+than inferred:
+
+```
+$ (playwright probe)
+input[type=password]         -webkit-text-security = 'disc'
+input[name=plain]            -webkit-text-security = 'none'
+```
+
+```
+>>> SURVIVED  AT-363: a password field's value is reported in cleartext  (pytest exit 0)
+    claims to kill : …::test_a_password_field_is_reported_as_the_bullets_it_shows
+    actually failed: (nothing)
+    SURVIVING      : …::test_a_password_field_is_reported_as_the_bullets_it_shows
+                     <- INCONCLUSIVE: this mutation did not make them fail
+```
+
+**The redundant branch is kept deliberately**, and this is the one place in the unit where I did not
+delete dead code on finding it. Cycle 1 deleted a dead tag deny-list and was right to; this is
+different, because the thing making it dead is a **UA-stylesheet implementation detail of one
+browser**. Staking credential masking on Blink's choice to implement `type=password` through a
+`-webkit-` property is a bet I am not willing to make silently on a credential path. So it stays as
+defence in depth, and the redundancy is **disclosed with its evidence** rather than hidden —
+C7's rule for exactly this case.
+
+The *capability* is still pinned. The spec row no longer tries to attribute masking to one branch;
+it removes masking entirely (`const masked = false`), which kills both the password test and the
+`-webkit-text-security` test. What is unfalsifiable is the attribution, not the behaviour.
+
+### What changed in cycle 3
+
+- `src/autotester/browser/visual_order.js` — `isReachable` takes the scroll offsets (AT-373);
+  `paintsInk` consults `Element.checkVisibility()` with **default** options (AT-372 `<details>`);
+  new `masksText()` applied to both text runs and control values (AT-372); limits block rewritten
+  for AT-371 and AT-374. 241 lines.
+- `tests/fixtures/bidi_site/unreadable.html` — a closed `<details>` and a 2000px spacer so the page
+  is taller than the viewport and can actually be scrolled.
+- `tests/fixtures/bidi_site/controls.html` — a masked `<span>` and a masked `<input>`.
+- `tests/test_browser_visual_order.py` — 18 → **21** tests. 297 lines.
+- `qa/evidence/at358-visual-order-detector/mutations.json` — 17 → **21** mutations.
+
+**`checkVisibility()` is called with default options on purpose.** `{opacityProperty: true,
+visibilityProperty: true}` would have subsumed the opacity and visibility rules below it — and a
+rule whose failure another rule covers cannot be falsified, so both of those mutations would have
+started surviving and C7's kills would have quietly gone vacuous. Each rule answers for itself.
 
 ## Cycle 2 — what the checker charged, and what I did with it
 
@@ -77,7 +155,7 @@ rather than as a principle.
 Every row's `observed` is the pasted `mutation_check.py` output below, which prints the named test
 as PASSING in the pre-mutation baseline (the runner **refuses to start against a red baseline**) and
 then names the test that actually failed after the edit — the attribution check, not just a non-zero
-exit. All 17 rows are single-hunk edits to a single file named in "What changed".
+exit. All 21 rows are single-hunk edits to a single file named in "What changed".
 
 | capability | the check that covers it | the falsifying edit | observed |
 |---|---|---|---|
@@ -95,7 +173,11 @@ exit. All 17 rows are single-hunk edits to a single file named in "What changed"
 | opacity is consulted (AT-363) | `…[opacity-zero]`, `…[opacity-zero-ancestor]` | `return true` | KILLED (row 12) |
 | opacity is read up the ancestors (AT-363) | `…[opacity-zero-ancestor]` | loop over `[el]` only | KILLED (row 13) |
 | off-screen and clipped glyphs are dropped (AT-363) | `…[text-indent-offscreen]`, `…[absolute-offscreen]`, `…[overflow-clipped]` | `if (false) continue` | KILLED (row 14) |
-| a password field reports bullets, not the value (AT-363) | `test_a_password_field_is_reported_as_the_bullets_it_shows` | drop the `type==="password"` branch | KILLED (row 15) |
+| a control the screen masks reports bullets, not the value (AT-363/AT-372) | `…password_field_is_reported_as_the_bullets…`, `…masked_run_is_reported_as_the_bullets…` | `const masked = false` | KILLED (row 15) |
+| a masked INPUT is not returned in cleartext (AT-372) | `test_a_masked_run_is_reported_as_the_bullets_it_shows` | drop `masksText` from the control rule | KILLED (row 18) |
+| a masked TEXT RUN is not returned in cleartext (AT-372) | same | pass `false` as the walker's mask argument | KILLED (row 19) |
+| a closed `<details>` body is not reported (AT-372) | `…is_not_reported[closed-details]` | `if (false) return false` on `checkVisibility` | KILLED (row 20) |
+| the result does not depend on scroll position (AT-373) | `test_the_result_does_not_depend_on_where_the_page_is_scrolled` | test reachability against the VIEWPORT again | KILLED (row 21) |
 | an empty control's placeholder is measured (AT-362) | `test_a_placeholder_is_reported_because_it_renders` | drop `|| control.placeholder` | KILLED (row 16) |
 | the bidi fixture really does store the secret reversed (AT-364) | `test_the_dom_calls_the_bidi_page_clean` | store it forwards in `hidden.html` | KILLED (row 17) |
 
@@ -106,22 +188,22 @@ claim it falsifies is a claim about the fixture.
 
 ## How to verify (commands + expected)
 
-- `uv run pytest` → expected: `1183 passed, 2 skipped`
+- `uv run pytest` → expected: `1191 passed, 2 skipped`
   **(note: `pytest -q` prints no count here — `addopts = "-q"` in `pyproject.toml` plus a second
   `-q` on the command line is `-qq`, which suppresses the summary line. Exit 0 still holds; the
   earlier manifests in this repo quote a count because they ran it a different way.)**
 - `uv run ruff check src tests scripts` → expected: `All checks passed!`
 - `uv run autotester doctor` → expected: `doctor: clean`
-- `uv run pytest tests/test_browser_visual_order.py` → expected: 18 passed (real Chromium; skips
+- `uv run pytest tests/test_browser_visual_order.py` → expected: 21 passed (real Chromium; skips
   cleanly if the browser binary is absent)
 - `uv run python scripts/mutation_check.py qa/evidence/at358-visual-order-detector/mutations.json`
-  → expected: `17/17 mutations killed` (C7)
+  → expected: `21/21 mutations killed` (C7)
 
-## Actual outputs (from maker's own run, 2026-09-16)
+## Actual outputs (from maker's own run, 2026-09-16 — cycle 3)
 
 ```
 $ uv run pytest
-1183 passed, 2 skipped, 1 warning in 224.56s (0:03:44)
+1191 passed, 2 skipped, 1 warning in 212.99s (0:03:32)
 
 $ uv run ruff check src tests scripts
 All checks passed!
@@ -129,8 +211,9 @@ All checks passed!
 $ uv run autotester doctor
 doctor: clean
 
-$ uv run pytest tests/test_browser_visual_order.py
-..................                                                       [100%]
+$ uv run pytest tests/test_browser_visual_order.py -o addopts= -q
+.....................                                                    [100%]
+21 passed
 
 $ uv run python scripts/mutation_check.py qa/evidence/at358-visual-order-detector/mutations.json
 KILLED  glyphs are not sorted by screen position - document order returns  (pytest exit 1)
@@ -147,10 +230,14 @@ KILLED  AT-363: zero-alpha colour is reported as if a reader saw it  (pytest exi
 KILLED  AT-363: opacity is never consulted  (pytest exit 1)
 KILLED  AT-363: opacity is read on the element only, not up the ancestors  (pytest exit 1)
 KILLED  AT-363: unreachable glyphs are reported (off-left and clipped)  (pytest exit 1)
-KILLED  AT-363: a password field's value is reported in cleartext  (pytest exit 1)
+KILLED  AT-363: a control the screen masks is reported in cleartext  (pytest exit 1)
 KILLED  AT-362: an empty control's placeholder is not measured  (pytest exit 1)
 KILLED  AT-364 (checker-written): the bidi fixture stores the secret forwards  (pytest exit 1)
-17/17 mutations killed
+KILLED  AT-372: a masked INPUT (-webkit-text-security) is reported in cleartext  (pytest exit 1)
+KILLED  AT-372: a masked TEXT RUN is reported in cleartext  (pytest exit 1)
+KILLED  AT-372: a CLOSED <details> body is reported as text a reader saw  (pytest exit 1)
+KILLED  AT-373: reachability is tested against the VIEWPORT, so scrolling loses text  (pytest exit 1)
+21/21 mutations killed
 ```
 
 Per-mutation attribution (`claims to kill` vs `actually failed`, both printed per row) is in
@@ -174,15 +261,21 @@ own browser independently and its report is at
 Copied here from the module docstring so a reader of the manifest meets the same list:
 
 - text inside an **open shadow root**, and text in a **same-origin `<iframe>`**;
-- **`::before` / `::after`** generated content;
-- a **`<select>`'s** rendered option text;
-- text painted into **`<canvas>`**, and **`<svg><text>`** elements;
+- **CSS generated content — the whole class**: `::before`, `::after`, **`::marker`** (an ordinary
+  `<ol>`'s own "1." / "2." numbering is generated content), `::first-letter` / `::first-line`.
+  AT-371 was filed because cycle 2 named two members and stopped;
+- a **`<select>`'s** rendered option text — including `<select size="4">`, which shows its options
+  permanently with no interaction, the hard case the cycle-2 checker measured;
+- text painted into **`<canvas>`**;
 - a **`title`** tooltip (renders on hover) or an **`alt`** string (renders only on image failure).
 
+**`<svg><text>` has been removed from that list (AT-374).** It IS reported, measured twice by the
+checker, and listing it was a false statement in a limits block — worse than no block, because the
+block's own preface promises every entry is a page where a credential renders while this returns
+clean. It now sits under a separate heading in the module saying it works *by accident* of SVG text
+nodes being text nodes, with nothing pinning it, so it is not claimed as a capability either.
+
 Each is a page where a credential could render in plain type while this returns a clean string.
-`<svg><text>` is on this list even though the cycle-1 checker measured it as *reported* — it is
-reported by accident of SVG text nodes being text nodes, not by design, and nothing in the suite
-pins it, so claiming it would be a claim with no check behind it.
 
 **The `<select>` justification from cycle 1 is withdrawn.** It argued that a credential cannot
 arrive in an option by U13's pasting accident, which is true of the *guard* and says nothing about

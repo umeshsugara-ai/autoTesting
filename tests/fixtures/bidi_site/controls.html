@@ -4,3 +4,7 @@
 <!-- AT-362/AT-363: a placeholder RENDERS; a password field shows bullets. -->
 <input name="empty" placeholder="PLACEHOLDER_SENTINEL_88">
 <input name="pw" type="password" value="ZEBRA_QUILT_APIKEY_31">
+<!-- AT-372: -webkit-text-security masks a run with no type=password anywhere,
+     on a plain <span> as readily as on an input. -->
+<span style="-webkit-text-security:disc">MASKEDSPAN_SENTINEL_99</span>
+<input name="masked" style="-webkit-text-security:disc" value="ZEBRA_QUILT_APIKEY_31">
