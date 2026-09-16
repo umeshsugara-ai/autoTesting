@@ -57,9 +57,38 @@ question is only which red, and what closes it.
 **Answer format:** reply `A`, `B`, `C` or `D` with one line of reasoning, or append an
 `Answered:` line to this file directly.
 
-## Current state
+## Current state — CORRECTED 2026-09-16T14:20+05:30 (AT-400, high)
 
-`"data_class": "synthetic"` plus a `_data_class_note` is **written into `qa/adapter.json` in the
-working tree but NOT committed**, pending this decision.
+**What this section said was false, and had been since shortly after the gate was opened.** It
+claimed `"data_class": "synthetic"` plus a `_data_class_note` sat in `qa/adapter.json` in the
+working tree, uncommitted, awaiting the decision.
+
+**The truth on disk:**
+
+```
+$ grep -c "data_class" qa/adapter.json        -> 0
+$ git status --porcelain qa/adapter.json      -> (clean)
+$ git log -S data_class --all -- qa/adapter.json -> (no commit has ever carried it)
+```
+
+I wrote the declaration, then **reverted it myself** an hour later
+(`git checkout -- qa/adapter.json`) so the AT-366 unit would ship against a clean tree — and never
+came back to update this file. The edit is gone with no trace, and this gate sat advertising a
+tree state that no longer existed. A sweep caught it, not me.
+
+**Why this matters more than a stale sentence.** Options A, B and C all begin *"land the
+declaration"*, so a reader answering today would have been told the hard part was already done.
+And **AT-376's measurement is stale with it**: its 344 violations (335 under `.work/`, 2 under
+`profiles/`, 7 tracked) were counted against a tree that had the declaration in place. Those
+numbers need re-deriving before they are used to justify an option — the ~30 benign hits described
+higher up this file were measured the same way and carry the same caveat.
+
+**Nothing about the decision itself changes.** The four options stand, the analysis of *why* every
+consumer is blocked stands, and re-applying the one-line declaration is trivial whenever an answer
+arrives. What changed is that this section now describes the repository as it is.
+
+A gate's premise rotting while it waits is a failure mode this project had not seen before. It is
+also an argument for answering the older gates sooner: `t162-contract-approval` has been open five
+days, and nothing guarantees its stated premise has aged any better than this one did.
 
 Answered:
