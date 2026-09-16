@@ -1,0 +1,46 @@
+{
+  "unit": "at433-source-is-a-recording",
+  "cycle_checked": 1,
+  "date": "2026-09-16",
+  "actor": "checker (independent Mode D; own journey, maker smoke not read or re-run)",
+  "server": {
+    "cmd": "uv run uvicorn autotester.ui.app:app --host 127.0.0.1 --port 8043 (from D:/autoTesting working tree, post-change code)",
+    "AUTOTESTER_ROOT": "<scratchpad>/checker-at433/root (only a copy of projects/regression-demo + synthetic .env CHECKER_CANARY=ck433-zebra-canary-77)",
+    "stopped": "pid 45404 stopped; port 8043 listen count 0 afterwards"
+  },
+  "browser": "Playwright MCP (Chromium), real form fill + button clicks + file chooser",
+  "path_form": [
+    {"input": "<root>/.env (synthetic credential file, exists)", "http": 400, "title": "Not a recording", "canary_in_html": false, "link": "Try another path -> /projects/regression-demo/sources", "row_added": false},
+    {"input": "<fixtures>/ck433-zebra-canary-77.ini (filename contains the loaded .env secret value)", "http": 400, "result": "pre-existing _refuse_unsafe_submission guard fired first; raw JSON detail (known AT-439 shape), canary_in_html false", "row_added": false},
+    {"input": "<fixtures>/owl-pathname-canary-5521.ini (exists, non-secret name canary)", "http": 400, "title": "Not a recording", "name_canary_in_html": false, "row_added": false},
+    {"input": "<fixtures>/plaindir (directory, no suffix)", "http": 400, "title": "Not a recording", "row_added": false},
+    {"input": "<fixtures>/dir.mp4 (directory WITH recording suffix)", "http": 400, "title": "Recording not found", "row_added": false},
+    {"input": "C:\\Windows\\win.ini (original live reproduction)", "http": 400, "title": "Not a recording", "row_added": false},
+    {"input": "<fixtures>/SHOT.MOV (upper-case suffix)", "http": 303, "row_added": true, "row": "src_49b66cfbc4e1 video, Analyze button present"}
+  ],
+  "upload_form": [
+    {"file": "evil.txt", "http": 400, "title": "Not a recording", "row_added": false},
+    {"file": ".env (synthetic canary)", "http": 400, "title": "Not a recording", "canary_in_html": false, "row_added": false},
+    {"file": "PHONE.MOV", "http": 303, "stored_as": "sources/src_9a7ff29e1631/recording.mov", "analyze_button": true},
+    {"file": "upload-walk.mp4", "http": 303, "stored_as": "sources/src_167728eae678/recording.mp4", "analyze_button": true}
+  ],
+  "existing_flow": {"action": "clicked Analyze on the uploaded mp4", "http": 400, "title": "Prepare this recording first", "note": "pre-existing require_prepared gate; fake bytes have no media.json"},
+  "final_table_rows": 3,
+  "disk": {"recording.video files": 0, "stray .txt/.env copies under root": 0, "files written under root by the journey": ["sources/src_167728eae678/recording.mp4", "sources/src_9a7ff29e1631/recording.mov", "sources.jsonl"]},
+  "console_errors": {
+    "total": 9,
+    "attribution": "all 9 are Chromium 'Failed to load resource: 400' for the 9 deliberate 400 responses: 6 path-form refusals, 2 upload refusals, 1 Analyze 'Prepare this recording first'. No JS errors, 0 warnings.",
+    "per_page": {"GET /sources": 0, "POST /sources (x6 refusals)": 6, "POST /sources/upload (x2 refusals)": 2, "POST /sources/{id}/analyze": 1}
+  },
+  "cli": [
+    {"input": ".env", "exit": 2, "msg": "that is not a recording ..."},
+    {"input": "notes.txt", "exit": 2},
+    {"input": "owl-noext-canary-5521 (no suffix)", "exit": 2, "name_echoed": false},
+    {"input": "plaindir", "exit": 2},
+    {"input": "C:\\Windows\\win.ini", "exit": 2},
+    {"input": "nope.mp4 (missing)", "exit": 2, "msg": "no such recording: <path>"},
+    {"input": "dir.mp4 (directory with .mp4 suffix)", "exit": 1, "msg": "PermissionError traceback -- pre-existing (HEAD caught only FileNotFoundError too); filed as low issue"},
+    {"input": "walk.mp4", "exit": 0}
+  ],
+  "cosmetic": "upload refusal page's back link reads 'Try another path' (shared _refusal helper) -- not a finding"
+}
