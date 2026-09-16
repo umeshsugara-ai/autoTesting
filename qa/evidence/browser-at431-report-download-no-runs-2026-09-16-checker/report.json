@@ -1,0 +1,310 @@
+{
+  "unit": "at431-report-download-no-runs",
+  "cycle_checked": 1,
+  "date": "2026-09-16",
+  "actor": "checker (Mode D, own journey)",
+  "instrument": "Playwright (Python sync API) driving headed Chromium; the Playwright MCP browser dropped its connection on every download event (instrument failure, twice), so downloads were driven directly",
+  "server": "uvicorn autotester.ui.app:app --host 127.0.0.1 --port 8041, from a throwaway git-archive HEAD copy + the 2 unit files outside D:/autoTesting (routes_report.__file__ verified inside the copy); stopped after the journey",
+  "data": "isolated AUTOTESTER_ROOT in the session scratchpad; synthetic projects only: withruns (run_1 PASS, run_2 FAIL seeded via ProjectStore + a crawl_latest dir), noruns (no runs/), crawlonly (runs/crawl_latest only). No real project copied or served.",
+  "server_log_500_count": 0,
+  "unexplained_console_errors": 0,
+  "summary": {
+    "with_runs_excel_button_downloads": "withruns-report.xlsx, 5097 bytes, valid zip with xl/workbook.xml, contains seeded case title",
+    "with_runs_html_button_downloads": "withruns-report.html, 943 bytes, contains seeded case title, not the no-runs page",
+    "no_runs_direct_urls": "report.html and report.xlsx -> 404 text/html themed No runs yet page; /report shows 0 download buttons",
+    "crawl_only": "report.html/xlsx -> 404 No runs yet, /report shows the empty state and 0 buttons (same run definition)",
+    "back_link_and_breadcrumb": "Back to the report -> /projects/noruns/report; breadcrumb Report link -> same",
+    "unknown_slug": "404 JSON no project (unchanged)",
+    "traversal_shaped_slugs": "400 invalid project slug or 404 route-not-found; none served another project"
+  },
+  "steps": [
+    {
+      "step": "withruns /report shows download buttons",
+      "url": "/projects/withruns/report",
+      "status": 200,
+      "title": "Report \u2014 withruns \u2014 AutoTester",
+      "content_type": "text/html; charset=utf-8",
+      "has_no_runs_yet": false,
+      "body_head": "AT\nAutoTester\nProjects\n+ New project\n\u25cf Live view\n\u2699 Settings\nPROJECTS\nCrawlonly\nNoruns\nWithruns\n+ New project\n\u2190 Back\nPROJECTS / WITHRUNS / REPORT\nReport\n\nLatest run run_2 \u00b7 view case-by-case \u00b7 \u2b07 Downlo",
+      "download_links": [
+        {
+          "href": "/projects/withruns/report.xlsx",
+          "text": "\u2b07 Download Excel"
+        },
+        {
+          "href": "/projects/withruns/report.html",
+          "text": "\u2b07 Download HTML"
+        }
+      ],
+      "console_errors": [],
+      "console_error_count": 0,
+      "console_error_attribution": []
+    },
+    {
+      "step": "withruns click Download Excel",
+      "suggested_filename": "withruns-report.xlsx",
+      "download_url": "http://127.0.0.1:8041/projects/withruns/report.xlsx",
+      "failure": null,
+      "bytes": 5097,
+      "page_url_after": "http://127.0.0.1:8041/projects/withruns/report",
+      "is_zip": true,
+      "has_workbook_xml": true,
+      "case_title_in_sheet": true,
+      "console_errors": [],
+      "console_error_count": 0,
+      "console_error_attribution": []
+    },
+    {
+      "step": "withruns click Download HTML",
+      "suggested_filename": "withruns-report.html",
+      "download_url": "http://127.0.0.1:8041/projects/withruns/report.html",
+      "failure": null,
+      "bytes": 943,
+      "page_url_after": "http://127.0.0.1:8041/projects/withruns/report",
+      "case_title_in_html": true,
+      "no_runs_page_instead": false,
+      "console_errors": [],
+      "console_error_count": 0,
+      "console_error_attribution": []
+    },
+    {
+      "step": "noruns /report",
+      "url": "/projects/noruns/report",
+      "status": 200,
+      "title": "Report \u2014 AutoTester",
+      "content_type": "text/html; charset=utf-8",
+      "has_no_runs_yet": false,
+      "body_head": "AT\nAutoTester\nProjects\n+ New project\n\u25cf Live view\n\u2699 Settings\nPROJECTS\nCrawlonly\nNoruns\nWithruns\n+ New project\n\u2190 Back\nPROJECTS / NORUNS / REPORT\nReport\n\ud83d\udccb\n\nno runs yet \u2014 run a case against this project t",
+      "download_links": [],
+      "console_errors": [],
+      "console_error_count": 0,
+      "console_error_attribution": []
+    },
+    {
+      "step": "noruns direct /report.html",
+      "url": "/projects/noruns/report.html",
+      "status": 404,
+      "title": "No runs yet \u2014 AutoTester",
+      "content_type": "text/html; charset=utf-8",
+      "has_no_runs_yet": true,
+      "body_head": "AT\nAutoTester\nProjects\n+ New project\n\u25cf Live view\n\u2699 Settings\nPROJECTS\nCrawlonly\nNoruns\nWithruns\n+ New project\n\u2190 Back\nPROJECTS / NORUNS / REPORT / NO RUNS YET\nNo runs yet\n\ud83d\udccb\n\nThere is nothing to download",
+      "hrefs": [
+        "/",
+        "/onboard",
+        "/live",
+        "/settings/providers",
+        "/projects/crawlonly",
+        "/projects/noruns",
+        "/projects/withruns",
+        "/projects/noruns/report"
+      ],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:8041/projects/noruns/report.html"
+      ],
+      "console_error_count": 1,
+      "console_error_attribution": [
+        "Chrome network log for the deliberately requested non-2xx URL itself (expected: the route answers 404/400 by design); no JS error"
+      ]
+    },
+    {
+      "step": "noruns direct /report.xlsx",
+      "url": "/projects/noruns/report.xlsx",
+      "status": 404,
+      "title": "No runs yet \u2014 AutoTester",
+      "content_type": "text/html; charset=utf-8",
+      "has_no_runs_yet": true,
+      "body_head": "AT\nAutoTester\nProjects\n+ New project\n\u25cf Live view\n\u2699 Settings\nPROJECTS\nCrawlonly\nNoruns\nWithruns\n+ New project\n\u2190 Back\nPROJECTS / NORUNS / REPORT / NO RUNS YET\nNo runs yet\n\ud83d\udccb\n\nThere is nothing to download",
+      "hrefs": [
+        "/",
+        "/onboard",
+        "/live",
+        "/settings/providers",
+        "/projects/crawlonly",
+        "/projects/noruns",
+        "/projects/withruns",
+        "/projects/noruns/report"
+      ],
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:8041/projects/noruns/report.xlsx"
+      ],
+      "console_error_count": 1,
+      "console_error_attribution": [
+        "Chrome network log for the deliberately requested non-2xx URL itself (expected: the route answers 404/400 by design); no JS error"
+      ]
+    },
+    {
+      "step": "noruns click 'Back to the report'",
+      "url_after": "http://127.0.0.1:8041/projects/noruns/report",
+      "title_after": "Report \u2014 AutoTester",
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:8041/projects/noruns/report.xlsx"
+      ],
+      "console_error_count": 1,
+      "console_error_attribution": [
+        "Chrome network log for the deliberately requested non-2xx URL itself (expected: the route answers 404/400 by design); no JS error"
+      ]
+    },
+    {
+      "step": "noruns breadcrumb 'Report' link",
+      "matching_links": 3,
+      "url_after": "http://127.0.0.1:8041/projects/noruns/report",
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:8041/projects/noruns/report.html"
+      ],
+      "console_error_count": 1,
+      "console_error_attribution": [
+        "Chrome network log for the deliberately requested non-2xx URL itself (expected: the route answers 404/400 by design); no JS error"
+      ]
+    },
+    {
+      "step": "crawlonly direct /report.html",
+      "url": "/projects/crawlonly/report.html",
+      "status": 404,
+      "title": "No runs yet \u2014 AutoTester",
+      "content_type": "text/html; charset=utf-8",
+      "has_no_runs_yet": true,
+      "body_head": "AT\nAutoTester\nProjects\n+ New project\n\u25cf Live view\n\u2699 Settings\nPROJECTS\nCrawlonly\nNoruns\nWithruns\n+ New project\n\u2190 Back\nPROJECTS / CRAWLONLY / REPORT / NO RUNS YET\nNo runs yet\n\ud83d\udccb\n\nThere is nothing to downl",
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:8041/projects/crawlonly/report.html"
+      ],
+      "console_error_count": 1,
+      "console_error_attribution": [
+        "Chrome network log for the deliberately requested non-2xx URL itself (expected: the route answers 404/400 by design); no JS error"
+      ]
+    },
+    {
+      "step": "crawlonly direct /report.xlsx",
+      "url": "/projects/crawlonly/report.xlsx",
+      "status": 404,
+      "title": "No runs yet \u2014 AutoTester",
+      "content_type": "text/html; charset=utf-8",
+      "has_no_runs_yet": true,
+      "body_head": "AT\nAutoTester\nProjects\n+ New project\n\u25cf Live view\n\u2699 Settings\nPROJECTS\nCrawlonly\nNoruns\nWithruns\n+ New project\n\u2190 Back\nPROJECTS / CRAWLONLY / REPORT / NO RUNS YET\nNo runs yet\n\ud83d\udccb\n\nThere is nothing to downl",
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:8041/projects/crawlonly/report.xlsx"
+      ],
+      "console_error_count": 1,
+      "console_error_attribution": [
+        "Chrome network log for the deliberately requested non-2xx URL itself (expected: the route answers 404/400 by design); no JS error"
+      ]
+    },
+    {
+      "step": "crawlonly /report",
+      "url": "/projects/crawlonly/report",
+      "status": 200,
+      "title": "Report \u2014 AutoTester",
+      "content_type": "text/html; charset=utf-8",
+      "has_no_runs_yet": false,
+      "body_head": "AT\nAutoTester\nProjects\n+ New project\n\u25cf Live view\n\u2699 Settings\nPROJECTS\nCrawlonly\nNoruns\nWithruns\n+ New project\n\u2190 Back\nPROJECTS / CRAWLONLY / REPORT\nReport\n\ud83d\udccb\n\nno runs yet \u2014 run a case against this projec",
+      "download_links": [],
+      "console_errors": [],
+      "console_error_count": 0,
+      "console_error_attribution": []
+    },
+    {
+      "step": "edge /projects/nosuchproj/report.html",
+      "url": "/projects/nosuchproj/report.html",
+      "final_url": "http://127.0.0.1:8041/projects/nosuchproj/report.html",
+      "status": 404,
+      "content_type": "application/json",
+      "body_head": "{\"detail\":\"no project 'nosuchproj'\"}",
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:8041/projects/nosuchproj/report.html"
+      ],
+      "console_error_count": 1,
+      "console_error_attribution": [
+        "Chrome network log for the deliberately requested non-2xx URL itself (expected: the route answers 404/400 by design); no JS error"
+      ]
+    },
+    {
+      "step": "edge /projects/nosuchproj/report.xlsx",
+      "url": "/projects/nosuchproj/report.xlsx",
+      "final_url": "http://127.0.0.1:8041/projects/nosuchproj/report.xlsx",
+      "status": 404,
+      "content_type": "application/json",
+      "body_head": "{\"detail\":\"no project 'nosuchproj'\"}",
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:8041/projects/nosuchproj/report.xlsx"
+      ],
+      "console_error_count": 1,
+      "console_error_attribution": [
+        "Chrome network log for the deliberately requested non-2xx URL itself (expected: the route answers 404/400 by design); no JS error"
+      ]
+    },
+    {
+      "step": "edge /projects/..%2F..%2Fetc/report.html",
+      "url": "/projects/..%2F..%2Fetc/report.html",
+      "final_url": "http://127.0.0.1:8041/projects/..%2F..%2Fetc/report.html",
+      "status": 404,
+      "content_type": "application/json",
+      "body_head": "{\"detail\":\"Not Found\"}",
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:8041/projects/..%2F..%2Fetc/report.html"
+      ],
+      "console_error_count": 1,
+      "console_error_attribution": [
+        "Chrome network log for the deliberately requested non-2xx URL itself (expected: the route answers 404/400 by design); no JS error"
+      ]
+    },
+    {
+      "step": "edge /projects/..%5C..%5Cwithruns/report.xlsx",
+      "url": "/projects/..%5C..%5Cwithruns/report.xlsx",
+      "final_url": "http://127.0.0.1:8041/projects/..%5C..%5Cwithruns/report.xlsx",
+      "status": 400,
+      "content_type": "application/json",
+      "body_head": "{\"detail\":\"invalid project slug\"}",
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 400 (Bad Request) @ http://127.0.0.1:8041/projects/..%5C..%5Cwithruns/report.xlsx"
+      ],
+      "console_error_count": 1,
+      "console_error_attribution": [
+        "Chrome network log for the deliberately requested non-2xx URL itself (expected: the route answers 404/400 by design); no JS error"
+      ]
+    },
+    {
+      "step": "edge /projects/with%22runs%3Cx%3E/report.html",
+      "url": "/projects/with%22runs%3Cx%3E/report.html",
+      "final_url": "http://127.0.0.1:8041/projects/with%22runs%3Cx%3E/report.html",
+      "status": 400,
+      "content_type": "application/json",
+      "body_head": "{\"detail\":\"invalid project slug\"}",
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 400 (Bad Request) @ http://127.0.0.1:8041/projects/with%22runs%3Cx%3E/report.html"
+      ],
+      "console_error_count": 1,
+      "console_error_attribution": [
+        "Chrome network log for the deliberately requested non-2xx URL itself (expected: the route answers 404/400 by design); no JS error"
+      ]
+    },
+    {
+      "step": "edge /projects/%2E%2E/report.xlsx",
+      "url": "/projects/%2E%2E/report.xlsx",
+      "final_url": "http://127.0.0.1:8041/report.xlsx",
+      "status": 404,
+      "content_type": "application/json",
+      "body_head": "{\"detail\":\"Not Found\"}",
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:8041/report.xlsx"
+      ],
+      "console_error_count": 1,
+      "console_error_attribution": [
+        "Chrome network log for the deliberately requested non-2xx URL itself (expected: the route answers 404/400 by design); no JS error"
+      ]
+    },
+    {
+      "step": "edge /projects/withruns%2F..%2Fnoruns/report.html",
+      "url": "/projects/withruns%2F..%2Fnoruns/report.html",
+      "final_url": "http://127.0.0.1:8041/projects/withruns%2F..%2Fnoruns/report.html",
+      "status": 404,
+      "content_type": "application/json",
+      "body_head": "{\"detail\":\"Not Found\"}",
+      "console_errors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:8041/projects/withruns%2F..%2Fnoruns/report.html"
+      ],
+      "console_error_count": 1,
+      "console_error_attribution": [
+        "Chrome network log for the deliberately requested non-2xx URL itself (expected: the route answers 404/400 by design); no JS error"
+      ]
+    }
+  ]
+}
