@@ -1,0 +1,642 @@
+{
+  "unit": "at379-scrollable-pane-reachability",
+  "cycle": 2,
+  "date": "2026-09-16",
+  "by": "checker (Mode D, own browser, own pages)",
+  "browser": "chromium (playwright, headless)",
+  "js_under_test": "D:/autoTesting/src/autotester/browser/visual_order.js (bound tree, read-only)",
+  "pages": [
+    "p1",
+    "p2",
+    "p3",
+    "p5",
+    "p6"
+  ],
+  "console_errors_per_page": {
+    "p1": 0,
+    "p2": 0,
+    "p3": 0,
+    "p5": 0,
+    "p6": 0
+  },
+  "assertions": 43,
+  "passed": 40,
+  "failed": 3,
+  "results": [
+    {
+      "page": "p1",
+      "case": "control",
+      "claim": "positive control present at rest",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p1",
+      "case": "at-rest",
+      "claim": "PANETOP_SENTINEL_01 reported",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p1",
+      "case": "at-rest",
+      "claim": "PANEBOT_SENTINEL_02 reported",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p1",
+      "case": "at-rest",
+      "claim": "HPLEFT_SENTINEL_03 reported",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p1",
+      "case": "at-rest",
+      "claim": "HPRIGHT_SENTINEL_04 reported",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p1",
+      "case": "scroll-applied",
+      "claim": "scrollTop==602 and scrollLeft==1200 actually applied",
+      "pass": true,
+      "detail": "scrollTop=602 scrollLeft=1200"
+    },
+    {
+      "page": "p1",
+      "case": "control",
+      "claim": "positive control present after scroll",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p1",
+      "case": "AT-392-y",
+      "claim": "PANETOP still reported at scrollTop=602 (cycle-1 failure)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p1",
+      "case": "AT-392-y",
+      "claim": "PANEBOT still reported at scrollTop=602",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p1",
+      "case": "AT-392-x",
+      "claim": "HPLEFT still reported at scrollLeft=1200 (cycle-1 failure)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p1",
+      "case": "AT-392-x",
+      "claim": "HPRIGHT still reported at scrollLeft=1200",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p1",
+      "case": "no-loss",
+      "claim": "sorted glyph multiset unchanged by pane scrolling",
+      "pass": true,
+      "detail": "len 106 -> 106"
+    },
+    {
+      "page": "p1",
+      "case": "round-trip",
+      "claim": "scrolled then scrolled back == at rest, byte for byte",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p1",
+      "case": "round-trip",
+      "claim": "PANETOP + HPLEFT present after returning to origin",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p2",
+      "case": "control",
+      "claim": "positive control present at rest",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p2",
+      "case": "at-rest",
+      "claim": "OUTERTOP_SENTINEL_11 reported at rest",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p2",
+      "case": "at-rest",
+      "claim": "INNERTOP_SENTINEL_12 reported at rest",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p2",
+      "case": "at-rest",
+      "claim": "INNERBOT_SENTINEL_13 reported at rest",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p2",
+      "case": "at-rest",
+      "claim": "OUTERBOT_SENTINEL_14 reported at rest",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p2",
+      "case": "scroll-applied",
+      "claim": "both panes actually scrolled",
+      "pass": true,
+      "detail": "outer=500 inner=400"
+    },
+    {
+      "page": "p2",
+      "case": "control",
+      "claim": "positive control present after nested scroll",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p2",
+      "case": "NESTED",
+      "claim": "INNERTOP still reported with BOTH ancestors scrolled",
+      "pass": false,
+      "detail": "{\"top\": -832, \"bottom\": -814, \"winY\": 0, \"outer\": 500, \"inner\": 400}"
+    },
+    {
+      "page": "p2",
+      "case": "NESTED",
+      "claim": "OUTERTOP still reported with outer scrolled",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p2",
+      "case": "NESTED",
+      "claim": "sorted glyph multiset unchanged by nested scrolling",
+      "pass": false,
+      "detail": "missing=[]"
+    },
+    {
+      "page": "p3",
+      "case": "control",
+      "claim": "positive control present",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p3",
+      "case": "scroll-applied",
+      "claim": "pane parked at a MID position (not 0, not max)",
+      "pass": true,
+      "detail": "scrollTop=297 max=594"
+    },
+    {
+      "page": "p3",
+      "case": "mid",
+      "claim": "MIDA_SENTINEL_21 reported at mid scroll",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p3",
+      "case": "mid",
+      "claim": "MIDB_SENTINEL_22 reported at mid scroll",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p3",
+      "case": "mid",
+      "claim": "MIDC_SENTINEL_23 reported at mid scroll",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p3",
+      "case": "mid",
+      "claim": "sorted glyph multiset unchanged at mid scroll",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p5",
+      "case": "control",
+      "claim": "positive control present",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p5",
+      "case": "nested-clip",
+      "claim": "NESTTOP reported (visible through the outer clip)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p5",
+      "case": "AT-393",
+      "claim": "NESTBELOW reported although the outer overflow:hidden box hides it (FALSE POSITIVE, disclosed)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p5",
+      "case": "scroll-applied",
+      "claim": "inner pane scrolled inside the non-scrollable clip",
+      "pass": true,
+      "detail": "scrollTop=236"
+    },
+    {
+      "page": "p5",
+      "case": "nested-clip",
+      "claim": "nothing lost when the pane inside a hard clip is scrolled",
+      "pass": true,
+      "detail": "missing=[]"
+    },
+    {
+      "page": "p6",
+      "case": "control",
+      "claim": "positive control present with the guard IN PLACE",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p6",
+      "case": "AT-372",
+      "claim": "closed <details> body dropped with the guard in place",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p6",
+      "case": "AT-372",
+      "claim": "OPEN <details> body reported with the guard in place",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p6",
+      "case": "AT-398",
+      "claim": "guard bypassed -> the closed body IS now reported at all",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p6",
+      "case": "AT-398",
+      "claim": "guard bypassed -> the FULL sentinel comes back (i.e. no glyph dropped)",
+      "pass": false,
+      "detail": "'CTLP6_CONTROL_AAAAppendixAppendix2ETAILSBODY_SENTINEL_77Appendix3ody: SECONDBODY_SENTINEL_79OPENBODY_SENTINEL_80PLAINCLIP_SENTINEL_81CTLP6_TAIL_ZZZ'"
+    },
+    {
+      "page": "p6",
+      "case": "AT-398",
+      "claim": "the second <details>, sentinel NOT at index 0, comes back whole",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "page": "p6",
+      "case": "AT-398-control",
+      "claim": "a plain overflow:hidden clip's first glyph is not dropped",
+      "pass": true,
+      "detail": "clip drops the whole line, not one glyph"
+    },
+    {
+      "page": "p6",
+      "case": "AT-398-diagnostic",
+      "claim": "per-index range geometry for the closed <details> body",
+      "pass": true,
+      "detail": {
+        "glyphs": [
+          {
+            "i": 0,
+            "ch": "D",
+            "w": 11.5625,
+            "h": 17,
+            "x": 8,
+            "y": 84,
+            "nClientRects": 1,
+            "rects": [
+              {
+                "w": 11.5625,
+                "h": 17,
+                "x": 8,
+                "y": 84
+              }
+            ]
+          },
+          {
+            "i": 1,
+            "ch": "E",
+            "w": 9.78125,
+            "h": 17,
+            "x": 19.546875,
+            "y": 84,
+            "nClientRects": 1,
+            "rects": [
+              {
+                "w": 9.78125,
+                "h": 17,
+                "x": 19.546875,
+                "y": 84
+              }
+            ]
+          },
+          {
+            "i": 2,
+            "ch": "T",
+            "w": 8.5,
+            "h": 17,
+            "x": 29.328125,
+            "y": 84,
+            "nClientRects": 1,
+            "rects": [
+              {
+                "w": 8.5,
+                "h": 17,
+                "x": 29.328125,
+                "y": 84
+              }
+            ]
+          },
+          {
+            "i": 3,
+            "ch": "A",
+            "w": 11.5625,
+            "h": 17,
+            "x": 37.8125,
+            "y": 84,
+            "nClientRects": 1,
+            "rects": [
+              {
+                "w": 11.5625,
+                "h": 17,
+                "x": 37.8125,
+                "y": 84
+              }
+            ]
+          },
+          {
+            "i": 4,
+            "ch": "I",
+            "w": 5.328125,
+            "h": 17,
+            "x": 49.375,
+            "y": 84,
+            "nClientRects": 1,
+            "rects": [
+              {
+                "w": 5.328125,
+                "h": 17,
+                "x": 49.375,
+                "y": 84
+              }
+            ]
+          },
+          {
+            "i": 5,
+            "ch": "L",
+            "w": 9.78125,
+            "h": 17,
+            "x": 54.703125,
+            "y": 84,
+            "nClientRects": 1,
+            "rects": [
+              {
+                "w": 9.78125,
+                "h": 17,
+                "x": 54.703125,
+                "y": 84
+              }
+            ]
+          }
+        ],
+        "pStyle": {
+          "cv": "visible",
+          "overflow": "visible",
+          "display": "block",
+          "visibility": "visible"
+        },
+        "pRect": {
+          "x": 8,
+          "y": 84,
+          "width": 984,
+          "height": 18,
+          "top": 84,
+          "right": 992,
+          "bottom": 102,
+          "left": 8
+        },
+        "parentCV": "visible"
+      }
+    }
+  ],
+  "note": "Checker's OWN browser, OWN probe pages; the maker's screenshots and evidence dirs were not read. The JS under test is read (never written) from the bound tree. Guard-bypass variants exist only as a string in this process.",
+  "console_errors_total": 0,
+  "findings": {
+    "AT-392_cycle1_failures_are_gone": {
+      "PANETOP at scrollTop=602": "REPORTED (was dropped in cycle 1)",
+      "HPLEFT at scrollLeft=1200": "REPORTED (was dropped in cycle 1)",
+      "round_trip_scroll_back": "byte-identical to at-rest"
+    },
+    "NESTED_SCROLLABLE_PANES_BROKEN": {
+      "verdict": "FALSE NEGATIVE \u2014 reachOf accumulates only the NEAREST scrollable ancestor",
+      "evidence": {
+        "at_rest_len": 111,
+        "scrolled_len": 91,
+        "at_rest": "CTLP2_CONTROL_AAAOUTERTOP_SENTINEL_11INNERTOP_SENTINEL_12CTLP2_TAIL_ZZZINNERBOT_SENTINEL_13OUTERBOT_SENTINEL_14",
+        "scrolled": "OUTERTOP_SENTINEL_11INNERBOT_SENTINEL_13CTLP2_CONTROL_AAACTLP2_TAIL_ZZZOUTERBOT_SENTINEL_14",
+        "INNERTOP_at_rest": true,
+        "INNERTOP_scrolled": false,
+        "INNERBOT_scrolled": true
+      },
+      "reach_trace": {
+        "trace": [
+          {
+            "tag": "P",
+            "id": "",
+            "overflow": "visible",
+            "overflowX": "visible",
+            "overflowY": "visible",
+            "scrollsX": false,
+            "scrollsY": false,
+            "scrollTop": 0,
+            "scrollLeft": 0
+          },
+          {
+            "tag": "DIV",
+            "id": "inner",
+            "overflow": "auto",
+            "overflowX": "auto",
+            "overflowY": "auto",
+            "scrollsX": false,
+            "scrollsY": true,
+            "scrollTop": 400,
+            "scrollLeft": 0
+          }
+        ],
+        "accumulatedScrollY": 400,
+        "accumulatedScrollX": 0,
+        "stoppedAt": "inner",
+        "rectTop": -832,
+        "rectBottom": -814,
+        "documentEdgeTest": -414,
+        "neededToPass": "> 0"
+      }
+    },
+    "AT-393_nested_clip_false_positive": "reproduced (NESTBELOW reported through an outer overflow:hidden box)",
+    "AT-398_cause": {
+      "verdict": "FIRST geometry query inside a content-visibility-skipped subtree returns an all-zero rect; glyphsOf's `rect.width === 0` guard drops that glyph. The query itself forces the layout, so every later query is correct \u2014 which is why re-measuring the glyph shows a real rect and hides the cause.",
+      "three_runs_same_page_guard_bypassed": {
+        "run1": "CTLP6_CONTROL_AAAAppendixAppendix2ETAILSBODY_SENTINEL_77Appendix3ody: SECONDBODY_SENTINEL_79OPENBODY_SENTINEL_80PLAINCLIP_SENTINEL_81CTLP6_TAIL_ZZZ",
+        "run2": "CTLP6_CONTROL_AAAAppendixAppendix2DETAILSBODY_SENTINEL_77Appendix3body: SECONDBODY_SENTINEL_79OPENBODY_SENTINEL_80PLAINCLIP_SENTINEL_81CTLP6_TAIL_ZZZ"
+      },
+      "instrumented_first_run_decisions": [
+        {
+          "i": 0,
+          "ch": "D",
+          "w": 0,
+          "h": 0,
+          "x": 0,
+          "y": 0,
+          "widthDrop": true,
+          "reachDrop": false,
+          "reach": {
+            "clip": null,
+            "sx": 0,
+            "sy": 0
+          }
+        },
+        {
+          "i": 1,
+          "ch": "E",
+          "w": 9.78125,
+          "h": 17,
+          "x": 19.546875,
+          "y": 84,
+          "widthDrop": false,
+          "reachDrop": false,
+          "reach": {
+            "clip": null,
+            "sx": 0,
+            "sy": 0
+          }
+        },
+        {
+          "i": 0,
+          "ch": "b",
+          "w": 0,
+          "h": 0,
+          "x": 0,
+          "y": 0,
+          "widthDrop": true,
+          "reachDrop": false,
+          "reach": {
+            "clip": null,
+            "sx": 0,
+            "sy": 0
+          }
+        },
+        {
+          "i": 1,
+          "ch": "o",
+          "w": 8,
+          "h": 17,
+          "x": 16,
+          "y": 102,
+          "widthDrop": false,
+          "reachDrop": false,
+          "reach": {
+            "clip": null,
+            "sx": 0,
+            "sy": 0
+          }
+        }
+      ],
+      "instrumented_second_run_decisions": [
+        {
+          "i": 0,
+          "ch": "D",
+          "w": 11.5625,
+          "h": 17,
+          "x": 8,
+          "y": 84,
+          "widthDrop": false,
+          "reachDrop": false,
+          "reach": {
+            "clip": null,
+            "sx": 0,
+            "sy": 0
+          }
+        },
+        {
+          "i": 1,
+          "ch": "E",
+          "w": 9.78125,
+          "h": 17,
+          "x": 19.546875,
+          "y": 84,
+          "widthDrop": false,
+          "reachDrop": false,
+          "reach": {
+            "clip": null,
+            "sx": 0,
+            "sy": 0
+          }
+        },
+        {
+          "i": 0,
+          "ch": "b",
+          "w": 8,
+          "h": 17,
+          "x": 8,
+          "y": 102,
+          "widthDrop": false,
+          "reachDrop": false,
+          "reach": {
+            "clip": null,
+            "sx": 0,
+            "sy": 0
+          }
+        },
+        {
+          "i": 1,
+          "ch": "o",
+          "w": 8,
+          "h": 17,
+          "x": 16,
+          "y": 102,
+          "widthDrop": false,
+          "reachDrop": false,
+          "reach": {
+            "clip": null,
+            "sx": 0,
+            "sy": 0
+          }
+        }
+      ],
+      "LIVE_on_unmutated_shipping_detector_content_visibility_auto": {
+        "run1_UNMUTATED_shipping_detector": "CTLP7_CONTROL_AAAspacerVAUTO_SENTINEL_91CVAUTO_SECOND_92CTLP7_TAIL_ZZZ",
+        "run2": "CTLP7_CONTROL_AAAspacerCVAUTO_SENTINEL_91CVAUTO_SECOND_92CTLP7_TAIL_ZZZ",
+        "run1_after_scrolling_into_view": "CTLP7_CONTROL_AAAspacerVAUTO_SENTINEL_91CVAUTO_SECOND_92CTLP7_TAIL_ZZZ",
+        "console_errors": []
+      }
+    }
+  }
+}

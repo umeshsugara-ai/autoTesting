@@ -1,0 +1,73 @@
+[
+  {
+    "row": "row1 AT-379 scrollable pane reported",
+    "green_before": true,
+    "exit_after": 1,
+    "failed_nodeids": [
+      "tests/test_browser_unreadable.py::test_text_below_the_fold_of_a_scrollable_pane_is_reported"
+    ],
+    "assertions": [
+      "E       AssertionError: CLIPPQuarterly report for the trainers listAppendixBottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1",
+      "E       assert 'SCROLLPANE_BELOW_SENTINEL_A2' in 'CLIPPQuarterly report for the trainers listAppendixBottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1'"
+    ],
+    "green_after_revert": true,
+    "all_named_failed": true
+  },
+  {
+    "row": "row2 AT-379 overflow:hidden boundary holds",
+    "green_before": true,
+    "exit_after": 1,
+    "failed_nodeids": [
+      "tests/test_browser_unreadable.py::test_text_below_the_fold_of_a_scrollable_pane_is_reported",
+      "tests/test_browser_unreadable.py::test_text_a_reader_cannot_see_is_not_reported[overflow-clipped]"
+    ],
+    "assertions": [
+      "E       AssertionError: CLIPPED_SENTINEL_55Quarterly report for the trainers listAppendixBottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1SCROLLPANE_BELOW_SENTINEL_A2HIDDENPANE_BELOW_SENTINEL_B2",
+      "E       assert 'HIDDENPANE_..._SENTINEL_B2' not in 'CLIPPED_SEN..._SENTINEL_B2'",
+      "E       AssertionError: CLIPPED_SENTINEL_55Quarterly report for the trainers listAppendixBottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1SCROLLPANE_BELOW_SENTINEL_A2HIDDENPANE_BELOW_SENTINEL_B2",
+      "E       assert 'CLIPPED_SENTINEL_55' not in 'CLIPPED_SEN..._SENTINEL_B2'"
+    ],
+    "green_after_revert": true,
+    "all_named_failed": true
+  },
+  {
+    "row": "row3 AT-379 scrollable axis genuinely unbounded",
+    "green_before": true,
+    "exit_after": 1,
+    "failed_nodeids": [
+      "tests/test_browser_unreadable.py::test_text_below_the_fold_of_a_scrollable_pane_is_reported"
+    ],
+    "assertions": [
+      "E       AssertionError: CLIPPQuarterly report for the trainers listAppendixBottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1",
+      "E       assert 'SCROLLPANE_BELOW_SENTINEL_A2' in 'CLIPPQuarterly report for the trainers listAppendixBottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1'"
+    ],
+    "green_after_revert": true,
+    "all_named_failed": true
+  },
+  {
+    "row": "row4 AT-392 vertically scrolled pane loses nothing",
+    "green_before": true,
+    "exit_after": 1,
+    "failed_nodeids": [
+      "tests/test_browser_unreadable.py::test_a_pane_the_reader_already_scrolled_loses_nothing"
+    ],
+    "assertions": [
+      "E       AssertionError: assert [' ', ' ', ' ...' ', '2', ...] == [' ', ' ', ' ...' ', '1', ...]"
+    ],
+    "green_after_revert": true,
+    "all_named_failed": true
+  },
+  {
+    "row": "row5 AT-392 horizontally scrolled pane loses nothing",
+    "green_before": true,
+    "exit_after": 1,
+    "failed_nodeids": [
+      "tests/test_browser_unreadable.py::test_a_pane_the_reader_already_scrolled_loses_nothing"
+    ],
+    "assertions": [
+      "E       AssertionError: assert [' ', ' ', ' ...' ', '1', ...] == [' ', ' ', ' ...' ', '1', ...]"
+    ],
+    "green_after_revert": true,
+    "all_named_failed": true
+  }
+]
