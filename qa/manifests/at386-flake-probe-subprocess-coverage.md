@@ -164,6 +164,19 @@ Sections above left byte-intact; corrections recorded here.
   was missing. It recorded rather than charged, on the grounds that a FAIL would spend fix cycle
   2 of 3 producing a table row for a property already proved — and noted that a row whose edit had
   *survived* would have failed the unit outright.
+### The row AT-395 says was missing, supplied (added 2026-09-16, after the PASS)
+
+The table above is left byte-intact. This is the fifth row it should have carried, reproduced by
+the checker in its own copy rather than by me:
+
+| Capability claimed | Check that isolates it | Falsifying edit (single hunk, `scripts/flake_probe.py`) | Observed |
+|---|---|---|---|
+| A clean run keeps no output, so 41 greens do not bury the one failing tail | `tests/test_flake_probe.py::test_a_clean_run_keeps_no_output` | in `run_once`, mutate the **if-arm** of the tail ternary (the `""` branch) so a passing run also stores its stdout | reddens **exactly that one test**, at `test_flake_probe.py:191` on `assert run.tail == ""` |
+
+Row 2's edit (`tail = ""` wholesale) **cannot** redden this test — the two tests pin opposite arms
+of one ternary, which is exactly why one edit could not stand in for both and why the omission
+mattered.
+
 - **AT-397 (low)** — the all-monkeypatched limit was accurately stated and is **not** waived: once
   AT-386 closes, nothing standing covers a real subprocess launch. Filed so the residual is tracked.
 - **Subject byte-identity verified, not believed:** `git hash-object` on the bound tree, on
