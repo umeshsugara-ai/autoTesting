@@ -615,3 +615,17 @@ contracts; this is /checker's call.
   · PATTERN: validation evidence that never touches a real browser is not the validation Umesh is asking for — everything is to be validated in a LIVE BROWSER, not only by unit tests and CLI output.
   · EVIDENCE: arrives after a run of units (at335, at368, at386, at396, at399, at400, at405) whose LIVE-BROWSER field was honestly `not-applicable` because they touched CLI/tooling/prose only — correct per D-024's path rule, but it means the session's validation has lived almost entirely below the browser.
   · APPLIES NEXT: (a) prefer units that exercise the product's browser surfaces; (b) every UI-touching unit gets a checker-driven Mode D run, never a maker smoke pass cited as validation; (c) a unit with genuinely no browser surface still says so plainly rather than faking a browser check. Whether this should become a contract criterion (e.g. "each session ends with a live-browser pass over the running app") is the checker's fold, not the maker's.
+
+2026-09-16 · maker (self-reported, at429 close-out) · PATTERN: with two maker loops sharing one working
+tree, `git add <explicit paths>` does NOT scope a commit. A bare `git commit` commits the WHOLE INDEX,
+including whatever the other loop has already staged. Staging carefully is not enough; the commit
+itself must name its paths: `git commit --only <paths>` (or `-o`). EVIDENCE: this session's maker
+swept another loop's work into its own commits THREE times, each time having staged only its own
+files: `git add tests/` caught a tracked file, then a `git rm --cached` "fix" removed it from HEAD,
+and at429's close-out (30c7f02) committed the other loop's pre-staged at432 manifest and evidence.
+The last one was undone with `git reset --soft HEAD~1` + `git commit --only`, leaving at432 staged
+exactly as its owner left it. Each earlier fix was "stage more carefully", which cannot help when the
+index is shared. APPLIES NEXT: every maker AND checker commit in this repo. The checker dispatch text
+already says "narrow pathspec", but a narrow `git add` followed by a bare `git commit` satisfies that
+wording and still sweeps. It should say `git commit --only <paths>`. /checker to decide whether this
+belongs in a contract criterion or only in the dispatch prompt.
