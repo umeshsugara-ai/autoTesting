@@ -102,6 +102,8 @@ def register_source(store: ProjectStore, path: Path, *, label: str | None = None
     require_recording_suffix(path.name)
     if not path.exists():
         raise FileNotFoundError(f"no such recording: {path}")
+    if not path.is_file():  # AT-446: `dir.mp4` passes the suffix rule and exists()
+        raise NotARecording("that is a folder, not a recording file")
     digest = file_sha256(path)
     for existing in store.list_sources():
         if existing.sha256 == digest:

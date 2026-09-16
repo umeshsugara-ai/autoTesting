@@ -46,6 +46,11 @@ def register_cmd(
     except (FileNotFoundError, NotARecording) as exc:
         typer.secho(str(exc), fg=typer.colors.RED)
         raise typer.Exit(2) from None
+    except OSError as exc:  # AT-446: locked or permission-denied, not a traceback
+        typer.secho(f"that recording could not be read ({type(exc).__name__}) — "
+                    "check it is not open elsewhere and that you may read it",
+                    fg=typer.colors.RED)
+        raise typer.Exit(2) from None
     typer.secho(f"{source.id}  {source.label or '(no label)'}  sha256={source.sha256[:12]}",
                 fg=typer.colors.GREEN)
 

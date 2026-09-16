@@ -144,7 +144,69 @@ def test_an_upload_of_a_real_recording_suffix_is_still_stored(
     assert store.list_sources()[0].path.endswith("recording.mp4")
 
 
+def test_a_folder_named_like_a_recording_is_refused_as_not_a_recording(
+    store: ProjectStore, tmp_path: Path,
+) -> None:
+    """AT-446: `dir.mp4` passes the suffix rule and `exists()`, then `file_sha256`
+    raised PermissionError on Windows (IsADirectoryError elsewhere). A folder is
+    not a recording; say so before touching its bytes."""
+    folder = tmp_path / "dir.mp4"
+    folder.mkdir()
+
+    with pytest.raises(NotARecording) as info:
+        register_source(store, folder)
+
+    assert "dir.mp4" not in str(info.value), "AT-088: never echo the submitted name"
+    assert store.list_sources() == []
+
+
+def test_the_path_form_names_a_folder_as_not_a_recording(
+    store: ProjectStore, scratch_root: Path,
+) -> None:
+    """Before AT-446 the UI said "Recording not found" about a folder that exists —
+    true of nothing. It now says what the thing actually is."""
+    folder = scratch_root / "dir.mp4"
+    folder.mkdir()
+
+    response = TestClient(app).post("/projects/demo/sources", data={"path": str(folder)})
+
+    assert response.status_code == 400
+    assert "folder, not a recording file" in response.text
+    assert store.list_sources() == []
+
+
 # -- the CLI: a refusal, not a traceback ---------------------------------------
+
+def test_the_cli_refuses_a_folder_named_like_a_recording_with_exit_2(
+    store: ProjectStore, tmp_path: Path,
+) -> None:
+    folder = tmp_path / "dir.mp4"
+    folder.mkdir()
+
+    result = CliRunner().invoke(cli_app, ["ingest", "register", "demo", str(folder)])
+
+    assert result.exit_code == 2, result.output
+    assert result.exception is None or isinstance(result.exception, SystemExit)
+    assert store.list_sources() == []
+
+
+def test_the_cli_refuses_an_unreadable_recording_with_exit_2(
+    store: ProjectStore, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The issue's second half: a recording that exists but cannot be read (locked,
+    no permission) is an OSError out of `file_sha256`, and was a traceback too."""
+    path = _real_file(tmp_path, "locked.mp4", b"bytes")
+
+    def _denied(_path: Path) -> str:
+        raise PermissionError(13, "Permission denied")
+
+    monkeypatch.setattr("autotester.stages.ingest.file_sha256", _denied)
+    result = CliRunner().invoke(cli_app, ["ingest", "register", "demo", str(path)])
+
+    assert result.exit_code == 2, result.output
+    assert result.exception is None or isinstance(result.exception, SystemExit)
+    assert "could not be read" in result.output
+    assert store.list_sources() == []
 
 def test_the_cli_refuses_a_non_recording_with_exit_2_not_a_traceback(
     store: ProjectStore, tmp_path: Path,

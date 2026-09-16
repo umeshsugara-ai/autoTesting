@@ -1,0 +1,13 @@
+{
+  "unit": "at446-folder-is-not-a-recording",
+  "role": "maker SMOKE only - not validation; the checker runs its own Mode D",
+  "date": "2026-09-16T16:27Z",
+  "server": "uvicorn from isolated git-archive extract (Vidysea project dirs removed; HEAD + ingest.py + cli_video.py + test), port 8056",
+  "autotester_root": "scratchpad/at452root - synthetic regression-demo only",
+  "interactions": [
+    {"did": "Sources page, path form: an existing FOLDER named dir.mp4, Add recording", "expected": "themed refusal saying it is a folder; nothing registered", "observed": "HTTP 400, title 'Not a recording', body 'that is a folder, not a recording file', 'Try another path' link", "pass": true},
+    {"did": "CLI: autotester ingest register regression-demo <scratch>/dir.mp4 (same root)", "expected": "exit 2, message, no traceback", "observed": "'that is a folder, not a recording file', exit=2; no sources.jsonl created", "pass": true}
+  ],
+  "console_errors": {"count": 1, "attribution": "Chrome 'Failed to load resource: 400' for the deliberate refusal POST"},
+  "not_covered": "an unreadable (permission-denied) real file was not produced on this host; covered by test_the_cli_refuses_an_unreadable_recording_with_exit_2 (monkeypatched file_sha256), mutation M3"
+}
