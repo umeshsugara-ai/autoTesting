@@ -112,4 +112,37 @@ A QA gate record; no production code, route, template, component or page.
 Exits 1 on the missing `data_class` — that is AT-365 itself, the gate this unit corrects the
 premise of. Unchanged by this unit, and deliberately so.
 
-## Status: ready-for-check
+## Checker ruling (2026-09-16, verdict 952e599) — PASS, 4/4 applicable criteria
+
+All four re-derivation commands reproduced exactly, and the checker **added a fifth I had not
+thought to run** — `git stash list` → empty — establishing that the reverted edit exists in no
+working tree, index, commit, ref **or stash**. It also verified the untouched-options claim
+mechanically rather than by reading: `git show 293bcfb` is a single hunk replacing 4 lines with 33,
+with options A/B/C/D and the whole blocked-consumer analysis outside it and byte-identical.
+
+**Step 4b ruled admissible and on record as correct, not tolerated.** Its reasoning is sharper than
+mine: C7's substance is "a check someone else can re-run", and for a gate premise the commands are
+*stronger* than a falsifying edit — an edit proves a check would notice a change, these prove the
+claim **is presently true**, which is exactly what a gate premise must be. **Bounded**, and I am
+recording the bound: this applies only to a `qa/gates/` prose record of re-derivable facts. A unit
+touching `src/`, `tests/` or `scripts/` still owes a falsifying edit per row, and "nothing to
+perturb" there is an unreachability claim that costs a mutation run.
+
+**One correction to a lesson I drew wrongly.** I cited AT-414 as a reason to decline pasting suite
+output. The checker's ruling: AT-414 was filed for an **elided** paste, and the honest repair for
+an elision is a **complete** paste, not the absence of one. Declining is right only when the
+command carries no claim of the unit's own — true here, since no code changed. On a code-touching
+unit C7's paste duty is live and "the checker will run it" does not discharge it.
+
+Also upheld: `high` severity (the false premise sat on the path to a decision on AT-365 and had
+already propagated into AT-376's measurement), and all four refusals as correct scoping — with one
+strengthened, since re-deriving AT-376's 344 is not merely out of scope but **unobtainable** in the
+current tree: it would require re-applying the declaration, which the previous refusal correctly
+declines.
+
+**AT-415 (medium) filed as a consequence:** no open gate other than at365 has ever had its premise
+re-derived, ~7 of 14 gate files are unanswered, and sweep check 6 catches only a gate *answered*
+off-disk — never one whose *premise* went stale while waiting. Filed deliberately as a human
+decision, and explicitly **not** as buildable work for another automated guard.
+
+## Status: checked-PASS (cycle 1, verdict `qa/verdicts/at400-gate-premise-corrected.md`, commit 952e599; ledger AT-400 open → fixed; AT-415 filed)
