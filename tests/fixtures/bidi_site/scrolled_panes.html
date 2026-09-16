@@ -18,3 +18,40 @@
   <span>SCROLLED_LEFT_SENTINEL_D3</span>
   <span style="margin-left:600px">SCROLLED_RIGHT_SENTINEL_D4</span>
 </div>
+<!-- AT-408: a scrolled pane INSIDE a scrolled pane. The offsets must
+     accumulate: stopping the walk at the inner one loses the outer's offset and
+     the inner pane's earlier lines vanish. A reader scrolls both back. -->
+<div id="outer" style="height:60px;overflow:auto;width:320px">
+  <p>OUTER_TOP_SENTINEL_E1</p>
+  <div id="inner" style="height:34px;overflow:auto;width:280px">
+    <p>INNER_TOP_SENTINEL_E2</p>
+    <p style="margin-top:6px">INNER_BOTTOM_SENTINEL_E3</p>
+  </div>
+  <!-- The spacer goes BELOW the inner pane on purpose. With the tall gap ABOVE
+       it, scrolling the outer pane to its end brought the inner pane INTO view
+       and nothing ever reached a negative coordinate — the test failed loudly
+       rather than passing vacuously, which is the good version of being wrong.
+       Below it, the outer scroll pushes the inner pane off the top: outer
+       offset ~892px, inner's own only ~8px, so the outer one is unmistakably
+       what carries the glyph back. -->
+  <div style="height:900px"></div>
+</div>
+<!-- AT-393: a pane inside a NON-scrollable clip. The inner box does not
+     overflow, so nothing can be scrolled and the outer box's 40px band is all a
+     reader will ever see. Stopping the walk at the inner box reported the line
+     below it, which is the false positive cycle 1 wrongly called pre-existing. -->
+<div style="height:40px;overflow:hidden;width:320px">
+  <div style="height:200px;overflow:auto;width:300px">
+    <p>NESTCLIP_TOP_SENTINEL_F1</p>
+    <p style="margin-top:100px">NESTCLIP_BELOW_SENTINEL_F2</p>
+  </div>
+</div>
+<!-- AT-393, the other direction: here the INNER box is the binding clip and
+     the outer one would happily show the line. Only an INTERSECTION of the two
+     excludes it — keeping just the outermost box is not enough. -->
+<div style="height:300px;overflow:hidden;width:320px">
+  <div style="height:30px;overflow:hidden;width:300px">
+    <p>INNERCLIP_TOP_SENTINEL_G1</p>
+    <p style="margin-top:60px">INNERCLIP_BELOW_SENTINEL_G2</p>
+  </div>
+</div>

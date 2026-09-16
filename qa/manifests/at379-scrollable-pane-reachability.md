@@ -4,11 +4,78 @@
 **Contract:** `qa/contracts/ui.md` (U13) · `qa/contracts/core-invariants.md` (C2, C7)
 **Goal task:** none — issue-driven
 **Date:** 2026-09-16
-**Fix cycle:** 2 of max 3
+**Fix cycle:** 3 of max 3 — **the last one**
 **Dual check:** no
 **Issues addressed:** AT-379 (medium, open → fixed — **both halves now**) ·
 AT-392 (high, cycle-1 FAIL) · AT-393 (low, cycle-1 FAIL) · AT-394 (low, cycle-1 FAIL) ·
-AT-398 (medium, **filed by this cycle against itself**)
+AT-398 (medium, filed against my own work in cycle 2) ·
+AT-408, AT-409, AT-412 (cycle-2 FAIL) · AT-411 (my git error; fixed by the other loop as AT-407)
+
+## Cycle 3 — the fourth occurrence, and a mutation body I missed
+
+The cycle-2 verdict confirmed AT-392 was discharged and then failed the unit on the sentence written
+in its place. Four findings, all answered in code:
+
+| Finding | sev | Answer |
+|---|---|---|
+| **AT-408** — `reachOf` did NOT accumulate "every scrollable ancestor": it returned at the first ancestor scrolling on ONE axis, which is what an ordinary `overflow:auto` pane is | high | **Fixed.** The walk goes all the way up, carrying a running offset **and** a running clip intersection. |
+| **AT-409** — the AT-358 spec's masked-text-run row kept a stale `clipRect(` in its mutation **body**, so it threw a `ReferenceError` and reddened all 23 tests instead of the 1 it names | high | **Fixed.** 21/21 was preserved while the attribution was destroyed — the count is what a careless reader checks, and I was the careless reader. |
+| **AT-412** — the `window.scrollY == 0` guard did not protect the AT-392 test from the drift the manifest credited it with | medium | **Fixed.** The test now asserts the pane's first line actually reaches a **negative viewport coordinate** — the only state in which the rule is load-bearing. |
+| **AT-393** (again) | low | **Fixed rather than disclosed.** The running intersection closes the nested-clip false positive in the same edit as AT-408. |
+
+**This is the fourth time this line has been wrong in the same direction.** AT-373, AT-379, AT-392,
+now AT-408 — every one a fix for false positives that manufactured a false negative of the AT-355
+shape, in the module about to be wired into a crawl that scrolls panes. The source says so at the
+line, compactly, with the ledger ids for the detail.
+
+### AT-409 is the one I want on the record
+
+I repointed four `clipRect` occurrences after the rename and re-ran: **21/21 killed**, so I reported
+the spec as intact. Three were anchors; the fourth was a mutation **body**. A mutation body that no
+longer compiles does not stop killing — it reddens *everything*, which still satisfies "the named
+test failed". The count survives and the isolation is gone. Checking the number instead of the
+attribution is exactly the failure C7 exists to prevent, and it was in my own verification step.
+
+### My fixtures were weak four separate times this cycle, and every one was caught by a SURVIVED row
+
+Not one came from reading the code:
+
+1. The nested-pane test's inner pane overflowed by ~400px, so **its own** offset satisfied the
+   document-edge rule and dropping the outer one changed nothing. Inner overflow cut to ~8px so the
+   outer's ~892px is unmistakably what carries the glyph back.
+2. The spacer sat **above** the inner pane, so scrolling the outer brought it **into** view and
+   nothing reached a negative coordinate. The test failed loudly rather than passing vacuously —
+   the good version of being wrong. Spacer moved below.
+3. The nested-clip test had only the **outer** box binding, so an identity `narrow()` still excluded
+   the line via the outermost box and the intersection was never exercised. A second case was added
+   where the **inner** box is the binding one.
+4. The nested-pane assertion used substrings, and after scrolling the outer pane its own first line
+   and the inner pane's land on the **same screen row**, so the detector interleaves them
+   (`OINUNTEERR__TTOOPP…`). That is correct behaviour for a visual-order detector and the assertion
+   was wrong, not the code. Sorted-character equality is the right shape: nothing dropped, nothing
+   invented, order free to change.
+
+### What I am NOT fixing here, and why
+
+**AT-410** (high) — the checker found the cause of AT-398 that I could not: the **first**
+`Range.getBoundingClientRect()` inside a `content-visibility`-skipped subtree returns an all-zero
+rect, `glyphsOf`'s width guard drops that glyph, and the same query forces layout so every later
+measurement is correct. It reproduces on the **unmutated shipping detector** on a plain
+`content-visibility:auto` page, and callers call once.
+
+That is a genuine missed-credential defect and it is **not this unit's**: it predates the unit, the
+checker explicitly did not charge it, and this is fix cycle 3 of 3. Adding a fifth concern to the
+last cycle would risk the four that are answered. **It must close before `visual_text` is wired into
+the crawl** — the same standing condition AT-379 carried, and for the same reason.
+
+### AT-411 — my git error, and its correction
+
+My cycle-2 commit used `git add tests/` and swept in `tests/test_flake_probe.py`. I then made it
+worse: believing it untracked, I ran `git rm --cached`, which removed a **tracked** file (part of
+the other loop's PASSed AT-386 work) from HEAD. The other loop re-tracked it as AT-407 in `5e9ae80`;
+verified present in HEAD and unmodified on disk. I wrote "never a bare directory pathspec" into
+three checker dispatches this session before doing it myself, and the second mistake came from
+acting on an assumption I could have checked with one command.
 
 ## Cycle 2 — I fixed half of what AT-379 was filed for
 
@@ -162,6 +229,8 @@ baseline, so each named test is green before its edit, and it prints `claims to 
 | the scrollable axis is genuinely unbounded, not merely detected | `test_text_below_the_fold_of_a_scrollable_pane_is_reported` | `bottom: box.bottom` | KILLED (row 3) |
 | a vertically scrolled pane loses nothing before its offset (AT-392) | `test_a_pane_the_reader_already_scrolled_loses_nothing` | drop `scrollY += node.scrollTop` | KILLED (row 4) |
 | a horizontally scrolled pane loses nothing before its offset (AT-392) | same | drop `scrollX += node.scrollLeft` | KILLED (row 5) |
+| offsets accumulate across NESTED scrollable panes (AT-408) | `test_a_scrolled_pane_inside_a_scrolled_pane_loses_nothing` | return at the first clipping ancestor instead of walking on | KILLED (row 6) |
+| clips are INTERSECTED up the chain, so an inner box cannot leak past an outer one (AT-393) | `test_a_pane_inside_a_clipping_box_does_not_leak_past_it` | `const narrow = (box) => box` | KILLED (row 7) |
 
 Row 2 is the one that matters most: it falsifies the fix **from the other side**, by making the
 detector too permissive rather than too strict, and it kills on both the new test and the existing
@@ -169,15 +238,15 @@ clipped-text test.
 
 ## How to verify (commands + expected)
 
-- `uv run pytest` → expected: `1232 passed, 2 skipped`
+- `uv run pytest` → expected: `1235 passed, 2 skipped`
   *(`uv run pytest -q` resolves to `-qq` — `pyproject.toml` `addopts` already carries `-q` — and
   suppresses the summary line. Exit 0 is the signal.)*
 - `uv run ruff check src tests scripts` → expected: `All checks passed!`
 - `uv run autotester doctor` → expected: `doctor: clean`
 - `uv run pytest tests/test_browser_visual_order.py tests/test_browser_unreadable.py` → expected:
-  23 passed (real Chromium; skips cleanly if the browser binary is absent)
+  25 passed (real Chromium; skips cleanly if the browser binary is absent)
 - `uv run python scripts/mutation_check.py qa/evidence/at379-scrollable-pane-reachability/mutations.json`
-  → expected: `5/5 mutations killed` (C7)
+  → expected: `7/7 mutations killed` (C7)
 - **Regression on the unit this one amends:**
   `uv run python scripts/mutation_check.py qa/evidence/at358-visual-order-detector/mutations.json`
   → expected: `21/21 mutations killed`. The split moved test nodeids, so both specs were repointed;
@@ -193,11 +262,11 @@ $ uv run autotester doctor
 doctor: clean
 
 $ uv run pytest
-1232 passed, 2 skipped, 1 warning in 200.98s (0:03:20)
+1235 passed, 2 skipped, 1 warning in 198.27s (0:03:18)
 
 $ uv run pytest tests/test_browser_visual_order.py tests/test_browser_unreadable.py -o addopts= -q
-.......................                                                  [100%]
-23 passed in 2.26s
+.........................                                                [100%]
+25 passed in 1.83s
 
 $ uv run python scripts/mutation_check.py qa/evidence/at379-scrollable-pane-reachability/mutations.json
 KILLED  AT-379 reopens: a scrollable pane is treated as a hard clip again  (pytest exit 1)
@@ -205,7 +274,9 @@ KILLED  AT-379: the overflow:hidden boundary collapses - hidden panes count as s
 KILLED  AT-379: the scrollable axis is not unbounded, so the pane still clips downward  (pytest exit 1)
 KILLED  AT-392: a vertically scrolled pane's earlier lines are dropped again  (pytest exit 1)
 KILLED  AT-392: a horizontally scrolled pane's earlier columns are dropped again  (pytest exit 1)
-5/5 mutations killed
+KILLED  AT-408: the walk stops at the first clipping ancestor, so nested pane offsets are lost  (pytest exit 1)
+KILLED  AT-393: clips are not intersected, so an inner box leaks past an outer one  (pytest exit 1)
+7/7 mutations killed
 
 $ uv run python scripts/mutation_check.py qa/evidence/at358-visual-order-detector/mutations.json
 21/21 mutations killed
@@ -213,7 +284,7 @@ $ uv run python scripts/mutation_check.py qa/evidence/at358-visual-order-detecto
 
 Per-mutation attribution is in each evidence directory's `mutations.out`.
 
-The `1232` total includes tests belonging to the **other maker loop** (AT-368 liveness and AT-335's
+The `1235` total includes tests belonging to the **other maker loop** (AT-368 liveness and AT-335's
 flake probe, in flight in this shared tree). This unit adds **one** test; the rest is not mine and
 is not claimed.
 

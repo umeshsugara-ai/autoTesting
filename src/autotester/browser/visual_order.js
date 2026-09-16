@@ -102,36 +102,38 @@
   // `text-indent:-9999px` and an absolutely-positioned off-screen block both put
   // glyphs where no amount of scrolling reveals them.
   //
-  // A genuinely SCROLLABLE pane is the opposite case and used to be conflated
-  // with it (AT-379). The module's rule is reachability — "further down or right
-  // can be scrolled to, so those stay" — and a reader can scroll an
-  // `overflow:auto` pane and read every line of it. Treating the pane's box as a
-  // hard clip meant a credential below the fold of a scrollable pane returned a
-  // clean string: the AT-355 shape again, and the second time in this module
-  // that a fix for false positives manufactured a false negative.
+  // A genuinely SCROLLABLE pane is the opposite case and was conflated with it
+  // (AT-379): a reader can scroll an `overflow:auto` pane and read every line,
+  // so its box is not a boundary. `overflow:hidden` with nothing to scroll still
+  // is, and the two are told apart by MEASUREMENT — computed overflow is
+  // `auto`/`scroll` AND the content actually overflows — never by guess.
   //
-  // `overflow:hidden` with nothing to scroll still clips, and the two are
-  // distinguishable by measurement rather than by guess: a pane scrolls only if
-  // its computed overflow is `auto`/`scroll` AND its content actually overflows.
+  // Per axis, deliberately: `overflow-y:auto; overflow-x:hidden` really does
+  // hide what runs off its right edge while exposing what runs off its bottom.
   //
-  // Per axis, deliberately. `overflow-y:auto; overflow-x:hidden` is an ordinary
-  // pane, and it really does hide what runs off its right edge while really
-  // exposing what runs off its bottom.
-  // Returns `{clip, scrollX, scrollY}`. `scrollX`/`scrollY` are how far this
-  // element has ALREADY been scrolled away from its document origin — the
-  // window's own offset plus every scrollable ancestor's — and they are what
-  // makes the document-edge test in `isReachable` true rather than nearly true
-  // (AT-392). A pane scrolled down pushes its first line to a negative viewport
-  // y; the reader scrolls the pane back up and reads it, so it is reachable and
-  // must not be dropped. Only `window.scrollY` was added before, so the window
-  // case worked and the pane case did not.
+  // Returns `{clip, scrollX, scrollY}` — the accumulated scroll offset of the
+  // window AND every scrollable ancestor (AT-392, AT-408), plus the running
+  // intersection of every clip above (AT-393).
   function reachOf(el) {
     let scrollX = window.scrollX;
     let scrollY = window.scrollY;
+    let clip = null;
+    // The walk goes ALL THE WAY UP, narrowing one running clip (AT-408/AT-393).
+    // Returning at the first clipping ancestor was wrong twice over: a pane
+    // inside a SCROLLED pane lost the outer offset entirely, and a pane inside a
+    // clipping box reported text the outer box hides. Both are answered by
+    // carrying the offset and the intersection instead of stopping.
+    const narrow = (box) => (clip === null ? box : {
+      left: Math.max(clip.left, box.left),
+      right: Math.min(clip.right, box.right),
+      top: Math.max(clip.top, box.top),
+      bottom: Math.min(clip.bottom, box.bottom),
+    });
     for (let node = el; node && node !== document.documentElement; node = node.parentElement) {
       const style = window.getComputedStyle(node);
       if (style.clipPath !== "none") {
-        return { clip: node.getBoundingClientRect(), scrollX, scrollY };
+        clip = narrow(node.getBoundingClientRect());
+        continue;
       }
       if (style.overflow === "visible") continue;
       const box = node.getBoundingClientRect();
@@ -139,46 +141,34 @@
       const scrollsX = SCROLLS.test(style.overflowX) && node.scrollWidth > node.clientWidth;
       if (scrollsX) scrollX += node.scrollLeft;
       if (scrollsY) scrollY += node.scrollTop;
-      if (scrollsX && scrollsY) continue;
-      const clip = {
+      clip = narrow({
         left: scrollsX ? -Infinity : box.left,
         right: scrollsX ? Infinity : box.right,
         top: scrollsY ? -Infinity : box.top,
         bottom: scrollsY ? Infinity : box.bottom,
-      };
-      return { clip, scrollX, scrollY };
+      });
     }
-    return { clip: null, scrollX, scrollY };
+    return { clip, scrollX, scrollY };
   }
 
   function isReachable(rect, reach) {
     // Off the DOCUMENT's left edge or above its top cannot be scrolled to.
     // Further down or right can be, so those stay.
     //
-    // THIS LINE HAS NOW BEEN WRONG THREE TIMES, each time in the same direction
-    // — a false NEGATIVE of the AT-355 shape, a credential rendering in plain
-    // type while this returns a clean string — and each time introduced by a fix
-    // for false POSITIVES. Worth recording, because the pattern is the lesson:
+    // THIS LINE HAS BEEN WRONG FOUR TIMES, always the same way: a fix for false
+    // POSITIVES that manufactured a false NEGATIVE of the AT-355 shape — a
+    // credential rendering in plain type while this returns a clean string.
+    // AT-373 (viewport-relative test), AT-379 (a scrollable pane read as a
+    // clip), AT-392 (window offset only), AT-408 (walk stopped at the first
+    // one-axis scroller). Each asked "can a reader SEE this?" where the question
+    // is "can a reader REACH it?". Details in those ledger rows; the rule here:
     //
-    //   AT-373  tested `rect.right <= 0` against the viewport. A client rect is
-    //           viewport-relative, so on a scrolled page everything above the
-    //           fold tested as unreachable and vanished.
-    //   AT-379  treated a scrollable pane's box as a hard clip, so anything
-    //           below the pane's fold vanished.
-    //   AT-392  added only `window.scrollX/Y`, so a pane the reader had already
-    //           SCROLLED pushed its earlier lines to negative viewport
-    //           coordinates and they vanished — the other half of what AT-379
-    //           was filed for.
+    //   a glyph is unreachable only if it sits before the document origin AFTER
+    //   everything scrollable has been scrolled back.
     //
-    // Each fix asked "can a reader SEE this?" and forgot to ask "can a reader
-    // REACH it?". `reach.scrollX/scrollY` carry the accumulated offset of the
-    // window AND every scrollable ancestor, which is the whole answer to the
-    // second question: a glyph is unreachable only if it sits before the
-    // document origin even after everything scrollable is scrolled back.
-    //
-    // The clip intersection below stays viewport-relative, which is right
-    // because `reachOf` never reports a scrollable pane as a clip — so a box
-    // that reaches here really is a boundary a reader cannot cross.
+    // `reach.scrollX/scrollY` carry exactly that — window plus every scrollable
+    // ancestor. The clip below stays viewport-relative and is right that way,
+    // because `reachOf` never reports a scrollable pane as a clip.
     if (rect.right + reach.scrollX <= 0) return false;
     if (rect.bottom + reach.scrollY <= 0) return false;
     const clip = reach.clip;

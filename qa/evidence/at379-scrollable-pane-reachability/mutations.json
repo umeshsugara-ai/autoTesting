@@ -49,6 +49,24 @@
       "kills": [
         "tests/test_browser_unreadable.py::test_a_pane_the_reader_already_scrolled_loses_nothing"
       ]
+    },
+    {
+      "name": "AT-408: the walk stops at the first clipping ancestor, so nested pane offsets are lost",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "      clip = narrow({\n        left: scrollsX ? -Infinity : box.left,\n        right: scrollsX ? Infinity : box.right,\n        top: scrollsY ? -Infinity : box.top,\n        bottom: scrollsY ? Infinity : box.bottom,\n      });",
+      "new": "      return { clip: narrow({\n        left: scrollsX ? -Infinity : box.left,\n        right: scrollsX ? Infinity : box.right,\n        top: scrollsY ? -Infinity : box.top,\n        bottom: scrollsY ? Infinity : box.bottom,\n      }), scrollX, scrollY };",
+      "kills": [
+        "tests/test_browser_unreadable.py::test_a_scrolled_pane_inside_a_scrolled_pane_loses_nothing"
+      ]
+    },
+    {
+      "name": "AT-393: clips are not intersected, so an inner box leaks past an outer one",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "    const narrow = (box) => (clip === null ? box : {\n      left: Math.max(clip.left, box.left),\n      right: Math.min(clip.right, box.right),\n      top: Math.max(clip.top, box.top),\n      bottom: Math.min(clip.bottom, box.bottom),\n    });",
+      "new": "    const narrow = (box) => box;",
+      "kills": [
+        "tests/test_browser_unreadable.py::test_a_pane_inside_a_clipping_box_does_not_leak_past_it"
+      ]
     }
   ]
 }

@@ -1,17 +1,23 @@
 KILLED  AT-379 reopens: a scrollable pane is treated as a hard clip again  (pytest exit 1)
     claims to kill : tests/test_browser_unreadable.py::test_text_below_the_fold_of_a_scrollable_pane_is_reported
-    actually failed: tests/test_browser_unreadable.py::test_a_pane_the_reader_already_scrolled_loses_nothing, tests/test_browser_unreadable.py::test_text_below_the_fold_of_a_scrollable_pane_is_reported
+    actually failed: tests/test_browser_unreadable.py::test_a_pane_the_reader_already_scrolled_loses_nothing, tests/test_browser_unreadable.py::test_a_scrolled_pane_inside_a_scrolled_pane_loses_nothing, tests/test_browser_unreadable.py::test_text_below_the_fold_of_a_scrollable_pane_is_reported
 KILLED  AT-379: the overflow:hidden boundary collapses - hidden panes count as scrollable  (pytest exit 1)
     claims to kill : tests/test_browser_unreadable.py::test_text_a_reader_cannot_see_is_not_reported[overflow-clipped], tests/test_browser_unreadable.py::test_text_below_the_fold_of_a_scrollable_pane_is_reported
     actually failed: tests/test_browser_unreadable.py::test_text_a_reader_cannot_see_is_not_reported[overflow-clipped], tests/test_browser_unreadable.py::test_text_below_the_fold_of_a_scrollable_pane_is_reported
 KILLED  AT-379: the scrollable axis is not unbounded, so the pane still clips downward  (pytest exit 1)
     claims to kill : tests/test_browser_unreadable.py::test_text_below_the_fold_of_a_scrollable_pane_is_reported
-    actually failed: tests/test_browser_unreadable.py::test_a_pane_the_reader_already_scrolled_loses_nothing, tests/test_browser_unreadable.py::test_text_below_the_fold_of_a_scrollable_pane_is_reported
+    actually failed: tests/test_browser_unreadable.py::test_a_pane_the_reader_already_scrolled_loses_nothing, tests/test_browser_unreadable.py::test_a_scrolled_pane_inside_a_scrolled_pane_loses_nothing, tests/test_browser_unreadable.py::test_text_below_the_fold_of_a_scrollable_pane_is_reported
 KILLED  AT-392: a vertically scrolled pane's earlier lines are dropped again  (pytest exit 1)
     claims to kill : tests/test_browser_unreadable.py::test_a_pane_the_reader_already_scrolled_loses_nothing
-    actually failed: tests/test_browser_unreadable.py::test_a_pane_the_reader_already_scrolled_loses_nothing
+    actually failed: tests/test_browser_unreadable.py::test_a_pane_the_reader_already_scrolled_loses_nothing, tests/test_browser_unreadable.py::test_a_scrolled_pane_inside_a_scrolled_pane_loses_nothing
 KILLED  AT-392: a horizontally scrolled pane's earlier columns are dropped again  (pytest exit 1)
     claims to kill : tests/test_browser_unreadable.py::test_a_pane_the_reader_already_scrolled_loses_nothing
     actually failed: tests/test_browser_unreadable.py::test_a_pane_the_reader_already_scrolled_loses_nothing
+KILLED  AT-408: the walk stops at the first clipping ancestor, so nested pane offsets are lost  (pytest exit 1)
+    claims to kill : tests/test_browser_unreadable.py::test_a_scrolled_pane_inside_a_scrolled_pane_loses_nothing
+    actually failed: tests/test_browser_unreadable.py::test_a_pane_inside_a_clipping_box_does_not_leak_past_it, tests/test_browser_unreadable.py::test_a_scrolled_pane_inside_a_scrolled_pane_loses_nothing
+KILLED  AT-393: clips are not intersected, so an inner box leaks past an outer one  (pytest exit 1)
+    claims to kill : tests/test_browser_unreadable.py::test_a_pane_inside_a_clipping_box_does_not_leak_past_it
+    actually failed: tests/test_browser_unreadable.py::test_a_pane_inside_a_clipping_box_does_not_leak_past_it
 
-5/5 mutations killed
+7/7 mutations killed

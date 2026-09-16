@@ -177,7 +177,7 @@
       "name": "AT-372: a masked TEXT RUN is reported in cleartext",
       "file": "src/autotester/browser/visual_order.js",
       "old": "      const glyphs = glyphsOf(node, reachOf(parent), true, masksText(parent));",
-      "new": "      const glyphs = glyphsOf(node, clipRect(parent), true, false);",
+      "new": "      const glyphs = glyphsOf(node, reachOf(parent), true, false);",
       "kills": [
         "tests/test_browser_unreadable.py::test_a_masked_run_is_reported_as_the_bullets_it_shows"
       ]

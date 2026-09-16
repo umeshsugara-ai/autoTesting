@@ -188,6 +188,16 @@ def test_a_pane_the_reader_already_scrolled_loses_nothing(page_factory) -> None:
     assert page.eval_on_selector("#pane", "el => el.scrollTop") > 0, "pane did not scroll"
     assert page.eval_on_selector("#hpane", "el => el.scrollLeft") > 0, "hpane did not scroll"
 
+    # AT-412: the `scrollY == 0` guard above catches a window ALREADY scrolled,
+    # and the checker measured that it does NOT catch the other drift — a spacer
+    # added above the panes makes the window scroll, the document-edge rule is
+    # satisfied by the window's own offset, and the mutation survives in silence.
+    # So the precondition is asserted directly: the pane's first line must
+    # actually reach a NEGATIVE viewport coordinate, which is the only state in
+    # which the accumulated-offset rule is load-bearing at all.
+    pane_bottom = page.eval_on_selector("#pane p", "el => el.getBoundingClientRect().bottom")
+    assert pane_bottom < 0, f"pane content never went negative ({pane_bottom})"
+
     scrolled = visual_text(page)
     assert sorted(scrolled) == sorted(at_origin)
     # Named explicitly too, so a failure says WHICH pane lost its text rather
@@ -195,3 +205,72 @@ def test_a_pane_the_reader_already_scrolled_loses_nothing(page_factory) -> None:
     for sentinel in ("SCROLLED_TOP_SENTINEL_D1", "SCROLLED_BOTTOM_SENTINEL_D2",
                      "SCROLLED_LEFT_SENTINEL_D3", "SCROLLED_RIGHT_SENTINEL_D4"):
         assert sentinel in scrolled, (sentinel, scrolled)
+
+
+def test_a_scrolled_pane_inside_a_scrolled_pane_loses_nothing(page_factory) -> None:
+    """AT-408 — the FOURTH occurrence of the pattern this module now documents
+    at the line itself.
+
+    `reachOf` stopped walking at the first ancestor that scrolled on ONE axis,
+    which is what an ordinary `overflow:auto` pane is. So a pane inside a
+    scrolled pane never saw the outer offset, and everything above the outer
+    scroll position silently vanished — in the module about to be wired into a
+    crawl that scrolls panes.
+
+    The offsets must ACCUMULATE. A reader scrolls both panes back and reads
+    every line of both."""
+    page, visit = page_factory
+    visit("scrolled_panes.html")
+
+    at_origin = visual_text(page)
+    assert "INNER_TOP_SENTINEL_E2" in at_origin, at_origin
+
+    page.eval_on_selector("#outer", "el => { el.scrollTop = el.scrollHeight; }")
+    page.eval_on_selector("#inner", "el => { el.scrollTop = el.scrollHeight; }")
+    assert page.eval_on_selector("#outer", "el => el.scrollTop") > 0, "outer did not scroll"
+    assert page.eval_on_selector("#inner", "el => el.scrollTop") > 0, "inner did not scroll"
+    # The precondition, asserted rather than assumed: only a negative viewport
+    # coordinate exercises the accumulated-offset rule.
+    inner_bottom = page.eval_on_selector("#inner p", "el => el.getBoundingClientRect().bottom")
+    assert inner_bottom < 0, f"inner content never went negative ({inner_bottom})"
+
+    scrolled = visual_text(page)
+
+    # Sorted-character equality is the whole assertion here, and a substring
+    # check would be WRONG rather than merely weaker. Scrolling the outer pane
+    # lands its own first line and the inner pane's on the same screen row, so
+    # the detector interleaves them — `OINUNTEERR__TTOOPP...` — which is exactly
+    # what a visual-order detector should do with two texts that overlap on
+    # screen. Nothing is lost; the reading order genuinely changed. Asserting
+    # `"INNER_TOP_SENTINEL_E2" in scrolled` would fail on correct behaviour.
+    assert sorted(scrolled) == sorted(at_origin)
+    # E3 sits alone on its row, so it survives as a substring and gives the
+    # failure message something legible to point at.
+    assert "INNER_BOTTOM_SENTINEL_E3" in scrolled, scrolled
+
+
+def test_a_pane_inside_a_clipping_box_does_not_leak_past_it(page_factory) -> None:
+    """AT-393 — the false positive cycle 1 of this unit introduced and then
+    misdescribed as pre-existing.
+
+    `reachOf` used to return at the first clipping ancestor, so an inner box's
+    bounds were the whole answer and an outer `overflow:hidden` was never
+    consulted. The inner box here does not overflow, so nothing can be scrolled
+    and the outer 40px band is all a reader will ever see.
+
+    The positive control is the inner box's own first line, on the same page and
+    in the same band: without it, a detector that reported nothing would satisfy
+    the negative assertion by itself."""
+    page, visit = page_factory
+    visit("scrolled_panes.html")
+
+    seen = visual_text(page)
+
+    assert "NESTCLIP_TOP_SENTINEL_F1" in seen, seen
+    assert "NESTCLIP_BELOW_SENTINEL_F2" not in seen, seen
+
+    # And the other direction, which needs a real INTERSECTION rather than
+    # "keep the outermost box": here the OUTER box is 300px tall and would show
+    # the line happily, and only the inner 30px box excludes it.
+    assert "INNERCLIP_TOP_SENTINEL_G1" in seen, seen
+    assert "INNERCLIP_BELOW_SENTINEL_G2" not in seen, seen
