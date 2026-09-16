@@ -150,7 +150,7 @@ def test_a_suite_split_across_files_is_still_one_suite(mutation_repo: Path) -> N
     assert "tests/test_mod_more.py::test_in_the_other_half" in result["failed"]
 
 
-# -- AT-324 / AT-325: a guard whose remedy works, and a sandbox that is cleaned --
+# -- AT-324: the ambiguity guard's own prescribed remedy ----------------------
 
 
 def test_a_kills_entry_may_be_the_full_nodeid_the_guard_asks_for(
@@ -166,76 +166,3 @@ def test_a_kills_entry_may_be_the_full_nodeid_the_guard_asks_for(
     assert result["killed"] is True
     assert result["expected"] == ["tests/test_mod.py::test_small_values_are_small"]
 
-
-def test_the_sandbox_is_removed_when_the_run_finishes(mutation_repo: Path) -> None:
-    """AT-325. Every run copied scripts/ tests/ src/ and left them behind; 1824
-    `mutation-check-*` trees had accumulated. C7 makes this instrument mandatory,
-    so the leak grows with every unit."""
-    import tempfile
-
-    before = set(Path(tempfile.gettempdir()).glob("mutation-check-*"))
-
-    check(spec(), mutation_repo)
-
-    assert set(Path(tempfile.gettempdir()).glob("mutation-check-*")) == before
-
-
-def test_the_sandbox_is_removed_even_when_the_run_is_refused(mutation_repo: Path) -> None:
-    """A refused run leaks just as much as a completed one — more often, since a
-    bad spec is the common case while an author is writing it."""
-    import tempfile
-
-    before = set(Path(tempfile.gettempdir()).glob("mutation-check-*"))
-
-    with pytest.raises(MutationError):
-        check(spec(mutation={"kills": ["test_does_not_exist"]}), mutation_repo)
-
-    assert set(Path(tempfile.gettempdir()).glob("mutation-check-*")) == before
-
-
-def test_cleanup_refuses_to_delete_anything_it_did_not_create(tmp_path: Path) -> None:
-    """The first AT-325 fix deleted `work.parent`, which is only correct while
-    `work` really is a sandbox. This module's own spec contains `work = repo`,
-    which would have turned cleanup into "delete the real tree's parent" — a
-    destructive operation keyed on an unverified path, which is AT-314 again.
-    """
-    from mutation_check import _discard
-
-    victim = tmp_path / "precious"
-    victim.mkdir()
-    (victim / "data.txt").write_text("keep me", encoding="utf-8")
-
-    with pytest.raises(MutationError, match="refusing to delete"):
-        _discard(victim)
-
-    assert (victim / "data.txt").read_text(encoding="utf-8") == "keep me"
-
-
-def test_cleanup_refuses_a_sandbox_shaped_name_outside_the_temp_dir(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """AT-329: the guard is `not under temp OR wrong prefix`, and the sibling
-    test above only exercises the PREFIX clause — it hands in a path already
-    inside temp, so dropping the under-temp clause survived it.
-
-    Reaching the other clause needs a path that is NOT under the temp dir, and
-    `tmp_path` always is — which is very likely why this half went undefended.
-    So the temp root is moved instead, leaving a directory whose name looks
-    exactly like a sandbox sitting outside it.
-    """
-    import tempfile
-
-    from mutation_check import _discard
-
-    impostor = tmp_path / "mutation-check-not-really"
-    impostor.mkdir()
-    (impostor / "data.txt").write_text("keep me", encoding="utf-8")
-
-    elsewhere = tmp_path / "a-different-temp-root"
-    elsewhere.mkdir()
-    monkeypatch.setattr(tempfile, "gettempdir", lambda: str(elsewhere))
-
-    with pytest.raises(MutationError, match="refusing to delete"):
-        _discard(impostor)
-
-    assert (impostor / "data.txt").read_text(encoding="utf-8") == "keep me"

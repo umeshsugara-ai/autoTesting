@@ -1,0 +1,172 @@
+"""The mutation instrument's SANDBOX: where it runs, and what it deletes.
+
+Split out of `test_mutation_check.py` (doctor's 300-line cap, by
+responsibility): that file is about what counts as a KILL -- attribution,
+anchors, red baselines, exit codes. This one is about the sandbox lifecycle,
+which is the half with a destructive operation in it.
+
+AT-325 was the leak (1824 abandoned trees). AT-329 was cleanup deleting a
+sandbox-shaped path it did not own. AT-357 is the pair of assertions that were
+written about the whole machine rather than about this run, so they went red
+whenever a second maker loop ran a mutation check -- which, with C7 making these
+runs mandatory, is the steady state.
+"""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+
+from mutation_check import MutationError, check
+from tests_mutation_fixtures import spec
+
+
+@pytest.fixture(autouse=True)
+def private_temp(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """A temp root belonging to THIS test, so leak assertions are not global.
+
+    AUTOUSE, and that is load-bearing rather than tidiness. Scoping it to the
+    three leak tests left every OTHER test in this file calling `check()`
+    against the machine-wide temp dir — and the mutation that makes cleanup
+    sweep by glob then deleted the outer mutation harness's own sandbox from
+    underneath it, mid-run, and the run died with a FileNotFoundError instead of
+    reporting a kill. The hazard being mutated reached out of the sandbox and
+    destroyed the instrument measuring it. Every test in this module is hermetic
+    now, which is also the honest reading of what "sandbox" was supposed to mean.
+
+
+    AT-357. These tests used to diff `gettempdir().glob("mutation-check-*")`
+    across the run, which is a statement about the whole machine: any OTHER
+    mutation run in flight changed that set and the test failed. Two maker loops
+    share this repo and C7 makes mutation runs mandatory, so concurrent runs are
+    the steady state rather than a rarity — the instrument that enforces C7 went
+    red precisely when C7 was being enforced somewhere else.
+
+    Pointing `tempfile.tempdir` at a per-test directory scopes the assertion to
+    this run's own sandbox. It is also STRICTER than what it replaces: the root
+    starts empty, so the test asserts emptiness rather than equality with a
+    `before` set that may already have held anything at all.
+    """
+    import tempfile
+
+    root = tmp_path / "temp-root"
+    root.mkdir()
+    monkeypatch.setattr(tempfile, "tempdir", str(root))
+    return root
+
+
+def test_the_sandbox_really_is_created_under_the_private_root(
+    mutation_repo: Path, private_temp: Path
+) -> None:
+    """Without this, every assertion below is VACUOUS.
+
+    `private_temp` earns its emptiness assertions only if the sandbox actually
+    lands inside it. Drop the `tempfile.tempdir` redirection and the sandboxes
+    go to the real temp dir instead — `private_temp` then holds nothing, the
+    "is removed" tests pass because an empty directory is empty, and a genuine
+    leak sails through. That is the shared-sentinel vacuity this repo has now
+    been bitten by twice, so it is pinned rather than trusted.
+    """
+    from mutation_check import _discard, _sandbox
+
+    _work, owned_root = _sandbox(mutation_repo)
+    try:
+        assert owned_root.is_relative_to(private_temp), owned_root
+    finally:
+        _discard(owned_root)
+
+
+def test_the_sandbox_is_removed_when_the_run_finishes(
+    mutation_repo: Path, private_temp: Path
+) -> None:
+    """AT-325. Every run copied scripts/ tests/ src/ and left them behind; 1824
+    `mutation-check-*` trees had accumulated. C7 makes this instrument mandatory,
+    so the leak grows with every unit."""
+    check(spec(), mutation_repo)
+
+    assert list(private_temp.iterdir()) == []
+
+
+def test_the_sandbox_is_removed_even_when_the_run_is_refused(
+    mutation_repo: Path, private_temp: Path
+) -> None:
+    """A refused run leaks just as much as a completed one — more often, since a
+    bad spec is the common case while an author is writing it."""
+    with pytest.raises(MutationError):
+        check(spec(mutation={"kills": ["test_does_not_exist"]}), mutation_repo)
+
+    assert list(private_temp.iterdir()) == []
+
+
+def test_a_concurrent_runs_sandbox_is_left_alone(
+    mutation_repo: Path, private_temp: Path
+) -> None:
+    """AT-357's other half, and the reason the fix is not merely "scope the test".
+
+    Cleanup deletes only the root its own `_sandbox` call returned — it never
+    sweeps by glob, because it cannot tell its own sandbox from a concurrent
+    run's. Nothing pinned that. A future "tidy up the leftovers" sweep would
+    look exactly like a fix for AT-325 and would delete another loop's LIVE
+    sandbox mid-run: a destructive operation keyed on a path this process does
+    not own, which is AT-314's shape wearing different clothes.
+    """
+    decoy = private_temp / "mutation-check-someone-elses-live-run"
+    decoy.mkdir()
+    (decoy / "repo").mkdir()
+
+    check(spec(), mutation_repo)
+
+    assert decoy.is_dir(), "cleanup deleted a sandbox it did not create"
+    assert list(private_temp.iterdir()) == [decoy]
+
+
+def test_cleanup_refuses_to_delete_anything_it_did_not_create(tmp_path: Path) -> None:
+    """The first AT-325 fix deleted `work.parent`, which is only correct while
+    `work` really is a sandbox. This module's own spec contains `work = repo`,
+    which would have turned cleanup into "delete the real tree's parent" — a
+    destructive operation keyed on an unverified path, which is AT-314 again.
+    """
+    from mutation_check import _discard
+
+    victim = tmp_path / "precious"
+    victim.mkdir()
+    (victim / "data.txt").write_text("keep me", encoding="utf-8")
+
+    with pytest.raises(MutationError, match="refusing to delete"):
+        _discard(victim)
+
+    assert (victim / "data.txt").read_text(encoding="utf-8") == "keep me"
+
+
+def test_cleanup_refuses_a_sandbox_shaped_name_outside_the_temp_dir(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AT-329: the guard is `not under temp OR wrong prefix`, and the sibling
+    test above only exercises the PREFIX clause — it hands in a path already
+    inside temp, so dropping the under-temp clause survived it.
+
+    Reaching the other clause needs a path that is NOT under the temp dir, and
+    `tmp_path` always is — which is very likely why this half went undefended.
+    So the temp root is moved instead, leaving a directory whose name looks
+    exactly like a sandbox sitting outside it.
+    """
+    import tempfile
+
+    from mutation_check import _discard
+
+    impostor = tmp_path / "mutation-check-not-really"
+    impostor.mkdir()
+    (impostor / "data.txt").write_text("keep me", encoding="utf-8")
+
+    elsewhere = tmp_path / "a-different-temp-root"
+    elsewhere.mkdir()
+    monkeypatch.setattr(tempfile, "gettempdir", lambda: str(elsewhere))
+
+    with pytest.raises(MutationError, match="refusing to delete"):
+        _discard(impostor)
+
+    assert (impostor / "data.txt").read_text(encoding="utf-8") == "keep me"
