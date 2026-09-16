@@ -16,6 +16,7 @@
 | `cli.py` | Command line. Every action the UI offers is available here first. |
 | `cli_crawl.py` | Crawl commands — `autotester explore` and `autotester report crawl`. |
 | `cli_issues.py` | `autotester issues` — turn an analysis into the sheet a human tester reads. |
+| `cli_loop.py` | `autotester loop-status` — was the maker-checker loop alive, and if not, on purpose? |
 | `cli_video.py` | `autotester ingest` — register a recording and learn a FlowSpec from it. |
 | `core/consent.py` | The consent gate (D-018): nothing outward-facing starts without a human's |
 | `core/env.py` | Load the repo-root `.env` — one definition, used by every entry point. |
@@ -28,6 +29,7 @@
 | `ledger/relitigation.py` | The cyclic-rebuild gate: is this new unit a retired feature coming back? |
 | `ledger/render.py` | Derive the living docs from code and the ledger. Nothing here is hand-typed. |
 | `ledger/store.py` | Read and append `docs/FEATURES.jsonl`. The only write path to the ledger. |
+| `loop_status.py` | Is the maker-checker loop alive, and if it stopped, was that on purpose? |
 | `media/chunks.py` | Split a recording into overlapping chunks a vision model can actually read. |
 | `media/frames.py` | Pull a single still out of a recording, at a second the model named. |
 | `media/probe.py` | Ask ffmpeg what a recording actually is, and whether ffmpeg is here at all. |

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import typer
 
-from autotester import cli_crawl, cli_issues, cli_video, providers
+from autotester import cli_crawl, cli_issues, cli_loop, cli_video, providers
 from autotester import doctor as doctor_module
 from autotester.core.env import load_repo_env
 from autotester.core.paths import RepoDocs
@@ -284,6 +284,7 @@ def report_html(
     typer.secho(f"wrote {path}", fg=typer.colors.GREEN)
 
 
+app.command("loop-status")(cli_loop.loop_status_cmd)
 app.command("explore")(cli_crawl.explore_cmd)
 app.command("approve")(cli_crawl.approve_cmd)
 report_app.command("crawl")(cli_crawl.report_crawl)
