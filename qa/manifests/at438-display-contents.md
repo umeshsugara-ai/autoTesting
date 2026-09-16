@@ -4,9 +4,94 @@
 **Contract:** `qa/contracts/ui.md` (U13) · `qa/contracts/core-invariants.md` (C2, C7)
 **Goal task:** none (issue-driven)
 **Date:** 2026-09-16
-**Fix cycle:** 2 of max 3
+**Fix cycle:** 3 of max 3 — **the last one**
 **Dual check:** no
-**Issues addressed:** AT-438 (open → fixed) · **AT-442** (high, cycle-1 FAIL: the probe restarted author animations) · **AT-443** (medium, cycle-1: author `:empty` hid the probe) · **AT-445** (low, cycle-1: `appendChild` throwing / `remove()` patched), which no longer applies because nothing is inserted
+**Issues addressed:** AT-438 (open → fixed) · **AT-442** (high, cycle-1 FAIL: the probe restarted author animations) · **AT-443** (medium, cycle-1: author `:empty` hid the probe) · **AT-445** (low, cycle-1: `appendChild` throwing / `remove()` patched), which no longer applies because nothing is inserted · **AT-449** (medium, cycle-2 FAIL: <details> judged by its tag) · **AT-450** (low, cycle-2: four false positives, fixed here too)
+
+## Cycle 3: I swapped one hand-written list for another
+
+The cycle-2 verdict confirmed the detector really does write nothing now, and that AT-442, AT-443
+and AT-445 no longer reproduce. It then failed the unit under the new contract criterion **U14(b)**,
+which ranks missed text above false positives:
+
+> **AT-449 (medium).** The walk decides a closed `<details>` by its tag (`DETAILS && !open`), not by
+> what actually hides the body. An author rule `details::details-content{content-visibility:visible}`
+> (a responsive accordion expanded on desktop) paints `display:contents` text, and `visual_text`
+> drops it. The cycle-1 probe reported it.
+
+It also filed **AT-450**: four false positives that were new relative to the probe (a second
+`<summary>`, a closed `<details style=display:contents>`, and a child slotted into a closed
+`<details>` or a `content-visibility:hidden` box inside a shadow root).
+
+The cause is the one this module keeps teaching. The check trusted what an element **is** (its tag,
+its `open` attribute) instead of what the browser **does** with it. Authors restyle `<details>`, and
+a tag can't tell you that.
+
+### The fix is the browser's own answer, and it is measured
+
+- **`<details>` is judged by `getComputedStyle(box, '::details-content').contentVisibility`**, not by
+  `!open`. That pseudo-element holds the body, and its computed `content-visibility` is what the
+  browser actually applies, including an author override. The cycle-2 checker measured that it
+  matches the screenshot for closed, open, the author override, and `details{display:contents}`.
+- **Only the FIRST `<summary>` is exempt** (`box.querySelector(":scope > summary")`). A second
+  `<summary>` is ordinary body content.
+- **The `<details>` check runs BEFORE `display:contents` ancestors are skipped**, so a closed
+  `<details>` that is itself `display:contents` still hides its body.
+- **The walk follows the flat tree** (`assignedSlot`, then `parentElement`, then the shadow host). A
+  slot sitting inside a closed `<details>` in a shadow root hides whatever is slotted through it, and
+  `parentElement` jumps straight past that.
+
+### Scored on the checker's 60 layouts, against every earlier version
+
+I added my candidate as a fourth version to the cycle-2 checker's own harness (`moded2.py`,
+screenshot ground truth made by replacing the text node). It then ran on exactly the pages that
+failed the unit:
+
+| version | ok | false negatives | false positives |
+|---|---|---|---|
+| pre-AT-438 | 38/60 | 22 | 0 |
+| cycle-1 probe | 55/60 | 2 | 3 |
+| cycle 2 | 52/60 | 1 | 7 |
+| **cycle 3** | **57/60** | **0** | 3 |
+
+**There is no layout where cycle 3 is wrong and an earlier version is right** (computed from the
+harness output). Relative to cycle 2 it fixes **AT-449** (the charged false negative) and **all four
+AT-450** false positives, and it changes nothing else. The 3 layouts it still gets wrong are the
+`contain:paint` / `clip-path` flex and grid boxes. That is **AT-451**, which the cycle-1 probe and
+cycle 2 also get wrong, and which the checker filed as pre-existing and did not charge. It has **zero
+false negatives**, the class U14(b) ranks first.
+
+### What changed in cycle 3
+
+- `src/autotester/browser/visual_order.js`: new `flatParent(node)`. `contentsRenders` walks the flat
+  tree, judges `<details>` by `::details-content`, exempts only the first `<summary>`, and checks
+  `<details>` before skipping `contents` ancestors. The `HIDES_ON` comment was shortened (every fact
+  kept, including the pointer to `groundtruth.py`). The `reachOf` block, gated on AT-416, is
+  **byte-identical** (diffed). **300 lines.**
+- `tests/fixtures/bidi_site/cvcontents.html`: four rows. **S10** is an author-expanded accordion
+  (must be reported), with the `::details-content` override scoped by id so it cannot change the
+  plain closed-details row. **S11** is a second `<summary>`, **S12** is `details{display:contents}`,
+  and **S13** is a slot inside a closed `<details>` in a shadow root; all three must not be reported.
+- `tests/test_browser_visual_order.py`: the four sentinels are added to the test's shown and hidden
+  lists. 295 lines.
+- `qa/evidence/at438-display-contents/mutations.json`: **9 rows**, one per claim (below).
+
+### Every new claim has its own mutation
+
+| capability | falsifying edit | observed |
+|---|---|---|
+| visible `display:contents` text is reported (AT-438) | drop `&& !contentsRenders(el)` | KILLED |
+| a closed `<details>` does not leak its body | remove the `<details>` check | KILLED |
+| a `content-visibility:hidden` box does not leak | the final check always `return true` | KILLED |
+| **AT-449:** `<details>` is judged by `::details-content`, not its tag | go back to `!box.open` | KILLED |
+| **AT-450:** only the FIRST `<summary>` is exempt | exempt every `SUMMARY` | KILLED |
+| **AT-450:** `<details>` is checked before `contents` is skipped | skip `contents` first | KILLED |
+| **AT-450:** the walk follows the flat tree | `flatParent` returns `parentElement` | KILLED |
+| **AT-443:** no inserted node (`:empty` cannot hide it) | the cycle-1 probe `<span>` | KILLED |
+| **AT-442:** no inserted node (`:last-child` cannot restart an animation) | a non-empty probe | KILLED |
+
+Every row is a single-hunk edit to `src/autotester/browser/visual_order.js`. Each one names the one
+test that pins the behaviour, and each is killed.
 
 ## Cycle 2: my fix changed the page it was observing
 
@@ -214,28 +299,28 @@ Each row is a single-hunk edit to `src/autotester/browser/visual_order.js`, whic
 claim that walking up would have leaked is a measured result the checker can re-run, not an argument.
 
 ```
-$ uv run python scripts/mutation_check.py qa/evidence/at438-display-contents/mutations.json
+$ uv run python scripts/mutation_check.py qa/evidence/at438-display-contents/mutations.json   (cycle 3)
 KILLED  AT-438 reopens: display:contents text is dropped by checkVisibility again  (pytest exit 1)
-    claims to kill : …[contents], …test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor
-    actually failed: …[contents], …test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor
-KILLED  the measured trap: walk up to the nearest box instead of probing, so closed <details> / cv:hidden leak  (pytest exit 1)
-    claims to kill : …test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor
-    actually failed: …test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor
-KILLED  the probe span is never removed, so observing the page changes it  (pytest exit 1)
-    claims to kill : …test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor
-    actually failed: …test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor
-3/3 mutations killed
+KILLED  walk-up trap: no <details> check, so a closed details (visible itself) leaks its body  (pytest exit 1)
+KILLED  walk-up trap: no content-visibility check, so a cv:hidden box leaks its contents  (pytest exit 1)
+KILLED  AT-449 reopens: <details> judged by its TAG (!open), so an author-expanded accordion's text is dropped  (pytest exit 1)
+KILLED  AT-450: every <summary> is exempt, so a SECOND summary (really body content) leaks  (pytest exit 1)
+KILLED  AT-450: display:contents is skipped BEFORE the details check, so details{display:contents} leaks  (pytest exit 1)
+KILLED  AT-450: the walk follows parentElement, not the flat tree, so a slot inside a shadow-root closed details leaks  (pytest exit 1)
+KILLED  AT-443: the cycle-1 probe <span> returns - author :empty hides it, visible contents text is dropped  (pytest exit 1)
+KILLED  AT-442: a NON-empty probe returns - :last-child matches it and the author's animation restarts  (pytest exit 1)
+9/9 mutations killed
 ```
 
 ## How to verify (commands + expected)
 
-- `uv run pytest` → expected: `1316 passed, 2 skipped, 32 xfailed`. That is **one fewer xfail** than
+- `uv run pytest` → expected: `1323 passed, 2 skipped, 32 xfailed`. That is **one fewer xfail** than
   before, because the AT-438 xfail was removed; the 32 left are the scroll-invariance layouts.
   *(`uv run pytest -q` resolves to `-qq` and suppresses the summary line.)*
 - `uv run ruff check src tests scripts` → `All checks passed!`
 - `uv run autotester doctor` → `doctor: clean`. Doctor does not measure `.js` files (AT-419), so count
-  `visual_order.js` by hand: **298**.
-- `uv run python scripts/mutation_check.py qa/evidence/at438-display-contents/mutations.json` → `5/5`
+  `visual_order.js` by hand: **300**.
+- `uv run python scripts/mutation_check.py qa/evidence/at438-display-contents/mutations.json` → `9/9`
 - **Regression on every spec for this module:** at429 `4/4`, at358 `21/21`, at410 `1/1`, at379 `7/7`,
   at423 `3/3`.
 
@@ -249,7 +334,7 @@ $ uv run autotester doctor
 doctor: clean
 
 $ wc -l src/autotester/browser/visual_order.js
-298 src/autotester/browser/visual_order.js
+300 src/autotester/browser/visual_order.js
 
 $ diff <(git show c687b73:…visual_order.js | sed -n '/const SCROLLS/,/function isReachable/p') <(sed -n … current)
 reachOf (gated) byte-identical
@@ -260,7 +345,7 @@ $ uv run pytest "tests/test_browser_visual_order.py::test_display_contents_text_
 1 passed in 1.24s
 
 $ mutation specs
-at438-display-contents                 5/5 mutations killed
+at438-display-contents                 9/9 mutations killed
 at429-content-visibility-hidden        4/4 mutations killed
 at358-visual-order-detector            21/21 mutations killed
 at410-first-glyph-content-visibility   1/1 mutations killed
@@ -268,10 +353,10 @@ at379-scrollable-pane-reachability     7/7 mutations killed
 at423-scroll-invariance-probe          3/3 mutations killed
 
 $ uv run pytest
-1316 passed, 2 skipped, 32 xfailed, 1 warning in 342.72s (0:05:42)
+1323 passed, 2 skipped, 32 xfailed, 1 warning in 427.44s (0:07:07)
 ```
 
-The `1316` includes tests from the other maker loop, which shares this working tree. This unit adds
+The `1323` includes tests from the other maker loop, which shares this working tree. This unit adds
 one test and turns one xfail into a pass.
 
 ## Live browser evidence
@@ -289,10 +374,11 @@ No product page, template or route changed.
 - **It does not fix AT-440** (five hiding display types missing from the `content-visibility`
   allow-list, which leads to false positives).
 - **It does not touch `reachOf`** (gated on AT-416).
-- **`visual_order.js` is at 298 of its 300-line cap.** The next change to this file will need to trim
+- **`visual_order.js` is at exactly its 300-line cap.** The next change to this file will need to trim
   or split it. AT-419 means doctor would not warn about that, so this manifest does.
 - **It does not fix AT-444** (`opacity:0` set on a `display:contents` element itself: the text still
   paints, and both old and new code drop it) or **AT-418** (`clip-path`). Both are pre-existing, and
   both show as wrong on the checker's harness for the old code too.
+- **It does not fix AT-451** (a zero-height `contain:paint` / `clip-path` flex or grid box reports its hidden child). It is pre-existing and wrong in the cycle-1 probe and cycle 2 alike; these are the 3 layouts cycle 3 still gets wrong.
 
 ## Status: ready-for-check

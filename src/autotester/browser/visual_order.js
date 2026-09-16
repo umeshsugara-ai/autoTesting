@@ -55,18 +55,23 @@
   }
 
   // display:contents has no box, so checkVisibility() on it is false though its text
-  // paints (AT-438). Ask the nearest BOX and how a visible box hides its own contents.
-  // NEVER insert a probe: author :last-child/:has()/:empty match it (AT-442/443).
+  // paints (AT-438). Ask the nearest BOX in the FLAT tree (slots, shadow hosts) and how
+  // a visible box hides its own contents. <details> is judged by `::details-content`,
+  // never its tag: authors restyle it (AT-449). NEVER insert a probe (AT-442/443).
+  function flatParent(node) {
+    return node.assignedSlot || node.parentElement || (node.parentNode && node.parentNode.host) || null;
+  }
+
   function contentsRenders(el) {
     if (window.getComputedStyle(el).display !== "contents") return false;
     let child = el;
-    for (let box = el.parentElement; box; child = box, box = box.parentElement) {
+    for (let box = flatParent(el); box; child = box, box = flatParent(box)) {
       const s = window.getComputedStyle(box);
+      if (box.tagName === "DETAILS" && child !== box.querySelector(":scope > summary") &&
+          window.getComputedStyle(box, "::details-content").contentVisibility === "hidden") return false;
       if (s.display === "contents") continue;
       if (!box.checkVisibility()) return false;
-      if (s.contentVisibility === "hidden" && HIDES_ON.test(s.display)) return false;
-      if (box.tagName === "DETAILS" && !box.open && child.tagName !== "SUMMARY") return false;
-      return true;
+      return !(s.contentVisibility === "hidden" && HIDES_ON.test(s.display));
     }
     return false;
   }
@@ -83,13 +88,10 @@
     // DEFAULT options on purpose: opacity/visibility flags would subsume the rules
     // below, and a rule another rule covers cannot be falsified (C7).
     if (el.checkVisibility && !el.checkVisibility() && !contentsRenders(el)) return false;
-    // `checkVisibility()` misses text whose own PARENT is `content-visibility:
-    // hidden` (AT-429; the ancestor case is already its). But `hidden` only hides
-    // on a box that takes containment, and computed style says `hidden` either
-    // way: on inline, ruby, table rows, `table` itself and `contents`, Chromium
-    // PAINTS the text (AT-437). HIDES_ON is measured by screenshot diff, see
-    // qa/evidence/at429-content-visibility-hidden/groundtruth.py. An ALLOW-list:
-    // an unmeasured display is reported — a false positive, never a missed credential.
+    // checkVisibility() misses text whose own PARENT is content-visibility:hidden
+    // (AT-429). Computed style says `hidden` even where Chromium still PAINTS (inline,
+    // ruby, table rows, `table`, `contents`: AT-437), so HIDES_ON is a MEASURED allow-list
+    // (at429 groundtruth.py): an unmeasured display is reported, never a missed credential.
     if (style.contentVisibility === "hidden" && HIDES_ON.test(style.display)) return false;
     // A zero alpha paints a box and shows nothing (AT-363). Anchored to the
     // FOUR-component form on purpose: the first regex also matched `rgb(0,0,0)`

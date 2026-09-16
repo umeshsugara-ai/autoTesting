@@ -15,19 +15,55 @@
       ]
     },
     {
-      "name": "walk-up trap: a closed <details> is visible itself, so its contents leak",
+      "name": "walk-up trap: no <details> check, so a closed details (visible itself) leaks its body",
       "file": "src/autotester/browser/visual_order.js",
-      "old": "      if (box.tagName === \"DETAILS\" && !box.open && child.tagName !== \"SUMMARY\") return false;",
+      "old": "      if (box.tagName === \"DETAILS\" && child !== box.querySelector(\":scope > summary\") &&\n          window.getComputedStyle(box, \"::details-content\").contentVisibility === \"hidden\") return false;",
       "new": "      // details check removed",
       "kills": [
         "tests/test_browser_visual_order.py::test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor"
       ]
     },
     {
-      "name": "walk-up trap: a content-visibility:hidden box is visible itself, so its contents leak",
+      "name": "walk-up trap: no content-visibility check, so a cv:hidden box leaks its contents",
       "file": "src/autotester/browser/visual_order.js",
-      "old": "      if (s.contentVisibility === \"hidden\" && HIDES_ON.test(s.display)) return false;",
-      "new": "      // content-visibility check removed",
+      "old": "      return !(s.contentVisibility === \"hidden\" && HIDES_ON.test(s.display));",
+      "new": "      return true;",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor"
+      ]
+    },
+    {
+      "name": "AT-449 reopens: <details> judged by its TAG (!open), so an author-expanded accordion's text is dropped",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "          window.getComputedStyle(box, \"::details-content\").contentVisibility === \"hidden\") return false;",
+      "new": "          !box.open) return false;",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor"
+      ]
+    },
+    {
+      "name": "AT-450: every <summary> is exempt, so a SECOND summary (really body content) leaks",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "      if (box.tagName === \"DETAILS\" && child !== box.querySelector(\":scope > summary\") &&",
+      "new": "      if (box.tagName === \"DETAILS\" && child.tagName !== \"SUMMARY\" &&",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor"
+      ]
+    },
+    {
+      "name": "AT-450: display:contents is skipped BEFORE the details check, so details{display:contents} leaks",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "      const s = window.getComputedStyle(box);",
+      "new": "      const s = window.getComputedStyle(box);\n      if (s.display === \"contents\") continue;",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor"
+      ]
+    },
+    {
+      "name": "AT-450: the walk follows parentElement, not the flat tree, so a slot inside a shadow-root closed details leaks",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "    return node.assignedSlot || node.parentElement || (node.parentNode && node.parentNode.host) || null;",
+      "new": "    return node.parentElement;",
       "kills": [
         "tests/test_browser_visual_order.py::test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor"
       ]
@@ -35,17 +71,17 @@
     {
       "name": "AT-443: the cycle-1 probe <span> returns - author :empty hides it, visible contents text is dropped",
       "file": "src/autotester/browser/visual_order.js",
-      "old": "    let child = el;\n    for (let box = el.parentElement; box; child = box, box = box.parentElement) {",
-      "new": "    const probe = document.createElement(\"span\");\n    el.appendChild(probe);\n    try { return probe.checkVisibility(); } finally { probe.remove(); }\n    let child = el;\n    for (let box = el.parentElement; box; child = box, box = box.parentElement) {",
+      "old": "    let child = el;\n    for (let box = flatParent(el); box; child = box, box = flatParent(box)) {",
+      "new": "    const probe = document.createElement(\"span\");\n    el.appendChild(probe);\n    try { return probe.checkVisibility(); } finally { probe.remove(); }\n    let child = el;\n    for (let box = flatParent(el); box; child = box, box = flatParent(box)) {",
       "kills": [
         "tests/test_browser_visual_order.py::test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor"
       ]
     },
     {
-      "name": "AT-442: a NON-empty probe returns - :last-child now matches it and the author's animation restarts",
+      "name": "AT-442: a NON-empty probe returns - :last-child matches it and the author's animation restarts",
       "file": "src/autotester/browser/visual_order.js",
-      "old": "    let child = el;\n    for (let box = el.parentElement; box; child = box, box = box.parentElement) {",
-      "new": "    const probe = document.createElement(\"i\");\n    probe.textContent = \" \";\n    el.appendChild(probe);\n    try { return probe.checkVisibility(); } finally { probe.remove(); }\n    let child = el;\n    for (let box = el.parentElement; box; child = box, box = box.parentElement) {",
+      "old": "    let child = el;\n    for (let box = flatParent(el); box; child = box, box = flatParent(box)) {",
+      "new": "    const probe = document.createElement(\"i\");\n    probe.textContent = \" \";\n    el.appendChild(probe);\n    try { return probe.checkVisibility(); } finally { probe.remove(); }\n    let child = el;\n    for (let box = flatParent(el); box; child = box, box = flatParent(box)) {",
       "kills": [
         "tests/test_browser_visual_order.py::test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor"
       ]

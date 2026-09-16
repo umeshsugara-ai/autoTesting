@@ -278,15 +278,16 @@ def test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor(page_
     before = page.evaluate(clock)
 
     seen = visual_text(page)
-    for shown in ("CONTENTS_PLAIN_S1", "CONTENTS_OPENDETAILS_S2",
-                  "CONTENTS_ANIMATED_S6", "LASTCHILD_SIBLING_S7"):
+    for shown in ("CONTENTS_PLAIN_S1", "CONTENTS_OPENDETAILS_S2", "CONTENTS_ANIMATED_S6",
+                  "LASTCHILD_SIBLING_S7", "CONTENTS_ACCORDION_S10"):
         assert shown in seen, (shown, seen)
     # S8/S9 (unslotted shadow child, <select> child) are never laid out, so every
     # glyph measures 0 wide and the width guard drops them -- measured. They are
     # asserted here as boundaries, NOT credited to contentsRenders: branches for
     # them were written, their mutations SURVIVED, and they were deleted as dead.
     for hidden in ("CONTENTS_CLOSEDDETAILS_S3", "CONTENTS_CVHIDDEN_S4", "CONTENTS_DISPLAYNONE_S5",
-                   "CONTENTS_UNSLOTTED_S8", "CONTENTS_INSELECT_S9"):
+                   "CONTENTS_UNSLOTTED_S8", "CONTENTS_INSELECT_S9", "CONTENTS_SECONDSUMMARY_S11",
+                   "CONTENTS_DETAILSCONTENTS_S12", "CONTENTS_SLOTINCLOSED_S13"):
         assert hidden not in seen, (hidden, seen)
     # AT-442: observing must not RESTART the author's animation. innerHTML cannot
     # see this -- a transient node leaves it byte-identical -- so the clock is read.

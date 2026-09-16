@@ -17,6 +17,9 @@
   @keyframes fin { from { opacity: 0 } 2% { opacity: 1 } to { opacity: 1 } }
   #anim > b:last-child { animation: fin 100s linear }
   span:empty { display: none }
+  /* AT-449: a responsive accordion expanded on desktop. Scoped by id so it cannot
+     change the plain closed-details case above. */
+  #accordion::details-content { content-visibility: visible }
 </style>
 <p>Quarterly report for the trainers list</p>
 <div style="margin:40px 0"><div style="display:contents">CONTENTS_PLAIN_S1</div></div>
@@ -36,4 +39,17 @@
   inSelect.style.display = "contents";
   inSelect.textContent = "CONTENTS_INSELECT_S9";
   document.getElementById("sel").appendChild(inSelect);
+</script>
+<!-- AT-449 / AT-450. <details> is judged by what hides its body, never by its tag:
+     an author can make a CLOSED details show its body, only the FIRST <summary> is
+     the summary, and a details that is itself display:contents still hides its body.
+     A slot sitting inside a closed details INSIDE a shadow root hides the child
+     slotted through it, so the walk follows the flat tree, not parentElement. -->
+<div style="margin:40px 0"><details id="accordion"><summary>acc</summary><div style="display:contents">CONTENTS_ACCORDION_S10</div></details></div>
+<div style="margin:40px 0"><details><summary>first</summary><summary style="display:contents">CONTENTS_SECONDSUMMARY_S11</summary></details></div>
+<div style="margin:40px 0"><details style="display:contents"><summary>dc</summary><div style="display:contents">CONTENTS_DETAILSCONTENTS_S12</div></details></div>
+<div style="margin:40px 0"><div id="shost"><div style="display:contents">CONTENTS_SLOTINCLOSED_S13</div></div></div>
+<script>
+  document.getElementById("shost").attachShadow({ mode: "open" }).innerHTML =
+    "<details><summary>in shadow</summary><slot></slot></details>";
 </script>
