@@ -1,0 +1,104 @@
+{
+ "instrument": "headed Playwright Python (chromium)",
+ "server": "uvicorn from copy, port 8047",
+ "autotester_root": "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\checker-at452-root",
+ "module_file": "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\checker-at452\\src\\autotester\\ui\\routes_credentials.py",
+ "target": "http://127.0.0.1:46661/index.html",
+ "steps": [
+  {
+   "step": "seeded-mix",
+   "card_text": "Approvals in force\nSIGNED BY\tSCOPE\tMAX ACTIONS\tWALL CLOCK\tEXPIRES (UTC)\tID\nSignerInForce\tin force scope\t5\t30s\t2099-01-01T00:00:00+00:00\tappr_9124f6275868\n\n3 more on file are expired, edited after granting, or for another target, and are not honoured.",
+   "note_number": 3,
+   "expected_number": 3,
+   "listed_ok": true,
+   "absent_ok": true,
+   "console_errors": 0,
+   "pass": true
+  },
+  {
+   "step": "after-ui-save",
+   "card_text": "Approvals in force\n\n\u2713 CRAWL APPROVAL SAVED It is in force and listed below. appr_fe37cf374457\n\nSIGNED BY\tSCOPE\tMAX ACTIONS\tWALL CLOCK\tEXPIRES (UTC)\tID\nSignerInForce\tin force scope\t5\t30s\t2099-01-01T00:00:00+00:00\tappr_9124f6275868\nSignerUI\tui saved scope\t200\t600s\t2099-06-01T04:30:00+00:00\tappr_fe37cf374457\n\n3 more on file are expired, edited after granting, or for another target, and are not honoured.",
+   "note_number": 3,
+   "expected_number": 3,
+   "listed_ok": true,
+   "absent_ok": true,
+   "console_errors": 0,
+   "pass": true
+  },
+  {
+   "step": "probe-other-project-crawl-same-target",
+   "card_text": "Approvals in force\nSIGNED BY\tSCOPE\tMAX ACTIONS\tWALL CLOCK\tEXPIRES (UTC)\tID\nSignerInForce\tin force scope\t5\t30s\t2099-01-01T00:00:00+00:00\tappr_9124f6275868\nSignerUI\tui saved scope\t200\t600s\t2099-06-01T04:30:00+00:00\tappr_fe37cf374457\n\n4 more on file are expired, edited after granting, or for another target, and are not honoured.",
+   "note_number": 4,
+   "expected_number": 4,
+   "listed_ok": true,
+   "absent_ok": true,
+   "console_errors": 0,
+   "pass": true,
+   "wording_probe": "an intact unexpired CRAWL grant whose project field names another project, same exact target: counted under 'expired, edited after granting, or for another target'"
+  }
+ ],
+ "console_errors_total": [],
+ "disk_rows": [
+  {
+   "by": "SignerRead",
+   "kind": "read",
+   "project": "regression-demo",
+   "intact": true
+  },
+  {
+   "by": "SignerAdv",
+   "kind": "adversarial",
+   "project": "regression-demo",
+   "intact": true
+  },
+  {
+   "by": "SignerLive",
+   "kind": "live_case",
+   "project": "regression-demo",
+   "intact": true
+  },
+  {
+   "by": "SignerReadOtherTarget",
+   "kind": "read",
+   "project": "regression-demo",
+   "intact": true
+  },
+  {
+   "by": "SignerExpired",
+   "kind": "crawl",
+   "project": "regression-demo",
+   "intact": true
+  },
+  {
+   "by": "SignerEdited",
+   "kind": "crawl",
+   "project": "regression-demo",
+   "intact": false
+  },
+  {
+   "by": "SignerOtherTarget",
+   "kind": "crawl",
+   "project": "regression-demo",
+   "intact": true
+  },
+  {
+   "by": "SignerInForce",
+   "kind": "crawl",
+   "project": "regression-demo",
+   "intact": true
+  },
+  {
+   "by": "SignerUI",
+   "kind": "crawl",
+   "project": "regression-demo",
+   "intact": true
+  },
+  {
+   "by": "SignerOtherProject",
+   "kind": "crawl",
+   "project": "another-project",
+   "intact": true
+  }
+ ],
+ "all_steps_pass": true
+}
