@@ -312,4 +312,26 @@ old; the consequence is new. The direction is the deliberate one — a false pos
 star's false-positive term, a false negative costs a missed credential — but calling a new cost an
 old one is the kind of disclosure error this unit has now been charged for twice.
 
-## Status: ready-for-check
+## Status: STALLED (3 of 3 fix cycles spent; verdict qa/verdicts/at379-scrollable-pane-reachability.md)
+
+**What is still failing — AT-416 (high).** The running clip intersection added in cycle 3 to close
+AT-393 **re-opened AT-379**. The outer clip now binds against the glyph's *current position* rather
+than against the scroll container that can move it, so a scrollable pane inside any ordinary
+`overflow:hidden` card drops everything below its own fold again. The checker measured it at rest,
+after scrolling the pane into the band, and against the pre-cycle-3 walk on the same page.
+
+**So `AT-379 (open → fixed — both halves now)` in the header of this manifest is NOT true.** AT-379
+stays open until AT-416 closes. The line above it is left as written rather than quietly edited,
+because a manifest that revises its own claims after a verdict is a manifest nobody can audit.
+
+**This is the fifth time this one line has been wrong in the same direction** — AT-373, AT-379,
+AT-392, AT-408, now AT-416 — and every one was a fix for false positives that manufactured a false
+negative of the AT-355 shape. Four cycles of the same reasoning have now produced four versions of
+the same defect, which is the argument for stopping rather than trying a fifth.
+
+**The remedy is a direction call, not another attempt.** The two options trade the north star's own
+terms against each other and are recorded in `qa/gates/at416-clip-vs-reach-direction.md`.
+
+**Not fixed, still open, both inherited by the crawl-wiring unit:** AT-416 and AT-410. Also open
+from this cycle's check: AT-417 (a clip-path ancestor that also scrolls never contributes its own
+offset — pre-existing, uncharged) and AT-419 (`autotester doctor` never measured this file at all).
