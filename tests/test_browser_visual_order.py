@@ -170,3 +170,30 @@ def test_measuring_the_page_leaves_it_exactly_as_it_was(page_factory) -> None:
 
     assert first == second
     assert page.eval_on_selector_all("body > span", "els => els.length") == 0
+
+
+def test_the_first_call_on_a_content_visibility_subtree_drops_no_glyph(page_factory) -> None:
+    """AT-410: a first-glyph drop in the SHIPPING detector, not a fixture quirk.
+
+    `content-visibility:auto` lets the browser skip rendering an off-screen
+    subtree. The first `Range.getBoundingClientRect()` inside it returns all
+    zeros, the zero-width guard dropped that glyph, and the query itself forces
+    layout. So every LATER measurement is right. That is why the maker who first
+    saw this (AT-398) re-measured, found a real rect, and could not see a cause.
+
+    **The assertion must be on the FIRST call of a FRESH page.** Callers call
+    once, and a second call passes on the unfixed detector. `visit()` navigates,
+    so each test starts from a page on which nothing has been measured.
+
+    The second line and the control are asserted too. Without them, a "fix" that
+    dropped the whole subtree would satisfy nothing, but one that reported only
+    the control would look fine on a hurried read.
+    """
+    page, visit = page_factory
+    visit("cvauto.html")
+
+    first = visual_text(page)
+
+    assert "CVAUTO_SENTINEL_91" in first, first
+    assert "CVAUTO_SECOND_92" in first, first
+    assert "Quarterly report" in first, first

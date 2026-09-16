@@ -182,6 +182,17 @@
   function glyphsOf(node, reach, checkReachable, mask) {
     const text = node.nodeValue;
     const out = [];
+    // Measure the whole node once and DISCARD the result (AT-410). Inside a
+    // subtree the browser has skipped — `content-visibility:auto` off-screen,
+    // with an intrinsic placeholder size — the FIRST rect query returns all
+    // zeros and itself forces the layout, so every later query is right. The
+    // per-glyph loop below took that first query on character 0, the width
+    // guard dropped it, and `CVAUTO_SENTINEL_91` came back as
+    // `VAUTO_SENTINEL_91` on the first call and correct on the second. Callers
+    // call once. This throwaway query is the one that absorbs the zeros.
+    const warm = document.createRange();
+    warm.selectNodeContents(node);
+    warm.getBoundingClientRect();
     for (let i = 0; i < text.length; i += 1) {
       const range = document.createRange();
       range.setStart(node, i);

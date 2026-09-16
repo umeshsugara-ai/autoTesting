@@ -1,0 +1,5 @@
+KILLED  AT-410 reopens: the warm-up query is removed, so the first glyph of a skipped subtree drops  (pytest exit 1)
+    claims to kill : tests/test_browser_visual_order.py::test_the_first_call_on_a_content_visibility_subtree_drops_no_glyph
+    actually failed: tests/test_browser_visual_order.py::test_the_first_call_on_a_content_visibility_subtree_drops_no_glyph
+
+1/1 mutations killed

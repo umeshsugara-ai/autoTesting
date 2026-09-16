@@ -1,0 +1,17 @@
+{
+  "tests": [
+    "tests/test_browser_visual_order.py",
+    "tests/test_browser_unreadable.py"
+  ],
+  "mutations": [
+    {
+      "name": "AT-410 reopens: the warm-up query is removed, so the first glyph of a skipped subtree drops",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "    const warm = document.createRange();\n    warm.selectNodeContents(node);\n    warm.getBoundingClientRect();",
+      "new": "    // warm-up removed",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_the_first_call_on_a_content_visibility_subtree_drops_no_glyph"
+      ]
+    }
+  ]
+}
