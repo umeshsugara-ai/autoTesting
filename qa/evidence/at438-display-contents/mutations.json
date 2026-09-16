@@ -15,19 +15,37 @@
       ]
     },
     {
-      "name": "the measured trap: walk up to the nearest box instead of probing, so closed <details> / cv:hidden leak",
+      "name": "walk-up trap: a closed <details> is visible itself, so its contents leak",
       "file": "src/autotester/browser/visual_order.js",
-      "old": "    const probe = document.createElement(\"span\");\n    el.appendChild(probe);\n    try { return probe.checkVisibility(); } finally { probe.remove(); }",
-      "new": "    let box = el;\n    while (box.parentElement && window.getComputedStyle(box).display === \"contents\") box = box.parentElement;\n    return box.checkVisibility();",
+      "old": "      if (box.tagName === \"DETAILS\" && !box.open && child.tagName !== \"SUMMARY\") return false;",
+      "new": "      // details check removed",
       "kills": [
         "tests/test_browser_visual_order.py::test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor"
       ]
     },
     {
-      "name": "the probe span is never removed, so observing the page changes it",
+      "name": "walk-up trap: a content-visibility:hidden box is visible itself, so its contents leak",
       "file": "src/autotester/browser/visual_order.js",
-      "old": "    const probe = document.createElement(\"span\");\n    el.appendChild(probe);\n    try { return probe.checkVisibility(); } finally { probe.remove(); }",
-      "new": "    const probe = document.createElement(\"span\");\n    el.appendChild(probe);\n    return probe.checkVisibility();",
+      "old": "      if (s.contentVisibility === \"hidden\" && HIDES_ON.test(s.display)) return false;",
+      "new": "      // content-visibility check removed",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor"
+      ]
+    },
+    {
+      "name": "AT-443: the cycle-1 probe <span> returns - author :empty hides it, visible contents text is dropped",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "    let child = el;\n    for (let box = el.parentElement; box; child = box, box = box.parentElement) {",
+      "new": "    const probe = document.createElement(\"span\");\n    el.appendChild(probe);\n    try { return probe.checkVisibility(); } finally { probe.remove(); }\n    let child = el;\n    for (let box = el.parentElement; box; child = box, box = box.parentElement) {",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor"
+      ]
+    },
+    {
+      "name": "AT-442: a NON-empty probe returns - :last-child now matches it and the author's animation restarts",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "    let child = el;\n    for (let box = el.parentElement; box; child = box, box = box.parentElement) {",
+      "new": "    const probe = document.createElement(\"i\");\n    probe.textContent = \" \";\n    el.appendChild(probe);\n    try { return probe.checkVisibility(); } finally { probe.remove(); }\n    let child = el;\n    for (let box = el.parentElement; box; child = box, box = box.parentElement) {",
       "kills": [
         "tests/test_browser_visual_order.py::test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor"
       ]

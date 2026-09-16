@@ -1,11 +1,17 @@
 KILLED  AT-438 reopens: display:contents text is dropped by checkVisibility again  (pytest exit 1)
     claims to kill : tests/test_browser_visual_order.py::test_content_visibility_hidden_is_reported_exactly_where_it_paints[contents], tests/test_browser_visual_order.py::test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor
     actually failed: tests/test_browser_visual_order.py::test_content_visibility_hidden_is_reported_exactly_where_it_paints[contents], tests/test_browser_visual_order.py::test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor
-KILLED  the measured trap: walk up to the nearest box instead of probing, so closed <details> / cv:hidden leak  (pytest exit 1)
+KILLED  walk-up trap: a closed <details> is visible itself, so its contents leak  (pytest exit 1)
     claims to kill : tests/test_browser_visual_order.py::test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor
     actually failed: tests/test_browser_visual_order.py::test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor
-KILLED  the probe span is never removed, so observing the page changes it  (pytest exit 1)
+KILLED  walk-up trap: a content-visibility:hidden box is visible itself, so its contents leak  (pytest exit 1)
+    claims to kill : tests/test_browser_visual_order.py::test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor
+    actually failed: tests/test_browser_visual_order.py::test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor
+KILLED  AT-443: the cycle-1 probe <span> returns - author :empty hides it, visible contents text is dropped  (pytest exit 1)
+    claims to kill : tests/test_browser_visual_order.py::test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor
+    actually failed: tests/test_browser_visual_order.py::test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor
+KILLED  AT-442: a NON-empty probe returns - :last-child now matches it and the author's animation restarts  (pytest exit 1)
     claims to kill : tests/test_browser_visual_order.py::test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor
     actually failed: tests/test_browser_visual_order.py::test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor
 
-3/3 mutations killed
+5/5 mutations killed

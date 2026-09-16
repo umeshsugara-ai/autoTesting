@@ -8,9 +8,32 @@
      each of those is "visible" itself while hiding its contents. Measured, not
      reasoned. The hidden cases below are that trap, pinned. Each case sits in its
      own spaced block so no two share a screen row and interleave. -->
+<!-- AT-442/443. A detector that INSERTS a node here changes the page it observes:
+     `:last-child` / `:has()` rules match the inserted node and RESTART the author's
+     animation (hiding text a reader could see), and `:empty` rules hide the inserted
+     node itself. `innerHTML` stays byte-identical throughout, so asserting only on
+     innerHTML cannot see either. These two blocks pin both, measured. -->
+<style>
+  @keyframes fin { from { opacity: 0 } 2% { opacity: 1 } to { opacity: 1 } }
+  #anim > b:last-child { animation: fin 100s linear }
+  span:empty { display: none }
+</style>
 <p>Quarterly report for the trainers list</p>
 <div style="margin:40px 0"><div style="display:contents">CONTENTS_PLAIN_S1</div></div>
 <div style="margin:40px 0"><details open><summary>open</summary><div style="display:contents">CONTENTS_OPENDETAILS_S2</div></details></div>
 <div style="margin:40px 0"><details><summary>closed</summary><div style="display:contents">CONTENTS_CLOSEDDETAILS_S3</div></details></div>
 <div style="margin:40px 0"><div style="content-visibility:hidden"><div style="display:contents">CONTENTS_CVHIDDEN_S4</div></div></div>
 <div style="margin:40px 0"><div style="display:none"><div style="display:contents">CONTENTS_DISPLAYNONE_S5</div></div></div>
+<div style="margin:40px 0"><div id="anim" style="display:contents">CONTENTS_ANIMATED_S6<b>LASTCHILD_SIBLING_S7</b></div></div>
+<!-- A shadow host renders only SLOTTED light children, and a <select> never
+     renders arbitrary element children. Both are built by script, because the
+     parser would not put a display:contents element in either place. -->
+<div style="margin:40px 0"><div id="host"><div style="display:contents">CONTENTS_UNSLOTTED_S8</div></div></div>
+<div style="margin:40px 0"><select id="sel"><option>opt</option></select></div>
+<script>
+  document.getElementById("host").attachShadow({ mode: "open" }).innerHTML = "<p>shadow</p>";
+  const inSelect = document.createElement("div");
+  inSelect.style.display = "contents";
+  inSelect.textContent = "CONTENTS_INSELECT_S9";
+  document.getElementById("sel").appendChild(inSelect);
+</script>

@@ -13,25 +13,16 @@
 // rows by y and sorted by x within a row. Characters that occupy no box, or
 // that paint nothing a reader can see, are dropped.
 //
-// WHAT THIS DOES NOT SEE (AT-362 — named here rather than left to be
-// discovered). The claim is "text a reader can see", and these are the places
-// that claim does not hold. Each is a page where a credential could render in
-// plain type while this returns a clean string:
-//   - text inside an open shadow root, and text in a same-origin <iframe>;
-//   - CSS generated content, the WHOLE class and not two members of it:
-//     ::before, ::after, ::marker — an ordinary <ol>'s own "1." / "2."
-//     numbering is generated content and is not reported — and ::first-letter
-//     / ::first-line when they inject or transform. AT-371 was filed because
-//     this line named ::before/::after and stopped, which under-named the
-//     class it was disclosing;
-//   - a <select>'s rendered option text — including a <select size="4">, which
-//     shows its options permanently with no interaction at all;
+// WHAT THIS DOES NOT SEE (AT-362). Each is a page where a credential could render
+// in plain type while this returns a clean string:
+//   - text in an open shadow root, or in a same-origin <iframe>;
+//   - CSS generated content, the WHOLE class: ::before, ::after, ::marker (an
+//     <ol>'s own "1."), ::first-letter / ::first-line (AT-371: naming two members
+//     and stopping under-named the class);
+//   - a <select>'s option text, including <select size="4">, shown permanently;
 //   - text painted into <canvas>;
-//   - a `title` tooltip (renders on hover) or an `alt` string (renders only
-//     when the image fails).
-// Extending the walk into shadow roots and frames is real work with its own
-// failure modes — a unit, not a line. Until then the limit is written down, so
-// a clean result is read for what it is.
+//   - a `title` tooltip (hover) or an `alt` string (image failure).
+// Extending into shadow roots and frames is a unit, not a line.
 //
 // SEEN BY ACCIDENT, NOT BY DESIGN (AT-374): <svg><text> IS reported — SVG text
 // nodes are ordinary text nodes to the walker. Nothing pins it, so it is not
@@ -63,14 +54,21 @@
     return Boolean(value) && value !== "none";
   }
 
-  // `display:contents` has no box, so `checkVisibility()` on it is false though its
-  // text paints (AT-438). Walking up to a box is WRONG — a closed <details> is itself
-  // "visible" (measured) — so a probe <span> asks: would something HERE be visible?
+  // display:contents has no box, so checkVisibility() on it is false though its text
+  // paints (AT-438). Ask the nearest BOX and how a visible box hides its own contents.
+  // NEVER insert a probe: author :last-child/:has()/:empty match it (AT-442/443).
   function contentsRenders(el) {
     if (window.getComputedStyle(el).display !== "contents") return false;
-    const probe = document.createElement("span");
-    el.appendChild(probe);
-    try { return probe.checkVisibility(); } finally { probe.remove(); }
+    let child = el;
+    for (let box = el.parentElement; box; child = box, box = box.parentElement) {
+      const s = window.getComputedStyle(box);
+      if (s.display === "contents") continue;
+      if (!box.checkVisibility()) return false;
+      if (s.contentVisibility === "hidden" && HIDES_ON.test(s.display)) return false;
+      if (box.tagName === "DETAILS" && !box.open && child.tagName !== "SUMMARY") return false;
+      return true;
+    }
+    return false;
   }
 
   const HIDES_ON = /^(block|inline-block|flex|inline-flex|grid|inline-grid|flow-root|list-item|table-cell|table-caption)$/;

@@ -262,21 +262,33 @@ def test_content_visibility_hidden_is_reported_exactly_where_it_paints(
 
 def test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor(page_factory) -> None:
     """AT-438. `display:contents` has no box, so `checkVisibility()` on it is
-    always false and its visible text was dropped. The fix asks whether an
-    element placed THERE would be visible, using a probe <span> removed in
-    `finally`. That is the second page write in this module, so the page must
-    come back byte-identical.
+    always false and its visible text was dropped.
 
-    The hidden cases are the trap a first candidate fell into. It walked up to
-    the nearest box, and a closed <details> or a content-visibility:hidden block
-    is itself "visible" while hiding its contents."""
+    Two measured traps are pinned. A plain walk-up to the nearest box leaks
+    closed <details> / content-visibility:hidden text, because those boxes are
+    "visible" themselves (the hidden cases). And the cycle-1 fix, a probe node
+    inserted to ask "would something HERE be visible?", changed the real page:
+    author `:last-child` rules restarted an animation and dropped
+    LASTCHILD_SIBLING_S7, while `span:empty` hid the probe (AT-442/443). No node
+    may be inserted."""
     page, visit = page_factory
     visit("cvcontents.html")
-    before = page.evaluate("() => document.body.innerHTML")
+    page.wait_for_timeout(400)
+    clock = "() => document.getAnimations().map(a => a.currentTime)"
+    before = page.evaluate(clock)
 
     seen = visual_text(page)
-    assert "CONTENTS_PLAIN_S1" in seen, seen
-    assert "CONTENTS_OPENDETAILS_S2" in seen, seen
-    for hidden in ("CONTENTS_CLOSEDDETAILS_S3", "CONTENTS_CVHIDDEN_S4", "CONTENTS_DISPLAYNONE_S5"):
+    for shown in ("CONTENTS_PLAIN_S1", "CONTENTS_OPENDETAILS_S2",
+                  "CONTENTS_ANIMATED_S6", "LASTCHILD_SIBLING_S7"):
+        assert shown in seen, (shown, seen)
+    # S8/S9 (unslotted shadow child, <select> child) are never laid out, so every
+    # glyph measures 0 wide and the width guard drops them -- measured. They are
+    # asserted here as boundaries, NOT credited to contentsRenders: branches for
+    # them were written, their mutations SURVIVED, and they were deleted as dead.
+    for hidden in ("CONTENTS_CLOSEDDETAILS_S3", "CONTENTS_CVHIDDEN_S4", "CONTENTS_DISPLAYNONE_S5",
+                   "CONTENTS_UNSLOTTED_S8", "CONTENTS_INSELECT_S9"):
         assert hidden not in seen, (hidden, seen)
-    assert page.evaluate("() => document.body.innerHTML") == before
+    # AT-442: observing must not RESTART the author's animation. innerHTML cannot
+    # see this -- a transient node leaves it byte-identical -- so the clock is read.
+    after = page.evaluate(clock)
+    assert before and all(a >= b for a, b in zip(after, before, strict=True)), (before, after)
