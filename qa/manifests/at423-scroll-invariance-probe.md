@@ -182,8 +182,9 @@ mutate the module under test, provided each edit is single-hunk, touches one fil
 **Disclosed: these rows kill a superset.** Each mutation reddens between 12 and 18 shapes, not only
 the ones it names. That is the corpus working as intended: one regression in `reachOf` breaks every
 shape that routes through it. Every named nodeid is in the attributed failure list. None of the
-extra failures is a collection error or an import break. They are all the invariance assertion,
-failing on shapes that exercise the mutated line. The full per-row attribution is in
+extra failures is a collection error or an import break. **Corrected in cycle 2 (AT-426/AT-428):**
+row 2's 18 failures are 10 invariance-assertion failures plus 8 `XPASS(strict)`, not all the
+invariance assertion as this sentence first said. The full per-row attribution is in
 `mutations.out`.
 
 **The probe's one-sided limit.** A detector that reported every node on the page would be perfectly
@@ -198,7 +199,7 @@ replacement for them. The module docstring says the same.
   and that suppresses the summary line.)*
 - `uv run ruff check src tests scripts` → expected: `All checks passed!`
 - `uv run autotester doctor` → expected: `doctor: clean`. Note AT-419: doctor measures only `*.py`.
-  This unit's file **is** Python, so the cap genuinely applies here (255 lines).
+  This unit's file **is** Python, so the cap genuinely applies here (245 lines).
 - `uv run pytest tests/test_browser_scroll_invariance.py` → expected: `18 passed, 32 xfailed` (50 shapes)
 - **Determinism, the claim that matters most:** run the line above three times; the set must not move.
 - `uv run python scripts/mutation_check.py qa/evidence/at423-scroll-invariance-probe/mutations.json`
@@ -260,4 +261,4 @@ browser run.
   corpus uses no `content-visibility`, so it cannot see that defect. That limit is stated here so
   a green corpus is not read as covering it.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 2, verdict qa/verdicts/at423-scroll-invariance-probe.md — pushed by the checker per D-007, `7fc4ea1`)

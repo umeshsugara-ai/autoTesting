@@ -57,6 +57,28 @@ costs a missed credential, which is the failure this module exists to prevent â€
 stated direction already prefers the former. C is worse than A here: the same exposure, minus the
 fix, and disclosure does not make an instrument see.
 
+## Measured since this gate opened (AT-423 PASS, 2026-09-16)
+
+The scroll-invariance probe (`tests/test_browser_scroll_invariance.py`) now runs 50 generated shapes
+against the current detector: **18 pass, 32 fail**. The checker attributed each failure by applying a
+stand-in fix for each defect in turn. That turns the options below into numbers:
+
+| fix applied | shapes that start passing | shapes that break |
+|---|---|---|
+| **option A, done fully** | **18** (every AT-416-only shape) | **0** |
+| option A, **overflow branch only** | **10**, which is not enough (AT-427) | 0 |
+| an AT-417 fix alone | 12 | 0 |
+| both | 32, the whole red set | 0 |
+
+**One thing option A must include (AT-427).** "Stop the clip contributing at a scrollable ancestor"
+has to cover the **`clip-path` branch** of `reachOf` as well as the `overflow` branch. A change to
+the `overflow` branch alone flips only 10 of the 18: in the 8 `hiddenâ€¦+clip` shapes, the clip-path
+branch still clips. The table above makes this checkable. A correct option A turns all 18
+AT-416-only xfails into strict XPASSes and turns no passing shape red.
+
+**The 2 shapes that have both defects stay failing under A.** They need AT-417 too, which is a
+separate fix and not part of this decision.
+
 ## This gate no longer blocks work
 
 The stall diagnosis found a contained, reversible recovery that needs no answer from you: **AT-423**,
