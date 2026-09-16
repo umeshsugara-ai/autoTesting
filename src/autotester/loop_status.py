@@ -20,7 +20,7 @@ signal that breaks the build is worse than the silence it replaces.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from itertools import pairwise
 from pathlib import Path
@@ -58,6 +58,29 @@ class Gap:
 
 
 @dataclass(frozen=True)
+class Anomalies:
+    """Corruption in the tick log itself, as opposed to gaps in what it records.
+
+    AT-399. The first version of this module **sorted** the stamps, which meant a
+    forward-dated or out-of-order tick was silently repaired instead of reported —
+    and a repaired log reads as a healthy one. Measured before fixing: a single
+    tick stamped 8 hours into the future makes `asleep_now` return False
+    *indefinitely*, because the open gap is `now - ticks[-1]` and that goes
+    negative. **One mistyped timestamp silences the instrument built to notice a
+    dead loop**, which is the failure mode this whole module exists to prevent,
+    arriving through its own input."""
+
+    future: int
+    """Stamps later than `now`. A clock cannot run ahead of itself; these were typed."""
+    out_of_order: int
+    """Adjacent pairs where the line written later carries the earlier time."""
+
+    @property
+    def any(self) -> bool:
+        return bool(self.future or self.out_of_order)
+
+
+@dataclass(frozen=True)
 class LoopStatus:
     """What the tick log says about this project's loop."""
 
@@ -68,6 +91,8 @@ class LoopStatus:
     threshold_hours: float
     open_end: datetime | None = None
     """The `now` the open gap was measured against, if there is an open gap."""
+    anomalies: Anomalies = field(default_factory=lambda: Anomalies(0, 0))
+    """Corruption in the log, reported rather than repaired (AT-399)."""
 
     @property
     def unexplained(self) -> tuple[Gap, ...]:
@@ -97,7 +122,11 @@ class LoopStatus:
 
 
 def read_ticks(path: Path) -> list[datetime]:
-    """Every tick stamp in `qa/.last-tick`, oldest first, timezone-aware.
+    """Every tick stamp in `qa/.last-tick`, **in file order**, timezone-aware.
+
+    File order, not sorted order (AT-399): sorting here silently repaired a
+    corrupt log, and callers that need chronological order can say so. `status`
+    sorts for the gap arithmetic *after* recording what the raw order was.
 
     Mixed offsets are normal in this log (`+00:00` and `+05:30` both appear), so
     everything is converted to UTC — comparing a naive to an aware datetime
@@ -115,7 +144,7 @@ def read_ticks(path: Path) -> list[datetime]:
             stamps.append(datetime.fromisoformat(text).astimezone(UTC))
         except ValueError:
             continue
-    return sorted(stamps)
+    return stamps
 
 
 def find_gaps(
@@ -152,6 +181,15 @@ def report_lines(report: LoopStatus) -> list[tuple[str, str]]:
         return [("loop-status: no ticks recorded", "warn")]
 
     rows = [(f"ticks: {report.ticks} · last: {report.last_tick.isoformat()}", "plain")]
+    if report.anomalies.future:
+        rows.append((
+            f"  CORRUPT: {report.anomalies.future} tick stamp(s) dated after now — excluded from "
+            "the gap arithmetic, because one future stamp otherwise makes the loop read as "
+            "alive indefinitely (AT-399)", "bad"))
+    if report.anomalies.out_of_order:
+        rows.append((
+            f"  CORRUPT: {report.anomalies.out_of_order} tick(s) written out of chronological "
+            "order — reported, not silently sorted", "bad"))
     if report.paused is not None:
         rows.append((f"paused: {report.paused}", "warn"))
     rows.extend((f"  {gap}", "warn" if gap.explained else "bad") for gap in report.gaps)
@@ -171,12 +209,22 @@ def status(root: Path | None = None, *, now: datetime | None = None,
     paused_file = base / "qa" / ".paused"
     paused = paused_file.read_text(encoding="utf-8").strip() if paused_file.exists() else None
 
-    ticks = read_ticks(base / "qa" / ".last-tick")
+    moment = now or datetime.now(UTC)
+    raw = read_ticks(base / "qa" / ".last-tick")
+    anomalies = Anomalies(
+        future=sum(1 for tick in raw if tick > moment),
+        out_of_order=sum(1 for earlier, later in pairwise(raw) if later < earlier),
+    )
+
+    # A future stamp is excluded from the gap arithmetic, not merely counted.
+    # Left in, it becomes `ticks[-1]`, the open gap goes negative, and the loop
+    # reads as alive forever (AT-399). The count above is what keeps its removal
+    # from being the same silent repair the sort used to do.
+    credible = sorted(tick for tick in raw if tick <= moment)
     gaps, open_end = find_gaps(
-        ticks, now or datetime.now(UTC),
-        threshold_hours=threshold_hours, paused=paused is not None,
+        credible, moment, threshold_hours=threshold_hours, paused=paused is not None,
     )
     return LoopStatus(
-        ticks=len(ticks), last_tick=ticks[-1] if ticks else None, paused=paused,
-        gaps=gaps, threshold_hours=threshold_hours, open_end=open_end,
+        ticks=len(raw), last_tick=credible[-1] if credible else None, paused=paused,
+        gaps=gaps, threshold_hours=threshold_hours, open_end=open_end, anomalies=anomalies,
     )

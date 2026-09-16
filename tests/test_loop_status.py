@@ -239,3 +239,4 @@ def test_an_empty_log_is_reported_as_unknown_not_as_healthy(tmp_path: Path) -> N
         status(tmp_path, now=datetime(2026, 9, 16, 7, tzinfo=UTC)))]
 
     assert rendered == ["loop-status: no ticks recorded"]
+
