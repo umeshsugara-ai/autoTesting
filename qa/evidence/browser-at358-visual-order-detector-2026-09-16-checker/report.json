@@ -1,0 +1,117 @@
+{
+  "unit": "at358-visual-order-detector",
+  "cycle": 2,
+  "checker_run": true,
+  "pages": {
+    "disclosed.html": {
+      "console_errors": 1,
+      "console_error_detail": [
+        "error:Failed to load resource: the server responded with a status of 404 (File not found)"
+      ],
+      "positive_control_reported": true,
+      "reported": {
+        "PSEUDOBEFORE_01": false,
+        "PSEUDOAFTER_02": false,
+        "SHADOWTEXT_03": false,
+        "SHADOWINPUT_04": false,
+        "SELECTOPT_05": false,
+        "CANVASTEXT_06": false,
+        "SVGTEXT_07": true,
+        "ALTTEXT_08": false,
+        "TITLETIP_09": false,
+        "IFRAMEBODY_10": false
+      },
+      "visual_text_len": 36,
+      "visual_text": "CONTROL_CHECKER_77SVGTEXT_07hover me"
+    },
+    "extras.html": {
+      "console_errors": 0,
+      "console_error_detail": [],
+      "positive_control_reported": true,
+      "reported": {
+        "MARKERTEXT_11": false,
+        "SUBMITVAL_12": true,
+        "BUTTONVAL_13": true,
+        "BUTTONTEXT_14": true,
+        "SUMMARYTEXT_15": true,
+        "DETAILSBODY_16": true,
+        "DATALISTOPT_17": false,
+        "MATHMI_18": true,
+        "CSSCONTENT_19": false,
+        "LISTBOXOPT_20": false,
+        "LISTBOXOPT_20B": false,
+        "OPTGROUPLABEL_22": false,
+        "TEXTAREACHILD_21": true,
+        "TEXTAREAPH_23": true,
+        "SRCDOCTEXT_24": false,
+        "CAPTIONTEXT_25": true,
+        "OUTPUTTEXT_26": true,
+        "LEGENDTEXT_27": true,
+        "RUBYTEXT_28": true,
+        "ARIALABEL_29": false,
+        "PSEUDOPASSWORD_30": true
+      },
+      "visual_text_len": 279,
+      "visual_text": "CONTROL_CHECKER_77list item oneordinary numbered itemsecond numbered itemSUBMITVAL_12BUTTONVAL_13BUTTONTEXT_14SUMMARYTEXT_15MATHMI_18DETAILSBODY_16TEXTAREACHILD_21TEXTAREAPH_23CAPTIONTEXT_25cellOUTPUTTEXT_26LEGENDTEXT_27fieldsRUBYTEXT_28text with base annotationPSEUDOPASSWORD_30"
+    },
+    "falsepos.html": {
+      "console_errors": 0,
+      "console_error_detail": [],
+      "positive_control_reported": true,
+      "reported": {
+        "FPOPACITY_31": false,
+        "FPTRANSPARENT_32": false,
+        "FPRGBAZERO_33": false,
+        "FPINDENT_34": false,
+        "FPOFFSCREEN_35": false,
+        "FPCLIPPED_36_LONGTAIL": false,
+        "FPNESTED_37": false,
+        "FPVISHIDDEN_38": false,
+        "FPDISPLAYNONE_39": false,
+        "FPFONTZERO_40": false,
+        "FPHIDDENINPUT_41": false,
+        "FPPASSWORD_42": false,
+        "FPUNDERNEATH_43": false,
+        "FPNEARZERO_44": true
+      },
+      "visual_text_len": 72,
+      "visual_text": "CONTROL_CHECKER_77FPCLI•••••••••••••FcoPvUeNrinDgERNEATH_43FPNEARZERO_44"
+    },
+    "scroll.html": {
+      "console_errors": 0,
+      "console_error_detail": [],
+      "positive_control_reported": true,
+      "reported": {
+        "ABOVEFOLD_60": true,
+        "BELOWFOLD_61": true,
+        "PANELVISIBLE_62": true,
+        "PANELSCROLLED_63": false
+      },
+      "visual_text_len": 57,
+      "visual_text": "CONTROL_CHECKER_77ABOVEFOLD_60BELOWFOLD_61PANELVISIBLE_62"
+    },
+    "interact.html": {
+      "console_errors": 0,
+      "console_error_detail": [],
+      "positive_control_reported": true,
+      "placeholder_before_typing": true,
+      "typed_value_seen_after_fill": true,
+      "placeholder_gone_after_fill": true,
+      "click_revealed_text_seen": true,
+      "idempotent_second_call": true,
+      "leftover_mirror_spans": 0,
+      "visual_text_after_click": "CONTROL_CHECKER_77TYPEDSECRET_52REVEALED_51reveal"
+    }
+  },
+  "scroll_probe": {
+    "after_scroll_to_bottom": {
+      "CONTROL_CHECKER_77": false,
+      "ABOVEFOLD_60": false,
+      "BELOWFOLD_61": true
+    },
+    "after_panel_scrolled": {
+      "PANELVISIBLE_62": false,
+      "PANELSCROLLED_63": true
+    }
+  }
+}

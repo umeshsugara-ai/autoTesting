@@ -1,0 +1,23 @@
+<!doctype html><meta charset="utf-8"><title>Disclosed</title>
+<style>
+ #pb::before { content: "PSEUDOBEFORE_01"; }
+ #pa::after  { content: "PSEUDOAFTER_02"; }
+</style>
+<body>
+<p>CONTROL_CHECKER_77</p>
+<div id="pb"></div>
+<div id="pa"></div>
+<div id="host"></div>
+<select id="sel"><option>SELECTOPT_05</option></select>
+<canvas id="cv" width="400" height="40"></canvas>
+<svg width="400" height="40"><text x="0" y="20">SVGTEXT_07</text></svg>
+<img src="/definitely-missing.png" alt="ALTTEXT_08" width="200" height="30">
+<span title="TITLETIP_09">hover me</span>
+<iframe src="frame.html" width="300" height="60"></iframe>
+<script>
+ const r = document.getElementById('host').attachShadow({mode:'open'});
+ r.innerHTML = '<p>SHADOWTEXT_03</p><input value="SHADOWINPUT_04">';
+ const c = document.getElementById('cv').getContext('2d');
+ c.font = '20px sans-serif'; c.fillStyle='#000'; c.fillText('CANVASTEXT_06', 2, 25);
+</script>
+</body>
