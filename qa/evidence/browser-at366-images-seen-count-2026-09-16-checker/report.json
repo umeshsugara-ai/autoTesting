@@ -1,0 +1,44 @@
+{
+  "unit": "at366-images-seen-count",
+  "cycle": 1,
+  "date": "2026-09-16",
+  "actor": "checker (Mode D, own browser -- the maker's screenshots were not read; the maker produced none)",
+  "why_mode_d_ran": "The unit prepends a sentence to Verdict.scoreboard, and scoreboard is rendered by BOTH src/autotester/stages/report_export.py (lines 90, 135-141) and the live route src/autotester/ui/routes_report.py:141-144. Mode D gates on changed paths INCLUDING indirect ones that alter what a page renders, so this qualifies even though no route/template/component file changed.",
+  "isolation": "The app was served from the throwaway working-tree copy at <scratchpad>/at366copy with AUTOTESTER_ROOT pointed at <scratchpad>/modedroot. Nothing under d:/autoTesting/projects/ was created, read or modified; no other session's fixtures were touched.",
+  "fixture": "project 'demo', run 'run_modeD', one COMPLETED RawResult carrying TWO SCREENSHOT evidence rows of which only 01-login.png was written to disk (the AT-036 retry class), graded through the real stages.grade.grade() with MockProvider returning scoreboard '2/2 met'.",
+  "server": "uvicorn autotester.ui.app:app 127.0.0.1:8791",
+  "pages": [
+    {
+      "url": "http://127.0.0.1:8791/projects/demo/runs/run_modeD",
+      "http_status": 200,
+      "console_errors": 0,
+      "console_warnings": 0,
+      "assertions": {
+        "p.scoreboard textContent": "graded on 1 of 2 screenshots \u2014 1 evidence file(s) the run recorded were not on disk. 2/2 met",
+        "sentence_visible_in_body_innerText": true,
+        "em_dash_rendered_not_mojibake": true,
+        "document_characterSet": "UTF-8",
+        "replacement_char_U+FFFD_present": false,
+        "judge_own_scoreboard_survives_as_suffix": true,
+        "badges_rendered": ["completed", "\u2713 PASS", "judged by mock"],
+        "flow_step_thumbnails": 1
+      },
+      "interaction": {
+        "action": "clicked a.flow-step (the CSS :target lightbox)",
+        "result": "location.hash == '#lb-0-0', lightbox visible (display != none, width > 0), p.scoreboard still present after the state change"
+      },
+      "reading": "The page now shows a PASS badge sitting directly beside a sentence saying the judge saw one of two screenshots. That is exactly the previously-invisible state AT-366 was filed about, and it is legible to a human without opening the JSON."
+    },
+    {
+      "url": "http://127.0.0.1:8791/projects/demo/report.html",
+      "http_status": 200,
+      "assertion": "the downloadable export produced by report_export.py contains 'graded on 1 of 2 screenshots' exactly once",
+      "saved_as": "exported-report.html"
+    }
+  ],
+  "gaps_disclosed": [
+    "Only the partial-evidence case was driven in the browser. The complete-evidence case (no sentence at all) is covered by tests/test_grade_evidence.py::test_a_complete_run_is_not_labelled_partial_and_keeps_its_own_note, not by a second browser run.",
+    "The counts images_requested/images_seen themselves are not rendered as their own column anywhere in the UI; the manifest explicitly does not claim they are."
+  ],
+  "verdict_contribution": "UI evidence supports PASS -- the string change reaches a real rendered page, correctly encoded, with zero console errors, and does not displace the judge's own scoreboard."
+}
