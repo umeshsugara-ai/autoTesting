@@ -1,0 +1,21 @@
+{
+  "P7": {
+    "target_offset_within_pane": 534,
+    "outer_hard_clip_band": {
+      "top": 50,
+      "bottom": 272
+    },
+    "target_rect_after_scrolling_inner_pane": {
+      "top": 207,
+      "bottom": 225
+    },
+    "target_is_physically_inside_the_band": true,
+    "reported_at_rest": false,
+    "reported_after_scroll": true,
+    "positive_control_at_rest": true,
+    "console_errors": 1
+  },
+  "P7_pre_cycle3": {
+    "reported_at_rest_under_pre_cycle3_walk": true
+  }
+}

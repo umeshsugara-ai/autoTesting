@@ -1,0 +1,21 @@
+{
+  "P6": {
+    "target_offset_within_pane": 294,
+    "outer_hard_clip_band": {
+      "top": 50,
+      "bottom": 92
+    },
+    "target_rect_after_scrolling_inner_pane": {
+      "top": 61,
+      "bottom": 79
+    },
+    "target_is_physically_inside_the_band": true,
+    "reported_at_rest": false,
+    "reported_after_scroll": true,
+    "positive_control_at_rest": true,
+    "console_errors": 1
+  },
+  "P6_pre_cycle3": {
+    "reported_at_rest_under_pre_cycle3_walk": true
+  }
+}

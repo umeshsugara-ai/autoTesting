@@ -1,0 +1,175 @@
+{
+  "unit": "at379-scrollable-pane-reachability",
+  "cycle": 3,
+  "date": "2026-09-16",
+  "actor": "checker (Mode D, own browser, own probe pages)",
+  "browser": "chromium, headed (headless=False)",
+  "probe_pages": [
+    "p1_three_levels.html",
+    "p2_pane_in_clip_in_pane.html",
+    "p3_clippath_above_scroll.html",
+    "p4_mixed_orders.html",
+    "p5_clippath_is_scroller.html"
+  ],
+  "positive_control": "every probe page carries a CONTROL_* sentinel outside every pane/clip; a detector returning nothing cannot satisfy a probe",
+  "results": [
+    {
+      "probe": "P1 three nested scrollable panes, all scrolled",
+      "pass": true,
+      "must_be_reported": {
+        "CONTROL_P1_ALWAYS_VISIBLE": true,
+        "L1_TOP_P1": true,
+        "L2_TOP_P1": true,
+        "L3_TOP_P1": true,
+        "L3_BOTTOM_P1": true
+      },
+      "must_not_be_reported": {},
+      "console_errors": 1,
+      "console_error_text": [
+        "Failed to load resource: the server responded with a status of 404 (File not found)"
+      ],
+      "notes": "scrollTops={'#l1': 738, '#l2': 436, '#l3': 54}; first L3 line viewport bottom=-1041 (negative => the accumulated-offset rule is load-bearing)",
+      "seen": "L3_TOP_P1L2_TOP_P1L3_BOTTOM_P1L1_TOP_P1CONTROL_P1_ALWAYS_VISIBLE"
+    },
+    {
+      "probe": "P2 pane inside a clipping box inside a scrolled pane",
+      "pass": true,
+      "must_be_reported": {
+        "CONTROL_P2_ALWAYS_VISIBLE": true,
+        "P2_INNER_TOP": true
+      },
+      "must_not_be_reported": {
+        "P2_HIDDEN_BY_MIDDLE": true
+      },
+      "console_errors": 0,
+      "console_error_text": [],
+      "notes": "the middle 40px overflow:hidden box is a real boundary; the inner pane does not overflow so nothing can be scrolled",
+      "seen": "CONTROL_P2_ALWAYS_VISIBLEP2_OUTER_TOPP2_INNER_TOP"
+    },
+    {
+      "probe": "P3 clip-path ancestor above a (non-overflowing) pane",
+      "pass": false,
+      "must_be_reported": {
+        "CONTROL_P3_ALWAYS_VISIBLE": true,
+        "P3_INSIDE_CLIPPATH_BAND": true
+      },
+      "must_not_be_reported": {
+        "P3_OUTSIDE_CLIPPATH_BAND": false
+      },
+      "console_errors": 0,
+      "console_error_text": [],
+      "notes": "reachOf now `continue`s past clip-path instead of returning; the clip must still bind",
+      "seen": "CONTROL_P3_ALWAYS_VISIBLEP3_INSIDE_CLIPPATH_BANDP3_OUTSIDE_CLIPPATH_BAND"
+    },
+    {
+      "probe": "P4 hidden-outside/auto-inside and auto-outside/hidden-inside",
+      "pass": false,
+      "must_be_reported": {
+        "CONTROL_P4_ALWAYS_VISIBLE": true,
+        "A_TOP_IN_BAND": true,
+        "B_TOP_IN_INNER_BOX": true,
+        "A_BELOW_REACHABLE_BY_SCROLLING_INNER": false
+      },
+      "must_not_be_reported": {
+        "B_HIDDEN_BY_INNER_BOX": true
+      },
+      "console_errors": 0,
+      "console_error_text": [],
+      "notes": "inner pane genuinely scrollable=True",
+      "seen": "CONTROL_P4_ALWAYS_VISIBLEA_TOP_IN_BANDB_TOP_IN_INNER_BOX"
+    },
+    {
+      "probe": "P4a follow-up: is A_BELOW really reachable by scrolling the inner pane?",
+      "pass": null,
+      "notes": "after scrolling #a_inner to its end the line sits at {'top': 202, 'bottom': 220} (the outer hidden band is viewport y 0..40); reported_after_scroll=False",
+      "console_errors": 0
+    },
+    {
+      "probe": "P5 one element carrying BOTH clip-path and overflow:auto, scrolled",
+      "pass": false,
+      "must_be_reported": {
+        "CONTROL_P5_ALWAYS_VISIBLE": true,
+        "P5_LAST_LINE": true,
+        "P5_FIRST_LINE": false
+      },
+      "must_not_be_reported": {},
+      "console_errors": 0,
+      "console_error_text": [],
+      "notes": "first line viewport bottom after scrolling=-343; a reader scrolls the pane back and reads it",
+      "seen": "CONTROL_P5_ALWAYS_VISIBLEP5_LAST_LINE"
+    },
+    {
+      "probe": "F1 maker's interleave claim on tests/fixtures/bidi_site/scrolled_panes.html",
+      "pass": null,
+      "notes": "scrollTops={'#outer': 924, '#inner': 50}; element tops after scrolling=[{'t': 'OUTER_TOP_SENTINEL_E1', 'y': -785}, {'t': 'INNER_TOP_SENTINEL_E2', 'y': -785}, {'t': 'INNER_BOTTOM_SENTINEL_E3', 'y': -751}]; E2_substring_present=False; sorted_equal=True",
+      "visual_text_after_scroll": "OINUNTEERR__TTOOPP__SSEENNTTIINNEELL__EE21INNER_BOTTOM_SENTINEL_E3Quarterly report for the trainers listSCROLLED_TOP_SENTINEL_D1SCROLLED_LEFT_SENTINEL_D3SCROLLED_RIGHT_SENTINEL_D4NESTCLIP_TOP_SENTINEL_F1INNERCLIP_TOP_SENTINEL_G1SCROLLED_BOTTOM_SENTINEL_D2",
+      "console_errors": 1
+    },
+    {
+      "probe": "P6 a scrollable pane inside a hard overflow:hidden clip, with enough travel to reach the band",
+      "pass": false,
+      "finding": "AT-416",
+      "detail": {
+        "P6": {
+          "target_offset_within_pane": 294,
+          "outer_hard_clip_band": {
+            "top": 50,
+            "bottom": 92
+          },
+          "target_rect_after_scrolling_inner_pane": {
+            "top": 61,
+            "bottom": 79
+          },
+          "target_is_physically_inside_the_band": true,
+          "reported_at_rest": false,
+          "reported_after_scroll": true,
+          "positive_control_at_rest": true,
+          "console_errors": 1
+        },
+        "P6_pre_cycle3": {
+          "reported_at_rest_under_pre_cycle3_walk": true
+        }
+      },
+      "notes": "target is physically inside the clip band once the inner pane is scrolled, is reported AFTER scrolling and NOT at rest, and WAS reported at rest under the pre-cycle-3 walk -> regression introduced by this cycle's clip intersection"
+    },
+    {
+      "probe": "P7 the ordinary shape: an overflow:hidden card (rounded corners) wrapping a scrollable body",
+      "pass": false,
+      "finding": "AT-416",
+      "detail": {
+        "P7": {
+          "target_offset_within_pane": 534,
+          "outer_hard_clip_band": {
+            "top": 50,
+            "bottom": 272
+          },
+          "target_rect_after_scrolling_inner_pane": {
+            "top": 207,
+            "bottom": 225
+          },
+          "target_is_physically_inside_the_band": true,
+          "reported_at_rest": false,
+          "reported_after_scroll": true,
+          "positive_control_at_rest": true,
+          "console_errors": 1
+        },
+        "P7_pre_cycle3": {
+          "reported_at_rest_under_pre_cycle3_walk": true
+        }
+      },
+      "notes": "same result on a shape every real UI has -> AT-379's own defect is back whenever the scrollable pane has ANY clipping ancestor"
+    }
+  ],
+  "console_error_note": "the only console errors recorded are favicon.ico 404s from the probe server (1 per page load, text captured per result); zero page errors, zero errors from the detector itself",
+  "summary": {
+    "probes": 7,
+    "passed": 3,
+    "failed": 4,
+    "failed_probes": {
+      "P3": "AT-418 (pre-existing false positive)",
+      "P4": "checker's own expectation was wrong - the line is genuinely unreachable; NOT a defect",
+      "P5": "AT-417 (pre-existing false negative)",
+      "P6/P7": "AT-416 (REGRESSION introduced by cycle 3)"
+    }
+  }
+}

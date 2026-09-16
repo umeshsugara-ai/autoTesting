@@ -573,3 +573,344 @@ carries that loop's own then-uncommitted delta — correct, since that delta is 
 better than the narrower restore my issue proposed. AT-411 is marked `fixed` in the ledger with the
 duplication recorded rather than deleted; the finding was real when made. **The FAIL stands on
 AT-408, AT-409 and AT-412, none of which is affected.**
+
+
+---
+
+# Verdict — at379-scrollable-pane-reachability (cycle 3)
+
+**Date:** 2026-09-16
+**Cycle checked:** 3
+**Mode:** A (unit check) + D (live feature validation)
+**Bound root:** `d:/autoTesting`
+**Contract:** `qa/contracts/ui.md` (U13) · `qa/contracts/core-invariants.md` (C2, C7)
+**Manifest:** `qa/manifests/at379-scrollable-pane-reachability.md` (Status: ready-for-check,
+Fix cycle: 3 of max 3)
+
+## VERDICT: FAIL
+
+All four cycle-2 findings are genuinely answered — I reproduced every one of them independently,
+and AT-409 and AT-412 are clean enough that I have marked them `fixed` in the ledger. The unit
+fails on something none of the re-run commands can see and that I found only by driving my own
+browser at the new code:
+
+> **The running clip intersection that closes AT-393 re-opens AT-379 itself.** A scrollable pane
+> that sits inside *any* clipping ancestor — an `overflow:hidden` card, which is the most ordinary
+> shape in CSS — drops everything below its own fold again. Measured, A/B'd against the
+> pre-cycle-3 walk in the same browser on the same page, with a positive control. Filed as
+> **AT-416 (high)**.
+
+This is the **fifth** occurrence of the pattern the unit's own source comment now documents at
+`visual_order.js:158-164` — and, exactly like the four before it, it is a fix for a false
+POSITIVE (AT-393) that manufactured a false NEGATIVE of the AT-355 shape. The comment is right
+about the pattern and the code walked into it again in the same edit that wrote the comment.
+
+I am not softening this because it is the last cycle, and I am not inflating it because the unit
+has a long history: it is a one-probe, reproducible, in-scope regression of the exact capability
+row the manifest claims ("text below the fold of a scrollable pane is reported (AT-379)").
+**At max fix cycles this unit goes STALLED, and AT-416 carries the decision to Umesh.**
+
+---
+
+## What I re-ran myself (never read from the manifest)
+
+| command | my result | manifest's claim | match |
+|---|---|---|---|
+| `uv run ruff check src tests scripts` | `All checks passed!` (exit 0) | same | ✅ |
+| `uv run autotester doctor` | `doctor: clean` (exit 0) | same | ✅ |
+| `uv run pytest` (bare — `-q` addopts) | `1235 passed, 2 skipped, 1 warning in 196.05s`, exit 0 | `1235 passed, 2 skipped` | ✅ |
+| `uv run pytest tests/test_browser_visual_order.py tests/test_browser_unreadable.py -o addopts= -q` | `25 passed in 1.86s` | `25 passed` | ✅ |
+| `uv run python scripts/mutation_check.py qa/evidence/at379-…/mutations.json` | `7/7 mutations killed`, exit 0 | `7/7` | ✅ |
+| `uv run python scripts/mutation_check.py qa/evidence/at358-…/mutations.json` | `21/21 mutations killed`, exit 0 | `21/21` | ✅ |
+
+Every pasted number in the manifest reproduces. Nothing in this FAIL rests on a command the maker
+ran differently from me.
+
+---
+
+## 1. AT-408, probed adversarially — fixed as filed, and the fix has a new hole
+
+The walk does now go to the top carrying a running offset and a running intersection. I did not
+take the mutation row's word for it; I drove my own headed Chromium over my own probe pages, each
+carrying a `CONTROL_*` sentinel outside every pane and clip so a detector that saw nothing could
+not satisfy any probe. Evidence:
+`qa/evidence/browser-at379-scrollable-pane-reachability-2026-09-16-checker-c3/report.json`.
+
+| probe | shape | result |
+|---|---|---|
+| **P1** | THREE levels of nested `overflow:auto`, all scrolled to their end | ✅ all five sentinels reported; the innermost line sits at a negative viewport y, so the accumulated-offset rule is what carries it back |
+| **P2** | scrollable pane → hard `overflow:hidden` 40px box → non-overflowing pane | ✅ the line the middle box hides is **not** reported, the line it shows is. Nothing a reader genuinely cannot reach leaked in |
+| **P4b** | `overflow:auto` outside, `overflow:hidden` inside | ✅ the inner box's second line stays dropped — it really is unreachable |
+| **P4a** | `overflow:hidden` outside, `overflow:auto` inside (short travel) | ✅ **my own expectation was wrong**, not the code: I predicted a false negative, then measured that scrolling the inner pane to its end leaves the line at viewport `top=202`, still outside the outer 0..40 band. It is genuinely unreachable and correctly dropped. Recorded because a checker's refuted hypothesis is evidence too |
+| **P6 / P7** | `overflow:hidden` outside, `overflow:auto` inside, **with enough travel to reach the band** | ❌ **AT-416** — see below |
+| **P3** | `clip-path` ancestor above a pane | ❌ false POSITIVE, pre-existing → **AT-418 (low)** |
+| **P5** | one element carrying **both** `clip-path` and `overflow:auto`, scrolled | ❌ false NEGATIVE, pre-existing → **AT-417 (medium)** |
+
+**On the `continue` past `clipPath`:** it is correct in the direction the cycle-2 finding cared
+about — the old `return` ignored every clip above the clip-path element, so the change is strictly
+*tighter* there and is not a new leak. But `continue` is placed **above** the scroll accumulation,
+so an element that both clip-paths and scrolls never contributes its own `scrollTop` — P5 measures
+that, and it makes the comment this unit wrote ("the accumulated scroll offset of the window AND
+every scrollable ancestor", `visual_order.js:114-116`) still unqualifiedly false, which is verbatim
+what AT-408 was filed for. It reproduces identically on the pre-cycle-3 code, so I have filed it
+(AT-417) rather than charged it.
+
+### AT-416 — the regression, measured twice
+
+**P7 is the ordinary shape, not a contrived one:**
+
+```html
+<div class="card" style="overflow:hidden;border-radius:8px;height:220px">   <!-- a card -->
+  <div id="p7_body" style="height:160px;overflow:auto">                     <!-- its body -->
+    <p>P7_BODY_FIRST_LINE</p>
+    <p style="margin-top:500px">P7_CREDENTIAL_BELOW_THE_FOLD</p>
+  </div>
+</div>
+```
+
+| measurement | value |
+|---|---|
+| card's clip band (viewport) | `top=50, bottom=272` |
+| target line at rest | **not reported** |
+| target line after scrolling **only the inner pane** | viewport `top=207` — **inside** the band — and **reported** |
+| same page, same browser, pre-cycle-3 walk (`7b1f9c3^` shape via `page.evaluate`) | **reported at rest** |
+| positive control `CONTROL_P7_ALWAYS_VISIBLE` | present |
+| console errors | 1 per page load, all `favicon.ico 404` from my probe server; none from the detector |
+
+P6 reproduces the same result with a 40px band and a 300px pane.
+
+**Cause.** `reachOf` narrows the running clip with every ancestor's box, and `isReachable` then
+tests the glyph's **current** viewport rect against that intersection. But a glyph inside a
+scrollable ancestor can be moved anywhere inside that ancestor's box by scrolling, so the outer
+clip has to be tested against **the scroll container's box**, not against where the glyph happens
+to be sitting. The module's own written rule — *"a glyph is unreachable only if it sits before the
+document origin AFTER everything scrollable has been scrolled back"* — is applied to the
+document-edge test and not to the clip test, and that asymmetry is the bug.
+
+**Why this is in scope for this unit and not a filing.** It is the *capability row the manifest
+claims*: "text below the fold of a scrollable pane is reported (AT-379)". The row's check passes
+because `unreadable.html`'s pane has no clipping ancestor; the capability it names does not hold
+the moment one exists. That is a check that does not isolate its claim, which is the C7 shape, and
+AT-379 therefore stays **open** in the ledger rather than being marked fixed.
+
+**The remedy is a choice, not a repair, which is why this goes to the human.** Either carry the
+innermost scroller's box forward and intersect the outer chain against *that*, or revert to the
+pre-cycle-3 unbounded-axis behaviour and accept AT-393's narrow false positive — which the
+module's own stated direction (a false positive costs the north-star FP term; a false negative
+costs a missed credential) actually prefers. A fourth cycle would be a fifth attempt at the same
+line by the same reasoning; it deserves a decision first.
+
+---
+
+## 2. AT-409 — the attribution, not the count. Verified row by row.
+
+I re-ran `qa/evidence/at358-visual-order-detector/mutations.json` myself: **21/21 killed, exit 0**,
+and I read the per-row `claims to kill` / `actually failed` lines rather than the total. Every row
+names its own test in the failure list. The masked-TEXT-RUN row that carried the stale `clipRect(`
+now fails exactly one test:
+
+```
+KILLED  AT-372: a masked TEXT RUN is reported in cleartext  (pytest exit 1)
+    claims to kill : tests/test_browser_unreadable.py::test_a_masked_run_is_reported_as_the_bullets_it_shows
+    actually failed: tests/test_browser_unreadable.py::test_a_masked_run_is_reported_as_the_bullets_it_shows
+```
+
+Four rows do redden a superset (`innerText instead of glyphs`, `returns nothing at all`,
+`form controls are not measured`, `reachability tested against the VIEWPORT`). I checked each: all
+four are *semantically total* mutations — they turn the detector off or reroute it — so a wide
+failure set is the correct consequence, not a compile error masquerading as a kill. The named test
+is in every one.
+
+**The specific hunt the dispatch asked for:** I dumped every mutation body in both specs and read
+the `new` text for identifiers that no longer exist. There are none — the replacements reference
+only `scrollsX`, `scrollsY`, `box`, `clip`, `narrow`, `shown`, `span`, `control`, `rect`, `style`,
+all live. `grep -rn clipRect` over the whole repo returns **no** hit in `src/`, `tests/`,
+`scripts/` or either `mutations.json`; the only survivors are prose in `qa/manifests/`,
+`qa/verdicts/`, `qa/issues.jsonl` and `qa/.last-tick`. AT-409 → `fixed`.
+
+---
+
+## 3. AT-412 and the four admitted fixture weaknesses — the fixtures do isolate
+
+I reproduced both of the dispatch's named falsifications in a **throwaway copy** of the post-change
+tree at
+`…/scratchpad/copy1` (`src` + `tests` + `scripts` + `pyproject.toml`, copied outside the bound
+root). The copy ran **GREEN first** — `15 passed in 1.32s` on `tests/test_browser_unreadable.py` —
+before any edit, and I restored it and re-confirmed green afterwards. I never edited the bound tree.
+
+**(a) The nested-clip case with `narrow` made the identity function.** Red, and the assertion that
+fired is the one the check is named for — the *inner*-binding direction, not the outer one:
+
+```
+>       assert "INNERCLIP_BELOW_SENTINEL_G2" not in seen, seen
+E       AssertionError: …ENTINEL_G1INNERCLIP_BELOW_SENTINEL_G2SCROLLED_BOTTOM_SENTINEL_D2
+FAILED tests/test_browser_unreadable.py::test_a_pane_inside_a_clipping_box_does_not_leak_past_it
+1 failed, 14 passed
+```
+
+`NESTCLIP_BELOW_SENTINEL_F2` stayed correctly absent under the same mutation — which is exactly
+the maker's weakness #3: the outer-binding case alone would have survived. The second case is what
+makes the test an intersection test. Confirmed.
+
+**(b) The nested-pane case with the outer offset dropped.** I applied the early-return shape (the
+walk stops at the inner pane, keeping only its own offset) and the named test went red on the
+"nothing dropped" assertion, losing 45 characters:
+
+```
+>       assert sorted(scrolled) == sorted(at_origin)
+E       At index 11 diff: '3' != '2'  ·  Right contains 45 more items
+FAILED tests/test_browser_unreadable.py::test_a_scrolled_pane_inside_a_scrolled_pane_loses_nothing
+```
+
+And the inner's own offset is measurably **not** enough: in my browser the outer pane's `scrollTop`
+is **924** and the inner's is **50**, against a first line sitting at viewport `y = -785`. Fifty
+pixels cannot carry that back. Weakness #1 is genuinely repaired.
+
+**(c) The substring-would-be-wrong claim — verified, and it is true.** I measured the fixture
+myself after scrolling both panes: `OUTER_TOP_SENTINEL_E1` and `INNER_TOP_SENTINEL_E2` both land at
+viewport `y = -785`, i.e. the **same** screen row, and the detector correctly interleaves them:
+
+```
+OINUNTEERR__TTOOPP__SSEENNTTIINNEELL__EE21INNER_BOTTOM_SENTINEL_E3Quarterly report…
+```
+
+`"INNER_TOP_SENTINEL_E2" in scrolled` is **False** on correct behaviour, so a substring assertion
+there would fail the good code. Sorted-character equality is the right shape, and the test still
+keeps a named substring assertion on `INNER_BOTTOM_SENTINEL_E3`, which sits alone on its row — so
+the failure message is still legible. **The test was corrected, not weakened.** AT-412 → `fixed`.
+
+---
+
+## 4. AT-410's deferral — legitimate scope discipline
+
+I judged this on the three things that separate discipline from a disclosure worn as a shield, and
+it clears all three: it is **filed and open** in the ledger at high severity with its own
+reproduction; it **predates the unit** (it reproduces on the unmutated shipping detector, as the
+prior checker measured, and the prior checker explicitly declined to charge it); and the manifest
+states the **standing condition** — it must close before `visual_text` is wired into the crawl —
+rather than treating disclosure as closure. Adding a fifth concern to a last cycle would have put
+the four that are answered at risk. This is the right call and I am not charging it.
+
+Note that AT-416 now carries the *same* standing condition, from the same line of the module, so
+the crawl-wiring unit inherits two blockers rather than one.
+
+---
+
+## 5. The 300-line rule — doctor does not enforce it on `.js` at all
+
+Stated plainly, because the dispatch is right that the repo should know this:
+
+**`autotester doctor` has never measured `visual_order.js`.** `src/autotester/doctor.py:39-54`:
+`_python_files()` globs `(root/"src").rglob("*.py")`, and `check_file_sizes()` adds
+`(root/"tests").glob("*.py")`. No other extension is read. C2's own text is extension-agnostic —
+*"No file in `src/` or `tests/` exceeds 300 lines"* — so the rule and its enforcer disagree, and
+`doctor: clean` was printed at **316 lines and at 287 alike**. The cap the maker believed it was
+obeying was never the thing that was green. Filed as **AT-419 (medium)**; not charged, because the
+file is under 300 either way so nothing about this unit turns on it. The repo ships exactly two
+`.js` files (`visual_order.js` 287, `enumerate.js` 150), so widening the glob is cheap.
+
+**Did the condensed comments lose anything a reader needs?** No. I diffed them. What went is the
+per-occurrence *narrative* of AT-373/379/392 (three paragraphs → one parenthetical each); what
+stayed is the thing a future editor must meet before touching the line: the pattern statement
+("four times, always the same way", with all four ledger ids), the rule itself in its own
+indented sentence, the measurement rule for scrollable-vs-clipping, and the per-axis note. The
+ledger rows hold the narrative and are cited by id. This is the right compression — and, for what
+it is worth, a reader who *had* been stopped by that comment would still have walked into AT-416,
+because the comment is about the document-edge test and AT-416 is in the clip test.
+
+---
+
+## Criteria
+
+| criterion | verdict | evidence |
+|---|---|---|
+| **C2** — file ≤ 300 lines, function ≤ 50, module docstring | ✅ | `visual_order.js` 287; `test_browser_unreadable.py` 276; `test_browser_visual_order.py` 172; `doctor: clean`. Caveat AT-419: doctor does not *enforce* the `.js` half of this |
+| **C3** — one concept, one place | ✅ | `page_factory` lives once, in `tests/conftest.py`; the dead `SITE` constant is gone (AT-394, verified cycle 2, still absent) |
+| **C7** — a sabotage must be applied, attributed, and asserted against a green baseline | ✅ *as an instrument* | 7/7 and 21/21 re-run by me, per-row attribution read, no mutation body references a dead identifier, baseline green asserted by the harness in its own sandbox |
+| **C7** — a unit that adds a test must mutation-test the branch it claims | ❌ | the AT-379 capability row's check passes but does not isolate its claim: the fixture's pane has no clipping ancestor, and with one the claimed capability is false (AT-416) |
+| **U13** — the positive rendering detector this criterion names as owed (AT-358) | ❌ | U13 exists because an enumeration is a deny-list and the detector is the positive instrument. A detector that returns a clean string for a credential below the fold of a card body is that instrument failing at its one job |
+| **Issues addressed** — AT-379 `open → fixed` | ❌ | AT-379's filed defect reproduces on P7. Stays `open` |
+| **Issues addressed** — AT-408 | ⚠️ partial | fixed as filed (P1 three-level nesting works); its own wording still false for a clip-path scroller (AT-417). Stays `open` |
+| **Issues addressed** — AT-409, AT-412 | ✅ | flipped to `fixed` in the ledger |
+| **Issues addressed** — AT-393, AT-394 | ✅ | already `fixed` at cycle 2; re-verified (P2, and the identity-`narrow` falsification) |
+| **AT-411 / `tests/test_flake_probe.py`** | ✅ | `git ls-files --error-unmatch` succeeds, `git diff HEAD --` is empty, last touched by `1e95b1a` (the other loop). Present in HEAD and unmodified. No residue |
+
+---
+
+## CAPABILITY COVERAGE — 7/7 rows reproduced, 1 row does not isolate its claim
+
+All seven rows are single-hunk edits to `src/autotester/browser/visual_order.js`, which is named in
+"What changed"; no cell contains a shell command, a conftest/CI edit, a multi-file edit, or an
+instruction to me. I re-ran the whole table through `scripts/mutation_check.py` (which sandboxes
+outside the repo, asserts a green baseline, asserts the anchor matches exactly once, asserts the
+file changed, and attributes the kill to the named nodeid), and I reproduced rows 6 and 7 a second
+time **by hand** in my own throwaway copy so I could read the assertion text rather than the exit
+code. Every row goes red on the assertion its name promises.
+
+The row that does not isolate its claim is row 1 — *"text below the fold of a scrollable pane is
+reported (AT-379)"*. Its check is green and its mutation kills; the capability is nevertheless
+false whenever the pane has a clipping ancestor. That is enumerated debt I am recording against
+AT-416, not an unenumerated claim: the maker did write the row, and the row's *mutation* is honest.
+What is missing is a case in the fixture.
+
+---
+
+## LIVE-BROWSER (Mode D)
+
+`qa/evidence/browser-at379-scrollable-pane-reachability-2026-09-16-checker-c3/report.json`
+(+ `p6-scroller-inside-hard-clip.json`, `p7-card-wrapper.json`)
+
+My own headed Chromium (`headless=False`), my own seven probe pages, my own HTTP server, driven by
+my own script — I did not open, read, or re-run anything of the maker's, and I did not look at a
+single screenshot. Every page carries a `CONTROL_*` sentinel outside every pane and clip, so a
+detector returning nothing cannot satisfy a probe. I interacted rather than rendered: every pane is
+scrolled with `eval_on_selector` and every claim is re-measured after the interaction.
+**Console errors: 1 per page load, every one a `favicon.ico 404` from my own static server; zero
+page errors and zero errors originating in the detector.** Both A/B comparisons against the
+pre-cycle-3 walk were run in the same browser on the same DOM via `page.evaluate`, so nothing in
+AT-416 depends on a second environment.
+
+---
+
+## Ledger
+
+Written: **AT-416** (high, regression), **AT-417** (medium, pre-existing), **AT-418** (low,
+pre-existing), **AT-419** (medium, enforcement gap).
+Flipped `open → fixed`: **AT-409**, **AT-412**.
+Left `open` deliberately: **AT-379** (P7), **AT-408** (P5 residue), **AT-410** (deferred, correctly).
+
+---
+
+```
+VERDICT: FAIL
+SCOREBOARD: 2/4 criteria met (C2 ✅ · C3 ✅ · C7 ❌ · U13 ❌), 4/6 claimed issue closures supported
+FAILURES:
+- [C7/U13] sev: high · The running clip intersection that closes AT-393 re-opens AT-379: a
+  scrollable pane inside ANY clipping ancestor (an ordinary overflow:hidden card) drops everything
+  below its own fold again — measured at rest, reported after scrolling the pane into the band, and
+  reported at rest by the pre-cycle-3 walk on the same page · intersect the outer clips against the
+  innermost SCROLLER'S BOX rather than against the glyph's current rect, or revert to the unbounded
+  scrollable axis and accept AT-393 · issue: AT-416
+- [Issues addressed] sev: high · `AT-379 (medium, open → fixed — both halves now)` is not true; the
+  defect AT-379 was filed for reproduces on a card-wrapped pane · AT-379 stays open until AT-416
+  closes · issue: AT-416
+- [C2/enforcement] sev: medium · `autotester doctor` never measured visual_order.js — check_file_sizes
+  globs only *.py, so `doctor: clean` printed at 316 lines and at 287 alike · widen the glob to *.js
+  or amend C2 to say "Python file" · issue: AT-419
+CAPABILITY-COVERAGE: 7/7 rows reproduced in my own throwaway copy (green before each edit); row 1's
+  check passes but does not isolate its claim — see AT-416
+LIVE-BROWSER: qa/evidence/browser-at379-scrollable-pane-reachability-2026-09-16-checker-c3/report.json
+ISSUES-WRITTEN: AT-416, AT-417, AT-418, AT-419
+EXPLANATION: All four cycle-2 findings are genuinely answered and I reproduced every one — AT-409's
+attribution is restored with no dead identifier in any mutation body, AT-412's test now asserts the
+negative viewport coordinate the rule needs, and the four admitted fixture weaknesses are really
+repaired (including the substring claim, which I measured and which is true: two texts land on one
+screen row and interleave). The unit fails on a regression none of its commands can see: the clip
+intersection added for AT-393 makes the outer clip bind against the glyph's current position rather
+than against the scroll container that can move it, so a credential below the fold of any
+card-wrapped scrollable body returns a clean string again — the fifth time this line has been wrong
+in the same direction, and once more a false-positive fix that manufactured a false negative. This
+is fix cycle 3 of 3, so the unit goes STALLED and the remedy (intersect against the scroller's box
+vs revert to the unbounded axis and accept AT-393) is a direction call for Umesh, not a fourth
+attempt at the same line.
+```
