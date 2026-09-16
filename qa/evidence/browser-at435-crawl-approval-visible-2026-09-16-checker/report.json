@@ -1,0 +1,209 @@
+{
+ "unit": "at435-crawl-approval-visible",
+ "role": "checker Mode D (independent, own journey)",
+ "date": "2026-09-16T15:19:33+00:00",
+ "instrument": "headed Playwright Python 1.62 (chromium, headless=False)",
+ "note": "banner compared case-insensitively: the badge is CSS text-transform uppercase, so inner_text reads CRAWL APPROVAL SAVED; an earlier run of this script failed 3 steps on that case alone and an earlier one used a wrong selector (.pill), both script defects, not product ones",
+ "server": "uvicorn from checker's git-archive HEAD copy + the 2 unit files, 127.0.0.1:8045",
+ "autotester_root": "scratchpad/at435root \u2014 only projects/regression-demo project.json + cases.jsonl (synthetic)",
+ "final_disk_lines": 7,
+ "steps": [
+  {
+   "did": "open env page with no approvals",
+   "expected": "empty state in Approvals in force card",
+   "observed": "Approvals in force\n\nNo crawl approval is in force for this target.",
+   "pass_": true
+  },
+  {
+   "did": "fill + click Save crawl approval",
+   "expected": "303 to ?saved=<id>, 'Crawl approval saved' banner with id, 1 row, 1 line on disk",
+   "observed": {
+    "url": "http://127.0.0.1:8045/projects/regression-demo/env?saved=appr_259895d139be#crawl-approval",
+    "banner": [
+     "\u2713 CRAWL APPROVAL SAVED It is in force and listed below. appr_259895d139be"
+    ],
+    "table_rows": 1,
+    "disk_lines": 1
+   },
+   "pass_": true
+  },
+  {
+   "did": "identical re-save",
+   "expected": "?saved=<same id>&existing=1, 'already on file' banner, still 1 row + 1 line on disk",
+   "observed": {
+    "url": "http://127.0.0.1:8045/projects/regression-demo/env?saved=appr_259895d139be&existing=1#crawl-approval",
+    "banner": [
+     "\u2713 CRAWL APPROVAL ALREADY ON FILE This approval was already on file \u2014 nothing new was saved. appr_259895d139be"
+    ],
+    "table_rows": 1,
+    "disk_lines": 1
+   },
+   "pass_": true
+  },
+  {
+   "did": "save differing only in max_actions (26)",
+   "expected": "new grant: 2 lines on disk, 2 rows, saved banner naming the new id, no existing flag",
+   "observed": {
+    "url": "http://127.0.0.1:8045/projects/regression-demo/env?saved=appr_95acc93dafa2#crawl-approval",
+    "banner": [
+     "\u2713 CRAWL APPROVAL SAVED It is in force and listed below. appr_95acc93dafa2"
+    ],
+    "table_rows": 2,
+    "disk_lines": 2
+   },
+   "pass_": true
+  },
+  {
+   "did": "seed expired / other-target (trailing slash) / tampered rows on disk, reload",
+   "expected": "none listed, 2 rows remain, '3 more on file ... not honoured' line",
+   "observed": {
+    "listed_hostile": [],
+    "table_rows": 2,
+    "card": "Approvals in force\nSIGNED BY\tSCOPE\tMAX ACTIONS\tWALL CLOCK\tEXPIRES (UTC)\tID\nChecker Tester\tchecker scope: read and click safe controls\t25\t600s\t2099-12-31T04:30:00+00:00\tappr_259895d139be\nChecker Tester\tchecker scope: read and click safe controls\t26\t600s\t2099-12-31T04:30:00+00:00\tappr_95acc93dafa2\n\n3 more on file are expired, edited after granting, or for another target, and are not honoured."
+   },
+   "pass_": true
+  },
+  {
+   "did": "?saved=<6-saved-expired-id not in force>",
+   "expected": "no banner",
+   "observed": [],
+   "pass_": true
+  },
+  {
+   "did": "?saved=<6-saved-tampered-id not in force>",
+   "expected": "no banner",
+   "observed": [],
+   "pass_": true
+  },
+  {
+   "did": "PROBE: seed an intact unexpired READ-kind grant for the same target",
+   "expected": "not listed as a crawl grant (correct); note wording honest about why",
+   "observed": {
+    "listed": false,
+    "card_note": [
+     "4 more on file are expired, edited after granting, or for another target, and are not honoured."
+    ]
+   },
+   "pass_": true
+  },
+  {
+   "did": "save a grant whose scope is an <img onerror> payload via the form",
+   "expected": "saved, listed as text: raw HTML carries &lt;img, no <img> element, onerror never ran",
+   "observed": {
+    "persisted": true,
+    "raw_has_escaped": true,
+    "raw_has_tag": false,
+    "img_elements_in_table": 0,
+    "xss_ran": false,
+    "url": "http://127.0.0.1:8045/projects/regression-demo/env?saved=appr_c9f3ed2bb464#crawl-approval"
+   },
+   "pass_": true
+  },
+  {
+   "did": "?saved= injection (9-saved-script)",
+   "expected": "no banner, canary not echoed, script not run",
+   "observed": {
+    "banner": [],
+    "echoed": false,
+    "ran": false
+   },
+   "pass_": true
+  },
+  {
+   "did": "?saved= injection (9-saved-id-plus-script)",
+   "expected": "no banner, canary not echoed, script not run",
+   "observed": {
+    "banner": [],
+    "echoed": false,
+    "ran": false
+   },
+   "pass_": true
+  },
+  {
+   "did": "?saved= injection (9-saved-existing-script)",
+   "expected": "no banner, canary not echoed, script not run",
+   "observed": {
+    "banner": [],
+    "echoed": false,
+    "ran": false
+   },
+   "pass_": true
+  },
+  {
+   "did": "existing in-force id with existing=1",
+   "expected": "'Crawl approval already on file' banner naming that id",
+   "observed": [
+    "\u2713 CRAWL APPROVAL ALREADY ON FILE This approval was already on file \u2014 nothing new was saved. appr_259895d139be"
+   ],
+   "pass_": true
+  },
+  {
+   "did": "existing in-force id without existing flag",
+   "expected": "'Crawl approval saved' banner naming that id",
+   "observed": [
+    "\u2713 CRAWL APPROVAL SAVED It is in force and listed below. appr_259895d139be"
+   ],
+   "pass_": true
+  }
+ ],
+ "console_errors": {
+  "1-empty": {
+   "count": 0,
+   "messages": []
+  },
+  "2-save": {
+   "count": 0,
+   "messages": []
+  },
+  "3-identical-resave": {
+   "count": 0,
+   "messages": []
+  },
+  "4-differ-one-bound": {
+   "count": 0,
+   "messages": []
+  },
+  "5-seeded": {
+   "count": 0,
+   "messages": []
+  },
+  "6-saved-expired-id": {
+   "count": 0,
+   "messages": []
+  },
+  "6-saved-tampered-id": {
+   "count": 0,
+   "messages": []
+  },
+  "7-read-kind": {
+   "count": 0,
+   "messages": []
+  },
+  "8-escape-form": {
+   "count": 0,
+   "messages": []
+  },
+  "9-saved-script": {
+   "count": 0,
+   "messages": []
+  },
+  "9-saved-id-plus-script": {
+   "count": 0,
+   "messages": []
+  },
+  "9-saved-existing-script": {
+   "count": 0,
+   "messages": []
+  },
+  "10-existing-id-existing1": {
+   "count": 0,
+   "messages": []
+  },
+  "11-existing-id-no-flag": {
+   "count": 0,
+   "messages": []
+  }
+ },
+ "passed": 14,
+ "total": 14
+}
