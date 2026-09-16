@@ -19,3 +19,4 @@ with sync_playwright() as pw:
         print(f"{r['case'][:60]:<60} painted={r['painted']!s:<5} CAND={r['NEW']['verdict']} pc={r['NEW']['pos_ctrl']} ce={r['NEW']['console_errors']}")
     b.close()
 print("CAND wrong:", [r["case"] for r in rows if r["NEW"]["verdict"] != "ok"])
+Path(sys.argv[1]).write_text(json.dumps(rows, indent=1), encoding="utf-8")

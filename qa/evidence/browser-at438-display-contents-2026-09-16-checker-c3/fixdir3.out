@@ -1,0 +1,27 @@
+A1 closed details, NO author override                        painted=False CAND=ok pc=True ce=0
+A2 open details, NO author override                          painted=True  CAND=ok pc=True ce=0
+A3 closed, ::details-content{display:contents}               painted=True  CAND=ok pc=True ce=0
+A4 closed, ::details-content{display:inline}                 painted=True  CAND=ok pc=True ce=0
+A5 open, ::details-content{display:none}                     painted=False CAND=ok pc=True ce=0
+A6 closed, ::details-content{content-visibility:auto}        painted=True  CAND=ok pc=True ce=0
+A7 open, [open]::details-content{content-visibility:hidden}  painted=False CAND=ok pc=True ce=0
+B1 closed: FIRST summary removed by script, contents summary painted=True  CAND=ok pc=True ce=0
+B2 closed: summary inserted before a body contents element   painted=False CAND=ok pc=True ce=0
+B3 closed: new summary prepended before the contents summary painted=False CAND=ok pc=True ce=0
+B4 closed: summary nested in a div wrapper                   painted=False CAND=ok pc=True ce=0
+B5 closed: summary nested in a display:contents wrapper      painted=False CAND=ok pc=True ce=0
+B6 closed: contents element BEFORE the first summary         painted=False CAND=ok pc=True ce=0
+F6 dc{display:flow-root} closed                              painted=False CAND=ok pc=True ce=0
+G1 closed dc{display:grid}                                   painted=False CAND=ok pc=True ce=0
+open details                                                 painted=True  CAND=ok pc=True ce=0
+closed details                                               painted=False CAND=ok pc=True ce=0
+closed details, contents nested twice                        painted=False CAND=ok pc=True ce=0
+summary itself display:contents, closed details              painted=True  CAND=ok pc=True ce=0
+SECOND summary display:contents, closed details              painted=False CAND=ok pc=True ce=0
+contents wrapping a summary, closed details                  painted=False CAND=ok pc=True ce=0
+slot inside CLOSED details in shadow                         painted=False CAND=ok pc=True ce=0
+closed details, contents wrapper x3                          painted=False CAND=ok pc=True ce=0
+closed details with ::details-content visible                painted=True  CAND=ok pc=True ce=0
+details itself display:contents, closed                      painted=False CAND=ok pc=True ce=0
+open details display:contents inside closed details          painted=False CAND=ok pc=True ce=0
+CAND wrong: []

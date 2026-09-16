@@ -1,0 +1,314 @@
+[
+ {
+  "case": "A1 closed details, NO author override",
+  "NEW": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": false
+ },
+ {
+  "case": "A2 open details, NO author override",
+  "NEW": {
+   "reported": true,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": true
+ },
+ {
+  "case": "A3 closed, ::details-content{display:contents}",
+  "NEW": {
+   "reported": true,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": true
+ },
+ {
+  "case": "A4 closed, ::details-content{display:inline}",
+  "NEW": {
+   "reported": true,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": true
+ },
+ {
+  "case": "A5 open, ::details-content{display:none}",
+  "NEW": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": false
+ },
+ {
+  "case": "A6 closed, ::details-content{content-visibility:auto}",
+  "NEW": {
+   "reported": true,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": true
+ },
+ {
+  "case": "A7 open, [open]::details-content{content-visibility:hidden}",
+  "NEW": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": false
+ },
+ {
+  "case": "B1 closed: FIRST summary removed by script, contents summary becomes first",
+  "NEW": {
+   "reported": true,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": true
+ },
+ {
+  "case": "B2 closed: summary inserted before a body contents element",
+  "NEW": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": false
+ },
+ {
+  "case": "B3 closed: new summary prepended before the contents summary",
+  "NEW": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": false
+ },
+ {
+  "case": "B4 closed: summary nested in a div wrapper",
+  "NEW": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": false
+ },
+ {
+  "case": "B5 closed: summary nested in a display:contents wrapper",
+  "NEW": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": false
+ },
+ {
+  "case": "B6 closed: contents element BEFORE the first summary",
+  "NEW": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": false
+ },
+ {
+  "case": "F6 dc{display:flow-root} closed",
+  "NEW": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": false
+ },
+ {
+  "case": "G1 closed dc{display:grid}",
+  "NEW": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": false
+ },
+ {
+  "case": "open details",
+  "NEW": {
+   "reported": true,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": true
+ },
+ {
+  "case": "closed details",
+  "NEW": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": false
+ },
+ {
+  "case": "closed details, contents nested twice",
+  "NEW": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": false
+ },
+ {
+  "case": "summary itself display:contents, closed details",
+  "NEW": {
+   "reported": true,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": true
+ },
+ {
+  "case": "SECOND summary display:contents, closed details",
+  "NEW": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": false
+ },
+ {
+  "case": "contents wrapping a summary, closed details",
+  "NEW": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": false
+ },
+ {
+  "case": "slot inside CLOSED details in shadow",
+  "NEW": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": false
+ },
+ {
+  "case": "closed details, contents wrapper x3",
+  "NEW": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": false
+ },
+ {
+  "case": "closed details with ::details-content visible",
+  "NEW": {
+   "reported": true,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": true
+ },
+ {
+  "case": "details itself display:contents, closed",
+  "NEW": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": false
+ },
+ {
+  "case": "open details display:contents inside closed details",
+  "NEW": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": false
+ }
+]
