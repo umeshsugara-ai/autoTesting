@@ -1,0 +1,1614 @@
+{
+ "unit": "at438-display-contents",
+ "cycle_checked": 3,
+ "date": "2026-09-16",
+ "by": "checker Mode D (own Chromium, own pages; fresh subagent)",
+ "chromium": "151.0.7922.34",
+ "versions": {
+  "OLD": "c687b73^ (pre-AT-438)",
+  "PROBE": "c687b73 (cycle 1)",
+  "C2": "ba30b71 (cycle 2)",
+  "NEW": "bound tree == 9fc937d (cycle 3)"
+ },
+ "groundtruth": "full-page screenshot hash before/after replacing the sentinel text node (same-length glyphs, monospace)",
+ "point1_moded2_60_layouts": {
+  "tally": {
+   "OLD": {
+    "ok": 38,
+    "FN": 22,
+    "FP": 0,
+    "n": 60
+   },
+   "PROBE": {
+    "ok": 55,
+    "FN": 2,
+    "FP": 3,
+    "n": 60
+   },
+   "C2": {
+    "ok": 52,
+    "FN": 1,
+    "FP": 7,
+    "n": 60
+   },
+   "NEW": {
+    "ok": 57,
+    "FN": 0,
+    "FP": 3,
+    "n": 60
+   }
+  },
+  "NEW_wrong": [
+   [
+    "flex container contain:paint height:0",
+    "FALSE_POSITIVE",
+    {
+     "OLD": "ok",
+     "PROBE": "FALSE_POSITIVE",
+     "C2": "FALSE_POSITIVE"
+    }
+   ],
+   [
+    "grid container contain:paint height:0",
+    "FALSE_POSITIVE",
+    {
+     "OLD": "ok",
+     "PROBE": "FALSE_POSITIVE",
+     "C2": "FALSE_POSITIVE"
+    }
+   ],
+   [
+    "flex container clip-path hides all",
+    "FALSE_POSITIVE",
+    {
+     "OLD": "ok",
+     "PROBE": "FALSE_POSITIVE",
+     "C2": "FALSE_POSITIVE"
+    }
+   ]
+  ],
+  "C2_to_NEW_changes": [
+   [
+    "SECOND summary display:contents, closed details",
+    "FALSE_POSITIVE",
+    "ok"
+   ],
+   [
+    "slot inside CLOSED details in shadow",
+    "FALSE_POSITIVE",
+    "ok"
+   ],
+   [
+    "slot inside cv:hidden div in shadow",
+    "FALSE_POSITIVE",
+    "ok"
+   ],
+   [
+    "closed details with ::details-content visible",
+    "FALSE_NEGATIVE",
+    "ok"
+   ],
+   [
+    "details itself display:contents, closed",
+    "FALSE_POSITIVE",
+    "ok"
+   ]
+  ],
+  "raw": "report_moded3.json (harness moded3.py = cycle-2 moded2.py verbatim + ba30b71 as C2)"
+ },
+ "point2_attacks": {
+  "tally": {
+   "OLD": {
+    "ok": 19,
+    "FN": 10,
+    "FP": 0,
+    "n": 29
+   },
+   "PROBE": {
+    "ok": 29,
+    "FN": 0,
+    "FP": 0,
+    "n": 29
+   },
+   "C2": {
+    "ok": 20,
+    "FN": 3,
+    "FP": 6,
+    "n": 29
+   },
+   "NEW": {
+    "ok": 24,
+    "FN": 2,
+    "FP": 3,
+    "n": 29
+   }
+  },
+  "rows": [
+   {
+    "case": "A1 closed details, NO author override",
+    "painted": false,
+    "OLD": "ok",
+    "PROBE": "ok",
+    "C2": "ok",
+    "NEW": "ok",
+    "pseudo": {
+     "supports": true,
+     "details": [
+      {
+       "open": false,
+       "dc_cv": "hidden",
+       "dc_display": "block",
+       "own_cv": "visible"
+      }
+     ],
+     "bogus_pseudo_cv": "",
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 14,
+     "maxSteps": 5,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": "A1.png"
+   },
+   {
+    "case": "A2 open details, NO author override",
+    "painted": true,
+    "OLD": "FALSE_NEGATIVE",
+    "PROBE": "ok",
+    "C2": "ok",
+    "NEW": "ok",
+    "pseudo": {
+     "supports": true,
+     "details": [
+      {
+       "open": true,
+       "dc_cv": "visible",
+       "dc_display": "block",
+       "own_cv": "visible"
+      }
+     ],
+     "bogus_pseudo_cv": "",
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 14,
+     "maxSteps": 5,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": "A2.png"
+   },
+   {
+    "case": "A3 closed, ::details-content{display:contents}",
+    "painted": true,
+    "OLD": "FALSE_NEGATIVE",
+    "PROBE": "ok",
+    "C2": "FALSE_NEGATIVE",
+    "NEW": "FALSE_NEGATIVE",
+    "pseudo": {
+     "supports": true,
+     "details": [
+      {
+       "open": false,
+       "dc_cv": "hidden",
+       "dc_display": "contents",
+       "own_cv": "visible"
+      }
+     ],
+     "bogus_pseudo_cv": "",
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 14,
+     "maxSteps": 5,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": "A3.png"
+   },
+   {
+    "case": "A4 closed, ::details-content{display:inline}",
+    "painted": true,
+    "OLD": "FALSE_NEGATIVE",
+    "PROBE": "ok",
+    "C2": "FALSE_NEGATIVE",
+    "NEW": "FALSE_NEGATIVE",
+    "pseudo": {
+     "supports": true,
+     "details": [
+      {
+       "open": false,
+       "dc_cv": "hidden",
+       "dc_display": "inline",
+       "own_cv": "visible"
+      }
+     ],
+     "bogus_pseudo_cv": "",
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 14,
+     "maxSteps": 5,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": "A4.png"
+   },
+   {
+    "case": "A5 open, ::details-content{display:none}",
+    "painted": false,
+    "OLD": "ok",
+    "PROBE": "ok",
+    "C2": "ok",
+    "NEW": "ok",
+    "pseudo": {
+     "supports": true,
+     "details": [
+      {
+       "open": true,
+       "dc_cv": "visible",
+       "dc_display": "none",
+       "own_cv": "visible"
+      }
+     ],
+     "bogus_pseudo_cv": "",
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 14,
+     "maxSteps": 5,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": null
+   },
+   {
+    "case": "A6 closed, ::details-content{content-visibility:auto}",
+    "painted": true,
+    "OLD": "FALSE_NEGATIVE",
+    "PROBE": "ok",
+    "C2": "FALSE_NEGATIVE",
+    "NEW": "ok",
+    "pseudo": {
+     "supports": true,
+     "details": [
+      {
+       "open": false,
+       "dc_cv": "auto",
+       "dc_display": "block",
+       "own_cv": "visible"
+      }
+     ],
+     "bogus_pseudo_cv": "",
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 14,
+     "maxSteps": 5,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": null
+   },
+   {
+    "case": "A7 open, [open]::details-content{content-visibility:hidden}",
+    "painted": false,
+    "OLD": "ok",
+    "PROBE": "ok",
+    "C2": "FALSE_POSITIVE",
+    "NEW": "ok",
+    "pseudo": {
+     "supports": true,
+     "details": [
+      {
+       "open": true,
+       "dc_cv": "hidden",
+       "dc_display": "block",
+       "own_cv": "visible"
+      }
+     ],
+     "bogus_pseudo_cv": "",
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 14,
+     "maxSteps": 5,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": null
+   },
+   {
+    "case": "B1 closed: FIRST summary removed by script, contents summary becomes first",
+    "painted": true,
+    "OLD": "FALSE_NEGATIVE",
+    "PROBE": "ok",
+    "C2": "ok",
+    "NEW": "ok",
+    "pseudo": {
+     "supports": true,
+     "details": [
+      {
+       "open": false,
+       "dc_cv": "hidden",
+       "dc_display": "block",
+       "own_cv": "visible"
+      }
+     ],
+     "bogus_pseudo_cv": "",
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 13,
+     "maxSteps": 6,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": "B1.png"
+   },
+   {
+    "case": "B2 closed: summary inserted before a body contents element",
+    "painted": false,
+    "OLD": "ok",
+    "PROBE": "ok",
+    "C2": "ok",
+    "NEW": "ok",
+    "pseudo": {
+     "supports": true,
+     "details": [
+      {
+       "open": false,
+       "dc_cv": "hidden",
+       "dc_display": "block",
+       "own_cv": "visible"
+      }
+     ],
+     "bogus_pseudo_cv": "",
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 14,
+     "maxSteps": 5,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": null
+   },
+   {
+    "case": "B3 closed: new summary prepended before the contents summary",
+    "painted": false,
+    "OLD": "ok",
+    "PROBE": "ok",
+    "C2": "FALSE_POSITIVE",
+    "NEW": "ok",
+    "pseudo": {
+     "supports": true,
+     "details": [
+      {
+       "open": false,
+       "dc_cv": "hidden",
+       "dc_display": "block",
+       "own_cv": "visible"
+      }
+     ],
+     "bogus_pseudo_cv": "",
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 15,
+     "maxSteps": 6,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": null
+   },
+   {
+    "case": "B4 closed: summary nested in a div wrapper",
+    "painted": false,
+    "OLD": "ok",
+    "PROBE": "ok",
+    "C2": "ok",
+    "NEW": "ok",
+    "pseudo": {
+     "supports": true,
+     "details": [
+      {
+       "open": false,
+       "dc_cv": "hidden",
+       "dc_display": "block",
+       "own_cv": "visible"
+      }
+     ],
+     "bogus_pseudo_cv": "",
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 14,
+     "maxSteps": 7,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": null
+   },
+   {
+    "case": "B5 closed: summary nested in a display:contents wrapper",
+    "painted": false,
+    "OLD": "ok",
+    "PROBE": "ok",
+    "C2": "ok",
+    "NEW": "ok",
+    "pseudo": {
+     "supports": true,
+     "details": [
+      {
+       "open": false,
+       "dc_cv": "hidden",
+       "dc_display": "block",
+       "own_cv": "visible"
+      }
+     ],
+     "bogus_pseudo_cv": "",
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 14,
+     "maxSteps": 7,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": null
+   },
+   {
+    "case": "B6 closed: contents element BEFORE the first summary",
+    "painted": false,
+    "OLD": "ok",
+    "PROBE": "ok",
+    "C2": "ok",
+    "NEW": "ok",
+    "pseudo": {
+     "supports": true,
+     "details": [
+      {
+       "open": false,
+       "dc_cv": "hidden",
+       "dc_display": "block",
+       "own_cv": "visible"
+      }
+     ],
+     "bogus_pseudo_cv": "",
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 14,
+     "maxSteps": 5,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": null
+   },
+   {
+    "case": "C1 name=x: A open, then B opened by script (A closes), contents in A",
+    "painted": false,
+    "OLD": "ok",
+    "PROBE": "ok",
+    "C2": "ok",
+    "NEW": "ok",
+    "pseudo": {
+     "supports": true,
+     "details": [
+      {
+       "open": false,
+       "dc_cv": "hidden",
+       "dc_display": "block",
+       "own_cv": "visible"
+      },
+      {
+       "open": true,
+       "dc_cv": "visible",
+       "dc_display": "block",
+       "own_cv": "visible"
+      }
+     ],
+     "bogus_pseudo_cv": "",
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 19,
+     "maxSteps": 5,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": null
+   },
+   {
+    "case": "C2 name=x: B open, then A opened by script, contents in A",
+    "painted": true,
+    "OLD": "FALSE_NEGATIVE",
+    "PROBE": "ok",
+    "C2": "ok",
+    "NEW": "ok",
+    "pseudo": {
+     "supports": true,
+     "details": [
+      {
+       "open": true,
+       "dc_cv": "visible",
+       "dc_display": "block",
+       "own_cv": "visible"
+      },
+      {
+       "open": false,
+       "dc_cv": "hidden",
+       "dc_display": "block",
+       "own_cv": "visible"
+      }
+     ],
+     "bogus_pseudo_cv": "",
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 19,
+     "maxSteps": 5,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": null
+   },
+   {
+    "case": "D1 slot->slot, inner shadow slot inside CLOSED details",
+    "painted": false,
+    "OLD": "ok",
+    "PROBE": "ok",
+    "C2": "FALSE_POSITIVE",
+    "NEW": "ok",
+    "pseudo": {
+     "supports": true,
+     "details": [
+      {
+       "open": false,
+       "dc_cv": "hidden",
+       "dc_display": "block",
+       "own_cv": "visible"
+      }
+     ],
+     "bogus_pseudo_cv": "",
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 18,
+     "maxSteps": 9,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": null
+   },
+   {
+    "case": "D2 slot->slot, inner shadow slot inside OPEN details",
+    "painted": true,
+    "OLD": "FALSE_NEGATIVE",
+    "PROBE": "ok",
+    "C2": "ok",
+    "NEW": "ok",
+    "pseudo": {
+     "supports": true,
+     "details": [
+      {
+       "open": true,
+       "dc_cv": "visible",
+       "dc_display": "block",
+       "own_cv": "visible"
+      }
+     ],
+     "bogus_pseudo_cv": "",
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 18,
+     "maxSteps": 9,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": null
+   },
+   {
+    "case": "D3 slot->slot, inner shadow visible div",
+    "painted": true,
+    "OLD": "FALSE_NEGATIVE",
+    "PROBE": "ok",
+    "C2": "ok",
+    "NEW": "ok",
+    "pseudo": {
+     "supports": true,
+     "details": [],
+     "bogus_pseudo_cv": null,
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 16,
+     "maxSteps": 9,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": null
+   },
+   {
+    "case": "D4 slot->slot, inner CLOSED-mode shadow, slot in closed details",
+    "painted": false,
+    "OLD": "ok",
+    "PROBE": "ok",
+    "C2": "FALSE_POSITIVE",
+    "NEW": "FALSE_POSITIVE",
+    "pseudo": {
+     "supports": true,
+     "details": [
+      {
+       "open": false,
+       "dc_cv": "hidden",
+       "dc_display": "block",
+       "own_cv": "visible"
+      }
+     ],
+     "bogus_pseudo_cv": "",
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 18,
+     "maxSteps": 7,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": null
+   },
+   {
+    "case": "D5 closed-mode shadow, slot inside CLOSED details",
+    "painted": false,
+    "OLD": "ok",
+    "PROBE": "ok",
+    "C2": "FALSE_POSITIVE",
+    "NEW": "FALSE_POSITIVE",
+    "pseudo": {
+     "supports": true,
+     "details": [
+      {
+       "open": false,
+       "dc_cv": "hidden",
+       "dc_display": "block",
+       "own_cv": "visible"
+      }
+     ],
+     "bogus_pseudo_cv": "",
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 16,
+     "maxSteps": 6,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": "D5.png"
+   },
+   {
+    "case": "D6 closed-mode shadow, slot inside visible div",
+    "painted": true,
+    "OLD": "FALSE_NEGATIVE",
+    "PROBE": "ok",
+    "C2": "ok",
+    "NEW": "ok",
+    "pseudo": {
+     "supports": true,
+     "details": [],
+     "bogus_pseudo_cv": null,
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 14,
+     "maxSteps": 5,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": null
+   },
+   {
+    "case": "D7 closed-mode shadow, slot inside cv:hidden div",
+    "painted": false,
+    "OLD": "ok",
+    "PROBE": "ok",
+    "C2": "FALSE_POSITIVE",
+    "NEW": "FALSE_POSITIVE",
+    "pseudo": {
+     "supports": true,
+     "details": [],
+     "bogus_pseudo_cv": null,
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 14,
+     "maxSteps": 5,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": null
+   },
+   {
+    "case": "D8 open shadow: host inside CLOSED details, slot at shadow-root top",
+    "painted": false,
+    "OLD": "ok",
+    "PROBE": "ok",
+    "C2": "ok",
+    "NEW": "ok",
+    "pseudo": {
+     "supports": true,
+     "details": [
+      {
+       "open": false,
+       "dc_cv": "hidden",
+       "dc_display": "block",
+       "own_cv": "visible"
+      }
+     ],
+     "bogus_pseudo_cv": "",
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 16,
+     "maxSteps": 7,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": null
+   },
+   {
+    "case": "D9 open shadow: slot as FIRST summary's child",
+    "painted": true,
+    "OLD": "FALSE_NEGATIVE",
+    "PROBE": "ok",
+    "C2": "ok",
+    "NEW": "ok",
+    "pseudo": {
+     "supports": true,
+     "details": [
+      {
+       "open": false,
+       "dc_cv": "hidden",
+       "dc_display": "block",
+       "own_cv": "visible"
+      }
+     ],
+     "bogus_pseudo_cv": "",
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 17,
+     "maxSteps": 8,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": null
+   },
+   {
+    "case": "E1 details hidden=until-found (open), contents in body",
+    "painted": false,
+    "OLD": "ok",
+    "PROBE": "ok",
+    "C2": "ok",
+    "NEW": "ok",
+    "pseudo": {
+     "supports": true,
+     "details": [
+      {
+       "open": true,
+       "dc_cv": "visible",
+       "dc_display": "block",
+       "own_cv": "hidden"
+      }
+     ],
+     "bogus_pseudo_cv": "",
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 14,
+     "maxSteps": 5,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": null
+   },
+   {
+    "case": "E2 details hidden=until-found (open), contents in summary",
+    "painted": false,
+    "OLD": "ok",
+    "PROBE": "ok",
+    "C2": "ok",
+    "NEW": "ok",
+    "pseudo": {
+     "supports": true,
+     "details": [
+      {
+       "open": true,
+       "dc_cv": "visible",
+       "dc_display": "block",
+       "own_cv": "hidden"
+      }
+     ],
+     "bogus_pseudo_cv": "",
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 13,
+     "maxSteps": 6,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": null
+   },
+   {
+    "case": "E3 details content-visibility:hidden (open), contents in body",
+    "painted": false,
+    "OLD": "ok",
+    "PROBE": "ok",
+    "C2": "ok",
+    "NEW": "ok",
+    "pseudo": {
+     "supports": true,
+     "details": [
+      {
+       "open": true,
+       "dc_cv": "visible",
+       "dc_display": "block",
+       "own_cv": "hidden"
+      }
+     ],
+     "bogus_pseudo_cv": "",
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 14,
+     "maxSteps": 5,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": null
+   },
+   {
+    "case": "E4 details content-visibility:hidden (open), contents in summary",
+    "painted": false,
+    "OLD": "ok",
+    "PROBE": "ok",
+    "C2": "ok",
+    "NEW": "ok",
+    "pseudo": {
+     "supports": true,
+     "details": [
+      {
+       "open": true,
+       "dc_cv": "visible",
+       "dc_display": "block",
+       "own_cv": "hidden"
+      }
+     ],
+     "bogus_pseudo_cv": "",
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 13,
+     "maxSteps": 6,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": null
+   },
+   {
+    "case": "E5 details content-visibility:hidden (closed), contents in summary",
+    "painted": false,
+    "OLD": "ok",
+    "PROBE": "ok",
+    "C2": "ok",
+    "NEW": "ok",
+    "pseudo": {
+     "supports": true,
+     "details": [
+      {
+       "open": false,
+       "dc_cv": "hidden",
+       "dc_display": "block",
+       "own_cv": "hidden"
+      }
+     ],
+     "bogus_pseudo_cv": "",
+     "body_dc_cv": "visible"
+    },
+    "termination": {
+     "walked": 13,
+     "maxSteps": 6,
+     "threw": null
+    },
+    "details_open_unchanged_by_NEW": true,
+    "screenshot": null
+   }
+  ],
+  "scope_rows": [
+   {
+    "case": "F1 dc{display:contents} closed, <p> child",
+    "painted": true,
+    "OLD": "ok",
+    "PROBE": "ok",
+    "C2": "ok",
+    "NEW": "ok"
+   },
+   {
+    "case": "F2 dc{display:contents} closed, <span> child",
+    "painted": true,
+    "OLD": "ok",
+    "PROBE": "ok",
+    "C2": "ok",
+    "NEW": "ok"
+   },
+   {
+    "case": "F3 dc{display:inline} closed, <p> child",
+    "painted": true,
+    "OLD": "ok",
+    "PROBE": "ok",
+    "C2": "ok",
+    "NEW": "ok"
+   },
+   {
+    "case": "F4 grid pattern: details{display:grid} [open]::dc{display:contents}, OPEN, contents child",
+    "painted": true,
+    "OLD": "FALSE_NEGATIVE",
+    "PROBE": "ok",
+    "C2": "ok",
+    "NEW": "ok"
+   },
+   {
+    "case": "F5 grid pattern: same CSS, CLOSED, contents child",
+    "painted": false,
+    "OLD": "ok",
+    "PROBE": "ok",
+    "C2": "ok",
+    "NEW": "ok"
+   },
+   {
+    "case": "F6 dc{display:flow-root} closed, contents child",
+    "painted": false,
+    "OLD": "ok",
+    "PROBE": "ok",
+    "C2": "ok",
+    "NEW": "ok"
+   }
+  ],
+  "raw": "report_attack3.json, report_scope3.json"
+ },
+ "point3_write_free": {
+  "NEW_mutation_records_all_pages": 0,
+  "PROBE_mutation_records_all_pages (observer liveness control)": 328,
+  "side_effect_pages": [
+   {
+    "case": "last-child animation",
+    "OLD": {
+     "must_seen": true,
+     "pos_ctrl": true,
+     "exception": null,
+     "clock_before": [
+      2533
+     ],
+     "clock_after": [
+      2550
+     ],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 0
+    },
+    "PROBE": {
+     "must_seen": false,
+     "pos_ctrl": true,
+     "exception": null,
+     "clock_before": [
+      2517
+     ],
+     "clock_after": [
+      0
+     ],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 4
+    },
+    "C2": {
+     "must_seen": true,
+     "pos_ctrl": true,
+     "exception": null,
+     "clock_before": [
+      2517
+     ],
+     "clock_after": [
+      2533
+     ],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 0
+    },
+    "NEW": {
+     "must_seen": true,
+     "pos_ctrl": true,
+     "exception": null,
+     "clock_before": [
+      2533
+     ],
+     "clock_after": [
+      2550
+     ],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 0
+    }
+   },
+   {
+    "case": "has(span) animation elsewhere",
+    "OLD": {
+     "must_seen": true,
+     "pos_ctrl": true,
+     "exception": null,
+     "clock_before": [
+      2533
+     ],
+     "clock_after": [
+      2550
+     ],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 0
+    },
+    "PROBE": {
+     "must_seen": false,
+     "pos_ctrl": true,
+     "exception": null,
+     "clock_before": [
+      2517
+     ],
+     "clock_after": [
+      0
+     ],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 4
+    },
+    "C2": {
+     "must_seen": true,
+     "pos_ctrl": true,
+     "exception": null,
+     "clock_before": [
+      2517
+     ],
+     "clock_after": [
+      2550
+     ],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 0
+    },
+    "NEW": {
+     "must_seen": true,
+     "pos_ctrl": true,
+     "exception": null,
+     "clock_before": [
+      2500
+     ],
+     "clock_after": [
+      2517
+     ],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 0
+    }
+   },
+   {
+    "case": "has(*) animation elsewhere",
+    "OLD": {
+     "must_seen": true,
+     "pos_ctrl": true,
+     "exception": null,
+     "clock_before": [
+      2500
+     ],
+     "clock_after": [
+      2517
+     ],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 0
+    },
+    "PROBE": {
+     "must_seen": false,
+     "pos_ctrl": true,
+     "exception": null,
+     "clock_before": [
+      2517
+     ],
+     "clock_after": [
+      0
+     ],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 4
+    },
+    "C2": {
+     "must_seen": true,
+     "pos_ctrl": true,
+     "exception": null,
+     "clock_before": [
+      2517
+     ],
+     "clock_after": [
+      2533
+     ],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 0
+    },
+    "NEW": {
+     "must_seen": true,
+     "pos_ctrl": true,
+     "exception": null,
+     "clock_before": [
+      2517
+     ],
+     "clock_after": [
+      2533
+     ],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 0
+    }
+   },
+   {
+    "case": ":empty rules + contents",
+    "OLD": {
+     "must_seen": false,
+     "pos_ctrl": true,
+     "exception": null,
+     "clock_before": [],
+     "clock_after": [],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 0
+    },
+    "PROBE": {
+     "must_seen": false,
+     "pos_ctrl": true,
+     "exception": null,
+     "clock_before": [],
+     "clock_after": [],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 4
+    },
+    "C2": {
+     "must_seen": true,
+     "pos_ctrl": true,
+     "exception": null,
+     "clock_before": [],
+     "clock_after": [],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 0
+    },
+    "NEW": {
+     "must_seen": true,
+     "pos_ctrl": true,
+     "exception": null,
+     "clock_before": [],
+     "clock_after": [],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 0
+    }
+   },
+   {
+    "case": "appendChild/insertBefore throw (instance + prototype)",
+    "OLD": {
+     "must_seen": false,
+     "pos_ctrl": true,
+     "exception": null,
+     "clock_before": [],
+     "clock_after": [],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 0
+    },
+    "PROBE": {
+     "must_seen": false,
+     "pos_ctrl": false,
+     "exception": "Page.evaluate: Error: x",
+     "clock_before": [],
+     "clock_after": [],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 0
+    },
+    "C2": {
+     "must_seen": true,
+     "pos_ctrl": true,
+     "exception": null,
+     "clock_before": [],
+     "clock_after": [],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 0
+    },
+    "NEW": {
+     "must_seen": true,
+     "pos_ctrl": true,
+     "exception": null,
+     "clock_before": [],
+     "clock_after": [],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 0
+    }
+   },
+   {
+    "case": "remove()/removeChild no-op",
+    "OLD": {
+     "must_seen": false,
+     "pos_ctrl": true,
+     "exception": null,
+     "clock_before": [],
+     "clock_after": [],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 0
+    },
+    "PROBE": {
+     "must_seen": true,
+     "pos_ctrl": true,
+     "exception": null,
+     "clock_before": [],
+     "clock_after": [],
+     "html_unchanged": false,
+     "console_errors": 0,
+     "mutation_records": 2
+    },
+    "C2": {
+     "must_seen": true,
+     "pos_ctrl": true,
+     "exception": null,
+     "clock_before": [],
+     "clock_after": [],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 0
+    },
+    "NEW": {
+     "must_seen": true,
+     "pos_ctrl": true,
+     "exception": null,
+     "clock_before": [],
+     "clock_after": [],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 0
+    }
+   },
+   {
+    "case": "createElement throws",
+    "OLD": {
+     "must_seen": false,
+     "pos_ctrl": true,
+     "exception": null,
+     "clock_before": [],
+     "clock_after": [],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 0
+    },
+    "PROBE": {
+     "must_seen": false,
+     "pos_ctrl": false,
+     "exception": "Page.evaluate: Error: ce",
+     "clock_before": [],
+     "clock_after": [],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 0
+    },
+    "C2": {
+     "must_seen": true,
+     "pos_ctrl": true,
+     "exception": null,
+     "clock_before": [],
+     "clock_after": [],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 0
+    },
+    "NEW": {
+     "must_seen": true,
+     "pos_ctrl": true,
+     "exception": null,
+     "clock_before": [],
+     "clock_after": [],
+     "html_unchanged": true,
+     "console_errors": 0,
+     "mutation_records": 0
+    }
+   }
+  ],
+  "fixture_cvcontents": {
+   "OLD": {
+    "reported_glyphs": 78,
+    "seen": "Quarterly report for the trainers listopenclosedLASTCHILD_SIBLING_S7accfirstdc",
+    "clock_before": [
+     417
+    ],
+    "clock_after": [
+     450
+    ],
+    "console_errors": 0,
+    "mutation_records": 0
+   },
+   "PROBE": {
+    "reported_glyphs": 58,
+    "seen": "Quarterly report for the trainers listopenclosedaccfirstdc",
+    "clock_before": [
+     400
+    ],
+    "clock_after": [
+     0
+    ],
+    "console_errors": 0,
+    "mutation_records": 22
+   },
+   "C2": {
+    "reported_glyphs": 217,
+    "seen": "Quarterly report for the trainers listCONTENTS_PLAIN_S1openCONTENTS_OPENDETAILS_S2closedCONTENTS_ANIMATED_S6LASTCHILD_SIBLING_S7accfirstCONTENTS_SECONDSUMMARY_S11dcCONTENTS_DETAILSCONTENTS_S12CONTENTS_SLOTINCLOSED_S13",
+    "clock_before": [
+     433
+    ],
+    "clock_after": [
+     450
+    ],
+    "console_errors": 0,
+    "mutation_records": 0
+   },
+   "NEW": {
+    "reported_glyphs": 160,
+    "seen": "Quarterly report for the trainers listCONTENTS_PLAIN_S1openCONTENTS_OPENDETAILS_S2closedCONTENTS_ANIMATED_S6LASTCHILD_SIBLING_S7accCONTENTS_ACCORDION_S10firstdc",
+    "clock_before": [
+     417
+    ],
+    "clock_after": [
+     433
+    ],
+    "console_errors": 0,
+    "mutation_records": 0
+   }
+  }
+ },
+ "positive_control_seen_every_page_every_version": true,
+ "console_errors_total": 0,
+ "point4_mutation_rows_in_copy": [
+  {
+   "row": 0,
+   "name": "UNMUTATED copy",
+   "anchor_count": null,
+   "file_changed": null,
+   "before": null,
+   "after": null,
+   "first_assertion": null,
+   "fixture_wrong_sentinels": {
+    "missing": [],
+    "leaked": []
+   },
+   "pathproof": null
+  },
+  {
+   "row": 1,
+   "name": "AT-438 reopens: display:contents text is dropped by checkVisibility again",
+   "anchor_count": 1,
+   "file_changed": true,
+   "before": [
+    "============================== 2 passed in 3.31s =============================="
+   ],
+   "after": [
+    "============================== 2 failed in 2.80s =============================="
+   ],
+   "first_assertion": "E   AssertionError: ('CONTENTS_PLAIN_S1', 'Quarterly report for the trainers listopenclosedLASTCHILD_SIBLING_S7accfirstdc')",
+   "fixture_wrong_sentinels": {
+    "missing": [
+     "CONTENTS_PLAIN_S1",
+     "CONTENTS_OPENDETAILS_S2",
+     "CONTENTS_ANIMATED_S6",
+     "CONTENTS_ACCORDION_S10"
+    ],
+    "leaked": []
+   },
+   "pathproof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ]
+  },
+  {
+   "row": 2,
+   "name": "walk-up trap: no <details> check, so a closed details (visible itself) leaks its body",
+   "anchor_count": 1,
+   "file_changed": true,
+   "before": [
+    "============================== 1 passed in 2.19s =============================="
+   ],
+   "after": [
+    "============================== 1 failed in 2.67s =============================="
+   ],
+   "first_assertion": "E   AssertionError: ('CONTENTS_CLOSEDDETAILS_S3', 'Quarterly report for the trainers listCONTENTS_PLAIN_S1openCONTENTS_OPENDETAILS_S2close...ING_S7accCONTENTS_ACCORDION_S10firstCONTENTS_SECONDSUMMARY_S11dcCONTENTS_DETAILSCONTENTS_S12CONTENTS_SLOTINCLOSED_S13')",
+   "fixture_wrong_sentinels": {
+    "missing": [],
+    "leaked": [
+     "CONTENTS_CLOSEDDETAILS_S3",
+     "CONTENTS_SECONDSUMMARY_S11",
+     "CONTENTS_DETAILSCONTENTS_S12",
+     "CONTENTS_SLOTINCLOSED_S13"
+    ]
+   },
+   "pathproof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ]
+  },
+  {
+   "row": 3,
+   "name": "walk-up trap: no content-visibility check, so a cv:hidden box leaks its contents",
+   "anchor_count": 1,
+   "file_changed": true,
+   "before": [
+    "============================== 1 passed in 2.18s =============================="
+   ],
+   "after": [
+    "============================== 1 failed in 2.59s =============================="
+   ],
+   "first_assertion": "E   AssertionError: ('CONTENTS_CVHIDDEN_S4', 'Quarterly report for the trainers listCONTENTS_PLAIN_S1openCONTENTS_OPENDETAILS_S2closedCONTENTS_CVHIDDEN_S4CONTENTS_ANIMATED_S6LASTCHILD_SIBLING_S7accCONTENTS_ACCORDION_S10firstdc')",
+   "fixture_wrong_sentinels": {
+    "missing": [],
+    "leaked": [
+     "CONTENTS_CVHIDDEN_S4"
+    ]
+   },
+   "pathproof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ]
+  },
+  {
+   "row": 4,
+   "name": "AT-449 reopens: <details> judged by its TAG (!open), so an author-expanded accordion's text is dropped",
+   "anchor_count": 1,
+   "file_changed": true,
+   "before": [
+    "============================== 1 passed in 1.93s =============================="
+   ],
+   "after": [
+    "============================== 1 failed in 2.41s =============================="
+   ],
+   "first_assertion": "E   AssertionError: ('CONTENTS_ACCORDION_S10', 'Quarterly report for the trainers listCONTENTS_PLAIN_S1openCONTENTS_OPENDETAILS_S2closedCONTENTS_ANIMATED_S6LASTCHILD_SIBLING_S7accfirstdc')",
+   "fixture_wrong_sentinels": {
+    "missing": [
+     "CONTENTS_ACCORDION_S10"
+    ],
+    "leaked": []
+   },
+   "pathproof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ]
+  },
+  {
+   "row": 5,
+   "name": "AT-450: every <summary> is exempt, so a SECOND summary (really body content) leaks",
+   "anchor_count": 1,
+   "file_changed": true,
+   "before": [
+    "============================== 1 passed in 2.09s =============================="
+   ],
+   "after": [
+    "============================== 1 failed in 3.80s =============================="
+   ],
+   "first_assertion": "E   AssertionError: ('CONTENTS_SECONDSUMMARY_S11', 'Quarterly report for the trainers listCONTENTS_PLAIN_S1openCONTENTS_OPENDETAILS_S2closedCONTENTS_ANIMATED_S6LASTCHILD_SIBLING_S7accCONTENTS_ACCORDION_S10firstCONTENTS_SECONDSUMMARY_S11dc')",
+   "fixture_wrong_sentinels": {
+    "missing": [],
+    "leaked": [
+     "CONTENTS_SECONDSUMMARY_S11"
+    ]
+   },
+   "pathproof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ]
+  },
+  {
+   "row": 6,
+   "name": "AT-450: display:contents is skipped BEFORE the details check, so details{display:contents} leaks",
+   "anchor_count": 1,
+   "file_changed": true,
+   "before": [
+    "============================== 1 passed in 4.96s =============================="
+   ],
+   "after": [
+    "============================== 1 failed in 2.20s =============================="
+   ],
+   "first_assertion": "E   AssertionError: ('CONTENTS_DETAILSCONTENTS_S12', 'Quarterly report for the trainers listCONTENTS_PLAIN_S1openCONTENTS_OPENDETAILS_S2closedCONTENTS_ANIMATED_S6LASTCHILD_SIBLING_S7accCONTENTS_ACCORDION_S10firstdcCONTENTS_DETAILSCONTENTS_S12')",
+   "fixture_wrong_sentinels": {
+    "missing": [],
+    "leaked": [
+     "CONTENTS_DETAILSCONTENTS_S12"
+    ]
+   },
+   "pathproof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ]
+  },
+  {
+   "row": 7,
+   "name": "AT-450: the walk follows parentElement, not the flat tree, so a slot inside a shadow-root closed details leaks",
+   "anchor_count": 1,
+   "file_changed": true,
+   "before": [
+    "============================== 1 passed in 2.16s =============================="
+   ],
+   "after": [
+    "============================== 1 failed in 3.11s =============================="
+   ],
+   "first_assertion": "E   AssertionError: ('CONTENTS_SLOTINCLOSED_S13', 'Quarterly report for the trainers listCONTENTS_PLAIN_S1openCONTENTS_OPENDETAILS_S2closedCONTENTS_ANIMATED_S6LASTCHILD_SIBLING_S7accCONTENTS_ACCORDION_S10firstdcCONTENTS_SLOTINCLOSED_S13')",
+   "fixture_wrong_sentinels": {
+    "missing": [],
+    "leaked": [
+     "CONTENTS_SLOTINCLOSED_S13"
+    ]
+   },
+   "pathproof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ]
+  },
+  {
+   "row": 8,
+   "name": "AT-443: the cycle-1 probe <span> returns - author :empty hides it, visible contents text is dropped",
+   "anchor_count": 1,
+   "file_changed": true,
+   "before": [
+    "============================== 1 passed in 2.94s =============================="
+   ],
+   "after": [
+    "============================== 1 failed in 2.58s =============================="
+   ],
+   "first_assertion": "E   AssertionError: ('CONTENTS_PLAIN_S1', 'Quarterly report for the trainers listopenclosedaccfirstdc')",
+   "fixture_wrong_sentinels": {
+    "missing": [
+     "CONTENTS_PLAIN_S1",
+     "CONTENTS_OPENDETAILS_S2",
+     "CONTENTS_ANIMATED_S6",
+     "LASTCHILD_SIBLING_S7",
+     "CONTENTS_ACCORDION_S10"
+    ],
+    "leaked": []
+   },
+   "pathproof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ]
+  },
+  {
+   "row": 9,
+   "name": "AT-442: a NON-empty probe returns - :last-child matches it and the author's animation restarts",
+   "anchor_count": 1,
+   "file_changed": true,
+   "before": [
+    "============================== 1 passed in 2.11s =============================="
+   ],
+   "after": [
+    "============================== 1 failed in 8.95s =============================="
+   ],
+   "first_assertion": "E   AssertionError: ('LASTCHILD_SIBLING_S7', 'Quarterly report for the trainers listCONTENTS_PLAIN_S1openCONTENTS_OPENDETAILS_S2closedCONTENTS_ANIMATED_S6accCONTENTS_ACCORDION_S10firstdc')",
+   "fixture_wrong_sentinels": {
+    "missing": [
+     "LASTCHILD_SIBLING_S7"
+    ],
+    "leaked": []
+   },
+   "pathproof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,215 @@
+[
+ {
+  "case": "F1 dc{display:contents} closed, <p> child",
+  "OLD": {
+   "reported": true,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "PROBE": {
+   "reported": true,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "C2": {
+   "reported": true,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "NEW": {
+   "reported": true,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": true
+ },
+ {
+  "case": "F2 dc{display:contents} closed, <span> child",
+  "OLD": {
+   "reported": true,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "PROBE": {
+   "reported": true,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "C2": {
+   "reported": true,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "NEW": {
+   "reported": true,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": true
+ },
+ {
+  "case": "F3 dc{display:inline} closed, <p> child",
+  "OLD": {
+   "reported": true,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "PROBE": {
+   "reported": true,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "C2": {
+   "reported": true,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "NEW": {
+   "reported": true,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": true
+ },
+ {
+  "case": "F4 grid pattern: details{display:grid} [open]::dc{display:contents}, OPEN, contents child",
+  "OLD": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "FALSE_NEGATIVE"
+  },
+  "PROBE": {
+   "reported": true,
+   "pos_ctrl": true,
+   "mutations": [
+    "childList:c",
+    "childList:c",
+    "childList:c",
+    "childList:c"
+   ],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "C2": {
+   "reported": true,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "NEW": {
+   "reported": true,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": true
+ },
+ {
+  "case": "F5 grid pattern: same CSS, CLOSED, contents child",
+  "OLD": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "PROBE": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [
+    "childList:c",
+    "childList:c",
+    "childList:c",
+    "childList:c"
+   ],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "C2": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "NEW": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": false
+ },
+ {
+  "case": "F6 dc{display:flow-root} closed, contents child",
+  "OLD": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "PROBE": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [
+    "childList:c",
+    "childList:c",
+    "childList:c",
+    "childList:c"
+   ],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "C2": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "NEW": {
+   "reported": false,
+   "pos_ctrl": true,
+   "mutations": [],
+   "console_errors": 0,
+   "verdict": "ok"
+  },
+  "gt_found": true,
+  "painted": false
+ }
+]

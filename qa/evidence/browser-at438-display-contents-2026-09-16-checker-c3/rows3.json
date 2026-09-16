@@ -1,0 +1,347 @@
+[
+ {
+  "row": 0,
+  "name": "UNMUTATED copy",
+  "fixture_wrong": {
+   "missing": [],
+   "leaked": []
+  }
+ },
+ {
+  "row": 1,
+  "name": "AT-438 reopens: display:contents text is dropped by checkVisibility again",
+  "anchor_count": 1,
+  "file_changed": true,
+  "before": {
+   "exit": 0,
+   "proof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ],
+   "summary": [
+    "============================== 2 passed in 3.31s =============================="
+   ],
+   "E": []
+  },
+  "after": {
+   "exit": 1,
+   "proof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ],
+   "summary": [
+    "============================== 2 failed in 2.80s =============================="
+   ],
+   "E": [
+    "E   AssertionError: ('CONTENTS_PLAIN_S1', 'Quarterly report for the trainers listopenclosedLASTCHILD_SIBLING_S7accfirstdc')",
+    "E   assert 'CONTENTS_PLAIN_S1' in 'Quarterly report for the trainers listopenclosedLASTCHILD_SIBLING_S7accfirstdc'",
+    "E   AssertionError: contents paints but was dropped: Quarterly report for the trainers listCVD_INLINE_ScCVD_TABLE_SCVD_INLINE_TABLE_SCVD_TABLE_ROW_SCVD_TABLE_ROW_GROUP_SCVD_TABLE_HEADER_GROUP_SCVD_TABLE_FOOTER_GROUP_SrCVD_RUBY_SCVD_RUBY_TEXT_SBASE",
+    "E   assert 'CVD_CONTENTS_S' in 'Quarterly report for the trainers listCVD_INLINE_ScCVD_TABLE_SCVD_INLINE_TABLE_SCVD_TABLE_ROW_SCVD_TABLE_ROW_GROUP_SCVD_TABLE_HEADER_GROUP_SCVD_TABLE_FOOTER_GROUP_SrCVD_RUBY_SCVD_RUBY_TEXT_SBASE'"
+   ]
+  },
+  "fixture_wrong": {
+   "missing": [
+    "CONTENTS_PLAIN_S1",
+    "CONTENTS_OPENDETAILS_S2",
+    "CONTENTS_ANIMATED_S6",
+    "CONTENTS_ACCORDION_S10"
+   ],
+   "leaked": []
+  }
+ },
+ {
+  "row": 2,
+  "name": "walk-up trap: no <details> check, so a closed details (visible itself) leaks its body",
+  "anchor_count": 1,
+  "file_changed": true,
+  "before": {
+   "exit": 0,
+   "proof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ],
+   "summary": [
+    "============================== 1 passed in 2.19s =============================="
+   ],
+   "E": []
+  },
+  "after": {
+   "exit": 1,
+   "proof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ],
+   "summary": [
+    "============================== 1 failed in 2.67s =============================="
+   ],
+   "E": [
+    "E   AssertionError: ('CONTENTS_CLOSEDDETAILS_S3', 'Quarterly report for the trainers listCONTENTS_PLAIN_S1openCONTENTS_OPENDETAILS_S2close...ING_S7accCONTENTS_ACCORDION_S10firstCONTENTS_SECONDSUMMARY_S11dcCONTENTS_DETAILSCONTENTS_S12CONTENTS_SLOTINCLOSED_S13')",
+    "E   assert 'CONTENTS_CLOSEDDETAILS_S3' not in 'Quarterly r...INCLOSED_S13'",
+    "E     'CONTENTS_CLOSEDDETAILS_S3' is contained here:",
+    "E       dCONTENTS_CLOSEDDETAILS_S3CONTENTS_ANIMATED_S6LASTCHILD_SIBLING_S7accCONTENTS_ACCORDION_S10firstCONTENTS_SECONDSUMMARY_S11dcCONTENTS_DETAILSCONTENTS_S12CONTENTS_SLOTINCLOSED_S13"
+   ]
+  },
+  "fixture_wrong": {
+   "missing": [],
+   "leaked": [
+    "CONTENTS_CLOSEDDETAILS_S3",
+    "CONTENTS_SECONDSUMMARY_S11",
+    "CONTENTS_DETAILSCONTENTS_S12",
+    "CONTENTS_SLOTINCLOSED_S13"
+   ]
+  }
+ },
+ {
+  "row": 3,
+  "name": "walk-up trap: no content-visibility check, so a cv:hidden box leaks its contents",
+  "anchor_count": 1,
+  "file_changed": true,
+  "before": {
+   "exit": 0,
+   "proof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ],
+   "summary": [
+    "============================== 1 passed in 2.18s =============================="
+   ],
+   "E": []
+  },
+  "after": {
+   "exit": 1,
+   "proof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ],
+   "summary": [
+    "============================== 1 failed in 2.59s =============================="
+   ],
+   "E": [
+    "E   AssertionError: ('CONTENTS_CVHIDDEN_S4', 'Quarterly report for the trainers listCONTENTS_PLAIN_S1openCONTENTS_OPENDETAILS_S2closedCONTENTS_CVHIDDEN_S4CONTENTS_ANIMATED_S6LASTCHILD_SIBLING_S7accCONTENTS_ACCORDION_S10firstdc')",
+    "E   assert 'CONTENTS_CVHIDDEN_S4' not in 'Quarterly r...N_S10firstdc'",
+    "E     'CONTENTS_CVHIDDEN_S4' is contained here:",
+    "E       dCONTENTS_CVHIDDEN_S4CONTENTS_ANIMATED_S6LASTCHILD_SIBLING_S7accCONTENTS_ACCORDION_S10firstdc"
+   ]
+  },
+  "fixture_wrong": {
+   "missing": [],
+   "leaked": [
+    "CONTENTS_CVHIDDEN_S4"
+   ]
+  }
+ },
+ {
+  "row": 4,
+  "name": "AT-449 reopens: <details> judged by its TAG (!open), so an author-expanded accordion's text is dropped",
+  "anchor_count": 1,
+  "file_changed": true,
+  "before": {
+   "exit": 0,
+   "proof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ],
+   "summary": [
+    "============================== 1 passed in 1.93s =============================="
+   ],
+   "E": []
+  },
+  "after": {
+   "exit": 1,
+   "proof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ],
+   "summary": [
+    "============================== 1 failed in 2.41s =============================="
+   ],
+   "E": [
+    "E   AssertionError: ('CONTENTS_ACCORDION_S10', 'Quarterly report for the trainers listCONTENTS_PLAIN_S1openCONTENTS_OPENDETAILS_S2closedCONTENTS_ANIMATED_S6LASTCHILD_SIBLING_S7accfirstdc')",
+    "E   assert 'CONTENTS_ACCORDION_S10' in 'Quarterly report for the trainers listCONTENTS_PLAIN_S1openCONTENTS_OPENDETAILS_S2closedCONTENTS_ANIMATED_S6LASTCHILD_SIBLING_S7accfirstdc'"
+   ]
+  },
+  "fixture_wrong": {
+   "missing": [
+    "CONTENTS_ACCORDION_S10"
+   ],
+   "leaked": []
+  }
+ },
+ {
+  "row": 5,
+  "name": "AT-450: every <summary> is exempt, so a SECOND summary (really body content) leaks",
+  "anchor_count": 1,
+  "file_changed": true,
+  "before": {
+   "exit": 0,
+   "proof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ],
+   "summary": [
+    "============================== 1 passed in 2.09s =============================="
+   ],
+   "E": []
+  },
+  "after": {
+   "exit": 1,
+   "proof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ],
+   "summary": [
+    "============================== 1 failed in 3.80s =============================="
+   ],
+   "E": [
+    "E   AssertionError: ('CONTENTS_SECONDSUMMARY_S11', 'Quarterly report for the trainers listCONTENTS_PLAIN_S1openCONTENTS_OPENDETAILS_S2closedCONTENTS_ANIMATED_S6LASTCHILD_SIBLING_S7accCONTENTS_ACCORDION_S10firstCONTENTS_SECONDSUMMARY_S11dc')",
+    "E   assert 'CONTENTS_SECONDSUMMARY_S11' not in 'Quarterly r...UMMARY_S11dc'",
+    "E     'CONTENTS_SECONDSUMMARY_S11' is contained here:",
+    "E       N_S10firstCONTENTS_SECONDSUMMARY_S11dc"
+   ]
+  },
+  "fixture_wrong": {
+   "missing": [],
+   "leaked": [
+    "CONTENTS_SECONDSUMMARY_S11"
+   ]
+  }
+ },
+ {
+  "row": 6,
+  "name": "AT-450: display:contents is skipped BEFORE the details check, so details{display:contents} leaks",
+  "anchor_count": 1,
+  "file_changed": true,
+  "before": {
+   "exit": 0,
+   "proof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ],
+   "summary": [
+    "============================== 1 passed in 4.96s =============================="
+   ],
+   "E": []
+  },
+  "after": {
+   "exit": 1,
+   "proof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ],
+   "summary": [
+    "============================== 1 failed in 2.20s =============================="
+   ],
+   "E": [
+    "E   AssertionError: ('CONTENTS_DETAILSCONTENTS_S12', 'Quarterly report for the trainers listCONTENTS_PLAIN_S1openCONTENTS_OPENDETAILS_S2closedCONTENTS_ANIMATED_S6LASTCHILD_SIBLING_S7accCONTENTS_ACCORDION_S10firstdcCONTENTS_DETAILSCONTENTS_S12')",
+    "E   assert 'CONTENTS_DE...CONTENTS_S12' not in 'Quarterly r...CONTENTS_S12'",
+    "E     'CONTENTS_DETAILSCONTENTS_S12' is contained here:",
+    "E       _S10firstdcCONTENTS_DETAILSCONTENTS_S12"
+   ]
+  },
+  "fixture_wrong": {
+   "missing": [],
+   "leaked": [
+    "CONTENTS_DETAILSCONTENTS_S12"
+   ]
+  }
+ },
+ {
+  "row": 7,
+  "name": "AT-450: the walk follows parentElement, not the flat tree, so a slot inside a shadow-root closed details leaks",
+  "anchor_count": 1,
+  "file_changed": true,
+  "before": {
+   "exit": 0,
+   "proof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ],
+   "summary": [
+    "============================== 1 passed in 2.16s =============================="
+   ],
+   "E": []
+  },
+  "after": {
+   "exit": 1,
+   "proof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ],
+   "summary": [
+    "============================== 1 failed in 3.11s =============================="
+   ],
+   "E": [
+    "E   AssertionError: ('CONTENTS_SLOTINCLOSED_S13', 'Quarterly report for the trainers listCONTENTS_PLAIN_S1openCONTENTS_OPENDETAILS_S2closedCONTENTS_ANIMATED_S6LASTCHILD_SIBLING_S7accCONTENTS_ACCORDION_S10firstdcCONTENTS_SLOTINCLOSED_S13')",
+    "E   assert 'CONTENTS_SLOTINCLOSED_S13' not in 'Quarterly r...INCLOSED_S13'",
+    "E     'CONTENTS_SLOTINCLOSED_S13' is contained here:",
+    "E       _S10firstdcCONTENTS_SLOTINCLOSED_S13"
+   ]
+  },
+  "fixture_wrong": {
+   "missing": [],
+   "leaked": [
+    "CONTENTS_SLOTINCLOSED_S13"
+   ]
+  }
+ },
+ {
+  "row": 8,
+  "name": "AT-443: the cycle-1 probe <span> returns - author :empty hides it, visible contents text is dropped",
+  "anchor_count": 1,
+  "file_changed": true,
+  "before": {
+   "exit": 0,
+   "proof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ],
+   "summary": [
+    "============================== 1 passed in 2.94s =============================="
+   ],
+   "E": []
+  },
+  "after": {
+   "exit": 1,
+   "proof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ],
+   "summary": [
+    "============================== 1 failed in 2.58s =============================="
+   ],
+   "E": [
+    "E   AssertionError: ('CONTENTS_PLAIN_S1', 'Quarterly report for the trainers listopenclosedaccfirstdc')",
+    "E   assert 'CONTENTS_PLAIN_S1' in 'Quarterly report for the trainers listopenclosedaccfirstdc'"
+   ]
+  },
+  "fixture_wrong": {
+   "missing": [
+    "CONTENTS_PLAIN_S1",
+    "CONTENTS_OPENDETAILS_S2",
+    "CONTENTS_ANIMATED_S6",
+    "LASTCHILD_SIBLING_S7",
+    "CONTENTS_ACCORDION_S10"
+   ],
+   "leaked": []
+  }
+ },
+ {
+  "row": 9,
+  "name": "AT-442: a NON-empty probe returns - :last-child matches it and the author's animation restarts",
+  "anchor_count": 1,
+  "file_changed": true,
+  "before": {
+   "exit": 0,
+   "proof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ],
+   "summary": [
+    "============================== 1 passed in 2.11s =============================="
+   ],
+   "E": []
+  },
+  "after": {
+   "exit": 1,
+   "proof": [
+    "PATHPROOF C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\30f63fa7-ff7f-443d-9d54-85867b5557ce\\scratchpad\\c3\\copy\\src\\autotester\\browser\\observe.py"
+   ],
+   "summary": [
+    "============================== 1 failed in 8.95s =============================="
+   ],
+   "E": [
+    "E   AssertionError: ('LASTCHILD_SIBLING_S7', 'Quarterly report for the trainers listCONTENTS_PLAIN_S1openCONTENTS_OPENDETAILS_S2closedCONTENTS_ANIMATED_S6accCONTENTS_ACCORDION_S10firstdc')",
+    "E   assert 'LASTCHILD_SIBLING_S7' in 'Quarterly report for the trainers listCONTENTS_PLAIN_S1openCONTENTS_OPENDETAILS_S2closedCONTENTS_ANIMATED_S6accCONTENTS_ACCORDION_S10firstdc'"
+   ]
+  },
+  "fixture_wrong": {
+   "missing": [
+    "LASTCHILD_SIBLING_S7"
+   ],
+   "leaked": []
+  }
+ }
+]

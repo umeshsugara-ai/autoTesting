@@ -1,0 +1,2693 @@
+{
+ "unit": "at438-display-contents",
+ "cycle_checked": 3,
+ "by": "checker Mode D (own Chromium, own pages)",
+ "date": "2026-09-16",
+ "chromium": "151.0.7922.34",
+ "versions": {
+  "OLD": "c687b73^ (pre-AT-438)",
+  "PROBE": "c687b73 (cycle 1)",
+  "C2": "ba30b71 (cycle 2)",
+  "NEW": "bound tree == 9fc937d (cycle 3)"
+ },
+ "groundtruth": "full-page screenshot hash before/after replacing the sentinel text node (same-length glyphs, monospace)",
+ "cases": [
+  {
+   "case": "plain contents",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_NEGATIVE"
+   },
+   "PROBE": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": true
+  },
+  {
+   "case": "open details",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_NEGATIVE"
+   },
+   "PROBE": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": true
+  },
+  {
+   "case": "closed details",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "closed details, contents nested twice",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "cv:hidden block",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "display:none",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "hidden attribute",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "visibility:hidden ancestor",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "opacity:0 ancestor",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "closed dialog",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "contents inside ul",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_NEGATIVE"
+   },
+   "PROBE": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": true
+  },
+  {
+   "case": "author span:empty{display:none}",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_NEGATIVE"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "FALSE_NEGATIVE"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": true
+  },
+  {
+   "case": "author *:empty{display:none}",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_NEGATIVE"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "FALSE_NEGATIVE"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": true
+  },
+  {
+   "case": "summary itself display:contents, closed details",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_NEGATIVE"
+   },
+   "PROBE": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": true
+  },
+  {
+   "case": "summary contents > contents span, closed",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_NEGATIVE"
+   },
+   "PROBE": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": true
+  },
+  {
+   "case": "SECOND summary display:contents, closed details",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_POSITIVE"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "contents wrapping a summary, closed details",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "hidden=until-found on block box",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "hidden=until-found on inline span box",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_NEGATIVE"
+   },
+   "PROBE": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": true
+  },
+  {
+   "case": "open dialog (non-modal)",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_NEGATIVE"
+   },
+   "PROBE": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": true
+  },
+  {
+   "case": "modal dialog (showModal)",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_NEGATIVE"
+   },
+   "PROBE": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": true
+  },
+  {
+   "case": "fieldset > legend display:contents",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_NEGATIVE"
+   },
+   "PROBE": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": true
+  },
+  {
+   "case": "fieldset > legend > contents",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_NEGATIVE"
+   },
+   "PROBE": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": true
+  },
+  {
+   "case": "fieldset > contents",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_NEGATIVE"
+   },
+   "PROBE": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": true
+  },
+  {
+   "case": "table with display:contents tr",
+   "OLD": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": true
+  },
+  {
+   "case": "table: contents td text",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_NEGATIVE"
+   },
+   "PROBE": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": true
+  },
+  {
+   "case": "table: tbody+tr contents, JS text in tr",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_NEGATIVE"
+   },
+   "PROBE": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": true
+  },
+  {
+   "case": "slot display:contents: slotted contents child",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_NEGATIVE"
+   },
+   "PROBE": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": true
+  },
+  {
+   "case": "slot inside visible div: slotted contents child",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_NEGATIVE"
+   },
+   "PROBE": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": true
+  },
+  {
+   "case": "slot inside CLOSED details in shadow",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_POSITIVE"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "slot inside cv:hidden div in shadow",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_POSITIVE"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "slot inside display:none in shadow",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "unslotted light child (no slot)",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "flex container contain:paint height:0",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "FALSE_POSITIVE"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_POSITIVE"
+   },
+   "NEW": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_POSITIVE"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "grid container contain:paint height:0",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "FALSE_POSITIVE"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_POSITIVE"
+   },
+   "NEW": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_POSITIVE"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "flex container clip-path hides all",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "FALSE_POSITIVE"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_POSITIVE"
+   },
+   "NEW": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_POSITIVE"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "grid 0-size track overflow visible",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_NEGATIVE"
+   },
+   "PROBE": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": true
+  },
+  {
+   "case": "nested closed>closed, contents at L1",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "nested closed>closed, contents at L2",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "nested closed>closed, contents in inner summary",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "nested closed>open, contents at L2",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "nested open>closed, contents in inner summary",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_NEGATIVE"
+   },
+   "PROBE": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": true
+  },
+  {
+   "case": "nested open>closed, contents at L2",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "closed details, contents wrapper x3",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "closed details with ::details-content visible",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_NEGATIVE"
+   },
+   "PROBE": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_NEGATIVE"
+   },
+   "NEW": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": true
+  },
+  {
+   "case": "details itself display:contents, closed",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_POSITIVE"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "open details display:contents inside closed details",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "video fallback child",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "video controls fallback child",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "audio controls fallback child",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "audio (no controls) fallback child",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "canvas fallback child",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "iframe child (JS)",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "object (no data) fallback child",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_NEGATIVE"
+   },
+   "PROBE": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": true
+  },
+  {
+   "case": "object with svg data fallback child",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "textarea element child (JS)",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "select element child (JS)",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "img element child (JS)",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "input element child (JS)",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "PROBE": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": false
+  },
+  {
+   "case": "slotted child, plain slot (must report)",
+   "OLD": {
+    "reported": false,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "FALSE_NEGATIVE"
+   },
+   "PROBE": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "C2": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "NEW": {
+    "reported": true,
+    "pos_ctrl": true,
+    "mutations": [],
+    "console_errors": 0,
+    "verdict": "ok"
+   },
+   "gt_found": true,
+   "painted": true
+  }
+ ],
+ "side_effects": [
+  {
+   "case": "last-child animation",
+   "OLD": {
+    "must_seen": true,
+    "pos_ctrl": true,
+    "exception": null,
+    "clock_before": [
+     2533
+    ],
+    "clock_after": [
+     2550
+    ],
+    "html_unchanged": true,
+    "mutation_records": [],
+    "console_errors": 0
+   },
+   "PROBE": {
+    "must_seen": false,
+    "pos_ctrl": true,
+    "exception": null,
+    "clock_before": [
+     2517
+    ],
+    "clock_after": [
+     0
+    ],
+    "html_unchanged": true,
+    "mutation_records": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0
+   },
+   "C2": {
+    "must_seen": true,
+    "pos_ctrl": true,
+    "exception": null,
+    "clock_before": [
+     2517
+    ],
+    "clock_after": [
+     2533
+    ],
+    "html_unchanged": true,
+    "mutation_records": [],
+    "console_errors": 0
+   },
+   "NEW": {
+    "must_seen": true,
+    "pos_ctrl": true,
+    "exception": null,
+    "clock_before": [
+     2533
+    ],
+    "clock_after": [
+     2550
+    ],
+    "html_unchanged": true,
+    "mutation_records": [],
+    "console_errors": 0
+   }
+  },
+  {
+   "case": "has(span) animation elsewhere",
+   "OLD": {
+    "must_seen": true,
+    "pos_ctrl": true,
+    "exception": null,
+    "clock_before": [
+     2533
+    ],
+    "clock_after": [
+     2550
+    ],
+    "html_unchanged": true,
+    "mutation_records": [],
+    "console_errors": 0
+   },
+   "PROBE": {
+    "must_seen": false,
+    "pos_ctrl": true,
+    "exception": null,
+    "clock_before": [
+     2517
+    ],
+    "clock_after": [
+     0
+    ],
+    "html_unchanged": true,
+    "mutation_records": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0
+   },
+   "C2": {
+    "must_seen": true,
+    "pos_ctrl": true,
+    "exception": null,
+    "clock_before": [
+     2517
+    ],
+    "clock_after": [
+     2550
+    ],
+    "html_unchanged": true,
+    "mutation_records": [],
+    "console_errors": 0
+   },
+   "NEW": {
+    "must_seen": true,
+    "pos_ctrl": true,
+    "exception": null,
+    "clock_before": [
+     2500
+    ],
+    "clock_after": [
+     2517
+    ],
+    "html_unchanged": true,
+    "mutation_records": [],
+    "console_errors": 0
+   }
+  },
+  {
+   "case": "has(*) animation elsewhere",
+   "OLD": {
+    "must_seen": true,
+    "pos_ctrl": true,
+    "exception": null,
+    "clock_before": [
+     2500
+    ],
+    "clock_after": [
+     2517
+    ],
+    "html_unchanged": true,
+    "mutation_records": [],
+    "console_errors": 0
+   },
+   "PROBE": {
+    "must_seen": false,
+    "pos_ctrl": true,
+    "exception": null,
+    "clock_before": [
+     2517
+    ],
+    "clock_after": [
+     0
+    ],
+    "html_unchanged": true,
+    "mutation_records": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0
+   },
+   "C2": {
+    "must_seen": true,
+    "pos_ctrl": true,
+    "exception": null,
+    "clock_before": [
+     2517
+    ],
+    "clock_after": [
+     2533
+    ],
+    "html_unchanged": true,
+    "mutation_records": [],
+    "console_errors": 0
+   },
+   "NEW": {
+    "must_seen": true,
+    "pos_ctrl": true,
+    "exception": null,
+    "clock_before": [
+     2517
+    ],
+    "clock_after": [
+     2533
+    ],
+    "html_unchanged": true,
+    "mutation_records": [],
+    "console_errors": 0
+   }
+  },
+  {
+   "case": ":empty rules + contents",
+   "OLD": {
+    "must_seen": false,
+    "pos_ctrl": true,
+    "exception": null,
+    "clock_before": [],
+    "clock_after": [],
+    "html_unchanged": true,
+    "mutation_records": [],
+    "console_errors": 0
+   },
+   "PROBE": {
+    "must_seen": false,
+    "pos_ctrl": true,
+    "exception": null,
+    "clock_before": [],
+    "clock_after": [],
+    "html_unchanged": true,
+    "mutation_records": [
+     "childList:c",
+     "childList:c",
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0
+   },
+   "C2": {
+    "must_seen": true,
+    "pos_ctrl": true,
+    "exception": null,
+    "clock_before": [],
+    "clock_after": [],
+    "html_unchanged": true,
+    "mutation_records": [],
+    "console_errors": 0
+   },
+   "NEW": {
+    "must_seen": true,
+    "pos_ctrl": true,
+    "exception": null,
+    "clock_before": [],
+    "clock_after": [],
+    "html_unchanged": true,
+    "mutation_records": [],
+    "console_errors": 0
+   }
+  },
+  {
+   "case": "appendChild/insertBefore throw (instance + prototype)",
+   "OLD": {
+    "must_seen": false,
+    "pos_ctrl": true,
+    "exception": null,
+    "clock_before": [],
+    "clock_after": [],
+    "html_unchanged": true,
+    "mutation_records": [],
+    "console_errors": 0
+   },
+   "PROBE": {
+    "must_seen": false,
+    "pos_ctrl": false,
+    "exception": "Page.evaluate: Error: x",
+    "clock_before": [],
+    "clock_after": [],
+    "html_unchanged": true,
+    "mutation_records": [],
+    "console_errors": 0
+   },
+   "C2": {
+    "must_seen": true,
+    "pos_ctrl": true,
+    "exception": null,
+    "clock_before": [],
+    "clock_after": [],
+    "html_unchanged": true,
+    "mutation_records": [],
+    "console_errors": 0
+   },
+   "NEW": {
+    "must_seen": true,
+    "pos_ctrl": true,
+    "exception": null,
+    "clock_before": [],
+    "clock_after": [],
+    "html_unchanged": true,
+    "mutation_records": [],
+    "console_errors": 0
+   }
+  },
+  {
+   "case": "remove()/removeChild no-op",
+   "OLD": {
+    "must_seen": false,
+    "pos_ctrl": true,
+    "exception": null,
+    "clock_before": [],
+    "clock_after": [],
+    "html_unchanged": true,
+    "mutation_records": [],
+    "console_errors": 0
+   },
+   "PROBE": {
+    "must_seen": true,
+    "pos_ctrl": true,
+    "exception": null,
+    "clock_before": [],
+    "clock_after": [],
+    "html_unchanged": false,
+    "mutation_records": [
+     "childList:c",
+     "childList:c"
+    ],
+    "console_errors": 0
+   },
+   "C2": {
+    "must_seen": true,
+    "pos_ctrl": true,
+    "exception": null,
+    "clock_before": [],
+    "clock_after": [],
+    "html_unchanged": true,
+    "mutation_records": [],
+    "console_errors": 0
+   },
+   "NEW": {
+    "must_seen": true,
+    "pos_ctrl": true,
+    "exception": null,
+    "clock_before": [],
+    "clock_after": [],
+    "html_unchanged": true,
+    "mutation_records": [],
+    "console_errors": 0
+   }
+  },
+  {
+   "case": "createElement throws",
+   "OLD": {
+    "must_seen": false,
+    "pos_ctrl": true,
+    "exception": null,
+    "clock_before": [],
+    "clock_after": [],
+    "html_unchanged": true,
+    "mutation_records": [],
+    "console_errors": 0
+   },
+   "PROBE": {
+    "must_seen": false,
+    "pos_ctrl": false,
+    "exception": "Page.evaluate: Error: ce",
+    "clock_before": [],
+    "clock_after": [],
+    "html_unchanged": true,
+    "mutation_records": [],
+    "console_errors": 0
+   },
+   "C2": {
+    "must_seen": true,
+    "pos_ctrl": true,
+    "exception": null,
+    "clock_before": [],
+    "clock_after": [],
+    "html_unchanged": true,
+    "mutation_records": [],
+    "console_errors": 0
+   },
+   "NEW": {
+    "must_seen": true,
+    "pos_ctrl": true,
+    "exception": null,
+    "clock_before": [],
+    "clock_after": [],
+    "html_unchanged": true,
+    "mutation_records": [],
+    "console_errors": 0
+   }
+  }
+ ],
+ "fixture_cvcontents_before_after": {
+  "OLD": {
+   "reported_glyphs": 78,
+   "seen": "Quarterly report for the trainers listopenclosedLASTCHILD_SIBLING_S7accfirstdc",
+   "clock_before": [
+    417
+   ],
+   "clock_after": [
+    450
+   ],
+   "mutation_records": [],
+   "console_errors": 0
+  },
+  "PROBE": {
+   "reported_glyphs": 58,
+   "seen": "Quarterly report for the trainers listopenclosedaccfirstdc",
+   "clock_before": [
+    400
+   ],
+   "clock_after": [
+    0
+   ],
+   "mutation_records": [
+    "childList:DIV",
+    "childList:DIV",
+    "childList:DIV",
+    "childList:DIV",
+    "childList:DIV",
+    "childList:DIV",
+    "childList:DIV",
+    "childList:DIV",
+    "childList:DIV",
+    "childList:DIV",
+    "childList:anim",
+    "childList:anim",
+    "childList:DIV",
+    "childList:DIV",
+    "childList:DIV",
+    "childList:DIV",
+    "childList:SUMMARY",
+    "childList:SUMMARY",
+    "childList:DIV",
+    "childList:DIV",
+    "childList:DIV",
+    "childList:DIV"
+   ],
+   "console_errors": 0
+  },
+  "C2": {
+   "reported_glyphs": 217,
+   "seen": "Quarterly report for the trainers listCONTENTS_PLAIN_S1openCONTENTS_OPENDETAILS_S2closedCONTENTS_ANIMATED_S6LASTCHILD_SIBLING_S7accfirstCONTENTS_SECONDSUMMARY_S11dcCONTENTS_DETAILSCONTENTS_S12CONTENTS_SLOTINCLOSED_S13",
+   "clock_before": [
+    433
+   ],
+   "clock_after": [
+    450
+   ],
+   "mutation_records": [],
+   "console_errors": 0
+  },
+  "NEW": {
+   "reported_glyphs": 160,
+   "seen": "Quarterly report for the trainers listCONTENTS_PLAIN_S1openCONTENTS_OPENDETAILS_S2closedCONTENTS_ANIMATED_S6LASTCHILD_SIBLING_S7accCONTENTS_ACCORDION_S10firstdc",
+   "clock_before": [
+    417
+   ],
+   "clock_after": [
+    433
+   ],
+   "mutation_records": [],
+   "console_errors": 0
+  }
+ }
+}
