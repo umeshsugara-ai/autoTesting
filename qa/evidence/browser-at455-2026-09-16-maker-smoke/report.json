@@ -1,0 +1,11 @@
+{
+  "unit": "at455-other-project-grant-reason",
+  "role": "maker SMOKE only - not validation; the checker runs its own Mode D",
+  "date": "2026-09-16T16:45Z",
+  "server": "uvicorn from isolated git-archive extract (Vidysea project dirs removed; HEAD + routes_credentials.py + test), port 8055",
+  "autotester_root": "scratchpad/at452root - synthetic regression-demo; approvals on disk (read back): ('read','regression-demo','ReadKindGrant'), ('crawl','regression-demo','ExpiredCrawl'), ('crawl','another-project','ElsewhereProject') - the last seeded for this unit, intact and unexpired, exact base_url",
+  "interactions": [
+    {"did": "open /projects/regression-demo/env", "expected": "nothing listed; '2 more on file' (expired + other-project crawl grants, not the READ grant) with a reason naming 'another target or project'", "observed": "'No crawl approval is in force for this target.' + '2 more on file are expired, edited after granting, or for another target or project, and are not honoured.'", "pass": true}
+  ],
+  "console_errors": {"count": 0}
+}

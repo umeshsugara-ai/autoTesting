@@ -91,8 +91,10 @@ def _approvals_card(approvals: list[RunApproval], slug: str, target: str, saved:
     # for another target", so counting it gave a false reason (AT-452).
     crawl = [a for a in approvals if a.run_kind is ApprovalKind.CRAWL]
     others = len(crawl) - len(active)
+    # "or project": `_in_force` also requires this project, so a grant naming
+    # another one is counted here and needs a reason that is true of it (AT-455).
     note = (f"<p class='meta'>{others} more on file are expired, edited after granting, or for "
-            "another target, and are not honoured.</p>" if others else "")
+            "another target or project, and are not honoured.</p>" if others else "")
     return theme.card(banner + table + note, title="Approvals in force")
 
 

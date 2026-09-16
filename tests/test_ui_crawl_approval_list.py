@@ -136,6 +136,22 @@ def test_a_grant_for_another_kind_of_run_is_not_counted_with_a_false_reason(
     assert "more on file" not in text
 
 
+def test_a_crawl_grant_naming_another_project_is_counted_with_a_true_reason(
+    client: TestClient, store: ProjectStore,
+) -> None:
+    """AT-455: an intact, unexpired, same-target CRAWL grant whose `project` names
+    another project is rightly not honoured here (the consent gate matches the
+    project), but the note gave "expired, edited, or for another target" — none
+    of which is true of it. The reason must name the case that is."""
+    store.add_approval(_approval(granted_by="ElsewhereProject", project="another-project"))
+
+    text = client.get("/projects/demo/env").text
+
+    assert "ElsewhereProject" not in text, "not in force here, so not listed"
+    assert "1 more on file" in text
+    assert "another target or project" in text
+
+
 def test_the_saved_banner_is_driven_by_disk_not_by_the_query_string(
     client: TestClient, store: ProjectStore,
 ) -> None:
