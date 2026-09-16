@@ -6,7 +6,7 @@
     {
       "name": "glyphs are not sorted by screen position - document order returns",
       "file": "src/autotester/browser/visual_order.js",
-      "old": "  glyphs.sort((a, b) => {\n    const rowA = Math.round(a.y / ROW_TOLERANCE);\n    const rowB = Math.round(b.y / ROW_TOLERANCE);\n    return rowA === rowB ? a.x - b.x : rowA - rowB;\n  });",
+      "old": "  items.sort((a, b) => {\n    const rowA = Math.round(a.y / ROW_TOLERANCE);\n    const rowB = Math.round(b.y / ROW_TOLERANCE);\n    return rowA === rowB ? a.x - b.x : rowA - rowB;\n  });",
       "new": "  // glyphs left in document order",
       "kills": [
         "tests/test_browser_visual_order.py::test_the_detector_sees_what_the_dom_hides"
@@ -43,7 +43,7 @@
     {
       "name": "the detector returns nothing at all - every clean result is vacuous",
       "file": "src/autotester/browser/visual_order.js",
-      "old": "  return glyphs.map((g) => g.ch).join(\"\");",
+      "old": "  return items.map((item) => item.text).join(\"\");",
       "new": "  return \"\";",
       "kills": [
         "tests/test_browser_visual_order.py::test_the_detector_sees_a_plainly_rendered_secret",
@@ -53,8 +53,8 @@
     {
       "name": "invisible-but-laid-out text is swept in as if a reader saw it",
       "file": "src/autotester/browser/visual_order.js",
-      "old": "  function isVisibleElement(el) {\n    return window.getComputedStyle(el).visibility !== \"hidden\";\n  }",
-      "new": "  function isVisibleElement(el) {\n    return Boolean(el);\n  }",
+      "old": "    if (style.visibility === \"hidden\") return false;",
+      "new": "    if (false) return false;",
       "kills": [
         "tests/test_browser_visual_order.py::test_text_that_occupies_layout_but_is_invisible_is_not_reported"
       ]
@@ -72,8 +72,8 @@
     {
       "name": "the control's value is READ instead of mirrored and measured",
       "file": "src/autotester/browser/visual_order.js",
-      "old": "      const local = glyphsOf(node);",
-      "new": "      const local = Array.from(value).map((ch, i) => ({ ch, x: i, y: 0 }));",
+      "old": "      const local = glyphsOf(span.firstChild, null, false);",
+      "new": "      const local = Array.from(shown).map((ch, i) => ({ ch, text: ch, x: i, y: 0 }));",
       "kills": [
         "tests/test_browser_visual_order.py::test_a_direction_override_inside_a_form_control_is_seen_in_reading_order"
       ]
@@ -94,6 +94,72 @@
       "new": "    } finally {\n      void 0;\n    }",
       "kills": [
         "tests/test_browser_visual_order.py::test_measuring_the_page_leaves_it_exactly_as_it_was"
+      ]
+    },
+    {
+      "name": "AT-363: zero-alpha colour is reported as if a reader saw it",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "    if (alpha && parseFloat(alpha[1]) === 0) return false;",
+      "new": "    if (false) return false;",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_text_a_reader_cannot_see_is_not_reported[transparent-colour]"
+      ]
+    },
+    {
+      "name": "AT-363: opacity is never consulted",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "    return effectiveOpacity(el) !== 0;",
+      "new": "    return true;",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_text_a_reader_cannot_see_is_not_reported[opacity-zero]",
+        "tests/test_browser_visual_order.py::test_text_a_reader_cannot_see_is_not_reported[opacity-zero-ancestor]"
+      ]
+    },
+    {
+      "name": "AT-363: opacity is read on the element only, not up the ancestors",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "    for (let node = el; node && node !== document.documentElement; node = node.parentElement) {\n      const value = parseFloat(window.getComputedStyle(node).opacity);",
+      "new": "    for (const node of [el]) {\n      const value = parseFloat(window.getComputedStyle(node).opacity);",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_text_a_reader_cannot_see_is_not_reported[opacity-zero-ancestor]"
+      ]
+    },
+    {
+      "name": "AT-363: unreachable glyphs are reported (off-left and clipped)",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "      if (checkReachable && !isReachable(rect, clip)) continue;",
+      "new": "      if (false) continue;",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_text_a_reader_cannot_see_is_not_reported[text-indent-offscreen]",
+        "tests/test_browser_visual_order.py::test_text_a_reader_cannot_see_is_not_reported[absolute-offscreen]",
+        "tests/test_browser_visual_order.py::test_text_a_reader_cannot_see_is_not_reported[overflow-clipped]"
+      ]
+    },
+    {
+      "name": "AT-363: a password field's value is reported in cleartext",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "    const shown = control.type === \"password\"\n      ? BULLET.repeat(control.value.length)\n      : (control.value || control.placeholder || \"\");",
+      "new": "    const shown = control.value || control.placeholder || \"\";",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_a_password_field_is_reported_as_the_bullets_it_shows"
+      ]
+    },
+    {
+      "name": "AT-362: an empty control's placeholder is not measured",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "      : (control.value || control.placeholder || \"\");",
+      "new": "      : (control.value || \"\");",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_a_placeholder_is_reported_because_it_renders"
+      ]
+    },
+    {
+      "name": "AT-364 (checker-written): the bidi fixture stores the secret forwards",
+      "file": "tests/fixtures/bidi_site/hidden.html",
+      "old": "‮13_YEKIPA_TLIUQ_ARBEZ",
+      "new": "ZEBRA_QUILT_APIKEY_31",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_the_dom_calls_the_bidi_page_clean"
       ]
     }
   ]

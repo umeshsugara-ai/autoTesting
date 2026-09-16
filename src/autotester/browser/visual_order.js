@@ -10,12 +10,81 @@
 // where the glyphs actually landed.
 //
 // Method: one Range per character, its client rect taken, glyphs bucketed into
-// rows by y and sorted by x within a row. Characters that occupy no box are
-// dropped, because they are what a reader does not see.
+// rows by y and sorted by x within a row. Characters that occupy no box, or
+// that paint nothing a reader can see, are dropped.
+//
+// WHAT THIS DOES NOT SEE (AT-362 — named here rather than left to be
+// discovered). The claim is "text a reader can see", and these are the places
+// that claim does not hold. Each is a page where a credential could render in
+// plain type while this returns a clean string:
+//   - text inside an open shadow root, and text in a same-origin <iframe>;
+//   - ::before / ::after generated content;
+//   - a <select>'s rendered option text;
+//   - text painted into <canvas>, and <svg> <text> elements;
+//   - a `title` tooltip (renders on hover) or an `alt` string (renders only
+//     when the image fails).
+// Extending the walk into shadow roots and frames is real work with its own
+// failure modes — a unit, not a line. Until then the limit is written down, so
+// a clean result is read for what it is.
 (() => {
   const ROW_TOLERANCE = 4; // px; sub-pixel and font-metric jitter within a line
+  const BULLET = "•";
 
-  function glyphsOf(node) {
+  // ---- what a reader can actually see ------------------------------------
+
+  function effectiveOpacity(el) {
+    let opacity = 1;
+    for (let node = el; node && node !== document.documentElement; node = node.parentElement) {
+      const value = parseFloat(window.getComputedStyle(node).opacity);
+      if (!Number.isNaN(value)) opacity *= value;
+      if (opacity === 0) return 0;
+    }
+    return opacity;
+  }
+
+  function paintsInk(el) {
+    const style = window.getComputedStyle(el);
+    if (style.visibility === "hidden") return false;
+    // A zero alpha paints a box and shows nothing — reporting it is the
+    // DOM-order error pointed the other way (AT-363).
+    //
+    // Anchored to the FOUR-component form on purpose. `rgba?\([^)]*,\s*([\d.]+)\s*\)`
+    // was the first version and it matched plain `rgb(0, 0, 0)` too, capturing
+    // the BLUE channel as the alpha — so ordinary black text was read as
+    // transparent and this returned an empty string for every page. Every
+    // "is not reported" assertion in the suite would have passed on a detector
+    // that saw nothing at all; the same-page positive control is what caught it.
+    const alpha = style.color.match(
+      /^rgba\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*,\s*([\d.]+)\s*\)$/);
+    if (alpha && parseFloat(alpha[1]) === 0) return false;
+    return effectiveOpacity(el) !== 0;
+  }
+
+  // Nearest ancestor that clips its overflow. `text-indent:-9999px` and an
+  // absolutely-positioned off-screen block both put glyphs where no amount of
+  // scrolling reveals them.
+  function clipRect(el) {
+    for (let node = el; node && node !== document.documentElement; node = node.parentElement) {
+      const style = window.getComputedStyle(node);
+      if (style.overflow !== "visible" || style.clipPath !== "none") {
+        return node.getBoundingClientRect();
+      }
+    }
+    return null;
+  }
+
+  function isReachable(rect, clip) {
+    // Off the left edge or above the top cannot be scrolled to. Further down or
+    // right can be, so those stay.
+    if (rect.right <= 0 || rect.bottom <= 0) return false;
+    if (!clip) return true;
+    return rect.right > clip.left && rect.left < clip.right &&
+           rect.bottom > clip.top && rect.top < clip.bottom;
+  }
+
+  // ---- measurement --------------------------------------------------------
+
+  function glyphsOf(node, clip, checkReachable) {
     const text = node.nodeValue;
     const out = [];
     for (let i = 0; i < text.length; i += 1) {
@@ -25,98 +94,92 @@
       const rect = range.getBoundingClientRect();
       // Zero WIDTH means nothing was painted where a reader would look: a
       // zero-width space, a NUL the parser dropped, a variation selector, the
-      // direction override itself. Excluding them is the point -- the string
-      // this returns is what a reader can see, not what was stored.
+      // direction override itself.
       //
       // The test is width alone, deliberately. `width === 0 && height === 0`
       // was the first version, copied from `enumerate.js::isVisible` where it
       // is right for an ELEMENT; for a one-character Range it is wrong, because
       // a zero-width character still reports the full LINE HEIGHT. It kept
-      // every U+200B and reproduced, inside the new instrument, exactly the
+      // every U+200B and reproduced, inside this instrument, exactly the
       // blindness the instrument exists to remove.
       if (rect.width === 0) continue;
-      out.push({ ch: text[i], x: rect.left, y: rect.top });
+      if (checkReachable && !isReachable(rect, clip)) continue;
+      out.push({ ch: text[i], text: text[i], x: rect.left, y: rect.top });
     }
     return out;
   }
 
-  function isVisibleElement(el) {
-    return window.getComputedStyle(el).visibility !== "hidden";
-  }
-
-  function isRendered(node) {
-    // `visibility: hidden` is the case this exists for, and it is the ONLY one.
-    // Measured against a real Chromium: `display:none`, `<script>` and
-    // `<style>` text all report zero-width rects, so the width filter above
-    // already excludes them and a tag check was dead code. `visibility:hidden`
-    // does NOT -- it preserves layout, so its glyphs report a real width, and
-    // without this the detector reports text nobody can see as if a reader saw
-    // it. A tag allow/deny list was the intuitive guard and the wrong one.
-    const parent = node.parentElement;
-    return parent ? isVisibleElement(parent) : false;
-  }
-
-  // AT-361. A form control's value is not a text node, so the walker below is
-  // structurally blind to it -- and a case title renders ONLY inside
-  // `input[name=title]`, which is the single field U8 is written about. A
-  // text-node-only detector therefore returns a clean string for that page
-  // whatever the field holds: a guaranteed false negative exactly where it
-  // matters most.
+  // A form control's value is not a text node, so the walker below is blind to
+  // it — and a case title renders ONLY inside `input[name=title]` (AT-361).
+  // The value is mirrored into an offscreen span carrying the control's own
+  // font, direction and unicode-bidi, measured, and removed. The mirror is what
+  // makes this a measurement rather than a DOM read: a value spelled with a
+  // direction override reorders inside the span exactly as it does inside the
+  // control, and so does a control reversed by CSS alone.
   //
-  // Each value is mirrored into an offscreen span carrying the control's own
-  // font, direction and unicode-bidi, measured per character, and removed. The
-  // mirror is what makes the measurement real rather than a DOM read: a value
-  // spelled with a direction override reorders inside the span exactly as it
-  // does inside the control.
-  //
-  // This is the one place the detector touches the page. The span is absolutely
-  // positioned far offscreen, is never interacted with, and is removed in a
-  // `finally`, so the page under test keeps its own state -- but it IS a write,
-  // and that is a deliberate trade, not an oversight.
+  // This is the one place the detector writes to the page. The span is
+  // positioned far offscreen, never interacted with, and removed in a
+  // `finally` — a deliberate trade, not an oversight.
   function mirrorGlyphs(control) {
-    const value = control.value;
-    if (!value) return [];
+    // A password field shows bullets. Reporting its value would put a
+    // credential in cleartext into an observation string (AT-363) — the
+    // opposite of this module's job — so what a reader sees is what is
+    // reported. An empty control shows its placeholder, which renders.
+    const shown = control.type === "password"
+      ? BULLET.repeat(control.value.length)
+      : (control.value || control.placeholder || "");
+    if (!shown) return [];
     const at = control.getBoundingClientRect();
     if (at.width === 0 && at.height === 0) return [];
     const style = window.getComputedStyle(control);
     const span = document.createElement("span");
-    span.textContent = value;
+    span.textContent = shown;
     span.style.cssText = "position:absolute;left:-99999px;top:0;white-space:pre;";
     span.style.font = style.font;
     span.style.direction = style.direction;
     span.style.unicodeBidi = style.unicodeBidi;
     document.body.appendChild(span);
     try {
-      const node = span.firstChild;
-      const local = glyphsOf(node);
-      const origin = local.length ? Math.min(...local.map((g) => g.x)) : 0;
-      // Re-seated onto the control's own position so page-level ordering holds.
-      return local.map((g) => ({ ch: g.ch, x: at.left + (g.x - origin), y: at.top }));
+      // Reachability is NOT checked inside the mirror: it sits at
+      // left:-99999px by design, which is exactly what `isReachable`
+      // rejects. The control's OWN position is what decides whether a
+      // reader can reach it, and that is tested by the caller.
+      const local = glyphsOf(span.firstChild, null, false);
+      // ONE item, not one per glyph. Re-seating each glyph at its own x and
+      // letting the global sort take over interleaved two adjacent inputs into
+      // `PLACEHOLDER_SENTINEL_8*8*****...`: a long value overflows its box in
+      // the mirror, where the control itself would have clipped it, so the runs
+      // overlap in x. The control's value is one run at one position; only its
+      // INTERNAL order is a measurement.
+      local.sort((a, b) => a.x - b.x);
+      return [{ text: local.map((g) => g.ch).join(""), x: at.left, y: at.top }];
     } finally {
       span.remove();
     }
   }
 
+  const items = [];  // {text, x, y}; a text-node glyph or a whole control value
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-  const glyphs = [];
   let node = walker.nextNode();
   while (node) {
-    if (node.nodeValue && node.nodeValue.trim() && isRendered(node)) {
-      for (const glyph of glyphsOf(node)) glyphs.push(glyph);
+    const parent = node.parentElement;
+    if (node.nodeValue && node.nodeValue.trim() && parent && paintsInk(parent)) {
+      for (const item of glyphsOf(node, clipRect(parent), true)) items.push(item);
     }
     node = walker.nextNode();
   }
 
   for (const control of document.querySelectorAll("input, textarea")) {
-    if (!isVisibleElement(control)) continue;
-    for (const glyph of mirrorGlyphs(control)) glyphs.push(glyph);
+    if (!paintsInk(control)) continue;
+    if (!isReachable(control.getBoundingClientRect(), clipRect(control))) continue;
+    for (const item of mirrorGlyphs(control)) items.push(item);
   }
 
-  glyphs.sort((a, b) => {
+  items.sort((a, b) => {
     const rowA = Math.round(a.y / ROW_TOLERANCE);
     const rowB = Math.round(b.y / ROW_TOLERANCE);
     return rowA === rowB ? a.x - b.x : rowA - rowB;
   });
 
-  return glyphs.map((g) => g.ch).join("");
+  return items.map((item) => item.text).join("");
 })();

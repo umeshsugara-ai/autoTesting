@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Unreadable</title>
+<!-- AT-363: six ways a box is painted and a reader still sees nothing.
+     Each carries its OWN sentinel, so a test about one cannot be
+     satisfied by another. -->
+<style>.clip { width: 40px; overflow: hidden; white-space: nowrap; }</style>
+<div style="opacity:0">OPACITY_SENTINEL_11</div>
+<div style="color:transparent">TRANSPARENT_SENTINEL_22</div>
+<div style="text-indent:-9999px">INDENT_SENTINEL_33</div>
+<div style="position:absolute;left:-9999px">OFFSCREEN_SENTINEL_44</div>
+<div class="clip">CLIPPED_SENTINEL_55</div>
+<div style="opacity:0"><span style="opacity:1">NESTED_SENTINEL_66</span></div>
+<p>Quarterly report for the trainers list</p>

@@ -199,3 +199,56 @@ def test_measuring_the_page_leaves_it_exactly_as_it_was(page_factory) -> None:
     assert first == second
     assert page.eval_on_selector_all("body > span", "els => els.length") == 0
 
+
+# -- AT-363: a box painted is not a thing seen --------------------------------
+
+UNREADABLE = {
+    "opacity-zero": "OPACITY_SENTINEL_11",
+    "transparent-colour": "TRANSPARENT_SENTINEL_22",
+    "text-indent-offscreen": "INDENT_SENTINEL_33",
+    "absolute-offscreen": "OFFSCREEN_SENTINEL_44",
+    "overflow-clipped": "CLIPPED_SENTINEL_55",
+    "opacity-zero-ancestor": "NESTED_SENTINEL_66",
+}
+"""One sentinel per case, deliberately. A shared constant is what made an
+earlier test in this file vacuous — every case could be satisfied by a
+different one."""
+
+
+@pytest.mark.parametrize("label", sorted(UNREADABLE))
+def test_text_a_reader_cannot_see_is_not_reported(page_factory, label: str) -> None:
+    """AT-363. Reporting these would be the DOM-order error pointed the other
+    way: the module claims to return what a reader sees, and each of these
+    paints a box while showing nothing. False-positive rate is a term in this
+    product's north star, so a detector that cries leak on invisible text costs
+    the metric it exists to protect."""
+    page, visit = page_factory
+    visit("unreadable.html")
+
+    seen = visual_text(page)
+    assert UNREADABLE[label] not in seen, seen
+    # The positive control lives on the same page: if this is missing, the
+    # assertion above passed because the detector saw nothing at all.
+    assert "Quarterly report" in seen, seen
+
+
+def test_a_placeholder_is_reported_because_it_renders(page_factory) -> None:
+    """AT-362: an empty control shows its placeholder, and a reader reads it."""
+    page, visit = page_factory
+    visit("controls.html")
+
+    assert "PLACEHOLDER_SENTINEL_88" in visual_text(page)
+
+
+def test_a_password_field_is_reported_as_the_bullets_it_shows(page_factory) -> None:
+    """AT-363, and the sharpest case in this file. The screen shows bullets, so
+    bullets are what a reader sees. Reporting the value would put a credential
+    in CLEARTEXT into an observation string — inside the instrument built to
+    catch credentials rendering in plain type."""
+    page, visit = page_factory
+    visit("controls.html")
+
+    seen = visual_text(page)
+    assert SECRET not in seen, seen
+    assert "•" * len(SECRET) in seen, seen
+
