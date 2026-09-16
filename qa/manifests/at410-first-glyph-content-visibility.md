@@ -189,4 +189,4 @@ No product page, template or route changed. `visual_text` still has no caller in
 - **It does not wire `visual_text` into the crawl.** That still waits on AT-416, and now also on
   AT-429, since a crawl would raise that false positive on real pages.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, verdict qa/verdicts/at410-first-glyph-content-visibility.md — pushed by the checker per D-007, `4e7a22a`)
