@@ -1,0 +1,36 @@
+{
+  "tests": [
+    "tests/test_browser_scroll_invariance.py"
+  ],
+  "mutations": [
+    {
+      "name": "AT-392 class: a scrolled pane's own offset is not accumulated",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "      if (scrollsY) scrollY += node.scrollTop;",
+      "new": "      if (false) scrollY += node.scrollTop;",
+      "kills": [
+        "tests/test_browser_scroll_invariance.py::test_what_is_reported_does_not_change_when_anything_is_scrolled[auto]",
+        "tests/test_browser_scroll_invariance.py::test_what_is_reported_does_not_change_when_anything_is_scrolled[auto-auto]"
+      ]
+    },
+    {
+      "name": "AT-408 class: the walk stops at the first clipping ancestor",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "      clip = narrow({\n        left: scrollsX ? -Infinity : box.left,\n        right: scrollsX ? Infinity : box.right,\n        top: scrollsY ? -Infinity : box.top,\n        bottom: scrollsY ? Infinity : box.bottom,\n      });",
+      "new": "      return { clip: narrow({\n        left: scrollsX ? -Infinity : box.left,\n        right: scrollsX ? Infinity : box.right,\n        top: scrollsY ? -Infinity : box.top,\n        bottom: scrollsY ? Infinity : box.bottom,\n      }), scrollX, scrollY };",
+      "kills": [
+        "tests/test_browser_scroll_invariance.py::test_what_is_reported_does_not_change_when_anything_is_scrolled[auto-auto-auto]"
+      ]
+    },
+    {
+      "name": "AT-373 class: the document-edge test ignores the accumulated offset",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "    if (rect.bottom + reach.scrollY <= 0) return false;",
+      "new": "    if (rect.bottom <= 0) return false;",
+      "kills": [
+        "tests/test_browser_scroll_invariance.py::test_what_is_reported_does_not_change_when_anything_is_scrolled[auto]",
+        "tests/test_browser_scroll_invariance.py::test_what_is_reported_does_not_change_when_anything_is_scrolled[auto-auto]"
+      ]
+    }
+  ]
+}
