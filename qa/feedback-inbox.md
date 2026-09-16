@@ -610,3 +610,8 @@ the north-star tie-break written down, and (c) a CONTRACT-OWNED "what this does 
 widening it becomes an amendment rather than a docstring edit. New criterion over a module no
 criterion covers, softening nothing → routine lane on U13's own precedent. The maker does not edit
 contracts; this is /checker's call.
+
+2026-09-16T16:05:43+05:30 · Umesh (direct, via /maker continue) · VERBATIM: "continue and keep validating . sabb live browser mai validate krna hai"
+  · PATTERN: validation evidence that never touches a real browser is not the validation Umesh is asking for — everything is to be validated in a LIVE BROWSER, not only by unit tests and CLI output.
+  · EVIDENCE: arrives after a run of units (at335, at368, at386, at396, at399, at400, at405) whose LIVE-BROWSER field was honestly `not-applicable` because they touched CLI/tooling/prose only — correct per D-024's path rule, but it means the session's validation has lived almost entirely below the browser.
+  · APPLIES NEXT: (a) prefer units that exercise the product's browser surfaces; (b) every UI-touching unit gets a checker-driven Mode D run, never a maker smoke pass cited as validation; (c) a unit with genuinely no browser surface still says so plainly rather than faking a browser check. Whether this should become a contract criterion (e.g. "each session ends with a live-browser pass over the running app") is the checker's fold, not the maker's.
