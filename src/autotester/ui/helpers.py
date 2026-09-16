@@ -36,6 +36,23 @@ def _require_slug(slug: str) -> str:
     return slug
 
 
+def _require_project_name(name: str) -> str:
+    """A project needs a name that is not blank or whitespace (AT-430).
+
+    Held here, once, because it used to live inline in the edit route only. Onboard
+    had no copy, so a blank name slipped through the one route that creates
+    projects — leaving an empty page heading, a `— AutoTester` tab title and a
+    text-less link in the sidebar on every page. The browser's `required` attribute
+    was the only guard, and a direct POST ignores it. A rule duplicated across
+    routes is a rule one route will eventually forget; both now call this.
+
+    The message never echoes the submitted value (AT-088): a password pasted into
+    the wrong field must not come back in the response body or the access log."""
+    if not name.strip():
+        raise HTTPException(400, "a project needs a name")
+    return name
+
+
 def _require_safe_id(value: str, label: str) -> str:
     if not _SAFE_ID_RE.fullmatch(value):
         raise HTTPException(400, f"invalid {label}")

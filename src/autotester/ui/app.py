@@ -44,6 +44,7 @@ from autotester.ui.helpers import (
     _load_project_or_404,
     _project_slugs,
     _refuse_unsafe_submission,
+    _require_project_name,
     _require_reachable_base_url,
     _require_slug,
 )
@@ -221,6 +222,7 @@ async def onboard_submit(request: Request) -> RedirectResponse:
     base_url = str(form.get("base_url", ""))
     allowed_domains = str(form.get("allowed_domains", ""))
     _require_slug(slug)
+    _require_project_name(name)
     if ProjectStore(slug).load_project() is not None:
         raise HTTPException(400, "a project with this slug already exists")
     domains = [d.strip() for d in allowed_domains.split(",") if d.strip()]

@@ -1,0 +1,38 @@
+{
+  "unit": "at430-onboard-blank-name",
+  "kind": "maker-smoke",
+  "_note": "MAKER SMOKE, NOT VALIDATION. The unit checker runs its own Mode D in its own browser.",
+  "date": "2026-09-16",
+  "server": "uv run uvicorn autotester.ui.app:app --host 127.0.0.1 --port 8018, with the fix applied",
+  "data_isolation": "AUTOTESTER_ROOT = git-archive-HEAD scratch copy with projects/pathlynks, erp, vidysea-erp deleted; only regression-demo present. Nothing under d:/autoTesting/projects/ read or written.",
+  "browser": "Playwright MCP, real Chromium",
+  "pages": [
+    {"url": "/onboard", "console_errors": 1, "attribution": "the deliberate HTTP 400 from the blank-name submit itself ('Failed to load resource: 400')"},
+    {"url": "/", "console_errors": 1, "attribution": "this smoke's own fetch('/projects/ghost-browser') confirming the 404 — not page code"},
+    {"url": "/projects/named-browser", "console_errors": 0, "attribution": "none"}
+  ],
+  "interactions": [
+    {
+      "did": "filled the real /onboard form with name='   ', REMOVED the name input's `required` attribute (the exact bypass that caused AT-430), clicked the real 'Create project' button",
+      "expected": "server refuses with 400; nothing saved",
+      "observed": "HTTP 400; body {\"detail\":\"a project needs a name\"}; page stayed at /onboard",
+      "pass": true
+    },
+    {
+      "did": "navigated / and read every a.sidebar-link; fetched /projects/ghost-browser",
+      "expected": "no text-less sidebar link; the refused project does not exist",
+      "observed": "sidebar = [Regression Proof Demo] only; 0 empty links; ghost-browser not listed; /projects/ghost-browser -> 404",
+      "pass": true
+    },
+    {
+      "did": "filled the real form with name='Named Via Browser' and clicked the same 'Create project' button",
+      "expected": "the guard still says yes to a real name",
+      "observed": "redirected to /projects/named-browser; title 'Named Via Browser — AutoTester'; h1 'Named Via Browser'; sidebar entry has text; 0 console errors",
+      "pass": true
+    }
+  ],
+  "limits_observed": [
+    "The rejection renders as RAW JSON — {\"detail\":\"a project needs a name\"} replaces the whole page, no theme, no link back to the form, typed values lost. Correct but not friendly. PRE-EXISTING: every /onboard 400 (non-URL, domain mismatch, bad slug, duplicate) renders the same way; not introduced by AT-430 and not fixed by it. The independent live checker noted other routes (crawl-approval) DO render a themed refusal, so the pattern exists in the app.",
+    "Only the onboard and home pages were driven. The edit route's refusal is covered by tests/test_ui_project_name.py, not by a browser run here."
+  ]
+}

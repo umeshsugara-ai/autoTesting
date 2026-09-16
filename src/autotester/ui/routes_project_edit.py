@@ -35,6 +35,7 @@ from autotester.ui import theme
 from autotester.ui.helpers import (
     _load_project_or_404,
     _refuse_unsafe_submission,
+    _require_project_name,
     _require_reachable_base_url,
 )
 
@@ -187,8 +188,7 @@ def edit_project_submit(
     allowed_domains: str = Form(...),
 ) -> RedirectResponse:
     store, project = _load_project_or_404(slug)
-    if not name.strip():
-        raise HTTPException(400, "a project needs a name")
+    _require_project_name(name)
     domains = [d.strip() for d in allowed_domains.split(",") if d.strip()]
     if not domains:
         raise HTTPException(400, "a project needs at least one allowed domain")
