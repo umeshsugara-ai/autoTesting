@@ -274,3 +274,21 @@ def test_a_pane_inside_a_clipping_box_does_not_leak_past_it(page_factory) -> Non
     # the line happily, and only the inner 30px box excludes it.
     assert "INNERCLIP_TOP_SENTINEL_G1" in seen, seen
     assert "INNERCLIP_BELOW_SENTINEL_G2" not in seen, seen
+
+
+def test_content_visibility_hidden_is_not_reported_nor_garbles_its_neighbour(page_factory) -> None:
+    """AT-429. `content-visibility:hidden` hides an element's CONTENTS while its
+    box stays laid out, so `checkVisibility()` on it is TRUE and the text was
+    reported. Worse: the box is zero height, so the hidden text shared a screen
+    row with the visible line beside it and the two INTERLEAVED — the false
+    positive also destroyed a true positive (`HAIUDTDOE_NS1_S2`).
+
+    `content-visibility:auto` is the boundary, asserted whole: a fix that banned
+    all `content-visibility` would pass the negatives and reopen AT-410."""
+    page, visit = page_factory
+    visit("cvhidden.html")
+
+    seen = visual_text(page)
+    assert "CVHIDDEN_DIRECT_SENTINEL_61" not in seen, seen
+    assert "CVHIDDEN_NESTED_SENTINEL_62" not in seen, seen
+    assert "CVAUTO_ONSCREEN_SENTINEL_63" in seen, seen

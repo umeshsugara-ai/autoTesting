@@ -1,0 +1,27 @@
+{
+  "tests": [
+    "tests/test_browser_visual_order.py",
+    "tests/test_browser_unreadable.py"
+  ],
+  "mutations": [
+    {
+      "name": "AT-429 reopens: text whose own parent is content-visibility:hidden is reported",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "    if (style.contentVisibility === \"hidden\") return false;",
+      "new": "    // parent content-visibility guard removed",
+      "kills": [
+        "tests/test_browser_unreadable.py::test_content_visibility_hidden_is_not_reported_nor_garbles_its_neighbour"
+      ]
+    },
+    {
+      "name": "AT-429 division of labour: without checkVisibility the NESTED hidden text leaks",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "    if (el.checkVisibility && !el.checkVisibility()) return false;",
+      "new": "    if (false) return false;",
+      "kills": [
+        "tests/test_browser_unreadable.py::test_content_visibility_hidden_is_not_reported_nor_garbles_its_neighbour",
+        "tests/test_browser_unreadable.py::test_text_a_reader_cannot_see_is_not_reported[closed-details]"
+      ]
+    }
+  ]
+}

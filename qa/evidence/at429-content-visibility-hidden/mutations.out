@@ -1,0 +1,8 @@
+KILLED  AT-429 reopens: text whose own parent is content-visibility:hidden is reported  (pytest exit 1)
+    claims to kill : tests/test_browser_unreadable.py::test_content_visibility_hidden_is_not_reported_nor_garbles_its_neighbour
+    actually failed: tests/test_browser_unreadable.py::test_content_visibility_hidden_is_not_reported_nor_garbles_its_neighbour
+KILLED  AT-429 division of labour: without checkVisibility the NESTED hidden text leaks  (pytest exit 1)
+    claims to kill : tests/test_browser_unreadable.py::test_content_visibility_hidden_is_not_reported_nor_garbles_its_neighbour, tests/test_browser_unreadable.py::test_text_a_reader_cannot_see_is_not_reported[closed-details]
+    actually failed: tests/test_browser_unreadable.py::test_content_visibility_hidden_is_not_reported_nor_garbles_its_neighbour, tests/test_browser_unreadable.py::test_text_a_reader_cannot_see_is_not_reported[closed-details]
+
+2/2 mutations killed

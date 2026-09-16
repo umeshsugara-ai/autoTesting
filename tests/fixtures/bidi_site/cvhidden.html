@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>content-visibility:hidden</title>
+<!-- AT-429. `content-visibility:hidden` skips rendering an element's CONTENTS
+     while its own box stays in layout, so `checkVisibility()` on the element
+     itself returns TRUE. The AT-372 guard calls `checkVisibility()` on the text
+     node's parent — which here IS that element — so it never fired, and text a
+     reader cannot see was reported. The opposite sign from AT-410.
+
+     `content-visibility:auto` is the boundary on the same page: it only skips
+     rendering while off-screen, a reader can reach it, and it must stay
+     reported. A fix that simply bans `content-visibility` would satisfy the
+     negative assertions and reopen AT-410. -->
+<p>Quarterly report for the trainers list</p>
+<div style="content-visibility:hidden">CVHIDDEN_DIRECT_SENTINEL_61</div>
+<div style="content-visibility:hidden"><section><p>CVHIDDEN_NESTED_SENTINEL_62</p></section></div>
+<div style="content-visibility:auto">CVAUTO_ONSCREEN_SENTINEL_63</div>

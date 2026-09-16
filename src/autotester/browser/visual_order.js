@@ -81,15 +81,17 @@
     // be falsified: the opacity and visibility mutations would survive and C7's
     // kills would become vacuous. Each rule answers for itself.
     if (el.checkVisibility && !el.checkVisibility()) return false;
-    // A zero alpha paints a box and shows nothing — reporting it is the
-    // DOM-order error pointed the other way (AT-363).
-    //
-    // Anchored to the FOUR-component form on purpose. `rgba?\([^)]*,\s*([\d.]+)\s*\)`
-    // was the first version and it matched plain `rgb(0, 0, 0)` too, capturing
-    // the BLUE channel as the alpha — so ordinary black text was read as
-    // transparent and this returned an empty string for every page. Every
-    // "is not reported" assertion in the suite would have passed on a detector
-    // that saw nothing at all; the same-page positive control is what caught it.
+    // `checkVisibility()` catches text whose ANCESTOR is `content-visibility:
+    // hidden`, but not text whose own PARENT is: that element's box stays laid
+    // out, so it is "visible" and its hidden contents were reported (AT-429),
+    // interleaving with the visible line beside its zero-height box. Only the
+    // parent is checked here, on purpose — measured, the ancestor case is
+    // already `checkVisibility()`'s, and a walk would duplicate it unfalsifiably.
+    if (style.contentVisibility === "hidden") return false;
+    // A zero alpha paints a box and shows nothing (AT-363). Anchored to the
+    // FOUR-component form on purpose: the first regex also matched `rgb(0,0,0)`
+    // and read the BLUE channel as alpha, so black text counted as transparent
+    // and every page came back empty — caught only by a same-page positive control.
     const alpha = style.color.match(
       /^rgba\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*,\s*([\d.]+)\s*\)$/);
     if (alpha && parseFloat(alpha[1]) === 0) return false;
@@ -198,16 +200,11 @@
       range.setStart(node, i);
       range.setEnd(node, i + 1);
       const rect = range.getBoundingClientRect();
-      // Zero WIDTH means nothing was painted where a reader would look: a
-      // zero-width space, a NUL the parser dropped, a variation selector, the
-      // direction override itself.
-      //
-      // The test is width alone, deliberately. `width === 0 && height === 0`
-      // was the first version, copied from `enumerate.js::isVisible` where it
-      // is right for an ELEMENT; for a one-character Range it is wrong, because
-      // a zero-width character still reports the full LINE HEIGHT. It kept
-      // every U+200B and reproduced, inside this instrument, exactly the
-      // blindness the instrument exists to remove.
+      // Zero WIDTH means nothing was painted: a zero-width space, a dropped NUL,
+      // a variation selector, the direction override itself. Width ALONE, on
+      // purpose — `width === 0 && height === 0` is right for an element but a
+      // one-character Range keeps the full line height, so that form kept every
+      // U+200B: the exact blindness this instrument exists to remove.
       if (rect.width === 0) continue;
       if (checkReachable && !isReachable(rect, reach)) continue;
       const ch = mask ? BULLET : text[i];
