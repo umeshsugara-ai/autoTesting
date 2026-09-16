@@ -1,0 +1,539 @@
+{
+ "unit": "at423-scroll-invariance-probe",
+ "cycle_checked": 1,
+ "date": "2026-09-16",
+ "driver": "checker's own Playwright Chromium (headless) script, own http server, pages generated from the test's _html()",
+ "console_errors_total": 0,
+ "console_errors_per_page": {
+  "auto": 0,
+  "auto+tall": 0,
+  "auto+clip": 0,
+  "auto+clip+tall": 0,
+  "hidden": 0,
+  "hidden+tall": 0,
+  "hidden+clip": 0,
+  "hidden+clip+tall": 0,
+  "auto-auto": 0,
+  "auto-auto+tall": 0,
+  "auto-auto+clip": 0,
+  "auto-auto+clip+tall": 0,
+  "auto-hidden": 0,
+  "auto-hidden+tall": 0,
+  "auto-hidden+clip": 0,
+  "auto-hidden+clip+tall": 0,
+  "hidden-auto": 0,
+  "hidden-auto+tall": 0,
+  "hidden-auto+clip": 0,
+  "hidden-auto+clip+tall": 0,
+  "hidden-hidden": 0,
+  "hidden-hidden+tall": 0,
+  "hidden-hidden+clip": 0,
+  "hidden-hidden+clip+tall": 0,
+  "auto-auto-auto": 0,
+  "auto-auto-auto+tall": 0,
+  "auto-auto-auto+clip": 0,
+  "auto-auto-auto+clip+tall": 0,
+  "auto-auto-hidden": 0,
+  "auto-auto-hidden+tall": 0,
+  "auto-auto-hidden+clip": 0,
+  "auto-auto-hidden+clip+tall": 0,
+  "auto-hidden-auto": 0,
+  "auto-hidden-auto+tall": 0,
+  "auto-hidden-auto+clip": 0,
+  "auto-hidden-auto+clip+tall": 0,
+  "auto-hidden-hidden": 0,
+  "auto-hidden-hidden+tall": 0,
+  "auto-hidden-hidden+clip": 0,
+  "auto-hidden-hidden+clip+tall": 0,
+  "hidden-auto-auto": 0,
+  "hidden-auto-auto+tall": 0,
+  "hidden-auto-auto+clip": 0,
+  "hidden-auto-auto+clip+tall": 0,
+  "hidden-auto-hidden": 0,
+  "hidden-auto-hidden+tall": 0,
+  "hidden-auto-hidden+clip": 0,
+  "hidden-auto-hidden+clip+tall": 0,
+  "hidden-hidden-auto": 0,
+  "hidden-hidden-auto+tall": 0,
+  "hidden-hidden-auto+clip": 0,
+  "hidden-hidden-auto+clip+tall": 0,
+  "hidden-hidden-hidden": 0,
+  "hidden-hidden-hidden+tall": 0,
+  "hidden-hidden-hidden+clip": 0,
+  "hidden-hidden-hidden+clip+tall": 0
+ },
+ "spot_checks_mid_scroll_reader_hit_test": {
+  "hidden-auto": {
+   "scrolled": "L1",
+   "scrollTop": 334,
+   "glyph_rect": [
+    8,
+    50,
+    308,
+    68
+   ],
+   "pane_rect": [
+    8,
+    50,
+    308,
+    90
+   ],
+   "hit_is_INNER_BOTTOM": true,
+   "at_rest_has_INNER_BOTTOM": false,
+   "after_has_INNER_BOTTOM": true,
+   "after": "CONTROL_QUARTERLY_REPORTINNER_BOTTOMPAGE_FOOT",
+   "console_errors": 0
+  },
+  "auto+clip": {
+   "scrolled": "L0",
+   "scrollTop": 334,
+   "glyph_rect": [
+    8,
+    50,
+    308,
+    68
+   ],
+   "pane_rect": [
+    8,
+    50,
+    308,
+    90
+   ],
+   "hit_is_INNER_BOTTOM": true,
+   "at_rest_has_INNER_BOTTOM": false,
+   "after_has_INNER_BOTTOM": true,
+   "after": "CONTROL_QUARTERLY_REPORTINNER_BOTTOMPAGE_FOOT",
+   "console_errors": 0
+  },
+  "hidden-auto+clip": {
+   "scrolled": "L1",
+   "scrollTop": 334,
+   "glyph_rect": [
+    8,
+    50,
+    308,
+    68
+   ],
+   "pane_rect": [
+    8,
+    50,
+    308,
+    90
+   ],
+   "hit_is_INNER_BOTTOM": true,
+   "at_rest_has_INNER_BOTTOM": false,
+   "after_has_INNER_BOTTOM": true,
+   "after": "CONTROL_QUARTERLY_REPORTINNER_BOTTOMPAGE_FOOT",
+   "console_errors": 0
+  },
+  "auto": {
+   "scrolled": "L0",
+   "scrollTop": 334,
+   "glyph_rect": [
+    8,
+    50,
+    308,
+    68
+   ],
+   "pane_rect": [
+    8,
+    50,
+    308,
+    90
+   ],
+   "hit_is_INNER_BOTTOM": true,
+   "at_rest_has_INNER_BOTTOM": true,
+   "after_has_INNER_BOTTOM": true,
+   "after": "INNER_TOPCONTROL_QUARTERLY_REPORTINNER_BOTTOMPAGE_FOOT",
+   "console_errors": 0
+  }
+ },
+ "spot_checks_max_scroll_axis_decoupled": {
+  "hidden-auto": {
+   "vertical_only": {
+    "after": "CONTROL_QUARTERLY_REPORTPAGE_FOOT",
+    "missing_glyphs": "EINNOPRT_",
+    "extra_glyphs": "",
+    "INNER_BOTTOM_hit_test": {
+     "rect": [
+      8,
+      -244,
+      132.15625,
+      -227
+     ],
+     "hit": null,
+     "scrollLeft": 0,
+     "scrollTop": 628
+    }
+   },
+   "horizontal_only": {
+    "after": "CONTROL_QUARTERLY_REPORTINNER_TOPPAGE_FOOT",
+    "missing_glyphs": "",
+    "extra_glyphs": "",
+    "INNER_BOTTOM_hit_test": {
+     "rect": [
+      8,
+      384,
+      132.15625,
+      401
+     ],
+     "hit": "shape\nCONTROL_QUARTERLY_REPORT\n\n\nINNER_TOP\nINNER_BOTTOM\n\n\n\n\n\nPAGE_FOOT",
+     "scrollLeft": 0,
+     "scrollTop": 0
+    }
+   },
+   "geometry": {
+    "win": {
+     "sh": 720,
+     "ih": 720,
+     "sw": 1280,
+     "iw": 1280
+    },
+    "boxes": [
+     {
+      "id": "L0",
+      "ov": "hidden",
+      "clip": "none",
+      "sh": 340,
+      "ch": 40,
+      "sw": 300,
+      "cw": 300
+     },
+     {
+      "id": "L1",
+      "ov": "auto",
+      "clip": "none",
+      "sh": 668,
+      "ch": 40,
+      "sw": 300,
+      "cw": 300
+     }
+    ]
+   },
+   "reader_scrollers": [
+    "L1"
+   ]
+  },
+  "auto+clip": {
+   "vertical_only": {
+    "after": "CONTROL_QUARTERLY_REPORTPAGE_FOOT",
+    "missing_glyphs": "EINNOPRT_",
+    "extra_glyphs": "",
+    "INNER_BOTTOM_hit_test": {
+     "rect": [
+      8,
+      -244,
+      132.15625,
+      -227
+     ],
+     "hit": null,
+     "scrollLeft": 0,
+     "scrollTop": 628
+    }
+   },
+   "horizontal_only": {
+    "after": "CONTROL_QUARTERLY_REPORTINNER_TOPPAGE_FOOT",
+    "missing_glyphs": "",
+    "extra_glyphs": "",
+    "INNER_BOTTOM_hit_test": {
+     "rect": [
+      8,
+      384,
+      132.15625,
+      401
+     ],
+     "hit": "shape\nCONTROL_QUARTERLY_REPORT\n\nINNER_TOP\nINNER_BOTTOM\n\n\n\nPAGE_FOOT",
+     "scrollLeft": 0,
+     "scrollTop": 0
+    }
+   },
+   "geometry": {
+    "win": {
+     "sh": 720,
+     "ih": 720,
+     "sw": 1280,
+     "iw": 1280
+    },
+    "boxes": [
+     {
+      "id": "L0",
+      "ov": "auto",
+      "clip": "inset(0px)",
+      "sh": 668,
+      "ch": 40,
+      "sw": 300,
+      "cw": 300
+     }
+    ]
+   },
+   "reader_scrollers": [
+    "L0"
+   ]
+  },
+  "hidden-auto+clip": {
+   "vertical_only": {
+    "after": "CONTROL_QUARTERLY_REPORTPAGE_FOOT",
+    "missing_glyphs": "EINNOPRT_",
+    "extra_glyphs": "",
+    "INNER_BOTTOM_hit_test": {
+     "rect": [
+      8,
+      -244,
+      132.15625,
+      -227
+     ],
+     "hit": null,
+     "scrollLeft": 0,
+     "scrollTop": 628
+    }
+   },
+   "horizontal_only": {
+    "after": "CONTROL_QUARTERLY_REPORTINNER_TOPPAGE_FOOT",
+    "missing_glyphs": "",
+    "extra_glyphs": "",
+    "INNER_BOTTOM_hit_test": {
+     "rect": [
+      8,
+      384,
+      132.15625,
+      401
+     ],
+     "hit": "shape\nCONTROL_QUARTERLY_REPORT\n\n\nINNER_TOP\nINNER_BOTTOM\n\n\n\n\n\nPAGE_FOOT",
+     "scrollLeft": 0,
+     "scrollTop": 0
+    }
+   },
+   "geometry": {
+    "win": {
+     "sh": 720,
+     "ih": 720,
+     "sw": 1280,
+     "iw": 1280
+    },
+    "boxes": [
+     {
+      "id": "L0",
+      "ov": "hidden",
+      "clip": "inset(0px)",
+      "sh": 340,
+      "ch": 40,
+      "sw": 300,
+      "cw": 300
+     },
+     {
+      "id": "L1",
+      "ov": "auto",
+      "clip": "none",
+      "sh": 668,
+      "ch": 40,
+      "sw": 300,
+      "cw": 300
+     }
+    ]
+   },
+   "reader_scrollers": [
+    "L1"
+   ]
+  }
+ },
+ "known_red_emptied_runs": {
+  "runs": 5,
+  "under_load": "full suite running concurrently for runs 1-5",
+  "failed_counts": [
+   32,
+   32,
+   32,
+   32,
+   32
+  ],
+  "diff_vs_KNOWN_RED_lines": 0,
+  "all_failures_are": "AssertionError '<label> changed after <state>'"
+ },
+ "classification_by_fix_variant": {
+  "method": "throwaway copy; visual_order.js patched with a model AT-417 fix (clip-path ancestor that scrolls accumulates its offset instead of clipping), a model AT-416 option-A fix (no clip contribution on an axis outside a scrollable ancestor), and both; KNOWN_RED emptied; bound tree untouched",
+  "still_red_after_AT417_fix_only": [
+   "auto-hidden-auto",
+   "auto-hidden-auto+clip",
+   "auto-hidden-auto+clip+tall",
+   "auto-hidden-auto+tall",
+   "hidden-auto",
+   "hidden-auto+clip",
+   "hidden-auto+clip+tall",
+   "hidden-auto+tall",
+   "hidden-auto-auto",
+   "hidden-auto-auto+clip",
+   "hidden-auto-auto+clip+tall",
+   "hidden-auto-auto+tall",
+   "hidden-auto-hidden",
+   "hidden-auto-hidden+clip",
+   "hidden-auto-hidden+clip+tall",
+   "hidden-auto-hidden+tall",
+   "hidden-hidden-auto",
+   "hidden-hidden-auto+clip",
+   "hidden-hidden-auto+clip+tall",
+   "hidden-hidden-auto+tall"
+  ],
+  "still_red_after_AT416_fix_only": [
+   "auto+clip",
+   "auto+clip+tall",
+   "auto-auto+clip",
+   "auto-auto+clip+tall",
+   "auto-auto-auto+clip",
+   "auto-auto-auto+clip+tall",
+   "auto-auto-hidden+clip",
+   "auto-auto-hidden+clip+tall",
+   "auto-hidden+clip",
+   "auto-hidden+clip+tall",
+   "auto-hidden-auto+clip",
+   "auto-hidden-auto+clip+tall",
+   "auto-hidden-hidden+clip",
+   "auto-hidden-hidden+clip+tall"
+  ],
+  "still_red_after_both": []
+ },
+ "mutation_row2_xpass_strict": [
+  "hidden-auto",
+  "hidden-auto+tall",
+  "hidden-auto+clip",
+  "hidden-auto+clip+tall",
+  "hidden-hidden-auto",
+  "hidden-hidden-auto+tall",
+  "hidden-hidden-auto+clip",
+  "hidden-hidden-auto+clip+tall"
+ ],
+ "passing_shapes_scroll_exercise": {
+  "auto": {
+   "reader_scrollers": [
+    "L0"
+   ],
+   "window_scrollable": false
+  },
+  "auto+tall": {
+   "reader_scrollers": [
+    "L0"
+   ],
+   "window_scrollable": true
+  },
+  "hidden": {
+   "reader_scrollers": [],
+   "window_scrollable": false
+  },
+  "hidden+tall": {
+   "reader_scrollers": [],
+   "window_scrollable": true
+  },
+  "hidden+clip": {
+   "reader_scrollers": [],
+   "window_scrollable": false
+  },
+  "hidden+clip+tall": {
+   "reader_scrollers": [],
+   "window_scrollable": true
+  },
+  "auto-auto": {
+   "reader_scrollers": [
+    "L0",
+    "L1"
+   ],
+   "window_scrollable": false
+  },
+  "auto-auto+tall": {
+   "reader_scrollers": [
+    "L0",
+    "L1"
+   ],
+   "window_scrollable": true
+  },
+  "auto-hidden": {
+   "reader_scrollers": [
+    "L0"
+   ],
+   "window_scrollable": false
+  },
+  "auto-hidden+tall": {
+   "reader_scrollers": [
+    "L0"
+   ],
+   "window_scrollable": true
+  },
+  "hidden-hidden": {
+   "reader_scrollers": [],
+   "window_scrollable": false
+  },
+  "hidden-hidden+tall": {
+   "reader_scrollers": [],
+   "window_scrollable": true
+  },
+  "hidden-hidden+clip": {
+   "reader_scrollers": [],
+   "window_scrollable": false
+  },
+  "hidden-hidden+clip+tall": {
+   "reader_scrollers": [],
+   "window_scrollable": true
+  },
+  "auto-auto-auto": {
+   "reader_scrollers": [
+    "L0",
+    "L1",
+    "L2"
+   ],
+   "window_scrollable": false
+  },
+  "auto-auto-auto+tall": {
+   "reader_scrollers": [
+    "L0",
+    "L1",
+    "L2"
+   ],
+   "window_scrollable": true
+  },
+  "auto-auto-hidden": {
+   "reader_scrollers": [
+    "L0",
+    "L1"
+   ],
+   "window_scrollable": false
+  },
+  "auto-auto-hidden+tall": {
+   "reader_scrollers": [
+    "L0",
+    "L1"
+   ],
+   "window_scrollable": true
+  },
+  "auto-hidden-hidden": {
+   "reader_scrollers": [
+    "L0"
+   ],
+   "window_scrollable": false
+  },
+  "auto-hidden-hidden+tall": {
+   "reader_scrollers": [
+    "L0"
+   ],
+   "window_scrollable": true
+  },
+  "hidden-hidden-hidden": {
+   "reader_scrollers": [],
+   "window_scrollable": false
+  },
+  "hidden-hidden-hidden+tall": {
+   "reader_scrollers": [],
+   "window_scrollable": true
+  },
+  "hidden-hidden-hidden+clip": {
+   "reader_scrollers": [],
+   "window_scrollable": false
+  },
+  "hidden-hidden-hidden+clip+tall": {
+   "reader_scrollers": [],
+   "window_scrollable": true
+  }
+ },
+ "screenshots": [
+  "mid-hidden-auto.png",
+  "mid-auto+clip.png",
+  "mid-hidden-auto+clip.png"
+ ]
+}
