@@ -24,7 +24,11 @@ from autotester.schema.enums import ReviewStatus, SourceKind
 from autotester.schema.observation import VisionOptions
 from autotester.schema.project import Source
 from autotester.stages.analyze_video import DuplicateProviders, NoObservations, analyze
-from autotester.stages.ingest import register_source
+from autotester.stages.ingest import (
+    NotARecording,
+    register_source,
+    require_recording_suffix,
+)
 from autotester.stages.issues import derive_issues, sync_source_issues
 from autotester.stages.media_prep import SourceNotPrepared, UnreadableRecording, require_prepared
 from autotester.stages.product_map import attach_screenshots, build_screen_map
@@ -37,7 +41,6 @@ from autotester.ui.helpers import (
 )
 
 router = APIRouter()
-_UPLOAD_SUFFIXES = frozenset({".avi", ".mkv", ".mov", ".mp4", ".webm"})
 
 
 def _link(href: str, text: str) -> str:
@@ -156,6 +159,8 @@ def add_source(slug: str, path: str = Form(""), label: str = Form("")):
     _refuse_unsafe_submission([("recording path", path), ("label", label)], project, secrets)
     try:
         register_source(store, Path(path.strip()), label=label.strip() or None)
+    except NotARecording as exc:
+        return _refusal(slug, str(exc), title="Not a recording")
     except (FileNotFoundError, OSError):
         return _refusal(slug, "Recording not found")
     return RedirectResponse(f"/projects/{slug}/sources", status_code=303)
@@ -167,8 +172,10 @@ def upload_source(slug: str, recording: Annotated[UploadFile, File()], label: st
     store, project = _load_project_or_404(slug)
     secrets = SecretStore.load(project, ProjectPaths(slug).env_file, strict=False)
     _refuse_unsafe_submission([("label", label)], project, secrets)
-    submitted_suffix = Path(recording.filename or "recording").suffix.lower()
-    suffix = submitted_suffix if submitted_suffix in _UPLOAD_SUFFIXES else ".video"
+    try:
+        suffix = require_recording_suffix(recording.filename or "")
+    except NotARecording as exc:
+        return _refusal(slug, str(exc), title="Not a recording")
     temp = _reserved_temp_path(
         suffix,
         directory=work_dir(store.paths.root),

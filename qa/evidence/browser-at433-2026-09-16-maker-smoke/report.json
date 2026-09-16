@@ -1,0 +1,17 @@
+{
+  "unit": "at433-source-is-a-recording",
+  "role": "maker SMOKE only - not validation; the checker runs its own Mode D",
+  "date": "2026-09-16T12:19Z",
+  "server": "uvicorn from isolated git-archive extract (HEAD + 4 unit files), port 8033",
+  "autotester_root": "scratchpad/at433root - contains ONLY projects/regression-demo (synthetic)",
+  "steps": [
+    {"action": "Sources page, path form: synthetic .env (SMOKE_SECRET=canary-at433-not-real), label creds, Add recording",
+     "result": "HTTP 400, title 'Not a recording', themed page, message lists .avi/.mkv/.mov/.mp4/.webm, 'Try another path' link; canary not rendered"},
+    {"action": "click Try another path", "result": "back on Sources form, table 'No sources registered yet.'"},
+    {"action": "Upload form: notes.txt, Upload recording", "result": "HTTP 400, title 'Not a recording'"},
+    {"action": "Upload form: walk.mp4 (fake bytes), Upload recording", "result": "redirect to Sources; one row src_062f0f5cb2ec kind video .../recording.mp4 with Analyze"}
+  ],
+  "disk_after": "sources.jsonl has exactly 1 row (the mp4); no recording.video file anywhere under the root",
+  "console_errors": {"count": 2, "attribution": "both are Chrome's 'Failed to load resource: 400' for the two deliberate refusals; no page-code errors"},
+  "not_covered": "suffix-only rule: a non-video file renamed x.mp4 is accepted (no content sniffing)"
+}

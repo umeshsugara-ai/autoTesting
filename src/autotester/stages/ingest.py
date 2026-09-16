@@ -67,11 +67,39 @@ def narration_block(transcript: Transcript | None) -> str:
     return "(no speech detected — do not invent dialogue)"
 
 
+RECORDING_SUFFIXES = frozenset({".avi", ".mkv", ".mov", ".mp4", ".webm"})
+"""What a recording source may be. The ONE definition: the upload route and this
+function both read it, so they cannot drift (AT-433)."""
+
+
+class NotARecording(ValueError):
+    """A path or upload that is not a recording by suffix. Its message never
+    repeats the submitted name — a credential pasted into the box must not echo."""
+
+
+def require_recording_suffix(name: str) -> str:
+    """The lower-cased suffix, or `NotARecording` (AT-433).
+
+    Before this, a source registered by path was checked only for existing, and
+    an upload with an unknown suffix was silently renamed `.video`. Live
+    validation registered `C:\\Windows\\win.ini` and the repo's own `.env`
+    credential file as VIDEO sources, each shown with its full path and an
+    Analyze button. A `.env` is refused here too: for a dotfile
+    `Path(".env").suffix` is `""`, which is not a recording suffix."""
+    suffix = Path(name).suffix.lower()
+    if suffix not in RECORDING_SUFFIXES:
+        raise NotARecording(
+            "that is not a recording — add a video file ending in "
+            + ", ".join(sorted(RECORDING_SUFFIXES)))
+    return suffix
+
+
 def register_source(store: ProjectStore, path: Path, *, label: str | None = None,
                     recorded_on: str | None = None) -> Source:
     """Record a video on disk as a `Source`. Idempotent on content: the same
     bytes registered twice return the existing row rather than a second id, so
     re-running a shell command never silently doubles the corpus."""
+    require_recording_suffix(path.name)
     if not path.exists():
         raise FileNotFoundError(f"no such recording: {path}")
     digest = file_sha256(path)

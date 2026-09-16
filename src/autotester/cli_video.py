@@ -16,6 +16,7 @@ from autotester.schema.enums import ReviewStatus
 from autotester.schema.observation import VisionOptions
 from autotester.stages.ingest import (
     FlowSpecApproved,
+    NotARecording,
     SourceChanged,
     ingest_video,
     load_sidecar,
@@ -42,7 +43,7 @@ def register_cmd(
     try:
         source = register_source(store, Path(path), label=label,
                                  recorded_on=recorded_on)
-    except FileNotFoundError as exc:
+    except (FileNotFoundError, NotARecording) as exc:
         typer.secho(str(exc), fg=typer.colors.RED)
         raise typer.Exit(2) from None
     typer.secho(f"{source.id}  {source.label or '(no label)'}  sha256={source.sha256[:12]}",
