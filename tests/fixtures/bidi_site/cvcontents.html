@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>display:contents</title>
+<!-- AT-438. `display:contents` has no box of its own, so `checkVisibility()` on
+     it is false even though its text paints through the parent. The first
+     candidate fix walked up to the nearest box and asked THAT; it reported text
+     inside a closed <details> and a content-visibility:hidden block, because
+     each of those is "visible" itself while hiding its contents. Measured, not
+     reasoned. The hidden cases below are that trap, pinned. Each case sits in its
+     own spaced block so no two share a screen row and interleave. -->
+<p>Quarterly report for the trainers list</p>
+<div style="margin:40px 0"><div style="display:contents">CONTENTS_PLAIN_S1</div></div>
+<div style="margin:40px 0"><details open><summary>open</summary><div style="display:contents">CONTENTS_OPENDETAILS_S2</div></details></div>
+<div style="margin:40px 0"><details><summary>closed</summary><div style="display:contents">CONTENTS_CLOSEDDETAILS_S3</div></details></div>
+<div style="margin:40px 0"><div style="content-visibility:hidden"><div style="display:contents">CONTENTS_CVHIDDEN_S4</div></div></div>
+<div style="margin:40px 0"><div style="display:none"><div style="display:contents">CONTENTS_DISPLAYNONE_S5</div></div></div>

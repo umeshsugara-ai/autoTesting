@@ -238,14 +238,7 @@ def _cv_sentinel(display: str) -> str:
     return "CVD_" + re.sub(r"[^A-Z]", "_", display.upper()) + "_S"
 
 
-@pytest.mark.parametrize("display", [
-    # AT-438, pre-existing and NOT this guard: `checkVisibility()` is false on a
-    # `display:contents` box, so its painted text is dropped before the
-    # content-visibility guard is ever consulted -- the code before AT-429
-    # dropped it too. Strict, so fixing AT-438 fails loudly here.
-    pytest.param(d, marks=pytest.mark.xfail(strict=True, reason="AT-438")) if d == "contents" else d
-    for d in CV_PAINTS
-])
+@pytest.mark.parametrize("display", list(CV_PAINTS))
 def test_content_visibility_hidden_is_reported_exactly_where_it_paints(
     page_factory, display: str
 ) -> None:
@@ -265,3 +258,25 @@ def test_content_visibility_hidden_is_reported_exactly_where_it_paints(
         assert _cv_sentinel(display) in seen, f"{display} paints but was dropped: {seen}"
     else:
         assert _cv_sentinel(display) not in seen, f"{display} hides but was reported: {seen}"
+
+
+def test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor(page_factory) -> None:
+    """AT-438. `display:contents` has no box, so `checkVisibility()` on it is
+    always false and its visible text was dropped. The fix asks whether an
+    element placed THERE would be visible, using a probe <span> removed in
+    `finally`. That is the second page write in this module, so the page must
+    come back byte-identical.
+
+    The hidden cases are the trap a first candidate fell into. It walked up to
+    the nearest box, and a closed <details> or a content-visibility:hidden block
+    is itself "visible" while hiding its contents."""
+    page, visit = page_factory
+    visit("cvcontents.html")
+    before = page.evaluate("() => document.body.innerHTML")
+
+    seen = visual_text(page)
+    assert "CONTENTS_PLAIN_S1" in seen, seen
+    assert "CONTENTS_OPENDETAILS_S2" in seen, seen
+    for hidden in ("CONTENTS_CLOSEDDETAILS_S3", "CONTENTS_CVHIDDEN_S4", "CONTENTS_DISPLAYNONE_S5"):
+        assert hidden not in seen, (hidden, seen)
+    assert page.evaluate("() => document.body.innerHTML") == before

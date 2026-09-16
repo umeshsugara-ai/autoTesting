@@ -1,0 +1,36 @@
+{
+  "tests": [
+    "tests/test_browser_visual_order.py",
+    "tests/test_browser_unreadable.py"
+  ],
+  "mutations": [
+    {
+      "name": "AT-438 reopens: display:contents text is dropped by checkVisibility again",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "    if (el.checkVisibility && !el.checkVisibility() && !contentsRenders(el)) return false;",
+      "new": "    if (el.checkVisibility && !el.checkVisibility()) return false;",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor",
+        "tests/test_browser_visual_order.py::test_content_visibility_hidden_is_reported_exactly_where_it_paints[contents]"
+      ]
+    },
+    {
+      "name": "the measured trap: walk up to the nearest box instead of probing, so closed <details> / cv:hidden leak",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "    const probe = document.createElement(\"span\");\n    el.appendChild(probe);\n    try { return probe.checkVisibility(); } finally { probe.remove(); }",
+      "new": "    let box = el;\n    while (box.parentElement && window.getComputedStyle(box).display === \"contents\") box = box.parentElement;\n    return box.checkVisibility();",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor"
+      ]
+    },
+    {
+      "name": "the probe span is never removed, so observing the page changes it",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "    const probe = document.createElement(\"span\");\n    el.appendChild(probe);\n    try { return probe.checkVisibility(); } finally { probe.remove(); }",
+      "new": "    const probe = document.createElement(\"span\");\n    el.appendChild(probe);\n    return probe.checkVisibility();",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor"
+      ]
+    }
+  ]
+}

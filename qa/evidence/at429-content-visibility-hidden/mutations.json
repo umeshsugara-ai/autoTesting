@@ -38,7 +38,7 @@
     {
       "name": "division of labour: without checkVisibility the NESTED hidden text leaks",
       "file": "src/autotester/browser/visual_order.js",
-      "old": "    if (el.checkVisibility && !el.checkVisibility()) return false;",
+      "old": "    if (el.checkVisibility && !el.checkVisibility() && !contentsRenders(el)) return false;",
       "new": "    if (false) return false;",
       "kills": [
         "tests/test_browser_unreadable.py::test_content_visibility_hidden_is_not_reported_nor_garbles_its_neighbour",

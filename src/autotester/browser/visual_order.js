@@ -33,14 +33,9 @@
 // failure modes — a unit, not a line. Until then the limit is written down, so
 // a clean result is read for what it is.
 //
-// SEEN, BUT BY ACCIDENT RATHER THAN BY DESIGN (AT-374). <svg><text> IS
-// reported. It sat in the list above for one cycle and that was a false
-// statement in a limits block, which is worse than no block: the sentence
-// above promises each entry is a page where a credential renders while this
-// returns clean, and that was never true of SVG text. It works because SVG
-// text nodes are text nodes like any other, so the walker finds them without
-// knowing what they are. Nothing pins it, so it is not claimed as a capability
-// either — it is recorded here, under a heading that does not lie about it.
+// SEEN BY ACCIDENT, NOT BY DESIGN (AT-374): <svg><text> IS reported — SVG text
+// nodes are ordinary text nodes to the walker. Nothing pins it, so it is not
+// claimed as a capability; listing it above as unseen was a false statement.
 (() => {
   const ROW_TOLERANCE = 4; // px; sub-pixel and font-metric jitter within a line
   const BULLET = "•";
@@ -68,6 +63,16 @@
     return Boolean(value) && value !== "none";
   }
 
+  // `display:contents` has no box, so `checkVisibility()` on it is false though its
+  // text paints (AT-438). Walking up to a box is WRONG — a closed <details> is itself
+  // "visible" (measured) — so a probe <span> asks: would something HERE be visible?
+  function contentsRenders(el) {
+    if (window.getComputedStyle(el).display !== "contents") return false;
+    const probe = document.createElement("span");
+    el.appendChild(probe);
+    try { return probe.checkVisibility(); } finally { probe.remove(); }
+  }
+
   const HIDES_ON = /^(block|inline-block|flex|inline-flex|grid|inline-grid|flow-root|list-item|table-cell|table-caption)$/;
 
   function paintsInk(el) {
@@ -77,12 +82,9 @@
     // browser holds it at `content-visibility:hidden` so find-in-page can still
     // reach it, which is precisely a reader NOT seeing it.
     //
-    // Called with DEFAULT options on purpose — display and content-visibility
-    // only. `{opacityProperty: true, visibilityProperty: true}` would subsume
-    // the two rules below, and a rule whose failure another rule covers cannot
-    // be falsified: the opacity and visibility mutations would survive and C7's
-    // kills would become vacuous. Each rule answers for itself.
-    if (el.checkVisibility && !el.checkVisibility()) return false;
+    // DEFAULT options on purpose: opacity/visibility flags would subsume the rules
+    // below, and a rule another rule covers cannot be falsified (C7).
+    if (el.checkVisibility && !el.checkVisibility() && !contentsRenders(el)) return false;
     // `checkVisibility()` misses text whose own PARENT is `content-visibility:
     // hidden` (AT-429; the ancestor case is already its). But `hidden` only hides
     // on a box that takes containment, and computed style says `hidden` either

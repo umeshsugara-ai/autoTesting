@@ -185,7 +185,7 @@
     {
       "name": "AT-372: a CLOSED <details> body is reported as text a reader saw",
       "file": "src/autotester/browser/visual_order.js",
-      "old": "    if (el.checkVisibility && !el.checkVisibility()) return false;",
+      "old": "    if (el.checkVisibility && !el.checkVisibility() && !contentsRenders(el)) return false;",
       "new": "    if (false) return false;",
       "kills": [
         "tests/test_browser_unreadable.py::test_text_a_reader_cannot_see_is_not_reported[closed-details]"
