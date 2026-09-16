@@ -91,62 +91,41 @@ CORPUS = [
     for shape in _shapes()
     for clip_path in (False, True)
     for tall in (False, True)
+    # AT-426: an all-`hidden` shape on a SHORT page has nothing a reader can scroll
+    # — no scrollable box, and a window that does not move. Six such pages sat in
+    # the first corpus passing vacuously, uncaught by any mutation. They are left
+    # out rather than counted as coverage.
+    if "auto" in shape or tall
 ]
 
-KNOWN_RED = {
-    'auto+clip',
-    'auto+clip+tall',
-    'auto-auto+clip',
-    'auto-auto+clip+tall',
-    'auto-auto-auto+clip',
-    'auto-auto-auto+clip+tall',
-    'auto-auto-hidden+clip',
-    'auto-auto-hidden+clip+tall',
-    'auto-hidden+clip',
-    'auto-hidden+clip+tall',
-    'auto-hidden-auto',
-    'auto-hidden-auto+clip',
-    'auto-hidden-auto+clip+tall',
-    'auto-hidden-auto+tall',
-    'auto-hidden-hidden+clip',
-    'auto-hidden-hidden+clip+tall',
-    'hidden-auto',
-    'hidden-auto+clip',
-    'hidden-auto+clip+tall',
-    'hidden-auto+tall',
-    'hidden-auto-auto',
-    'hidden-auto-auto+clip',
-    'hidden-auto-auto+clip+tall',
-    'hidden-auto-auto+tall',
-    'hidden-auto-hidden',
-    'hidden-auto-hidden+clip',
-    'hidden-auto-hidden+clip+tall',
-    'hidden-auto-hidden+tall',
-    'hidden-hidden-auto',
-    'hidden-hidden-auto+clip',
-    'hidden-hidden-auto+clip+tall',
-    'hidden-hidden-auto+tall',
-}
-"""The shapes that fail TODAY, recorded from a run rather than predicted.
+def _open_defects(shape: tuple[str, ...], clip_path: bool) -> list[str]:
+    """Which open defects a shape exercises, derived from its STRUCTURE.
 
-Predicting which shapes would fail is the reasoning that lost five times in a
-row, so this list is a measurement: repeated runs produce the identical set of
-32. They split cleanly into two already-open defects, and neither was invented
-here — the corpus rediscovered both without anyone imagining the failing shape:
+    AT-425. The first version measured WHICH shapes fail and then guessed WHY
+    with `"AT-417" if "+clip" in label else "AT-416"` — wrong for 10 of 32, so
+    the claim "option A flips 10" was wrong too (it flips 18). The count was a
+    measurement; the attribution was not, and attribution is what this corpus
+    exists to hand the AT-416 gate.
 
-  * **AT-416** (10 shapes, every one with a `hidden` box OUTSIDE an `auto` one) —
-    a scrollable pane inside a clipping ancestor drops what is below its fold.
-    Exactly the shape a checker found by hand; the generator found it from the
-    product instead.
-  * **AT-417** (22 shapes, every `+clip` one) — a `clip-path` ancestor that also
-    scrolls never contributes its own offset, because the `clipPath` branch in
-    `reachOf` returns before the scroll accumulation. Filed as pre-existing and
-    uncharged when a checker noticed it by reading; here it is measured.
+      * **AT-416** — a `hidden` box OUTSIDE an `auto` one: a scrollable pane
+        inside a clipping ancestor.
+      * **AT-417** — `clip-path` on a box that also scrolls. `_html` puts the
+        clip on the OUTERMOST box, so it applies only when that box is `auto`;
+        a clip-path on a `hidden` box scrolls nothing and is not AT-417.
 
-Each is `xfail(strict=True)`: the suite stays green while the defects are open,
-and the moment either is fixed the unexpected PASS fails loudly instead of the
-fix landing unnoticed. **These are not accepted behaviour** — they are two open
-ledger rows with a running instrument pointed at them."""
+    This is not a prediction trusted on faith. Every derived defect becomes an
+    `xfail(strict=True)`, so the rule is checked on every run in both directions:
+    a shape it wrongly marks red XPASSes and fails, and a shape it wrongly marks
+    green fails outright. Measured when written: exactly the 32 failing shapes,
+    AT-416 on 20, AT-417 on 14, both on 2 — matching a checker's independent
+    count taken by fixing each defect in turn.
+    """
+    defects = []
+    if any(shape[i] == "hidden" and "auto" in shape[i + 1:] for i in range(len(shape))):
+        defects.append("AT-416")
+    if clip_path and shape[0] == "auto":
+        defects.append("AT-417")
+    return defects
 
 
 @pytest.fixture(scope="module")
@@ -185,6 +164,9 @@ _RESET = """() => {
 }"""
 """Resetting every box is safe — putting a container back to 0 is the state the
 page loaded in, whether or not a reader could have moved it."""
+
+_MOVED = """() => window.scrollY > 0 ||
+  Array.from(document.querySelectorAll('[id^=L]')).some(el => el.scrollTop > 0)"""
 
 _SCROLLERS = """() => Array.from(document.querySelectorAll('[id^=L]'))
   .filter(el => {
@@ -225,9 +207,9 @@ def _states(page) -> list[tuple[str, Callable[[], None]]]:
 @pytest.mark.parametrize(
     "label",
     [pytest.param(label, marks=pytest.mark.xfail(
-        strict=True, reason="AT-417" if "+clip" in label else "AT-416"))
-     if label in KNOWN_RED else label
-     for label, _shape, _clip, _tall in CORPUS],
+        strict=True, reason=" + ".join(_open_defects(shape, clip))))
+     if _open_defects(shape, clip) else label
+     for label, shape, clip, _tall in CORPUS],
 )
 def test_what_is_reported_does_not_change_when_anything_is_scrolled(shape_page, label: str) -> None:
     """The floor: a scroll may reorder the result, never change its contents.
@@ -242,9 +224,11 @@ def test_what_is_reported_does_not_change_when_anything_is_scrolled(shape_page, 
     # returned nothing would be trivially invariant and pass this whole corpus.
     assert "CONTROL_QUARTERLY_REPORT" in visual_text(page)
 
+    moved = False
     for name, scroll in _states(page):
         page.evaluate(_RESET)
         scroll()
+        moved = moved or page.evaluate(_MOVED)
         # Force a layout flush before measuring. Without it this corpus was
         # NON-DETERMINISTIC — 33 failures on one run, 32 on the next — because a
         # scroll is committed asynchronously and `visual_text` measures rects.
@@ -253,3 +237,9 @@ def test_what_is_reported_does_not_change_when_anything_is_scrolled(shape_page, 
         page.evaluate("() => { document.body.offsetHeight; }")
         page.wait_for_timeout(30)
         assert sorted(visual_text(page)) == at_rest, f"{label} changed after {name}"
+
+    # AT-426: a page on which no scroll state actually MOVED anything tests
+    # nothing, and would pass whatever the detector did. Asserted rather than
+    # trusted, so a shape added later that cannot scroll fails here instead of
+    # joining the passing count.
+    assert moved, f"{label}: no scroll state moved the window or any container"
