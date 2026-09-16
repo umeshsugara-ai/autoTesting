@@ -89,8 +89,25 @@ class Verdict(Artifact):
     grader_provider: str = ""
     rubric_hash: str = ""
     note: str | None = None
+    images_requested: int = Field(
+        default=0, description="SCREENSHOT evidence rows this case offered the judge"
+    )
+    images_seen: int = Field(
+        default=0, description="of those, the files that actually existed and were sent"
+    )
 
     @property
     def is_actionable_failure(self) -> bool:
         """FAIL with at least one cited failure — what a human should look at."""
         return self.result is Result.FAIL and bool(self.failures)
+
+    @property
+    def graded_on_partial_evidence(self) -> bool:
+        """The judge saw fewer screenshots than the evidence claimed (AT-366).
+
+        All three providers drop a non-existent path in silence, so before this
+        pair of counts existed a verdict rendered on none of its images looked
+        exactly like one rendered on all of them. A `True` here does not mean the
+        verdict is wrong — it means nobody can tell, which is the thing that was
+        previously invisible."""
+        return self.images_seen < self.images_requested

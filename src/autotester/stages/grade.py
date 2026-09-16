@@ -71,12 +71,14 @@ def _verdict(
     run_id: str, result: RawResult, rubric: Rubric, *, verdict_result: Result,
     provider_id: str, scoreboard: str, note: str | None = None,
     criteria_met: int = 0, failures: list[Failure] | None = None,
+    images_requested: int = 0, images_seen: int = 0,
 ) -> Verdict:
     return Verdict(
         run_id=run_id, case_id=result.case_id, result=verdict_result, scoreboard=scoreboard,
         criteria_met=criteria_met, criteria_total=len(rubric.criteria),
         failures=failures or [], grader_provider=provider_id,
         rubric_hash=rubric.fingerprint, note=note,
+        images_requested=images_requested, images_seen=images_seen,
     )
 
 
@@ -91,6 +93,31 @@ def _screenshot_paths(result: RawResult, run_dir: Path | None) -> list[Path]:
     return [
         run_dir / ev.path for ev in result.evidence if ev.kind is EvidenceKind.SCREENSHOT
     ]
+
+
+def _withheld(
+    run_id: str, result: RawResult, rubric: Rubric, prompt: str,
+    secrets: SecretStore | None,
+) -> Verdict | None:
+    """A BLOCKED verdict when a credential reached the grading prompt, else None.
+
+    AT-070: refusing to send the prompt is right, but crashing the run is not — a
+    credential that reached a rubric (e.g. via a case title feeding `claim_of`)
+    would otherwise 500 every subsequent run with no way back. Fail this case
+    loudly and safely instead, naming no value."""
+    if secrets is None:
+        return None
+    try:
+        secrets.guard_prompt(prompt)
+    except ValueError as exc:
+        return _verdict(
+            run_id, result, rubric, verdict_result=Result.BLOCKED,
+            provider_id="rule", scoreboard="not judged: prompt withheld",
+            note=f"a credential value reached the grading prompt, so it was not sent "
+                 f"({type(exc).__name__}). Remove it from the case and use "
+                 f"{{{{SECRET:KEY}}}} instead.",
+        )
+    return None
 
 
 def grade(rubric: Rubric, result: RawResult, run_id: str, judge: Provider,
@@ -114,28 +141,51 @@ def grade(rubric: Rubric, result: RawResult, run_id: str, judge: Provider,
                          note=result.error)
 
     prompt = build_grade_prompt(rubric, result, docs or RepoDocs())
-    if secrets is not None:
-        try:
-            secrets.guard_prompt(prompt)
-        except ValueError as exc:
-            # AT-070: refusing to send the prompt is right, but crashing the run
-            # is not -- a credential that reached a rubric (e.g. via a case title
-            # feeding claim_of) would otherwise 500 every subsequent run with no
-            # way back. Fail this case loudly and safely instead, naming no value.
-            return _verdict(
-                run_id, result, rubric, verdict_result=Result.BLOCKED,
-                provider_id="rule", scoreboard="not judged: prompt withheld",
-                note=f"a credential value reached the grading prompt, so it was not sent "
-                     f"({type(exc).__name__}). Remove it from the case and use "
-                     f"{{{{SECRET:KEY}}}} instead.",
-            )
-    judgment = judge.judge(prompt, Judgment, images=_screenshot_paths(result, run_dir))
+    withheld = _withheld(run_id, result, rubric, prompt, secrets)
+    if withheld is not None:
+        return withheld
+
+    # AT-366: filter HERE, once, and count what was lost. All three providers drop a
+    # non-existent path in silence, so a screenshot the executor recorded but failed to
+    # write (the AT-036 retry class) produced a shorter list with no error, no log line
+    # and no trace on the Verdict -- a judgement rendered on a subset of its evidence,
+    # indistinguishable from one rendered on all of it. The counts travel on the Verdict
+    # so the grader's output and the report can both read them.
+    requested = _screenshot_paths(result, run_dir)
+    seen = [path for path in requested if path.exists()]
+    counts = {"images_requested": len(requested), "images_seen": len(seen)}
+
+    judgment = judge.judge(prompt, Judgment, images=seen)
     problem = _inconsistency(rubric, judgment)
     if problem is not None:
         return _verdict(run_id, result, rubric, verdict_result=Result.INCONCLUSIVE,
                          provider_id=judge.id, scoreboard="judge output rejected",
-                         note=f"self-consistency check failed: {problem}")
+                         note=f"self-consistency check failed: {problem}", **counts)
+    shortfall = _shortfall(**counts)
     return _verdict(run_id, result, rubric, verdict_result=judgment.result,
-                     provider_id=judge.id, scoreboard=judgment.scoreboard,
+                     provider_id=judge.id,
+                     scoreboard=_joined(shortfall, judgment.scoreboard) or "",
                      criteria_met=judgment.criteria_met, failures=judgment.failures,
-                     note=judgment.note)
+                     note=_joined(shortfall, judgment.note), **counts)
+
+
+def _shortfall(*, images_requested: int, images_seen: int) -> str | None:
+    """One sentence naming what the judge did not see, or None (AT-366).
+
+    A structured count nothing renders is the same silence one layer up, so this
+    goes into BOTH the `note` (the durable record) and the `scoreboard` — the
+    scoreboard because that is what `report_export.py` actually puts on the page
+    (`_case_section`, the summary table); `note` is not rendered anywhere today."""
+    if images_seen >= images_requested:
+        return None
+    return (
+        f"graded on {images_seen} of {images_requested} screenshots — "
+        f"{images_requested - images_seen} evidence file(s) the run recorded were not on disk"
+    )
+
+
+def _joined(shortfall: str | None, text: str | None) -> str | None:
+    """`shortfall` first — it qualifies everything after it."""
+    if shortfall is None:
+        return text
+    return f"{shortfall}. {text}" if text else shortfall
