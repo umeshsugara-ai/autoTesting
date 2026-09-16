@@ -1,0 +1,42 @@
+{
+  "unit": "at430-onboard-blank-name",
+  "cycle_checked": 1,
+  "checker": "independent /checker subagent (Mode A + Mode D)",
+  "date": "2026-09-16",
+  "maker_evidence_read_before_run": false,
+  "instrument": {
+    "browser": "Playwright MCP (Chromium), driven by the checker",
+    "server": "own uvicorn autotester.ui.app:app on 127.0.0.1:8020",
+    "root": "git archive HEAD (52012e4) into a scratch dir outside d:/autoTesting, with the unit's 4 changed files layered on top (cmp-identical to the working tree); projects/pathlynks, projects/erp and projects/vidysea-erp deleted; AUTOTESTER_ROOT set to the copy; a checker-owned .env with one fake sentinel CHECKER_PROBE_TOKEN=sk-test-SENTINEL-4242-zq",
+    "import_resolution": "autotester.ui.helpers.__file__ resolved inside the scratch copy",
+    "starting_sidebar": [["/projects/regression-demo", "Regression Proof Demo"]]
+  },
+  "onboard_via_real_form_and_create_project_button": [
+    {"case": "A name='' with required removed", "post": 400, "body": "{\"detail\":\"a project needs a name\"}", "empty_sidebar_links": 0, "slug_listed": false, "GET /projects/ck-blank": 404},
+    {"case": "B name='   ' with required INTACT (no bypass needed: required does not reject whitespace)", "post": 400, "body": "{\"detail\":\"a project needs a name\"}", "empty_sidebar_links": 0, "slug_listed": false, "GET /projects/ck-ws": 404},
+    {"case": "C name='\\t ' with required removed", "post": 400, "empty_sidebar_links": 0, "slug_listed": false, "GET /projects/ck-tab": 404},
+    {"case": "D name='  ' plus credential row value = sentinel", "post": 400, "body": "{\"detail\":\"a project needs a name\"}", "sentinel_echoed_in_response": false, "empty_sidebar_links": 0, "GET /projects/ck-cred": 404, "CK_PROBE_KEY_written_to_env": false},
+    {"case": "E name='' with required INTACT", "post": "none -- the browser blocked submit", "GET /projects/ck-req": 404},
+    {"case": "F positive control name='Checker Named'", "post": 303, "final_url": "/projects/ck-named", "sidebar": [["/projects/ck-named", "Checker Named"], ["/projects/regression-demo", "Regression Proof Demo"]], "empty_sidebar_links": 0, "GET /projects/ck-named": 200},
+    {"case": "S secret-shaped non-blank name = sentinel (existing U9 guard, AT-088 probe)", "post": 400, "sentinel_echoed_in_response": false, "server_log_sentinel_count": 0, "GET /projects/ck-secret": 404}
+  ],
+  "edit_via_real_settings_form_and_save_changes_button": [
+    {"case": "E1 name -> '   ' (required intact)", "post": 400, "body": "{\"detail\":\"a project needs a name\"}", "h1_after": "Checker Named", "title_after": "Checker Named — AutoTester", "empty_sidebar_links": 0},
+    {"case": "E2 name -> '' (required removed)", "post": 422, "note": "FastAPI Form(...) treats an empty field as missing before the handler runs; this happened before this unit too. State unchanged: h1 still 'Checker Named'", "empty_sidebar_links": 0},
+    {"case": "E3 positive control name -> 'Checker Renamed'", "post": 303, "h1_after": "Checker Renamed", "sidebar_entry_text": "Checker Renamed"}
+  ],
+  "disk_state_after_run": {"projects_dir": ["ck-named", "regression-demo"], "ck-named/project.json name": "Checker Renamed", "copy .env": "unchanged (only the checker sentinel line)"},
+  "pre_existing_refusal_rendering": {"case": "P duplicate slug, a refusal path this diff does not touch", "post": 400, "body": "{\"detail\":\"a project with this slug already exists\"}", "themed_nav_present": false, "ruling": "the raw-JSON refusal was already there before this unit; filed as its own issue"},
+  "console_errors": {
+    "total": 8,
+    "attribution": [
+      "4x 'Failed to load resource: 400' on /onboard = deliberate probes A, B, C, D",
+      "1x 400 on /projects/ck-named/edit = deliberate probe E1",
+      "1x 422 on /projects/ck-named/edit = deliberate probe E2",
+      "2x 400 on /onboard = deliberate probes P and S"
+    ],
+    "from_page_code": 0
+  },
+  "server_access_log": "10 POSTs, statuses match the table exactly; the sentinel appears 0 times",
+  "cleanup": "browser closed, server on 8020 stopped (0 listeners), scratch copy deleted"
+}
