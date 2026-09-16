@@ -119,6 +119,23 @@ def test_expired_edited_and_other_target_grants_are_not_listed_as_in_force(
     assert "3 more on file" in text, "say they exist, so nobody re-grants blindly"
 
 
+@pytest.mark.parametrize("kind", [ApprovalKind.READ, ApprovalKind.ADVERSARIAL,
+                                  ApprovalKind.LIVE_CASE])
+def test_a_grant_for_another_kind_of_run_is_not_counted_with_a_false_reason(
+    client: TestClient, store: ProjectStore, kind: ApprovalKind,
+) -> None:
+    """AT-452: an intact, unexpired, same-target grant for a DIFFERENT kind of run
+    was counted in "N more on file are expired, edited after granting, or for
+    another target" — every word of which is false about it. This card is about
+    crawl approvals; other kinds are not its business to count."""
+    store.add_approval(_approval(granted_by="OtherKind", run_kind=kind))
+
+    text = client.get("/projects/demo/env").text
+
+    assert "OtherKind" not in text, "not a crawl approval, so not listed as one"
+    assert "more on file" not in text
+
+
 def test_the_saved_banner_is_driven_by_disk_not_by_the_query_string(
     client: TestClient, store: ProjectStore,
 ) -> None:

@@ -1,0 +1,12 @@
+{
+  "unit": "at452-approval-count-crawl-only",
+  "role": "maker SMOKE only - not validation; the checker runs its own Mode D",
+  "date": "2026-09-16T16:05Z",
+  "server": "uvicorn from isolated git-archive extract (Vidysea project dirs removed; HEAD + routes_credentials.py + test), port 8052",
+  "autotester_root": "scratchpad/at452root - regression-demo cases.jsonl + project.json, plus 2 synthetic approvals seeded through ProjectStore: an intact unexpired READ grant (granted_by ReadKindGrant) and an expired CRAWL grant (ExpiredCrawl), both for the project's exact base_url",
+  "interactions": [
+    {"did": "open /projects/regression-demo/env", "expected": "no crawl grant listed; '1 more on file' (the expired crawl grant only); READ grant not named", "observed": "'No crawl approval is in force for this target.' + '1 more on file are expired, edited after granting, or for another target, and are not honoured.'; ReadKindGrant absent", "pass": true}
+  ],
+  "console_errors": {"count": 0},
+  "noticed_not_fixed": "'1 more on file are' — singular/plural wording; cosmetic, pre-existing in at435, not filed"
+}

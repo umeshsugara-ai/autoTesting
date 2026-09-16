@@ -87,7 +87,10 @@ def _approvals_card(approvals: list[RunApproval], slug: str, target: str, saved:
         f"<th>Expires (UTC)</th><th>Id</th></tr>{rows}</table>" if active
         else "<p class='meta'>No crawl approval is in force for this target.</p>"
     )
-    others = len(approvals) - len(active)
+    # Only crawl grants: a READ/ADVERSARIAL grant is none of "expired, edited or
+    # for another target", so counting it gave a false reason (AT-452).
+    crawl = [a for a in approvals if a.run_kind is ApprovalKind.CRAWL]
+    others = len(crawl) - len(active)
     note = (f"<p class='meta'>{others} more on file are expired, edited after granting, or for "
             "another target, and are not honoured.</p>" if others else "")
     return theme.card(banner + table + note, title="Approvals in force")
