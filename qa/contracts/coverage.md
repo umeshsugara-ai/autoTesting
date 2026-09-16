@@ -81,6 +81,31 @@ exactly once, file confirmed changed, its own resolved `autotester` import): **3
 real; the three negatives stay green, which is the honest limit of a negative test and is recorded
 as AT-261 rather than papered over.
 
+### V7 — The product map states its own coverage, and names every hole with a reason
+A crawl report that lists what it found reads as the whole product. `Crawl` today carries
+`screens`, `actions`, `denied`, `issues`, `tool_failures` and `noise_counts` — **no coverage figure
+exists anywhere** (AT-459), and a control never attempted because a bound fired, or never seen
+because its screen was left in the queue, is not listed at all. Required:
+
+- **(a) Numbers.** `crawl.json` records `controls_discovered` (every distinct candidate control on
+  every screen reached), `controls_exercised` (actually performed) and a coverage figure
+  `controls_exercised / controls_discovered`; plus `screens_reached` and `screens_queued_unvisited`.
+  When a `FlowSpec` exists, also `spec_screens_reached / spec_screens_total` from V5's
+  `unreached_screens`.
+- **(b) Every hole has exactly one reason** from a closed set: `bound:<max_screens|max_actions|
+  wall_clock_s|max_depth|per_node_action_cap>`, `policy:<rule>` (X5/X6), `unnamed`, `off_domain`,
+  `error`, `login_wall`, `not_visited` (queued when the crawl stopped). An unreached screen or
+  control with no reason, or a reason outside the set, fails this criterion.
+- **(c) The books balance.** `controls_exercised + Σ(unreached controls by reason) ==
+  controls_discovered`, asserted by a test on a fixture where at least three reason classes occur.
+- **(d) It is shown.** The coverage figure and the per-reason breakdown appear on the crawl page and
+  the workbook Summary with the same billing X16 gives `stop_reason`; the full unreached list is its
+  own workbook sheet. A crawl that stopped on a bound, or on a login wall (X18), can never display
+  100 %.
+
+**Verify (load-bearing):** a fixture crawl with a deliberately small `max_actions` → figure < 100 %,
+the `bound:max_actions` rows non-empty, the identity in (c) holds; drop one reason class from the
+tally in a scratch copy → the (c) test fails. Mode D reads the figure off the crawl page.
 
 ## No-fire list
 
@@ -123,3 +148,13 @@ as AT-261 rather than papered over.
   would not have settled. One residual filed: **AT-261** (low) — the three negative tests remain
   individually vacuous; a single test asserting known→0 and unknown→1 in one fixture would close
   that, and is a design improvement rather than a defect in this unit.
+
+- 2026-09-16 · routine · /checker (Mode B sweep #6 of 2026-09-16) · **V7 added**, folding Umesh's
+  2026-09-16T22:25+05:30 inbox entry ("puura product map hona chiaye … each possible route") and the
+  maker's request that every unreached screen/control be listed with its reason. Re-derived: the
+  `Crawl` envelope keys on disk are `bounds, policy, provider, stop_reason, edges, issues,
+  tool_failures, noise_counts, screens, actions, denied, login_case_id` — no coverage figure, and no
+  record of a control left unattempted by a bound. Adds a criterion, softens none; V1-V6 byte-unchanged.
+  The contract's criticality stays MEDIUM on the file, but V7 is the measure the north star is now
+  judged by for crawls ("same material, same build … bugs found") and should be treated as such in
+  queue ranking. Companion criteria: `explore.md` X17 / X18. Issue: AT-459.

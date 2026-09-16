@@ -225,6 +225,58 @@ through `explore_cmd` today) and **AT-124** (a crawl artifact written before `to
 loads with the default `0` and is displayed as a measured zero — the same property `issues` and
 `denied` have always had; the remedy is a schema change, not a display change).
 
+### X17 — A crawl started from the product UI logs in exactly as the CLI can
+A crawl that cannot pass the login wall maps one screen of a product and calls it the product. The
+CLI's `--login-case` (`cli_crawl.py:59`, passed at `:89`) is today the only door past it; the UI
+Explore route (`ui/routes_crawls.py:226-227`) calls `run_crawl` with no `login_case`, and
+`Project` has no field naming one, so **no crawl started from the UI can ever reach a post-login
+screen** (AT-457). This criterion requires:
+
+- **(a) One declared source.** A project names its login case in exactly one place on disk (a
+  `Project` field or one equivalent declaration — not a UI-only default, not a second copy per
+  entry point). The CLI flag may override it for one run; it may not be a second, drifting default.
+- **(b) The UI uses it.** When a login case is declared, the UI Explore route passes that case to
+  `run_crawl`, and the persisted `crawl.json` carries `login_case_id` equal to the declared case
+  id. When none is declared, the crawl form says so on the page *before* the crawl starts — never
+  silently runs an anonymous crawl as if it were the whole product.
+- **(c) Nothing else widens.** Consent (`require_consent`), `write_policy` (X5), session-ending
+  refusals (X6) and X10 (nothing typed except the human-authored login case through `run_case`) are
+  unchanged. This criterion routes an existing, already-consented login through a second door; it
+  does not authorize a new outward action, and it does not relax `READ_ONLY`'s form-submit denial
+  for anything after login (that is D-016's per-project `TEST_ACCOUNT` choice, a human decision).
+
+**Verify (load-bearing, both directions):** against a real browser on a fixture site whose content
+sits behind a login form, a crawl POSTed through the UI route with a declared login case reaches at
+least one screen whose `url_template` is not the login page's, and `crawl.json.login_case_id` is set;
+the same POST with the `login_case=` argument removed in a scratch copy must fail that test. A crawl
+with no declared case renders the "no login case declared" notice on the form. Checker Mode D drives
+the Explore form itself.
+
+### X18 — A crawl that never gets past the login wall never reads as COMPLETED
+`_terminal_status` (`stages/explore.py:200-211`) returns `COMPLETED` whenever the frontier empties
+and at least one action was performed. AT-242's `BLOCKED_NO_ACTIONS` covers only `actions_used ==
+0`; a login page with one clickable link ("Forgot password", a footer link) that is followed and
+leads back returns `COMPLETED` while the product behind the wall was never seen (AT-458). On disk,
+all three crawls of `saucedemo` and `checkerdemo` read `status=completed` with 1 screen, 0 actions
+and 3 denied (they predate AT-242's `2bb3270`, and are still displayed as `completed`).
+
+- **(a)** With a declared login case, a crawl that reaches no screen other than the login case's
+  own start screen ends `LOGIN_FAILED` (or a named equivalent), never `COMPLETED`.
+- **(b)** With no declared login case, a crawl whose every reached screen carries a form submit that
+  was refused under policy and which has **no `NAVIGATED` edge to a screen offering a different
+  structural signature from the seed** ends in a distinct non-success status naming the wall in
+  `stop_reason`, **regardless of `actions_used`**.
+- **(c)** That status reaches every surface X16 lists (crawl page, crawls table, CLI line, workbook
+  Summary, `crawl.json`) with non-success tone — `_STOP_TONE` must not colour it positive.
+- **(d)** A legacy `crawl.json` whose persisted status is `completed` but whose counts are
+  `actions == 0 and denied > 0` is not displayed as a success (the AT-124 legacy-artifact shape, for
+  status rather than counts).
+
+**Verify:** a fixture login page with one followable same-domain link, crawled with no login case →
+status ≠ `completed` with `actions_used ≥ 1`; sabotage `_terminal_status` back to the pre-X18 body in a
+scratch copy → that test fails. The three on-disk legacy crawls render non-success on the crawls
+table (Mode D).
+
 ## No-fire list (do not raise these as findings)
 
 - Filling forms with synthetic data, and vision-guided action choice — both rejected by D-015/X10.
@@ -360,3 +412,22 @@ loads with the default `0` and is displayed as a measured zero — the same prop
   SPA path regardless of name (X3 requires two structurally distinct states at one URL to be two
   screens, so a name collision between them is not evidence of duplication), so no combination
   falls through uncaught. No criterion is removed or weakened; X1-X13, X15, X16 are byte-unchanged.
+
+- 2026-09-16 · routine · /checker (Mode B sweep #6 of 2026-09-16) · **X17 and X18 added**, folding
+  Umesh's 2026-09-16T22:25+05:30 `qa/feedback-inbox.md` entry verbatim: *"abhi tho hmara testing flow
+  login k baad hi ruk jata hi … puura product map hona chiaye na aend to end testing . each possible
+  route"*. Authorized by D-015 (this stage and this contract). Each maker claim was re-derived from
+  code and crawl.json counts only, not read: `routes_crawls.py:226-227` calls `run_crawl` without
+  `login_case` (TRUE); `Project` declares no login case at all (NEW — the maker's evidence did not
+  name this, and it means X17 needs a declaration, not only a kwarg); `explore_safety.py:88-89`
+  denies every form submit under `READ_ONLY` (TRUE); defaults 30 / 200 / 600 s in `schema/crawl.py:59-61`
+  and both entry points (TRUE); every on-disk crawl stopped at or before login — saucedemo 1/0/3
+  completed, checkerdemo ×2 1/0/3 completed, pathlynks `login_failed` 0 screens (TRUE). **One claim
+  corrected:** "a crawl that ends on the login page reports COMPLETED" is true of those three
+  artifacts only because they predate AT-242 (`2bb3270`, 2026-09-09T08:17Z; crawls 03:51Z/05:44Z);
+  today's code would label them `blocked_no_actions`. The live residual is narrower and real — any
+  performed action on the wall page restores `COMPLETED` — and X18 is written against that, plus
+  the legacy display. Adds criteria, softens none; X1-X16 byte-unchanged. **Deliberately NOT folded:**
+  relaxing `READ_ONLY`'s form-submit denial after login, or raising the default bounds — the first
+  weakens a D-016 safety invariant (CRITICAL, human), the second is a per-crawl choice that V7's
+  coverage number makes visible instead of hiding. Issues: AT-457, AT-458.

@@ -657,3 +657,21 @@ to be harmless. APPLIES NEXT: the whole rule is: (1) for a path only you edit, `
 change, built in a temporary index or written as a blob with `git hash-object` and
 `git update-index --cacheinfo`, never from the working tree. /checker: fold the corrected rule, not
 the earlier one.
+
+## 2026-09-16T22:25+05:30 · Umesh (chat, verbatim) · PATTERN: judge the product by what it maps and tests end to end, not by how many small UI defects close
+> "abhi tho hmara testing flow login k baad hi ruk jata hi, what the kind of testing you are really doing. system relaible kese bnega. puura product map hona chiaye na aend to end testing . each possible route"
+
+EVIDENCE (maker, measured the same hour, counts only): every crawl on disk stopped at or before login.
+- saucedemo: 1 screen, 0 actions, 3 denied (two unnamed inputs; the login button denied as "form submit under read_only").
+- checkerdemo (two crawls): the same shape.
+- pathlynks: LOGIN_FAILED with 0 screens.
+The UI "Explore" route (`ui/routes_crawls.py:226`) calls `run_crawl` with no `login_case`, so a crawl started from the product UI can never get past a login wall. Only the CLI's `--login-case` can. Default bounds are 30 screens / 200 actions / 600 s, and read_only denies every form submit, so post-login forms and multi-step flows are never exercised. The maker's last 8 units today (AT-430..AT-455) were all small AutoTester-UI defects; none moved this.
+APPLIES NEXT: the contracts need a coverage criterion stated against the product. Every distinct screen (url template) and every navigation control reachable after login should be mapped, with a coverage number, and every unreached one listed with its reason (bound, policy, unnamed, error). A crawl that ends at the login page must read as a failure, never "completed". /checker: fold this into explore.md / coverage.md.
+
+**FOLDED:** 2026-09-16 by `/checker` (Mode B sweep #6) into `qa/contracts/explore.md` **X17** (UI crawl
+uses the project's one declared login case) and **X18** (a crawl that never passes the login wall is
+never COMPLETED, at any `actions_used`), and `qa/contracts/coverage.md` **V7** (coverage figure +
+every unreached screen/control with one reason from a closed set). Every maker fact re-derived from
+code and crawl.json counts; one corrected (the on-disk `completed` wall crawls predate AT-242 — the
+live residual is the actions ≥ 1 path). Not folded: relaxing READ_ONLY after login (CRITICAL, D-016).
+Issues AT-457/458/459 (high), AT-460 (medium). Live target opened as `qa/gates/live-crawl-target.md`.
