@@ -291,4 +291,4 @@ reaches a log, an artifact or a model. That is a behaviour change to the explore
 failure modes and it belongs to the next unit, which should carry that B4/B7 requirement in its
 contract line rather than inherit it as folklore.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 3, verdict qa/verdicts/at358-visual-order-detector.md — pushed by the checker per D-007)
