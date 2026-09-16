@@ -1,0 +1,117 @@
+{
+  "unit": "at358-visual-order-detector",
+  "cycle": 3,
+  "checker": true,
+  "date": "2026-09-16",
+  "base": "http://127.0.0.1:53418",
+  "pages": {
+    "p1_hscroll.html": {
+      "scrollX_mid": 2600,
+      "scrollX_max": 4210,
+      "at_x0": "CTRL_POSITIVE_AAAHSCROLL_RIGHT_SECRET_11",
+      "at_mid": "CTRL_POSITIVE_AAAHSCROLL_RIGHT_SECRET_11",
+      "at_max": "CTRL_POSITIVE_AAAHSCROLL_RIGHT_SECRET_11",
+      "equal_x0_mid": true,
+      "equal_x0_max": true,
+      "positive_control_seen": true,
+      "right_secret_seen_at_x0": true,
+      "offdoc_left_dropped": true,
+      "console_errors": 1,
+      "console_error_messages": [
+        "Failed to load resource: the server responded with a status of 404 (File not found)"
+      ]
+    },
+    "p2_midscroll.html": {
+      "scroll_mid": 900,
+      "equal_top_mid": true,
+      "equal_top_bottom": true,
+      "positive_control_seen": true,
+      "mid_secret_in_all": true,
+      "bottom_secret_in_all": true,
+      "at_top": "CTRL_POSITIVE_AAA top of documentMID_SECRET_33 lives in the middleBOTTOM_SECRET_44 lives at the end",
+      "at_mid": "CTRL_POSITIVE_AAA top of documentMID_SECRET_33 lives in the middleBOTTOM_SECRET_44 lives at the end",
+      "at_bottom": "CTRL_POSITIVE_AAA top of documentMID_SECRET_33 lives in the middleBOTTOM_SECRET_44 lives at the end",
+      "console_errors": 0,
+      "console_error_messages": []
+    },
+    "p3_container.html": {
+      "pane_scrollTop_after": 296,
+      "at_pane_top": "CTRL_POSITIVE_AAAPANE_FIRST_SENTINEL_55",
+      "at_pane_bottom": "CTRL_POSITIVE_AAAPANE_LAST_SENTINEL_66",
+      "equal_before_after": false,
+      "positive_control_seen": true,
+      "first_line_seen_at_top": true,
+      "last_line_seen_at_top": false,
+      "first_line_seen_after_scroll": false,
+      "last_line_seen_after_scroll": true,
+      "overflow_hidden_dropped": true,
+      "console_errors": 0,
+      "console_error_messages": []
+    },
+    "p4_details.html": {
+      "closed_result": "CTRL_POSITIVE_AAAAppendix",
+      "opened_result": "CTRL_POSITIVE_AAAAppendixDETAILS_BODY_SENTINEL_88",
+      "positive_control_seen": true,
+      "body_hidden_when_closed": true,
+      "body_seen_when_opened": true,
+      "open_attr": true,
+      "console_errors": 0,
+      "console_error_messages": []
+    },
+    "p5_masking.html": {
+      "visual_result": "CTRL_POSITIVE_AAA•••••••••••••••••PLAINSECRET_VALUE_00",
+      "computed": {
+        "pw_text_security": "disc",
+        "plain_text_security": "none",
+        "vis_default": true,
+        "vis_with_visibilityProperty": false,
+        "opz_default": true,
+        "opz_with_opacityProperty": false,
+        "opz_inner_default": true,
+        "opz_inner_with_opacityProperty": false,
+        "alpha_default": true,
+        "alpha_with_both": true
+      },
+      "positive_control_seen": true,
+      "password_value_not_in_cleartext": true,
+      "password_shown_as_bullets": true,
+      "plain_input_value_seen": true,
+      "opacity_zero_dropped": true,
+      "opacity_ancestor_dropped": true,
+      "visibility_hidden_dropped": true,
+      "zero_alpha_dropped": true,
+      "console_errors": 0,
+      "console_error_messages": []
+    },
+    "p6_disclosure.html": {
+      "visual_result": "CTRL_POSITIVE_AAAbetweenMARKERITEM_SENT_B3SVGTEXT_SENT_B4",
+      "positive_control_seen": true,
+      "before_seen": false,
+      "after_seen": false,
+      "marker_number_seen": false,
+      "li_text_seen": true,
+      "svg_text_seen": true,
+      "select_option_seen": false,
+      "canvas_seen": false,
+      "console_errors": 0,
+      "console_error_messages": []
+    }
+  },
+  "console_errors_total": 1,
+  "checker_notes": {
+    "mode": "Mode D - checker's own Chromium (headed, 800x600), checker-authored probe pages, no maker screenshot read",
+    "probe_pages_dir": "C:/Users/Lenovo/AppData/Local/Temp/claude/d--autoTesting/30f63fa7-ff7f-443d-9d54-85867b5557ce/scratchpad/probe",
+    "driver": "C:/Users/Lenovo/AppData/Local/Temp/claude/d--autoTesting/30f63fa7-ff7f-443d-9d54-85867b5557ce/scratchpad/run_probe.py",
+    "positive_control": "CTRL_POSITIVE_AAA planted on every page; seen on all 6 - no negative is explained by the detector returning nothing",
+    "console_errors": "1 total: a favicon.ico 404 from the checker's own throwaway HTTP server on p1 only. Explained, not a finding. All other pages 0.",
+    "findings": {
+      "AT-373_window_scroll": "CONFIRMED FIXED beyond what the maker tested - result byte-identical at scrollX 0/2600/4210 (horizontal) and at scrollY 0/900/bottom (a mid position, not only the bottom). Off-document-left text stays dropped at every position.",
+      "AT-372_details": "CONFIRMED by INTERACTION, not by looking: body absent while closed, then CLICKED the summary (open=true) and the body IS reported.",
+      "AT-372_masking": "CONFIRMED: password value absent, rendered as 17 bullets; -webkit-text-security span and input both masked; the unmasked input on the same page is still reported (positive control).",
+      "checkVisibility_default_options": "maker's stated reason VERIFIED, not accepted: visibilityProperty:true flips visibility:hidden True->False, opacityProperty:true flips opacity:0 True->False on BOTH the element and the ancestor case, and neither flag touches the zero-colour-alpha case. The wider flags WOULD have subsumed the two rules below and made their mutations vacuous. The source comment is accurate.",
+      "password_branch_dead": "REPRODUCED: input[type=password] computes -webkit-text-security='disc' in this Chromium, plain input 'none'.",
+      "disclosure_block_truth": "All five disclosed limits independently TRUE: ::before/::after not seen, <ol> ::marker numbering not seen (while the <li> text IS seen - same-page control), <select size=4> option text not seen, <canvas> text not seen. AT-374's correction also TRUE: <svg><text> IS reported.",
+      "NEW_AT-379_container_scroll": "DIVERGENCE. In an overflow:AUTO pane the result is CONTAINER-scroll-dependent: at scrollTop 0 only PANE_FIRST_SENTINEL_55 is reported; after scrollTop=296 only PANE_LAST_SENTINEL_66 is. Text a reader can reach by scrolling the pane is silently dropped - a false negative of the AT-355 shape. overflow:HIDDEN is correctly still dropped, so the two cases are distinguishable."
+    }
+  }
+}

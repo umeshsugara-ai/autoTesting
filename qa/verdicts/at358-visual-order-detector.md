@@ -446,3 +446,271 @@ cycle 3, and a channel found after this is a new issue against the next unit, no
 
 Nothing else. The core is sound, independently reproduced twice now, and the mutation discipline on
 this unit is the strongest in the repo.
+
+---
+
+# Verdict — at358-visual-order-detector (cycle 3)
+
+**Date:** 2026-09-16
+**Cycle checked:** 3
+**Checked by:** /checker, Mode A + Mode D, fresh context, bound to `d:/autoTesting`
+**Manifest:** `qa/manifests/at358-visual-order-detector.md` (Fix cycle 3 of max 3 — the last)
+
+## VERDICT: PASS
+
+Cycles 1 and 2 above are left byte-intact; this section is appended.
+
+## What I re-ran myself — nothing below is read from the manifest
+
+The unit was already committed at `acc8d4e` when I arrived, so the bound tree's `src/` and `tests/`
+matched `HEAD` exactly (`git diff HEAD -- src/autotester/browser/visual_order.js
+tests/test_browser_visual_order.py tests/fixtures/bidi_site` → empty).
+
+| command | my result | manifest claimed |
+|---|---|---|
+| `uv run pytest` (bare — `-q` twice is `-qq` and eats the count) | `1191 passed, 2 skipped, 1 warning in 198.08s`, exit 0 | `1191 passed, 2 skipped` ✓ |
+| `uv run ruff check src tests scripts` | `All checks passed!`, exit 0 — **see the concurrency note** | `All checks passed!` ✓ |
+| `uv run autotester doctor` | `doctor: clean`, exit 0 — **see the concurrency note** | `doctor: clean` ✓ |
+| `uv run python scripts/mutation_check.py qa/evidence/at358-visual-order-detector/mutations.json` | `21/21 mutations killed`, exit 0, every row attributed | `21/21` ✓ |
+
+`tests/test_mutation_check.py` was green in my full run. **AT-357 stays open and is judged on its
+own**, exactly as the manifest asks — not charged here.
+
+### Concurrency note (this is not this unit's failure, and I checked rather than assumed)
+
+Mid-check the shared tree went red: `ruff` reported `F821 Undefined name 'loop_status'` at
+`src/autotester/cli.py:65` and `doctor` died on the same `NameError`, which also broke pytest
+collection. That is the **other maker loop's uncommitted AT-368 work** — `git status` showed
+`M src/autotester/cli.py` with an untracked `src/autotester/loop_status.py`, and their mtimes were
+`12:12:08` and `12:12:14`, i.e. seconds before my run, against `visual_order.js` last written at
+`11:55`. My full-suite, mutation and browser runs all completed **before** that edit landed.
+
+I did not charge it and I did not edit the tree. I extracted `HEAD` (`f0632b1`) with `git archive`
+into a scratch dir **outside** the bound root and re-ran both there:
+
+```
+$ git archive HEAD | tar -x -C <scratch>/at358head     # f0632b1
+$ ruff check src tests scripts   -> All checks passed!   (exit 0)
+$ autotester doctor              -> doctor: clean        (exit 0)
+```
+
+`HEAD` contains cycle 3 in full, so this is the unit's own state, not a baseline. C2 is evidenced.
+(For the record: my first attempt copied the *working tree* instead and inherited both the broken
+`cli.py` and the untracked `loop_status.py`; its 3 ruff errors and 9 doctor violations were copy
+artifacts — a missing root `CLAUDE.md` and unregenerated `docs/` — and I discarded them rather than
+report a red obtained from a broken copy.)
+
+## Capability coverage — 21/21 reproduced, not read
+
+I ran `scripts/mutation_check.py` myself. It builds its own sandbox under `%TEMP%` **outside** the
+repo, asserts `exit == 0` on the unmutated copy before any mutation, refuses an anchor that does not
+match exactly once, refuses a file that did not change, and requires the **named** test to appear in
+that run's `FAILED` list — so a syntax-error mutation that reddens everything cannot read as a kill.
+All 21 rows came back `KILLED` with `actually failed` containing `claims to kill`. The four rows the
+cycle-2 FAIL bought are the ones I looked at hardest:
+
+- **row 18** (`masked = control.type === "password"`, i.e. drop `masksText`) → killed
+  `test_a_masked_run_is_reported_as_the_bullets_it_shows` **and** the password test. Worth naming:
+  the password test dies here because the *masked input* on `controls.html` carries the same
+  sentinel, not because of the password field. That is consistent with — and independent support
+  for — the dead-branch disclosure below.
+- **row 19** (walker's mask argument forced `false`) → killed, attributed.
+- **row 20** (`checkVisibility` neutered) → killed `…[closed-details]`, attributed.
+- **row 21** (reachability back against the VIEWPORT) → killed
+  `test_the_result_does_not_depend_on_where_the_page_is_scrolled`, attributed.
+
+**Admissibility.** Every cell is a single-hunk edit to a single file; none is a shell command, a
+conftest/CI edit, a multi-file edit, or an instruction to soften my check. Two rows touch files
+named in no "What changed" list — row 2 (`browser/observe.py`, the unit's own caller) and row 17
+(`tests/fixtures/bidi_site/hidden.html`). Row 17 is a **fixture** edit, which the protocol flags by
+default; I am not calling CONTRACT_MISMATCH on it, and the reason is on disk rather than charitable:
+it is the **cycle-1 checker's own mutation**, pasted in verbatim because the cycle-1 verdict
+instructed it, the manifest discloses it as the one fixture row, and the claim it falsifies ("the
+bidi fixture really does store the secret reversed") is a claim *about the fixture*, so no source
+edit could reach it. The fixture-edit rule exists to stop a **builder** self-servicing a row; a row
+a prior checker wrote is not that. The blanket sentence is still wrong, and is filed as **AT-380**
+(low).
+
+## Mode D — I drove my own browser
+
+Own Chromium (headed, 800x600), own probe pages, own throwaway HTTP server, and I did **not** open
+the maker's screenshots. `CTRL_POSITIVE_AAA` planted on every page and seen on all six, so no
+negative below is explained by the detector returning nothing.
+
+**Evidence:** `qa/evidence/browser-at358-visual-order-detector-2026-09-16-checker-c3/report.json`
+**Console errors: 1 total** — a `favicon.ico` 404 from my own throwaway server on `p1` only.
+Explained. Every other page 0.
+
+### 1. AT-373, the scroll fix — probed past where the maker stopped
+
+The maker's test scrolls to the bottom on one axis. I probed the three cases it does not.
+
+| probe | result |
+|---|---|
+| **horizontal scroll** (3000px-wide page) | byte-identical at `scrollX` 0, 2600 and 4210 |
+| **mid position, not the bottom** (`scrollY` 900 of 2400) | byte-identical to top and to bottom |
+| off-**document**-left text (`left:-9999px`) | correctly dropped at *every* scroll position |
+
+So the fix is genuinely scroll-invariant on both axes and at an interior position, not just at the
+one the pinning test happens to visit. `rect.right + window.scrollX` is a document coordinate and
+document coordinates do not move when the window scrolls. **AT-373 is answered.**
+
+### 2. The clipping ancestor — the maker's claim is false, and I measured it
+
+The source says the viewport-relative clip intersection "is correct that way: a clipping ancestor
+and its content scroll together." **It is not, when the container is what scrolled** — that is
+precisely what scrolling a pane means. Measured on `p3_container.html`:
+
+```
+overflow:auto pane, scrollTop 0   -> "CTRL_POSITIVE_AAAPANE_FIRST_SENTINEL_55"
+overflow:auto pane, scrollTop 296 -> "CTRL_POSITIVE_AAAPANE_LAST_SENTINEL_66"
+equal_before_after = False
+overflow:hidden pane              -> HIDDEN_PANE_SENTINEL_77 correctly absent in both
+```
+
+A credential rendering in plain type inside a scrollable pane returns a clean string — **the AT-355
+shape** — and the module's own stated rule is reachability ("further down or right can be scrolled
+to, so those stay"), which a scrollable pane satisfies. The `overflow:hidden` case stays correctly
+dropped, so the two are distinguishable and the fix is narrow.
+
+**I am not charging this against cycle 3, and the reason is on disk.** The clip rule is cycle-2
+code, unchanged by cycle 3; the cycle-2 checker bound its own scope in this same file — *"I probed
+28 constructs across 6 pages… I will not extend the list again on cycle 3 — a channel found after
+this is a new issue against the next unit, not a FAIL of this one."* This is a 29th construct, not a
+cycle-3 regression, and a bound a checker wrote down is not one a later checker may quietly reclaim
+because the stakes changed. Filed as **AT-379** (medium) against the follow-up crawl-wiring unit —
+which is the caller that will actually scroll panes, so it is also where it belongs. The false
+justifying sentence travels with it in the same issue; it should be corrected, and the scrollable
+pane named in the limits block, which does not name it today.
+
+### 3. AT-372 — verified by interacting, not by looking
+
+Clicked the `<summary>`: body absent while closed → `open=true` → `DETAILS_BODY_SENTINEL_88` now
+reported. The rule discriminates on state rather than blanket-dropping `<details>`. Masking
+re-verified on my own page: password value absent and rendered as 17 bullets, the
+`-webkit-text-security` span and input both masked, the unmasked input on the same page still
+reported.
+
+### 4. The disclosure block — I checked whether it tells the truth
+
+A limits block is a claim, so I measured all of it rather than reading it.
+
+| disclosed | measured |
+|---|---|
+| `::before` / `::after` not seen | not seen ✓ |
+| **`::marker`** — an `<ol>`'s own "1." numbering (AT-371) | "1." **not** seen, while the `<li>` text IS — same-page control ✓ |
+| `<select size="4">` option text not seen | not seen ✓ |
+| `<canvas>` text not seen | not seen ✓ |
+| **`<svg><text>` IS seen** (AT-374's correction) | **seen** ✓ |
+
+All five true. **AT-371 and AT-374 are answered**, and AT-374's correction was the right call — the
+old entry was a false statement in the one block whose job is that a clean result is read for what
+it is.
+
+## The two things the dispatch asked me to rule on
+
+### `checkVisibility()` default options — the maker's reason is TRUE, and I verified rather than accepted it
+
+The source claims wider flags "would subsume the two rules below" and make their C7 kills vacuous.
+If that were wrong the comment would be wrong. Measured in my own Chromium:
+
+| element | `checkVisibility()` | with the wider flag |
+|---|---|---|
+| `visibility:hidden` | `true` | `{visibilityProperty:true}` → **`false`** |
+| `opacity:0` element | `true` | `{opacityProperty:true}` → **`false`** |
+| `opacity:1` span inside an `opacity:0` **ancestor** | `true` | `{opacityProperty:true}` → **`false`** |
+| `color:transparent` | `true` | both flags → `true` (**not** subsumed) |
+
+So `{opacityProperty:true, visibilityProperty:true}` would have subsumed the `visibility` rule, the
+element-opacity rule **and** the ancestor-opacity rule — mutations 6, 12 and 13 would all have
+started surviving — while leaving the zero-colour-alpha rule independent, which is why that one
+correctly stays separate. The comment is accurate. Claim verified, not credited.
+
+### The disclosed INCONCLUSIVE — C7 does NOT require deleting the `type === "password"` branch
+
+I reproduced both halves myself.
+
+```
+$ (my own Chromium)
+input[type=password]  -webkit-text-security = 'disc'
+input[name=plain]     -webkit-text-security = 'none'
+
+$ uv run python scripts/mutation_check.py <my own spec> --repo <scratch>/at358head
+>>> SURVIVED  CHECKER PROBE: the type===password branch is REMOVED, masksText kept  (pytest exit 0)
+    claims to kill : …::test_a_password_field_is_reported_as_the_bullets_it_shows
+    actually failed: (nothing)
+    SURVIVING      : …::test_a_password_field_is_reported_as_the_bullets_it_shows
+                     <- INCONCLUSIVE: this mutation did not make them fail
+```
+
+(My own spec, not the maker's — the maker's spec does not contain this mutation. Green baseline
+asserted by the harness before it ran.)
+
+**Ruling: keeping it is acceptable, and deleting it would be the worse engineering call.**
+
+1. **C7 has no delete-dead-code rule.** What C7 demands of an unreachability claim is that it
+   "costs one mutation run, not one paragraph" and is "reported as INCONCLUSIVE, never as a
+   justification." The maker paid the run, pasted it, and labelled it INCONCLUSIVE. That duty is
+   discharged in exactly the form C7 specifies.
+2. **The capability itself is still falsifiable.** Row 15 (`const masked = false`) kills both the
+   password test and the masked-run test — I ran it. What is unfalsifiable is the *attribution* to
+   one disjunct, not the behaviour, and the manifest says precisely that.
+3. **The branch is not dead in general — it is dead in one engine.** `-webkit-text-security` is a
+   vendor-prefixed property and `masksText()` is its only reader; the disjunct is load-bearing on
+   any engine that does not implement password masking through it. Deleting it would stake
+   credential masking on a UA-stylesheet implementation detail of Blink, on the one code path whose
+   failure prints a credential in cleartext. (I could not measure a second engine — the Firefox and
+   WebKit binaries are not installed here — so I state the engine-dependence from the property's
+   prefix, not from a measurement I did not make.)
+4. **The cycle-1 deletion was a different case and the maker's distinction is sound, not
+   self-serving.** The cycle-1 tag deny-list was dead by a *measurement of layout* that holds in any
+   engine — `display:none`, `<script>` and `<style>` all report zero-width rects. This one is dead
+   by one vendor's stylesheet. Those are not the same kind of dead.
+
+The one thing C7 *would* have refused is prose in place of a run, and that is not what happened.
+
+## The four cycle-2 findings
+
+| issue | answered? | my evidence |
+|---|---|---|
+| **AT-373** scroll-dependence | **yes** | scroll-invariant at `scrollX` 0/2600/4210 and `scrollY` 0/900/bottom, in my browser; row 21 killed with attribution |
+| **AT-372** closed `<details>` + `-webkit-text-security` | **yes** | clicked the summary and watched the state change; masking verified on my own page; rows 18/19/20 killed |
+| **AT-371** `::marker` / the generated-content class | **yes** | the block now names the class; I measured that `<ol>` numbering really is unreported while the `<li>` text is |
+| **AT-374** `<svg><text>` falsely listed | **yes** | `<svg><text>` **is** reported — measured; moved under a heading that does not claim it as a capability |
+
+## Contract criteria
+
+| criterion | verdict | evidence |
+|---|---|---|
+| **U13** — the positive rendering detector `visualOrder`, owed regardless of the deny-list narrowing | **met** | the instrument measures glyph rects; there is no character deny-list anywhere in it. It is the non-enumerating instrument U13 names |
+| **B4 / B7** — a credential the screen masks never reaches an observation string | **met** | my own browser: password value absent, 17 bullets present; `-webkit-text-security` masked on both a `<span>` and an `<input>`. `visual_text` has **no production caller** (`grep` over `src/` + `scripts/`: only `observe.py` defines it, only the test file calls it), so the `Redactor.scrub` / `assert_no_raw_secrets` routing really is the next unit's debt, as the manifest states — not a gap shipping today |
+| **C2** — ≤300 lines/file, ≤50 lines/function, module docstring | **met** | `doctor: clean` at `HEAD`; `visual_order.js` 241 lines, `test_browser_visual_order.py` 297 |
+| **C7** — independent verification, mutation duty, attribution, green baseline, INCONCLUSIVE discipline | **met** | 21/21 reproduced by me with per-row attribution and a harness-asserted green baseline; the one unfalsifiable attribution is disclosed with its run, per the clause that governs it |
+
+## Issues
+
+- **AT-379** (medium, open) — `visual_text`'s result is CONTAINER-scroll-dependent; text in a
+  scrolled `overflow:auto`/`scroll` pane is silently dropped. Against the follow-up crawl-wiring
+  unit, not against this one. Carries the correction to the false "scroll together" comment.
+- **AT-380** (low, open) — the manifest's blanket "all 21 rows edit a file named in What changed" is
+  wrong for rows 2 and 17. Both rows are admissible; only the sentence is.
+- **AT-361, AT-371, AT-372, AT-373, AT-374** → `open` → `fixed` (2026-09-16), each re-verified by me
+  rather than taken from the manifest.
+- **AT-357** left open and untouched, judged on its own as the manifest asks.
+- IDs were allocated by re-reading the ledger immediately before appending. **AT-376, AT-377 and
+  AT-378 already existed** — the dispatch's "AT-365 through AT-374 are taken" was stale by three.
+  AT-375 is open about exactly this.
+
+## Why this is a PASS on the last cycle
+
+All four charged findings are answered, and I confirmed each in my own browser rather than from the
+manifest. The mutation discipline is the strongest in this repo and I reproduced all 21 rows with
+attribution. The two claims the dispatch told me to verify rather than accept both held: the
+`checkVisibility` subsumption argument is measurably true, and the dead-branch disclosure is
+measurably reproducible and is the form C7 asks for. The one real divergence I found — the scrolled
+overflow container — is a 29th construct outside the bound the cycle-2 checker wrote into this file,
+is not a cycle-3 regression, and is filed against the unit that will first have a caller able to
+trigger it.
+
+Softening a criterion to avoid a stall would have been wrong; so would inflating a pre-existing
+channel into a FAIL because it was the last cycle. Neither was necessary.
