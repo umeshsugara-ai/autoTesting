@@ -1,0 +1,95 @@
+{
+ "unit": "at446-folder-is-not-a-recording",
+ "instrument": "headed Playwright Python (chromium)",
+ "server": "uvicorn autotester.ui.app:app from scratch copy, AUTOTESTER_ROOT=synthetic root",
+ "steps": [
+  {
+   "step": "folder named dir.mp4",
+   "submitted_name": "dir.mp4",
+   "http_status": 400,
+   "url_after": "http://127.0.0.1:8048/projects/regression-demo/sources",
+   "title": "Not a recording \u2014 AutoTester",
+   "body_excerpt": "AT AutoTester Projects + New project \u25cf Live view \u2699 Settings PROJECTS Regression Proof Demo + New project Not a recording that is a folder, not a recording file Try another path",
+   "name_echoed_in_html": false,
+   "sources_rows_before": 0,
+   "sources_rows_after": 0,
+   "console_errors": [
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+    }
+   ],
+   "screenshot": "01-folder.png"
+  },
+  {
+   "step": "junction junction.mp4 -> folder",
+   "submitted_name": "junction.mp4",
+   "http_status": 400,
+   "url_after": "http://127.0.0.1:8048/projects/regression-demo/sources",
+   "title": "Not a recording \u2014 AutoTester",
+   "body_excerpt": "AT AutoTester Projects + New project \u25cf Live view \u2699 Settings PROJECTS Regression Proof Demo + New project Not a recording that is a folder, not a recording file Try another path",
+   "name_echoed_in_html": false,
+   "sources_rows_before": 0,
+   "sources_rows_after": 0,
+   "console_errors": [
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+    }
+   ],
+   "screenshot": "02-junction.png"
+  },
+  {
+   "step": "text file notes.txt",
+   "submitted_name": "notes.txt",
+   "http_status": 400,
+   "url_after": "http://127.0.0.1:8048/projects/regression-demo/sources",
+   "title": "Not a recording \u2014 AutoTester",
+   "body_excerpt": "AT AutoTester Projects + New project \u25cf Live view \u2699 Settings PROJECTS Regression Proof Demo + New project Not a recording that is not a recording \u2014 add a video file ending in .avi, .mkv, .mov, .mp4, .webm Try another path",
+   "name_echoed_in_html": false,
+   "sources_rows_before": 0,
+   "sources_rows_after": 0,
+   "console_errors": [
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+    }
+   ],
+   "screenshot": "03-txt.png"
+  },
+  {
+   "step": "real file clip.mp4",
+   "submitted_name": "clip.mp4",
+   "http_status": 200,
+   "url_after": "http://127.0.0.1:8048/projects/regression-demo/sources",
+   "title": "Regression Proof Demo \u00b7 Sources \u2014 AutoTester",
+   "body_excerpt": "AT AutoTester Projects + New project \u25cf Live view \u2699 Settings PROJECTS Regression Proof Demo + New project \u2190 Back PROJECTS / REGRESSION PROOF DEMO / SOURCES Register a recording already on this host Recording path on this machine The file stays where it is; AutoTester records its content hash. What this recording shows Add recording Upload a recording Upload a recording What this recording shows Upl",
+   "name_echoed_in_html": true,
+   "sources_rows_before": 0,
+   "sources_rows_after": 1,
+   "console_errors": [],
+   "screenshot": "04-real.png"
+  },
+  {
+   "step": "icacls-denied denied.mp4 (observation)",
+   "submitted_name": "denied.mp4",
+   "http_status": 400,
+   "url_after": "http://127.0.0.1:8048/projects/regression-demo/sources",
+   "title": "Recording not found \u2014 AutoTester",
+   "body_excerpt": "AT AutoTester Projects + New project \u25cf Live view \u2699 Settings PROJECTS Regression Proof Demo + New project Recording not found Recording not found Try another path",
+   "name_echoed_in_html": false,
+   "sources_rows_before": 1,
+   "sources_rows_after": 1,
+   "console_errors": [
+    {
+     "type": "error",
+     "text": "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+    }
+   ],
+   "screenshot": "05-denied.png"
+  }
+ ],
+ "acl_restored": true,
+ "final_sources_page_rows": 1,
+ "final_sources_jsonl_rows": 1
+}
