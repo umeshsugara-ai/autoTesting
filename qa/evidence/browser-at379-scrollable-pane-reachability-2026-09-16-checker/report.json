@@ -1,0 +1,368 @@
+{
+  "unit": "at379-scrollable-pane-reachability",
+  "date": "2026-09-16",
+  "actor": "checker",
+  "browser": "chromium (playwright, real)",
+  "base": "http://127.0.0.1:64488",
+  "pages": [
+    {
+      "page": "p1_axes.html",
+      "assertions": [
+        {
+          "name": "positive control",
+          "sentinel": "CTLP1",
+          "expected": "reported",
+          "observed": "reported",
+          "ok": true
+        },
+        {
+          "name": "h-scroll pane: visible part",
+          "sentinel": "HSLEFT",
+          "expected": "reported",
+          "observed": "reported",
+          "ok": true
+        },
+        {
+          "name": "h-scroll pane: off right edge is REACHABLE",
+          "sentinel": "HSRIGHT",
+          "expected": "reported",
+          "observed": "reported",
+          "ok": true
+        },
+        {
+          "name": "per-axis pane: visible part",
+          "sentinel": "PAXLEFT",
+          "expected": "reported",
+          "observed": "reported",
+          "ok": true
+        },
+        {
+          "name": "per-axis pane: below fold (y scrolls) reported",
+          "sentinel": "PAXBELOW",
+          "expected": "reported",
+          "observed": "reported",
+          "ok": true
+        },
+        {
+          "name": "per-axis pane: off right (x hidden) dropped",
+          "sentinel": "PAXRIGHT",
+          "expected": "dropped",
+          "observed": "dropped",
+          "ok": true
+        },
+        {
+          "name": "auto-but-not-overflowing: inside text",
+          "sentinel": "NSINSIDE",
+          "expected": "reported",
+          "observed": "reported",
+          "ok": true
+        },
+        {
+          "name": "auto-but-not-overflowing: above-top text dropped",
+          "sentinel": "NSABOVE",
+          "expected": "dropped",
+          "observed": "dropped",
+          "ok": true
+        },
+        {
+          "name": "nested: inner pane top visible",
+          "sentinel": "NESTTOP",
+          "expected": "reported",
+          "observed": "reported",
+          "ok": true
+        },
+        {
+          "name": "nested: hidden by OUTER box -- disclosed FP if reported",
+          "sentinel": "NESTBELOW",
+          "expected": "dropped",
+          "observed": "reported",
+          "ok": false
+        }
+      ],
+      "console_errors": 0,
+      "measured": {
+        "a": {
+          "overflowX": "auto",
+          "overflowY": "hidden",
+          "scrollW": 1800,
+          "clientW": 400,
+          "scrollH": 60,
+          "clientH": 60
+        },
+        "b": {
+          "overflowX": "hidden",
+          "overflowY": "auto",
+          "scrollW": 1800,
+          "clientW": 400,
+          "scrollH": 352,
+          "clientH": 40
+        },
+        "c": {
+          "overflowX": "auto",
+          "overflowY": "auto",
+          "scrollW": 400,
+          "clientW": 400,
+          "scrollH": 60,
+          "clientH": 60
+        },
+        "douter": {
+          "overflowX": "hidden",
+          "overflowY": "hidden",
+          "scrollW": 400,
+          "clientW": 400,
+          "scrollH": 400,
+          "clientH": 50
+        },
+        "dinner": {
+          "overflowX": "auto",
+          "overflowY": "auto",
+          "scrollW": 400,
+          "clientW": 400,
+          "scrollH": 668,
+          "clientH": 400
+        }
+      },
+      "console_error_texts": [],
+      "visual_text_len": 59
+    },
+    {
+      "page": "p2_boundary.html (unscrolled pane)",
+      "assertions": [
+        {
+          "name": "positive control",
+          "sentinel": "CTLP2",
+          "expected": "reported",
+          "observed": "reported",
+          "ok": true
+        },
+        {
+          "name": "AT-363 opacity:0 still dropped",
+          "sentinel": "OPZERO",
+          "expected": "dropped",
+          "observed": "dropped",
+          "ok": true
+        },
+        {
+          "name": "AT-363 ancestor opacity:0 still dropped",
+          "sentinel": "OPANC",
+          "expected": "dropped",
+          "observed": "dropped",
+          "ok": true
+        },
+        {
+          "name": "AT-363 colour alpha 0 still dropped",
+          "sentinel": "ALPHA0",
+          "expected": "dropped",
+          "observed": "dropped",
+          "ok": true
+        },
+        {
+          "name": "AT-363 text-indent:-9999px still dropped",
+          "sentinel": "INDENT",
+          "expected": "dropped",
+          "observed": "dropped",
+          "ok": true
+        },
+        {
+          "name": "AT-363 absolute off-screen still dropped",
+          "sentinel": "ABSOFF",
+          "expected": "dropped",
+          "observed": "dropped",
+          "ok": true
+        },
+        {
+          "name": "overflow:hidden visible line reported",
+          "sentinel": "HIDTOP",
+          "expected": "reported",
+          "observed": "reported",
+          "ok": true
+        },
+        {
+          "name": "overflow:hidden below-fold STILL DROPPED",
+          "sentinel": "HIDBELOW",
+          "expected": "dropped",
+          "observed": "dropped",
+          "ok": true
+        },
+        {
+          "name": "open <summary> reported",
+          "sentinel": "SUMOPEN",
+          "expected": "reported",
+          "observed": "reported",
+          "ok": true
+        },
+        {
+          "name": "closed <details> body still dropped",
+          "sentinel": "DETBODY",
+          "expected": "dropped",
+          "observed": "dropped",
+          "ok": true
+        },
+        {
+          "name": "masked run still dropped (cleartext)",
+          "sentinel": "MASKRUN",
+          "expected": "dropped",
+          "observed": "dropped",
+          "ok": true
+        },
+        {
+          "name": "visibility:hidden still dropped",
+          "sentinel": "VISHID",
+          "expected": "dropped",
+          "observed": "dropped",
+          "ok": true
+        },
+        {
+          "name": "display:none still dropped",
+          "sentinel": "DISPNONE",
+          "expected": "dropped",
+          "observed": "dropped",
+          "ok": true
+        },
+        {
+          "name": "scrollable pane top (before scrolling)",
+          "sentinel": "PANETOP",
+          "expected": "reported",
+          "observed": "reported",
+          "ok": true
+        },
+        {
+          "name": "scrollable pane bottom (before scrolling)",
+          "sentinel": "PANEBOT",
+          "expected": "reported",
+          "observed": "reported",
+          "ok": true
+        }
+      ],
+      "console_errors": 0,
+      "console_error_texts": []
+    },
+    {
+      "page": "p2_boundary.html (pane scrolled to bottom, scrollTop=602)",
+      "interaction": "set #scrolled.scrollTop = 9999",
+      "assertions": [
+        {
+          "name": "positive control",
+          "sentinel": "CTLP2",
+          "expected": "reported",
+          "observed": "reported",
+          "ok": true
+        },
+        {
+          "name": "already-scrolled pane: TOP line still reported",
+          "sentinel": "PANETOP",
+          "expected": "reported",
+          "observed": "dropped",
+          "ok": false
+        },
+        {
+          "name": "already-scrolled pane: bottom line still reported",
+          "sentinel": "PANEBOT",
+          "expected": "reported",
+          "observed": "reported",
+          "ok": true
+        },
+        {
+          "name": "AT-363 constructs unaffected by pane scroll",
+          "sentinel": "OPZERO",
+          "expected": "dropped",
+          "observed": "dropped",
+          "ok": true
+        },
+        {
+          "name": "overflow:hidden below-fold still dropped after scroll",
+          "sentinel": "HIDBELOW",
+          "expected": "dropped",
+          "observed": "dropped",
+          "ok": true
+        }
+      ],
+      "console_errors": 0,
+      "result_identical_to_unscrolled": false
+    },
+    {
+      "page": "p2_boundary.html (h-pane scrolled right, scrollLeft=1200)",
+      "interaction": "set #hscrolled.scrollLeft = 1200 (HPRIGHT is on screen at this offset)",
+      "assertions": [
+        {
+          "name": "positive control",
+          "sentinel": "CTLP2",
+          "expected": "reported",
+          "observed": "reported",
+          "ok": true
+        },
+        {
+          "name": "h-pane scrolled: RIGHT text reported",
+          "sentinel": "HPRIGHT",
+          "expected": "reported",
+          "observed": "reported",
+          "ok": true
+        },
+        {
+          "name": "h-pane scrolled: LEFT text still reported",
+          "sentinel": "HPLEFT",
+          "expected": "reported",
+          "observed": "dropped",
+          "ok": false
+        }
+      ],
+      "console_errors": 0
+    },
+    {
+      "page": "p2_boundary.html (window scrolled)",
+      "interaction": "window.scrollTo bottom",
+      "assertions": [
+        {
+          "name": "positive control after window scroll",
+          "sentinel": "CTLP2",
+          "expected": "reported",
+          "observed": "reported",
+          "ok": true
+        },
+        {
+          "name": "AT-373: nothing lost above the window fold",
+          "sentinel": "HIDTOP",
+          "expected": "reported",
+          "observed": "reported",
+          "ok": true
+        },
+        {
+          "name": "AT-373: hidden pane below-fold still dropped",
+          "sentinel": "HIDBELOW",
+          "expected": "dropped",
+          "observed": "dropped",
+          "ok": true
+        }
+      ],
+      "console_errors": 0
+    }
+  ],
+  "total_assertions": 36,
+  "failed_assertions": [
+    {
+      "page": "p1_axes.html",
+      "name": "nested: hidden by OUTER box -- disclosed FP if reported",
+      "sentinel": "NESTBELOW",
+      "expected": "dropped",
+      "observed": "reported",
+      "ok": false
+    },
+    {
+      "page": "p2_boundary.html (pane scrolled to bottom, scrollTop=602)",
+      "name": "already-scrolled pane: TOP line still reported",
+      "sentinel": "PANETOP",
+      "expected": "reported",
+      "observed": "dropped",
+      "ok": false
+    },
+    {
+      "page": "p2_boundary.html (h-pane scrolled right, scrollLeft=1200)",
+      "name": "h-pane scrolled: LEFT text still reported",
+      "sentinel": "HPLEFT",
+      "expected": "reported",
+      "observed": "dropped",
+      "ok": false
+    }
+  ],
+  "total_console_errors": 0
+}
