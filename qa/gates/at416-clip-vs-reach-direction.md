@@ -29,8 +29,13 @@ between two costs the product's north star names explicitly, so it is a product 
 
 ## The options
 
-**A — Revert to the unbounded scrollable axis; re-accept AT-393.**
-A scrollable ancestor stops the clip walk, as in cycle 2. AT-379 and AT-416 close; AT-393's nested
+**A — Stop the CLIP contributing at a scrollable ancestor; re-accept AT-393.**
+
+*Corrected after the stall diagnosis: this option originally said "revert to cycle 2", which would
+also un-fix AT-408 — the checker's three-level nesting probe passes today and would stop passing.
+Minimal A keeps the full walk and the accumulating `scrollX`/`scrollY`, and changes only which
+ancestors contribute to the clip.* Side effects to book: the nested-clip test and mutation row 7
+retire, and AT-393 flips back to `open`. AT-379 and AT-416 close; AT-393's nested
 -clip **false positive** returns (text inside an outer clip is reported although a reader cannot see
 it). Cost: the north star's false-positive-rate term. Smallest change, known-good behaviour.
 
@@ -51,6 +56,15 @@ instrument whose entire purpose is catching the false-negative class.
 costs a missed credential, which is the failure this module exists to prevent — and the module's own
 stated direction already prefers the former. C is worse than A here: the same exposure, minus the
 fix, and disclosure does not make an instrument see.
+
+## This gate no longer blocks work
+
+The stall diagnosis found a contained, reversible recovery that needs no answer from you: **AT-423**,
+a scroll-invariance probe that generates the shapes instead of requiring someone to imagine the
+failing one. It is test-only, so it cannot change what the detector reports. It also answers the
+question this gate cannot: whether option A closes AT-416 **without** re-opening AT-373/379/392/408
+— which right now nobody knows, including me. The gate stays open and decoupled; take the measurement
+first if you would rather decide on data than on my recommendation.
 
 ## How to answer
 

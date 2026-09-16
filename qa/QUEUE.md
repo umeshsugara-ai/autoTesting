@@ -1,3 +1,17 @@
+## Added by the maker after the at379 STALL (2026-09-16)
+
+1. **AT-423 — scroll-invariance probe for `visual_text`** (high, test-only, contained + reversible).
+   The stall diagnosis's smallest recovery. Generates the shapes instead of requiring someone to
+   imagine the failing one; would have caught all five of AT-373/379/392/408/416. Blocks nothing,
+   unblocks the AT-416 gate by turning a direction argument into a measurement. **Taken by the maker
+   this tick — do not double-assign.**
+2. **U14 — a contract criterion for the positive rendering detector** (for `/checker`, not the maker).
+   Filed into `qa/feedback-inbox.md`. Until it exists the next unit on this line has no acceptance
+   line either, and defect six is found the same way as the first five.
+3. **AT-419 — `autotester doctor` globs only `*.py`**, so it never measured `visual_order.js` at all;
+   `doctor: clean` printed identically at 316 lines and at 287. Either widen the glob or amend C2 to
+   say "Python file" — an unenforced design rule should at least be known to be unenforced.
+
 # qa/QUEUE.md — checker sweep queue (top-3 recommended next units)
 
 Refreshed by `/checker sweep` **2026-09-16T15:18:00+05:30** — stamp generated from the system clock,

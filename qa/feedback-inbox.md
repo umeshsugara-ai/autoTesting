@@ -592,3 +592,21 @@ detector is **not** discharged by this amendment — filed as **AT-358** (medium
 "three refuted unreachability claims" item was treated as a **separate** amendment with its own
 criticality judgement (also ROUTINE, a duty added) and folded into
 `qa/contracts/core-invariants.md` **C7**.
+
+2026-09-16 · agent-debugger stall diagnosis (at379 cycle 3), relayed by the maker · PATTERN: a module
+with no contract criterion has no acceptance line, so the judge's line moves every cycle and the loop
+cannot terminate. `grep "visual_text|visual_order" qa/contracts/` returns NOTHING; U13 names
+`visualOrder` twice and both times says it is NOT covered (ui.md:237-240, :441-442) — yet the cycle-3
+verdict charges U13. Each cycle's charge was a construct nobody had written down as required:
+scrolled pane, then nested scrolled pane, then pane inside a clip. EVIDENCE: this repo already
+diagnosed this exact failure mode in this exact file — U13's own rationale (ui.md:228-232) describes
+"three fix cycles and three FAILs on one line of fold_credential… A loop whose acceptance line the
+judge moves mid-cycle cannot terminate." That remedy was applied to the deny-list and never to the
+positive detector U13 explicitly left undischarged; at379 then stalled the same way.
+APPLIES NEXT: a new criterion **U14 — the positive rendering detector**, carrying (a) the
+scroll-invariance floor (the reported glyph multiset must not change when the window or any
+scrollable container is scrolled anywhere in its range), (b) the false-positive counterweight with
+the north-star tie-break written down, and (c) a CONTRACT-OWNED "what this does not see" list, so
+widening it becomes an amendment rather than a docstring edit. New criterion over a module no
+criterion covers, softening nothing → routine lane on U13's own precedent. The maker does not edit
+contracts; this is /checker's call.
