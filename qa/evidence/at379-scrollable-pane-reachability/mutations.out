@@ -1,0 +1,11 @@
+KILLED  AT-379 reopens: a scrollable pane is treated as a hard clip again  (pytest exit 1)
+    claims to kill : tests/test_browser_unreadable.py::test_text_below_the_fold_of_a_scrollable_pane_is_reported
+    actually failed: tests/test_browser_unreadable.py::test_text_below_the_fold_of_a_scrollable_pane_is_reported
+KILLED  AT-379: the overflow:hidden boundary collapses - hidden panes count as scrollable  (pytest exit 1)
+    claims to kill : tests/test_browser_unreadable.py::test_text_a_reader_cannot_see_is_not_reported[overflow-clipped], tests/test_browser_unreadable.py::test_text_below_the_fold_of_a_scrollable_pane_is_reported
+    actually failed: tests/test_browser_unreadable.py::test_text_a_reader_cannot_see_is_not_reported[overflow-clipped], tests/test_browser_unreadable.py::test_text_below_the_fold_of_a_scrollable_pane_is_reported
+KILLED  AT-379: the scrollable axis is not unbounded, so the pane still clips downward  (pytest exit 1)
+    claims to kill : tests/test_browser_unreadable.py::test_text_below_the_fold_of_a_scrollable_pane_is_reported
+    actually failed: tests/test_browser_unreadable.py::test_text_below_the_fold_of_a_scrollable_pane_is_reported
+
+3/3 mutations killed

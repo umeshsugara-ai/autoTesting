@@ -1,6 +1,7 @@
 {
   "tests": [
-    "tests/test_browser_visual_order.py"
+    "tests/test_browser_visual_order.py",
+    "tests/test_browser_unreadable.py"
   ],
   "mutations": [
     {
@@ -102,7 +103,7 @@
       "old": "    if (alpha && parseFloat(alpha[1]) === 0) return false;",
       "new": "    if (false) return false;",
       "kills": [
-        "tests/test_browser_visual_order.py::test_text_a_reader_cannot_see_is_not_reported[transparent-colour]"
+        "tests/test_browser_unreadable.py::test_text_a_reader_cannot_see_is_not_reported[transparent-colour]"
       ]
     },
     {
@@ -111,8 +112,8 @@
       "old": "    return effectiveOpacity(el) !== 0;",
       "new": "    return true;",
       "kills": [
-        "tests/test_browser_visual_order.py::test_text_a_reader_cannot_see_is_not_reported[opacity-zero]",
-        "tests/test_browser_visual_order.py::test_text_a_reader_cannot_see_is_not_reported[opacity-zero-ancestor]"
+        "tests/test_browser_unreadable.py::test_text_a_reader_cannot_see_is_not_reported[opacity-zero]",
+        "tests/test_browser_unreadable.py::test_text_a_reader_cannot_see_is_not_reported[opacity-zero-ancestor]"
       ]
     },
     {
@@ -121,7 +122,7 @@
       "old": "    for (let node = el; node && node !== document.documentElement; node = node.parentElement) {\n      const value = parseFloat(window.getComputedStyle(node).opacity);",
       "new": "    for (const node of [el]) {\n      const value = parseFloat(window.getComputedStyle(node).opacity);",
       "kills": [
-        "tests/test_browser_visual_order.py::test_text_a_reader_cannot_see_is_not_reported[opacity-zero-ancestor]"
+        "tests/test_browser_unreadable.py::test_text_a_reader_cannot_see_is_not_reported[opacity-zero-ancestor]"
       ]
     },
     {
@@ -130,9 +131,9 @@
       "old": "      if (checkReachable && !isReachable(rect, clip)) continue;",
       "new": "      if (false) continue;",
       "kills": [
-        "tests/test_browser_visual_order.py::test_text_a_reader_cannot_see_is_not_reported[text-indent-offscreen]",
-        "tests/test_browser_visual_order.py::test_text_a_reader_cannot_see_is_not_reported[absolute-offscreen]",
-        "tests/test_browser_visual_order.py::test_text_a_reader_cannot_see_is_not_reported[overflow-clipped]"
+        "tests/test_browser_unreadable.py::test_text_a_reader_cannot_see_is_not_reported[text-indent-offscreen]",
+        "tests/test_browser_unreadable.py::test_text_a_reader_cannot_see_is_not_reported[absolute-offscreen]",
+        "tests/test_browser_unreadable.py::test_text_a_reader_cannot_see_is_not_reported[overflow-clipped]"
       ]
     },
     {
@@ -141,8 +142,8 @@
       "old": "    const masked = control.type === \"password\" || masksText(control);",
       "new": "    const masked = false;",
       "kills": [
-        "tests/test_browser_visual_order.py::test_a_password_field_is_reported_as_the_bullets_it_shows",
-        "tests/test_browser_visual_order.py::test_a_masked_run_is_reported_as_the_bullets_it_shows"
+        "tests/test_browser_unreadable.py::test_a_password_field_is_reported_as_the_bullets_it_shows",
+        "tests/test_browser_unreadable.py::test_a_masked_run_is_reported_as_the_bullets_it_shows"
       ]
     },
     {
@@ -151,7 +152,7 @@
       "old": "      : (control.value || control.placeholder || \"\");",
       "new": "      : (control.value || \"\");",
       "kills": [
-        "tests/test_browser_visual_order.py::test_a_placeholder_is_reported_because_it_renders"
+        "tests/test_browser_unreadable.py::test_a_placeholder_is_reported_because_it_renders"
       ]
     },
     {
@@ -169,7 +170,7 @@
       "old": "    const masked = control.type === \"password\" || masksText(control);",
       "new": "    const masked = control.type === \"password\";",
       "kills": [
-        "tests/test_browser_visual_order.py::test_a_masked_run_is_reported_as_the_bullets_it_shows"
+        "tests/test_browser_unreadable.py::test_a_masked_run_is_reported_as_the_bullets_it_shows"
       ]
     },
     {
@@ -178,7 +179,7 @@
       "old": "      const glyphs = glyphsOf(node, clipRect(parent), true, masksText(parent));",
       "new": "      const glyphs = glyphsOf(node, clipRect(parent), true, false);",
       "kills": [
-        "tests/test_browser_visual_order.py::test_a_masked_run_is_reported_as_the_bullets_it_shows"
+        "tests/test_browser_unreadable.py::test_a_masked_run_is_reported_as_the_bullets_it_shows"
       ]
     },
     {
@@ -187,7 +188,7 @@
       "old": "    if (el.checkVisibility && !el.checkVisibility()) return false;",
       "new": "    if (false) return false;",
       "kills": [
-        "tests/test_browser_visual_order.py::test_text_a_reader_cannot_see_is_not_reported[closed-details]"
+        "tests/test_browser_unreadable.py::test_text_a_reader_cannot_see_is_not_reported[closed-details]"
       ]
     },
     {
@@ -196,7 +197,7 @@
       "old": "    if (rect.right + window.scrollX <= 0) return false;\n    if (rect.bottom + window.scrollY <= 0) return false;",
       "new": "    if (rect.right <= 0 || rect.bottom <= 0) return false;",
       "kills": [
-        "tests/test_browser_visual_order.py::test_the_result_does_not_depend_on_where_the_page_is_scrolled"
+        "tests/test_browser_unreadable.py::test_the_result_does_not_depend_on_where_the_page_is_scrolled"
       ]
     }
   ]

@@ -73,3 +73,35 @@ def spec(**overrides) -> dict:
     }
     mutation.update(overrides.pop("mutation", {}))
     return {"tests": "tests/test_mod.py", "mutations": [mutation], **overrides}
+
+
+BIDI_SITE = Path(__file__).resolve().parent / "fixtures" / "bidi_site"
+
+
+@pytest.fixture(scope="module")
+def page_factory(serve_dir: Callable[[Path], str]):
+    """A real Chromium page over tests/fixtures/bidi_site, per module.
+
+    Lives here rather than in either visual-order test file: both of them need
+    it, and a copy in each is the "one concept, two places" the design rules
+    call a bug. Module-scoped, so each file gets its own browser.
+    """
+    playwright = pytest.importorskip("playwright.sync_api")
+    base = serve_dir(BIDI_SITE)
+    try:
+        runner = playwright.sync_playwright().start()
+        browser = runner.chromium.launch(headless=True)
+    except Exception as exc:  # browser binary missing on this machine
+        pytest.skip(f"chromium unavailable: {type(exc).__name__}")
+    page = browser.new_page()
+
+    def visit(name: str) -> str:
+        page.goto(f"{base}/{name}")
+        page.wait_for_load_state("domcontentloaded")
+        return name
+
+    yield page, visit
+    browser.close()
+    runner.stop()
+
+

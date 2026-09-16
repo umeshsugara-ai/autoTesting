@@ -1,0 +1,36 @@
+{
+  "tests": [
+    "tests/test_browser_visual_order.py",
+    "tests/test_browser_unreadable.py"
+  ],
+  "mutations": [
+    {
+      "name": "AT-379 reopens: a scrollable pane is treated as a hard clip again",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "      const scrollsY = SCROLLS.test(style.overflowY) && node.scrollHeight > node.clientHeight;",
+      "new": "      const scrollsY = false;",
+      "kills": [
+        "tests/test_browser_unreadable.py::test_text_below_the_fold_of_a_scrollable_pane_is_reported"
+      ]
+    },
+    {
+      "name": "AT-379: the overflow:hidden boundary collapses - hidden panes count as scrollable",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "  const SCROLLS = /^(auto|scroll)$/;",
+      "new": "  const SCROLLS = /^(auto|scroll|hidden)$/;",
+      "kills": [
+        "tests/test_browser_unreadable.py::test_text_below_the_fold_of_a_scrollable_pane_is_reported",
+        "tests/test_browser_unreadable.py::test_text_a_reader_cannot_see_is_not_reported[overflow-clipped]"
+      ]
+    },
+    {
+      "name": "AT-379: the scrollable axis is not unbounded, so the pane still clips downward",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "        bottom: scrollsY ? Infinity : box.bottom,",
+      "new": "        bottom: box.bottom,",
+      "kills": [
+        "tests/test_browser_unreadable.py::test_text_below_the_fold_of_a_scrollable_pane_is_reported"
+      ]
+    }
+  ]
+}

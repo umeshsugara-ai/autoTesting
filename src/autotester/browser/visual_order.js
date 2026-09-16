@@ -96,15 +96,42 @@
     return effectiveOpacity(el) !== 0;
   }
 
-  // Nearest ancestor that clips its overflow. `text-indent:-9999px` and an
-  // absolutely-positioned off-screen block both put glyphs where no amount of
-  // scrolling reveals them.
+  const SCROLLS = /^(auto|scroll)$/;
+
+  // Nearest ancestor that clips its overflow WHERE A READER CANNOT GET AT IT.
+  // `text-indent:-9999px` and an absolutely-positioned off-screen block both put
+  // glyphs where no amount of scrolling reveals them.
+  //
+  // A genuinely SCROLLABLE pane is the opposite case and used to be conflated
+  // with it (AT-379). The module's rule is reachability — "further down or right
+  // can be scrolled to, so those stay" — and a reader can scroll an
+  // `overflow:auto` pane and read every line of it. Treating the pane's box as a
+  // hard clip meant a credential below the fold of a scrollable pane returned a
+  // clean string: the AT-355 shape again, and the second time in this module
+  // that a fix for false positives manufactured a false negative.
+  //
+  // `overflow:hidden` with nothing to scroll still clips, and the two are
+  // distinguishable by measurement rather than by guess: a pane scrolls only if
+  // its computed overflow is `auto`/`scroll` AND its content actually overflows.
+  //
+  // Per axis, deliberately. `overflow-y:auto; overflow-x:hidden` is an ordinary
+  // pane, and it really does hide what runs off its right edge while really
+  // exposing what runs off its bottom.
   function clipRect(el) {
     for (let node = el; node && node !== document.documentElement; node = node.parentElement) {
       const style = window.getComputedStyle(node);
-      if (style.overflow !== "visible" || style.clipPath !== "none") {
-        return node.getBoundingClientRect();
-      }
+      if (style.clipPath !== "none") return node.getBoundingClientRect();
+      if (style.overflow === "visible") continue;
+      const box = node.getBoundingClientRect();
+      const scrollsY = SCROLLS.test(style.overflowY) && node.scrollHeight > node.clientHeight;
+      const scrollsX = SCROLLS.test(style.overflowX) && node.scrollWidth > node.clientWidth;
+      if (scrollsX && scrollsY) continue;
+      return {
+        left: scrollsX ? -Infinity : box.left,
+        right: scrollsX ? Infinity : box.right,
+        top: scrollsY ? -Infinity : box.top,
+        bottom: scrollsY ? Infinity : box.bottom,
+      };
     }
     return null;
   }
@@ -122,8 +149,12 @@
     // positives. The next unit wires this into a crawl that scrolls, so it
     // would have shipped straight into the one caller that triggers it.
     //
-    // The clip intersection below stays viewport-relative and is correct that
-    // way: a clipping ancestor and its content scroll together.
+    // The clip intersection below stays viewport-relative, which is right for a
+    // pane the WINDOW scrolled — the pane and its content move together. It is
+    // NOT right when the pane itself is what scrolled, and the earlier version
+    // of this comment claimed otherwise (AT-379). `clipRect` now answers that by
+    // refusing to report a scrollable pane as a clip at all, so by the time a
+    // box reaches here it really is a boundary a reader cannot cross.
     if (rect.right + window.scrollX <= 0) return false;
     if (rect.bottom + window.scrollY <= 0) return false;
     if (!clip) return true;

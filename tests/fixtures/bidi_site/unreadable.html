@@ -21,3 +21,14 @@
      Without this the off-left rule silently dropped everything above the fold. -->
 <div style="height:2000px"></div>
 <p>Bottom of the appendix</p>
+<!-- AT-379: a reader CAN scroll an overflow:auto pane, so nothing in it is
+     hidden. The hidden pane below is the boundary case: same overflow family,
+     no scroll mechanism, so its second line really is unreachable. -->
+<div style="height:40px;overflow:auto;width:300px">
+  <p>SCROLLPANE_TOP_SENTINEL_A1</p>
+  <p style="margin-top:300px">SCROLLPANE_BELOW_SENTINEL_A2</p>
+</div>
+<div style="height:40px;overflow:hidden;width:300px">
+  <p>HIDDENPANE_TOP_SENTINEL_B1</p>
+  <p style="margin-top:300px">HIDDENPANE_BELOW_SENTINEL_B2</p>
+</div>
