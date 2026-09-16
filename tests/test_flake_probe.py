@@ -15,6 +15,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
+import flake_probe
 from flake_probe import (
     SUSPECTED_RATE,
     Run,
@@ -149,3 +150,98 @@ def test_the_report_carries_the_bound_and_the_failing_output(tmp_path: Path) -> 
     assert written["observed_rate"] == 1.0
     assert written["ceiling_at_confidence"] is None
     assert written["detail"][0]["tail"] == "boom"
+
+
+# -- the subprocess halves: AT-386 ---------------------------------------------
+# The 41-run headline rests entirely on run_once's returncode->failed mapping, and
+# nothing tested it. If that mapping broke, 41 undetected failures would read as 41
+# green runs and every statistic above would be computed from a lie. The debt was
+# enumerated honestly but the stated reason was wrong: this needs no pytest inside
+# pytest, only a monkeypatched `subprocess.run`.
+
+
+class _FakeCompleted:
+    def __init__(self, returncode: int, stdout: str = "", stderr: str = "") -> None:
+        self.returncode, self.stdout, self.stderr = returncode, stdout, stderr
+
+
+def test_a_nonzero_return_code_is_what_makes_a_run_count_as_failed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The single mapping the whole measurement stands on."""
+    monkeypatch.setattr(flake_probe.subprocess, "run",
+                        lambda *a, **k: _FakeCompleted(1, stdout="E   assert 1 == 2\n"))
+
+    run = flake_probe.run_once("tests/test_x.py::test_y", 7)
+
+    assert run.failed is True
+    assert run.index == 7
+    assert "assert 1 == 2" in run.tail, "the rare failure's output is the whole prize"
+
+
+def test_a_clean_run_keeps_no_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    """41 green runs would otherwise carry 41 copies of pytest's chatter into the
+    report, burying the one failing tail somebody actually needs to read."""
+    monkeypatch.setattr(flake_probe.subprocess, "run",
+                        lambda *a, **k: _FakeCompleted(0, stdout="." * 5000))
+
+    run = flake_probe.run_once("tests/test_x.py::test_y", 1)
+
+    assert run.failed is False
+    assert run.tail == ""
+
+
+def test_a_failure_tail_is_bounded_rather_than_the_whole_log(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    long_log = "\n".join(str(i) for i in range(500))
+    monkeypatch.setattr(flake_probe.subprocess, "run",
+                        lambda *a, **k: _FakeCompleted(1, stdout=long_log))
+
+    run = flake_probe.run_once("t", 1)
+
+    assert len(run.tail.splitlines()) == 25
+    assert run.tail.splitlines()[-1] == "499", "the END of the log, where the failure is"
+
+
+def test_each_run_is_isolated_from_the_ones_before_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`-p no:cacheprovider` and `-o addopts=` are not cosmetic. Without the first,
+    pytest's cache lets one run inform the next, and a probe whose trials are not
+    independent cannot support a binomial bound at all — every number this tool
+    prints would be wrong in a way no assertion above would catch."""
+    seen: list[list[str]] = []
+
+    def capture(cmd: list[str], **_kwargs: object) -> _FakeCompleted:
+        seen.append(cmd)
+        return _FakeCompleted(0)
+
+    monkeypatch.setattr(flake_probe.subprocess, "run", capture)
+
+    flake_probe.run_once("tests/test_x.py::test_y", 1)
+
+    assert len(seen) == 1
+    assert "no:cacheprovider" in seen[0], "runs must not inform each other"
+    assert "addopts=" in seen[0], "the project's -q must not suppress the failure output"
+    assert "tests/test_x.py::test_y" in seen[0]
+
+
+def test_the_probe_runs_every_trial_even_after_one_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A probe that halts on the first red proves existence but cannot measure a
+    rate — and the rate is the only thing that can ever show a fix worked."""
+    calls: list[int] = []
+
+    def fake_run_once(nodeid: str, index: int) -> flake_probe.Run:
+        calls.append(index)
+        return flake_probe.Run(index=index, returncode=1 if index == 2 else 0, seconds=0.0)
+
+    monkeypatch.setattr(flake_probe, "run_once", fake_run_once)
+
+    summary = flake_probe.probe("t", 5)
+
+    assert calls == [1, 2, 3, 4, 5], "all five trials ran, in order, past the failure"
+    assert len(summary.runs) == 5
+    assert [r.index for r in summary.failures] == [2]
