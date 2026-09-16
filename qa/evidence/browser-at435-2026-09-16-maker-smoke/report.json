@@ -1,0 +1,16 @@
+{
+  "unit": "at435-crawl-approval-visible",
+  "role": "maker SMOKE only - not validation; the checker runs its own Mode D",
+  "date": "2026-09-16T13:08Z",
+  "server": "uvicorn from isolated git-archive extract (HEAD + routes_credentials.py + new test), port 8035",
+  "autotester_root": "scratchpad/at433root - only projects/regression-demo (synthetic)",
+  "interactions": [
+    {"did": "open /projects/regression-demo/env", "expected": "an 'Approvals in force' card, empty", "observed": "card shows 'No crawl approval is in force for this target.'", "pass": true},
+    {"did": "fill signer/scope/expiry 2099-12-31T10:00/max 25, click Save crawl approval", "expected": "confirmation naming the grant, grant listed", "observed": "URL ?saved=appr_d08cc4897b50; banner 'Crawl approval saved' + id; row Smoke Tester | scope | 25 | 600s | 2099-12-31T04:30:00+00:00 (IST offset auto-detected) | id", "pass": true},
+    {"did": "fill identical values again, click Save crawl approval", "expected": "no second grant, says so", "observed": "URL ?saved=appr_d08cc4897b50&existing=1; banner 'already on file — nothing new was saved'; still one row; approvals.jsonl = 1 line", "pass": true},
+    {"did": "open /env?saved=<script>alert(1)</script>", "expected": "no banner, nothing echoed", "observed": "no banner paragraph; table only", "pass": true}
+  ],
+  "console_errors": {"count": 0},
+  "change_after_smoke": "banner body text for a NEW save changed from 'Crawl approval saved.' (repeated the pill) to 'It is in force and listed below.'; tests re-run after the change",
+  "not_covered": "expired / edited / other-target rows were not produced in the browser; covered by test_expired_edited_and_other_target_grants_are_not_listed_as_in_force (mutations M3/M4/M5)"
+}

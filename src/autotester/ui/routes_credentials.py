@@ -55,6 +55,57 @@ def _crawl_approval_form(slug: str, target: str) -> str:
     return f"<section id='crawl-approval'>{theme.card(form, title='Approve a crawl')}</section>"
 
 
+def _in_force(approval: RunApproval, slug: str, target: str) -> bool:
+    """What the consent gate would honour for this project's crawl — never list more."""
+    return (approval.project == slug and approval.run_kind is ApprovalKind.CRAWL
+            and approval.target == target and approval.is_intact
+            and not approval.is_expired(datetime.now(UTC)))
+
+
+def _approvals_card(approvals: list[RunApproval], slug: str, target: str, saved: str,
+                    existing: bool) -> str:
+    """Confirmation plus the grants in force (AT-435). Saving used to redirect to an
+    identical page, so a human clicked again and a duplicate grant was written.
+    The banner is looked up ON DISK by id; the query string is never echoed."""
+    active = [a for a in approvals if _in_force(a, slug, target)]
+    banner = ""
+    just_saved = next((a for a in active if a.id == saved), None)
+    if just_saved is not None:
+        what = ("This approval was already on file — nothing new was saved." if existing
+                else "It is in force and listed below.")
+        heading = "Crawl approval already on file" if existing else "Crawl approval saved"
+        banner = (f"<p>{theme.pill('✓ ' + heading, 'positive')} {what} "
+                  f"<code>{escape(just_saved.id)}</code></p>")
+    rows = "".join(
+        f"<tr><td>{escape(a.granted_by)}</td><td>{escape(a.scope)}</td>"
+        f"<td>{a.max_actions}</td><td>{a.wall_clock_s:g}s</td>"
+        f"<td>{escape(a.expires_at)}</td><td><code>{escape(a.id)}</code></td></tr>"
+        for a in active
+    )
+    table = (
+        "<table><tr><th>Signed by</th><th>Scope</th><th>Max actions</th><th>Wall clock</th>"
+        f"<th>Expires (UTC)</th><th>Id</th></tr>{rows}</table>" if active
+        else "<p class='meta'>No crawl approval is in force for this target.</p>"
+    )
+    others = len(approvals) - len(active)
+    note = (f"<p class='meta'>{others} more on file are expired, edited after granting, or for "
+            "another target, and are not honoured.</p>" if others else "")
+    return theme.card(banner + table + note, title="Approvals in force")
+
+
+def _matching_grant(approvals: list[RunApproval], candidate: RunApproval) -> RunApproval | None:
+    """An in-force grant identical to `candidate` in everything but when it was
+    signed — a repeated click, not a new decision."""
+    def bounds(a: RunApproval) -> dict[str, object]:
+        payload = a._bound_payload()
+        payload.pop("granted_at")
+        return {**payload, "note": a.note}
+
+    return next((a for a in approvals if a.is_intact
+                 and not a.is_expired(datetime.now(UTC)) and bounds(a) == bounds(candidate)),
+                None)
+
+
 def _approval_error(slug: str, detail: str) -> HTMLResponse:
     safe = escape(slug)
     body = theme.breadcrumb(
@@ -85,8 +136,8 @@ def _future_iso(value: str, offset_minutes: int) -> str:
 
 
 @router.get("/projects/{slug}/env", response_class=HTMLResponse)
-def env_editor_view(slug: str) -> str:
-    _store, project = _load_project_or_404(slug)
+def env_editor_view(slug: str, saved: str = "", existing: str = "") -> str:
+    store, project = _load_project_or_404(slug)
     paths = ProjectPaths(slug)
     present = (
         parse_env(paths.env_file.read_text(encoding="utf-8")) if paths.env_file.exists() else {}
@@ -119,6 +170,7 @@ def env_editor_view(slug: str) -> str:
         "<p class='subtitle'>Values are never shown once saved — only whether one is set.</p>"
         f"{theme.card(table)}"
         f"{_crawl_approval_form(slug, project.base_url)}"
+        f"{_approvals_card(store.list_approvals(), slug, project.base_url, saved, bool(existing))}"
     )
     return theme.page(f"{name} — credentials", body, active_slug=slug)
 
@@ -166,10 +218,17 @@ def crawl_approval_submit(
     except HTTPException as exc:
         return _approval_error(slug, str(exc.detail))
     now = datetime.now(UTC).isoformat()
-    store.add_approval(RunApproval(
+    candidate = RunApproval(
         project=project.slug, run_kind=ApprovalKind.CRAWL, target=project.base_url,
         scope=allowed_scope, max_actions=actions, wall_clock_s=seconds,
         granted_by=signer, granted_at=now, expires_at=expiry,
         note=note.strip() or None,
-    ))
-    return RedirectResponse(f"/projects/{slug}/env#crawl-approval", status_code=303)
+    )
+    already = _matching_grant(store.list_approvals(), candidate)
+    if already is None:
+        store.add_approval(candidate)
+    grant = already or candidate
+    flag = "&existing=1" if already else ""
+    return RedirectResponse(
+        f"/projects/{slug}/env?saved={grant.id}{flag}#crawl-approval", status_code=303,
+    )
