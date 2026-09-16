@@ -197,3 +197,17 @@ def test_an_impossible_chunk_size_is_refused(kwargs: dict) -> None:
 def test_an_infinite_duration_is_refused_rather_than_looping() -> None:
     with pytest.raises(ValueError, match="finite"):
         plan_chunks(float("inf"))
+
+
+def test_no_media_extra_is_falsely_claimed_to_exist() -> None:
+    """AT-169: transcribe.py's docstring once said faster_whisper 'is declared
+    under the optional `media` extra' while pyproject.toml has no
+    `[project.optional-dependencies]` block at all -- an extra that does not
+    exist, documented as if installing it were one flag away. Pin the true
+    state of both files so the claim cannot quietly drift back."""
+    pyproject = (Path(__file__).resolve().parents[1] / "pyproject.toml").read_text(encoding="utf-8")
+    assert "[project.optional-dependencies]" not in pyproject
+
+    doc = transcribe.__doc__ or ""
+    assert "optional `media` extra" not in doc, "the false extra claim is back"
+    assert "no `[project.optional-dependencies]`" in doc

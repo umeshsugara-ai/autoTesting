@@ -12,10 +12,14 @@ regenerated line is a changed quote from a real person (I8).
 the parent process down with it, and a media-prep crash that loses the whole
 run because the *optional* half failed is the wrong trade.
 
-Measured on this host 2026-09-08: `faster_whisper` is **not installed in the
-project venv** (it is declared under the optional `media` extra). So the
-no-whisper path is the DEFAULT here, not a rare fallback — which is exactly why
-it returns an empty `Transcript` rather than raising.
+Measured on this host 2026-09-11: `faster_whisper` is **not installed in the
+project venv, and `pyproject.toml` has no `[project.optional-dependencies]`
+block at all** — there is no `media` extra to install it from (AT-169; a prior
+version of this docstring claimed one existed). So the no-whisper path is the
+DEFAULT here, not a rare fallback — which is exactly why it returns an empty
+`Transcript` rather than raising. Declaring `faster_whisper` as an extra is
+tracked separately (AT-130's sibling) for the unit that first calls a model
+for real.
 """
 
 from __future__ import annotations
