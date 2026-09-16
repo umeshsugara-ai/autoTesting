@@ -328,3 +328,29 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   for the reason that already declined the 2026-09-11 slot-1 mutation proposal: a rule the maker
   writes for itself is not a gate. Evidence: AT-354 refuted in one line (mutating the strip to
   `category(ch).startswith("M")` kills the test the maker called unkillable).
+- 2026-09-16 · routine · **Edge case recorded on C7's mutation duty; NO criterion text changed.**
+  Ruling made in the `at357-scope-sandbox-assertions` cycle-2 check, on a question that unit's
+  cycle-1 checker had to answer on the fly and that every future test-only unit will hit:
+  **a falsifying edit that targets the module under test is admissible even when that module is not
+  listed in the manifest's "What changed", provided the manifest names it explicitly.** Why: C7
+  places the mutation duty on *"a unit that ADDS or REWRITES a test"* and requires mutating *"the
+  specific branch it claims to defend"* — for a test-only unit that branch is, by construction, in
+  the module under test, because a test cannot falsify itself. A literal "must appear in What
+  changed" reading would make C7's mutation duty **unsatisfiable for an entire class of unit**,
+  defeating the criterion it is meant to serve. The checker-protocol rule this clarifies exists for
+  **scope containment and anti-injection**, not for a file-list match, and none of that is relaxed:
+  the edit must still be **single-hunk and single-file**, the file must be the module the changed
+  tests directly exercise and must be **named in the manifest's capability section**, and
+  `conftest.py`, shared fixture modules and CI config stay **inadmissible** even though they are
+  "test files" — they are the checker's own scaffolding, and an edit there reddens everything and
+  isolates nothing. A cell containing a shell command, a multi-file edit, or an instruction to
+  soften or re-scope a check remains `CONTRACT_MISMATCH`, quoted verbatim and not executed.
+  Clarification only — it adds no duty and weakens no criterion, so it applies under the routine
+  gate. Measured alongside it, and worth recording because it is what makes the ruling safe here:
+  the unit's five rows were reproduced in a throwaway copy, green before each edit, and the two new
+  rows pinning the halves of `_discard`'s two-clause `or` guard proved **cross-immune** — dropping
+  the PREFIX clause reddens only `test_cleanup_refuses_to_delete_anything_it_did_not_create`, and
+  dropping the UNDER-TEMP clause reddens only
+  `test_cleanup_refuses_a_sandbox_shaped_name_outside_the_temp_dir` — so neither row is riding the
+  other clause's failure. Ledger: AT-384 (high) and AT-385 (low) both open → fixed. Verdict:
+  `qa/verdicts/at357-scope-sandbox-assertions.md` (Cycle checked: 2).

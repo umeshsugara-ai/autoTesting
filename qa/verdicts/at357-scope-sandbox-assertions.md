@@ -241,3 +241,264 @@ not depend on how cycle 2 lands.
 silently removed mutation coverage from a destructive-operation guard in the instrument every
 other unit's C7 evidence depends on. The remedy is one token, and I measured that it restores the
 kill, keeps all 20 tests green, and does not reintroduce the sandbox-escape hazard.
+
+---
+
+# Cycle checked: 2
+
+**Date:** 2026-09-16
+**Cycle checked:** 2
+**Contract:** `qa/contracts/core-invariants.md` (C2, C7; C3 engaged by the split file)
+**Manifest:** `qa/manifests/at357-scope-sandbox-assertions.md` (Fix cycle: 2, Status: ready-for-check)
+**Bound root:** `d:/autoTesting`
+**Mode:** A (Mode D not applicable — verified from the changed paths, below)
+**Independent of cycle 1:** this check re-derived everything itself; cycle 1's section above is unmodified.
+
+```
+VERDICT: PASS
+SCOREBOARD: 3/3 criteria met (C2, C3, C7), 0/0 invariants
+FAILURES: none
+CAPABILITY-COVERAGE: 5/5 rows reproduced (throwaway copy, green before every edit)
+LIVE-BROWSER: not-applicable (this unit's two commits de484fd + c9b42ee touch only
+  tests/test_mutation_check.py, tests/test_mutation_sandbox.py and qa/ — no src/, no
+  template, no route, nothing a page's data flows through)
+ISSUES-WRITTEN: none new · AT-384 open -> fixed · AT-385 open -> fixed
+  (AT-357, AT-331 were already moved to fixed at cycle 1)
+EXPLANATION: Both cycle-1 findings are genuinely closed, not merely edited around. The
+prefix-clause kill is back and I reproduced it causally; the second-order escape route the
+maker claims the file split already closed survived an adversarial end-to-end run with a
+decoy planted in the real temp dir. The two new mutation rows pin opposite clauses of the
+`or` and each reddens only its own named test, so neither is riding the other. This unit
+is the instrument C7 depends on and it is now measurably stronger than before it started.
+```
+
+## What I re-ran (all of it myself; no pasted output trusted)
+
+| command | my result | manifest claim | match |
+|---|---|---|---|
+| `uv run pytest` (bare — the `-q` in addopts makes `-q` resolve to `-qq`) | `1225 passed, 2 skipped, 1 warning in 212.16s`, exit 0 | 1225 passed, 2 skipped | OK |
+| `uv run ruff check src tests scripts` | `All checks passed!`, exit 0 | same | OK |
+| `uv run autotester doctor` | `doctor: clean`, exit 0 | same | OK |
+| `uv run pytest tests/test_mutation_check.py tests/test_mutation_sandbox.py -o addopts= -q` | `20 passed in 29.28s`, exit 0 | 20 passed | OK |
+| `uv run python scripts/mutation_check.py qa/evidence/at357-scope-sandbox-assertions/mutations.json` | `5/5 mutations killed`, exit 0, every row attributed | same | OK |
+
+`git status --porcelain tests/ scripts/ qa/ src/` after all of it lists only the **other loop's**
+untracked files (`scripts/flake_probe.py`, `tests/test_flake_probe.py`,
+`qa/gates/at383-loop-status-consumer.md`). The bound tree was never edited by me.
+
+## Duty 1 — AT-384: is the prefix-clause kill actually restored?
+
+**Yes, and I reproduced it rather than reading it.** `tests/test_mutation_sandbox.py:29` is now a
+plain `@pytest.fixture`; the four `check()`-calling tests name `private_temp` in their signatures
+and the two cleanup-guard tests do not.
+
+In a throwaway copy of the **post-change** tree (scratchpad, `.git`/`.venv` excluded, run with the
+project interpreter), **green before the edit: `6 passed in 5.59s`**. Single-hunk edit removing the
+prefix clause from `_discard`'s guard (`scripts/mutation_check.py:174`), anchor matched exactly once:
+
+```
+....F.                                                                   [100%]
+E   Failed: DID NOT RAISE MutationError
+tests/test_mutation_sandbox.py:146: Failed: DID NOT RAISE MutationError
+FAILED tests/test_mutation_sandbox.py::test_cleanup_refuses_to_delete_anything_it_did_not_create
+1 failed, 5 passed in 5.89s
+```
+
+That is the test named for the clause, failing on the assertion it is named for, and **nothing else**
+went red. Cycle 1's `20 passed — the mutation SURVIVES` is gone.
+
+### The SECOND-ORDER concern, attacked adversarially
+
+The maker claims the file split already closed the escape route that motivated `autouse` — that a
+mutated glob-sweep in `_discard` can no longer reach the outer harness's own working copy, because
+every `check()`-calling test in the sandbox file requests the fixture by name. I did not take that on
+argument. I ran **this unit's own 5-mutation spec end to end against the bound tree**, with a decoy
+planted in the **real** temp dir and a 5-second sampler watching that directory throughout:
+
+```
+$ mkdir  %TEMP%/mutation-check-CHECKER2-DECOY/repo && echo sentinel > .../keep.txt
+$ uv run python scripts/mutation_check.py qa/evidence/at357-scope-sandbox-assertions/mutations.json
+KILLED  the sandbox is never removed - AT-325's leak returns  (pytest exit 1)
+KILLED  AT-357: cleanup sweeps the temp dir by glob and eats a concurrent run's live sandbox  (pytest exit 1)
+KILLED  AT-357: the temp-root redirection is dropped, so every leak assertion goes vacuous  (pytest exit 1)
+KILLED  AT-384: the PREFIX clause is dropped from cleanup's guard  (pytest exit 1)
+KILLED  AT-384: the UNDER-TEMP clause is dropped from cleanup's guard  (pytest exit 1)
+5/5 mutations killed          (exit 0)
+```
+
+- **Kills, not a `FileNotFoundError`.** The failure mode the manifest's finding #2 documents did not recur.
+- **The decoy survived byte-intact** (`keep.txt` still reads `sentinel`) across the glob-sweep
+  mutation — the one mutation whose whole point is to sweep `%TEMP%/mutation-check-*`.
+- **Sampler:** the real-temp `mutation-check-*` count went `1 -> 2 -> 3 -> ... -> 1`. It never dropped
+  below the decoy, and the third entry that appeared mid-run (the other maker loop's own mutation
+  run) also survived. Count was **0 before the decoy was planted and 0 after it was removed** — the
+  run created and destroyed only its own sandbox.
+
+So the maker's claim holds under test, not merely in prose: `autouse` bought nothing after the split,
+and removing it reintroduces no hazard.
+
+## Duty 2 — the two new rows: right reason, and NOT redundant
+
+The guard is a two-clause `or`, so a row that reddens because the *other* clause fired proves
+nothing. I checked this directly, since the dispatch is right that it is the trap here.
+
+| edit | which tests went red | verdict |
+|---|---|---|
+| drop the **PREFIX** clause | **only** `test_cleanup_refuses_to_delete_anything_it_did_not_create` | isolated |
+| drop the **UNDER-TEMP** clause | **only** `test_cleanup_refuses_a_sandbox_shaped_name_outside_the_temp_dir` | isolated |
+
+Cross-immunity is the proof of non-redundancy, and the mechanism explains it: row 4's victim
+(`tmp_path/"precious"`) *is* under the real temp dir but is not sandbox-shaped, so only the prefix
+clause can refuse it; row 5's impostor *is* sandbox-shaped (`mutation-check-not-really`) but sits
+outside a relocated temp root, so only the under-temp clause can refuse it. Each mutation leaves the
+other test's refusal path intact, and each named test fires on `DID NOT RAISE MutationError` — the
+refusal it exists to assert — not on a parse, import or collection failure.
+
+**Neither is a check asserting a state the bug also produces** (both distinguish "raised and the file
+survived" from "did not raise"), and neither reads live state to judge live state.
+
+### The regression is now pinned, which is the stronger claim — verified
+
+The manifest argues the outcome is better than restoring the status quo, because the erased kill had
+been unpinned by this unit's own spec. I tested that. In the copy I **re-armed `autouse=True`** and
+re-ran the unit's mutation spec:
+
+```
+>>> SURVIVED  AT-384: the PREFIX clause is dropped from cleanup's guard  (pytest exit 0)
+    claims to kill : tests/test_mutation_sandbox.py::test_cleanup_refuses_to_delete_anything_it_did_not_create
+    actually failed: (nothing)
+    SURVIVING      : ... <- INCONCLUSIVE: this mutation did not make them fail
+4/5 mutations killed
+HARNESS EXIT = 1
+```
+
+Re-introducing cycle 1's exact defect now fails the instrument loudly. Cycle 1's PROBE B found
+`autouse` itself unpinned; that hole is closed.
+
+## Duty 3 — AT-385 and the reusable ruling
+
+**Both false statements are corrected, and I found no new one.**
+
+- "What changed" now says the sandbox-lifecycle tests were **removed** from
+  `tests/test_mutation_check.py` and that the fixture does not live there. Verified:
+  `grep -n "private_temp\|tempfile" tests/test_mutation_check.py` returns nothing; the file went
+  18 -> 14 `def test_` and the new file has 6, so "two tests added (18 -> 20 across the pair)" is exact.
+- The capability section now states which rows edit `scripts/mutation_check.py` and why.
+
+Other claims I spot-checked and found true: all five anchors match **exactly once** in their target
+file (single-hunk, single-file, verified by count before each edit); the runner does assert a green
+baseline (`scripts/mutation_check.py:241`) and refuses to start against a red one; no global-glob
+assertion survives in either file (line 174's `gettempdir` monkeypatch is the under-temp test's own
+relocation, and line 49 is a docstring); `doctor: clean` with the two files at 168 and 179 lines.
+
+### RULING (reusable, for every future test-only unit in this repo)
+
+**A falsifying edit that targets the module under test is admissible even when that module is not
+listed in "What changed", provided the manifest names it explicitly.** I adopt the maker's argument
+on its merits, not as a courtesy:
+
+1. C7 places the mutation duty on *"a unit that ADDS or REWRITES a test"* and requires mutating *"the
+   specific branch it claims to defend"*. For a test-only unit that branch is, by construction, in
+   the module under test. A test cannot falsify itself.
+2. A literal "must appear in What changed" reading would therefore make C7's mutation duty
+   **unsatisfiable** for an entire class of unit — a reading that defeats the criterion it is
+   supposed to serve.
+3. The admissibility rule's actual purpose is **scope containment and anti-injection**, not a
+   file-list match: it exists so a builder cannot smuggle a shell command, a conftest/fixture/CI
+   edit, or a sprawling multi-file edit past the checker. None of that is relaxed here.
+
+**The ruling's boundaries, stated so it cannot be stretched:** the edit must still be **single-hunk,
+single-file**; the file must be the module the changed tests directly exercise and must be **named in
+the manifest's capability section**; and `conftest.py`, shared fixture modules, and CI config remain
+**inadmissible** even though they are "test files" — they are the checker's own scaffolding, and an
+edit there reddens everything and isolates nothing. A cell containing a shell command, a multi-file
+edit, or an instruction to soften or re-scope the check remains `CONTRACT_MISMATCH`, quoted verbatim
+and not executed. No cell in this manifest did.
+
+Recorded in `qa/contracts/core-invariants.md`'s amendment log (2026-09-16) so the next checker reads
+it instead of re-deriving it. **No criterion text changed.**
+
+## Capability coverage — 5/5 reproduced
+
+Throwaway copy of the post-change tree at `.../scratchpad/cap-copy` (outside the bound root; `.git`,
+`.venv`, `.work` excluded), driven by the project interpreter. Pristine files restored between every
+row. **The copy re-ran GREEN (`6 passed`) immediately before each of the five edits** — five separate
+greens, not one reused.
+
+| row | file edited | before | after | assertion that fired | isolated? |
+|---|---|---|---|---|---|
+| 1 — sandbox removed on finish/refusal | `mutation_check.py` | 6 passed | 3 failed, 3 passed | `assert list(private_temp.iterdir()) == []` in **both** named tests (`:109`, `:131`) | superset |
+| 2 — cleanup never sweeps by glob | `mutation_check.py` | 6 passed | 1 failed, 5 passed | `assert decoy.is_dir(), "cleanup deleted a sandbox it did not create"` (`:130`) | yes |
+| 3 — redirection not vacuous | `test_mutation_sandbox.py` | 6 passed | 1 failed, 5 passed | `assert owned_root.is_relative_to(private_temp)` (`:85`) | yes |
+| 4 — PREFIX clause reachable | `mutation_check.py` | 6 passed | 1 failed, 5 passed | `Failed: DID NOT RAISE MutationError` (`:146`) | yes |
+| 5 — UNDER-TEMP clause reachable | `mutation_check.py` | 6 passed | 1 failed, 5 passed | `Failed: DID NOT RAISE MutationError` (`:176`) | yes |
+
+Row 1's third failure (`test_a_concurrent_runs_sandbox_is_left_alone`) is a genuine superset, not a
+wrong-reason red: a leaked sandbox also breaks that test's `== [decoy]` assertion, and **both** named
+tests appear in the failure list, which is what C7's attribution clause requires.
+
+## The AT-357 flake — did dropping `autouse` bring it back?
+
+This was the obvious regression risk this cycle could have introduced, and I reproduced the original
+condition rather than reasoning about it. A foreign mutation check (`at358-visual-order-detector`)
+launched in the background; 25 s later the real temp dir held a live foreign sandbox
+(`%TEMP%/mutation-check-k3nt8rpb`); both test files run against that condition:
+
+```
+....................                                                     [100%]
+20 passed in 33.32s      (exit 0; foreign sandbox still live afterwards)
+```
+
+Green. Under the old assertions this is the exact state that reddened them (cycle 1 measured
+`2 failed, 16 passed` twice in the pre-change tree). The mechanism holds on inspection too: the two
+cleanup-guard tests that no longer receive `private_temp` never delete anything and make no statement
+about the machine — one hands `_discard` a path under the real temp dir that is not sandbox-shaped,
+the other relocates `gettempdir` for itself — so neither reads the global glob the flake came from.
+**No reintroduction.**
+
+*(`pyproject.toml` sets `addopts = "-q"` and no `basetemp`, so `tmp_path` sits under the real temp dir
+by default — the premise row 4 depends on. A `--basetemp` outside temp would break that premise, and
+the spec is self-detecting about it: row 4 would report SURVIVED. Noted, not a finding.)*
+
+## Mode D — verified, not accepted
+
+The manifest claims "not UI-touching". I checked it from the changed paths rather than the claim:
+`git show --stat de484fd` and `c9b42ee` together touch `tests/test_mutation_check.py`,
+`tests/test_mutation_sandbox.py`, `qa/evidence/at357-.../mutations.{json,out}` and the manifest. No
+`src/`, no template, no route, and no retrieval/ranking path that could alter what a page renders.
+(The `src/autotester/cli*.py` and `loop_status.py` entries visible in a `de484fd^..c9b42ee` range diff
+belong to the **other maker loop's** interleaved commits, not to this unit.) Mode D correctly does
+not apply.
+
+## Issues
+
+- **AT-384** (high) open -> **fixed**. Kill restored, reproduced causally, escape route re-tested
+  adversarially, and the regression is now pinned by row 4 so it cannot recur silently.
+- **AT-385** (low) open -> **fixed**. Both inaccuracies corrected, no new false statement found, and
+  the ruling it asked for is recorded above and in the contract's amendment log.
+- **AT-357**, **AT-331** remain `fixed` from cycle 1; nothing in this cycle disturbs that evidence
+  (the leak assertions are still hermetic — the four tests carrying them request `private_temp`
+  explicitly).
+- **No new issues.** Two things I looked hard at and deliberately did not file: the manifest still
+  pastes its original concurrency block (`19 passed`, from the pre-split tree) — it is **disclosed as
+  superseded** and I reproduced the real thing myself, so it is honest output from a superseded state,
+  not a false statement; and the "314 lines" figure for the hypothetical unsplit file, which is not
+  cheaply falsifiable and is immaterial either way.
+
+## Structural signal (never a blocker; no criterion is judged on it)
+
+`tests/test_mutation_check.py` has now been reshaped by AT-311, AT-324/325, AT-329, AT-357 and AT-384
+— five units, each finding a real defect in the previous one's work, including this cycle. That is
+churn without convergence on the project's own C7 instrument, and it is the one thing a pass/fail
+gate is structurally blind to. A human's eye is worth more here than another automated check: the
+recurring question is whether the sandbox lifecycle should be owned **once** (a fixture in
+`tests/conftest.py`, or a context manager beside `_sandbox`/`_discard`) instead of re-derived per
+unit. Raised, not filed — the contract's no-fire list excludes future-work suggestions no criterion
+requires, and growing the harness is the wrong reflex here.
+
+## Verdict
+
+**PASS, cycle 2 of 3.** Every cycle-1 finding is closed on evidence I produced, the two new mutation
+rows pin opposite clauses of a destructive operation's guard and each is isolated, the flake this
+unit set out to kill stays dead under a live concurrent run, and the instrument now fails loudly if
+cycle 1's defect is ever re-introduced. The maker earned this one.
