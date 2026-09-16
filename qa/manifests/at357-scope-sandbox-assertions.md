@@ -215,4 +215,4 @@ the new `tests/test_mutation_sandbox.py`; no `src/` file, no template, no route,
 page's data flows through. The unit's subject is a build-time instrument that never runs in a
 browser.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 2, verdict qa/verdicts/at357-scope-sandbox-assertions.md — pushed by the checker per D-007)
