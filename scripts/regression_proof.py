@@ -89,6 +89,26 @@ def build_cases(project_slug: str, base_url: str) -> list[Case]:
     ]
 
 
+def seat_demo_cases(store: ProjectStore, cases: list[Case]) -> list[Case]:
+    """Put `cases` on file as the ONLY copy of each journey, and return them (AT-434).
+
+    A case id covers its steps, and every step target here carries the fixture
+    server's random port, so `add_case`'s idempotency never fired: each run added
+    two new cases, and the demo reached 44 (22 copies of each journey, each on a
+    port that no longer exists). A stale copy — same project, flow and title,
+    different id — is removed first. Its old runs and verdicts are history and
+    stay, exactly as `delete_case` promises; any other case is left alone."""
+    journeys = {(c.project, c.flow_id, c.title) for c in cases}
+    keep = {c.id for c in cases}
+    for existing in store.list_cases():
+        if (existing.project, existing.flow_id, existing.title) in journeys \
+                and existing.id not in keep:
+            store.delete_case(existing.id)
+    for case in cases:
+        store.add_case(case)
+    return cases
+
+
 def make_rubric(case: Case, expect_text: str) -> Rubric:
     return Rubric(
         id=f"rub_{case.id}", case_id=case.id,
@@ -142,9 +162,7 @@ def main() -> None:
     )
     store = ProjectStore("regression-demo")
     store.save_project(project)
-    cases = build_cases(project.slug, base_url)
-    for case in cases:
-        store.add_case(case)
+    cases = seat_demo_cases(store, build_cases(project.slug, base_url))
     judge = LangChainFallbackProvider()
     good_backup = LOGIN_GOOD.read_text(encoding="utf-8")  # read BEFORE anything can fail
 

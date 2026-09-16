@@ -1,0 +1,17 @@
+{
+  "unit": "at434-demo-cases-one-per-journey",
+  "role": "maker SMOKE only - not validation; the checker runs its own Mode D",
+  "date": "2026-09-16T15:33Z",
+  "server": "uvicorn from isolated git-archive extract (HEAD + 2 scripts + test), ports 8034 (after) and 8036 (before control)",
+  "roots": {
+    "after": "scratchpad/at434root - cases.jsonl/project.json/bench copied from the working tree (cleaned, 2 cases)",
+    "before_control": "scratchpad/at434before - cases.jsonl/project.json from git HEAD (44 cases)"
+  },
+  "interactions": [
+    {"did": "open /projects/regression-demo/cases (after)", "expected": "one row per journey", "observed": "2 rows: 'Login with correct credentials' (4 steps), 'Homepage loads' (1 step)", "pass": true},
+    {"did": "open /flow-diagram (after), count distinct 127.0.0.1:<port> origins and title mentions in body text", "expected": "1 origin, each title once", "observed": "ports ['127.0.0.1:46661'], login 1, home 1", "pass": true},
+    {"did": "SAME count on /flow-diagram (before control, HEAD data)", "expected": "the detector sees the defect", "observed": "22 origins, login 22, home 22 - so the 'after' count of 1 is a real measurement, not a blind detector", "pass": true}
+  ],
+  "console_errors": {"after": 0},
+  "not_covered": "the scripts themselves were not re-run end to end (a real headed run + a live model judge call); the pure seating logic is unit-tested and mutation-checked"
+}

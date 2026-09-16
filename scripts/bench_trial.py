@@ -39,6 +39,9 @@ from autotester.stages.execute import run_case
 from autotester.stages.grade import grade
 from autotester.store.project_store import ProjectStore
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from regression_proof import seat_demo_cases
+
 FIXTURE_DIR = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "regression_site"
 LOGIN_GOOD = FIXTURE_DIR / "login.html"
 LOGIN_BROKEN = FIXTURE_DIR / "login.broken.html"
@@ -113,9 +116,7 @@ def main() -> None:
     )
     store = ProjectStore("regression-demo")
     store.save_project(project)
-    cases = build_cases(project.slug, base_url)
-    for case in cases:
-        store.add_case(case)
+    cases = seat_demo_cases(store, build_cases(project.slug, base_url))  # AT-434
     login_case, _home_case = cases
     judge = LangChainFallbackProvider()
 

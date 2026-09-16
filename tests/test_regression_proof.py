@@ -15,7 +15,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 import regression_proof as rp
 
-from autotester.schema.enums import Action, CaseKind
+from autotester.schema.case import Case
+from autotester.schema.enums import Action, CaseClass, CaseKind
+from autotester.schema.flowspec import Step
+from autotester.store.project_store import ProjectStore
 
 FIXTURE_DIR = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "regression_site"
 
@@ -59,6 +62,55 @@ def test_make_rubric_uses_a_stable_short_criterion_id() -> None:
     rubric = rp.make_rubric(case, "Login successful")
     assert rubric.criteria[0].id == "c1"
     assert "c1" in rubric.criteria[0].text
+
+
+def test_rerunning_on_a_new_port_keeps_one_case_per_journey(tmp_path: Path) -> None:
+    """AT-434, found in a live browser: the demo's cases.jsonl held 44 cases, 2 titles
+    x 22 runs. A case id covers its steps, and every step target carries the fixture
+    server's RANDOM port, so each run minted two new ids and `add_case`'s idempotency
+    never fired. Three runs on three ports must still leave exactly two cases."""
+    store = ProjectStore("regression-demo", tmp_path)
+    for port in (41001, 41002, 41003):
+        seated = rp.seat_demo_cases(store, rp.build_cases("regression-demo",
+                                                          f"http://127.0.0.1:{port}"))
+
+    cases = store.list_cases()
+    assert sorted(c.title for c in cases) == ["Homepage loads", "Login with correct credentials"]
+    assert {c.id for c in cases} == {c.id for c in seated}, "the LATEST port's cases are kept"
+    assert all("41003" in c.steps[0].target for c in cases)
+
+
+def test_seating_leaves_unrelated_cases_alone(tmp_path: Path) -> None:
+    """Only a case for the same journey (flow and title) is replaced; a human-added
+    case in the same project, or a demo title under another flow, is not the demo's."""
+    store = ProjectStore("regression-demo", tmp_path)
+    mine = Case(project="regression-demo", flow_id="flow_login", kind=CaseKind.WORST,
+                case_class=CaseClass.AUTH_WRONG_CREDS, title="Login with a wrong password",
+                steps=[Step(order=1, action=Action.NAVIGATE, target="http://127.0.0.1:9/login.html")])
+    other_flow = Case(project="regression-demo", flow_id="flow_other", kind=CaseKind.BEST,
+                      case_class=CaseClass.HAPPY, title="Homepage loads",
+                      steps=[Step(order=1, action=Action.NAVIGATE, target="http://127.0.0.1:9/")])
+    store.add_case(mine)
+    store.add_case(other_flow)
+
+    rp.seat_demo_cases(store, rp.build_cases("regression-demo", "http://127.0.0.1:41001"))
+    rp.seat_demo_cases(store, rp.build_cases("regression-demo", "http://127.0.0.1:41002"))
+
+    ids = {c.id for c in store.list_cases()}
+    assert mine.id in ids and other_flow.id in ids
+    assert len(ids) == 4
+
+
+def test_bench_trial_seats_the_same_demo_cases_the_same_way() -> None:
+    """bench_trial.py writes the same project; if it kept its own `add_case` loop the
+    duplicates would simply come back from the other script."""
+    import inspect
+
+    import bench_trial
+
+    assert bench_trial.seat_demo_cases is rp.seat_demo_cases
+    main = inspect.getsource(bench_trial.main)  # the import alone would not stop a bare loop
+    assert "seat_demo_cases(" in main and "add_case(" not in main
 
 
 def test_no_cache_handler_overrides_end_headers() -> None:
