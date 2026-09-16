@@ -1,0 +1,127 @@
+{
+  "unit": "at434-demo-cases-one-per-journey",
+  "role": "checker Mode D (independent)",
+  "instrument": "headed Playwright Python (chromium), not the MCP",
+  "server": "uvicorn autotester.ui.app from scratch copy (git archive HEAD + 3 changed files, own uv sync)",
+  "roots": {
+    "after:8044": "scratch root-after: cases.jsonl, project.json, bench/ copied from the working tree",
+    "head-control:8046": "scratch root-head: same 3 paths from git HEAD (44 cases)"
+  },
+  "results": {
+    "after": {
+      "project_status": 200,
+      "project_has_flow_link": 1,
+      "cases_status": 200,
+      "cases_rename_inputs": 2,
+      "cases_rename_buttons": 2,
+      "cases_delete_buttons": 2,
+      "cases_title_counts": {
+        "Login with correct credentials": 1,
+        "Homepage loads": 1
+      },
+      "flow_url_after_click": "http://127.0.0.1:8044/projects/regression-demo/flow-diagram",
+      "flow_distinct_origins": [
+        "127.0.0.1:46661"
+      ],
+      "flow_distinct_origin_count": 1,
+      "flow_leaf_count": 2,
+      "flow_leaf_title_counts": {
+        "Login with correct credentials": 1,
+        "Homepage loads": 1
+      },
+      "flow_title_mentions_in_text": {
+        "Login with correct credentials": 1,
+        "Homepage loads": 1
+      },
+      "flow_trees": 2
+    },
+    "head": {
+      "project_status": 200,
+      "project_has_flow_link": 1,
+      "cases_status": 200,
+      "cases_rename_inputs": 44,
+      "cases_rename_buttons": 44,
+      "cases_delete_buttons": 44,
+      "cases_title_counts": {
+        "Login with correct credentials": 22,
+        "Homepage loads": 22
+      },
+      "flow_url_after_click": "http://127.0.0.1:8046/projects/regression-demo/flow-diagram",
+      "flow_distinct_origins": [
+        "127.0.0.1:32849",
+        "127.0.0.1:33235",
+        "127.0.0.1:35095",
+        "127.0.0.1:35221",
+        "127.0.0.1:35225",
+        "127.0.0.1:35341",
+        "127.0.0.1:36395",
+        "127.0.0.1:36445",
+        "127.0.0.1:37685",
+        "127.0.0.1:40331",
+        "127.0.0.1:42821",
+        "127.0.0.1:43675",
+        "127.0.0.1:44279",
+        "127.0.0.1:45957",
+        "127.0.0.1:46661",
+        "127.0.0.1:57483",
+        "127.0.0.1:59130",
+        "127.0.0.1:59427",
+        "127.0.0.1:62956",
+        "127.0.0.1:63293",
+        "127.0.0.1:63828",
+        "127.0.0.1:63930"
+      ],
+      "flow_distinct_origin_count": 22,
+      "flow_leaf_count": 44,
+      "flow_leaf_title_counts": {
+        "Login with correct credentials": 22,
+        "Homepage loads": 22
+      },
+      "flow_title_mentions_in_text": {
+        "Login with correct credentials": 22,
+        "Homepage loads": 22
+      },
+      "flow_trees": 2
+    }
+  },
+  "console_errors": {
+    "after:project": {
+      "count": 0,
+      "messages": []
+    },
+    "after:cases": {
+      "count": 0,
+      "messages": []
+    },
+    "after:flow-diagram": {
+      "count": 0,
+      "messages": []
+    },
+    "head:project": {
+      "count": 0,
+      "messages": []
+    },
+    "head:cases": {
+      "count": 0,
+      "messages": []
+    },
+    "head:flow-diagram": {
+      "count": 0,
+      "messages": []
+    }
+  },
+  "assertions": {
+    "after_cases_2_rows": true,
+    "after_each_title_once_on_cases": true,
+    "after_flow_one_origin": true,
+    "after_flow_each_journey_once": true,
+    "control_detector_sees_44": true,
+    "pages_200": true,
+    "flow_link_click_navigated": true
+  },
+  "date": "2026-09-16",
+  "console_listener_control": "separate headed run on 8044 /flow-diagram: page.evaluate(console.error(checker-probe)) was captured by the same listener shape, so the 0 counts are a real measurement",
+  "servers_stopped": "uvicorn PIDs 19472 (8046) and 51204 (8044) stopped; 0 listeners on 8044/8046 afterwards; browser closed",
+  "screenshots": "kept in checker scratchpad (not committed): after/head -01-project, -02-cases, -03-flow",
+  "data_boundary": "only regression-demo tracked synthetic files (cases.jsonl, project.json, bench/*.json) were served; no .env under either root"
+}
