@@ -1,0 +1,173 @@
+{
+ "unit": "at423-scroll-invariance-probe",
+ "cycle_checked": 2,
+ "date": "2026-09-16",
+ "checker": "/checker Mode A+D, own Chromium (playwright headless), own http.server, own driver",
+ "instrument": "scratchpad probe_c2.py over a throwaway copy of the post-change tree; visual_order.js variants built by anchor-asserted string substitution (each anchor matched exactly once, file content asserted changed)",
+ "stand_in_fixes": {
+  "A": "option A: once the upward walk passes a scrollable ancestor on an axis, no outer ancestor (overflow OR clip-path branch) contributes a clip on that axis",
+  "A_ovonly": "option A applied to the overflow branch only; clip-path ancestors still narrow the clip",
+  "F417": "clip-path branch no longer short-circuits: a clip-path box accumulates its own scroll offset and contributes no clip on an axis it scrolls",
+  "both": "A + F417"
+ },
+ "structural_rule_tested": "AT-416 iff a non-scrolling clipping box (hidden|clip) sits outside a scrolling box (auto|scroll); AT-417 iff clip-path sits on a scrolling box, wherever it is",
+ "point1_out_of_sample": {
+  "IN": {
+   "pages": 50,
+   "vacuous_nothing_moved": 0,
+   "live": 50,
+   "measured_by_fix_variant": {
+    "pass": 18,
+    "AT-417": 12,
+    "AT-416": 18,
+    "AT-416 + AT-417": 2
+   },
+   "structural_rule_mismatches": 0,
+   "literal__open_defects_applicable": 50,
+   "literal__open_defects_mismatches": 0,
+   "positive_control_present_all": true,
+   "scrollLeft_ever_moved": false,
+   "combined_all_scrollers_max_extra_failures_base": []
+  },
+  "OOS-values": {
+   "pages": 280,
+   "vacuous_nothing_moved": 22,
+   "live": 258,
+   "measured_by_fix_variant": {
+    "pass": 78,
+    "AT-417": 56,
+    "AT-416": 110,
+    "AT-416 + AT-417": 14
+   },
+   "structural_rule_mismatches": 0,
+   "literal__open_defects_applicable": 258,
+   "literal__open_defects_mismatches": 136,
+   "positive_control_present_all": true,
+   "scrollLeft_ever_moved": false,
+   "combined_all_scrollers_max_extra_failures_base": []
+  },
+  "OOS-depth4": {
+   "pages": 64,
+   "vacuous_nothing_moved": 2,
+   "live": 62,
+   "measured_by_fix_variant": {
+    "pass": 10,
+    "AT-417": 8,
+    "AT-416": 36,
+    "AT-416 + AT-417": 8
+   },
+   "structural_rule_mismatches": 0,
+   "literal__open_defects_applicable": 62,
+   "literal__open_defects_mismatches": 0,
+   "positive_control_present_all": true,
+   "scrollLeft_ever_moved": false,
+   "combined_all_scrollers_max_extra_failures_base": []
+  },
+  "OOS-innerclip": {
+   "pages": 136,
+   "vacuous_nothing_moved": 6,
+   "live": 130,
+   "measured_by_fix_variant": {
+    "AT-417": 20,
+    "pass": 26,
+    "AT-416 + AT-417": 48,
+    "AT-416": 36
+   },
+   "structural_rule_mismatches": 0,
+   "literal__open_defects_applicable": 0,
+   "literal__open_defects_mismatches": 0,
+   "positive_control_present_all": true,
+   "scrollLeft_ever_moved": false,
+   "combined_all_scrollers_max_extra_failures_base": []
+  }
+ },
+ "point2_attribution_on_the_50": {
+  "base_pass": 18,
+  "base_fail": 32,
+  "A_flips": 18,
+  "A_flip_set_equals_rule_AT416_only": true,
+  "A_newly_red": [],
+  "A_still_red": [
+   "auto+clip@0",
+   "auto+clip@0+tall",
+   "auto-auto+clip@0",
+   "auto-auto+clip@0+tall",
+   "auto-auto-auto+clip@0",
+   "auto-auto-auto+clip@0+tall",
+   "auto-auto-hidden+clip@0",
+   "auto-auto-hidden+clip@0+tall",
+   "auto-hidden+clip@0",
+   "auto-hidden+clip@0+tall",
+   "auto-hidden-auto+clip@0",
+   "auto-hidden-auto+clip@0+tall",
+   "auto-hidden-hidden+clip@0",
+   "auto-hidden-hidden+clip@0+tall"
+  ],
+  "A_ovonly_flips": 10,
+  "A_ovonly_flip_set": [
+   "auto-hidden-auto",
+   "auto-hidden-auto+tall",
+   "hidden-auto",
+   "hidden-auto+tall",
+   "hidden-auto-auto",
+   "hidden-auto-auto+tall",
+   "hidden-auto-hidden",
+   "hidden-auto-hidden+tall",
+   "hidden-hidden-auto",
+   "hidden-hidden-auto+tall"
+  ],
+  "A_ovonly_newly_red": [],
+  "F417_flips": 12,
+  "F417_newly_red": [],
+  "both_flips": 32,
+  "both_newly_red": []
+ },
+ "point4_removed_shapes": [
+  {
+   "label": "hidden",
+   "reader_scrollers": [],
+   "window_scrollY_after_bottom": 0,
+   "doc_h": 720,
+   "vh": 720
+  },
+  {
+   "label": "hidden+clip",
+   "reader_scrollers": [],
+   "window_scrollY_after_bottom": 0,
+   "doc_h": 720,
+   "vh": 720
+  },
+  {
+   "label": "hidden-hidden",
+   "reader_scrollers": [],
+   "window_scrollY_after_bottom": 0,
+   "doc_h": 720,
+   "vh": 720
+  },
+  {
+   "label": "hidden-hidden+clip",
+   "reader_scrollers": [],
+   "window_scrollY_after_bottom": 0,
+   "doc_h": 720,
+   "vh": 720
+  },
+  {
+   "label": "hidden-hidden-hidden",
+   "reader_scrollers": [],
+   "window_scrollY_after_bottom": 0,
+   "doc_h": 720,
+   "vh": 720
+  },
+  {
+   "label": "hidden-hidden-hidden+clip",
+   "reader_scrollers": [],
+   "window_scrollY_after_bottom": 0,
+   "doc_h": 720,
+   "vh": 720
+  }
+ ],
+ "console_errors_total": 0,
+ "console_errors_by_page": {},
+ "pages_driven": 536,
+ "seconds": 159.9
+}
