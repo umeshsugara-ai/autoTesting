@@ -1,0 +1,110 @@
+{
+  "kind": "maker-smoke",
+  "_note": "MAKER SMOKE CHECK, NOT VALIDATION. Per the maker skill, a maker's own browser run is never the validation; a checker's Mode D run is. Recorded so the findings survive the session, and so a checker can reproduce them.",
+  "instruction": "Umesh 2026-09-16T16:05+05:30: 'continue and keep validating . sabb live browser mai validate krna hai'",
+  "date": "2026-09-16",
+  "server": "uv run uvicorn autotester.ui.app:app --host 127.0.0.1 --port 8017",
+  "data_isolation": "AUTOTESTER_ROOT pointed at a git-archive-HEAD scratch copy with projects/pathlynks, projects/erp and projects/vidysea-erp DELETED (Vidysea properties; hard boundary). Only projects/regression-demo (tracked, synthetic, local fixture) remained. Nothing under d:/autoTesting/projects/ was read or written.",
+  "browser": "Playwright MCP, real Chromium",
+  "pages_visited": {
+    "method": "all 20 GET page routes fetched from inside the browser, plus 4 deliberate not-found/traversal probes; /report and /flow-diagram also navigated and inspected",
+    "routes_200": [
+      "/",
+      "/onboard",
+      "/live",
+      "/settings/providers",
+      "/projects/regression-demo",
+      "/edit",
+      "/env",
+      "/sources",
+      "/cases",
+      "/cases/new",
+      "/flowspec",
+      "/flow-diagram",
+      "/product-map",
+      "/crawls",
+      "/requests",
+      "/issues",
+      "/report",
+      "/issues.xlsx"
+    ],
+    "routes_500": [
+      "/projects/regression-demo/report.html",
+      "/projects/regression-demo/report.xlsx"
+    ],
+    "probes_correctly_404": [
+      "/projects/does-not-exist",
+      "/projects/..%2F..%2Fetc (path traversal refused)",
+      "/runs/no-such-run (friendly 404 page)",
+      "/crawls/no-such-crawl (friendly 404 page)"
+    ]
+  },
+  "console_errors": {
+    "count": 6,
+    "attribution": "ALL SIX are the browser's own 'Failed to load resource' lines for the 2 x 500 and 4 x 404 that this smoke DELIBERATELY requested. Zero console errors originated from page code on the pages navigated. Stated because a raw count of 6 would otherwise read as 6 page defects."
+  },
+  "interactions": [
+    {
+      "did": "fetched /projects/regression-demo/report.xlsx and /report.html on a project with no runs",
+      "expected": "a handled no-data response (404 or redirect with a message)",
+      "observed": "HTTP 500. Root cause from the server log: stages/report_export.py:56 _latest_run_id raises ValueError(\"no runs exist yet for 'regression-demo'\"), uncaught at ui/routes_report.py:225 download_report_excel",
+      "pass": false,
+      "severity_note": "LOWER than first stated. Navigated /report and inspected it: with no runs it renders 'no runs yet — run a case against this project to see a report here' and exposes ZERO download controls. So a user clicking through the UI cannot reach the 500 — only a direct URL can (bookmark, shared link, script). Still a defect: a predictable no-data state should not 500."
+    },
+    {
+      "did": "navigated /flow-diagram and inspected for an interactive graph",
+      "expected": "branches merged on shared prefix, per the page's own promise",
+      "observed": "a static text tree (no svg, no canvas, no listeners — so the 'renders but ignores clicks' class does not apply) showing 'Homepage loads' repeated many times, each with a different 127.0.0.1 port",
+      "pass": false,
+      "root_cause": "NOT the diagram. projects/regression-demo/cases.jsonl (tracked, last touched ad1189b 2026-09-04) holds 44 cases with only 2 distinct titles — 'Homepage loads' x22 and 'Login with correct credentials' x22 — carrying 22 distinct ephemeral ports. Each regression-proof run appended a fresh copy of both cases instead of reusing them, and baked its random port into the steps. The diagram renders the duplicated data faithfully. Open question for the fix: should case steps store the fixture origin as a placeholder rather than a live ephemeral port?"
+    },
+    {
+      "did": "POST /onboard with a non-URL base_url, a domain mismatch, slug '../../evil', and an existing slug",
+      "expected": "server-side rejection independent of the browser's `required` attributes",
+      "observed": "all four HTTP 400. The 4 console errors on /onboard are exactly these deliberate rejections.",
+      "pass": true
+    },
+    {
+      "did": "POST /onboard with name '<img src=x onerror=alert(1)>', then NAVIGATED /projects/p-xss in the real browser",
+      "expected": "payload stored but rendered escaped; no script execution",
+      "observed": "0 injected img[src=x] elements; payload visible as literal text in body AND <title>",
+      "pass": true
+    },
+    {
+      "did": "POST /onboard with credential_value = a unique canary string, then fetched 8 rendered pages",
+      "expected": "BR-6 / F-002: a credential value never appears in any rendered page",
+      "observed": "canary absent from all 8: /, /projects/p-good, /env, /edit, /sources, /settings/providers, /projects/p-blank, /projects/onboard",
+      "pass": true
+    },
+    {
+      "did": "POST /onboard with name='' (bypassing the browser's `required`)",
+      "expected": "HTTP 400, as for the other invalid inputs",
+      "observed": "ACCEPTED (302). /projects/p-blank renders with title ' — AutoTester', and the sidebar on every page gains a GHOST ENTRY: <a class='sidebar-link' href='/projects/p-blank'></a> — a link with no text.",
+      "pass": false,
+      "note": "Only the HTML `required` attribute guards this; the server does not. Same class of gap as a client-only validation."
+    },
+    {
+      "did": "POST /onboard with slug 'onboard'",
+      "expected": "no collision with the /onboard route",
+      "observed": "accepted and renders at /projects/onboard (title 'Probe'); the /projects/ prefix means no route collision",
+      "pass": true
+    },
+    {
+      "did": "loaded /onboard and read its own console output",
+      "expected": "no page-originated messages",
+      "observed": "one VERBOSE Chrome DOM hint: the credential password input has no autocomplete attribute (suggested 'current-password')",
+      "pass": true,
+      "note": "Not an error. On a form that takes a TEST ACCOUNT's password, autocomplete='new-password' or 'off' would stop the browser offering to save it. Low."
+    }
+  ],
+  "not_validated": [
+    "POST routes beyond /onboard (run, explore, secrets, cases, sources, flowspec approve) — not exercised",
+    "No project with real runs, so report rendering with verdicts was not exercised here",
+    "Vidysea projects deliberately excluded by the data boundary"
+  ],
+  "false_findings_avoided": [
+    "The raw 6 console errors on / were NOT page defects — all were the smoke's own deliberate 500/404 probes.",
+    "The report.html/.xlsx 500 was first described as reachable by every new project; navigating /report showed the UI exposes ZERO download controls with no runs, so it is direct-URL only.",
+    "'Projects created but missing from the home list' was nearly reported. The regex assumed double-quoted href; the app emits single quotes. Parsing the DOM showed all 5 projects listed."
+  ]
+}
