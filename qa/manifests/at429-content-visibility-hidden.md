@@ -4,10 +4,108 @@
 **Contract:** `qa/contracts/ui.md` (U13) · `qa/contracts/core-invariants.md` (C2, C7)
 **Goal task:** none (issue-driven)
 **Date:** 2026-09-16
-**Fix cycle:** 1 of max 3
+**Fix cycle:** 2 of max 3
 **Dual check:** no
-**Issues addressed:** AT-429 (medium, open → fixed) · verifies the ledger repair for **AT-404** and
-**AT-436** (my three rows moved to the canonical schema in `e33b916`)
+**Issues addressed:** AT-429 (medium, open → fixed) · **AT-437** (medium, cycle-1 FAIL, created by
+cycle 1's own fix) · AT-438 recorded as a strict xfail, not fixed · AT-404 / AT-436 already verified
+fixed by the cycle-1 checker
+
+## Cycle 2: my false-positive fix created a false negative, again
+
+The cycle-1 verdict confirmed the fix works on block boxes: direct hidden text is dropped, nested
+hidden text is still caught by `checkVisibility()`, and the interleave is real and gone. It then
+failed the unit on the thing this module keeps doing:
+
+> **AT-437 (medium).** The guard `style.contentVisibility === "hidden"` drops **visible** text
+> wherever `content-visibility:hidden` has no effect: an inline `<span>`, an inline custom element,
+> a ruby `<rt>`. A live screenshot shows the text painted, the old code reported it, and the fixed
+> code drops it.
+
+That is the **sixth** time a fix for a false positive in this file has created a false negative, and
+it is the same mistake this file keeps recording. The guard trusted **computed style**, and computed
+style says `hidden` on **every** box the property is set on, including boxes where the browser
+ignores it and paints the text.
+
+### The fix is decided by a screenshot, not by the spec
+
+I did not write down a list of display types from memory or from the CSS Containment spec; I
+measured every one. `qa/evidence/at429-content-visibility-hidden/groundtruth.py` builds one isolated
+page per display type and takes a screenshot of a fixed frame. It then makes the element's text
+transparent and takes a second screenshot. If the two are identical, the text was never painted; if
+they differ, it was. This is the same ground-truth method the checker used, it does not depend on
+computed style or `checkVisibility()`, and the checker can re-run it.
+
+Measured in Chromium across 20 display types:
+
+| display | with `content-visibility:hidden` |
+|---|---|
+| `block` | hides |
+| `inline` | **paints** |
+| `inline-block` | hides |
+| `flex` | hides |
+| `inline-flex` | hides |
+| `grid` | hides |
+| `inline-grid` | hides |
+| `flow-root` | hides |
+| `list-item` | hides |
+| `table-cell` | hides |
+| `table-caption` | hides |
+| `table` | **paints** |
+| `inline-table` | **paints** |
+| `table-row` | **paints** |
+| `table-row-group` | **paints** |
+| `table-header-group` | **paints** |
+| `table-footer-group` | **paints** |
+| `contents` | **paints** |
+| `ruby` | **paints** |
+| `ruby-text` | **paints** |
+
+**Measuring caught an error that reading the spec would have made.** `table` and `inline-table`
+**paint** their text. A list written from the spec ("containment does not apply to non-atomic
+inline, internal table boxes other than cells, internal ruby boxes") does not name the table box
+itself. A guard built from the spec would have kept dropping visible text in tables. The only reason
+that case is right is that it was measured.
+
+### Why the guard is an ALLOW-list
+
+`HIDES_ON` lists the display types that were measured to **hide** text, and the guard fires only for
+those. A deny-list (fire everywhere except the types known to paint) and an allow-list give the same
+answer on every measured display type. They differ only on a type nobody has measured, and there they
+fail in opposite directions. A deny-list would drop text on an unmeasured type, which risks missing a
+credential. An allow-list would report it, which is a false positive. This module has already written
+down which of those costs more, so the guard is an allow-list.
+
+### What changed in cycle 2
+
+- `src/autotester/browser/visual_order.js`: added `HIDES_ON`, copied from the measurement, and changed
+  the guard to `contentVisibility === "hidden" && HIDES_ON.test(display)`. The existing comment was
+  rewritten rather than lengthened. **298 lines.**
+- `qa/evidence/at429-content-visibility-hidden/groundtruth.py` and `groundtruth.json`: **new**. The
+  re-runnable measurement and its output.
+- `tests/fixtures/bidi_site/cvdisplay.html`: **new**. Each of the 20 display types sits in its own
+  spaced block, so no two share a screen row and interleave.
+- `tests/test_browser_visual_order.py`: one test parametrised over all 20 types. From the same
+  measurement it asserts **both directions**: painted text must be reported (AT-437), and unpainted
+  text must not be (AT-429). A guard that fired everywhere, or nowhere, would fail half the cases.
+  267 lines.
+
+### AT-438 is recorded, not fixed
+
+`display:contents` paints its text, and the detector drops it. The cause is a different guard.
+`checkVisibility()` returns **false** on a `contents` box, so the text is dropped before the
+`content-visibility` guard ever runs. I checked that this predates this unit. In a throwaway copy
+running the **pre-AT-429 detector** (`dbe6185^`), with imports confirmed to come from that copy, the
+`[contents]` case fails the same way. It is marked `xfail(strict=True, reason="AT-438")`, so fixing
+AT-438 later will fail loudly here instead of passing unnoticed. It was not folded into this unit.
+
+### A mutation claim I had to correct
+
+My first version of row 1 (drop the display condition) listed `[table]` and `[table-row]` among the
+tests it kills, and **both survived**. I measured why. In those fixtures the text's parent is a `<td>`,
+not the element carrying `content-visibility`. The guard checks only the parent, so it never runs
+there, whether or not the display condition is present. Those cases are still correct assertions
+(painted text is reported), but they do not test the allow-list. The row now lists the cases that do:
+`inline`, `ruby` and `ruby-text`, where the text sits directly inside the element.
 
 ## Why this unit
 
@@ -87,8 +185,10 @@ shorter, and every line of it can be falsified.
 
 | capability | the check that covers it | the falsifying edit | observed |
 |---|---|---|---|
-| text whose parent is `content-visibility:hidden` is not reported, and does not interleave with the visible line (AT-429) | `test_content_visibility_hidden_is_not_reported_nor_garbles_its_neighbour` | remove the parent guard | KILLED (row 1) |
-| **nested** hidden text is covered by `checkVisibility()`, and the two guards split the work without overlap | same test + `…[closed-details]` | bypass `checkVisibility()` | KILLED (row 2): both named tests fail |
+| painted text on a box where `hidden` has no effect is **reported** (AT-437) | `…reported_exactly_where_it_paints[inline]`, `[ruby]`, `[ruby-text]` | drop the display condition from the guard | KILLED (row 1) |
+| hidden direct text is **not** reported and does not interleave (AT-429) | `…[block]`, `…[flex]`, `test_content_visibility_hidden_is_not_reported_nor_garbles_its_neighbour` | remove the guard entirely | KILLED (row 2) |
+| the allow-list is the MEASURED set, and each entry is needed | `…[table-cell]` | remove `table-cell` from `HIDES_ON` | KILLED (row 3) |
+| **nested** hidden text is `checkVisibility()`'s job, and the two guards do not overlap | `…not_reported_nor_garbles…`, `…[closed-details]` | bypass `checkVisibility()` | KILLED (row 4) |
 
 ```
 $ uv run python scripts/mutation_check.py qa/evidence/at429-content-visibility-hidden/mutations.json
@@ -107,13 +207,15 @@ because it was absent.
 
 ## How to verify (commands + expected)
 
-- `uv run pytest` → expected: `1268 passed, 2 skipped, 32 xfailed`
+- `uv run pytest` → expected: `1287 passed, 2 skipped, 33 xfailed` (the 32 scroll-invariance layouts plus AT-438)
   *(`uv run pytest -q` resolves to `-qq` and suppresses the summary line.)*
 - `uv run ruff check src tests scripts` → `All checks passed!`
 - `uv run autotester doctor` → `doctor: clean`. It does **not** measure `.js` files (AT-419), so count
-  `visual_order.js` yourself: 295.
+  `visual_order.js` yourself: 298.
 - `uv run python scripts/mutation_check.py qa/evidence/at429-content-visibility-hidden/mutations.json`
-  → `2/2 mutations killed`
+  → `4/4 mutations killed`
+- **Ground truth:** `uv run python qa/evidence/at429-content-visibility-hidden/groundtruth.py` must
+  match `CV_PAINTS` in the test, case by case.
 - **Regression on every spec that touches this module:** at358 `21/21`, at410 `1/1`, at379 `7/7`,
   at423 `3/3`. The scroll-invariance corpus is unchanged at **32 xfailed with no XPASS**.
 - **Ledger (AT-404, AT-436):** AT-398, AT-423 and AT-429 in `qa/issues.jsonl` carry the canonical
@@ -137,17 +239,17 @@ d_hidden_alone.html  AUTO=False(expected False) HIDDEN=False(expected False) | '
 e_auto_sized.html    AUTO=True (expected True ) HIDDEN=False(expected False) | 'CONTROL_QAUTO_S1'
 
 $ mutation specs
-at429-content-visibility-hidden        2/2 mutations killed
+at429-content-visibility-hidden        4/4 mutations killed
 at358-visual-order-detector            21/21 mutations killed
 at410-first-glyph-content-visibility   1/1 mutations killed
 at379-scrollable-pane-reachability     7/7 mutations killed
 at423-scroll-invariance-probe          3/3 mutations killed
 
 $ uv run pytest
-1268 passed, 2 skipped, 32 xfailed, 1 warning in 209.33s (0:03:29)
+1287 passed, 2 skipped, 33 xfailed, 1 warning in 213.54s (0:03:33)
 ```
 
-The `1268` includes the other maker loop's tests in this shared tree. This unit adds one test.
+The `1287` includes the other maker loop's tests, which share this working tree. This unit adds 21 tests: 1 in cycle 1 and 20 parametrised cases in cycle 2.
 
 ## Live browser evidence
 

@@ -68,6 +68,8 @@
     return Boolean(value) && value !== "none";
   }
 
+  const HIDES_ON = /^(block|inline-block|flex|inline-flex|grid|inline-grid|flow-root|list-item|table-cell|table-caption)$/;
+
   function paintsInk(el) {
     const style = window.getComputedStyle(el);
     if (style.visibility === "hidden") return false;
@@ -81,13 +83,14 @@
     // be falsified: the opacity and visibility mutations would survive and C7's
     // kills would become vacuous. Each rule answers for itself.
     if (el.checkVisibility && !el.checkVisibility()) return false;
-    // `checkVisibility()` catches text whose ANCESTOR is `content-visibility:
-    // hidden`, but not text whose own PARENT is: that element's box stays laid
-    // out, so it is "visible" and its hidden contents were reported (AT-429),
-    // interleaving with the visible line beside its zero-height box. Only the
-    // parent is checked here, on purpose — measured, the ancestor case is
-    // already `checkVisibility()`'s, and a walk would duplicate it unfalsifiably.
-    if (style.contentVisibility === "hidden") return false;
+    // `checkVisibility()` misses text whose own PARENT is `content-visibility:
+    // hidden` (AT-429; the ancestor case is already its). But `hidden` only hides
+    // on a box that takes containment, and computed style says `hidden` either
+    // way: on inline, ruby, table rows, `table` itself and `contents`, Chromium
+    // PAINTS the text (AT-437). HIDES_ON is measured by screenshot diff, see
+    // qa/evidence/at429-content-visibility-hidden/groundtruth.py. An ALLOW-list:
+    // an unmeasured display is reported — a false positive, never a missed credential.
+    if (style.contentVisibility === "hidden" && HIDES_ON.test(style.display)) return false;
     // A zero alpha paints a box and shows nothing (AT-363). Anchored to the
     // FOUR-component form on purpose: the first regex also matched `rgb(0,0,0)`
     // and read the BLUE channel as alpha, so black text counted as transparent

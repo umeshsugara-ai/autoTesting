@@ -19,6 +19,10 @@ checkers used on this repo and it is the reason to trust a negative at all.
 
 from __future__ import annotations
 
+import re
+
+import pytest
+
 from autotester.browser.observe import visual_text
 
 SECRET = "ZEBRA_QUILT_APIKEY_31"
@@ -197,3 +201,67 @@ def test_the_first_call_on_a_content_visibility_subtree_drops_no_glyph(page_fact
     assert "CVAUTO_SENTINEL_91" in first, first
     assert "CVAUTO_SECOND_92" in first, first
     assert "Quarterly report" in first, first
+
+
+CV_PAINTS = {
+    "block": False,
+    "inline": True,
+    "inline-block": False,
+    "flex": False,
+    "inline-flex": False,
+    "grid": False,
+    "inline-grid": False,
+    "flow-root": False,
+    "list-item": False,
+    "table-cell": False,
+    "table-caption": False,
+    "table": True,
+    "inline-table": True,
+    "table-row": True,
+    "table-row-group": True,
+    "table-header-group": True,
+    "table-footer-group": True,
+    "contents": True,
+    "ruby": True,
+    "ruby-text": True,
+}
+"""Does `content-visibility:hidden` leave each display type's text PAINTED?
+
+MEASURED, not read off the CSS spec. Take a screenshot, make the text
+transparent, take another, and compare: if they differ, the text was painted.
+Source of truth:
+qa/evidence/at429-content-visibility-hidden/groundtruth.py. Reading the spec
+would have got `table` and `inline-table` wrong: both paint their text."""
+
+
+def _cv_sentinel(display: str) -> str:
+    return "CVD_" + re.sub(r"[^A-Z]", "_", display.upper()) + "_S"
+
+
+@pytest.mark.parametrize("display", [
+    # AT-438, pre-existing and NOT this guard: `checkVisibility()` is false on a
+    # `display:contents` box, so its painted text is dropped before the
+    # content-visibility guard is ever consulted -- the code before AT-429
+    # dropped it too. Strict, so fixing AT-438 fails loudly here.
+    pytest.param(d, marks=pytest.mark.xfail(strict=True, reason="AT-438")) if d == "contents" else d
+    for d in CV_PAINTS
+])
+def test_content_visibility_hidden_is_reported_exactly_where_it_paints(
+    page_factory, display: str
+) -> None:
+    """AT-437: the AT-429 fix dropped VISIBLE text on inline, ruby and table rows.
+
+    Computed style says `hidden` on every one of these boxes. The guard read
+    computed style, so it dropped text a reader could see. Both directions come
+    from the same measurement. Painted text must be REPORTED (the AT-437 false
+    negative). Unpainted text must NOT be (the AT-429 false positive). A guard
+    that fired everywhere, or nowhere, fails half of these."""
+    page, visit = page_factory
+    visit("cvdisplay.html")
+
+    seen = visual_text(page)
+    assert "Quarterly report" in seen, seen
+    if CV_PAINTS[display]:
+        assert _cv_sentinel(display) in seen, f"{display} paints but was dropped: {seen}"
+    else:
+        assert _cv_sentinel(display) not in seen, f"{display} hides but was reported: {seen}"

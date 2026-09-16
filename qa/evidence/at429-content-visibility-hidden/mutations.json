@@ -5,16 +5,38 @@
   ],
   "mutations": [
     {
-      "name": "AT-429 reopens: text whose own parent is content-visibility:hidden is reported",
+      "name": "AT-437 reopens: the guard ignores display, so painted inline/ruby/table text is dropped",
       "file": "src/autotester/browser/visual_order.js",
-      "old": "    if (style.contentVisibility === \"hidden\") return false;",
-      "new": "    // parent content-visibility guard removed",
+      "old": "    if (style.contentVisibility === \"hidden\" && HIDES_ON.test(style.display)) return false;",
+      "new": "    if (style.contentVisibility === \"hidden\") return false;",
       "kills": [
+        "tests/test_browser_visual_order.py::test_content_visibility_hidden_is_reported_exactly_where_it_paints[inline]",
+        "tests/test_browser_visual_order.py::test_content_visibility_hidden_is_reported_exactly_where_it_paints[ruby]",
+        "tests/test_browser_visual_order.py::test_content_visibility_hidden_is_reported_exactly_where_it_paints[ruby-text]"
+      ]
+    },
+    {
+      "name": "AT-429 reopens: no content-visibility guard at all, so hidden direct text is reported",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "    if (style.contentVisibility === \"hidden\" && HIDES_ON.test(style.display)) return false;",
+      "new": "    // content-visibility guard removed",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_content_visibility_hidden_is_reported_exactly_where_it_paints[block]",
+        "tests/test_browser_visual_order.py::test_content_visibility_hidden_is_reported_exactly_where_it_paints[flex]",
         "tests/test_browser_unreadable.py::test_content_visibility_hidden_is_not_reported_nor_garbles_its_neighbour"
       ]
     },
     {
-      "name": "AT-429 division of labour: without checkVisibility the NESTED hidden text leaks",
+      "name": "the allow-list loses a measured hiding display (table-cell), so its hidden text leaks",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "  const HIDES_ON = /^(block|inline-block|flex|inline-flex|grid|inline-grid|flow-root|list-item|table-cell|table-caption)$/;",
+      "new": "  const HIDES_ON = /^(block|inline-block|flex|inline-flex|grid|inline-grid|flow-root|list-item|table-caption)$/;",
+      "kills": [
+        "tests/test_browser_visual_order.py::test_content_visibility_hidden_is_reported_exactly_where_it_paints[table-cell]"
+      ]
+    },
+    {
+      "name": "division of labour: without checkVisibility the NESTED hidden text leaks",
       "file": "src/autotester/browser/visual_order.js",
       "old": "    if (el.checkVisibility && !el.checkVisibility()) return false;",
       "new": "    if (false) return false;",

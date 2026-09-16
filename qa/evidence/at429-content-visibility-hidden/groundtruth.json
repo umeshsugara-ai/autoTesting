@@ -1,0 +1,102 @@
+[
+  {
+    "case": "block",
+    "display": "block",
+    "painted": false
+  },
+  {
+    "case": "inline",
+    "display": "inline",
+    "painted": true
+  },
+  {
+    "case": "inline-block",
+    "display": "inline-block",
+    "painted": false
+  },
+  {
+    "case": "flex",
+    "display": "flex",
+    "painted": false
+  },
+  {
+    "case": "inline-flex",
+    "display": "inline-flex",
+    "painted": false
+  },
+  {
+    "case": "grid",
+    "display": "grid",
+    "painted": false
+  },
+  {
+    "case": "inline-grid",
+    "display": "inline-grid",
+    "painted": false
+  },
+  {
+    "case": "flow-root",
+    "display": "flow-root",
+    "painted": false
+  },
+  {
+    "case": "list-item",
+    "display": "list-item",
+    "painted": false
+  },
+  {
+    "case": "table-cell",
+    "display": "table-cell",
+    "painted": false
+  },
+  {
+    "case": "table-caption",
+    "display": "table-caption",
+    "painted": false
+  },
+  {
+    "case": "table",
+    "display": "table",
+    "painted": true
+  },
+  {
+    "case": "inline-table",
+    "display": "inline-table",
+    "painted": true
+  },
+  {
+    "case": "table-row",
+    "display": "table-row",
+    "painted": true
+  },
+  {
+    "case": "table-row-group",
+    "display": "table-row-group",
+    "painted": true
+  },
+  {
+    "case": "table-header-group",
+    "display": "table-header-group",
+    "painted": true
+  },
+  {
+    "case": "table-footer-group",
+    "display": "table-footer-group",
+    "painted": true
+  },
+  {
+    "case": "contents",
+    "display": "contents",
+    "painted": true
+  },
+  {
+    "case": "ruby",
+    "display": "ruby",
+    "painted": true
+  },
+  {
+    "case": "ruby-text",
+    "display": "ruby-text",
+    "painted": true
+  }
+]

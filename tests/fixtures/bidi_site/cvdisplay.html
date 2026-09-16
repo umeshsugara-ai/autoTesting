@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>content-visibility by display</title>
+<!-- AT-437. Computed style reports `content-visibility:hidden` as `hidden` on EVERY box it
+     is set on, but the text is only hidden on a box that takes containment. Each case sits
+     in its own spaced block so no two share a screen row and interleave. Whether each one
+     PAINTS was measured by screenshot diff, not read off the spec:
+     qa/evidence/at429-content-visibility-hidden/groundtruth.py. Reading the spec would have
+     got `table` and `inline-table` wrong: both paint their text anyway. -->
+<p>Quarterly report for the trainers list</p>
+<div style="margin:40px 0"><div style="content-visibility:hidden">CVD_BLOCK_S</div></div>
+<div style="margin:40px 0"><span style="content-visibility:hidden">CVD_INLINE_S</span></div>
+<div style="margin:40px 0"><span style="display:inline-block;content-visibility:hidden">CVD_INLINE_BLOCK_S</span></div>
+<div style="margin:40px 0"><div style="display:flex;content-visibility:hidden">CVD_FLEX_S</div></div>
+<div style="margin:40px 0"><span style="display:inline-flex;content-visibility:hidden">CVD_INLINE_FLEX_S</span></div>
+<div style="margin:40px 0"><div style="display:grid;content-visibility:hidden">CVD_GRID_S</div></div>
+<div style="margin:40px 0"><span style="display:inline-grid;content-visibility:hidden">CVD_INLINE_GRID_S</span></div>
+<div style="margin:40px 0"><div style="display:flow-root;content-visibility:hidden">CVD_FLOW_ROOT_S</div></div>
+<div style="margin:40px 0"><ul><li style="content-visibility:hidden">CVD_LIST_ITEM_S</li></ul></div>
+<div style="margin:40px 0"><table><tr><td style="content-visibility:hidden">CVD_TABLE_CELL_S</td></tr></table></div>
+<div style="margin:40px 0"><table><caption style="content-visibility:hidden">CVD_TABLE_CAPTION_S</caption><tr><td>c</td></tr></table></div>
+<div style="margin:40px 0"><table style="content-visibility:hidden"><tr><td>CVD_TABLE_S</td></tr></table></div>
+<div style="margin:40px 0"><table style="display:inline-table;content-visibility:hidden"><tr><td>CVD_INLINE_TABLE_S</td></tr></table></div>
+<div style="margin:40px 0"><table><tr style="content-visibility:hidden"><td>CVD_TABLE_ROW_S</td></tr></table></div>
+<div style="margin:40px 0"><table><tbody style="content-visibility:hidden"><tr><td>CVD_TABLE_ROW_GROUP_S</td></tr></tbody></table></div>
+<div style="margin:40px 0"><table><thead style="content-visibility:hidden"><tr><td>CVD_TABLE_HEADER_GROUP_S</td></tr></thead></table></div>
+<div style="margin:40px 0"><table><tfoot style="content-visibility:hidden"><tr><td>CVD_TABLE_FOOTER_GROUP_S</td></tr></tfoot></table></div>
+<div style="margin:40px 0"><div style="display:contents;content-visibility:hidden">CVD_CONTENTS_S</div></div>
+<div style="margin:40px 0"><ruby style="content-visibility:hidden">CVD_RUBY_S<rt>r</rt></ruby></div>
+<div style="margin:40px 0"><ruby>BASE<rt style="content-visibility:hidden">CVD_RUBY_TEXT_S</rt></ruby></div>
