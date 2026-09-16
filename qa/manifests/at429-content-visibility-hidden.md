@@ -191,12 +191,12 @@ shorter, and every line of it can be falsified.
 | **nested** hidden text is `checkVisibility()`'s job, and the two guards do not overlap | `…not_reported_nor_garbles…`, `…[closed-details]` | bypass `checkVisibility()` | KILLED (row 4) |
 
 ```
-$ uv run python scripts/mutation_check.py qa/evidence/at429-content-visibility-hidden/mutations.json
-KILLED  AT-429 reopens: text whose own parent is content-visibility:hidden is reported  (pytest exit 1)
-KILLED  AT-429 division of labour: without checkVisibility the NESTED hidden text leaks  (pytest exit 1)
-    claims to kill : …::test_content_visibility_hidden_is_not_reported_nor_garbles_its_neighbour, …::test_text_a_reader_cannot_see_is_not_reported[closed-details]
-    actually failed: …::test_content_visibility_hidden_is_not_reported_nor_garbles_its_neighbour, …::test_text_a_reader_cannot_see_is_not_reported[closed-details]
-2/2 mutations killed
+$ uv run python scripts/mutation_check.py qa/evidence/at429-content-visibility-hidden/mutations.json   (cycle 2)
+KILLED  AT-437 reopens: the guard ignores display, so painted inline/ruby/table text is dropped  (pytest exit 1)
+KILLED  AT-429 reopens: no content-visibility guard at all, so hidden direct text is reported  (pytest exit 1)
+KILLED  the allow-list loses a measured hiding display (table-cell), so its hidden text leaks  (pytest exit 1)
+KILLED  division of labour: without checkVisibility the NESTED hidden text leaks  (pytest exit 1)
+4/4 mutations killed
 ```
 
 **The boundary is asserted in the test.** `content-visibility:auto` text must still be reported in
@@ -268,4 +268,20 @@ No product page, template or route changed.
 - **It does not close AT-404 / AT-436.** It asks the checker to verify the ledger repair; closing
   them is the checker's job.
 
-## Status: ready-for-check
+## Known limits recorded at close-out (from the cycle-2 checker, none charged)
+
+- **AT-440 (low): the allow-list misses five display types that do hide text:** `-webkit-box`,
+  `-webkit-inline-box`, `flow-root list-item`, `block ruby`, and `block math`. They are reported,
+  which is a false positive, the side the allow-list is designed to fail on. `-webkit-box` is the
+  common line-clamp idiom, so this will show up on real pages.
+- **The ground-truth method has a blind spot.** Setting `color: transparent` also recolours a
+  `currentColor` border, so it can read "paints" when no text shows (for example an open `<dialog>`
+  or a `<select>`). That error only keeps a display type out of `HIDES_ON`, which is a false
+  positive and never a missed credential, and no entry currently in the list is affected. **Future
+  measurements should remove or replace the text node instead**, as the checker's independent runs
+  did. All three methods agree on all 20 committed cases.
+- **`[table-caption]` can pass by accident when the whole guard is removed**, because its sentinel
+  interleaves with the next cell's text. Removing that one entry from `HIDES_ON` still fails the
+  test, so the entry itself is covered.
+
+## Status: checked-PASS (cycle 2, verdict qa/verdicts/at429-content-visibility-hidden.md — pushed by the checker per D-007, `e4d1350`)

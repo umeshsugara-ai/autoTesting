@@ -9,6 +9,13 @@ element's text transparent, screenshot again. Identical -> the text was never
 painted (content-visibility took effect). Different -> it was painted, and a
 detector that drops it has manufactured a false negative.
 
+KNOWN BLIND SPOT (found by the at429 cycle-2 checker): `color: transparent` also
+recolours a `currentColor` border, so a box whose border changes reads "painted"
+even when no text shows (an open <dialog>, a <select>). The error only ever keeps a
+display type OUT of HIDES_ON, which is a false positive and never a missed
+credential, and all 20 cases here agree with two independent methods. For NEW
+measurements, remove or replace the text node instead of recolouring it.
+
 Run:  uv run python qa/evidence/at429-content-visibility-hidden/groundtruth.py
 """
 import hashlib
