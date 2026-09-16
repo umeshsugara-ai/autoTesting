@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Scrolled panes</title>
+<!-- AT-392: panes a reader has ALREADY scrolled.
+
+     This page is deliberately SHORT and the panes sit at the top, so the window
+     itself never scrolls. That is not cosmetic. On the tall `unreadable.html`
+     the window was scrolled ~1600px, and the document-edge rule adds
+     `window.scrollY` — so every glyph tested as reachable on the window's offset
+     alone and the scrolled-pane mutation SURVIVED. The pane's own contribution
+     is only isolated when the window contributes nothing. -->
+<p>Quarterly report for the trainers list</p>
+<div id="pane" style="height:40px;overflow:auto;width:300px">
+  <p>SCROLLED_TOP_SENTINEL_D1</p>
+  <p style="margin-top:400px">SCROLLED_BOTTOM_SENTINEL_D2</p>
+</div>
+<div id="hpane" style="width:200px;overflow-x:auto;white-space:nowrap">
+  <span>SCROLLED_LEFT_SENTINEL_D3</span>
+  <span style="margin-left:600px">SCROLLED_RIGHT_SENTINEL_D4</span>
+</div>

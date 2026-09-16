@@ -117,46 +117,71 @@
   // Per axis, deliberately. `overflow-y:auto; overflow-x:hidden` is an ordinary
   // pane, and it really does hide what runs off its right edge while really
   // exposing what runs off its bottom.
-  function clipRect(el) {
+  // Returns `{clip, scrollX, scrollY}`. `scrollX`/`scrollY` are how far this
+  // element has ALREADY been scrolled away from its document origin — the
+  // window's own offset plus every scrollable ancestor's — and they are what
+  // makes the document-edge test in `isReachable` true rather than nearly true
+  // (AT-392). A pane scrolled down pushes its first line to a negative viewport
+  // y; the reader scrolls the pane back up and reads it, so it is reachable and
+  // must not be dropped. Only `window.scrollY` was added before, so the window
+  // case worked and the pane case did not.
+  function reachOf(el) {
+    let scrollX = window.scrollX;
+    let scrollY = window.scrollY;
     for (let node = el; node && node !== document.documentElement; node = node.parentElement) {
       const style = window.getComputedStyle(node);
-      if (style.clipPath !== "none") return node.getBoundingClientRect();
+      if (style.clipPath !== "none") {
+        return { clip: node.getBoundingClientRect(), scrollX, scrollY };
+      }
       if (style.overflow === "visible") continue;
       const box = node.getBoundingClientRect();
       const scrollsY = SCROLLS.test(style.overflowY) && node.scrollHeight > node.clientHeight;
       const scrollsX = SCROLLS.test(style.overflowX) && node.scrollWidth > node.clientWidth;
+      if (scrollsX) scrollX += node.scrollLeft;
+      if (scrollsY) scrollY += node.scrollTop;
       if (scrollsX && scrollsY) continue;
-      return {
+      const clip = {
         left: scrollsX ? -Infinity : box.left,
         right: scrollsX ? Infinity : box.right,
         top: scrollsY ? -Infinity : box.top,
         bottom: scrollsY ? Infinity : box.bottom,
       };
+      return { clip, scrollX, scrollY };
     }
-    return null;
+    return { clip: null, scrollX, scrollY };
   }
 
-  function isReachable(rect, clip) {
+  function isReachable(rect, reach) {
     // Off the DOCUMENT's left edge or above its top cannot be scrolled to.
     // Further down or right can be, so those stay.
     //
-    // The scroll offsets are load-bearing (AT-373). The first version of this
-    // rule tested `rect.right <= 0` against the VIEWPORT, and a client rect is
-    // viewport-relative, so on a scrolled page everything above the fold tested
-    // as unreachable and silently vanished from the result. That is a false
-    // NEGATIVE of the AT-355 shape — a credential rendering in plain type while
-    // this returns a clean string — manufactured by the fix for the false
-    // positives. The next unit wires this into a crawl that scrolls, so it
-    // would have shipped straight into the one caller that triggers it.
+    // THIS LINE HAS NOW BEEN WRONG THREE TIMES, each time in the same direction
+    // — a false NEGATIVE of the AT-355 shape, a credential rendering in plain
+    // type while this returns a clean string — and each time introduced by a fix
+    // for false POSITIVES. Worth recording, because the pattern is the lesson:
     //
-    // The clip intersection below stays viewport-relative, which is right for a
-    // pane the WINDOW scrolled — the pane and its content move together. It is
-    // NOT right when the pane itself is what scrolled, and the earlier version
-    // of this comment claimed otherwise (AT-379). `clipRect` now answers that by
-    // refusing to report a scrollable pane as a clip at all, so by the time a
-    // box reaches here it really is a boundary a reader cannot cross.
-    if (rect.right + window.scrollX <= 0) return false;
-    if (rect.bottom + window.scrollY <= 0) return false;
+    //   AT-373  tested `rect.right <= 0` against the viewport. A client rect is
+    //           viewport-relative, so on a scrolled page everything above the
+    //           fold tested as unreachable and vanished.
+    //   AT-379  treated a scrollable pane's box as a hard clip, so anything
+    //           below the pane's fold vanished.
+    //   AT-392  added only `window.scrollX/Y`, so a pane the reader had already
+    //           SCROLLED pushed its earlier lines to negative viewport
+    //           coordinates and they vanished — the other half of what AT-379
+    //           was filed for.
+    //
+    // Each fix asked "can a reader SEE this?" and forgot to ask "can a reader
+    // REACH it?". `reach.scrollX/scrollY` carry the accumulated offset of the
+    // window AND every scrollable ancestor, which is the whole answer to the
+    // second question: a glyph is unreachable only if it sits before the
+    // document origin even after everything scrollable is scrolled back.
+    //
+    // The clip intersection below stays viewport-relative, which is right
+    // because `reachOf` never reports a scrollable pane as a clip — so a box
+    // that reaches here really is a boundary a reader cannot cross.
+    if (rect.right + reach.scrollX <= 0) return false;
+    if (rect.bottom + reach.scrollY <= 0) return false;
+    const clip = reach.clip;
     if (!clip) return true;
     return rect.right > clip.left && rect.left < clip.right &&
            rect.bottom > clip.top && rect.top < clip.bottom;
@@ -164,7 +189,7 @@
 
   // ---- measurement --------------------------------------------------------
 
-  function glyphsOf(node, clip, checkReachable, mask) {
+  function glyphsOf(node, reach, checkReachable, mask) {
     const text = node.nodeValue;
     const out = [];
     for (let i = 0; i < text.length; i += 1) {
@@ -183,7 +208,7 @@
       // every U+200B and reproduced, inside this instrument, exactly the
       // blindness the instrument exists to remove.
       if (rect.width === 0) continue;
-      if (checkReachable && !isReachable(rect, clip)) continue;
+      if (checkReachable && !isReachable(rect, reach)) continue;
       const ch = mask ? BULLET : text[i];
       out.push({ ch, text: ch, x: rect.left, y: rect.top });
     }
@@ -250,7 +275,7 @@
   while (node) {
     const parent = node.parentElement;
     if (node.nodeValue && node.nodeValue.trim() && parent && paintsInk(parent)) {
-      const glyphs = glyphsOf(node, clipRect(parent), true, masksText(parent));
+      const glyphs = glyphsOf(node, reachOf(parent), true, masksText(parent));
       for (const item of glyphs) items.push(item);
     }
     node = walker.nextNode();
@@ -258,7 +283,7 @@
 
   for (const control of document.querySelectorAll("input, textarea")) {
     if (!paintsInk(control)) continue;
-    if (!isReachable(control.getBoundingClientRect(), clipRect(control))) continue;
+    if (!isReachable(control.getBoundingClientRect(), reachOf(control))) continue;
     for (const item of mirrorGlyphs(control)) items.push(item);
   }
 

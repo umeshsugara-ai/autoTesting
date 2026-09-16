@@ -15,7 +15,7 @@
 <!-- AT-372: a CLOSED <details> lays its body out and shows only the summary.
      The browser holds the body at content-visibility:hidden so find-in-page
      can still reach it — which is exactly a reader not seeing it. -->
-<details><summary>Appendix</summary><p>DETAILSBODY_SENTINEL_77</p></details>
+<details><summary>Appendix</summary><p>body: DETAILSBODY_SENTINEL_77</p></details>
 <!-- AT-373: the page must be TALLER than the viewport, so a test can scroll it
      and pin that the result does not depend on where the page is scrolled to.
      Without this the off-left rule silently dropped everything above the fold. -->

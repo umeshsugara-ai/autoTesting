@@ -207,10 +207,28 @@ def test_a_failure_tail_is_bounded_rather_than_the_whole_log(
 def test_each_run_is_isolated_from_the_ones_before_it(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """`-p no:cacheprovider` and `-o addopts=` are not cosmetic. Without the first,
-    pytest's cache lets one run inform the next, and a probe whose trials are not
-    independent cannot support a binomial bound at all — every number this tool
-    prints would be wrong in a way no assertion above would catch."""
+    """Both flags are pinned because both are deliberate, and for DIFFERENT reasons.
+
+    `-o addopts=` neutralises `pyproject.toml:62`'s `addopts = "-q"`, which would
+    otherwise combine with our own `-q` to make every invocation `-qq`. I nearly
+    shipped "without it the failing output is suppressed" as the reason — while
+    fixing an over-claim — and measured it instead: the traceback is captured
+    either way, and the whole difference is ONE line (`1 failed in Xs`), 11 lines
+    against 12. Worth pinning as a deliberate choice; not load-bearing.
+
+    `-p no:cacheprovider` is **defensive hygiene, not a correctness precondition**
+    — AT-396, and my earlier claim here was wrong. I wrote that pytest's cache
+    "lets one run inform the next" so that trials would not be independent and no
+    binomial bound could stand. A checker measured it rather than arguing: pytest
+    writes `lastfailed`, but the next identical invocation still collects every
+    test, because selection is only informed by that cache under `--lf`/`--ff`/
+    `--sw`, none of which `run_once` passes. What the flag actually buys is that
+    41 trials do not race each other writing a shared `.pytest_cache` — worth
+    having in a repo that has already had a shared-temp-dir race (AT-357), but not
+    the foundation of the statistics.
+
+    Both are pinned anyway: a flag nobody asserts is a flag a future edit drops
+    for free. What changed is the REASON recorded next to them, not the test."""
     seen: list[list[str]] = []
 
     def capture(cmd: list[str], **_kwargs: object) -> _FakeCompleted:
@@ -245,3 +263,23 @@ def test_the_probe_runs_every_trial_even_after_one_fails(
     assert calls == [1, 2, 3, 4, 5], "all five trials ran, in order, past the failure"
     assert len(summary.runs) == 5
     assert [r.index for r in summary.failures] == [2]
+
+
+def test_the_isolation_flags_are_not_described_as_load_bearing() -> None:
+    """AT-396. This file twice explained WHY those two flags are there, and twice
+    the explanation was stronger than the facts — `no:cacheprovider` described as
+    the precondition for the binomial bound (it is not: selection only reads that
+    cache under --lf/--ff/--sw), and, in the first draft of this very fix,
+    `-o addopts=` described as the thing that keeps failure output from being
+    suppressed (it is not: the traceback survives either way; the difference is
+    one summary line).
+
+    A docstring is where a confident, unmeasured justification survives longest,
+    because nothing executes it. So pin it: the two refuted claims must not come
+    back, and the measured wording must stay."""
+    doc = test_each_run_is_isolated_from_the_ones_before_it.__doc__ or ""
+
+    assert "cannot support a binomial bound" not in doc, "the refuted claim is back"
+    assert "output this probe exists to capture is suppressed" not in doc
+    assert "defensive hygiene, not a correctness precondition" in doc
+    assert "not load-bearing" in doc

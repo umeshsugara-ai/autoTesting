@@ -128,7 +128,7 @@
     {
       "name": "AT-363: unreachable glyphs are reported (off-left and clipped)",
       "file": "src/autotester/browser/visual_order.js",
-      "old": "      if (checkReachable && !isReachable(rect, clip)) continue;",
+      "old": "      if (checkReachable && !isReachable(rect, reach)) continue;",
       "new": "      if (false) continue;",
       "kills": [
         "tests/test_browser_unreadable.py::test_text_a_reader_cannot_see_is_not_reported[text-indent-offscreen]",
@@ -176,7 +176,7 @@
     {
       "name": "AT-372: a masked TEXT RUN is reported in cleartext",
       "file": "src/autotester/browser/visual_order.js",
-      "old": "      const glyphs = glyphsOf(node, clipRect(parent), true, masksText(parent));",
+      "old": "      const glyphs = glyphsOf(node, reachOf(parent), true, masksText(parent));",
       "new": "      const glyphs = glyphsOf(node, clipRect(parent), true, false);",
       "kills": [
         "tests/test_browser_unreadable.py::test_a_masked_run_is_reported_as_the_bullets_it_shows"
@@ -194,7 +194,7 @@
     {
       "name": "AT-373: reachability is tested against the VIEWPORT, so scrolling loses text",
       "file": "src/autotester/browser/visual_order.js",
-      "old": "    if (rect.right + window.scrollX <= 0) return false;\n    if (rect.bottom + window.scrollY <= 0) return false;",
+      "old": "    if (rect.right + reach.scrollX <= 0) return false;\n    if (rect.bottom + reach.scrollY <= 0) return false;",
       "new": "    if (rect.right <= 0 || rect.bottom <= 0) return false;",
       "kills": [
         "tests/test_browser_unreadable.py::test_the_result_does_not_depend_on_where_the_page_is_scrolled"

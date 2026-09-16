@@ -19,11 +19,8 @@ checkers used on this repo and it is the reason to trust a negative at all.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from autotester.browser.observe import visual_text
 
-SITE = Path(__file__).resolve().parent / "fixtures" / "bidi_site"
 SECRET = "ZEBRA_QUILT_APIKEY_31"
 CSS_SECRET = "MARIGOLD_LEDGER_KEY_77"
 """A distinct sentinel for the CSS-override field.

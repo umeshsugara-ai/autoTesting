@@ -8,11 +8,15 @@ a box can be painted and show nothing, and reporting it costs the false-positive
 rate that is a term in this product's north star.
 
 AT-363 was six such constructs. AT-372 added a closed `<details>` and
-`-webkit-text-security`. AT-373 and AT-379 are the two occasions when a fix for
+`-webkit-text-security`. AT-373, AT-379 and AT-392 are the three occasions when a fix for
 these false positives manufactured a false NEGATIVE of the AT-355 shape instead
-— text lost above the scroll fold, and text lost below the fold of a scrollable
-pane. Every test here that asserts something is not reported is paired with a
-positive control on the same page.
+— text lost above the window's scroll fold, text lost below the fold of a
+scrollable pane, and text lost before the offset of a pane already scrolled.
+All three are the same mistake: asking whether a reader can SEE something and
+forgetting to ask whether they can REACH it.
+
+Every test here that asserts something is not reported is paired with a positive
+control on the same page.
 """
 
 from __future__ import annotations
@@ -143,3 +147,51 @@ def test_text_below_the_fold_of_a_scrollable_pane_is_reported(page_factory) -> N
     assert "SCROLLPANE_BELOW_SENTINEL_A2" in seen, seen
     assert "HIDDENPANE_TOP_SENTINEL_B1" in seen, seen
     assert "HIDDENPANE_BELOW_SENTINEL_B2" not in seen, seen
+
+
+def test_a_pane_the_reader_already_scrolled_loses_nothing(page_factory) -> None:
+    """AT-392 — the other half of AT-379, and the THIRD time this one line has
+    been wrong in the same direction.
+
+    A pane scrolled away from its origin pushes its earlier lines to negative
+    viewport coordinates, and the document-edge rule dropped them because it
+    added only `window.scrollX/scrollY`. The reader scrolls the pane back and
+    reads them, so they are reachable. Each of AT-373, AT-379 and AT-392 was a
+    fix for false POSITIVES that manufactured a false NEGATIVE of the AT-355
+    shape, by asking whether a reader can SEE something and forgetting to ask
+    whether they can REACH it.
+
+    It uses its own SHORT page, and that is load-bearing rather than tidiness:
+    on the tall `unreadable.html` the window itself scrolls ~1600px, the
+    document-edge rule adds `window.scrollY`, and every glyph then tests as
+    reachable on the window's offset alone. The mutation that removes the pane's
+    contribution SURVIVED twice against that fixture — a test that looked like it
+    covered this and did not. The pane's own offset is only isolated when the
+    window contributes nothing.
+
+    The assertion is that the same CHARACTERS come back, not the same string.
+    When the window scrolls, everything moves together and reading order is
+    preserved, so that test asserts equality. When a PANE scrolls, its content
+    genuinely moves relative to everything outside it, so the visual order really
+    does change and a detector reporting visual order must report the new one.
+    Sorting both sides pins the only thing that must not change: nothing dropped,
+    nothing invented.
+    """
+    page, visit = page_factory
+    visit("scrolled_panes.html")
+    assert page.evaluate("window.scrollY") == 0, "fixture must not scroll the window"
+
+    at_origin = visual_text(page)
+
+    page.eval_on_selector("#pane", "el => { el.scrollTop = el.scrollHeight; }")
+    page.eval_on_selector("#hpane", "el => { el.scrollLeft = el.scrollWidth; }")
+    assert page.eval_on_selector("#pane", "el => el.scrollTop") > 0, "pane did not scroll"
+    assert page.eval_on_selector("#hpane", "el => el.scrollLeft") > 0, "hpane did not scroll"
+
+    scrolled = visual_text(page)
+    assert sorted(scrolled) == sorted(at_origin)
+    # Named explicitly too, so a failure says WHICH pane lost its text rather
+    # than only that two sorted strings differ.
+    for sentinel in ("SCROLLED_TOP_SENTINEL_D1", "SCROLLED_BOTTOM_SENTINEL_D2",
+                     "SCROLLED_LEFT_SENTINEL_D3", "SCROLLED_RIGHT_SENTINEL_D4"):
+        assert sentinel in scrolled, (sentinel, scrolled)

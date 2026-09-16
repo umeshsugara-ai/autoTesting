@@ -31,6 +31,24 @@
       "kills": [
         "tests/test_browser_unreadable.py::test_text_below_the_fold_of_a_scrollable_pane_is_reported"
       ]
+    },
+    {
+      "name": "AT-392: a vertically scrolled pane's earlier lines are dropped again",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "      if (scrollsY) scrollY += node.scrollTop;",
+      "new": "      if (false) scrollY += node.scrollTop;",
+      "kills": [
+        "tests/test_browser_unreadable.py::test_a_pane_the_reader_already_scrolled_loses_nothing"
+      ]
+    },
+    {
+      "name": "AT-392: a horizontally scrolled pane's earlier columns are dropped again",
+      "file": "src/autotester/browser/visual_order.js",
+      "old": "      if (scrollsX) scrollX += node.scrollLeft;",
+      "new": "      if (false) scrollX += node.scrollLeft;",
+      "kills": [
+        "tests/test_browser_unreadable.py::test_a_pane_the_reader_already_scrolled_loses_nothing"
+      ]
     }
   ]
 }
