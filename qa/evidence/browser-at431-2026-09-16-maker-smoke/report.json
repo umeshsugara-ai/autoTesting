@@ -1,0 +1,15 @@
+{
+  "unit": "at431-report-download-no-runs",
+  "role": "maker SMOKE only - not validation; the checker runs its own Mode D",
+  "date": "2026-09-16T12:42Z",
+  "server": "uvicorn from isolated git-archive extract (HEAD + routes_report.py + new test), port 8031",
+  "autotester_root": "scratchpad/at433root - only projects/regression-demo (synthetic, no runs)",
+  "interactions": [
+    {"did": "open /projects/regression-demo/report", "expected": "no-runs empty state, no download buttons", "observed": "Report page loaded (200)", "pass": true},
+    {"did": "open /projects/regression-demo/report.html directly", "expected": "themed 404 'No runs yet', not 500", "observed": "HTTP 404, title 'No runs yet — AutoTester'", "pass": true},
+    {"did": "click 'Back to the report'", "expected": "returns to /report", "observed": "URL /projects/regression-demo/report, title 'Report — AutoTester'", "pass": true},
+    {"did": "open /projects/regression-demo/report.xlsx directly", "expected": "themed 404 'No runs yet'", "observed": "HTTP 404, title 'No runs yet — AutoTester'", "pass": true}
+  ],
+  "console_errors": {"count": 2, "attribution": "Chrome 'Failed to load resource: 404' for the two deliberate no-runs URLs; no page-code errors"},
+  "not_covered": "the with-runs download path was not smoked in the browser (the synthetic root has no runs); covered by tests/test_ui_report.py::test_report_offers_real_excel_and_html_downloads, which mutation M5 proved can fail"
+}

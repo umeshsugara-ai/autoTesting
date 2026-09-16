@@ -219,9 +219,25 @@ def report(slug: str) -> str:
     return theme.page(f"Report — {safe_slug}", body, active_slug=slug)
 
 
+def _no_runs_page(slug: str) -> HTMLResponse:
+    """A download link reached with nothing to export (AT-431). The report page
+    hides the buttons when there are no runs, so this is a bookmarked or shared
+    URL — it used to be a bare 500 from the exporter's uncaught ValueError."""
+    safe_slug = escape(slug)
+    body = theme.breadcrumb(
+        ("Projects", "/"), (safe_slug, f"/projects/{safe_slug}"),
+        ("Report", f"/projects/{safe_slug}/report"), ("No runs yet", None),
+    ) + "<h1>No runs yet</h1>" + theme.empty_state(
+        "📋", "There is nothing to download until this project has been run.",
+    ) + f"<p><a href='/projects/{safe_slug}/report'>Back to the report</a></p>"
+    return HTMLResponse(theme.page("No runs yet", body, active_slug=slug), status_code=404)
+
+
 @router.get("/projects/{slug}/report.xlsx")
-def download_report_excel(slug: str) -> FileResponse:
-    _load_project_or_404(slug)
+def download_report_excel(slug: str) -> Response:
+    store, _project = _load_project_or_404(slug)
+    if not valid_runs_newest_first(store):
+        return _no_runs_page(slug)
     out = export_excel(slug, None, _reserved_temp_path(".xlsx"))
     return FileResponse(
         out, filename=f"{slug}-report.xlsx",
@@ -231,8 +247,10 @@ def download_report_excel(slug: str) -> FileResponse:
 
 
 @router.get("/projects/{slug}/report.html")
-def download_report_html(slug: str) -> FileResponse:
-    _load_project_or_404(slug)
+def download_report_html(slug: str) -> Response:
+    store, _project = _load_project_or_404(slug)
+    if not valid_runs_newest_first(store):
+        return _no_runs_page(slug)
     out = export_html(slug, None, _reserved_temp_path(".html"))
     return FileResponse(
         out, filename=f"{slug}-report.html", media_type="text/html",
