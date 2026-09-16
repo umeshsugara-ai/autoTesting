@@ -1,0 +1,451 @@
+{
+  "unit": "at438-display-contents",
+  "by": "checker (Mode D, own Chromium, own probe pages)",
+  "date": "2026-09-16",
+  "chromium": "151.0.7922.34",
+  "groundtruth": "full-page screenshot hash before/after replacing the sentinel text node with same-length different glyphs in monospace",
+  "hiding_and_visible_contexts": [
+    {
+      "case": "plain contents",
+      "reported": true,
+      "painted_groundtruth": true,
+      "correct": true,
+      "error": null,
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "open details",
+      "reported": true,
+      "painted_groundtruth": true,
+      "correct": true,
+      "error": null,
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "closed details",
+      "reported": false,
+      "painted_groundtruth": false,
+      "correct": true,
+      "error": null,
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "closed details, contents nested twice",
+      "reported": false,
+      "painted_groundtruth": false,
+      "correct": true,
+      "error": null,
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "cv:hidden block",
+      "reported": false,
+      "painted_groundtruth": false,
+      "correct": true,
+      "error": null,
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "display:none",
+      "reported": false,
+      "painted_groundtruth": false,
+      "correct": true,
+      "error": null,
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "hidden attribute",
+      "reported": false,
+      "painted_groundtruth": false,
+      "correct": true,
+      "error": null,
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "hidden=until-found",
+      "reported": false,
+      "painted_groundtruth": false,
+      "correct": true,
+      "error": null,
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "visibility:hidden ancestor",
+      "reported": false,
+      "painted_groundtruth": false,
+      "correct": true,
+      "error": null,
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "contents itself visibility:hidden",
+      "reported": false,
+      "painted_groundtruth": false,
+      "correct": true,
+      "error": null,
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "opacity:0 ancestor",
+      "reported": false,
+      "painted_groundtruth": false,
+      "correct": true,
+      "error": null,
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "zero-alpha colour ancestor",
+      "reported": false,
+      "painted_groundtruth": false,
+      "correct": true,
+      "error": null,
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "contents itself zero-alpha",
+      "reported": false,
+      "painted_groundtruth": false,
+      "correct": true,
+      "error": null,
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "overflow:hidden clip",
+      "reported": false,
+      "painted_groundtruth": false,
+      "correct": true,
+      "error": null,
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "off-screen absolute",
+      "reported": false,
+      "painted_groundtruth": false,
+      "correct": true,
+      "error": null,
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "text-indent -9999",
+      "reported": false,
+      "painted_groundtruth": false,
+      "correct": true,
+      "error": null,
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "clip-path inset 100%",
+      "reported": true,
+      "painted_groundtruth": false,
+      "correct": false,
+      "error": "FALSE_POSITIVE",
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "closed dialog",
+      "reported": false,
+      "painted_groundtruth": false,
+      "correct": true,
+      "error": null,
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "unslotted light child of shadow host",
+      "reported": false,
+      "painted_groundtruth": false,
+      "correct": true,
+      "error": null,
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "slotted light child of shadow host",
+      "reported": true,
+      "painted_groundtruth": true,
+      "correct": true,
+      "error": null,
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "cv:auto far below (scrollable)",
+      "reported": true,
+      "painted_groundtruth": false,
+      "correct": false,
+      "error": "FALSE_POSITIVE",
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "contents inside ul",
+      "reported": true,
+      "painted_groundtruth": true,
+      "correct": true,
+      "error": null,
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "contents inside tr (JS-built)",
+      "reported": true,
+      "painted_groundtruth": true,
+      "correct": true,
+      "error": null,
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "contents inside select (JS-built)",
+      "reported": false,
+      "painted_groundtruth": false,
+      "correct": true,
+      "error": null,
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "author span:empty{display:none}",
+      "reported": false,
+      "painted_groundtruth": true,
+      "correct": false,
+      "error": "FALSE_NEGATIVE",
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "author #c>span{display:none}",
+      "reported": false,
+      "painted_groundtruth": true,
+      "correct": false,
+      "error": "FALSE_NEGATIVE",
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "author :empty{display:none} universal",
+      "reported": false,
+      "painted_groundtruth": true,
+      "correct": false,
+      "error": "FALSE_NEGATIVE",
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    },
+    {
+      "case": "contents itself opacity:0 (opacity n/a on contents)",
+      "reported": false,
+      "painted_groundtruth": true,
+      "correct": false,
+      "error": "FALSE_NEGATIVE",
+      "positive_control_seen": true,
+      "sentinel_found_for_gt": true,
+      "dom_unchanged": true,
+      "console_errors": 0
+    }
+  ],
+  "probe_side_effects": [
+    {
+      "case": "MutationObserver on contents element",
+      "visual_text": "POSCTRL_OKSENTZQ_KEY",
+      "exception": null,
+      "innerHTML_unchanged": true,
+      "post": [
+        {
+          "type": "childList",
+          "target": "c",
+          "added": [
+            "SPAN"
+          ],
+          "removed": []
+        },
+        {
+          "type": "childList",
+          "target": "c",
+          "added": [],
+          "removed": [
+            "SPAN"
+          ]
+        }
+      ],
+      "positive_control_seen": true,
+      "console_errors": 0
+    },
+    {
+      "case": "animation on :last-child sibling restarts?",
+      "visual_text": "POSCTRL_OKSENTZQ_KEY",
+      "exception": null,
+      "innerHTML_unchanged": true,
+      "post": {
+        "before": [
+          [
+            "fin",
+            2983.295999990778
+          ]
+        ],
+        "after": [
+          [
+            "fin",
+            0
+          ]
+        ],
+        "op": "0"
+      },
+      "positive_control_seen": true,
+      "console_errors": 0
+    },
+    {
+      "case": "transition on :last-child sibling",
+      "visual_text": "POSCTRL_OKSENTZQ_KEYSIBLING_TRANS",
+      "exception": null,
+      "innerHTML_unchanged": true,
+      "post": {
+        "anims": [],
+        "op": "1"
+      },
+      "positive_control_seen": true,
+      "console_errors": 0
+    },
+    {
+      "case": ":has(span) on ancestor with animation",
+      "visual_text": "POSCTRL_OKSENTZQ_KEY",
+      "exception": null,
+      "innerHTML_unchanged": true,
+      "post": {
+        "before": [
+          [
+            "fin",
+            2999.898000007351
+          ]
+        ],
+        "after": [
+          [
+            "fin",
+            0
+          ]
+        ],
+        "op": "0"
+      },
+      "positive_control_seen": true,
+      "console_errors": 0
+    },
+    {
+      "case": "appendChild throws (instance override)",
+      "visual_text": "",
+      "exception": "Page.evaluate: Error: restricted children",
+      "innerHTML_unchanged": true,
+      "post": "<p style=\"margin:0 0 30px\">POSCTRL_OK</p><div id=\"c\" style=\"display:contents\">SENTZQ_KEY</div>",
+      "positive_control_seen": false,
+      "console_errors": 0
+    },
+    {
+      "case": "remove() is a no-op (prototype patch)",
+      "visual_text": "POSCTRL_OKSENTZQ_KEY",
+      "exception": null,
+      "innerHTML_unchanged": false,
+      "post": "SENTZQ_KEY<span></span>",
+      "positive_control_seen": true,
+      "console_errors": 0
+    }
+  ],
+  "regression_old_vs_new": {
+    "script": "anim.py (same dir); old = git show c687b73^:src/autotester/browser/visual_order.js",
+    "last-child sibling animation": {
+      "old_seen": "POSCTRL_OKSIBLING_ANIM",
+      "old_anim_time": "2950 -> 3000",
+      "new_seen": "POSCTRL_OKSENTZQ_KEY",
+      "new_anim_time": "3017 -> 0 (RESTARTED)",
+      "screenshots": [
+        "lastchild-anim-new-before.png (SIBLING_ANIM visible)",
+        "lastchild-anim-new-after.png (SIBLING_ANIM gone from the real page)"
+      ]
+    },
+    ":has() animation on a sibling <p> outside the contents element": {
+      "old_seen": "POSCTRL_OKHAS_TARGET",
+      "new_seen": "POSCTRL_OKSENTZQ_KEY",
+      "new_anim_time": "2983 -> 0 (RESTARTED)"
+    },
+    "control, same CSS without display:contents": {
+      "old_seen": "POSCTRL_OKSENTZQ_KEYSIBLING_ANIM",
+      "new_seen": "POSCTRL_OKSENTZQ_KEYSIBLING_ANIM",
+      "anim": "not restarted"
+    },
+    "clip-path on a plain div": "reported by old AND new: pre-existing AT-418, not this unit",
+    "opacity:0 on the contents element": "dropped by old AND new: visible text (opacity does not apply to a box-less element)"
+  },
+  "notes": [
+    "'cv:auto far below' FALSE_POSITIVE row is a ground-truth artifact (full_page screenshot does not render the skipped subtree); the text is reachable by scrolling, reporting it is the module's intended semantics. Not a finding.",
+    "'clip-path inset' FALSE_POSITIVE row is pre-existing AT-418 (same result with a plain div and the old detector).",
+    "Positive control POSCTRL_OK seen on every page except 'appendChild throws', where the whole evaluate threw. Console errors: 0 on every page."
+  ]
+}
