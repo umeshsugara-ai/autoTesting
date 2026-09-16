@@ -5,6 +5,7 @@
 **Goal task:** none (issue-driven)
 **Date:** 2026-09-16
 **Fix cycle:** 3 of max 3 — **the last one**
+**Status:** STALLED — cycle 3 FAIL (`qa/verdicts/at438-display-contents.md`, AT-453 medium: a closed `<details>` whose `::details-content` is `display:contents`/`inline` paints its body, and the check reads only its `content-visibility`; AT-454 low: closed-mode shadow `assignedSlot` is null). Max cycles reached; diagnosis at `qa/debug/at438-display-contents-cycle3.md`.
 **Dual check:** no
 **Issues addressed:** AT-438 (open → fixed) · **AT-442** (high, cycle-1 FAIL: the probe restarted author animations) · **AT-443** (medium, cycle-1: author `:empty` hid the probe) · **AT-445** (low, cycle-1: `appendChild` throwing / `remove()` patched), which no longer applies because nothing is inserted · **AT-449** (medium, cycle-2 FAIL: <details> judged by its tag) · **AT-450** (low, cycle-2: four false positives, fixed here too)
 
