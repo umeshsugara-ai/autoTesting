@@ -1,0 +1,27 @@
+{
+  "unit": "at432-off-domain-case-step",
+  "cycle_checked": 1,
+  "date": "2026-09-16",
+  "checker": "independent /checker subagent, Mode A + Mode D",
+  "instrument": "Playwright MCP (Chromium), checker-driven; maker evidence dir NOT read",
+  "server": "own uvicorn autotester.ui.app:app on 127.0.0.1:8022 from a git-archive HEAD copy outside the bound root with helpers.py, routes_cases.py and tests/test_ui_case_navigate_reachability.py layered on (cmp-identical to the working tree); projects/pathlynks, erp, vidysea-erp deleted; AUTOTESTER_ROOT = that copy; no .env present in the copy; autotester.ui.helpers.__file__ resolved inside the copy",
+  "setup": "project chk432 onboarded through the real /onboard form: base_url https://demo.test/signin, allowed_domains demo.test, one synthetic credential CHK432_LOGIN_URL (domain demo.test)",
+  "method": "for every scenario: count case rows on /projects/<slug>/cases, open /cases/new, fill title + step rows, click the real 'Add case' button, capture the POST response, re-count rows and check the title is present/absent; then cross-checked projects/<slug>/cases.jsonl on disk",
+  "scenarios": [
+    {"id": "A", "project": "chk432", "steps": "navigate https://evil.test/", "expect": "refuse", "status": 400, "detail": "this case could never run: step 1 navigates to 'evil.test', which is not covered by allowed domains ['demo.test'].", "cases_before": 0, "cases_after": 0, "saved": false, "ok": true},
+    {"id": "H", "project": "chk432", "steps": "navigate https://demo.test/signin; navigate https://evil.test/x", "expect": "refuse naming step 2", "status": 400, "detail": "this case could never run: step 2 navigates to 'evil.test', which is not covered by allowed domains ['demo.test'].", "cases_before": 0, "cases_after": 0, "saved": false, "ok": true},
+    {"id": "D", "project": "chk432", "steps": "navigate /login", "expect": "refuse", "status": 400, "detail": "this case could never run: step 1 needs a full URL, e.g. https://app.example.com/signin.", "cases_before": 0, "cases_after": 0, "saved": false, "ok": true},
+    {"id": "G", "project": "chk432", "steps": "navigate Zq9-canary-hunter2-NOT-A-HOST", "expect": "refuse, canary never echoed", "status": 400, "detail": "this case could never run: step 1 needs a full URL, e.g. https://app.example.com/signin.", "canary_in_response_body": false, "canary_in_rendered_page": false, "canary_in_server_log": false, "canary_in_cases_jsonl": false, "cases_before": 0, "cases_after": 0, "saved": false, "ok": true},
+    {"id": "B", "project": "chk432", "steps": "navigate https://demo.test/home", "expect": "save", "status": 303, "cases_before": 0, "cases_after": 1, "saved": true, "ok": true},
+    {"id": "C", "project": "chk432", "steps": "navigate https://app.demo.test/home (subdomain)", "expect": "save", "status": 303, "cases_before": 1, "cases_after": 2, "saved": true, "ok": true},
+    {"id": "E", "project": "chk432", "steps": "navigate {{SECRET:CHK432_LOGIN_URL}} (declared credential)", "expect": "save", "status": 303, "cases_before": 2, "cases_after": 3, "saved": true, "stored_as_placeholder": true, "resolved_value_on_disk": false, "ok": true},
+    {"id": "F", "project": "chk432", "steps": "navigate https://demo.test/signin; click a[href='https://evil.test']", "expect": "save", "status": 303, "cases_before": 3, "cases_after": 4, "saved": true, "ok": true},
+    {"id": "RD-off", "project": "regression-demo", "steps": "navigate https://evil.test/", "expect": "refuse", "status": 400, "detail": "this case could never run: step 1 navigates to 'evil.test', which is not covered by allowed domains ['127.0.0.1'].", "cases_before": 44, "cases_after": 44, "saved": false, "ok": true},
+    {"id": "RD-in", "project": "regression-demo", "steps": "navigate http://127.0.0.1:46661/index.html#chk432", "expect": "save", "status": 303, "cases_before": 44, "cases_after": 45, "saved": true, "ok": true}
+  ],
+  "disk_crosscheck": "chk432/cases.jsonl = 4 lines (B, C, E, F); regression-demo/cases.jsonl = 45 lines (RD-in added); no refused title present; 'evil.test' appears once in chk432 (F's click selector, expected)",
+  "server_log": "11 POSTs: onboard 303; 5x 400 (A, H, D, G, RD-off); 5x 303; canary count 0",
+  "console": {"errors": 5, "attribution": "exactly the 5 deliberate 400 responses (A, H, D, G on chk432; RD-off on regression-demo); 1 VERBOSE autocomplete hint on /onboard, not an error", "unexplained": 0},
+  "result": "10/10 scenarios as expected",
+  "cleanup": "browser closed; uvicorn (PIDs 25708/47524) stopped; scratch copy deleted after the run"
+}

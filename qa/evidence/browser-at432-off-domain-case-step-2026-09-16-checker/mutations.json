@@ -1,0 +1,94 @@
+[
+ {
+  "row": "1-delete-call",
+  "file": "src/autotester/ui/routes_cases.py",
+  "baseline": "7 passed, 1 warning in 0.64s",
+  "after": "4 failed, 3 passed, 1 warning in 1.00s",
+  "exit_after": 1,
+  "failed": [
+   "test_a_pasted_credential_in_a_navigate_target_is_not_echoed_back",
+   "test_a_relative_target_is_refused_because_the_browser_cannot_open_it",
+   "test_an_off_domain_navigate_step_is_refused_and_nothing_is_saved",
+   "test_only_the_offending_step_is_named_when_a_later_step_leaves_the_domain"
+  ],
+  "detail": [
+   "E   assert 200 == 400",
+   "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\at432\\tests\\test_ui_case_navigate_reachability.py:65: assert 200 == 400",
+   "E   assert 200 == 400",
+   "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\at432\\tests\\test_ui_case_navigate_reachability.py:78: assert 200 == 400",
+   "E   assert 200 == 400",
+   "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\at432\\tests\\test_ui_case_navigate_reachability.py:93: assert 200 == 400",
+   "E   assert 200 == 400",
+   "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\at432\\tests\\test_ui_case_navigate_reachability.py:160: assert 200 == 400"
+  ]
+ },
+ {
+  "row": "2-placeholder-skip",
+  "file": "src/autotester/ui/helpers.py",
+  "baseline": "7 passed, 1 warning in 0.86s",
+  "after": "1 failed, 6 passed, 1 warning in 0.66s",
+  "exit_after": 1,
+  "failed": [
+   "test_a_secret_placeholder_target_is_not_judged_at_creation"
+  ],
+  "detail": [
+   "E   assert 400 in (200, 303)",
+   "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\at432\\tests\\test_ui_case_navigate_reachability.py:131: assert 400 in (200, 303)"
+  ]
+ },
+ {
+  "row": "3-navigate-only",
+  "file": "src/autotester/ui/helpers.py",
+  "baseline": "7 passed, 1 warning in 0.60s",
+  "after": "1 failed, 6 passed, 1 warning in 0.60s",
+  "exit_after": 1,
+  "failed": [
+   "test_a_non_navigate_step_with_an_off_domain_looking_target_is_not_refused"
+  ],
+  "detail": [
+   "E   assert 400 in (200, 303)",
+   "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\at432\\tests\\test_ui_case_navigate_reachability.py:145: assert 400 in (200, 303)"
+  ]
+ },
+ {
+  "row": "4-hostname-guard",
+  "file": "src/autotester/ui/helpers.py",
+  "baseline": "7 passed, 1 warning in 0.69s",
+  "after": "1 failed, 6 passed, 1 warning in 0.91s",
+  "exit_after": 1,
+  "failed": [
+   "test_a_pasted_credential_in_a_navigate_target_is_not_echoed_back"
+  ],
+  "detail": [
+   "E   assert 'zq9-canary-...2-not-a-host' not in '{\"detail\":\"...o.test\\'].\"}'",
+   "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\at432\\tests\\test_ui_case_navigate_reachability.py:162: assert 'zq9-canary-...2-not-a-host' not in '{\"detail\":\"...o.test\\'].\"}'"
+  ]
+ },
+ {
+  "row": "5-save-before-check",
+  "file": "src/autotester/ui/routes_cases.py",
+  "baseline": "7 passed, 1 warning in 0.68s",
+  "after": "5 failed, 2 passed, 1 warning in 0.64s",
+  "exit_after": 1,
+  "failed": [
+   "test_a_non_navigate_step_with_an_off_domain_looking_target_is_not_refused",
+   "test_a_secret_placeholder_target_is_not_judged_at_creation",
+   "test_an_in_domain_and_a_subdomain_target_are_still_accepted",
+   "test_an_off_domain_navigate_step_is_refused_and_nothing_is_saved",
+   "test_only_the_offending_step_is_named_when_a_later_step_leaves_the_domain"
+  ],
+  "detail": [
+   "E   AssertionError: nothing may be saved",
+   "    assert [Case(schema_... 'proposed'>)] == []",
+   "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\at432\\tests\\test_ui_case_navigate_reachability.py:67: AssertionError: nothing may be saved",
+   "E   AssertionError: assert [Case(schema_... 'proposed'>)] == []",
+   "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\at432\\tests\\test_ui_case_navigate_reachability.py:80: AssertionError: assert [Case(schema_... 'proposed'>)] == []",
+   "E   assert 400 in (200, 303)",
+   "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\at432\\tests\\test_ui_case_navigate_reachability.py:106: assert 400 in (200, 303)",
+   "E   assert 400 in (200, 303)",
+   "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\at432\\tests\\test_ui_case_navigate_reachability.py:131: assert 400 in (200, 303)",
+   "E   assert 400 in (200, 303)",
+   "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\at432\\tests\\test_ui_case_navigate_reachability.py:145: assert 400 in (200, 303)"
+  ]
+ }
+]
