@@ -1,0 +1,44 @@
+{
+ "plain_div_classification": [
+  {
+   "case": "plain div in flex contain:paint height:0",
+   "reported": true,
+   "painted": false,
+   "pos_ctrl": true
+  },
+  {
+   "case": "plain div in grid contain:paint height:0",
+   "reported": true,
+   "painted": false,
+   "pos_ctrl": true
+  },
+  {
+   "case": "plain div in flex clip-path",
+   "reported": true,
+   "painted": false,
+   "pos_ctrl": true
+  }
+ ],
+ "details_content_pseudo": [
+  {
+   "case": "closed",
+   "pseudo_content_visibility": "hidden",
+   "body_painted": false
+  },
+  {
+   "case": "open",
+   "pseudo_content_visibility": "visible",
+   "body_painted": true
+  },
+  {
+   "case": "closed + author ::details-content visible",
+   "pseudo_content_visibility": "visible",
+   "body_painted": true
+  },
+  {
+   "case": "closed, details display:contents",
+   "pseudo_content_visibility": "hidden",
+   "body_painted": false
+  }
+ ]
+}
