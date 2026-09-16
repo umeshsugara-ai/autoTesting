@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>content-visibility</title>
+<!-- AT-410. `content-visibility:auto` lets the browser skip rendering an
+     OFF-SCREEN subtree, and `contain-intrinsic-size` gives it a placeholder size
+     so the skip really happens. The FIRST Range rect taken inside that subtree
+     comes back all-zero and itself forces the layout; the detector's zero-width
+     guard dropped that glyph, so `CVAUTO_SENTINEL_91` came back as
+     `VAUTO_SENTINEL_91` on the first call and correct on the second.
+
+     All three parts are load-bearing, and each was found by removing it:
+     ON-SCREEN content is never skipped, and without the intrinsic size the
+     block renders anyway. Two earlier versions of this fixture left one out,
+     read the text in full on the first call, and would have "proved" a fix for a
+     defect the page never triggered. -->
+<p>Quarterly report for the trainers list</p>
+<div style="height:2000px"></div>
+<div style="content-visibility:auto;contain-intrinsic-size:auto 500px">
+  <p>CVAUTO_SENTINEL_91</p>
+  <p>CVAUTO_SECOND_92</p>
+</div>

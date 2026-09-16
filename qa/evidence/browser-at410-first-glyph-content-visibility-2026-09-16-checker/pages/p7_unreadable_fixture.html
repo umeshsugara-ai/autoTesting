@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Unreadable</title>
+<!-- AT-363: six ways a box is painted and a reader still sees nothing.
+     Each carries its OWN sentinel, so a test about one cannot be
+     satisfied by another. -->
+<style>.clip { width: 40px; overflow: hidden; white-space: nowrap; }</style>
+<div style="opacity:0">OPACITY_SENTINEL_11</div>
+<div style="color:transparent">TRANSPARENT_SENTINEL_22</div>
+<div style="text-indent:-9999px">INDENT_SENTINEL_33</div>
+<div style="position:absolute;left:-9999px">OFFSCREEN_SENTINEL_44</div>
+<div class="clip">CLIPPED_SENTINEL_55</div>
+<div style="opacity:0"><span style="opacity:1">NESTED_SENTINEL_66</span></div>
+<p>Quarterly report for the trainers list</p>
+<!-- AT-372: a CLOSED <details> lays its body out and shows only the summary.
+     The browser holds the body at content-visibility:hidden so find-in-page
+     can still reach it — which is exactly a reader not seeing it. -->
+<details><summary>Appendix</summary><p>DETAILSBODY_SENTINEL_77</p></details>
+<!-- AT-373: the page must be TALLER than the viewport, so a test can scroll it
+     and pin that the result does not depend on where the page is scrolled to.
+     Without this the off-left rule silently dropped everything above the fold. -->
+<div style="height:2000px"></div>
+<p>Bottom of the appendix</p>
+<!-- AT-379: a reader CAN scroll an overflow:auto pane, so nothing in it is
+     hidden. The hidden pane below is the boundary case: same overflow family,
+     no scroll mechanism, so its second line really is unreachable. -->
+<div style="height:40px;overflow:auto;width:300px">
+  <p>SCROLLPANE_TOP_SENTINEL_A1</p>
+  <p style="margin-top:300px">SCROLLPANE_BELOW_SENTINEL_A2</p>
+</div>
+<div style="height:40px;overflow:hidden;width:300px">
+  <p>HIDDENPANE_TOP_SENTINEL_B1</p>
+  <p style="margin-top:300px">HIDDENPANE_BELOW_SENTINEL_B2</p>
+</div>

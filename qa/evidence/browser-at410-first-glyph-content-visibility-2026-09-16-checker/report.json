@@ -1,0 +1,2000 @@
+{
+ "summary": {
+  "instrument": "checker's own Playwright Chromium 151.0.7922.34, fresh page per trial, detector JS evaluated directly: UNFIXED = git show 77cba2d^:src/autotester/browser/visual_order.js, FIXED = bound tree. Script: probe.py; pages: pages/ (p8/p9 generated in probe.py)",
+  "positive_control": "POSCONTROL_ONSCREEN_01 on every synthetic page (fixtures carry their own on-screen text); present in every FIRST call, both variants",
+  "console_errors_total": 0,
+  "point1_fix_and_limits": {
+   "p1_committed_fixture": "UNFIXED first call 'VAUTO_SENTINEL_91' 3/3, second call correct; FIXED first call 'CVAUTO_SENTINEL_91' 3/3",
+   "p2_several_text_nodes": "UNFIXED drops only the FIRST node's first glyph of EACH skipped block ('LPHA_SIB_11', 'OLF_BLOCK2_14'); siblings intact, so the first query warms the whole block. FIXED: all intact 3/3",
+   "p3_zwsp_first": "both variants return 'ZWSP_SENTINEL_33'/'KILO_AFTER_34' with U+200B dropped and Z kept; warm-up changes nothing",
+   "p4_nested_cvauto": "UNFIXED 'ESTED_INNER_41' 3/3; FIXED 'NESTED_INNER_41' 3/3",
+   "p5_closed_details_in_offscreen_cvauto": "body DETAILS_HIDDEN_52 not reported by either; UNFIXED ALSO dropped the summary's first glyph ('UMMARY_SEEN_51') -- a false negative on visible text -- FIXED 'SUMMARY_SEEN_51' 3/3"
+  },
+  "point2_side_effects": "scrollX/scrollY, per-element checkVisibility({contentVisibilityAuto:true}), contentvisibilityautostatechange events and body child count are IDENTICAL between UNFIXED and FIXED before/after each call on every page (p4 fires the same two skipped=true events under both). FIXED first==second on every page/trial; UNFIXED first!=second on p1,p2,p4,p5.",
+  "point2_timing_median_ms": {
+   "p8_1000_nodes_25_offscreen_cvauto_blocks": {
+    "unfixed": 110.7,
+    "fixed": 122.5,
+    "output_chars_unfixed": [
+     43351
+    ],
+    "output_chars_fixed": [
+     43372
+    ]
+   },
+   "p9_1000_nodes_onscreen": {
+    "unfixed": 98.0,
+    "fixed": 103.2
+   }
+  },
+  "point4_at398_revert": "p7 unreadable.html with checkVisibility bypassed: UNFIXED first call 'ETAILSBODY_SENTINEL_77' (so a `not in` assertion survives) 3/3; FIXED 'DETAILSBODY_SENTINEL_77' (kills) 3/3",
+  "point5_at429": "p6 content-visibility:hidden: 'CVHIDDEN_SENTINEL_92' reported by UNFIXED and FIXED identically 3/3 -- predates the unit, not worsened"
+ },
+ "raw": {
+  "unit": "at410-first-glyph-content-visibility",
+  "date": "2026-09-16",
+  "browser": "151.0.7922.34",
+  "pages": {
+   "p1_cvauto_fixture": {
+    "unfixed": [
+     {
+      "first": "Quarterly report for the trainers listVAUTO_SENTINEL_91CVAUTO_SECOND_92",
+      "second": "Quarterly report for the trainers listCVAUTO_SENTINEL_91CVAUTO_SECOND_92",
+      "first_eq_second": false,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "Quarterly report for the trainers listVAUTO_SENTINEL_91CVAUTO_SECOND_92",
+      "second": "Quarterly report for the trainers listCVAUTO_SENTINEL_91CVAUTO_SECOND_92",
+      "first_eq_second": false,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "Quarterly report for the trainers listVAUTO_SENTINEL_91CVAUTO_SECOND_92",
+      "second": "Quarterly report for the trainers listCVAUTO_SENTINEL_91CVAUTO_SECOND_92",
+      "first_eq_second": false,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     }
+    ],
+    "fixed": [
+     {
+      "first": "Quarterly report for the trainers listCVAUTO_SENTINEL_91CVAUTO_SECOND_92",
+      "second": "Quarterly report for the trainers listCVAUTO_SENTINEL_91CVAUTO_SECOND_92",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "Quarterly report for the trainers listCVAUTO_SENTINEL_91CVAUTO_SECOND_92",
+      "second": "Quarterly report for the trainers listCVAUTO_SENTINEL_91CVAUTO_SECOND_92",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "Quarterly report for the trainers listCVAUTO_SENTINEL_91CVAUTO_SECOND_92",
+      "second": "Quarterly report for the trainers listCVAUTO_SENTINEL_91CVAUTO_SECOND_92",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     }
+    ]
+   },
+   "p2_several_nodes": {
+    "unfixed": [
+     {
+      "first": "POSCONTROL_ONSCREEN_01LPHA_SIB_11BRAVO_SIB_12CHARLIE_SIB_13DELTA_AECHO_BFOXTROT_COLF_BLOCK2_14HOTEL_BLOCK2_15",
+      "second": "POSCONTROL_ONSCREEN_01ALPHA_SIB_11BRAVO_SIB_12CHARLIE_SIB_13DELTA_AECHO_BFOXTROT_CGOLF_BLOCK2_14HOTEL_BLOCK2_15",
+      "first_eq_second": false,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        true
+       ],
+       "events": [],
+       "bodyChildren": 5
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        true
+       ],
+       "events": [],
+       "bodyChildren": 5
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        true
+       ],
+       "events": [],
+       "bodyChildren": 5
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "POSCONTROL_ONSCREEN_01LPHA_SIB_11BRAVO_SIB_12CHARLIE_SIB_13DELTA_AECHO_BFOXTROT_COLF_BLOCK2_14HOTEL_BLOCK2_15",
+      "second": "POSCONTROL_ONSCREEN_01ALPHA_SIB_11BRAVO_SIB_12CHARLIE_SIB_13DELTA_AECHO_BFOXTROT_CGOLF_BLOCK2_14HOTEL_BLOCK2_15",
+      "first_eq_second": false,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        true
+       ],
+       "events": [],
+       "bodyChildren": 5
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        true
+       ],
+       "events": [],
+       "bodyChildren": 5
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        true
+       ],
+       "events": [],
+       "bodyChildren": 5
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "POSCONTROL_ONSCREEN_01LPHA_SIB_11BRAVO_SIB_12CHARLIE_SIB_13DELTA_AECHO_BFOXTROT_COLF_BLOCK2_14HOTEL_BLOCK2_15",
+      "second": "POSCONTROL_ONSCREEN_01ALPHA_SIB_11BRAVO_SIB_12CHARLIE_SIB_13DELTA_AECHO_BFOXTROT_CGOLF_BLOCK2_14HOTEL_BLOCK2_15",
+      "first_eq_second": false,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        true
+       ],
+       "events": [],
+       "bodyChildren": 5
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        true
+       ],
+       "events": [],
+       "bodyChildren": 5
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        true
+       ],
+       "events": [],
+       "bodyChildren": 5
+      },
+      "console_errors": 0,
+      "errors": []
+     }
+    ],
+    "fixed": [
+     {
+      "first": "POSCONTROL_ONSCREEN_01ALPHA_SIB_11BRAVO_SIB_12CHARLIE_SIB_13DELTA_AECHO_BFOXTROT_CGOLF_BLOCK2_14HOTEL_BLOCK2_15",
+      "second": "POSCONTROL_ONSCREEN_01ALPHA_SIB_11BRAVO_SIB_12CHARLIE_SIB_13DELTA_AECHO_BFOXTROT_CGOLF_BLOCK2_14HOTEL_BLOCK2_15",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        true
+       ],
+       "events": [],
+       "bodyChildren": 5
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        true
+       ],
+       "events": [],
+       "bodyChildren": 5
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        true
+       ],
+       "events": [],
+       "bodyChildren": 5
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "POSCONTROL_ONSCREEN_01ALPHA_SIB_11BRAVO_SIB_12CHARLIE_SIB_13DELTA_AECHO_BFOXTROT_CGOLF_BLOCK2_14HOTEL_BLOCK2_15",
+      "second": "POSCONTROL_ONSCREEN_01ALPHA_SIB_11BRAVO_SIB_12CHARLIE_SIB_13DELTA_AECHO_BFOXTROT_CGOLF_BLOCK2_14HOTEL_BLOCK2_15",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        true
+       ],
+       "events": [],
+       "bodyChildren": 5
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        true
+       ],
+       "events": [],
+       "bodyChildren": 5
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        true
+       ],
+       "events": [],
+       "bodyChildren": 5
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "POSCONTROL_ONSCREEN_01ALPHA_SIB_11BRAVO_SIB_12CHARLIE_SIB_13DELTA_AECHO_BFOXTROT_CGOLF_BLOCK2_14HOTEL_BLOCK2_15",
+      "second": "POSCONTROL_ONSCREEN_01ALPHA_SIB_11BRAVO_SIB_12CHARLIE_SIB_13DELTA_AECHO_BFOXTROT_CGOLF_BLOCK2_14HOTEL_BLOCK2_15",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        true
+       ],
+       "events": [],
+       "bodyChildren": 5
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        true
+       ],
+       "events": [],
+       "bodyChildren": 5
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        true
+       ],
+       "events": [],
+       "bodyChildren": 5
+      },
+      "console_errors": 0,
+      "errors": []
+     }
+    ]
+   },
+   "p3_zwsp_first": {
+    "unfixed": [
+     {
+      "first": "POSCONTROL_ONSCREEN_01ZWSP_SENTINEL_33KILO_AFTER_34",
+      "second": "POSCONTROL_ONSCREEN_01ZWSP_SENTINEL_33KILO_AFTER_34",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "POSCONTROL_ONSCREEN_01ZWSP_SENTINEL_33KILO_AFTER_34",
+      "second": "POSCONTROL_ONSCREEN_01ZWSP_SENTINEL_33KILO_AFTER_34",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "POSCONTROL_ONSCREEN_01ZWSP_SENTINEL_33KILO_AFTER_34",
+      "second": "POSCONTROL_ONSCREEN_01ZWSP_SENTINEL_33KILO_AFTER_34",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     }
+    ],
+    "fixed": [
+     {
+      "first": "POSCONTROL_ONSCREEN_01ZWSP_SENTINEL_33KILO_AFTER_34",
+      "second": "POSCONTROL_ONSCREEN_01ZWSP_SENTINEL_33KILO_AFTER_34",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "POSCONTROL_ONSCREEN_01ZWSP_SENTINEL_33KILO_AFTER_34",
+      "second": "POSCONTROL_ONSCREEN_01ZWSP_SENTINEL_33KILO_AFTER_34",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "POSCONTROL_ONSCREEN_01ZWSP_SENTINEL_33KILO_AFTER_34",
+      "second": "POSCONTROL_ONSCREEN_01ZWSP_SENTINEL_33KILO_AFTER_34",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     }
+    ]
+   },
+   "p4_nested_cvauto": {
+    "unfixed": [
+     {
+      "first": "POSCONTROL_ONSCREEN_01ESTED_INNER_41NESTED_OUTER_42",
+      "second": "POSCONTROL_ONSCREEN_01NESTED_INNER_41NESTED_OUTER_42",
+      "first_eq_second": false,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        false
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        false
+       ],
+       "events": [
+        true,
+        true
+       ],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        false
+       ],
+       "events": [
+        true,
+        true
+       ],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "POSCONTROL_ONSCREEN_01ESTED_INNER_41NESTED_OUTER_42",
+      "second": "POSCONTROL_ONSCREEN_01NESTED_INNER_41NESTED_OUTER_42",
+      "first_eq_second": false,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        false
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        false
+       ],
+       "events": [
+        true,
+        true
+       ],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        false
+       ],
+       "events": [
+        true,
+        true
+       ],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "POSCONTROL_ONSCREEN_01ESTED_INNER_41NESTED_OUTER_42",
+      "second": "POSCONTROL_ONSCREEN_01NESTED_INNER_41NESTED_OUTER_42",
+      "first_eq_second": false,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        false
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        false
+       ],
+       "events": [
+        true,
+        true
+       ],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        false
+       ],
+       "events": [
+        true,
+        true
+       ],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     }
+    ],
+    "fixed": [
+     {
+      "first": "POSCONTROL_ONSCREEN_01NESTED_INNER_41NESTED_OUTER_42",
+      "second": "POSCONTROL_ONSCREEN_01NESTED_INNER_41NESTED_OUTER_42",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        false
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        false
+       ],
+       "events": [
+        true,
+        true
+       ],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        false
+       ],
+       "events": [
+        true,
+        true
+       ],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "POSCONTROL_ONSCREEN_01NESTED_INNER_41NESTED_OUTER_42",
+      "second": "POSCONTROL_ONSCREEN_01NESTED_INNER_41NESTED_OUTER_42",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        false
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        false
+       ],
+       "events": [
+        true,
+        true
+       ],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        false
+       ],
+       "events": [
+        true,
+        true
+       ],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "POSCONTROL_ONSCREEN_01NESTED_INNER_41NESTED_OUTER_42",
+      "second": "POSCONTROL_ONSCREEN_01NESTED_INNER_41NESTED_OUTER_42",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        false
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        false
+       ],
+       "events": [
+        true,
+        true
+       ],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true,
+        false
+       ],
+       "events": [
+        true,
+        true
+       ],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     }
+    ]
+   },
+   "p5_details_in_cvauto": {
+    "unfixed": [
+     {
+      "first": "POSCONTROL_ONSCREEN_01UMMARY_SEEN_51LIMA_AFTER_53",
+      "second": "POSCONTROL_ONSCREEN_01SUMMARY_SEEN_51LIMA_AFTER_53",
+      "first_eq_second": false,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "POSCONTROL_ONSCREEN_01UMMARY_SEEN_51LIMA_AFTER_53",
+      "second": "POSCONTROL_ONSCREEN_01SUMMARY_SEEN_51LIMA_AFTER_53",
+      "first_eq_second": false,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "POSCONTROL_ONSCREEN_01UMMARY_SEEN_51LIMA_AFTER_53",
+      "second": "POSCONTROL_ONSCREEN_01SUMMARY_SEEN_51LIMA_AFTER_53",
+      "first_eq_second": false,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     }
+    ],
+    "fixed": [
+     {
+      "first": "POSCONTROL_ONSCREEN_01SUMMARY_SEEN_51LIMA_AFTER_53",
+      "second": "POSCONTROL_ONSCREEN_01SUMMARY_SEEN_51LIMA_AFTER_53",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "POSCONTROL_ONSCREEN_01SUMMARY_SEEN_51LIMA_AFTER_53",
+      "second": "POSCONTROL_ONSCREEN_01SUMMARY_SEEN_51LIMA_AFTER_53",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "POSCONTROL_ONSCREEN_01SUMMARY_SEEN_51LIMA_AFTER_53",
+      "second": "POSCONTROL_ONSCREEN_01SUMMARY_SEEN_51LIMA_AFTER_53",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     }
+    ],
+    "unfixed_bypass": [
+     {
+      "first": "POSCONTROL_ONSCREEN_01UMMARY_SEEN_51DLIEMTAA_ILASF_THEIRD_D5E3N_52",
+      "second": "POSCONTROL_ONSCREEN_01SUMMARY_SEEN_51DLIEMTAA_ILASF_THEIRD_D5E3N_52",
+      "first_eq_second": false,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "POSCONTROL_ONSCREEN_01UMMARY_SEEN_51DLIEMTAA_ILASF_THEIRD_D5E3N_52",
+      "second": "POSCONTROL_ONSCREEN_01SUMMARY_SEEN_51DLIEMTAA_ILASF_THEIRD_D5E3N_52",
+      "first_eq_second": false,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "POSCONTROL_ONSCREEN_01UMMARY_SEEN_51DLIEMTAA_ILASF_THEIRD_D5E3N_52",
+      "second": "POSCONTROL_ONSCREEN_01SUMMARY_SEEN_51DLIEMTAA_ILASF_THEIRD_D5E3N_52",
+      "first_eq_second": false,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     }
+    ],
+    "fixed_bypass": [
+     {
+      "first": "POSCONTROL_ONSCREEN_01SUMMARY_SEEN_51DLIEMTAA_ILASF_THEIRD_D5E3N_52",
+      "second": "POSCONTROL_ONSCREEN_01SUMMARY_SEEN_51DLIEMTAA_ILASF_THEIRD_D5E3N_52",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "POSCONTROL_ONSCREEN_01SUMMARY_SEEN_51DLIEMTAA_ILASF_THEIRD_D5E3N_52",
+      "second": "POSCONTROL_ONSCREEN_01SUMMARY_SEEN_51DLIEMTAA_ILASF_THEIRD_D5E3N_52",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "POSCONTROL_ONSCREEN_01SUMMARY_SEEN_51DLIEMTAA_ILASF_THEIRD_D5E3N_52",
+      "second": "POSCONTROL_ONSCREEN_01SUMMARY_SEEN_51DLIEMTAA_ILASF_THEIRD_D5E3N_52",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     }
+    ]
+   },
+   "p6_cvhidden_at429": {
+    "unfixed": [
+     {
+      "first": "POSCONTROL_ONSCREEN_01CVHIDDEN_SENTINEL_92AFTER_HIDDEN_93",
+      "second": "POSCONTROL_ONSCREEN_01CVHIDDEN_SENTINEL_92AFTER_HIDDEN_93",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "POSCONTROL_ONSCREEN_01CVHIDDEN_SENTINEL_92AFTER_HIDDEN_93",
+      "second": "POSCONTROL_ONSCREEN_01CVHIDDEN_SENTINEL_92AFTER_HIDDEN_93",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "POSCONTROL_ONSCREEN_01CVHIDDEN_SENTINEL_92AFTER_HIDDEN_93",
+      "second": "POSCONTROL_ONSCREEN_01CVHIDDEN_SENTINEL_92AFTER_HIDDEN_93",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     }
+    ],
+    "fixed": [
+     {
+      "first": "POSCONTROL_ONSCREEN_01CVHIDDEN_SENTINEL_92AFTER_HIDDEN_93",
+      "second": "POSCONTROL_ONSCREEN_01CVHIDDEN_SENTINEL_92AFTER_HIDDEN_93",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "POSCONTROL_ONSCREEN_01CVHIDDEN_SENTINEL_92AFTER_HIDDEN_93",
+      "second": "POSCONTROL_ONSCREEN_01CVHIDDEN_SENTINEL_92AFTER_HIDDEN_93",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "POSCONTROL_ONSCREEN_01CVHIDDEN_SENTINEL_92AFTER_HIDDEN_93",
+      "second": "POSCONTROL_ONSCREEN_01CVHIDDEN_SENTINEL_92AFTER_HIDDEN_93",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [
+        true
+       ],
+       "events": [],
+       "bodyChildren": 3
+      },
+      "console_errors": 0,
+      "errors": []
+     }
+    ]
+   },
+   "p7_unreadable_fixture": {
+    "unfixed": [
+     {
+      "first": "CLIPPQuarterly report for the trainers listAppendixBottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1SCROLLPANE_BELOW_SENTINEL_A2",
+      "second": "CLIPPQuarterly report for the trainers listAppendixBottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1SCROLLPANE_BELOW_SENTINEL_A2",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "CLIPPQuarterly report for the trainers listAppendixBottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1SCROLLPANE_BELOW_SENTINEL_A2",
+      "second": "CLIPPQuarterly report for the trainers listAppendixBottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1SCROLLPANE_BELOW_SENTINEL_A2",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "CLIPPQuarterly report for the trainers listAppendixBottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1SCROLLPANE_BELOW_SENTINEL_A2",
+      "second": "CLIPPQuarterly report for the trainers listAppendixBottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1SCROLLPANE_BELOW_SENTINEL_A2",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "console_errors": 0,
+      "errors": []
+     }
+    ],
+    "fixed": [
+     {
+      "first": "CLIPPQuarterly report for the trainers listAppendixBottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1SCROLLPANE_BELOW_SENTINEL_A2",
+      "second": "CLIPPQuarterly report for the trainers listAppendixBottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1SCROLLPANE_BELOW_SENTINEL_A2",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "CLIPPQuarterly report for the trainers listAppendixBottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1SCROLLPANE_BELOW_SENTINEL_A2",
+      "second": "CLIPPQuarterly report for the trainers listAppendixBottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1SCROLLPANE_BELOW_SENTINEL_A2",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "CLIPPQuarterly report for the trainers listAppendixBottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1SCROLLPANE_BELOW_SENTINEL_A2",
+      "second": "CLIPPQuarterly report for the trainers listAppendixBottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1SCROLLPANE_BELOW_SENTINEL_A2",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "console_errors": 0,
+      "errors": []
+     }
+    ],
+    "unfixed_bypass": [
+     {
+      "first": "CLIPPQuarterly report for the trainers listAppendixETAILSBODY_SENTINEL_77Bottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1SCROLLPANE_BELOW_SENTINEL_A2",
+      "second": "CLIPPQuarterly report for the trainers listAppendixDETAILSBODY_SENTINEL_77Bottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1SCROLLPANE_BELOW_SENTINEL_A2",
+      "first_eq_second": false,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "CLIPPQuarterly report for the trainers listAppendixETAILSBODY_SENTINEL_77Bottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1SCROLLPANE_BELOW_SENTINEL_A2",
+      "second": "CLIPPQuarterly report for the trainers listAppendixDETAILSBODY_SENTINEL_77Bottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1SCROLLPANE_BELOW_SENTINEL_A2",
+      "first_eq_second": false,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "CLIPPQuarterly report for the trainers listAppendixETAILSBODY_SENTINEL_77Bottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1SCROLLPANE_BELOW_SENTINEL_A2",
+      "second": "CLIPPQuarterly report for the trainers listAppendixDETAILSBODY_SENTINEL_77Bottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1SCROLLPANE_BELOW_SENTINEL_A2",
+      "first_eq_second": false,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "console_errors": 0,
+      "errors": []
+     }
+    ],
+    "fixed_bypass": [
+     {
+      "first": "CLIPPQuarterly report for the trainers listAppendixDETAILSBODY_SENTINEL_77Bottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1SCROLLPANE_BELOW_SENTINEL_A2",
+      "second": "CLIPPQuarterly report for the trainers listAppendixDETAILSBODY_SENTINEL_77Bottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1SCROLLPANE_BELOW_SENTINEL_A2",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "CLIPPQuarterly report for the trainers listAppendixDETAILSBODY_SENTINEL_77Bottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1SCROLLPANE_BELOW_SENTINEL_A2",
+      "second": "CLIPPQuarterly report for the trainers listAppendixDETAILSBODY_SENTINEL_77Bottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1SCROLLPANE_BELOW_SENTINEL_A2",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "console_errors": 0,
+      "errors": []
+     },
+     {
+      "first": "CLIPPQuarterly report for the trainers listAppendixDETAILSBODY_SENTINEL_77Bottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1SCROLLPANE_BELOW_SENTINEL_A2",
+      "second": "CLIPPQuarterly report for the trainers listAppendixDETAILSBODY_SENTINEL_77Bottom of the appendixSCROLLPANE_TOP_SENTINEL_A1HIDDENPANE_TOP_SENTINEL_B1SCROLLPANE_BELOW_SENTINEL_A2",
+      "first_eq_second": true,
+      "state_before": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "state_after_first": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "state_after_second": {
+       "scrollX": 0,
+       "scrollY": 0,
+       "cv": [],
+       "events": [],
+       "bodyChildren": 12
+      },
+      "console_errors": 0,
+      "errors": []
+     }
+    ]
+   }
+  },
+  "timing": {
+   "p8_many_nodes": {
+    "unfixed": {
+     "ms": [
+      105.6,
+      114.6,
+      122.0,
+      109.2,
+      106.6,
+      119.8,
+      110.7
+     ],
+     "median_ms": 110.7,
+     "out_lengths": [
+      43351
+     ],
+     "console_errors": 0,
+     "has_control": true
+    },
+    "fixed": {
+     "ms": [
+      119.5,
+      133.4,
+      150.3,
+      122.5,
+      123.8,
+      114.1,
+      120.9
+     ],
+     "median_ms": 122.5,
+     "out_lengths": [
+      43372
+     ],
+     "console_errors": 0,
+     "has_control": true
+    }
+   },
+   "p9_many_nodes_onscreen": {
+    "unfixed": {
+     "ms": [
+      94.3,
+      95.9,
+      100.5,
+      98.0,
+      96.8,
+      98.0,
+      101.8
+     ],
+     "median_ms": 98.0,
+     "out_lengths": [
+      41912
+     ],
+     "console_errors": 0,
+     "has_control": true
+    },
+    "fixed": {
+     "ms": [
+      103.6,
+      105.5,
+      95.5,
+      99.8,
+      102.2,
+      103.2,
+      109.1
+     ],
+     "median_ms": 103.2,
+     "out_lengths": [
+      41912
+     ],
+     "console_errors": 0,
+     "has_control": true
+    }
+   }
+  }
+ }
+}
