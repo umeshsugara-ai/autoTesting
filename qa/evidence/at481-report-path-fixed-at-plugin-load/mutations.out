@@ -1,0 +1,5 @@
+KILLED  AT-481 reopens: the report path is read from the environment at session end again  (pytest exit 1)
+    claims to kill : tests/test_mutation_check.py::test_a_test_that_touches_the_report_variable_cannot_hide_a_kill[reassigned], tests/test_mutation_check.py::test_a_test_that_touches_the_report_variable_cannot_hide_a_kill[removed]
+    actually failed: tests/test_mutation_check.py::test_a_test_that_touches_the_report_variable_cannot_hide_a_kill[reassigned], tests/test_mutation_check.py::test_a_test_that_touches_the_report_variable_cannot_hide_a_kill[removed]
+
+1/1 mutations killed

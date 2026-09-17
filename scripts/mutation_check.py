@@ -54,6 +54,9 @@ PLUGIN_SOURCE = '''"""Written by mutation_check into its sandbox root; never par
 import json
 import os
 
+# Read once, when pytest loads the plugin: a test that reassigns or removes the variable
+# must not redirect or break the report (AT-481).
+_REPORT = os.environ["MUTATION_REPORT"]
 _failed = set()
 
 
@@ -63,7 +66,7 @@ def pytest_runtest_logreport(report):
 
 
 def pytest_sessionfinish(session):
-    with open(os.environ["MUTATION_REPORT"], "w", encoding="utf-8") as handle:
+    with open(_REPORT, "w", encoding="utf-8") as handle:
         json.dump(sorted(_failed), handle)
 '''
 

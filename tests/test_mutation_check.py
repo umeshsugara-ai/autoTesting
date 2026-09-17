@@ -280,3 +280,19 @@ def test_a_named_test_that_errors_in_setup_is_not_a_kill(mutation_repo: Path) ->
 
     assert result["killed"] is False, result
     assert "tests/test_setup.py::test_uses_fixture" not in result["failed"]
+
+
+@pytest.mark.parametrize("tamper", ['os.environ["MUTATION_REPORT"] = "elsewhere.json"',
+                                    'os.environ.pop("MUTATION_REPORT")'],
+                         ids=["reassigned", "removed"])
+def test_a_test_that_touches_the_report_variable_cannot_hide_a_kill(
+    mutation_repo: Path, tamper: str,
+) -> None:
+    """AT-481: the plugin read MUTATION_REPORT at session end, after every test had run, so a
+    test that reassigned it read every kill as SURVIVED, and one that removed it broke the run."""
+    _write(mutation_repo / "tests" / "test_env.py", "import os", "", "", "def test_env():",
+           f"    {tamper}")
+
+    result = check(spec(tests=["tests/test_env.py", "tests/test_mod.py"]), mutation_repo)[0]
+
+    assert result["killed"] is True, result

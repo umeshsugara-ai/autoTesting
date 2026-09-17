@@ -1,0 +1,15 @@
+{
+  "tests": ["tests/test_mutation_check.py"],
+  "mutations": [
+    {
+      "name": "AT-481 reopens: the report path is read from the environment at session end again",
+      "file": "scripts/mutation_check.py",
+      "old": "    with open(_REPORT, \"w\", encoding=\"utf-8\") as handle:",
+      "new": "    with open(os.environ[\"MUTATION_REPORT\"], \"w\", encoding=\"utf-8\") as handle:",
+      "kills": [
+        "tests/test_mutation_check.py::test_a_test_that_touches_the_report_variable_cannot_hide_a_kill[reassigned]",
+        "tests/test_mutation_check.py::test_a_test_that_touches_the_report_variable_cannot_hide_a_kill[removed]"
+      ]
+    }
+  ]
+}
