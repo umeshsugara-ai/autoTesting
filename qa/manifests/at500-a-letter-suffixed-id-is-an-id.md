@@ -77,7 +77,15 @@ POST-FIX guard, row INTACT:          0 violation(s)   <- no false positive
   `uv run python qa/evidence/at500-a-letter-suffixed-id-is-an-id/probe_before.py` then
   `probe_after.py`. `probe_before.py` needs `doctor_before.py` beside it — regenerate with
   `git show a0155f2:src/autotester/doctor.py > qa/evidence/at500-a-letter-suffixed-id-is-an-id/doctor_before.py`.
-  Expected: `0` violations before, `2` after, `0` after with the row intact.
+  Expected: `0` violations before, `0` after with the row intact, and **more than 2** after with the
+  row deleted. The `2` recorded below was true when I ran it — the manifest you are reading did not
+  exist yet. This file's line 25 quotes the string `**Issues addressed:**` while naming `AT-298b`,
+  and the check tests `marker in line`, so the manifest counts itself as a third artifact; the
+  verdict then quoted the same line and became a fourth. Re-measured at cycle 1 close-out: **4**.
+  The number grows by one with every artifact that merely *discusses* the marker, which is the
+  cycle-1 checker's AT-504. It is inert while the ledger is intact — `0` violations with the row
+  present, re-confirmed — and it is a pre-existing imprecision in the `marker in line` test, not
+  something this unit's regex introduced.
 
 ## Actual outputs (from maker's own run)
 
@@ -151,4 +159,23 @@ Not UI-touching — no surface changed. Changed paths: `src/autotester/doctor.py
   copy of HEAD's module, not committed). The regeneration command is in "How to verify"; the probe
   is reproducible, but not self-contained from the repo alone.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Cycle 1, `qa/verdicts/at500-a-letter-suffixed-id-is-an-id.md` (commit `49f14a0`). PASS with no
+failures: all five falsifying edits reproduced, the three call sites confirmed cross-immune, plain
+ids unaffected, and no new `doctor` noise against the live `AT-297b`/`AT-298b`/`AT-299b` rows.
+
+Two issues filed by the checker, both accepted:
+- **AT-504 (medium)** — the `marker in line` substring test counts an artifact that *discusses* the
+  marker as one that *uses* it, so this manifest and its own verdict inflate the probe's violation
+  count. Pre-existing, not introduced here; inert while the ledger is intact. Corrected in "How to
+  verify" above, with the measured number (4, not 2) and the mechanism. The checker reproduced both
+  increments itself and **raised it from low to medium** on that basis: the imprecision compounds
+  without bound as more documents discuss the guard, and it degrades the precision of the very
+  check this unit ships. That escalation is its call and I am not arguing it down.
+- **AT-503 (low)** — the unreadable verify command (`uv run pytest -q` → `-qq`, no summary line), which
+  this manifest flagged for the checker to file rather than writing the ledger itself.
+
+Also corrected by the checker: the Known-limits list named `AT-290a/b` among prose-mentioned-but-
+unfiled ids, which does not survive inspection. A documentation nit, recorded rather than quietly
+dropped.
