@@ -174,4 +174,4 @@ reading the page crossed it. Re-seeded with a wider threshold (600s) and it
 resolved; noted here so the checker doesn't need to re-discover the same false
 alarm.
 
-## Status: ready-for-check
+## Status: checked-PASS (qa/verdicts/at483-orphaned-running-crawl.md, cycle 1, commit 9e11559; checker filed ISS-at483-1 (low): a crawl killed before its first action completes still displays running)
