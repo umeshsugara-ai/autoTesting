@@ -11,6 +11,7 @@ recorded beside those same flags.
 from __future__ import annotations
 
 import inspect
+import json
 import sys
 from pathlib import Path
 
@@ -120,7 +121,7 @@ def test_the_probe_runs_every_trial_even_after_one_fails(
     rate — and the rate is the only thing that can ever show a fix worked."""
     calls: list[int] = []
 
-    def fake_run_once(nodeid: str, index: int) -> flake_probe.Run:
+    def fake_run_once(nodeid: str, index: int, timeout: float = 0) -> flake_probe.Run:
         calls.append(index)
         return flake_probe.Run(index=index, returncode=1 if index == 2 else 0, seconds=0.0)
 
@@ -176,3 +177,61 @@ def test_the_isolation_flags_are_not_described_as_load_bearing() -> None:
     assert "output this probe exists to capture is suppressed" not in source
     assert "defensive hygiene, not a correctness precondition" in source
     assert "not load-bearing" in source
+
+
+# -- AT-401: a run that never ends is evidence, not an absence of evidence -----
+
+
+def _timing_out(*_a: object, **kwargs: object) -> object:
+    raise flake_probe.subprocess.TimeoutExpired("pytest", kwargs["timeout"])
+
+
+def test_a_run_that_outlives_its_bound_is_a_failure_marked_timed_out(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AT-401: `run_once` had no timeout, so one hung run stopped an unattended
+    41-run probe forever. The probe's subject is a browser crawl, the class that
+    hangs rather than fails, and a hang is data about flakiness."""
+    monkeypatch.setattr(flake_probe.subprocess, "run", _timing_out)
+
+    run = flake_probe.run_once("tests/test_x.py::test_y", 3, timeout=12)
+
+    assert run.timed_out is True
+    assert run.failed is True, "a hung run is a failure, never a silent green"
+    assert run.returncode == flake_probe.TIMED_OUT
+    assert "12" in run.tail and "did not finish" in run.tail
+
+
+def test_the_probe_keeps_going_after_a_timed_out_run(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Same reason the probe does not stop at the first failure: a rate needs every
+    trial. A timeout that aborted the probe would report the rate of a shorter run."""
+    monkeypatch.setattr(flake_probe.subprocess, "run", _timing_out)
+
+    summary = flake_probe.probe("tests/test_x.py::test_y", 3, timeout=1)
+
+    assert len(summary.runs) == 3
+    assert len(summary.failures) == 3
+
+
+def test_a_timed_out_run_says_so_in_the_report_and_the_description(
+    tmp_path: Path,
+) -> None:
+    """A reader must be able to tell "it failed" from "it never answered"."""
+    hung = flake_probe.Run(index=2, returncode=flake_probe.TIMED_OUT, seconds=30.0,
+                           tail="pytest did not finish within 30s")
+    summary = flake_probe.Summary(nodeid="t::x", runs=[flake_probe.Run(1, 0, 1.0), hung])
+
+    lines = flake_probe.describe(summary)
+    report = json.loads(
+        flake_probe.write_report(summary, tmp_path / "r.json").read_text(encoding="utf-8"))
+
+    assert any("TIMED OUT" in line for line in lines), lines
+    assert [d["timed_out"] for d in report["detail"]] == [False, True]
+
+
+@pytest.mark.parametrize("bad", ["0", "-5"])
+def test_the_cli_refuses_a_timeout_that_is_not_positive(bad: str, capsys) -> None:
+    assert flake_probe.main(["t::x", "--timeout", bad]) == 2
+    assert "positive" in capsys.readouterr().out

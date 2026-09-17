@@ -33,6 +33,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 CONFIDENCE = 0.95
+TIMED_OUT = -1
+"""A run that never answered. Its own returncode, so `failed` needs no special case
+and a hang can never be counted as a green run (AT-401)."""
+RUN_TIMEOUT_S = 1800.0
+"""Per run. The subject is a browser crawl, which hangs as readily as it fails."""
 SUSPECTED_RATE = 1 / 14
 """AT-335's own estimate — one lost screen in fourteen runs."""
 
@@ -78,6 +83,13 @@ class Run:
     def failed(self) -> bool:
         return self.returncode != 0
 
+    @property
+    def timed_out(self) -> bool:
+        """Distinct from a failure with a verdict: nothing was measured, and saying so
+        is the point — an unattended probe that silently lost a trial reports a rate
+        computed from fewer trials than it claims (AT-401)."""
+        return self.returncode == TIMED_OUT
+
 
 @dataclass(frozen=True)
 class Summary:
@@ -110,8 +122,8 @@ def describe(summary: Summary, suspected: float = SUSPECTED_RATE) -> list[str]:
     count = len(summary.runs)
     lines = [f"{summary.nodeid}: {len(summary.failures)} failure(s) in {count} run(s)"]
     for failure in summary.failures:
-        lines.append(f"  run {failure.index} FAILED (rc={failure.returncode}, "
-                     f"{failure.seconds:.1f}s)")
+        verdict = "TIMED OUT" if failure.timed_out else f"FAILED (rc={failure.returncode})"
+        lines.append(f"  run {failure.index} {verdict} ({failure.seconds:.1f}s)")
     needed = runs_for_confidence(suspected, summary.confidence)
     if summary.failures:
         lines.append(f"  observed rate {summary.observed_rate:.1%} — reproduced, "
@@ -131,25 +143,45 @@ def describe(summary: Summary, suspected: float = SUSPECTED_RATE) -> list[str]:
     return lines
 
 
-def run_once(nodeid: str, index: int) -> Run:
-    """One pytest invocation, isolated from the cache so runs do not inform each other."""
+def run_once(nodeid: str, index: int, timeout: float = RUN_TIMEOUT_S) -> Run:
+    """One pytest invocation, isolated from the cache so runs do not inform each other.
+
+    Bounded (AT-401): the probe exists to repeat a run unattended, so one hang used to
+    stop the whole probe with nothing recorded."""
     started = time.monotonic()
-    proc = subprocess.run(
-        [sys.executable, "-m", "pytest", nodeid, "-q", "-p", "no:cacheprovider",
-         "-o", "addopts="],
-        capture_output=True, text=True, check=False,
-    )
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-m", "pytest", nodeid, "-q", "-p", "no:cacheprovider",
+             "-o", "addopts="],
+            capture_output=True, text=True, check=False, timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as expired:
+        return Run(index=index, returncode=TIMED_OUT, seconds=time.monotonic() - started,
+                   tail=f"the run did not finish within {timeout:g}s and was killed"
+                        + _tail(_decode(expired.stdout) + _decode(expired.stderr)))
     elapsed = time.monotonic() - started
-    tail = "" if proc.returncode == 0 else "\n".join(
-        (proc.stdout + proc.stderr).splitlines()[-25:])
+    tail = "" if proc.returncode == 0 else _tail(proc.stdout + proc.stderr)
     return Run(index=index, returncode=proc.returncode, seconds=elapsed, tail=tail)
 
 
-def probe(nodeid: str, runs: int) -> Summary:
+def _decode(output: str | bytes | None) -> str:
+    """`TimeoutExpired` carries whatever was captured before the kill, and it is bytes
+    on some platforms even under `text=True`."""
+    if output is None:
+        return ""
+    return output if isinstance(output, str) else output.decode("utf-8", "replace")
+
+
+def _tail(output: str, lines: int = 25) -> str:
+    return "\n".join(output.splitlines()[-lines:])
+
+
+def probe(nodeid: str, runs: int, timeout: float = RUN_TIMEOUT_S) -> Summary:
     """Run it `runs` times, stopping for nothing — a probe that stops at the first
-    failure cannot measure a rate, only confirm an existence."""
+    failure cannot measure a rate, only confirm an existence. A timed-out run is one
+    of the trials, not the end of the probe."""
     return Summary(nodeid=nodeid,
-                   runs=[run_once(nodeid, index) for index in range(1, runs + 1)])
+                   runs=[run_once(nodeid, index, timeout) for index in range(1, runs + 1)])
 
 
 def write_report(summary: Summary, out: Path) -> Path:
@@ -162,7 +194,8 @@ def write_report(summary: Summary, out: Path) -> Path:
         "ceiling_at_confidence": summary.ceiling,
         "confidence": summary.confidence,
         "detail": [{"index": r.index, "returncode": r.returncode,
-                    "seconds": round(r.seconds, 2), "tail": r.tail} for r in summary.runs],
+                    "seconds": round(r.seconds, 2), "timed_out": r.timed_out,
+                    "tail": r.tail} for r in summary.runs],
     }, indent=2), encoding="utf-8")
     return out
 
@@ -173,9 +206,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--runs", type=int, default=runs_for_confidence(SUSPECTED_RATE))
     parser.add_argument("--out", type=Path,
                         default=Path(".work") / "flake-probe.json")
+    parser.add_argument("--timeout", type=float, default=RUN_TIMEOUT_S,
+                        help="seconds one run may take before it is killed and recorded "
+                             "as TIMED OUT")
     args = parser.parse_args(argv)
+    if args.timeout <= 0:
+        print("--timeout must be a positive number of seconds")
+        return 2
 
-    summary = probe(args.nodeid, args.runs)
+    summary = probe(args.nodeid, args.runs, args.timeout)
     for line in describe(summary):
         print(line)
     print(f"report: {write_report(summary, args.out)}")

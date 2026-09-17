@@ -1,0 +1,57 @@
+{
+  "tests": [
+    "tests/test_flake_probe_runner.py"
+  ],
+  "timeout_s": 600,
+  "mutations": [
+    {
+      "name": "AT-401 reopens: a probe run has no timeout",
+      "old": "check=False, timeout=timeout,",
+      "new": "check=False,",
+      "kills": [
+        "tests/test_flake_probe_runner.py::test_a_run_that_outlives_its_bound_is_a_failure_marked_timed_out",
+        "tests/test_flake_probe_runner.py::test_the_probe_keeps_going_after_a_timed_out_run"
+      ],
+      "file": "scripts/flake_probe.py"
+    },
+    {
+      "name": "a hung run is recorded as a green run",
+      "old": "        return Run(index=index, returncode=TIMED_OUT,",
+      "new": "        return Run(index=index, returncode=0,",
+      "kills": [
+        "tests/test_flake_probe_runner.py::test_a_run_that_outlives_its_bound_is_a_failure_marked_timed_out",
+        "tests/test_flake_probe_runner.py::test_the_probe_keeps_going_after_a_timed_out_run"
+      ],
+      "file": "scripts/flake_probe.py"
+    },
+    {
+      "name": "a timed-out run is indistinguishable from an ordinary failure",
+      "old": "        return self.returncode == TIMED_OUT",
+      "new": "        return False",
+      "kills": [
+        "tests/test_flake_probe_runner.py::test_a_run_that_outlives_its_bound_is_a_failure_marked_timed_out",
+        "tests/test_flake_probe_runner.py::test_a_timed_out_run_says_so_in_the_report_and_the_description"
+      ],
+      "file": "scripts/flake_probe.py"
+    },
+    {
+      "name": "the description does not name a timeout",
+      "old": "        verdict = \"TIMED OUT\" if failure.timed_out else f\"FAILED (rc={failure.returncode})\"",
+      "new": "        verdict = f\"FAILED (rc={failure.returncode})\"",
+      "kills": [
+        "tests/test_flake_probe_runner.py::test_a_timed_out_run_says_so_in_the_report_and_the_description"
+      ],
+      "file": "scripts/flake_probe.py"
+    },
+    {
+      "name": "the CLI accepts a zero or negative timeout",
+      "old": "    if args.timeout <= 0:",
+      "new": "    if False:",
+      "kills": [
+        "tests/test_flake_probe_runner.py::test_the_cli_refuses_a_timeout_that_is_not_positive[0]",
+        "tests/test_flake_probe_runner.py::test_the_cli_refuses_a_timeout_that_is_not_positive[-5]"
+      ],
+      "file": "scripts/flake_probe.py"
+    }
+  ]
+}

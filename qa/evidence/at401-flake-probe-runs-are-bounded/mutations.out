@@ -1,0 +1,18 @@
+KILLED  AT-401 reopens: a probe run has no timeout  (pytest exit 1)
+    claims to kill : tests/test_flake_probe_runner.py::test_a_run_that_outlives_its_bound_is_a_failure_marked_timed_out, tests/test_flake_probe_runner.py::test_the_probe_keeps_going_after_a_timed_out_run
+    actually failed: tests/test_flake_probe_runner.py::test_a_run_that_outlives_its_bound_is_a_failure_marked_timed_out, tests/test_flake_probe_runner.py::test_the_probe_keeps_going_after_a_timed_out_run
+KILLED  a hung run is recorded as a green run  (pytest exit 1)
+    claims to kill : tests/test_flake_probe_runner.py::test_a_run_that_outlives_its_bound_is_a_failure_marked_timed_out, tests/test_flake_probe_runner.py::test_the_probe_keeps_going_after_a_timed_out_run
+    actually failed: tests/test_flake_probe_runner.py::test_a_run_that_outlives_its_bound_is_a_failure_marked_timed_out, tests/test_flake_probe_runner.py::test_the_probe_keeps_going_after_a_timed_out_run
+KILLED  a timed-out run is indistinguishable from an ordinary failure  (pytest exit 1)
+    claims to kill : tests/test_flake_probe_runner.py::test_a_run_that_outlives_its_bound_is_a_failure_marked_timed_out, tests/test_flake_probe_runner.py::test_a_timed_out_run_says_so_in_the_report_and_the_description
+    actually failed: tests/test_flake_probe_runner.py::test_a_run_that_outlives_its_bound_is_a_failure_marked_timed_out, tests/test_flake_probe_runner.py::test_a_timed_out_run_says_so_in_the_report_and_the_description
+KILLED  the description does not name a timeout  (pytest exit 1)
+    claims to kill : tests/test_flake_probe_runner.py::test_a_timed_out_run_says_so_in_the_report_and_the_description
+    actually failed: tests/test_flake_probe_runner.py::test_a_timed_out_run_says_so_in_the_report_and_the_description
+KILLED  the CLI accepts a zero or negative timeout  (pytest exit 1)
+    claims to kill : tests/test_flake_probe_runner.py::test_the_cli_refuses_a_timeout_that_is_not_positive[-5], tests/test_flake_probe_runner.py::test_the_cli_refuses_a_timeout_that_is_not_positive[0]
+    actually failed: tests/test_flake_probe_runner.py::test_the_cli_refuses_a_timeout_that_is_not_positive[-5], tests/test_flake_probe_runner.py::test_the_cli_refuses_a_timeout_that_is_not_positive[0]
+
+5/5 mutations killed
+exit=0
