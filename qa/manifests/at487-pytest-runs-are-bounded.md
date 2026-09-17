@@ -111,4 +111,6 @@ Not UI-touching — no surface changed. Changed paths: `scripts/mutation_check.p
   loop may see one spurious failed or truncated run. All later cleanups filter by this checkout's venv
   path.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Verdict: `qa/verdicts/at487-pytest-runs-are-bounded.md` (Cycle checked: 1, commit 8516565, pushed). Ledger: AT-487 → fixed. Checker filed AT-490 (low: `_kill_tree`'s trailing wait is unbounded) and AT-491 (low: the POSIX kill branch is unverified and needed an issue, not a disclosure).
