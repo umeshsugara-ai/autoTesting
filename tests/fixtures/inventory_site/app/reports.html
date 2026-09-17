@@ -1,0 +1,31 @@
+<!doctype html>
+<html><head><title>Inventory Demo - Reports</title><script src="/app/guard.js"></script></head>
+<body>
+  <nav>
+    <a href="/app/home.html">Home</a>
+    <a href="/app/projects.html">Projects</a>
+    <a href="/app/reports.html">Reports</a>
+    <a href="/app/settings.html">Settings</a>
+    <a href="/app/search.html">Search</a>
+    <a href="/logout.html">Log out</a>
+  </nav>
+  <h1>Reports</h1>
+  <a href="#/weekly">Weekly report</a>
+  <a href="#/monthly">Monthly report</a>
+  <section id="view"></section>
+  <script>
+    function render() {
+      var view = document.getElementById("view");
+      if (location.hash === "#/weekly") {
+        view.innerHTML = "<h2>Weekly</h2><button type=\"button\">Show weekly chart</button>";
+      } else if (location.hash === "#/monthly") {
+        view.innerHTML = "<h2>Monthly</h2><button type=\"button\">Show monthly table</button>"
+          + "<button type=\"button\">Show monthly trend</button>";
+      } else {
+        view.innerHTML = "<p>Pick a report.</p><button type=\"button\">Show report guide</button>";
+      }
+    }
+    window.addEventListener("hashchange", render);
+    render();
+  </script>
+</body></html>

@@ -1,0 +1,27 @@
+<!doctype html>
+<html><head><title>Inventory Demo - Projects</title><script src="/app/guard.js"></script></head>
+<body>
+  <nav>
+    <a href="/app/home.html">Home</a>
+    <a href="/app/projects.html">Projects</a>
+    <a href="/app/reports.html">Reports</a>
+    <a href="/app/settings.html">Settings</a>
+    <a href="/app/search.html">Search</a>
+    <a href="/logout.html">Log out</a>
+  </nav>
+  <h1>Projects</h1>
+  <ul id="list"></ul>
+  <a id="next" href="/app/projects.html?page=2">Next page</a>
+  <script>
+    var two = new URLSearchParams(location.search).get("page") === "2";
+    var list = document.getElementById("list");
+    list.innerHTML = two
+      ? "<li>Gamma</li><li><a href=\"/app/project-archived.html\">Archived project</a></li>"
+      : "<li>Alpha</li><li>Beta</li>";
+    if (two) {
+      var next = document.getElementById("next");
+      next.textContent = "Previous page";
+      next.setAttribute("href", "/app/projects.html");
+    }
+  </script>
+</body></html>

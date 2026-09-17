@@ -1,0 +1,24 @@
+<!doctype html>
+<html><head><title>Inventory Demo - Home</title><script src="/app/guard.js"></script></head>
+<body>
+  <nav>
+    <a href="/app/home.html">Home</a>
+    <a href="/app/projects.html">Projects</a>
+    <a href="/app/reports.html">Reports</a>
+    <a href="/app/settings.html">Settings</a>
+    <a href="/app/search.html">Search</a>
+    <a href="/logout.html">Log out</a>
+  </nav>
+  <h1>Home</h1>
+  <p>Welcome back.</p>
+  <button id="open-help" type="button">Open help drawer</button>
+  <aside id="drawer" hidden>
+    <h2>Help</h2>
+    <a href="/app/shortcuts.html">Keyboard shortcuts</a>
+  </aside>
+  <script>
+    document.getElementById("open-help").addEventListener("click", function () {
+      document.getElementById("drawer").hidden = false;
+    });
+  </script>
+</body></html>
