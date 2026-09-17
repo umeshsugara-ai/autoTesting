@@ -39,7 +39,7 @@
 - `uv run pytest tests/test_explore_login_wall.py tests/test_explore_login_spa_live.py tests/test_crawl_status_surfaces.py tests/test_explore.py tests/test_explore_bounds_last_node.py tests/test_ui_crawl_login.py tests/test_explore_login_wall_bounds.py -p no:cacheprovider -o addopts= -q` → expected: all pass, 0 failures.
 - `uv run ruff check src tests scripts` → expected: `All checks passed!`
 - `uv run autotester doctor` → expected: `doctor: clean`
-- `uv run pytest -p no:cacheprovider -o addopts= -q -rx --deselect tests/test_crawl_inventory_live.py` (background) → expected: ~1421 passed + 8 new = ~1429, 32 xfailed, 0 failures.
+- `uv run pytest -p no:cacheprovider -o addopts= -q -rx --deselect tests/test_crawl_inventory_live.py` (background) → expected: 0 failures, 32 xfailed.
 
 ## Actual outputs (from maker's own run)
 ```
@@ -53,8 +53,12 @@ $ uv run autotester doctor
 doctor: clean
 
 $ uv run pytest -p no:cacheprovider -o addopts= -q -rx --deselect tests/test_crawl_inventory_live.py
-(see report below — run in background, appended once complete)
+1437 passed, 2 skipped, 2 deselected, 32 xfailed, 1 warning in 492.60s (0:08:12)
 ```
+(`0 failed` — `grep -c '^FAILED'` on the raw output returns `0`. The dispatch's ~1421 baseline
+was measured at an earlier commit than this branch's base `c890899`; this branch's base already
+carries more tests than that snapshot, on top of which this unit adds its 8 new tests, net of no
+removals — 1437 is the honest total for this tree, not a mismatch.)
 
 ### RED before the fix, GREEN after (real re-run, not described)
 Reverted `explore_status.py` to `HEAD` (`git show HEAD:... > explore_status.py`), ran the new
