@@ -131,14 +131,22 @@ def failed_tests(output: str, known: set[str] | None = None) -> set[str]:
 
     AT-469: a parametrize id may contain spaces, so the regex's non-space run cut
     `test_x[a b]` to `test_x[a` and a genuine kill printed SURVIVED. Given the
-    collected nodeids, a line is attributed to the LONGEST one it starts with,
-    followed by the end of the line or " - "; a line matching none keeps the
-    regex's reading."""
+    collected nodeids, a line belongs to the ONE known nodeid that is the whole line
+    or is followed by " - " (pytest's separator before the short message).
+
+    AT-473: when TWO known nodeids fit, the line is genuinely ambiguous -- `f[q] - r]`
+    failing and `f[q]` failing with message `r] - ...` print the same bytes -- so it
+    is credited to NEITHER. "Longest wins" once credited a passing sibling, and a
+    false KILLED is the one error this gate may never make. A line matching no known
+    nodeid keeps the regex's reading."""
     failures = set()
     for m in FAILED.finditer(output):
         line = output[m.start("nodeid"):].splitlines()[0]
         whole = [n for n in known or () if line == n or line.startswith(n + " - ")]
-        failures.add(max(whole, key=len) if whole else m.group("nodeid"))
+        if len(whole) == 1:
+            failures.add(whole[0])
+        elif not whole:
+            failures.add(m.group("nodeid"))
     return failures
 
 

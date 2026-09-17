@@ -22,12 +22,13 @@
       ]
     },
     {
-      "name": "the shortest matching nodeid wins, so a nodeid that prefixes another steals its failure",
+      "name": "AT-473 reopens: an ambiguous line is credited to the longest match, so a PASSING sibling reads KILLED",
       "file": "scripts/mutation_check.py",
-      "old": "max(whole, key=len)",
-      "new": "min(whole, key=len)",
+      "old": "        if len(whole) == 1:\n            failures.add(whole[0])\n",
+      "new": "        if whole:\n            failures.add(max(whole, key=len))\n",
       "kills": [
-        "tests/test_mutation_check.py::test_failed_tests_keeps_a_nodeid_whose_parametrize_id_contains_spaces"
+        "tests/test_mutation_check.py::test_failed_tests_keeps_a_nodeid_whose_parametrize_id_contains_spaces",
+        "tests/test_mutation_check.py::test_a_passing_sibling_is_never_credited_with_another_tests_failure"
       ]
     },
     {

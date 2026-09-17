@@ -173,15 +173,21 @@ def test_a_kills_entry_may_be_the_full_nodeid_the_guard_asks_for(
 def test_failed_tests_keeps_a_nodeid_whose_parametrize_id_contains_spaces() -> None:
     """AT-469: `\S+` cut `test_x[a b]` to `test_x[a`, so the named test never appeared
     in the failures and a genuine kill printed as SURVIVED. The collected nodeids are
-    the authority on where a nodeid ends; the longest one the line starts with wins."""
+    the authority on where a nodeid ends."""
     known = {"tests/t.py::test_x[a]", "tests/t.py::test_x[a b]", "tests/t.py::test_y",
              "tests/t.py::test_z[q]", "tests/t.py::test_z[q] - r]"}
     output = ("FAILED tests/t.py::test_x[a b] - AssertionError: boom" + chr(10)
-              + "FAILED tests/t.py::test_y" + chr(10)
-              + "FAILED tests/t.py::test_z[q] - r] - AssertionError" + chr(10))
+              + "FAILED tests/t.py::test_y" + chr(10))
 
-    assert failed_tests(output, known) == {"tests/t.py::test_x[a b]", "tests/t.py::test_y",
-                                           "tests/t.py::test_z[q] - r]"}
+    assert failed_tests(output, known) == {"tests/t.py::test_x[a b]", "tests/t.py::test_y"}
+    # AT-473: `test_z[q]` failing with message "r] - AssertionError" and `test_z[q] - r]`
+    # failing with "AssertionError" print the SAME line. Crediting either is a guess, and
+    # crediting the one that passed is a false KILLED, so neither is credited.
+    ambiguous = "FAILED tests/t.py::test_z[q] - r] - AssertionError" + chr(10)
+    assert failed_tests(ambiguous, known) == set()
+    # Unambiguous siblings are still attributed: the SHORTER one failing with a plain message.
+    shorter = "FAILED tests/t.py::test_z[q] - AssertionError: boom" + chr(10)
+    assert failed_tests(shorter, known) == {"tests/t.py::test_z[q]"}
     # A known nodeid that is merely a PREFIX of an uncollected one must not claim its
     # failure: that would be a false KILLED for `test_y`. The regex reading stands.
     stranger = "FAILED tests/t.py::test_yz - AssertionError" + chr(10)
@@ -206,3 +212,27 @@ def test_a_mutation_is_attributed_to_a_parametrized_test_with_spaces_in_its_id(
 
     assert result["killed"] is True, result
     assert spaced in result["failed"]
+
+
+def test_a_passing_sibling_is_never_credited_with_another_tests_failure(
+    mutation_repo: Path,
+) -> None:
+    """AT-473, reproduced through real pytest: only `[a]` fails, with a message that makes
+    its summary line read exactly like its sibling's nodeid. The at469 cycle-1 instrument
+    reported the sibling -- which PASSED -- as KILLED."""
+    (mutation_repo / "tests" / "test_amb.py").write_text(
+        "import sys" + chr(10) + "from pathlib import Path" + chr(10)
+        + "import pytest" + chr(10)
+        + 'sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))' + chr(10)
+        + "from mod import classify" + chr(10) + chr(10) + chr(10)
+        + '@pytest.mark.parametrize("value", [1, 50], ids=["a", "a] - AssertionError: r"])'
+        + chr(10) + "def test_amb(value):" + chr(10)
+        + '    assert classify(value) == ("small" if value < 10 else "big"), "r]"' + chr(10),
+        encoding="utf-8")
+    sibling = "tests/test_amb.py::test_amb[a] - AssertionError: r]"
+
+    result = check(spec(tests=["tests/test_mod.py", "tests/test_amb.py"],
+                        mutation={"kills": [sibling]}), mutation_repo)[0]
+
+    assert result["killed"] is False, result
+    assert sibling not in result["failed"]
