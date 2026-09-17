@@ -195,4 +195,4 @@ fallback (signature rule only)."* This closes ISS-x18a-1 as filed (the coinciden
 case) while keeping the AT-467 sticky-banner catch intact (its node also carries the submit
 control).
 
-## Status: ready-for-check
+## Status: checked-PASS (qa/verdicts/at480-489-wall-bound-and-fill-fallback.md, cycle 1, commit dcb9172; X18(a) wording adopted, new X18(e) added; ISS-x18a-1 closed "as filed" with its narrow residual stated)
