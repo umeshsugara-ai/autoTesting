@@ -135,4 +135,24 @@ Not UI-touching — no surface changed. Changed paths: `src/autotester/ledger/ch
   AT-496's original disclosed limit and is unchanged.
 - **AT-507 is untouched** — `docs/ARCHITECTURE.md` still sits at exactly 150/150.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Cycle 1, `qa/verdicts/at508-a-word-containing-fixed-is-not-a-fix-claim.md` (commit `62bc1fd`).
+PASS, no failures: the checker re-derived the 54/54 no-regression result against the shipped
+functions rather than running this unit's script and believing it, and reproduced all four mutation
+rows in a fresh throwaway copy from a proven-green baseline.
+
+**The finding that matters is not the confirmation — it is AT-509 (medium), which it went looking
+for.** `check_qa_issue_rows` and `_is_marker_line` read only the marker line itself, so an issue id
+named on a **continuation line** of a multi-line `**Issues addressed:**` list is silently skipped by
+both the row-lost and the row-stale checks. AT-496 disclosed "only ids ON the marker line are read"
+as a known limit and four units since then have treated it as a limit rather than a defect; live
+manifests — including `at496-the-ledger-never-loses-a-row.md` itself — do wrap that line. So the
+blindness is live, not theoretical.
+
+Also filed: **AT-510 (low)**, the `"fix"`-versus-`"fixed"` gap this manifest disclosed under Known
+limits, promoted from prose to a tracked row per the AT-502/AT-507 precedent.
+
+`uv run autotester doctor` → `doctor: clean` after the ledger close, checked this time rather than
+assumed — the checker two units earlier PASSed its unit and left its own row `open`, and this guard
+caught it.
