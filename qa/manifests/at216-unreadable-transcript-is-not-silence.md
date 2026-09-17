@@ -129,4 +129,4 @@ cannot make deterministic and does not claim to.
   ran `git stash push -- src/autotester/stages/analyze_video.py` on the shared tree and popped it
   straight back. It touched only this unit's file; the diff above is intact.
 
-## Status: ready-for-check
+## Status: checked-PASS — `qa/verdicts/at216-unreadable-transcript-is-not-silence.md` (Cycle checked: 1, commit b889b53, pushed). Checker filed AT-465 (cli_video prints "0 narration segment(s)" for both unreadable and none) and AT-466 (the parse cause is still discarded; a `{}` sidecar renders as silence). It also recorded the `git stash` on the shared tree as a rule breach, left no residue.
