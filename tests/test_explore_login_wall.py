@@ -163,11 +163,11 @@ def _node(template: str, signature: str, depth: int = 0,
                       depth=depth, elements=elements or [])
 
 
-def _root_login_case() -> Case:
+def _root_login_case() -> Case:  # AT-489: a CLICK step so the submit-control fallback can fire
     return _login_case().model_copy(update={"steps": [
         Step(order=1, action=Action.NAVIGATE, target="https://app.test/"),
         Step(order=2, action=Action.FILL, target="#email", value="someone"),
-    ]})
+        Step(order=3, action=Action.CLICK, target="#go")]})
 
 
 def _judge(nodes: list[ScreenNode], case: Case, login_signature: str | None) -> CrawlStatus:
