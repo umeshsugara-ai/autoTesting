@@ -143,4 +143,26 @@ Not UI-touching — no surface changed. Changed paths: `src/autotester/doctor.py
   `qa/adapter.json` (which a maker may not rewrite mid-run) or `pyproject.toml`'s repo-wide
   `addopts`, so it wants its own unit and probably a decision.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Cycle 1, `qa/verdicts/at504-prose-about-the-marker-is-not-a-claim.md` (commits `3fff45b`, then
+`d2b5b98` adding the erosion judgement), pushed per D-007. PASS with no failures.
+
+The checker re-derived the over-tightening numbers with its own script rather than trusting the
+pasted ones, and reproduced all three structural deltas exactly: **+12** against a naive
+`startswith`, **−3** against the old substring test, **0** gained — the strict-subset property that
+matters. Its absolute total read 629 where this manifest says 627; that gap is real and benign, and
+worth recording rather than smoothing over: two loops share this working tree and a couple of `qa/`
+files landed between my measurement and its own. The deltas are exact because they are structural;
+the absolute is a moving target because the corpus is.
+
+It also checked the two things this manifest asserted without proving, and both held: the three
+decorated-marker citations (`at097`, `at176`, `at206`) are live lines, and the disclosed list-item
+blind spot (`- ISSUES-WRITTEN lines are read…`) exists nowhere in the tree today.
+
+**AT-506 (medium) filed against the erosion this manifest only noted in prose.** `doctor.py` grew
+264 → 287 across three consecutive units (`385fec1`, `17d0d58`, `6f97f45`), and `doctor` stays
+silent until 301. The checker judged that the AT-502 precedent makes this a filed row rather than a
+manifest note, and it is right: a limit recorded only in the prose of a closed manifest is a limit
+nobody will read at the moment it matters. The next unit touching `src/autotester/doctor.py` opens
+with the split question.
