@@ -139,4 +139,40 @@ Not UI-touching — no surface changed. Changed paths: `src/autotester/doctor.py
   source rules were not moved and are covered by `tests/test_doctor.py`'s untouched 133 lines, but
   the byte-identical claim is specifically about `check_qa_issue_rows` and `check_ledger`.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Cycle 1, `qa/verdicts/at506-record-rules-leave-the-source-rules.md` (commit `934d895`, pushed per
+D-007). PASS with no failures, and the checker went past what this manifest proved in two ways
+worth recording:
+
+- **It proved "moved verbatim" byte-for-byte**, extracting each moved definition from the
+  pre-commit `doctor.py` via AST and diffing against `ledger/checks.py` — all identical — and
+  diffed the full `def test_*` name set before and after the split: an identical 24 names, zero
+  coverage lost. My fingerprint argued behaviour; that argues identity.
+- **It attacked the fingerprint itself**, which is the check I asked for and could not do
+  convincingly on my own work. It loaded a deliberately widened copy of `checks.py` through
+  `importlib` from outside the bound tree and re-ran the dump: **0 rows moved to 25**. So the proof
+  is a real discriminator, not one that cannot fail — the C7 trap a refactor invites most.
+
+Rulings on the open judgements: the stale-evidence-files cost was **not** overruled (the refusal is
+loud and self-explanatory); the `docs/SNAPSHOT.md` omission from D-026 is not a violation
+(tool-generated, not prose). One honest caveat it added and I accept: `doctor.py` still holds three
+checks that read `docs/*.md`, so the source/records line is not perfectly clean — the
+history-versus-current-state distinction is what actually holds.
+
+Filed by the checker, both accepted: **AT-507** (medium, `ARCHITECTURE.md` at 150/150 with no
+headroom) and **AT-508** (medium, the pre-existing false accusation in the moved `claimed` filter,
+traced to `385fec1`/AT-496 and confirmed not introduced here).
+
+**One thing this unit's own subject then caught.** After the PASS, `AT-506`'s ledger row was still
+`open` while its verdict read `VERDICT: PASS`, and `uv run autotester doctor` reported it:
+
+```
+ledger-row-stale: qa/manifests/at506-record-rules-leave-the-source-rules.md
+  - AT-506 is still `open` although this unit PASSed
+```
+
+That is the guard built by AT-496/500/504/506 catching a real governance loss in the wild, on its
+own project, against its own checker, with nobody looking for it. The fix belongs to `/checker`
+(`qa/issues.jsonl` is its write surface, not the maker's — AT-499), so it was asked for rather than
+made here.
