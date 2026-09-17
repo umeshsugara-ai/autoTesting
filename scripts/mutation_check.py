@@ -43,11 +43,14 @@ import argparse
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
+TIMED_OUT = -1  # pytest outlived its bound and was killed with its children (AT-487)
+PYTEST_TIMEOUT_S = 1800.0  # per pytest run; a spec may lower it with "timeout_s"
 INTERRUPTED = 2  # pytest ran tests and was then interrupted — its failure reports are real
 REPORT_PLUGIN = "_mutation_report"
 PLUGIN_SOURCE = '''"""Written by mutation_check into its sandbox root; never part of a project."""
@@ -111,25 +114,51 @@ def _targets(tests: str | list[str]) -> list[str]:
     return [tests] if isinstance(tests, str) else list(tests)
 
 
-def _run_pytest(cwd: Path, tests: str | list[str], *extra: str) -> tuple[int, str]:
+def _run_pytest(cwd: Path, tests: str | list[str], *extra: str,
+                timeout: float = PYTEST_TIMEOUT_S) -> tuple[int, str]:
     """Run pytest in the sandbox with the report plugin, which sits in the sandbox's
-    parent (`_sandbox` writes it) so it is never inside the tree under test."""
+    parent (`_sandbox` writes it) so it is never inside the tree under test.
+
+    Bounded (AT-487): a mutation can make pytest loop forever. Output goes to a file,
+    not a pipe, because a test's child process inherits the handle and a pipe reader
+    then waits for that child as well; on timeout the whole process tree is killed."""
     env = dict(os.environ, MUTATION_REPORT=str(_report_path(cwd)),
                PYTHONPATH=os.pathsep.join(filter(None, [str(cwd.parent),
                                                         os.environ.get("PYTHONPATH")])))
     _report_path(cwd).unlink(missing_ok=True)
-    proc = subprocess.run(
-        [sys.executable, "-m", "pytest", *_targets(tests), "-o", "addopts=", "-q",
-         "--no-header", "-p", "no:cacheprovider", "-p", REPORT_PLUGIN, *extra],
-        cwd=cwd, capture_output=True, text=True, env=env)
-    return proc.returncode, proc.stdout + proc.stderr
+    log = cwd.parent / "mutation-pytest.log"
+    with open(log, "w", encoding="utf-8") as sink:
+        proc = subprocess.Popen(
+            [sys.executable, "-m", "pytest", *_targets(tests), "-o", "addopts=", "-q",
+             "--no-header", "-p", "no:cacheprovider", "-p", REPORT_PLUGIN, *extra],
+            cwd=cwd, stdout=sink, stderr=subprocess.STDOUT, env=env,
+            start_new_session=os.name != "nt")
+        try:
+            code = proc.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            _kill_tree(proc)
+            code = TIMED_OUT
+    out = log.read_text(encoding="utf-8", errors="replace")
+    if code == TIMED_OUT:
+        out += f"{chr(10)}pytest did not finish within {timeout:g}s; killed with its children"
+    return code, out
+
+
+def _kill_tree(proc: subprocess.Popen) -> None:
+    if os.name == "nt":
+        subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                       capture_output=True, check=False)
+    else:
+        os.killpg(proc.pid, signal.SIGKILL)
+    proc.wait()
 
 
 def _report_path(cwd: Path) -> Path:
     return cwd.parent / "mutation-report.json"
 
 
-def collected_tests(cwd: Path, tests: str | list[str]) -> dict[str, set[str]]:
+def collected_tests(cwd: Path, tests: str | list[str],
+                    timeout: float = PYTEST_TIMEOUT_S) -> dict[str, set[str]]:
     """Every collected test, as `bare name -> {full nodeid, ...}`.
 
     AT-320: a bare name is NOT an identifier. Both sides used to
@@ -137,7 +166,7 @@ def collected_tests(cwd: Path, tests: str | list[str]) -> dict[str, set[str]]:
     attribution and a mutation could be reported killed by a module it never
     touched — verbatim AT-311's second failure mode, inside the fix for AT-311.
     """
-    code, out = _run_pytest(cwd, tests, "--collect-only")
+    code, out = _run_pytest(cwd, tests, "--collect-only", timeout=timeout)
     if code != 0:
         raise MutationError(
             f"cannot collect {tests}: pytest exit {code}" + chr(10) + out[-2000:])
@@ -254,8 +283,16 @@ def check(spec: dict, repo: Path) -> list[dict]:
         _discard(owned_root)
 
 
+def _timeout(spec: dict) -> float:
+    value = spec.get("timeout_s", PYTEST_TIMEOUT_S)
+    if isinstance(value, bool) or not isinstance(value, int | float) or value <= 0:
+        raise MutationError(f"'timeout_s' must be a positive number of seconds, got {value!r}")
+    return float(value)
+
+
 def _check_in(work: Path, spec: dict, tests: str | list[str], mutations: list) -> list[dict]:
-    collected = collected_tests(work, tests)
+    timeout = _timeout(spec)
+    collected = collected_tests(work, tests, timeout)
 
     # Every named test must EXIST before anything is mutated. A label naming a
     # renamed test is the exact defect AT-311 was filed for.
@@ -277,7 +314,7 @@ def _check_in(work: Path, spec: dict, tests: str | list[str], mutations: list) -
                 f"{ambiguous}. A bare name is not an identifier — name the full nodeid.")
         mutation["_nodeids"] = {next(iter(collected[t])) for t in mutation["kills"]}
 
-    code, out = _run_pytest(work, tests)
+    code, out = _run_pytest(work, tests, timeout=timeout)
     if code != 0:
         raise MutationError(
             f"baseline is NOT green (pytest exit {code}) — every kill below would be "
@@ -297,7 +334,7 @@ def _check_in(work: Path, spec: dict, tests: str | list[str], mutations: list) -
         if target.read_text(encoding="utf-8") == original:
             raise MutationError(f"mutation {mutation['name']!r} changed nothing")
 
-        code, out = _run_pytest(work, tests)
+        code, out = _run_pytest(work, tests, timeout=timeout)
         failures = failed_tests(work)
         expected = mutation["_nodeids"]  # full nodeids, resolved at validation (AT-320)
         # A kill is the NAMED test failing. Not a non-zero exit (that includes a
@@ -317,6 +354,7 @@ def _check_in(work: Path, spec: dict, tests: str | list[str], mutations: list) -
             # pytest ran nothing about a run that produced results is the same
             # false-report class this instrument exists to refuse.
             "no_test_results": code not in (0, 1) and not failures,
+            "timed_out": code == TIMED_OUT,
         })
     return results
 
@@ -334,6 +372,8 @@ def report(results: list[dict]) -> int:
             # the mutation may simply not have changed observable behaviour.
             print(f"    SURVIVING      : {', '.join(r['survivors'])}"
                   f"  <- INCONCLUSIVE: this mutation did not make them fail")
+        if r.get("timed_out"):
+            print("    NOTE: pytest timed out and was killed — a hang is not a kill")
         if r["no_test_results"]:
             print("    NOTE: pytest produced no test results — not a kill")
         if not r["killed"]:

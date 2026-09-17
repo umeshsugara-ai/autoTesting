@@ -1,0 +1,18 @@
+KILLED  AT-487 reopens: pytest runs unbounded  (pytest exit 1)
+    claims to kill : tests/test_mutation_check_judgement.py::test_a_hung_baseline_is_refused_even_when_a_child_holds_the_output_open, tests/test_mutation_check_judgement.py::test_a_mutation_that_hangs_pytest_times_out_and_is_not_a_kill
+    actually failed: tests/test_mutation_check_judgement.py::test_a_hung_baseline_is_refused_even_when_a_child_holds_the_output_open, tests/test_mutation_check_judgement.py::test_a_mutation_that_hangs_pytest_times_out_and_is_not_a_kill
+KILLED  a timed-out mutation is not reported as timed out  (pytest exit 1)
+    claims to kill : tests/test_mutation_check_judgement.py::test_a_mutation_that_hangs_pytest_times_out_and_is_not_a_kill
+    actually failed: tests/test_mutation_check_judgement.py::test_a_mutation_that_hangs_pytest_times_out_and_is_not_a_kill
+KILLED  timeout kills pytest but not the children it started  (pytest exit 1)
+    claims to kill : tests/test_mutation_check_judgement.py::test_a_hung_baseline_is_refused_even_when_a_child_holds_the_output_open
+    actually failed: tests/test_mutation_check_judgement.py::test_a_hung_baseline_is_refused_even_when_a_child_holds_the_output_open
+KILLED  a zero or negative timeout is accepted  (pytest exit 1)
+    claims to kill : tests/test_mutation_check_judgement.py::test_it_refuses_a_timeout_that_is_not_a_positive_number[-5], tests/test_mutation_check_judgement.py::test_it_refuses_a_timeout_that_is_not_a_positive_number[0]
+    actually failed: tests/test_mutation_check_judgement.py::test_it_refuses_a_timeout_that_is_not_a_positive_number[-5], tests/test_mutation_check_judgement.py::test_it_refuses_a_timeout_that_is_not_a_positive_number[0]
+KILLED  a boolean timeout is accepted as a number  (pytest exit 1)
+    claims to kill : tests/test_mutation_check_judgement.py::test_it_refuses_a_timeout_that_is_not_a_positive_number[True]
+    actually failed: tests/test_mutation_check_judgement.py::test_it_refuses_a_timeout_that_is_not_a_positive_number[True]
+
+5/5 mutations killed
+exit=0

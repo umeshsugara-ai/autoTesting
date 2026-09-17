@@ -1,0 +1,55 @@
+{
+  "tests": [
+    "tests/test_mutation_check_judgement.py"
+  ],
+  "timeout_s": 900,
+  "mutations": [
+    {
+      "name": "AT-487 reopens: pytest runs unbounded",
+      "file": "scripts/mutation_check.py",
+      "old": "            code = proc.wait(timeout=timeout)",
+      "new": "            code = proc.wait()",
+      "kills": [
+        "tests/test_mutation_check_judgement.py::test_a_mutation_that_hangs_pytest_times_out_and_is_not_a_kill",
+        "tests/test_mutation_check_judgement.py::test_a_hung_baseline_is_refused_even_when_a_child_holds_the_output_open"
+      ]
+    },
+    {
+      "name": "a timed-out mutation is not reported as timed out",
+      "file": "scripts/mutation_check.py",
+      "old": "            \"timed_out\": code == TIMED_OUT,",
+      "new": "            \"timed_out\": False,",
+      "kills": [
+        "tests/test_mutation_check_judgement.py::test_a_mutation_that_hangs_pytest_times_out_and_is_not_a_kill"
+      ]
+    },
+    {
+      "name": "timeout kills pytest but not the children it started",
+      "file": "scripts/mutation_check.py",
+      "old": "[\"taskkill\", \"/F\", \"/T\", \"/PID\", str(proc.pid)]",
+      "new": "[\"taskkill\", \"/F\", \"/PID\", str(proc.pid)]",
+      "kills": [
+        "tests/test_mutation_check_judgement.py::test_a_hung_baseline_is_refused_even_when_a_child_holds_the_output_open"
+      ]
+    },
+    {
+      "name": "a zero or negative timeout is accepted",
+      "file": "scripts/mutation_check.py",
+      "old": "not isinstance(value, int | float) or value <= 0:",
+      "new": "not isinstance(value, int | float):",
+      "kills": [
+        "tests/test_mutation_check_judgement.py::test_it_refuses_a_timeout_that_is_not_a_positive_number[0]",
+        "tests/test_mutation_check_judgement.py::test_it_refuses_a_timeout_that_is_not_a_positive_number[-5]"
+      ]
+    },
+    {
+      "name": "a boolean timeout is accepted as a number",
+      "file": "scripts/mutation_check.py",
+      "old": "isinstance(value, bool) or not isinstance",
+      "new": "not isinstance",
+      "kills": [
+        "tests/test_mutation_check_judgement.py::test_it_refuses_a_timeout_that_is_not_a_positive_number[True]"
+      ]
+    }
+  ]
+}

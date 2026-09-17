@@ -13,7 +13,11 @@ nothing" about a run that produced results (AT-322).
 
 from __future__ import annotations
 
+import os
+import subprocess
 import sys
+import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -160,3 +164,76 @@ def test_a_run_that_produced_no_results_says_so(capsys) -> None:
              "no_test_results": True}])
 
     assert "produced no test results" in capsys.readouterr().out
+
+
+# -- AT-487: a hung pytest is bounded, and a hang is never a kill --------------
+
+def _within(seconds: float, fn):
+    """Run `fn` on a daemon thread, so a regression that hangs fails THIS test in
+    bounded time instead of wedging the whole suite."""
+    box: dict = {}
+
+    def run() -> None:
+        try:
+            box["value"] = fn()
+        except Exception as exc:  # re-raised on the test's own thread below
+            box["error"] = exc
+
+    worker = threading.Thread(target=run, daemon=True)
+    started = time.monotonic()
+    worker.start()
+    worker.join(seconds)
+    assert not worker.is_alive(), f"still running after {seconds}s: the pytest run is unbounded"
+    if "error" in box:
+        raise box["error"]
+    return box["value"], time.monotonic() - started
+
+
+def test_a_mutation_that_hangs_pytest_times_out_and_is_not_a_kill(mutation_repo: Path) -> None:
+    """A mutation can introduce an infinite loop. It used to hang the run forever."""
+    hang = {"old": "if value > 10:",
+            "new": "while value > 0:" + chr(10) + "        pass" + chr(10) + "    if value > 10:"}
+
+    results, _ = _within(120, lambda: check(spec(timeout_s=20, mutation=hang), mutation_repo))
+
+    assert results[0]["killed"] is False, results
+    assert results[0]["timed_out"] is True, results
+
+
+def test_a_hung_baseline_is_refused_even_when_a_child_holds_the_output_open(
+    mutation_repo: Path,
+) -> None:
+    """A test that starts a long-lived child keeps pytest's output handle open, so
+    killing pytest alone still leaves a reader waiting for that handle to close, and
+    leaves the child running after the sandbox it lives in is gone."""
+    pid_file = mutation_repo.parent / "child.pid"
+    child = (f"import os, pathlib, time; pathlib.Path({str(pid_file)!r})"
+             ".write_text(str(os.getpid())); time.sleep(600)")
+    (mutation_repo / "tests" / "test_hang.py").write_text(
+        chr(10).join(["import subprocess, sys, time", "", "", "def test_hang():",
+                      f"    subprocess.Popen([sys.executable, '-c', {child!r}])",
+                      "    time.sleep(600)", ""]), encoding="utf-8")
+    run = spec(tests=["tests/test_mod.py", "tests/test_hang.py"], timeout_s=15)
+
+    with pytest.raises(MutationError, match="did not finish within 15s"):
+        _within(120, lambda: check(run, mutation_repo))
+
+    assert not _alive(int(pid_file.read_text())), "the timeout killed pytest but not its child"
+
+
+def _alive(pid: int) -> bool:
+    if sys.platform == "win32":
+        listed = subprocess.run(["tasklist", "/FI", f"PID eq {pid}", "/NH"],
+                                capture_output=True, text=True, check=False).stdout
+        return str(pid) in listed.split()
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    return True
+
+
+@pytest.mark.parametrize("bad", [0, -5, "60", True, None])
+def test_it_refuses_a_timeout_that_is_not_a_positive_number(mutation_repo: Path, bad) -> None:
+    with pytest.raises(MutationError, match="'timeout_s' must be a positive number"):
+        check(spec(timeout_s=bad), mutation_repo)
