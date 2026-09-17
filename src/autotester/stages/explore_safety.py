@@ -23,6 +23,8 @@ from autotester.schema.project import Project
 from autotester.schema.screen_graph import ElementRef
 
 _UNSAFE_SCHEMES = ("javascript:", "mailto:", "tel:")
+FORM_SUBMIT_REFUSED = "form submit under read_only"
+"""The refusal a login wall is recognised by (X18) — one string, read by both."""
 
 
 def policy_for(project: Project, **overrides: object) -> SafetyPolicy:
@@ -86,7 +88,7 @@ def deny_reason(el: ElementRef, policy: SafetyPolicy) -> str | None:
     ):
         return "destructive-name deny-list"
     if policy.write_policy == WritePolicy.READ_ONLY and el.is_form_submit:
-        return "form submit under read_only"
+        return FORM_SUBMIT_REFUSED
     return None
 
 

@@ -293,3 +293,8 @@ class CrawlStatus(StrEnum):
     from COMPLETED (a real page with nothing denied, e.g. no interactive
     controls at all, is genuinely fully explored) and from LOGIN_FAILED (the
     login CASE specifically did not complete)."""
+    LOGIN_WALL = "login_wall"
+    """X18/AT-458: no login case was declared, every screen reached ends in a form
+    submit this crawl may not press, and no link led to a structurally different
+    screen — the crawl met a sign-in wall and saw nothing behind it, however many
+    actions it spent going round in front of it. Never success."""

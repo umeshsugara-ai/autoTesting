@@ -72,6 +72,7 @@
 | `stages/explore_node.py` | One node's worth of exploring: try each safe candidate action, record what |
 | `stages/explore_return.py` | Getting the browser back onto a screen the crawl has already seen. |
 | `stages/explore_safety.py` | The explorer's inner safety guard (Track B4, D-016). |
+| `stages/explore_status.py` | How a finished crawl is judged, and how a stored one is shown (X16, X18). |
 | `stages/grade.py` | GRADE: an independent, stateless judge reads a Rubric + a RawResult's evidence. |
 | `stages/ingest.py` | INGEST: turn a video Source into a FlowSpec, provenance-tracked to the second. |
 | `stages/issues.py` | ISSUES: turn an adjudicated analysis into rows a human tester can read. |

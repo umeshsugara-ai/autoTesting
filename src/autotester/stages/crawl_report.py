@@ -17,6 +17,7 @@ from autotester.core.excel import autosize_columns
 from autotester.schema.crawl import Crawl, CrawlIssue
 from autotester.schema.enums import EdgeOutcome, IssueKind
 from autotester.schema.screen_graph import ScreenEdge, ScreenNode
+from autotester.stages.explore_status import displayed_status
 from autotester.store.project_store import ProjectStore
 
 _REFUSED = (
@@ -32,7 +33,7 @@ def crawl_summary(crawl: Crawl) -> list[tuple[str, str]]:
     return [
         ("Crawl", crawl.id),
         ("Project", crawl.project),
-        ("Status", crawl.status.value),
+        ("Status", displayed_status(crawl).value),  # X18(d): a legacy no-op is not success
         ("Stopped because", crawl.stop_reason or "—"),
         ("Write policy", crawl.policy.write_policy.value),
         ("Screens found", str(crawl.screens)),

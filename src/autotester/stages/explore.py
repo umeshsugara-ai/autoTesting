@@ -28,7 +28,7 @@ from autotester.schema.crawl import Crawl, CrawlBounds, NoiseCount, SafetyPolicy
 from autotester.schema.enums import Action, ApprovalKind, CrawlStatus, Outcome
 from autotester.schema.project import Project
 from autotester.schema.screen_graph import CrawlFrontier, ScreenEdge, ScreenNode
-from autotester.stages import explore_node
+from autotester.stages import explore_node, explore_status
 from autotester.stages.execute import run_case
 from autotester.stages.explore_safety import DialogBreaker
 from autotester.stages.screen_identity import node_from
@@ -67,11 +67,10 @@ class ExploreRuntime:
     stop_reason: str | None = None
     seed_error: str | None = None
     login_precheck_error: str | None = None
-    """AT-273: why `_already_past_login` fell through to `False` on an
-    exception, distinct from a genuine "not yet authenticated" `False`. Read
-    into `stop_reason` only if the login case then fails too (the precheck's
-    fallback path is safe by design; this is diagnostic, not a new failure
-    mode)."""
+    """AT-273: why `_already_past_login` fell through to `False` on an exception,
+    distinct from a genuine "not yet authenticated" `False` (diagnostic only)."""
+    login_signature: str | None = None
+    """X18(a)/AT-462: the login screen's structure, observed before the case typed."""
     return_error: str | None = None
     """Why the most recent `return_to` failed. Scratch, not persisted — it is
     read straight into the issue text at the failure site (AT-108)."""
@@ -123,14 +122,11 @@ def _bootstrap_login(rt: ExploreRuntime, case: Case) -> bool:
 
 
 def _already_past_login(rt: ExploreRuntime, login_url: str) -> bool:
-    """Navigate to the login page named by the case and report whether the
-    app redirected away from it — the one signal AT-226's fix relies on.
+    """Navigate to the case's login page; report whether the app redirected away
+    (AT-226). Still there → record the login screen's signature for X18(a).
 
-    AT-273: a transient nav failure here must not be silently indistinguishable
-    from a genuine "not yet authenticated" `False` — `_seed` 15 lines below
-    names its own exceptions the same way, and this precheck deserved the same
-    discipline. `False` is still the safe fallback (the case runs normally
-    either way); only the CAUSE was being dropped."""
+    AT-273: a nav failure must not read as a genuine "not yet authenticated"
+    `False` — it is still the safe fallback, but its CAUSE is kept."""
     try:
         rt.session.goto(login_url)
         rt.session.settle(timeout_ms=rt.bounds.settle_ms)
@@ -140,7 +136,10 @@ def _already_past_login(rt: ExploreRuntime, login_url: str) -> bool:
     except Exception as exc:
         rt.login_precheck_error = f"{type(exc).__name__}: {exc}"
         return False
-    return urlparse(rt.session.current_url()).path != urlparse(login_url).path
+    if urlparse(rt.session.current_url()).path != urlparse(login_url).path:
+        return True
+    rt.login_signature = explore_status.observed_signature(rt.session)  # AT-462
+    return False
 
 
 def _seed(rt: ExploreRuntime) -> ScreenNode | None:
@@ -197,18 +196,18 @@ def _login_failed_reason(rt: ExploreRuntime) -> str:
     return reason
 
 
-def _terminal_status(rt: ExploreRuntime, completed: bool) -> CrawlStatus:
-    """AT-242: `completed` (frontier empty) is not always success. When every
-    reachable action was refused by policy (denied > 0) and none was ever
-    performed (actions_used == 0), the crawl learned the product HAS controls
-    and could act on none of them — a different outcome from a genuinely
-    trivial page (nothing denied) or from hitting a bound (STOPPED_BOUND)."""
-    if not completed:
-        return CrawlStatus.STOPPED_BOUND
-    if rt.frontier.actions_used == 0 and rt.denied > 0:
+def _terminal_status(rt: ExploreRuntime, completed: bool, login_case: Case | None) -> CrawlStatus:
+    """Decided in `explore_status` (AT-242, X18); this feeds it the graph."""
+    status, reason = explore_status.terminal_status(
+        completed=completed, actions_used=rt.frontier.actions_used, denied=rt.denied,
+        nodes=list(rt.nodes.values()), edges=rt.store.list_edges(rt.crawl.id),
+        login_case=login_case, login_signature=rt.login_signature,
+    )
+    if reason is not None:
+        rt.stop_reason = reason
+    elif status is CrawlStatus.BLOCKED_NO_ACTIONS:
         rt.stop_reason = f"{rt.stop_reason} -- every reachable action was denied by policy"
-        return CrawlStatus.BLOCKED_NO_ACTIONS
-    return CrawlStatus.COMPLETED
+    return status
 
 
 def _finish(rt: ExploreRuntime, status: CrawlStatus) -> Crawl:
@@ -297,4 +296,4 @@ def run_crawl(
         return _finish(rt, CrawlStatus.ABORTED)
     _bfs(rt)
     completed = rt.stop_reason == "frontier empty"
-    return _finish(rt, _terminal_status(rt, completed))
+    return _finish(rt, _terminal_status(rt, completed, login_case))

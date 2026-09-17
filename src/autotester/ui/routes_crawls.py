@@ -18,11 +18,12 @@ from starlette.background import BackgroundTask
 
 from autotester.core.ids import run_id
 from autotester.core.paths import ProjectPaths
-from autotester.schema.crawl import CrawlBounds
+from autotester.schema.crawl import Crawl, CrawlBounds
 from autotester.schema.enums import IssueKind
 from autotester.stages.coverage import diff_crawl, queue_requests, unreached_screens
 from autotester.stages.crawl_report import export_crawl_excel
 from autotester.stages.explore_merge import merge_screens
+from autotester.stages.explore_status import displayed_status, is_success
 from autotester.stages.merge_flowspec import resolve_requests
 from autotester.ui import crawl_view, theme
 from autotester.ui.helpers import (
@@ -83,6 +84,11 @@ def _parse_bounds(values: tuple[str, str, str, str]) -> CrawlBounds:
                        wall_clock_s=seconds, max_depth=depth)
 
 
+def _tone(crawl: Crawl) -> str:
+    """X18(c): only a genuinely successful crawl is green; a wall or a legacy no-op is not."""
+    return "positive" if is_success(crawl) else "warning"
+
+
 def _crumbs(slug: str, *tail: tuple[str, str | None]) -> str:
     return theme.breadcrumb(
         ("Projects", "/"), (escape(slug), f"/projects/{escape(slug)}"),
@@ -110,7 +116,7 @@ def crawls(slug: str) -> str:
         rows.append(
             f"<tr><td><a href='/projects/{safe}/crawls/{escape(crawl_id)}'>"
             f"<code>{escape(crawl_id)}</code></a></td>"
-            f"<td>{theme.pill(escape(crawl.status.value), 'neutral')}</td>"
+            f"<td>{theme.pill(escape(displayed_status(crawl).value), _tone(crawl))}</td>"
             f"<td>{escape(crawl.stop_reason or '—')}</td><td>{crawl.screens}</td>"
             f"<td>{crawl.denied}</td><td>{crawl.issues}</td>"
             f"<td>{crawl.tool_failures}</td>"

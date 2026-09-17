@@ -1,0 +1,15 @@
+{
+  "unit": "at458-crawl-stuck-at-login-never-completed",
+  "role": "maker SMOKE only - not validation; the checker runs its own Mode D",
+  "date": "2026-09-17T01:52Z",
+  "server": "uvicorn from an isolated git-archive extract (Vidysea project dirs removed; HEAD + the unit's 12 files), port 8059",
+  "target": "LOCAL fixture only: python -m http.server 8765 serving tests/fixtures/login_site on 127.0.0.1 (every /app/ page redirects to /login.html when signed out). No external site.",
+  "autotester_root": "scratchpad/x18root: one synthetic project 'wallsmoke' (base_url /app/dashboard.html, NO login case declared) and a CRAWL approval, plus a hand-written legacy-shaped crawl.json 'crawl_legacy_shape' (status completed, stop 'frontier empty', 0 actions, 3 denied), the shape of the three real on-disk crawls",
+  "interactions": [
+    {"did": "Crawls page: bounds 10/60/120, click 'Explore again' (no login declared)", "expected": "the crawl is stuck at the login page and must NOT end completed, even though it performs actions there", "observed": "crawl.json status login_wall; stop_reason 'stopped at a login wall: every screen reached only offers a form submit denied by read_only, and no link led anywhere else -- declare a login case to crawl past it'; 1 screen (/login.html), 2 actions (clicks into #username and #password, same_screen), 1 denied (#sign-in, form submit under read_only). BEFORE X18 this exact run would have been 'completed' (actions > 0).", "pass": true},
+    {"did": "Crawls table: read the status cell and pill class of both rows", "expected": "neither row shows completed or success colour", "observed": "crawl_legacy_shape: 'BLOCKED_NO_ACTIONS', class 'badge badge-blocked'; the new crawl: 'LOGIN_WALL', class 'badge badge-blocked' (CSS uppercases the text)", "pass": true},
+    {"did": "the new crawl's page: read the status and stop pills", "expected": "non-success tone", "observed": "'LOGIN_WALL · stopped: STOPPED AT A LOGIN WALL …' with both pills 'badge badge-blocked'; policy pill neutral", "pass": true}
+  ],
+  "console_errors": {"ui_pages": 0},
+  "product_issue_recorded_by_crawl": "a fixture console 404 (no favicon); fixture noise"
+}

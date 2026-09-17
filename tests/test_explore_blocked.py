@@ -38,6 +38,25 @@ def test_a_login_gate_with_every_action_denied_is_not_reported_completed(
 
     assert crawl.actions == 0
     assert crawl.denied == 2  # skipped_unnamed + denied_policy
+    # X18 (AT-458): this exact shape is a login wall, which is now named as one rather than
+    # folded into the generic "could act on nothing" status. Still never COMPLETED.
+    assert crawl.status is CrawlStatus.LOGIN_WALL
+    assert crawl.stop_reason is not None and "denied" in crawl.stop_reason
+
+
+def test_a_page_whose_only_control_is_refused_is_blocked_not_completed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AT-242's own shape, with no login form in it: the only control is refused by the
+    destructive-name deny-list. Not a wall, and not success either."""
+    import crawl_fake
+
+    monkeypatch.setitem(crawl_fake.SITE, crawl_fake.BASE, [
+        {"role": "button", "name": "Delete everything", "selector": "#del"},
+    ])
+    crawl, _store, _page = crawl_it(tmp_path)
+
+    assert (crawl.actions, crawl.denied) == (0, 1)
     assert crawl.status is CrawlStatus.BLOCKED_NO_ACTIONS
     assert crawl.stop_reason is not None and "denied" in crawl.stop_reason
 

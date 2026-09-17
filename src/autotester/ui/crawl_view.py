@@ -16,6 +16,7 @@ from autotester.schema.enums import EdgeOutcome, NodeStatus
 from autotester.schema.flowspec import FlowSpec, Screen
 from autotester.schema.screen_graph import ScreenEdge, ScreenNode
 from autotester.stages.crawl_report import crawl_summary
+from autotester.stages.explore_status import displayed_status, is_success
 from autotester.stages.report_export import png_base64
 from autotester.ui import theme
 
@@ -24,7 +25,6 @@ _REFUSED = (
     EdgeOutcome.SKIPPED_UNNAMED,
     EdgeOutcome.OFF_DOMAIN_REFUSED,
 )
-_STOP_TONE = {"frontier empty": "positive"}
 # AT-113: an aborted node used to render the same neutral gray pill as a fully
 # explored one, so a partial crawl looked identical to a complete one at a
 # glance. A human reading the screen tree must see the difference immediately.
@@ -39,7 +39,9 @@ def summary_stats(crawl: Crawl) -> str:
     """The headline numbers, with the stop reason given equal billing — a
     bounded crawl that hit `max_actions` saw less of the product than one that
     emptied its frontier, and a reader must not have to infer which happened."""
-    tone = _STOP_TONE.get(crawl.stop_reason or "", "warning")
+    # X18(c): tone follows the judged status, not the stop reason's wording — a legacy
+    # crawl stuck at the login page also said "frontier empty".
+    tone = "positive" if is_success(crawl) else "warning"
     return (
         "<div class='stat-row'>"
         + theme.stat(str(crawl.screens), "Screens")
@@ -48,7 +50,8 @@ def summary_stats(crawl: Crawl) -> str:
         + theme.stat(str(crawl.issues), "Issues")
         + theme.stat(str(crawl.tool_failures), "Tool failures")
         + "</div>"
-        + f"<p class='meta'>stopped: {theme.pill(escape(crawl.stop_reason or 'unknown'), tone)}"
+        + f"<p class='meta'>{theme.pill(escape(displayed_status(crawl).value), tone)} · "
+        + f"stopped: {theme.pill(escape(crawl.stop_reason or 'unknown'), tone)}"
         + f" · policy {theme.pill(escape(crawl.policy.write_policy.value), 'neutral')}</p>"
     )
 
