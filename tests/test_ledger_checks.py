@@ -163,3 +163,41 @@ def test_an_issue_a_manifest_says_it_did_NOT_fix_stays_open(tmp_path: Path) -> N
         verdicts={"u.md": "VERDICT: PASS"})
 
     assert checks.check_qa_issue_rows(tmp_path) == []
+
+
+@pytest.mark.parametrize("note", [
+    "low, unfixed - tracked separately",
+    "low, not-fixed, deferred",
+    "low, not yet fixed",
+    "low, prefixed by an earlier note",
+])
+def test_a_word_that_merely_contains_fixed_is_not_a_fix_claim(note: str,
+                                                              tmp_path: Path) -> None:
+    """AT-508: the claim test was a bare substring, excluding only the exact phrase
+    "not fixed", so "unfixed" read as a fix claim. It then accused a manifest that had
+    CORRECTLY declared an issue unfixed of leaving a stale row — the very case the
+    filter exists to protect, and a false accusation is worse than a miss. Live since
+    AT-496; found by a fresh engineering review, not by the four units built on it."""
+    _qa(tmp_path, ledger=ROW % "open",
+        manifests={"u.md": f"**Issues addressed:** AT-900 ({note})"},
+        verdicts={"u.md": "VERDICT: PASS"})
+
+    assert checks.check_qa_issue_rows(tmp_path) == []
+
+
+@pytest.mark.parametrize("note", [
+    "low, open -> fixed",
+    "medium, open → fixed",
+    "fixed",
+    "not a duplicate, open -> fixed",
+])
+def test_a_real_fix_claim_still_counts(note: str, tmp_path: Path) -> None:
+    """Over-tightening is the dangerous direction. Both `->` and the unicode arrow are
+    live in this repo's manifests, a bare `(fixed)` is too, and the negation must not
+    swallow a `not` belonging to a different clause — hence a character class that
+    cannot cross a comma. Measured over all 54 distinct live notes: none changes."""
+    _qa(tmp_path, ledger=ROW % "open",
+        manifests={"u.md": f"**Issues addressed:** AT-900 ({note})"},
+        verdicts={"u.md": "VERDICT: PASS"})
+
+    assert [v.rule for v in checks.check_qa_issue_rows(tmp_path)] == ["ledger-row-stale"]

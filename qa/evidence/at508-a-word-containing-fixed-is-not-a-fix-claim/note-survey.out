@@ -1,0 +1,12 @@
+distinct notes: 54 | unchanged verdict: 54 | CHANGED: 0
+
+synthetic shapes the reviewer reproduced:
+  old=True  new=False (low, unfixed - tracked separately)
+  old=True  new=False (low, not-fixed, deferred)
+  old=True  new=False (low, prefixed by AT-899)
+  old=False new=False (low, NOT fixed - reasons below)
+  old=True  new=True  (low, open -> fixed)
+  old=True  new=True  (medium, open → fixed)
+  old=True  new=True  (fixed)
+  old=True  new=False (low, not yet fixed)
+  old=True  new=True  (not a duplicate, open -> fixed)

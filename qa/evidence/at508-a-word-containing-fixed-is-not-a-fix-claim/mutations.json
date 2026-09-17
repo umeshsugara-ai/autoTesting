@@ -1,0 +1,50 @@
+{
+  "tests": [
+    "tests/test_ledger_checks.py"
+  ],
+  "timeout_s": 600,
+  "mutations": [
+    {
+      "name": "AT-508 reopens: the bare substring test comes back",
+      "old": "    return bool(_FIXED.search(note)) and not _NOT_FIXED.search(note)",
+      "new": "    return \"fixed\" in note.lower() and \"not fixed\" not in note.lower()",
+      "kills": [
+        "tests/test_ledger_checks.py::test_a_word_that_merely_contains_fixed_is_not_a_fix_claim[low, unfixed - tracked separately]",
+        "tests/test_ledger_checks.py::test_a_word_that_merely_contains_fixed_is_not_a_fix_claim[low, not-fixed, deferred]",
+        "tests/test_ledger_checks.py::test_a_word_that_merely_contains_fixed_is_not_a_fix_claim[low, not yet fixed]",
+        "tests/test_ledger_checks.py::test_a_word_that_merely_contains_fixed_is_not_a_fix_claim[low, prefixed by an earlier note]"
+      ],
+      "file": "src/autotester/ledger/checks.py"
+    },
+    {
+      "name": "the word boundaries go, so `unfixed` and `prefixed` are fix claims again",
+      "old": "_FIXED = re.compile(r\"\\bfixed\\b\", re.IGNORECASE)",
+      "new": "_FIXED = re.compile(r\"fixed\", re.IGNORECASE)",
+      "kills": [
+        "tests/test_ledger_checks.py::test_a_word_that_merely_contains_fixed_is_not_a_fix_claim[low, unfixed - tracked separately]",
+        "tests/test_ledger_checks.py::test_a_word_that_merely_contains_fixed_is_not_a_fix_claim[low, prefixed by an earlier note]"
+      ],
+      "file": "src/autotester/ledger/checks.py"
+    },
+    {
+      "name": "the negation is dropped, so a deliberate non-fix reads as a fix",
+      "old": "    return bool(_FIXED.search(note)) and not _NOT_FIXED.search(note)",
+      "new": "    return bool(_FIXED.search(note))",
+      "kills": [
+        "tests/test_ledger_checks.py::test_a_word_that_merely_contains_fixed_is_not_a_fix_claim[low, not-fixed, deferred]",
+        "tests/test_ledger_checks.py::test_a_word_that_merely_contains_fixed_is_not_a_fix_claim[low, not yet fixed]",
+        "tests/test_ledger_checks.py::test_an_issue_a_manifest_says_it_did_NOT_fix_stays_open"
+      ],
+      "file": "src/autotester/ledger/checks.py"
+    },
+    {
+      "name": "the negation is allowed to cross punctuation, swallowing a real claim",
+      "old": "_NOT_FIXED = re.compile(r\"\\bnot\\b[\\w\\s-]{0,15}?\\bfixed\\b\", re.IGNORECASE)",
+      "new": "_NOT_FIXED = re.compile(r\"\\bnot\\b[\\s\\S]{0,40}?\\bfixed\\b\", re.IGNORECASE)",
+      "kills": [
+        "tests/test_ledger_checks.py::test_a_real_fix_claim_still_counts[not a duplicate, open -> fixed]"
+      ],
+      "file": "src/autotester/ledger/checks.py"
+    }
+  ]
+}

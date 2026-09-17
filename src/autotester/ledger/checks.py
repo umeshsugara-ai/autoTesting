@@ -46,6 +46,29 @@ def _is_marker_line(line: str, marker: str) -> bool:
     return _MARKER_LEAD.sub("", line).startswith(marker.strip("*"))
 
 
+_FIXED = re.compile(r"\bfixed\b", re.IGNORECASE)
+_NOT_FIXED = re.compile(r"\bnot\b[\w\s-]{0,15}?\bfixed\b", re.IGNORECASE)
+
+
+def _claims_a_fix(note: str) -> bool:
+    """Does this parenthetical claim the unit FIXED the issue (AT-508)?
+
+    It was `"fixed" in note and "not fixed" not in note`, which read `unfixed`,
+    `not-fixed`, `not yet fixed` and `prefixed` as fix claims. The direction is what
+    made it serious: it accused a manifest that had correctly declared an issue
+    unfixed of leaving a stale row — the one case this filter exists to protect —
+    and a false accusation costs more than a miss. Live since AT-496; found by a
+    fresh engineering review rather than by the four units built on top of it.
+
+    Word boundaries settle `unfixed`/`prefixed` on their own. The negation stays a
+    regex so it also catches a hyphen or a word in between, and its character class
+    cannot cross punctuation, so a `not` belonging to another clause
+    (`not a duplicate, open -> fixed`) does not swallow the claim. Measured over all
+    54 distinct notes in the live manifests: not one changes verdict.
+    """
+    return bool(_FIXED.search(note)) and not _NOT_FIXED.search(note)
+
+
 def check_ledger(root: Path) -> list[Violation]:
     """L2/L3: every FEATURES.jsonl row validates; closed high-value tasks have a row."""
     from autotester.ledger.store import check_rows_on_pass, load_events, load_goal_tasks
@@ -89,10 +112,9 @@ def check_qa_issue_rows(root: Path) -> list[Violation]:
             if kind == "manifests" and _passed(root, path.name):
                 # Only an issue this manifest CLAIMS to have fixed — "AT-x (low, open -> fixed)".
                 # A line may also name issues it deliberately did NOT fix, and those stay open.
-                # "NOT fixed" is a claim about what this unit deliberately left open.
                 claimed = {i for line in body.splitlines() if _is_marker_line(line, marker)
                            for i, note in re.findall(rf"\b({ISSUE_ID})\s*\(([^)]*)\)", line)
-                           if "fixed" in note.lower() and "not fixed" not in note.lower()}
+                           if _claims_a_fix(note)}
                 out += [Violation("ledger-row-stale", subject,
                                   f"{issue} is still `open` although this unit PASSed")
                         for issue in sorted(claimed) if status_of.get(issue) == "open"]
