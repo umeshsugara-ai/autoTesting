@@ -107,4 +107,6 @@ Not UI-touching — no surface changed. Changed paths: `scripts/flake_probe.py`,
 - **Two probes of the same nodeid still share `.work/flake-probe.json`** unless `--out` differs.
   Pre-existing, untouched here.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Verdict: `qa/verdicts/at401-flake-probe-runs-are-bounded.md` (Cycle checked: 1, commit 9b5cbc5, pushed). Ledger: AT-401 → fixed. The checker judged the disclosed pipe residual admissible debt and filed it as AT-494 (medium), and corrected the manifest's over-broad "every new test stubs subprocess.run": 3 of the 5 touch no subprocess machinery at all.
