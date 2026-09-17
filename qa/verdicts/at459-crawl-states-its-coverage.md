@@ -142,3 +142,50 @@ EXPLANATION: All three cycle-1 findings are really fixed. My probes: max_depth=0
 ## Not committed by the checker (cycle 2)
 
 `qa/issues.jsonl` holds other sessions' uncommitted hunks. I set AT-470, AT-471 and AT-472 to fixed, appended AT-476 and AT-477, and did **not** commit it. The unit's code is not committed. The push is held because origin/master..HEAD carries 9 commits from other sessions that I have not verified.
+
+## Cycle 3
+
+**Cycle checked:** 3
+**Date:** 2026-09-17
+**Checker:** /checker Mode A + Mode D (fresh subagent), bound to `D:\autoTesting`. New throwaway copy `scratchpad/checker-at459c3`; nothing from earlier copies reused.
+**Manifest:** `qa/manifests/at459-crawl-states-its-coverage.md` (Fix cycle 3 of 3)
+
+```
+VERDICT: PASS
+SCOREBOARD: 4/4 criteria met (V7 a, b, c, d), 4/4 invariants hold (C1, C2, C3, C7)
+FAILURES: none
+CAPABILITY-COVERAGE: 5/5 rows reproduced in the copy (X1, X2 = AT-476 fixed; T1; V1 = V7 Verify; C1) -- each red on its own named assertion, named set 28 passed before and after
+LIVE-BROWSER: qa/evidence/browser-at459-crawl-states-its-coverage-2026-09-17-checker-c3/report.json
+ISSUES-WRITTEN: none new; AT-476 and AT-459 set to fixed
+EXPLANATION: AT-476 is really fixed. Re-applying my own cycle-2 deletions now fails exactly the test named for each skip ('bound:per_node_action_cap' == 'bound:max_actions'), and a probe confirms the tests reach _untried_reason genuinely: home has a pre-refused edge (denied_policy / off_domain_refused with the OFF_DOMAIN_LINK_REFUSED reason) plus navigated p1, p2 and NO edge for a.p3, tried=2 < cap 3. The manifest's live-browser SKIP for the error tile is honest (of_run swallows every exception, so no UI action reaches it), and I closed the gap anyway by having the live server render a synthetic crawl.json with coverage.error: the tile reads an em dash with 0 console errors; the actions=3 and max_depth=1 UI crawls still render tile, reason pills and the not-entered line correctly.
+```
+
+## What was re-run (by the checker, cycle 3)
+
+- **Bound tree:**
+  - 8-file pytest set (coverage, coverage_bounds, crawl_report, crawl_status_surfaces, ui_crawls, explore, explore_blocked, explore_login_wall): `91 passed` (88 in cycle 2 + the 3 new tests).
+  - `uv run ruff check src tests scripts`: `All checks passed!`; `uv run autotester doctor`: `doctor: clean`.
+  - Full suite, once, sequential, background: `uv run pytest -p no:cacheprovider -o addopts= -q -rx` gave `1407 passed, 2 skipped, 32 xfailed, 1 warning in 447.74s`, exit 0 (matches the manifest's figure).
+- **Copy:** `git archive HEAD` into `scratchpad/checker-at459c3`; projects/erp, pathlynks and vidysea-erp deleted immediately (only regression-demo left). All 11 unit files copied and `cmp`-checked, `uv sync`, `crawl_coverage.__file__` and `crawl_view.__file__` asserted inside the copy.
+- **Capability coverage** (named set `test_crawl_coverage.py`, `test_crawl_coverage_bounds.py`, `test_crawl_report.py`; anchors matched on LF-normalised text, written back with the original line endings -- crawl_view.py is CRLF; original bytes restored in `finally` and asserted, then `cmp` against the bound tree):
+
+  | Row | Edit (single hunk) | Result |
+  |---|---|---|
+  | before | -- | `28 passed` |
+  | X1 (AT-476) | delete `and e.outcome not in REFUSED_BEFORE_TRYING` | 1 failed: `test_a_policy_refusal_is_not_counted_as_a_try_against_the_per_node_cap`, `'bound:per_node_action_cap' == 'bound:max_actions'` |
+  | X2 (AT-476) | delete the `OFF_DOMAIN_REFUSED ... OFF_DOMAIN_LINK_REFUSED` clause | 1 failed: `test_an_off_domain_link_refused_before_trying_is_not_counted_against_the_cap`, same assertion |
+  | T1 | `if cov and not cov.error else "—"` -> `if cov else "—"` | 1 failed: `test_a_coverage_that_could_not_be_computed_shows_no_percentage`, the `0%` tile `not in` assertion |
+  | V1 (V7 Verify) | append a hole only `if reason != "not_visited"` | 3 failed, `(c) the books must balance: exercised + every hole == discovered` first |
+  | C1 | `not_entered = []` | 2 failed: `the dropped screens must be listed`, `[] == ['bound:max_depth']` |
+  | after | restored | `28 passed` |
+
+- **Probe (copy, checker's own test file, not in the named set):** for both new fixtures, crawl stop_reason `max_actions`, actions 2; home edges = `#del denied_policy 'destructive-name deny-list'` (resp. `a.ext off_domain_refused 'href outside allowed domains'`), `a.p1 navigated`, `a.p2 navigated`; no edge for `a.p3`; `_tried(home) == 2` with cap 3; `a.p3` hole `bound:max_actions`. The tests pass for the reason they are named for.
+- **Mode D** (headed Playwright Python, Chromium, own driver `mode_d_c3.py`): login_site fixture served from the copy on 127.0.0.1:8775, UI (uvicorn) from the copy on 127.0.0.1:8070, fresh scratch AUTOTESTER_ROOT `scratchpad/c3-root` with synthetic projects `covthree`, `covdepth` (declared login case + CRAWL approval each) and `coverr`.
+  - max_actions=3 crawl through the UI form: stopped_bound / max_actions, first tile `50% COVERAGE`, line `coverage: 50% of controls (3 of 6) · not exercised: BOUND:MAX_ACTIONS: 1 NOT_VISITED: 1 POLICY:NEVER-CLICK PATTERN (LOGOUT/SIGN-OUT): 1`, books balance. 0 console errors.
+  - max_depth=1 crawl through the UI form: completed, tile `83% COVERAGE`, line `... · screens not entered: BOUND:MAX_DEPTH: 1`, crawl.json `screens_not_entered = [bound:max_depth]`. 0 console errors.
+  - error state (the cycle-3 change): a synthetic crawl.json with `coverage.error` rendered by the live server, HTTP 200, tile `— COVERAGE`, line `coverage: could not be computed (RuntimeError: synthetic checker probe)`. 0 console errors.
+  - Both servers stopped (terminated, exit confirmed), ports 8775/8070 confirmed free, browser closed.
+
+## Not committed by the checker (cycle 3)
+
+`qa/issues.jsonl` holds other sessions' uncommitted hunks, so I set AT-459 and AT-476 to `fixed` there and did **not** commit it. The unit's code is not committed. **Push held:** origin/master..HEAD carries other sessions' unverified commits.

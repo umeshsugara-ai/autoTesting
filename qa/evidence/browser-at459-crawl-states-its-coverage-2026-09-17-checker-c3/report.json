@@ -1,0 +1,88 @@
+{
+ "unit": "at459-crawl-states-its-coverage",
+ "cycle_checked": 3,
+ "date": "2026-09-17",
+ "checker": "/checker Mode D (fresh subagent, own driver)",
+ "instrument": "headed Playwright Python (Chromium), checker-authored driver",
+ "targets": {
+  "ui": "http://127.0.0.1:8070",
+  "fixture": "http://127.0.0.1:8775 (tests/fixtures/login_site from scratch copy checker-at459c3)",
+  "note": "LOCAL 127.0.0.1 only; synthetic scratch AUTOTESTER_ROOT; servers from the copy, stopped in finally"
+ },
+ "assertions": {
+  "actions3: first tile is Coverage showing the recorded percent": true,
+  "actions3: books balance": true,
+  "actions3: every reason pill is on the page": true,
+  "actions3: figure < 100": true,
+  "actions3: stopped on max_actions with a bound:max_actions hole": true,
+  "depth1: first tile is Coverage showing the recorded percent": true,
+  "depth1: books balance": true,
+  "depth1: every reason pill is on the page": true,
+  "depth1: figure < 100": true,
+  "depth1: screens not entered line names bound:max_depth": true,
+  "error: tile shows an em dash, not 0%": true,
+  "error: page says could not be computed": true
+ },
+ "console_errors": {
+  "actions3": [],
+  "depth1": [],
+  "error_state": []
+ },
+ "observed": {
+  "server_pids": [
+   50788,
+   47000
+  ],
+  "actions3": {
+   "url": "http://127.0.0.1:8070/projects/covthree/crawls/crawl_01M2PWS9XJ9ZA8ZT98ZNS18W3R",
+   "status": "stopped_bound",
+   "stop_reason": "max_actions",
+   "tile": [
+    "50%",
+    "COVERAGE"
+   ],
+   "coverage_line": "coverage: 50% of controls (3 of 6) · not exercised: BOUND:MAX_ACTIONS: 1 NOT_VISITED: 1 POLICY:NEVER-CLICK PATTERN (LOGOUT/SIGN-OUT): 1",
+   "percent": 50,
+   "discovered": 6,
+   "exercised": 3,
+   "by_reason": {
+    "bound:max_actions": 1,
+    "not_visited": 1,
+    "policy:never-click pattern (logout/sign-out)": 1
+   },
+   "not_entered": []
+  },
+  "depth1": {
+   "url": "http://127.0.0.1:8070/projects/covdepth/crawls/crawl_01M2PWSSZ3ZWADMK5FKD49SECD",
+   "status": "completed",
+   "stop_reason": "frontier empty",
+   "tile": [
+    "83%",
+    "COVERAGE"
+   ],
+   "coverage_line": "coverage: 83% of controls (5 of 6) · not exercised: POLICY:NEVER-CLICK PATTERN (LOGOUT/SIGN-OUT): 1 · screens not entered: BOUND:MAX_DEPTH: 1",
+   "percent": 83,
+   "discovered": 6,
+   "exercised": 5,
+   "by_reason": {
+    "policy:never-click pattern (logout/sign-out)": 1
+   },
+   "not_entered": [
+    "bound:max_depth"
+   ]
+  },
+  "error_state": {
+   "http": 200,
+   "tile": [
+    "—",
+    "COVERAGE"
+   ],
+   "coverage_line": "coverage: could not be computed (RuntimeError: synthetic checker probe)"
+  },
+  "servers_stopped": [
+   true,
+   true
+  ]
+ },
+ "all_pass": true
+}
