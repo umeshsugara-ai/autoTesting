@@ -70,6 +70,16 @@ class CrawlBounds(BaseModel):
         "single time (measured: a 60-action crawl of the fixture site took >5 minutes at "
         "8s, because one page fetches unreachable analytics hosts)",
     )
+    heartbeat_every_actions: int = 5
+    """AT-483: `explore_node` re-persists the crawl envelope after the 1st action and
+    every Nth one after that -- the liveness signal `explore_status.displayed_status`
+    checks, paired with `heartbeat_stale_after_s` below rather than compared against
+    `started_at` alone (a legitimately long crawl must never be misjudged as dead)."""
+    heartbeat_stale_after_s: float = 90.0
+    """AT-483: how many seconds `Crawl.heartbeat_at` may sit unmoved before a RUNNING
+    crawl displays as interrupted -- comfortably above `heartbeat_every_actions`
+    actions at the measured ~2.8s/action pace. Display-only; `crawl.json` is never
+    rewritten because of this."""
 
 
 class SafetyPolicy(BaseModel):
@@ -187,3 +197,8 @@ class Crawl(Artifact):
     noise_counts: list[NoiseCount] = Field(default_factory=list)
     coverage: CrawlCoverage | None = Field(
         default=None, description="V7; None on a crawl recorded before coverage existed")
+    heartbeat_at: str | None = None
+    """AT-483: refreshed mid-BFS by `explore_node`, alongside a fresh snapshot of the
+    progress counts above -- absent (None, and so omitted from disk by `write_json`'s
+    `exclude_none`) on every crawl.json written before this unit, which is exactly the
+    X18(d) legacy shape: nothing to compare, so it is never flagged."""

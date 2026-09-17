@@ -8,6 +8,7 @@ X5-X9 — every decision about whether an action is allowed is delegated to
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 from urllib.parse import urljoin
 
@@ -113,6 +114,26 @@ def _enqueue(rt: ExploreRuntime, new: ScreenNode, edge: ScreenEdge) -> None:
     rt.store.add_node(new)
     rt.frontier.queue.append(new.id)
     rt.frontier.screens_found += 1
+
+
+def _heartbeat_due(rt: ExploreRuntime) -> bool:
+    n = rt.frontier.actions_used
+    return n == 1 or n % rt.bounds.heartbeat_every_actions == 0
+
+
+def heartbeat(rt: ExploreRuntime) -> None:
+    """AT-483: re-persist the crawl envelope mid-BFS -- the progress counts (fixing the
+    stale-zero display a killed process used to leave) plus a fresh `heartbeat_at`, the
+    liveness signal `explore_status.displayed_status` checks a dead process cannot keep
+    moving. `status` stays RUNNING here; only `explore._finish` ever sets a terminal one.
+    """
+    rt.crawl = rt.crawl.model_copy(update={
+        "heartbeat_at": datetime.now(UTC).isoformat(),
+        "screens": len(rt.nodes), "actions": rt.frontier.actions_used,
+        "edges": rt.edges, "denied": rt.denied, "issues": rt.issues,
+        "tool_failures": rt.tool_failures,
+    })
+    rt.store.save_crawl(rt.crawl)
 
 
 def _perform(rt: ExploreRuntime, el: ElementRef) -> Action:
@@ -242,6 +263,8 @@ def visit_node(rt: ExploreRuntime, node: ScreenNode) -> None:
         tried += 1
         rt.frontier.actions_used += 1
         edge = try_action(rt, node, el)
+        if _heartbeat_due(rt):
+            heartbeat(rt)
         if edge.outcome is EdgeOutcome.DIALOG:
             add_issue(rt, node.id, IssueKind.DIALOG, "dialog repeat limit reached")
             _mark(rt, node, NodeStatus.ABORTED_DIALOG)
