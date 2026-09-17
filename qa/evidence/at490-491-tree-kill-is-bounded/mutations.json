@@ -1,0 +1,53 @@
+{
+  "tests": [
+    "tests/test_mutation_sandbox.py"
+  ],
+  "timeout_s": 600,
+  "mutations": [
+    {
+      "name": "AT-490 reopens: the wait after the tree kill is unbounded",
+      "old": "        proc.wait(timeout=KILL_GRACE_S)",
+      "new": "        proc.wait()",
+      "kills": [
+        "tests/test_mutation_sandbox.py::test_a_process_that_survives_the_tree_kill_is_refused_not_awaited_forever"
+      ],
+      "file": "scripts/mutation_check.py"
+    },
+    {
+      "name": "AT-490 reopens: a survivor of the tree kill is ignored, not refused",
+      "old": "        raise MutationError(f\"pytest (pid {proc.pid}) survived a kill of its process tree \"\n                            f\"for {KILL_GRACE_S:g}s\") from exc",
+      "new": "        return",
+      "kills": [
+        "tests/test_mutation_sandbox.py::test_a_process_that_survives_the_tree_kill_is_refused_not_awaited_forever"
+      ],
+      "file": "scripts/mutation_check.py"
+    },
+    {
+      "name": "AT-491: a POSIX group already gone crashes the run",
+      "old": "        with contextlib.suppress(ProcessLookupError):",
+      "new": "        with contextlib.suppress(OSError if False else ()):",
+      "kills": [
+        "tests/test_mutation_sandbox.py::test_the_posix_arm_kills_the_whole_session_and_tolerates_a_group_already_gone"
+      ],
+      "file": "scripts/mutation_check.py"
+    },
+    {
+      "name": "AT-491: the POSIX arm does not SIGKILL the session",
+      "old": "            os.killpg(proc.pid, signal.SIGKILL)",
+      "new": "            os.killpg(proc.pid, 15)",
+      "kills": [
+        "tests/test_mutation_sandbox.py::test_the_posix_arm_kills_the_whole_session_and_tolerates_a_group_already_gone"
+      ],
+      "file": "scripts/mutation_check.py"
+    },
+    {
+      "name": "non-ASCII pytest output is decoded with the locale again",
+      "old": "MUTATION_REPORT=str(_report_path(cwd)), PYTHONUTF8=\"1\",",
+      "new": "MUTATION_REPORT=str(_report_path(cwd)),",
+      "kills": [
+        "tests/test_mutation_sandbox.py::test_non_ascii_pytest_output_survives_the_log_round_trip"
+      ],
+      "file": "scripts/mutation_check.py"
+    }
+  ]
+}

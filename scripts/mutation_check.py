@@ -40,6 +40,7 @@ naming a test that did not exist):
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import shutil
@@ -51,6 +52,7 @@ from pathlib import Path
 
 TIMED_OUT = -1  # pytest outlived its bound and was killed with its children (AT-487)
 PYTEST_TIMEOUT_S = 1800.0  # per pytest run; a spec may lower it with "timeout_s"
+KILL_GRACE_S = 30.0  # how long a killed process tree may take to actually go away
 INTERRUPTED = 2  # pytest ran tests and was then interrupted — its failure reports are real
 REPORT_PLUGIN = "_mutation_report"
 PLUGIN_SOURCE = '''"""Written by mutation_check into its sandbox root; never part of a project."""
@@ -122,7 +124,9 @@ def _run_pytest(cwd: Path, tests: str | list[str], *extra: str,
     Bounded (AT-487): a mutation can make pytest loop forever. Output goes to a file,
     not a pipe, because a test's child process inherits the handle and a pipe reader
     then waits for that child as well; on timeout the whole process tree is killed."""
-    env = dict(os.environ, MUTATION_REPORT=str(_report_path(cwd)),
+    # PYTHONUTF8: the log is a file, whose encoding is the locale's unless forced, so a
+    # refusal would otherwise quote replacement characters for what pytest printed.
+    env = dict(os.environ, MUTATION_REPORT=str(_report_path(cwd)), PYTHONUTF8="1",
                PYTHONPATH=os.pathsep.join(filter(None, [str(cwd.parent),
                                                         os.environ.get("PYTHONPATH")])))
     _report_path(cwd).unlink(missing_ok=True)
@@ -144,13 +148,24 @@ def _run_pytest(cwd: Path, tests: str | list[str], *extra: str,
     return code, out
 
 
-def _kill_tree(proc: subprocess.Popen) -> None:
-    if os.name == "nt":
-        subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)],
-                       capture_output=True, check=False)
+def _kill_tree(proc: subprocess.Popen, posix: bool = os.name != "nt") -> None:
+    """Kill pytest and everything it started, and wait a BOUNDED time for it (AT-490).
+
+    taskkill's exit code is not the signal: it is non-zero whenever some child had
+    already exited. Whether pytest itself is gone is, so a survivor is refused. On
+    POSIX the session can exit between the timeout and the kill (AT-491)."""
+    if posix:
+        with contextlib.suppress(ProcessLookupError):
+            os.killpg(proc.pid, signal.SIGKILL)
     else:
-        os.killpg(proc.pid, signal.SIGKILL)
-    proc.wait()
+        with contextlib.suppress(subprocess.TimeoutExpired):  # the wait below decides
+            subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                           capture_output=True, check=False, timeout=KILL_GRACE_S)
+    try:
+        proc.wait(timeout=KILL_GRACE_S)
+    except subprocess.TimeoutExpired as exc:
+        raise MutationError(f"pytest (pid {proc.pid}) survived a kill of its process tree "
+                            f"for {KILL_GRACE_S:g}s") from exc
 
 
 def _report_path(cwd: Path) -> Path:

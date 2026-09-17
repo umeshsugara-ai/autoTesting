@@ -1,0 +1,18 @@
+KILLED  AT-490 reopens: the wait after the tree kill is unbounded  (pytest exit 1)
+    claims to kill : tests/test_mutation_sandbox.py::test_a_process_that_survives_the_tree_kill_is_refused_not_awaited_forever
+    actually failed: tests/test_mutation_sandbox.py::test_a_process_that_survives_the_tree_kill_is_refused_not_awaited_forever, tests/test_mutation_sandbox.py::test_the_posix_arm_kills_the_whole_session_and_tolerates_a_group_already_gone
+KILLED  AT-490 reopens: a survivor of the tree kill is ignored, not refused  (pytest exit 1)
+    claims to kill : tests/test_mutation_sandbox.py::test_a_process_that_survives_the_tree_kill_is_refused_not_awaited_forever
+    actually failed: tests/test_mutation_sandbox.py::test_a_process_that_survives_the_tree_kill_is_refused_not_awaited_forever
+KILLED  AT-491: a POSIX group already gone crashes the run  (pytest exit 1)
+    claims to kill : tests/test_mutation_sandbox.py::test_the_posix_arm_kills_the_whole_session_and_tolerates_a_group_already_gone
+    actually failed: tests/test_mutation_sandbox.py::test_the_posix_arm_kills_the_whole_session_and_tolerates_a_group_already_gone
+KILLED  AT-491: the POSIX arm does not SIGKILL the session  (pytest exit 1)
+    claims to kill : tests/test_mutation_sandbox.py::test_the_posix_arm_kills_the_whole_session_and_tolerates_a_group_already_gone
+    actually failed: tests/test_mutation_sandbox.py::test_the_posix_arm_kills_the_whole_session_and_tolerates_a_group_already_gone
+KILLED  non-ASCII pytest output is decoded with the locale again  (pytest exit 1)
+    claims to kill : tests/test_mutation_sandbox.py::test_non_ascii_pytest_output_survives_the_log_round_trip
+    actually failed: tests/test_mutation_sandbox.py::test_non_ascii_pytest_output_survives_the_log_round_trip
+
+5/5 mutations killed
+exit=0

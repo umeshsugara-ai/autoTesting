@@ -14,6 +14,7 @@ runs mandatory, is the steady state.
 
 from __future__ import annotations
 
+import subprocess
 import sys
 from pathlib import Path
 
@@ -177,3 +178,78 @@ def test_cleanup_refuses_a_sandbox_shaped_name_outside_the_temp_dir(
         _discard(impostor)
 
     assert (impostor / "data.txt").read_text(encoding="utf-8") == "keep me"
+
+
+# -- AT-490/491: the tree kill is itself bounded, and its POSIX arm is pinned ---
+
+class _FakeProc:
+    """A process handle whose wait either returns or never does."""
+
+    def __init__(self, exits: bool) -> None:
+        self.pid, self.exits, self.waited_with = 4242, exits, []
+
+    def wait(self, timeout=None):
+        self.waited_with.append(timeout)
+        if not self.exits:
+            raise subprocess.TimeoutExpired("pytest", timeout)
+        return -9
+
+
+def test_a_process_that_survives_the_tree_kill_is_refused_not_awaited_forever(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AT-490: the wait after the kill had no bound, so a kill the OS did not carry out
+    reproduced AT-487's hang one level down."""
+    import mutation_check
+
+    monkeypatch.setattr(mutation_check.subprocess, "run", lambda *a, **k: None)
+    proc = _FakeProc(exits=False)
+
+    with pytest.raises(MutationError, match="survived"):
+        mutation_check._kill_tree(proc, posix=False)
+
+    assert proc.waited_with and proc.waited_with[-1] is not None
+
+
+def test_the_posix_arm_kills_the_whole_session_and_tolerates_a_group_already_gone(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AT-491, and the review's race: the group can exit between the timeout and the
+    kill, and `os.killpg` then raises ProcessLookupError."""
+    import types
+
+    import mutation_check
+
+    calls = []
+
+    def killpg(pid, sig):
+        calls.append((pid, sig))
+        raise ProcessLookupError
+
+    monkeypatch.setattr(mutation_check.os, "killpg", killpg, raising=False)
+    monkeypatch.setattr(mutation_check, "signal", types.SimpleNamespace(SIGKILL=9))
+    proc = _FakeProc(exits=True)
+
+    mutation_check._kill_tree(proc, posix=True)
+
+    assert calls == [(4242, 9)]
+    assert proc.waited_with and proc.waited_with[-1] is not None
+
+
+def test_non_ascii_pytest_output_survives_the_log_round_trip(
+    mutation_repo: Path, private_temp: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The log is a file, so the child's stdout encoding is the locale's unless forced;
+    the refusal must quote what pytest printed, not replacement characters. The variable
+    is cleared first: under a mutation run it is inherited from the outer instrument,
+    which would pass this test with the fix removed."""
+    monkeypatch.delenv("PYTHONUTF8", raising=False)
+    text = "caf" + chr(0xE9) + " " + chr(0x2713)
+    (mutation_repo / "tests" / "test_uni.py").write_text(chr(10).join([
+        "def test_uni():", "    print('caf' + chr(0xE9) + ' ' + chr(0x2713))", "    assert False",
+        ""]), encoding="utf-8")
+
+    with pytest.raises(MutationError) as refused:
+        check(spec(tests=["tests/test_mod.py", "tests/test_uni.py"]), mutation_repo)
+
+    assert text in str(refused.value)
