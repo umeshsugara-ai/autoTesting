@@ -146,9 +146,21 @@ rows in a fresh throwaway copy from a proven-green baseline.
 for.** `check_qa_issue_rows` and `_is_marker_line` read only the marker line itself, so an issue id
 named on a **continuation line** of a multi-line `**Issues addressed:**` list is silently skipped by
 both the row-lost and the row-stale checks. AT-496 disclosed "only ids ON the marker line are read"
-as a known limit and four units since then have treated it as a limit rather than a defect; live
-manifests — including `at496-the-ledger-never-loses-a-row.md` itself — do wrap that line. So the
-blindness is live, not theoretical.
+as a known limit and four units since then have treated it as a limit rather than a defect.
+
+**The blindness is live — but my first statement of where was wrong, and the checker corrected it.**
+I asserted that `at496-the-ledger-never-loses-a-row.md` demonstrates the gap. It does not: its
+marker line (line 12) carries *both* `AT-496` and `AT-475`, and the continuation (line 13) carries
+no id at all. I verified that myself after the correction rather than taking it on report. The real
+instances the checker found are three other manifests — `at011-loop-md.md` (`AT-027`),
+`at357-scope-sandbox-assertions.md` (`AT-384`, `AT-385`) and
+`at379-scrollable-pane-reachability.md` (eight ids) — **11 ids invisible today**, all of which
+happen to have rows, so no consequence has landed yet.
+
+The direction is also now established fact rather than inference: it is a **miss** in both
+sub-checks, not a false accusation. An id that is never examined can neither over-accuse via
+`ledger-row-stale` nor under-protect via `ledger-row-lost`. That is a materially lower severity than
+AT-508's direction, and worth saying plainly instead of letting the two findings blur together.
 
 Also filed: **AT-510 (low)**, the `"fix"`-versus-`"fixed"` gap this manifest disclosed under Known
 limits, promoted from prose to a tracked row per the AT-502/AT-507 precedent.
