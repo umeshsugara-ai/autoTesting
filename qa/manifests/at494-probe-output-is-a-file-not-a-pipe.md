@@ -98,4 +98,6 @@ Not UI-touching — no surface changed. Changed paths: `scripts/flake_probe.py`,
 - **The log file is `<temp>/flake-probe-<pid>-<index>.log`.** Two probes of the same nodeid from one
   process would collide only if they shared an index, which `probe` never does.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Verdict: `qa/verdicts/at494-probe-output-is-a-file-not-a-pipe.md` (Cycle checked: 1, commit 1688da3, pushed). The first checker died on a session rate limit with no verdict (not a fix cycle); this is the re-dispatch. Checker re-verified the sibling AT-490/491 evidence (5/5) after the rename, filed AT-495 (low, the real-hung-process gap carried forward) and AT-496 (medium, the shared ledger working copy lost rows mid-write).
