@@ -74,4 +74,6 @@ Not UI-touching — no surface changed. Changed paths: `scripts/mutation_check.p
 - Sweep shard 3 (this tick) proposed a separate finding for the same file: `_run_pytest` has no
   `timeout=`. Out of scope here; it goes to the ledger through the sweep consolidation.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Verdict: `qa/verdicts/at481-report-path-fixed-at-plugin-load.md` (Cycle checked: 1, commit 86d4bff, pushed). Ledger: AT-481 → fixed.
