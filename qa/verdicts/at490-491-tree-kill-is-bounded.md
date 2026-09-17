@@ -152,3 +152,85 @@ MutationError raised inside _kill_tree during a timed-out kill propagates cleanl
 _run_pytest -> check()'s try/finally -> main()'s except clause with no leaked file handle or
 sandbox directory.
 ```
+
+---
+
+## INDEPENDENT CONCURRENT CHECK
+
+Dispatched as the standing safety-net checker after AT-492 (dispatch gap, >20 min pending, no
+matching-cycle verdict). Ran the full check blind to the above (fresh Mode A, no builder or
+sibling-checker reasoning), and found this verdict already on disk only at the write step — per
+protocol, appending rather than overwriting.
+
+**Cycle checked:** 1 · **Date:** 2026-09-17 · **Unit commit:** 176a89c
+
+**Verify commands** — re-ran all four myself in the bound tree: `pytest -q tests/test_mutation_
+check.py tests/test_mutation_check_judgement.py tests/test_mutation_sandbox.py` → 47 passed;
+`ruff check src tests scripts` → All checks passed; `autotester doctor` → clean;
+`python scripts/mutation_check.py qa/evidence/at490-491-tree-kill-is-bounded/mutations.json` →
+`5/5 mutations killed`, exit 0. All match the manifest.
+
+**Capability coverage — independent methodology, same 5/5 result.** Rather than trusting
+`mutation_check.py`'s own sandboxing (the artifact partly under test), I built a *separate*
+throwaway copy myself: `git archive HEAD | tar -x` into a scratch dir outside the bound root,
+removed `projects/erp`, `projects/pathlynks`, `projects/vidysea-erp`, ran `uv sync`, and asserted
+`import autotester; autotester.__file__` resolved inside the copy (confirmed). Ran
+`tests/test_mutation_sandbox.py` green (9 passed) before touching anything. Then, one at a time —
+apply single-hunk edit to `scripts/mutation_check.py` in the copy, run the exact named test,
+capture the failure, restore, re-confirm the full file green (`diff --strip-trailing-cr` against
+the bound tree afterward: byte-identical) — for all 5 rows:
+
+1. `proc.wait(timeout=KILL_GRACE_S)` → `proc.wait()`: `test_a_process_that_survives...` red on
+   `assert proc.waited_with and proc.waited_with[-1] is not None` (`[None] and None is not None`).
+2. `raise MutationError(...) from exc` → `return`: red with `Failed: DID NOT RAISE MutationError`.
+3. `contextlib.suppress(ProcessLookupError)` → `contextlib.suppress(OSError if False else ())`:
+   red with an uncaught `ProcessLookupError` propagating out of `_kill_tree` at line 159.
+4. `os.killpg(proc.pid, signal.SIGKILL)` → `os.killpg(proc.pid, 15)`: red on
+   `assert [(4242, 15)] == [(4242, 9)]`.
+5. `PYTHONUTF8="1",` removed: red on `assert text in str(refused.value)`, the café/✓ text replaced
+   by a literal `�` in the captured refusal message — exactly the round-trip defect the test
+   is named for.
+
+Every row reddened for the assertion it claims, not a collection/import error, and every restore
+verified back to green before the next edit. Agrees with the primary verdict's rows 1–5 exactly,
+including row 1's shared-failure detail (both kill tests notice the stripped bound via the shared
+`_FakeProc`).
+
+**Diff scope (4c):** `git diff f29c41a..176a89c --stat` — only `scripts/mutation_check.py`,
+`tests/test_mutation_sandbox.py`, plus the unit's own `qa/evidence/at490-491-tree-kill-is-bounded/
+{mutations.json,mutations.out}` and `qa/manifests/at490-491-tree-kill-is-bounded.md`. No function,
+test, or export deleted; `_kill_tree`'s old one-argument call sites are unaffected by the new
+`posix` parameter's default. Clean.
+
+**Issues addressed:** independently concur with both judgements above — AT-490 fixed in full
+(bounded wait + distinct raise; taskkill's exit code is explicitly, reasonably left unchecked
+since it cannot distinguish success from a partial kill, per the docstring); AT-491 fixed at the
+level its `expected` clause offers as the second option, reached by a parameter rather than an
+`os.name` mock, with the same honest residual disclosed (no live POSIX run of the hang tests).
+No new issue filed for that residual — it duplicates AT-491's own remaining text.
+
+**Ledger:** found AT-490 and AT-491 still `"status": "open"` in `qa/issues.jsonl` at the time of
+this check (the primary verdict's own "closed open -> fixed" line had not yet reached the file on
+disk), so I flipped both to `fixed` myself with `fixed_date` and a `fix_note` citing this unit and
+commit 176a89c. Did not touch AT-492/AT-493 (out of this unit's claimed scope, same reasoning as
+the primary verdict). Per dispatch instructions, `qa/issues.jsonl` is left uncommitted (shared
+working tree).
+
+**No disagreement with the primary verdict.** Independent reproduction, independent throwaway-copy
+methodology, same PASS.
+
+```
+VERDICT: PASS
+SCOREBOARD: 2/2 issues addressed evidenced, 5/5 capability-coverage rows independently reproduced
+FAILURES (if any):
+- none
+CAPABILITY-COVERAGE: 5/5 rows reproduced (independent throwaway copy, git-archive based)
+LIVE-BROWSER: not-applicable (scripts/mutation_check.py, tests/test_mutation_sandbox.py)
+ISSUES-WRITTEN: none (AT-490, AT-491 flipped open -> fixed in qa/issues.jsonl, uncommitted)
+EXPLANATION: Independent Mode A check, taken by the safety net after AT-492's dispatch-gap finding,
+reached the same PASS as the verdict already on disk above by a different throwaway-copy route
+(git archive + uv sync + autotester.__file__ assertion, rather than trusting mutation_check.py's
+own internal sandboxing). All four verify commands and all 5 capability-coverage rows reproduced
+independently with the correct assertion firing each time; diff scope clean; AT-490/AT-491 judged
+fixed against their own `expected` clauses, same reasoning as the primary verdict. No disagreement.
+```
