@@ -201,4 +201,4 @@ they exercise the same `_still_login` predicate the three rows above already iso
   split, the checker either folds it into `explore.md` X18(a) verbatim, amends it, or asks a
   question before this unit can close — flagged in "Proposed X18(a) wording" rather than assumed.
 
-## Status: ready-for-check
+## Status: checked-PASS (qa/verdicts/x18a-login-both-directions.md, cycle 1, commit 1d2f817; X18(a) wording adopted with two corrections; checker filed ISS-x18a-1 (medium): the fill-target fallback can call a post-login screen that reuses the login selectors LOGIN_FAILED)
