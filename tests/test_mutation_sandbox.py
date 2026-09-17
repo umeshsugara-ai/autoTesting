@@ -206,7 +206,7 @@ def test_a_process_that_survives_the_tree_kill_is_refused_not_awaited_forever(
     proc = _FakeProc(exits=False)
 
     with pytest.raises(MutationError, match="survived"):
-        mutation_check._kill_tree(proc, posix=False)
+        mutation_check.kill_tree(proc, posix=False)
 
     assert proc.waited_with and proc.waited_with[-1] is not None
 
@@ -230,7 +230,7 @@ def test_the_posix_arm_kills_the_whole_session_and_tolerates_a_group_already_gon
     monkeypatch.setattr(mutation_check, "signal", types.SimpleNamespace(SIGKILL=9))
     proc = _FakeProc(exits=True)
 
-    mutation_check._kill_tree(proc, posix=True)
+    mutation_check.kill_tree(proc, posix=True)
 
     assert calls == [(4242, 9)]
     assert proc.waited_with and proc.waited_with[-1] is not None

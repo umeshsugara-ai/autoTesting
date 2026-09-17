@@ -26,11 +26,17 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import subprocess
 import sys
+import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from mutation_check import kill_tree  # one bounded-kill implementation, not two (AT-494)
 
 CONFIDENCE = 0.95
 TIMED_OUT = -1
@@ -147,29 +153,42 @@ def run_once(nodeid: str, index: int, timeout: float = RUN_TIMEOUT_S) -> Run:
     """One pytest invocation, isolated from the cache so runs do not inform each other.
 
     Bounded (AT-401): the probe exists to repeat a run unattended, so one hang used to
-    stop the whole probe with nothing recorded."""
+    stop the whole probe with nothing recorded.
+
+    Output goes to a FILE, and the timeout kills the whole process tree (AT-494). A pipe
+    would not be bounded at all here: `subprocess.run`'s timeout kills pytest and then
+    drains the pipe, which waits for every holder of the write end — and this probe's own
+    subject is a browser crawl, whose browser is exactly such a holder. `kill_tree` is
+    `mutation_check`'s, not a second copy: AT-487/AT-490 are the same defect in the
+    sibling script, and one bounded-kill implementation is the point."""
     started = time.monotonic()
+    log = Path(tempfile.gettempdir()) / f"flake-probe-{os.getpid()}-{index}.log"
+    notes = ""
     try:
-        proc = subprocess.run(
-            [sys.executable, "-m", "pytest", nodeid, "-q", "-p", "no:cacheprovider",
-             "-o", "addopts="],
-            capture_output=True, text=True, check=False, timeout=timeout,
-        )
-    except subprocess.TimeoutExpired as expired:
-        return Run(index=index, returncode=TIMED_OUT, seconds=time.monotonic() - started,
-                   tail=f"the run did not finish within {timeout:g}s and was killed"
-                        + _tail(_decode(expired.stdout) + _decode(expired.stderr)))
+        with open(log, "w", encoding="utf-8") as sink:
+            proc = subprocess.Popen(
+                [sys.executable, "-m", "pytest", nodeid, "-q", "-p", "no:cacheprovider",
+                 "-o", "addopts="],
+                stdout=sink, stderr=subprocess.STDOUT, env=dict(os.environ, PYTHONUTF8="1"),
+                start_new_session=os.name != "nt")
+            try:
+                code = proc.wait(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                code = TIMED_OUT
+                try:
+                    kill_tree(proc)
+                except RuntimeError as unkilled:  # MutationError: the tree outlived the kill
+                    notes = f"{chr(10)}{unkilled}"
+        output = log.read_text(encoding="utf-8", errors="replace")
+    finally:
+        log.unlink(missing_ok=True)
     elapsed = time.monotonic() - started
-    tail = "" if proc.returncode == 0 else _tail(proc.stdout + proc.stderr)
-    return Run(index=index, returncode=proc.returncode, seconds=elapsed, tail=tail)
-
-
-def _decode(output: str | bytes | None) -> str:
-    """`TimeoutExpired` carries whatever was captured before the kill, and it is bytes
-    on some platforms even under `text=True`."""
-    if output is None:
-        return ""
-    return output if isinstance(output, str) else output.decode("utf-8", "replace")
+    if code == TIMED_OUT:
+        return Run(index=index, returncode=code, seconds=elapsed,
+                   tail=f"the run did not finish within {timeout:g}s and was killed with its "
+                        f"children{notes}{chr(10)}{_tail(output)}".rstrip())
+    return Run(index=index, returncode=code, seconds=elapsed,
+               tail="" if code == 0 else _tail(output))
 
 
 def _tail(output: str, lines: int = 25) -> str:

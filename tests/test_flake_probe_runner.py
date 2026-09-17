@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -26,20 +27,39 @@ import flake_probe
 # nothing tested it. If that mapping broke, 41 undetected failures would read as 41
 # green runs and every statistic above would be computed from a lie. The debt was
 # enumerated honestly but the stated reason was wrong: this needs no pytest inside
-# pytest, only a monkeypatched `subprocess.run`.
+# pytest, only a monkeypatched launcher (`subprocess.Popen` since AT-494).
 
 
-class _FakeCompleted:
-    def __init__(self, returncode: int, stdout: str = "", stderr: str = "") -> None:
-        self.returncode, self.stdout, self.stderr = returncode, stdout, stderr
+class _FakePopen:
+    """A pytest that writes `output` to the log file and exits with `returncode`.
+
+    AT-494 moved `run_once` off `subprocess.run` (a pipe the stdlib drains after the kill,
+    which a browser grandchild can hold open) onto `Popen` + a log FILE, so the stub moved
+    with it. Only the OS call is stubbed; the tail bounding, the mapping and the timeout
+    branch under test are the real ones."""
+
+    def __init__(self, returncode: int = 0, output: str = "", hangs: bool = False) -> None:
+        self.returncode, self.output, self.hangs, self.pid = returncode, output, hangs, 424242
+
+    def __call__(self, cmd: list[str], **kwargs: object) -> _FakePopen:
+        self.cmd = cmd
+        sink = kwargs["stdout"]
+        sink.write(self.output)
+        sink.flush()
+        return self
+
+    def wait(self, timeout: float | None = None) -> int:
+        if self.hangs:
+            raise subprocess.TimeoutExpired("pytest", timeout)
+        return self.returncode
 
 
 def test_a_nonzero_return_code_is_what_makes_a_run_count_as_failed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The single mapping the whole measurement stands on."""
-    monkeypatch.setattr(flake_probe.subprocess, "run",
-                        lambda *a, **k: _FakeCompleted(1, stdout="E   assert 1 == 2\n"))
+    monkeypatch.setattr(flake_probe.subprocess, "Popen",
+                        _FakePopen(1, output="E   assert 1 == 2\n"))
 
     run = flake_probe.run_once("tests/test_x.py::test_y", 7)
 
@@ -51,8 +71,7 @@ def test_a_nonzero_return_code_is_what_makes_a_run_count_as_failed(
 def test_a_clean_run_keeps_no_output(monkeypatch: pytest.MonkeyPatch) -> None:
     """41 green runs would otherwise carry 41 copies of pytest's chatter into the
     report, burying the one failing tail somebody actually needs to read."""
-    monkeypatch.setattr(flake_probe.subprocess, "run",
-                        lambda *a, **k: _FakeCompleted(0, stdout="." * 5000))
+    monkeypatch.setattr(flake_probe.subprocess, "Popen", _FakePopen(0, output="." * 5000))
 
     run = flake_probe.run_once("tests/test_x.py::test_y", 1)
 
@@ -64,8 +83,7 @@ def test_a_failure_tail_is_bounded_rather_than_the_whole_log(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     long_log = "\n".join(str(i) for i in range(500))
-    monkeypatch.setattr(flake_probe.subprocess, "run",
-                        lambda *a, **k: _FakeCompleted(1, stdout=long_log))
+    monkeypatch.setattr(flake_probe.subprocess, "Popen", _FakePopen(1, output=long_log))
 
     run = flake_probe.run_once("t", 1)
 
@@ -100,11 +118,13 @@ def test_each_run_is_isolated_from_the_ones_before_it(
     for free. What changed is the REASON recorded next to them, not the test."""
     seen: list[list[str]] = []
 
-    def capture(cmd: list[str], **_kwargs: object) -> _FakeCompleted:
-        seen.append(cmd)
-        return _FakeCompleted(0)
+    fake = _FakePopen(0)
 
-    monkeypatch.setattr(flake_probe.subprocess, "run", capture)
+    def capture(cmd: list[str], **kwargs: object) -> object:
+        seen.append(cmd)
+        return fake(cmd, **kwargs)
+
+    monkeypatch.setattr(flake_probe.subprocess, "Popen", capture)
 
     flake_probe.run_once("tests/test_x.py::test_y", 1)
 
@@ -182,8 +202,11 @@ def test_the_isolation_flags_are_not_described_as_load_bearing() -> None:
 # -- AT-401: a run that never ends is evidence, not an absence of evidence -----
 
 
-def _timing_out(*_a: object, **kwargs: object) -> object:
-    raise flake_probe.subprocess.TimeoutExpired("pytest", kwargs["timeout"])
+def _hanging(monkeypatch: pytest.MonkeyPatch, killed: list | None = None) -> None:
+    """A pytest that never exits, with the tree kill recorded rather than performed."""
+    monkeypatch.setattr(flake_probe.subprocess, "Popen", _FakePopen(hangs=True, output="x"))
+    monkeypatch.setattr(flake_probe, "kill_tree",
+                        lambda proc, *a, **k: (killed if killed is not None else []).append(proc))
 
 
 def test_a_run_that_outlives_its_bound_is_a_failure_marked_timed_out(
@@ -192,9 +215,12 @@ def test_a_run_that_outlives_its_bound_is_a_failure_marked_timed_out(
     """AT-401: `run_once` had no timeout, so one hung run stopped an unattended
     41-run probe forever. The probe's subject is a browser crawl, the class that
     hangs rather than fails, and a hang is data about flakiness."""
-    monkeypatch.setattr(flake_probe.subprocess, "run", _timing_out)
+    killed: list = []
+    _hanging(monkeypatch, killed)
 
     run = flake_probe.run_once("tests/test_x.py::test_y", 3, timeout=12)
+
+    assert [p.pid for p in killed] == [424242], "the whole tree is killed, not just pytest"
 
     assert run.timed_out is True
     assert run.failed is True, "a hung run is a failure, never a silent green"
@@ -207,7 +233,7 @@ def test_the_probe_keeps_going_after_a_timed_out_run(
 ) -> None:
     """Same reason the probe does not stop at the first failure: a rate needs every
     trial. A timeout that aborted the probe would report the rate of a shorter run."""
-    monkeypatch.setattr(flake_probe.subprocess, "run", _timing_out)
+    _hanging(monkeypatch)
 
     summary = flake_probe.probe("tests/test_x.py::test_y", 3, timeout=1)
 

@@ -1,0 +1,12 @@
+KILLED  AT-494 reopens: the timeout kills pytest but not the tree it started  (pytest exit 1)
+    claims to kill : tests/test_flake_probe_runner.py::test_a_run_that_outlives_its_bound_is_a_failure_marked_timed_out
+    actually failed: tests/test_flake_probe_runner.py::test_a_run_that_outlives_its_bound_is_a_failure_marked_timed_out, tests/test_flake_probe_runner.py::test_the_probe_keeps_going_after_a_timed_out_run
+KILLED  AT-494 reopens: output goes back to a pipe the stdlib must drain  (pytest exit 1)
+    claims to kill : tests/test_flake_probe_runner.py::test_a_failure_tail_is_bounded_rather_than_the_whole_log, tests/test_flake_probe_runner.py::test_each_run_is_isolated_from_the_ones_before_it
+    actually failed: tests/test_flake_probe_runner.py::test_a_clean_run_keeps_no_output, tests/test_flake_probe_runner.py::test_a_failure_tail_is_bounded_rather_than_the_whole_log, tests/test_flake_probe_runner.py::test_a_nonzero_return_code_is_what_makes_a_run_count_as_failed, tests/test_flake_probe_runner.py::test_a_run_that_outlives_its_bound_is_a_failure_marked_timed_out, tests/test_flake_probe_runner.py::test_each_run_is_isolated_from_the_ones_before_it, tests/test_flake_probe_runner.py::test_the_probe_keeps_going_after_a_timed_out_run
+KILLED  a hung run stops being recorded as timed out  (pytest exit 1)
+    claims to kill : tests/test_flake_probe_runner.py::test_a_run_that_outlives_its_bound_is_a_failure_marked_timed_out, tests/test_flake_probe_runner.py::test_the_probe_keeps_going_after_a_timed_out_run
+    actually failed: tests/test_flake_probe_runner.py::test_a_run_that_outlives_its_bound_is_a_failure_marked_timed_out, tests/test_flake_probe_runner.py::test_the_probe_keeps_going_after_a_timed_out_run
+
+3/3 mutations killed
+exit=0

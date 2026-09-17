@@ -1,0 +1,37 @@
+{
+  "tests": [
+    "tests/test_flake_probe_runner.py"
+  ],
+  "timeout_s": 600,
+  "mutations": [
+    {
+      "name": "AT-494 reopens: the timeout kills pytest but not the tree it started",
+      "old": "                    kill_tree(proc)",
+      "new": "                    proc.kill()",
+      "kills": [
+        "tests/test_flake_probe_runner.py::test_a_run_that_outlives_its_bound_is_a_failure_marked_timed_out"
+      ],
+      "file": "scripts/flake_probe.py"
+    },
+    {
+      "name": "AT-494 reopens: output goes back to a pipe the stdlib must drain",
+      "old": "                stdout=sink, stderr=subprocess.STDOUT,",
+      "new": "                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,",
+      "kills": [
+        "tests/test_flake_probe_runner.py::test_a_failure_tail_is_bounded_rather_than_the_whole_log",
+        "tests/test_flake_probe_runner.py::test_each_run_is_isolated_from_the_ones_before_it"
+      ],
+      "file": "scripts/flake_probe.py"
+    },
+    {
+      "name": "a hung run stops being recorded as timed out",
+      "old": "                code = TIMED_OUT",
+      "new": "                code = 0",
+      "kills": [
+        "tests/test_flake_probe_runner.py::test_a_run_that_outlives_its_bound_is_a_failure_marked_timed_out",
+        "tests/test_flake_probe_runner.py::test_the_probe_keeps_going_after_a_timed_out_run"
+      ],
+      "file": "scripts/flake_probe.py"
+    }
+  ]
+}

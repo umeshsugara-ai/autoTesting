@@ -140,7 +140,7 @@ def _run_pytest(cwd: Path, tests: str | list[str], *extra: str,
         try:
             code = proc.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
-            _kill_tree(proc)
+            kill_tree(proc)
             code = TIMED_OUT
     out = log.read_text(encoding="utf-8", errors="replace")
     if code == TIMED_OUT:
@@ -148,7 +148,7 @@ def _run_pytest(cwd: Path, tests: str | list[str], *extra: str,
     return code, out
 
 
-def _kill_tree(proc: subprocess.Popen, posix: bool = os.name != "nt") -> None:
+def kill_tree(proc: subprocess.Popen, posix: bool = os.name != "nt") -> None:
     """Kill pytest and everything it started, and wait a BOUNDED time for it (AT-490).
 
     taskkill's exit code is not the signal: it is non-zero whenever some child had
