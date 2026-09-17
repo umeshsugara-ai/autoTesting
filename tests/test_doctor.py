@@ -204,8 +204,9 @@ def test_a_project_with_no_qa_directory_is_not_a_violation(tmp_path: Path) -> No
 
 
 def test_an_issue_a_manifest_says_it_did_NOT_fix_stays_open(tmp_path: Path) -> None:
-    """A manifest may name issues it filed and deliberately left open — `at227-first-paint-modal`
-    names AT-335 that way. Reading "NOT fixed" as a fix claim made its PASS look like a stale row."""
+    """A manifest may name issues it filed and deliberately left open —
+    `at227-first-paint-modal` names AT-335 that way. Reading "NOT fixed" as a fix
+    claim made that unit's PASS look like a stale row."""
     _qa(tmp_path, ledger=ROW % "open",
         manifests={"u.md": "**Issues addressed:** AT-900 (filed, NOT fixed - reasons below)"},
         verdicts={"u.md": "VERDICT: PASS"})
