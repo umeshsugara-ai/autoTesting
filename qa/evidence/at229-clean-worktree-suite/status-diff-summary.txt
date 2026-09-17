@@ -1,0 +1,8 @@
+before: 0 paths
+after:  8614 paths
+after, excluding .venv/ and __pycache__ bytecode: 0 paths
+classes in after:
+   8354 !! .venv
+      9 !! scripts
+    115 !! src
+    136 !! tests
