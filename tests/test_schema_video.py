@@ -238,3 +238,31 @@ def test_observed_step_carries_optional_on_screen_text_and_narration() -> None:
     )
     assert step.on_screen_text == "Submit"
     assert step.narration == "now I click submit"
+
+
+# -- an unreadable sidecar keeps its cause, and `{}` is not silence (AT-466) ---
+
+@pytest.mark.parametrize(("payload", "cause"), [
+    (b"{not json", "JSONDecodeError"),
+    (b"\xff\xfe\x00bad", "UnicodeDecodeError"),
+    (b"{}", "segments"),
+    (b'{"segments": "hello"}', "segments"),
+], ids=["bad-json", "not-utf8", "empty-object", "segments-not-a-list"])
+def test_an_unreadable_sidecar_keeps_why_it_could_not_be_read(tmp_path: Path, payload: bytes,
+                                                              cause: str) -> None:
+    """AT-466: every failure used to collapse into one bare `engine="unreadable"`. And a
+    `{}` sidecar asserts nothing, yet loaded as a sidecar with no speech: silence."""
+    sidecar = tmp_path / "erp1.transcript.json"
+    sidecar.write_bytes(payload)
+
+    transcript = Transcript.read_sidecar(sidecar, "src_1")
+
+    assert transcript.engine == "unreadable"
+    assert transcript.segments == []
+    assert cause in (transcript.unreadable_reason or "")
+
+
+def test_a_readable_sidecar_carries_no_unreadable_reason() -> None:
+    transcript = Transcript.read_sidecar(FIXTURE, "src_erp1")
+    assert transcript.engine == "sidecar" and transcript.unreadable_reason is None
+    assert len(transcript.segments) == 6

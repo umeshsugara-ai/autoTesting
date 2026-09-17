@@ -1,0 +1,56 @@
+{
+  "tests": [
+    "tests/test_schema_video.py",
+    "tests/test_media.py",
+    "tests/test_ingest_real_cli.py",
+    "tests/test_media_prep.py",
+    "tests/test_analyze_video.py"
+  ],
+  "mutations": [
+    {
+      "name": "AT-466 reopens: an unreadable sidecar discards its cause again",
+      "file": "src/autotester/schema/media.py",
+      "old": "                       unreadable_reason=f\"{type(exc).__name__}: {exc}\"[:300])",
+      "new": "                       unreadable_reason=None)",
+      "kills": [
+        "tests/test_schema_video.py::test_an_unreadable_sidecar_keeps_why_it_could_not_be_read[bad-json]"
+      ]
+    },
+    {
+      "name": "AT-466 reopens: a sidecar with no segments list ({}) loads as silence",
+      "file": "src/autotester/schema/media.py",
+      "old": "        if not isinstance(raw, dict) or not isinstance(raw.get(\"segments\"), list):\n            raise ValueError(\"sidecar has no segments list\")\n        segments = [TranscriptSegment(**seg) for seg in raw[\"segments\"]]",
+      "new": "        segments = [TranscriptSegment(**seg) for seg in raw.get(\"segments\", [])]",
+      "kills": [
+        "tests/test_schema_video.py::test_an_unreadable_sidecar_keeps_why_it_could_not_be_read[empty-object]"
+      ]
+    },
+    {
+      "name": "media prep stops being best-effort: a malformed sidecar raises",
+      "file": "src/autotester/media/transcribe.py",
+      "old": "        return Transcript.read_sidecar(sidecar, source_id)",
+      "new": "        return Transcript.from_sidecar(sidecar, source_id)",
+      "kills": [
+        "tests/test_media.py::test_a_malformed_sidecar_does_not_stop_media_prep"
+      ]
+    },
+    {
+      "name": "ingest stops being best-effort: a malformed sidecar stops an ingest",
+      "file": "src/autotester/stages/ingest.py",
+      "old": "    return Transcript.read_sidecar(sidecar, source.id)",
+      "new": "    return Transcript.from_sidecar(sidecar, source.id)",
+      "kills": [
+        "tests/test_ingest_real_cli.py::test_a_malformed_sidecar_never_stops_an_ingest[not-json]"
+      ]
+    },
+    {
+      "name": "AT-465 reopens: prep prints an unreadable sidecar as 0 narration segments",
+      "file": "src/autotester/cli_video.py",
+      "old": "    if transcript is not None and transcript.engine == \"unreadable\":  # VL1's third state (AT-465)",
+      "new": "    if False:  # unreadable branch removed",
+      "kills": [
+        "tests/test_media_prep.py::test_prep_tells_the_operator_the_narration_is_unreadable_and_why"
+      ]
+    }
+  ]
+}

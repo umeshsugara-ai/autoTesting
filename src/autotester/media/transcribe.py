@@ -58,12 +58,9 @@ def transcribe(video: Path, source_id: str, *, use_whisper: bool = True) -> Tran
     that honestly rather than asserting the video is silent (AT-134)."""
     sidecar = find_sidecar(video)
     if sidecar is not None:
-        try:
-            return Transcript.from_sidecar(sidecar, source_id)
-        except Exception:
-            # A malformed sidecar must not stop media prep; the caller records
-            # what it got, and an unreadable one is not a claim of silence.
-            return Transcript(source_id=source_id, engine="unreadable")
+        # A malformed sidecar must not stop media prep; an unreadable one is not a
+        # claim of silence, and it keeps its cause (AT-466).
+        return Transcript.read_sidecar(sidecar, source_id)
 
     if not use_whisper or not whisper_available():
         return Transcript(source_id=source_id, engine="none")

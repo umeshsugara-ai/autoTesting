@@ -165,6 +165,7 @@ def test_a_malformed_sidecar_is_loaded_as_unreadable_not_as_no_transcript(prepar
     transcript = load_transcript(store, source)
 
     assert transcript is not None and transcript.engine == "unreadable"
+    assert "JSONDecodeError" in (transcript.unreadable_reason or ""), "AT-466: the cause survives"
 
 
 def test_every_chunk_prompt_says_the_transcript_is_unreadable_not_silent(prepared) -> None:

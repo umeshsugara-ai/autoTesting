@@ -215,7 +215,7 @@ def _sidecar(root: Path, payload: str) -> Path:
     '{"segments": ["hi"]}',                         # TypeError on **seg
     "not json at all",                              # ValueError
     '{"segments": [{"start": 0, "end": 2, "text": "x", "confidence": 0.9}]}',  # extra="forbid"
-])
+], ids=["top-level-list", "segment-not-a-mapping", "not-json", "unknown-segment-field"])
 def test_a_malformed_sidecar_never_stops_an_ingest(root: Path, spy: MockProvider,
                                                    payload: str) -> None:
     """AT-133: `load_sidecar` promised best-effort and caught only

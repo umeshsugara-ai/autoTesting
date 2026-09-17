@@ -1,0 +1,17 @@
+KILLED  AT-466 reopens: an unreadable sidecar discards its cause again  (pytest exit 1)
+    claims to kill : tests/test_schema_video.py::test_an_unreadable_sidecar_keeps_why_it_could_not_be_read[bad-json]
+    actually failed: tests/test_analyze_video.py::test_a_malformed_sidecar_is_loaded_as_unreadable_not_as_no_transcript, tests/test_media.py::test_a_malformed_sidecar_does_not_stop_media_prep, tests/test_media_prep.py::test_prep_tells_the_operator_the_narration_is_unreadable_and_why, tests/test_schema_video.py::test_an_unreadable_sidecar_keeps_why_it_could_not_be_read[bad-json], tests/test_schema_video.py::test_an_unreadable_sidecar_keeps_why_it_could_not_be_read[empty-object], tests/test_schema_video.py::test_an_unreadable_sidecar_keeps_why_it_could_not_be_read[not-utf8], tests/test_schema_video.py::test_an_unreadable_sidecar_keeps_why_it_could_not_be_read[segments-not-a-list]
+KILLED  AT-466 reopens: a sidecar with no segments list ({}) loads as silence  (pytest exit 1)
+    claims to kill : tests/test_schema_video.py::test_an_unreadable_sidecar_keeps_why_it_could_not_be_read[empty-object]
+    actually failed: tests/test_media.py::test_a_malformed_sidecar_does_not_stop_media_prep, tests/test_schema_video.py::test_an_unreadable_sidecar_keeps_why_it_could_not_be_read[empty-object], tests/test_schema_video.py::test_an_unreadable_sidecar_keeps_why_it_could_not_be_read[segments-not-a-list]
+KILLED  media prep stops being best-effort: a malformed sidecar raises  (pytest exit 1)
+    claims to kill : tests/test_media.py::test_a_malformed_sidecar_does_not_stop_media_prep
+    actually failed: tests/test_media.py::test_a_malformed_sidecar_does_not_stop_media_prep, tests/test_media_prep.py::test_prep_tells_the_operator_the_narration_is_unreadable_and_why
+KILLED  ingest stops being best-effort: a malformed sidecar stops an ingest  (pytest exit 1)
+    claims to kill : tests/test_ingest_real_cli.py::test_a_malformed_sidecar_never_stops_an_ingest[not-json]
+    actually failed: tests/test_analyze_video.py::test_a_malformed_sidecar_is_loaded_as_unreadable_not_as_no_transcript, tests/test_analyze_video.py::test_every_chunk_prompt_says_the_transcript_is_unreadable_not_silent, tests/test_ingest_real_cli.py::test_a_malformed_sidecar_never_stops_an_ingest[not-json], tests/test_ingest_real_cli.py::test_a_malformed_sidecar_never_stops_an_ingest[segment-not-a-mapping], tests/test_ingest_real_cli.py::test_a_malformed_sidecar_never_stops_an_ingest[top-level-list], tests/test_ingest_real_cli.py::test_a_malformed_sidecar_never_stops_an_ingest[unknown-segment-field], tests/test_ingest_real_cli.py::test_an_unreadable_sidecar_is_never_reported_as_silence[[1,, tests/test_ingest_real_cli.py::test_an_unreadable_sidecar_is_never_reported_as_silence[{"segments":
+KILLED  AT-465 reopens: prep prints an unreadable sidecar as 0 narration segments  (pytest exit 1)
+    claims to kill : tests/test_media_prep.py::test_prep_tells_the_operator_the_narration_is_unreadable_and_why
+    actually failed: tests/test_media_prep.py::test_prep_tells_the_operator_the_narration_is_unreadable_and_why
+
+5/5 mutations killed

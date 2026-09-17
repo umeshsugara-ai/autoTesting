@@ -182,10 +182,7 @@ def load_sidecar(source: Source) -> Transcript | None:
     sidecar = Path(source.path).with_suffix(".transcript.json")
     if not sidecar.exists():
         return None
-    try:
-        return Transcript.from_sidecar(sidecar, source.id)
-    except Exception:  # any malformed shape at all — the promise is best-effort
-        return Transcript(source_id=source.id, engine=UNREADABLE)
+    return Transcript.read_sidecar(sidecar, source.id)  # unreadable keeps its cause (AT-466)
 
 
 class SourceChanged(RuntimeError):

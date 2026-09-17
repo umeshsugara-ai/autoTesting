@@ -158,6 +158,7 @@ def test_a_malformed_sidecar_does_not_stop_media_prep(tmp_path: Path) -> None:
 
     assert result.engine == "unreadable"
     assert result.segments == []
+    assert "segments" in (result.unreadable_reason or ""), "AT-466: the cause must survive"
 
 
 def test_find_sidecar_only_reports_one_that_exists(tmp_path: Path) -> None:

@@ -241,3 +241,24 @@ def test_the_shipped_prep_command_answers_a_refusal_cleanly(
     assert "Traceback" not in result.output, "a refusal must not surface as a crash"
     assert "read no duration" in result.output
     assert store.load_media_prep(source.id) is None
+
+
+def test_prep_tells_the_operator_the_narration_is_unreadable_and_why(
+    store: ProjectStore, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AT-465: `ingest prep` printed "0 narration segment(s)" for an unreadable sidecar,
+    the same line as a recording with no narration at all."""
+    from typer.testing import CliRunner
+
+    from autotester.cli import app
+
+    monkeypatch.setenv("AUTOTESTER_ROOT", str(tmp_path))
+    no_ffmpeg(monkeypatch)
+    source = a_source(store, tmp_path, sidecar="{not json")
+
+    result = CliRunner().invoke(app, ["ingest", "prep", "demo", source.id, "--no-whisper"])
+
+    assert result.exit_code == 0, result.output
+    assert "narration unreadable" in result.output
+    assert "JSONDecodeError" in result.output
+    assert "0 narration segment(s)" not in result.output

@@ -33,21 +33,38 @@ class Transcript(Artifact):
     segments: list[TranscriptSegment] = Field(default_factory=list)
     speech_seconds: float = 0.0
     engine: str = "none"
+    unreadable_reason: str | None = Field(
+        default=None, description='why engine="unreadable": the parse error, never the file')
 
     @classmethod
     def from_sidecar(cls, path: Path, source_id: str) -> Transcript:
         """Load `{"segments": [{start,end,text}], "speech_seconds": N}` — the
-        shape every existing `*.transcript.json` sidecar already has."""
+        shape every existing `*.transcript.json` sidecar already has. A file with
+        no segments LIST asserts nothing, so it raises rather than reading as
+        silence (AT-466: `{}` loaded as a sidecar with no speech)."""
         import json
 
         raw = json.loads(path.read_text(encoding="utf-8"))
-        segments = [TranscriptSegment(**seg) for seg in raw.get("segments", [])]
+        if not isinstance(raw, dict) or not isinstance(raw.get("segments"), list):
+            raise ValueError("sidecar has no segments list")
+        segments = [TranscriptSegment(**seg) for seg in raw["segments"]]
         return cls(
             source_id=source_id,
             segments=segments,
             speech_seconds=raw.get("speech_seconds", 0.0),
             engine="sidecar",
         )
+
+    @classmethod
+    def read_sidecar(cls, path: Path, source_id: str) -> Transcript:
+        """The one best-effort sidecar reader (media prep and ingest both use it).
+        A sidecar that cannot be read is VL1's third state, `engine="unreadable"`,
+        and it keeps its cause instead of discarding it (AT-466)."""
+        try:
+            return cls.from_sidecar(path, source_id)
+        except Exception as exc:  # any malformed shape at all: best-effort by contract
+            return cls(source_id=source_id, engine="unreadable",
+                       unreadable_reason=f"{type(exc).__name__}: {exc}"[:300])
 
     def slice(self, offset_s: float, length_s: float) -> str:
         """Clip-relative narration lines for the window `[offset_s, offset_s+length_s)`,

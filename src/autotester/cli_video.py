@@ -102,11 +102,13 @@ def media_prep_cmd(
         raise typer.Exit(2) from None
 
     transcript = store.load_transcript(source_id)
-    segments = len(transcript.segments) if transcript else 0
+    narration = f"{len(transcript.segments) if transcript else 0} narration segment(s)"
+    if transcript is not None and transcript.engine == "unreadable":  # VL1's third state (AT-465)
+        narration = f"narration unreadable ({transcript.unreadable_reason or 'no cause recorded'})"
     tool = prep.ffmpeg_version or "no ffmpeg — one chunk on the original file"
     typer.secho(
         f"{source_id}: {prep.duration_s:.0f}s, {len(prep.chunks)} chunk(s), "
-        f"{segments} narration segment(s) [{tool}]",
+        f"{narration} [{tool}]",
         fg=typer.colors.GREEN,
     )
 
