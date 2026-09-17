@@ -1,0 +1,650 @@
+{
+ "unit": "at459-crawl-states-its-coverage",
+ "cycle_checked": 2,
+ "date": "2026-09-17",
+ "checker": "/checker Mode D (fresh subagent, own driver)",
+ "instrument": "headed Playwright Python (Chromium), checker-authored driver",
+ "targets": {
+  "ui": "http://127.0.0.1:8069",
+  "fixture": "http://127.0.0.1:8774 (tests/fixtures/login_site from the scratch copy)",
+  "note": "LOCAL 127.0.0.1 only; synthetic scratch AUTOTESTER_ROOT seeded via ProjectStore (projects covtwo, covbadspec: declared login case + CRAWL approval); servers served from scratch copy checker-at459c2b and stopped by PID after the run; browser closed"
+ },
+ "assertions": {
+  "depth1: Order 1001 screen listed not entered bound:max_depth in crawl.json": true,
+  "depth1: page coverage line names screens not entered BOUND:MAX_DEPTH": true,
+  "depth1: Coverage tile is first and < 100": true,
+  "depth1: Run detail row": true,
+  "depth1: workbook Summary row": true,
+  "depth1: Unreached sheet row": true,
+  "depth1: books balance": true,
+  "actions3: stopped_bound, < 100, bound:max_actions row, balance": true,
+  "actions3: Unreached sheet rows == holes": true,
+  "badspec: crawl.json finished (not running) with spec_error": true,
+  "badspec: workbook says why spec counts are missing": true
+ },
+ "all_pass": true,
+ "console_errors": {
+  "depth1": [],
+  "actions3": [],
+  "badspec": [
+   "error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+   "error: Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://127.0.0.1:8069/projects/covbadspec/crawls/crawl_01M2PVAWBSFK77YTC285S3CE4W"
+  ],
+  "attribution": "badspec: both are the browser logging HTTP 500 responses -- POST /projects/covbadspec/explore (routes_crawls.py:247 load_flowspec after the crawl) and GET the crawl page (routes_crawls.py:154). routes_crawls.py is NOT changed by this unit; pre-existing; filed separately. depth1/actions3: 0."
+ },
+ "badspec_ui": {
+  "post_explore": {
+   "url": "http://127.0.0.1:8069/projects/covbadspec/explore",
+   "body": "Internal Server Error"
+  },
+  "crawl_page": {
+   "crawl_id": "crawl_01M2PVAWBSFK77YTC285S3CE4W",
+   "http_status": 500,
+   "body": "Internal Server Error"
+  },
+  "workbook": {
+   "Status": "completed",
+   "Stopped because": "frontier empty",
+   "Coverage": "85% of controls (6 of 7)",
+   "Screens reached / left queued": "4 / 0",
+   "Not exercised, by reason": "policy:never-click pattern (logout/sign-out): 1",
+   "Screens not entered, by reason": "none",
+   "FlowSpec screens reached": "could not read the FlowSpec -- ValueError: C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\at459c2b_root\\projects\\covbadspec\\flowspec.json: 1 validation error for FlowSpec\n  Invalid JSON: key must be a string at line 1 column 3 [type=json_invalid, input_value='{ this is not a flowspec', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.13/v/json_invalid",
+   "Finished": "2026-09-17T04:52:50.144143+00:00"
+  }
+ },
+ "runs": {
+  "depth1": {
+   "bounds": {
+    "max_screens": 10,
+    "max_actions": 60,
+    "wall_clock_s": 120,
+    "max_depth": 1
+   },
+   "seconds": 23.4,
+   "url": "http://127.0.0.1:8069/projects/covtwo/crawls/crawl_01M2PV9KTVX273M5GY14QDF6RK",
+   "http_title": "Crawl crawl_01M2PV9KTVX273M5GY14QDF6RK \u2014 AutoTester",
+   "crawl_json": {
+    "status": "completed",
+    "stop_reason": "frontier empty",
+    "finished_at": "2026-09-17T04:52:05.896744+00:00",
+    "coverage": {
+     "controls_discovered": 6,
+     "controls_exercised": 5,
+     "screens_reached": 3,
+     "screens_queued_unvisited": 0,
+     "percent": 83,
+     "holes": [
+      {
+       "node_id": "node_6a9465535e97",
+       "url_template": "/app/dashboard.html",
+       "selector": "role=link[name=\"Log out\"] >> nth=0",
+       "name": "Log out",
+       "reason": "policy:never-click pattern (logout/sign-out)"
+      }
+     ],
+     "screens_not_entered": [
+      {
+       "node_id": "node_30dece78b25b",
+       "url_template": "/app/orders.html",
+       "selector": "role=link[name=\"Order 1001\"] >> nth=0",
+       "name": "Order 1001",
+       "reason": "bound:max_depth"
+      }
+     ]
+    }
+   },
+   "page_ok": true,
+   "tile_first": "83%\nCOVERAGE",
+   "coverage_line": "coverage: 83% of controls (5 of 6) \u00b7 not exercised: POLICY:NEVER-CLICK PATTERN (LOGOUT/SIGN-OUT): 1 \u00b7 screens not entered: BOUND:MAX_DEPTH: 1",
+   "run_detail_rows": [],
+   "sheets": [
+    "Summary",
+    "Screens",
+    "Edges",
+    "Denied & Skipped",
+    "Unreached",
+    "Issues",
+    "Tool failures",
+    "Noise"
+   ],
+   "summary": {
+    "Field": "Value",
+    "Crawl": "crawl_01M2PV9KTVX273M5GY14QDF6RK",
+    "Project": "covtwo",
+    "Status": "completed",
+    "Stopped because": "frontier empty",
+    "Write policy": "read_only",
+    "Screens found": "3",
+    "Coverage": "83% of controls (5 of 6)",
+    "Screens reached / left queued": "3 / 0",
+    "Not exercised, by reason": "policy:never-click pattern (logout/sign-out): 1",
+    "Screens not entered, by reason": "bound:max_depth: 1",
+    "Actions tried": "5",
+    "Edges recorded": "6",
+    "Refused by policy": "1",
+    "Issues found (in the product)": "0",
+    "Tool failures (the crawler's own)": "0",
+    "Started": "2026-09-17T04:51:45.608411+00:00",
+    "Finished": "2026-09-17T04:52:05.896744+00:00"
+   },
+   "unreached": [
+    [
+     "URL template",
+     "Control",
+     "Selector",
+     "Reason"
+    ],
+    [
+     "/app/dashboard.html",
+     "Log out",
+     "role=link[name=\"Log out\"] >> nth=0",
+     "policy:never-click pattern (logout/sign-out)"
+    ],
+    [
+     "/app/orders.html",
+     "screen behind 'Order 1001' \u2014 not entered",
+     "role=link[name=\"Order 1001\"] >> nth=0",
+     "bound:max_depth"
+    ]
+   ],
+   "console_errors": []
+  },
+  "depth1_run_detail": {
+   "Coverage": "83% of controls (5 of 6)",
+   "Screens reached / left queued": "3 / 0",
+   "Not exercised, by reason": "policy:never-click pattern (logout/sign-out): 1",
+   "Screens not entered, by reason": "bound:max_depth: 1"
+  },
+  "actions3": {
+   "bounds": {
+    "max_screens": 10,
+    "max_actions": 3,
+    "wall_clock_s": 120,
+    "max_depth": 6
+   },
+   "seconds": 14.9,
+   "url": "http://127.0.0.1:8069/projects/covtwo/crawls/crawl_01M2PVAC928BANM8C2BJSYR8T8",
+   "http_title": "Crawl crawl_01M2PVAC928BANM8C2BJSYR8T8 \u2014 AutoTester",
+   "crawl_json": {
+    "status": "stopped_bound",
+    "stop_reason": "max_actions",
+    "finished_at": "2026-09-17T04:52:22.642035+00:00",
+    "coverage": {
+     "controls_discovered": 6,
+     "controls_exercised": 3,
+     "screens_reached": 2,
+     "screens_queued_unvisited": 1,
+     "percent": 50,
+     "holes": [
+      {
+       "node_id": "node_6a9465535e97",
+       "url_template": "/app/dashboard.html",
+       "selector": "role=link[name=\"Log out\"] >> nth=0",
+       "name": "Log out",
+       "reason": "policy:never-click pattern (logout/sign-out)"
+      },
+      {
+       "node_id": "node_efc3abc16c7d",
+       "url_template": "/app/orders.html",
+       "selector": "role=link[name=\"Order 1001\"] >> nth=0",
+       "name": "Order 1001",
+       "reason": "bound:max_actions"
+      },
+      {
+       "node_id": "node_1ff4292bf80e",
+       "url_template": "/app/profile.html",
+       "selector": "role=link[name=\"Dashboard\"] >> nth=0",
+       "name": "Dashboard",
+       "reason": "not_visited"
+      }
+     ],
+     "screens_not_entered": []
+    }
+   },
+   "page_ok": true,
+   "tile_first": "50%\nCOVERAGE",
+   "coverage_line": "coverage: 50% of controls (3 of 6) \u00b7 not exercised: BOUND:MAX_ACTIONS: 1 NOT_VISITED: 1 POLICY:NEVER-CLICK PATTERN (LOGOUT/SIGN-OUT): 1",
+   "run_detail_rows": [],
+   "sheets": [
+    "Summary",
+    "Screens",
+    "Edges",
+    "Denied & Skipped",
+    "Unreached",
+    "Issues",
+    "Tool failures",
+    "Noise"
+   ],
+   "summary": {
+    "Field": "Value",
+    "Crawl": "crawl_01M2PVAC928BANM8C2BJSYR8T8",
+    "Project": "covtwo",
+    "Status": "stopped_bound",
+    "Stopped because": "max_actions",
+    "Write policy": "read_only",
+    "Screens found": "3",
+    "Coverage": "50% of controls (3 of 6)",
+    "Screens reached / left queued": "2 / 1",
+    "Not exercised, by reason": "bound:max_actions: 1; not_visited: 1; policy:never-click pattern (logout/sign-out): 1",
+    "Screens not entered, by reason": "none",
+    "Actions tried": "3",
+    "Edges recorded": "4",
+    "Refused by policy": "1",
+    "Issues found (in the product)": "0",
+    "Tool failures (the crawler's own)": "0",
+    "Started": "2026-09-17T04:52:09.156956+00:00",
+    "Finished": "2026-09-17T04:52:22.642035+00:00"
+   },
+   "unreached": [
+    [
+     "URL template",
+     "Control",
+     "Selector",
+     "Reason"
+    ],
+    [
+     "/app/dashboard.html",
+     "Log out",
+     "role=link[name=\"Log out\"] >> nth=0",
+     "policy:never-click pattern (logout/sign-out)"
+    ],
+    [
+     "/app/orders.html",
+     "Order 1001",
+     "role=link[name=\"Order 1001\"] >> nth=0",
+     "bound:max_actions"
+    ],
+    [
+     "/app/profile.html",
+     "Dashboard",
+     "role=link[name=\"Dashboard\"] >> nth=0",
+     "not_visited"
+    ]
+   ],
+   "console_errors": []
+  },
+  "actions3_run_detail": {
+   "Coverage": "50% of controls (3 of 6)",
+   "Screens reached / left queued": "2 / 1",
+   "Not exercised, by reason": "bound:max_actions: 1; not_visited: 1; policy:never-click pattern (logout/sign-out): 1",
+   "Screens not entered, by reason": "none"
+  },
+  "badspec_crawl_json": {
+   "status": "completed",
+   "stop_reason": "frontier empty",
+   "finished_at": "2026-09-17T04:52:50.144143+00:00",
+   "coverage": {
+    "controls_discovered": 7,
+    "controls_exercised": 6,
+    "screens_reached": 4,
+    "screens_queued_unvisited": 0,
+    "percent": 85,
+    "holes": [
+     {
+      "node_id": "node_6a9465535e97",
+      "url_template": "/app/dashboard.html",
+      "selector": "role=link[name=\"Log out\"] >> nth=0",
+      "name": "Log out",
+      "reason": "policy:never-click pattern (logout/sign-out)"
+     }
+    ],
+    "screens_not_entered": [],
+    "spec_error": "could not read the FlowSpec -- ValueError: C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\at459c2b_root\\projects\\covbadspec\\flowspec.json: 1 validation error for FlowSpec\n  Invalid JSON: key must be a string at line 1 column 3 [type=json_invalid, input_value='{ this is not a flowspec', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.13/v/json_invalid"
+   }
+  }
+ },
+ "probes_scratch_copy": {
+  "module": "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\checker-at459c2b\\src\\autotester\\stages\\crawl_coverage.py",
+  "P1_depth0_one_link": {
+   "status": "completed",
+   "stop_reason": "frontier empty",
+   "percent": 99,
+   "exercised": 1,
+   "discovered": 1,
+   "by_reason": {},
+   "holes": [],
+   "not_entered": [
+    [
+     "/",
+     "a.settings",
+     "Settings",
+     "bound:max_depth"
+    ]
+   ],
+   "balanced": true,
+   "spec_error": null,
+   "error": null
+  },
+  "P1b_default_depth0": {
+   "status": "completed",
+   "stop_reason": "frontier empty",
+   "percent": 66,
+   "exercised": 2,
+   "discovered": 3,
+   "by_reason": {
+    "off_domain": 1
+   },
+   "holes": [
+    [
+     "/",
+     "a.ext",
+     "off_domain"
+    ]
+   ],
+   "not_entered": [
+    [
+     "/",
+     "a.students",
+     "Students",
+     "bound:max_depth"
+    ],
+    [
+     "/",
+     "a.settings",
+     "Settings",
+     "bound:max_depth"
+    ]
+   ],
+   "balanced": true,
+   "spec_error": null,
+   "error": null
+  },
+  "P2_cap2_actions3": {
+   "status": "stopped_bound",
+   "stop_reason": "max_actions",
+   "percent": 42,
+   "exercised": 3,
+   "discovered": 7,
+   "by_reason": {
+    "bound:max_actions": 1,
+    "bound:per_node_action_cap": 1,
+    "not_visited": 2
+   },
+   "holes": [
+    [
+     "/",
+     "a.p3",
+     "bound:per_node_action_cap"
+    ],
+    [
+     "/p1",
+     "a.l12",
+     "bound:max_actions"
+    ],
+    [
+     "/p2",
+     "a.l21",
+     "not_visited"
+    ],
+    [
+     "/p2",
+     "a.l22",
+     "not_visited"
+    ]
+   ],
+   "not_entered": [],
+   "balanced": true,
+   "spec_error": null,
+   "error": null
+  },
+  "P3_login_wall_max_actions2": {
+   "status": "login_wall",
+   "stop_reason": "stopped at a login wall: every screen reached only offers a form submit denied by read_only, and no link led anywhere else -- declare a login case to crawl past it",
+   "percent": 50,
+   "exercised": 2,
+   "discovered": 4,
+   "by_reason": {
+    "bound:max_actions": 1,
+    "login_wall": 1
+   },
+   "holes": [
+    [
+     "/",
+     "button.go",
+     "login_wall"
+    ],
+    [
+     "/",
+     "button.c",
+     "bound:max_actions"
+    ]
+   ],
+   "not_entered": [],
+   "balanced": true,
+   "spec_error": null,
+   "error": null
+  },
+  "P4_invalid_flowspec": {
+   "status": "completed",
+   "stop_reason": "frontier empty",
+   "percent": 50,
+   "exercised": 5,
+   "discovered": 10,
+   "by_reason": {
+    "off_domain": 1,
+    "policy:destructive-name deny-list": 1,
+    "policy:form submit under read_only": 1,
+    "policy:never-click pattern (logout/sign-out)": 1,
+    "unnamed": 1
+   },
+   "holes": [
+    [
+     "/",
+     "a.ext",
+     "off_domain"
+    ],
+    [
+     "/settings",
+     "button.del",
+     "policy:destructive-name deny-list"
+    ],
+    [
+     "/settings",
+     "button.save",
+     "policy:form submit under read_only"
+    ],
+    [
+     "/settings",
+     "a.out",
+     "policy:never-click pattern (logout/sign-out)"
+    ],
+    [
+     "/settings",
+     "button.icon",
+     "unnamed"
+    ]
+   ],
+   "not_entered": [],
+   "balanced": true,
+   "spec_error": "could not read the FlowSpec -- ValueError: C:\\Users\\Lenovo\\AppData\\Local\\Temp\\at459c2b_upl3wuq_\\projects\\demo\\flowspec.json: 1 validation error for FlowSpec\n  Invalid JSON: key must be a string at line 1 column 3 [type=json_invalid, input_value='{ not json', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.13/v/json_invalid",
+   "error": null,
+   "saved_status": "completed",
+   "finished_at": "2026-09-17T04:49:57.330760+00:00"
+  },
+  "P5_wallclock_after_completion": {
+   "status": "completed",
+   "stop_reason": "frontier empty",
+   "percent": 50,
+   "exercised": 1,
+   "discovered": 2,
+   "by_reason": {
+    "unnamed": 1
+   },
+   "holes": [
+    [
+     "/",
+     "button.icon",
+     "unnamed"
+    ]
+   ],
+   "not_entered": [],
+   "balanced": true,
+   "spec_error": null,
+   "error": null
+  },
+  "P6_max_actions_then_wallclock": {
+   "status": "stopped_bound",
+   "stop_reason": "max_actions",
+   "percent": 30,
+   "exercised": 3,
+   "discovered": 10,
+   "by_reason": {
+    "bound:max_actions": 1,
+    "not_visited": 5,
+    "off_domain": 1
+   },
+   "holes": [
+    [
+     "/",
+     "a.ext",
+     "off_domain"
+    ],
+    [
+     "/students",
+     "a.s2",
+     "bound:max_actions"
+    ],
+    [
+     "/settings",
+     "button.del",
+     "not_visited"
+    ],
+    [
+     "/settings",
+     "button.save",
+     "not_visited"
+    ],
+    [
+     "/settings",
+     "a.out",
+     "not_visited"
+    ],
+    [
+     "/settings",
+     "button.icon",
+     "not_visited"
+    ],
+    [
+     "/students/{id}",
+     "button.edit",
+     "not_visited"
+    ]
+   ],
+   "not_entered": [],
+   "balanced": true,
+   "spec_error": null,
+   "error": null
+  },
+  "P7_filter_equivalent_all_8": true
+ },
+ "probe_tried_exclusions_under_mutation": {
+  "unmutated": {
+   "policy_denied_first": {
+    "stop": "max_actions",
+    "holes": [
+     [
+      "/",
+      "button.del",
+      "policy:destructive-name deny-list"
+     ],
+     [
+      "/",
+      "a.p3",
+      "bound:max_actions"
+     ]
+    ]
+   },
+   "offdomain_first": {
+    "stop": "max_actions",
+    "holes": [
+     [
+      "/",
+      "a.ext",
+      "off_domain"
+     ],
+     [
+      "/",
+      "a.p3",
+      "bound:max_actions"
+     ]
+    ]
+   }
+  },
+  "X1_policy_refusals_counted": {
+   "policy_denied_first": {
+    "stop": "max_actions",
+    "holes": [
+     [
+      "/",
+      "button.del",
+      "policy:destructive-name deny-list"
+     ],
+     [
+      "/",
+      "a.p3",
+      "bound:per_node_action_cap"
+     ]
+    ]
+   },
+   "offdomain_first": {
+    "stop": "max_actions",
+    "holes": [
+     [
+      "/",
+      "a.ext",
+      "off_domain"
+     ],
+     [
+      "/",
+      "a.p3",
+      "bound:max_actions"
+     ]
+    ]
+   }
+  },
+  "X2_offdomain_counted": {
+   "policy_denied_first": {
+    "stop": "max_actions",
+    "holes": [
+     [
+      "/",
+      "button.del",
+      "policy:destructive-name deny-list"
+     ],
+     [
+      "/",
+      "a.p3",
+      "bound:max_actions"
+     ]
+    ]
+   },
+   "offdomain_first": {
+    "stop": "max_actions",
+    "holes": [
+     [
+      "/",
+      "a.ext",
+      "off_domain"
+     ],
+     [
+      "/",
+      "a.p3",
+      "bound:per_node_action_cap"
+     ]
+    ]
+   }
+  }
+ },
+ "screenshots": [
+  "actions3-01-form.png",
+  "actions3-02-result.png",
+  "actions3-03-run-detail.png",
+  "badspec-01-form.png",
+  "badspec-02-result.png",
+  "badspec-03-crawl-page.png",
+  "depth1-01-form.png",
+  "depth1-02-result.png",
+  "depth1-03-run-detail.png"
+ ]
+}
