@@ -126,4 +126,4 @@ checker) and `tests/test_doctor.py`. Nothing either file touches is rendered by 
   None exist in the repo today.
 - **AT-403** (six `*.py` modules at 290–300 lines) is unchanged by this unit.
 
-## Status: ready-for-check
+## Status: checked-PASS — `qa/verdicts/at419-line-cap-every-file.md` (Cycle checked: 1, commit 200c776, pushed). AT-461 (low) filed by the checker for junction and untracked-file edge cases.
