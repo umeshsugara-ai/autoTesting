@@ -1661,3 +1661,19 @@ concurrent maker closed at242-crawl-blocked-status (checked-PASS) and a sweep fi
 2026-09-17T18:07Z maker ADVANCED at490-491 checked-PASS closed (4d00d58, verdict 992f03f; resolves AT-492 dispatch gap) · at401-flake-probe-runs-are-bounded ready-for-check cf34933 checker dispatched · wave=1 · ceiling=RAM 1.04 GB free (no worktrees this tick) · serial=[AT-483: other loop in .work/wave-at483; AT-488 mutation_check split: structure decision, deprioritised signal; AT-408/AT-416: gate at416-clip-vs-reach-direction unanswered]
 2026-09-17T19:15Z maker ADVANCED at490-491 PASS x2 (primary + INDEPENDENT CONCURRENT 12d2226; AT-490/491 fixed) · AT-492 needs correction: the verdict landed late, not a lost dispatch · at483 checker running
 2026-09-17T18:22Z maker ADVANCED at401 checked-PASS closed (05cc388, verdict 9b5cbc5; checker filed AT-494) · at494-probe-output-is-a-file-not-a-pipe ready-for-check 0ed84a7 checker dispatched · wave=1 · ceiling=RAM 1.8 GB free · serial=[AT-483: other loop; AT-488 split: structure decision; AT-408/416: gate unanswered]
+-- a naive URL prefix match can accept a lookalike domain.
+-- AT-100's ORIGINAL defect, verbatim, on the CRITICAL live-ERP crawl. I wrote it against the three
+-- anchor matched, file changed, ZERO failures. Under the clause as it stood two units ago I would
+--help: a substring cannot tell a real command from a plausible one; the CLI can.
+--map erp1.mp4=<sid> equality match finds ZERO rows. `At` is a STRING "MM:SS", not a number, so the
+-> 1 each. AN's FIRST run was refused by my own harness -- I passed a placeholder anchor and the C7
+-- and all three report commands, the exact reader surfaces AT-120..AT-123 were filed against.
+--note, which is correct -- taking an approval back is also a decision someone made.
+--print` is pinned by running it against the live repo DELIBERATELY (safe precisely because --print
+-- the checker proved it by running ledger add and diffing. AN HONEST NUMBER WITH A WRONG REASON
+-- came back INCONCLUSIVE, because my parametrized test exercises at_mmss DIRECTLY and never the
+--root default resolves to D:\, so the shipped command reads D:\projects\erp\ OUTSIDE THE REPO;
+--root) was STRUCTURALLY INCAPABLE OF CLOSING even once a credential arrived. New test drives it
+-> 0) and finished it.
+-- "full onboarding -> report without touching the CLI" -- WAS FALSE ON THE DAY IT WAS WRITTEN.
+2026-09-17T18:47Z maker BLOCKED at494-probe-output-is-a-file-not-a-pipe cycle 1 -- checker terminated by a session rate limit (429, resets 00:50 IST), wrote no verdict; not a fix cycle, re-dispatch due after the reset
