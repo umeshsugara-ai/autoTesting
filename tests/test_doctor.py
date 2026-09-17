@@ -203,6 +203,35 @@ def test_a_project_with_no_qa_directory_is_not_a_violation(tmp_path: Path) -> No
     assert doctor.check_qa_issue_rows(tmp_path) == []
 
 
+@pytest.mark.parametrize("issue", ["AT-900", "AT-900b"])
+def test_a_letter_suffixed_id_is_an_id_too(issue: str, tmp_path: Path) -> None:
+    r"""AT-500: when two checkers file the same defect, the second row takes a letter
+    suffix — AT-297b, AT-298b and AT-299b are live rows filed under that convention.
+    Both regexes ended at a word boundary straight after the digits, and `\bAT-\d+\b`
+    matches nothing at all inside `AT-297b`, so a manifest naming one was invisible."""
+    _qa(tmp_path, ledger="", manifests={"u.md": f"**Issues addressed:** {issue} (low, open)"})
+
+    lost = [(v.rule, v.detail) for v in doctor.check_qa_issue_rows(tmp_path)]
+
+    assert [r for r, d in lost if issue in d] == ["ledger-row-lost"], lost
+
+
+@pytest.mark.parametrize("issue", ["AT-900", "AT-900b"])
+def test_a_letter_suffixed_id_is_read_on_both_sides_of_the_comparison(
+    issue: str, tmp_path: Path
+) -> None:
+    """Widening only the handshake side would turn every suffixed row into a phantom
+    loss: the id is read a second time out of the LEDGER, and the two must agree or
+    the check reports a row it is looking at as missing."""
+    _qa(tmp_path, ledger=ROW.replace("AT-900", issue) % "open",
+        manifests={"u.md": f"**Issues addressed:** {issue} (low, open -> fixed)"},
+        verdicts={"u.md": "VERDICT: PASS"})
+
+    codes = [v.rule for v in doctor.check_qa_issue_rows(tmp_path)]
+
+    assert codes == ["ledger-row-stale"], "the row EXISTS (never lost), it is only stale"
+
+
 def test_an_issue_a_manifest_says_it_did_NOT_fix_stays_open(tmp_path: Path) -> None:
     """A manifest may name issues it filed and deliberately left open —
     `at227-first-paint-modal` names AT-335 that way. Reading "NOT fixed" as a fix

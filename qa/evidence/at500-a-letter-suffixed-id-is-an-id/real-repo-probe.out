@@ -1,0 +1,12 @@
+### PRE-FIX guard (HEAD doctor.py loaded by path), AT-298b row deleted from a COPY of the live ledger
+PRE-FIX guard, AT-298b row deleted: 0 violation(s) naming it
+  (it reported 0 violation(s) in total -- the loss is simply invisible)
+
+### POST-FIX guard, same copy
+rows intact: 499 -> rows after dropping AT-298b: 498
+
+INTACT: 0 violation(s) naming AT-298b
+
+AT-298b DROPPED: 2 violation(s) naming AT-298b
+  ledger-row-lost: qa/manifests/at298-migration-host-guard.md - AT-298b is named here but has no row in qa/issues.jsonl
+  ledger-row-lost: qa/verdicts/t135-coverage-merge-expand.b.md - AT-298b is named here but has no row in qa/issues.jsonl

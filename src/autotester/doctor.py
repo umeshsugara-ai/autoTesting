@@ -167,6 +167,15 @@ def check_ledger(root: Path) -> list[Violation]:
             for task in missing]
 
 
+ISSUE_ID = r"AT-\d+[a-z]?"
+r"""One issue id, in one place, for every regex below.
+
+The letter suffix is not decoration: when two checkers file the same defect, the
+second row takes one (AT-293's convention — AT-297b, AT-298b and AT-299b are live
+rows). `\bAT-\d+\b` matches NOTHING inside `AT-297b`, so reading an id without this
+made every suffixed row invisible to the whole check (AT-500)."""
+
+
 def check_qa_issue_rows(root: Path) -> list[Violation]:
     """C10: the ledger never silently loses what the handshake recorded (AT-496).
 
@@ -184,13 +193,13 @@ def check_qa_issue_rows(root: Path) -> list[Violation]:
     if not ledger.exists():
         return []
     text = ledger.read_text(encoding="utf-8", errors="replace")
-    status_of = dict(re.findall(r'"id":\s*"(AT-\d+)".*?"status":\s*"(\w+)"', text))
+    status_of = dict(re.findall(rf'"id":\s*"({ISSUE_ID})".*?"status":\s*"(\w+)"', text))
     out: list[Violation] = []
     for kind, marker in (("manifests", "**Issues addressed:**"), ("verdicts", "ISSUES-WRITTEN")):
         for path in sorted((root / "qa" / kind).glob("*.md")):
             body = path.read_text(encoding="utf-8", errors="replace")
             named = {i for line in body.splitlines() if marker in line
-                     for i in re.findall(r"\bAT-\d+\b", line)}
+                     for i in re.findall(rf"\b{ISSUE_ID}\b", line)}
             subject = f"qa/{kind}/{path.name}"
             out += [Violation("ledger-row-lost", subject,
                               f"{issue} is named here but has no row in qa/issues.jsonl")
@@ -200,7 +209,7 @@ def check_qa_issue_rows(root: Path) -> list[Violation]:
                 # A line may also name issues it deliberately did NOT fix, and those stay open.
                 # "NOT fixed" is a claim about what this unit deliberately left open.
                 claimed = {i for line in body.splitlines() if marker in line
-                           for i, note in re.findall(r"\b(AT-\d+)\b\s*\(([^)]*)\)", line)
+                           for i, note in re.findall(rf"\b({ISSUE_ID})\s*\(([^)]*)\)", line)
                            if "fixed" in note.lower() and "not fixed" not in note.lower()}
                 out += [Violation("ledger-row-stale", subject,
                                   f"{issue} is still `open` although this unit PASSed")

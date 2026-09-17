@@ -1,0 +1,56 @@
+{
+  "tests": [
+    "tests/test_doctor.py"
+  ],
+  "timeout_s": 600,
+  "mutations": [
+    {
+      "name": "AT-500 reopens: the id pattern loses its letter suffix again",
+      "old": "ISSUE_ID = r\"AT-\\d+[a-z]?\"",
+      "new": "ISSUE_ID = r\"AT-\\d+\"",
+      "kills": [
+        "tests/test_doctor.py::test_a_letter_suffixed_id_is_an_id_too[AT-900b]",
+        "tests/test_doctor.py::test_a_letter_suffixed_id_is_read_on_both_sides_of_the_comparison[AT-900b]"
+      ],
+      "file": "src/autotester/doctor.py"
+    },
+    {
+      "name": "the suffix becomes mandatory, so a plain id stops being an id",
+      "old": "ISSUE_ID = r\"AT-\\d+[a-z]?\"",
+      "new": "ISSUE_ID = r\"AT-\\d+[a-z]\"",
+      "kills": [
+        "tests/test_doctor.py::test_an_issue_a_manifest_names_must_still_have_a_ledger_row",
+        "tests/test_doctor.py::test_a_passed_unit_whose_issue_is_still_open_is_a_stale_row",
+        "tests/test_doctor.py::test_a_letter_suffixed_id_is_an_id_too[AT-900]"
+      ],
+      "file": "src/autotester/doctor.py"
+    },
+    {
+      "name": "only the handshake side is widened: the ledger still cannot read a suffixed row",
+      "old": "    status_of = dict(re.findall(rf'\"id\":\\s*\"({ISSUE_ID})\".*?\"status\":\\s*\"(\\w+)\"', text))",
+      "new": "    status_of = dict(re.findall(r'\"id\":\\s*\"(AT-\\d+)\".*?\"status\":\\s*\"(\\w+)\"', text))",
+      "kills": [
+        "tests/test_doctor.py::test_a_letter_suffixed_id_is_read_on_both_sides_of_the_comparison[AT-900b]"
+      ],
+      "file": "src/autotester/doctor.py"
+    },
+    {
+      "name": "only the ledger side is widened: a manifest naming a suffixed id is still unread",
+      "old": "                     for i in re.findall(rf\"\\b{ISSUE_ID}\\b\", line)}",
+      "new": "                     for i in re.findall(r\"\\bAT-\\d+\\b\", line)}",
+      "kills": [
+        "tests/test_doctor.py::test_a_letter_suffixed_id_is_an_id_too[AT-900b]"
+      ],
+      "file": "src/autotester/doctor.py"
+    },
+    {
+      "name": "the fix-claim regex is left narrow, so a suffixed id can never be stale",
+      "old": "                           for i, note in re.findall(rf\"\\b({ISSUE_ID})\\s*\\(([^)]*)\\)\", line)",
+      "new": "                           for i, note in re.findall(r\"\\b(AT-\\d+)\\b\\s*\\(([^)]*)\\)\", line)",
+      "kills": [
+        "tests/test_doctor.py::test_a_letter_suffixed_id_is_read_on_both_sides_of_the_comparison[AT-900b]"
+      ],
+      "file": "src/autotester/doctor.py"
+    }
+  ]
+}
