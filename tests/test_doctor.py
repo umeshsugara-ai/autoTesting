@@ -131,3 +131,83 @@ def test_a_second_ai_tools_instruction_file_is_not_root_clutter(tmp_path: Path) 
     root = make_repo(tmp_path)
     (root / "AGENTS.md").write_text("# instructions\n", encoding="utf-8")
     assert not any(v.rule == "root-clutter" for v in doctor.run(root))
+
+
+# -- AT-496: a handshake artifact naming an issue that has no ledger row -------
+
+
+def _qa(root: Path, ledger: str, manifests: dict | None = None,
+        verdicts: dict | None = None) -> None:
+    (root / "qa").mkdir(parents=True, exist_ok=True)
+    (root / "qa" / "issues.jsonl").write_text(ledger, encoding="utf-8")
+    for kind, files in (("manifests", manifests or {}), ("verdicts", verdicts or {})):
+        (root / "qa" / kind).mkdir(exist_ok=True)
+        for name, body in files.items():
+            (root / "qa" / kind / name).write_text(body, encoding="utf-8")
+
+
+ROW = '{"id": "AT-900", "severity": "low", "title": "t", "status": "%s"}'
+
+
+def test_an_issue_a_manifest_names_must_still_have_a_ledger_row(tmp_path: Path) -> None:
+    """AT-496: two loops share this tree, and a commit built from a stale copy of
+    qa/issues.jsonl drops rows another loop appended. AT-494's row vanished that way
+    while its verdict stayed in git — so the verdict is what makes the loss visible."""
+    _qa(tmp_path, ledger="", manifests={"u.md": "**Issues addressed:** AT-900 (low, open)"})
+
+    codes = [(v.rule, v.location) for v in doctor.check_qa_issue_rows(tmp_path)]
+
+    assert ("ledger-row-lost", "qa/manifests/u.md") in codes
+
+
+def test_an_issue_a_verdict_wrote_must_still_have_a_ledger_row(tmp_path: Path) -> None:
+    _qa(tmp_path, ledger=ROW % "open",
+        verdicts={"u.md": "ISSUES-WRITTEN: AT-900 (low), AT-901 (medium)"})
+
+    lost = [(v.rule, v.detail) for v in doctor.check_qa_issue_rows(tmp_path)]
+
+    assert [r for r, d in lost if "AT-901" in d] == ["ledger-row-lost"], lost
+    assert not any("AT-900" in d for _, d in lost), "AT-900 has a row; only AT-901 is missing"
+
+
+def test_a_passed_unit_whose_issue_is_still_open_is_a_stale_row(tmp_path: Path) -> None:
+    """AT-401's row was flipped to `fixed` by its PASS and then reverted to `open` by a
+    later stale write. Nothing noticed, because the verdict file was still right."""
+    _qa(tmp_path, ledger=ROW % "open",
+        manifests={"u.md": "**Issues addressed:** AT-900 (low, open -> fixed)"},
+        verdicts={"u.md": "VERDICT: PASS"})
+
+    codes = [v.rule for v in doctor.check_qa_issue_rows(tmp_path)]
+
+    assert "ledger-row-stale" in codes
+
+
+def test_a_passed_unit_whose_issue_is_fixed_is_not_flagged(tmp_path: Path) -> None:
+    _qa(tmp_path, ledger=ROW % "fixed",
+        manifests={"u.md": "**Issues addressed:** AT-900 (low, open -> fixed)"},
+        verdicts={"u.md": "VERDICT: PASS"})
+
+    assert doctor.check_qa_issue_rows(tmp_path) == []
+
+
+def test_a_failed_or_unchecked_unit_leaves_its_issue_open(tmp_path: Path) -> None:
+    """Only a PASS is evidence the issue was closed; an open row is correct otherwise."""
+    _qa(tmp_path, ledger=ROW % "open",
+        manifests={"u.md": "**Issues addressed:** AT-900 (low, open -> fixed)"},
+        verdicts={"u.md": "VERDICT: FAIL"})
+
+    assert doctor.check_qa_issue_rows(tmp_path) == []
+
+
+def test_a_project_with_no_qa_directory_is_not_a_violation(tmp_path: Path) -> None:
+    assert doctor.check_qa_issue_rows(tmp_path) == []
+
+
+def test_an_issue_a_manifest_says_it_did_NOT_fix_stays_open(tmp_path: Path) -> None:
+    """A manifest may name issues it filed and deliberately left open — `at227-first-paint-modal`
+    names AT-335 that way. Reading "NOT fixed" as a fix claim made its PASS look like a stale row."""
+    _qa(tmp_path, ledger=ROW % "open",
+        manifests={"u.md": "**Issues addressed:** AT-900 (filed, NOT fixed - reasons below)"},
+        verdicts={"u.md": "VERDICT: PASS"})
+
+    assert doctor.check_qa_issue_rows(tmp_path) == []

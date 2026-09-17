@@ -167,6 +167,53 @@ def check_ledger(root: Path) -> list[Violation]:
             for task in missing]
 
 
+def check_qa_issue_rows(root: Path) -> list[Violation]:
+    """C10: the ledger never silently loses what the handshake recorded (AT-496).
+
+    Two maker loops share this working tree. A commit built from a stale copy of
+    `qa/issues.jsonl` drops rows the other loop appended and reverts statuses it
+    flipped, and nothing noticed: AT-494's row vanished after its own PASS, and
+    AT-401 went back to `open` a commit after being closed. The manifests and
+    verdicts survive in git, so they are what makes the loss visible — an issue a
+    handshake artifact names must have a row, and a PASSed unit's issue must not
+    still be `open`.
+    """
+    import re
+
+    ledger = root / "qa" / "issues.jsonl"
+    if not ledger.exists():
+        return []
+    text = ledger.read_text(encoding="utf-8", errors="replace")
+    status_of = dict(re.findall(r'"id":\s*"(AT-\d+)".*?"status":\s*"(\w+)"', text))
+    out: list[Violation] = []
+    for kind, marker in (("manifests", "**Issues addressed:**"), ("verdicts", "ISSUES-WRITTEN")):
+        for path in sorted((root / "qa" / kind).glob("*.md")):
+            body = path.read_text(encoding="utf-8", errors="replace")
+            named = {i for line in body.splitlines() if marker in line
+                     for i in re.findall(r"\bAT-\d+\b", line)}
+            subject = f"qa/{kind}/{path.name}"
+            out += [Violation("ledger-row-lost", subject,
+                              f"{issue} is named here but has no row in qa/issues.jsonl")
+                    for issue in sorted(named - set(status_of))]
+            if kind == "manifests" and _passed(root, path.name):
+                # Only an issue this manifest CLAIMS to have fixed — "AT-x (low, open -> fixed)".
+                # A line may also name issues it deliberately did NOT fix, and those stay open.
+                # "NOT fixed" is a claim about what this unit deliberately left open.
+                claimed = {i for line in body.splitlines() if marker in line
+                           for i, note in re.findall(r"\b(AT-\d+)\b\s*\(([^)]*)\)", line)
+                           if "fixed" in note.lower() and "not fixed" not in note.lower()}
+                out += [Violation("ledger-row-stale", subject,
+                                  f"{issue} is still `open` although this unit PASSed")
+                        for issue in sorted(claimed) if status_of.get(issue) == "open"]
+    return out
+
+
+def _passed(root: Path, name: str) -> bool:
+    verdict = root / "qa" / "verdicts" / name
+    return verdict.exists() and "VERDICT: PASS" in verdict.read_text(encoding="utf-8",
+                                                                     errors="replace")
+
+
 def check_architecture_budget(root: Path) -> list[Violation]:
     """C2: ARCHITECTURE.md stays within its line budget (AT-019)."""
     from autotester.ledger.render import ARCHITECTURE_MAX_LINES
@@ -210,7 +257,7 @@ def run(root: Path | None = None) -> list[Violation]:
     violations: list[Violation] = []
     for check in (check_file_sizes, check_function_sizes, check_file_names,
                   check_root_clean, check_duplicate_definitions,
-                  check_ledger, check_generated_fresh, check_architecture_budget,
-                  check_docs_routed):
+                  check_ledger, check_qa_issue_rows, check_generated_fresh,
+                  check_architecture_budget, check_docs_routed):
         violations.extend(check(base))
     return violations
