@@ -1,0 +1,11 @@
+KILLED  AT-468 reopens: a validation failure quotes pydantic's message (and the narration) again  (pytest exit 1)
+    claims to kill : tests/test_schema_video.py::test_an_unreadable_reason_names_the_error_never_the_sidecar_content[missing-field], tests/test_schema_video.py::test_an_unreadable_reason_names_the_error_never_the_sidecar_content[unknown-key], tests/test_schema_video.py::test_an_unreadable_reason_names_the_error_never_the_sidecar_content[wrong-type]
+    actually failed: tests/test_schema_video.py::test_an_unreadable_reason_names_the_error_never_the_sidecar_content[missing-field], tests/test_schema_video.py::test_an_unreadable_reason_names_the_error_never_the_sidecar_content[unknown-key], tests/test_schema_video.py::test_an_unreadable_reason_names_the_error_never_the_sidecar_content[wrong-type]
+KILLED  an unknown key is named by its (sidecar-authored) name instead of its kind  (pytest exit 1)
+    claims to kill : tests/test_schema_video.py::test_an_unreadable_reason_names_the_error_never_the_sidecar_content[unknown-key]
+    actually failed: tests/test_schema_video.py::test_an_unreadable_reason_names_the_error_never_the_sidecar_content[unknown-key]
+KILLED  AT-466 regresses through the new helper: a non-validation cause loses its exception type  (pytest exit 1)
+    claims to kill : tests/test_schema_video.py::test_an_unreadable_sidecar_keeps_why_it_could_not_be_read[bad-json], tests/test_schema_video.py::test_an_unreadable_sidecar_keeps_why_it_could_not_be_read[not-utf8]
+    actually failed: tests/test_schema_video.py::test_an_unreadable_sidecar_keeps_why_it_could_not_be_read[bad-json], tests/test_schema_video.py::test_an_unreadable_sidecar_keeps_why_it_could_not_be_read[not-utf8]
+
+3/3 mutations killed

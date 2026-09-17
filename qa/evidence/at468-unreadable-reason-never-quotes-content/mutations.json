@@ -1,0 +1,35 @@
+{
+  "tests": ["tests/test_schema_video.py"],
+  "mutations": [
+    {
+      "name": "AT-468 reopens: a validation failure quotes pydantic's message (and the narration) again",
+      "file": "src/autotester/schema/media.py",
+      "old": "    if not isinstance(exc, ValidationError):",
+      "new": "    if True:",
+      "kills": [
+        "tests/test_schema_video.py::test_an_unreadable_reason_names_the_error_never_the_sidecar_content[missing-field]",
+        "tests/test_schema_video.py::test_an_unreadable_reason_names_the_error_never_the_sidecar_content[wrong-type]",
+        "tests/test_schema_video.py::test_an_unreadable_reason_names_the_error_never_the_sidecar_content[unknown-key]"
+      ]
+    },
+    {
+      "name": "an unknown key is named by its (sidecar-authored) name instead of its kind",
+      "file": "src/autotester/schema/media.py",
+      "old": "    parts = [\"unknown field\" if e[\"type\"] == \"extra_forbidden\"",
+      "new": "    parts = [\"unknown field\" if False",
+      "kills": [
+        "tests/test_schema_video.py::test_an_unreadable_reason_names_the_error_never_the_sidecar_content[unknown-key]"
+      ]
+    },
+    {
+      "name": "AT-466 regresses through the new helper: a non-validation cause loses its exception type",
+      "file": "src/autotester/schema/media.py",
+      "old": "        return f\"{type(exc).__name__}: {exc}\"",
+      "new": "        return f\"{exc}\"",
+      "kills": [
+        "tests/test_schema_video.py::test_an_unreadable_sidecar_keeps_why_it_could_not_be_read[bad-json]",
+        "tests/test_schema_video.py::test_an_unreadable_sidecar_keeps_why_it_could_not_be_read[not-utf8]"
+      ]
+    }
+  ]
+}

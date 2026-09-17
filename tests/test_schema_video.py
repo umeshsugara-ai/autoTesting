@@ -266,3 +266,22 @@ def test_a_readable_sidecar_carries_no_unreadable_reason() -> None:
     transcript = Transcript.read_sidecar(FIXTURE, "src_erp1")
     assert transcript.engine == "sidecar" and transcript.unreadable_reason is None
     assert len(transcript.segments) == 6
+
+
+@pytest.mark.parametrize(("segment", "cause"), [
+    ('{"start": 0, "text": "my password is hunter2 for alice@example.com"}', "end: missing"),
+    ('{"start": 0, "end": 1, "text": ["hunter2", "alice@example.com"]}', "text: string_type"),
+    ('{"start": 0, "end": 1, "text": "x", "hunter2 alice@example.com": 1}', "unknown field"),
+], ids=["missing-field", "wrong-type", "unknown-key"])
+def test_an_unreadable_reason_names_the_error_never_the_sidecar_content(
+        tmp_path: Path, segment: str, cause: str) -> None:
+    """AT-468: the field says "the parse error, never the file", but pydantic's message
+    quotes the offending input, so narration text (and whatever PII it holds) reached the
+    persisted transcript and the `ingest prep` line. The reason keeps where and what kind."""
+    sidecar = tmp_path / "erp1.transcript.json"
+    sidecar.write_text('{"segments": [' + segment + ']}', encoding="utf-8")
+
+    reason = Transcript.read_sidecar(sidecar, "src_1").unreadable_reason or ""
+
+    assert reason.startswith("ValidationError") and cause in reason
+    assert "hunter2" not in reason and "alice" not in reason

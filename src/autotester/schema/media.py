@@ -9,9 +9,22 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from autotester.schema.base import Artifact
+
+
+def _reason(exc: Exception) -> str:
+    """Why a sidecar is unreadable, never what it says (AT-468). Pydantic's own message
+    quotes the offending input, and a segment's input is narration text; so a validation
+    failure keeps only each error's location and kind. An unknown key is itself sidecar
+    content, so it is named only as a kind. The other causes (JSON position, undecodable
+    byte, a missing segments list, a non-mapping segment) quote no text."""
+    if not isinstance(exc, ValidationError):
+        return f"{type(exc).__name__}: {exc}"
+    parts = ["unknown field" if e["type"] == "extra_forbidden"
+             else f"{'.'.join(str(x) for x in e['loc'])}: {e['type']}" for e in exc.errors()]
+    return f"ValidationError: {'; '.join(parts)}"
 
 
 class TranscriptSegment(BaseModel):
@@ -64,7 +77,7 @@ class Transcript(Artifact):
             return cls.from_sidecar(path, source_id)
         except Exception as exc:  # any malformed shape at all: best-effort by contract
             return cls(source_id=source_id, engine="unreadable",
-                       unreadable_reason=f"{type(exc).__name__}: {exc}"[:300])
+                       unreadable_reason=_reason(exc)[:300])
 
     def slice(self, offset_s: float, length_s: float) -> str:
         """Clip-relative narration lines for the window `[offset_s, offset_s+length_s)`,
