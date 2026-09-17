@@ -33,6 +33,10 @@ LOGIN_WALL_REASON = (
     "stopped at a login wall: every screen reached only offers a form submit denied by "
     "read_only, and no link led anywhere else -- declare a login case to crawl past it"
 )
+LOGIN_WALL_REASON_BOUND = (  # AT-480: a fired bound left controls untried -- never claim otherwise
+    "stopped at a login wall: every screen reached only offers a form submit denied by "
+    "read_only -- declare a login case to crawl past it"
+)
 
 
 def login_template(case: Case) -> str | None:
@@ -68,6 +72,16 @@ def login_fill_targets(case: Case | None) -> frozenset[str]:
     return frozenset(s.target for s in case.steps if s.action is Action.FILL)
 
 
+def login_submit_selector(case: Case | None) -> str | None:
+    """AT-489: the login case's own submit control -- the selector of its last CLICK step --
+    required by the fill-target fallback so a screen cannot be misclassified LOGIN_FAILED merely
+    for reusing every FILL selector; a case with no CLICK step never fires the fallback."""
+    if case is None:
+        return None
+    clicks = [s for s in sorted(case.steps, key=lambda s: s.order) if s.action is Action.CLICK]
+    return clicks[-1].target if clicks else None
+
+
 def never_left_login(nodes: Iterable[ScreenNode], case: Case | None,
                      login_signature: str | None) -> str | None:
     """X18(a): with a declared login case, the reason every node IS the login screen.
@@ -81,15 +95,18 @@ def never_left_login(nodes: Iterable[ScreenNode], case: Case | None,
     A node still counts as the login screen when its `url_template` matches AND EITHER its
     signature equals the one observed, OR — when that comparison cannot decide, because the
     signature moved (AT-467: a wrong-password page that grew a sticky error banner) or was
-    never observed (AT-474) — every FILL step target of the login case is still present as an
-    element's `selector` on that node. A FILL target missing from the node's elements leaves
-    the signature-only rule in force, so a genuinely different screen that merely shares the
-    login's url (AT-462's single-page-app dashboard) is never caught by this fallback."""
+    never observed (AT-474) — every FILL step target AND the login case's own submit control
+    (its last CLICK step's selector, AT-489) are still present as an element's `selector` on
+    that node. A case with no CLICK step never fires this fallback (signature rule only). A
+    FILL target or the submit control missing from the node's elements leaves the
+    signature-only rule in force, so a screen that merely reuses the login's FILL selectors
+    without also reusing its submit control is never caught by this fallback."""
     reached = list(nodes)
     template = login_template(case) if case is not None else None
     if template is None or not reached:
         return None
     fill_targets = login_fill_targets(case)
+    submit_selector = login_submit_selector(case)
 
     def _still_login(node: ScreenNode) -> bool:
         if node.url_template != template:
@@ -97,7 +114,8 @@ def never_left_login(nodes: Iterable[ScreenNode], case: Case | None,
         if node.signature == login_signature:
             return True
         selectors = {el.selector for el in node.elements}
-        return bool(fill_targets) and fill_targets <= selectors
+        return (submit_selector is not None and submit_selector in selectors
+               and bool(fill_targets) and fill_targets <= selectors)
 
     if any(not _still_login(node) for node in reached):
         return None
@@ -130,17 +148,22 @@ def terminal_status(*, completed: bool, actions_used: int, denied: int,
                     current_stop_reason: str | None = None) -> tuple[CrawlStatus, str | None]:
     """The status a finished crawl ends in, and a replacement stop reason when the
     status needs one. The wall checks come first: a crawl stuck at the login page is
-    stuck whether its frontier emptied or a bound stopped it.
+    stuck whether its frontier emptied or a bound stopped it -- AT-480: when a bound
+    fired, the reason still names it (X4), and the wall sentence drops its "no link
+    led anywhere else" claim, since a bound can leave controls untried.
 
     AT-474: when the login page's signature could not be observed AND X18(a) still could
     not be judged (`never_left_login` found nothing conclusive, even via the fill-target
     fallback), the status is never silently displayed as an unqualified success — its
     reason carries a named qualifier saying the check itself could not run."""
+    bound_suffix = (f" -- the {current_stop_reason} bound fired before every control was tried"
+                    if not completed and current_stop_reason else "")
     reason = never_left_login(nodes, login_case, login_signature)
     if reason is not None:
-        return CrawlStatus.LOGIN_FAILED, reason
+        return CrawlStatus.LOGIN_FAILED, reason + bound_suffix
     if login_case is None and is_login_wall(nodes, edges):
-        return CrawlStatus.LOGIN_WALL, LOGIN_WALL_REASON
+        wall_reason = LOGIN_WALL_REASON if completed else LOGIN_WALL_REASON_BOUND
+        return CrawlStatus.LOGIN_WALL, wall_reason + bound_suffix
     if not completed:
         status = CrawlStatus.STOPPED_BOUND
     elif actions_used == 0 and denied > 0:  # AT-242
