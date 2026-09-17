@@ -1,0 +1,11 @@
+KILLED  the real tree-kill call is dropped entirely on a real timeout  (pytest exit 1)
+    claims to kill : tests/test_flake_probe_real_process.py::test_a_tree_that_outlives_its_kill_is_recorded_timed_out_with_the_error_in_the_tail, tests/test_flake_probe_real_process.py::test_run_once_kills_a_real_hung_process_and_its_real_grandchild
+    actually failed: tests/test_flake_probe_real_process.py::test_a_tree_that_outlives_its_kill_is_recorded_timed_out_with_the_error_in_the_tail, tests/test_flake_probe_real_process.py::test_run_once_kills_a_real_hung_process_and_its_real_grandchild
+KILLED  the unkillable-tree message is dropped from the run's tail  (pytest exit 1)
+    claims to kill : tests/test_flake_probe_real_process.py::test_a_tree_that_outlives_its_kill_is_recorded_timed_out_with_the_error_in_the_tail
+    actually failed: tests/test_flake_probe_real_process.py::test_a_tree_that_outlives_its_kill_is_recorded_timed_out_with_the_error_in_the_tail
+KILLED  the Windows kill drops the tree flag and only kills pytest itself  (pytest exit 1)
+    claims to kill : tests/test_flake_probe_real_process.py::test_run_once_kills_a_real_hung_process_and_its_real_grandchild
+    actually failed: tests/test_flake_probe_real_process.py::test_run_once_kills_a_real_hung_process_and_its_real_grandchild
+
+3/3 mutations killed

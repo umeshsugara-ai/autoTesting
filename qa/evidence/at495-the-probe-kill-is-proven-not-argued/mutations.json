@@ -1,0 +1,36 @@
+{
+  "tests": [
+    "tests/test_flake_probe_real_process.py"
+  ],
+  "timeout_s": 120,
+  "mutations": [
+    {
+      "name": "the real tree-kill call is dropped entirely on a real timeout",
+      "old": "                    kill_tree(proc)",
+      "new": "                    pass  # AT-495 mutation: never actually kill anything",
+      "kills": [
+        "tests/test_flake_probe_real_process.py::test_run_once_kills_a_real_hung_process_and_its_real_grandchild",
+        "tests/test_flake_probe_real_process.py::test_a_tree_that_outlives_its_kill_is_recorded_timed_out_with_the_error_in_the_tail"
+      ],
+      "file": "scripts/flake_probe.py"
+    },
+    {
+      "name": "the unkillable-tree message is dropped from the run's tail",
+      "old": "                except RuntimeError as unkilled:  # MutationError: the tree outlived the kill\n                    notes = f\"{chr(10)}{unkilled}\"",
+      "new": "                except RuntimeError as unkilled:  # MutationError: the tree outlived the kill\n                    notes = \"\"",
+      "kills": [
+        "tests/test_flake_probe_real_process.py::test_a_tree_that_outlives_its_kill_is_recorded_timed_out_with_the_error_in_the_tail"
+      ],
+      "file": "scripts/flake_probe.py"
+    },
+    {
+      "name": "the Windows kill drops the tree flag and only kills pytest itself",
+      "old": "            subprocess.run([\"taskkill\", \"/F\", \"/T\", \"/PID\", str(proc.pid)],",
+      "new": "            subprocess.run([\"taskkill\", \"/F\", \"/PID\", str(proc.pid)],",
+      "kills": [
+        "tests/test_flake_probe_real_process.py::test_run_once_kills_a_real_hung_process_and_its_real_grandchild"
+      ],
+      "file": "scripts/mutation_check.py"
+    }
+  ]
+}
