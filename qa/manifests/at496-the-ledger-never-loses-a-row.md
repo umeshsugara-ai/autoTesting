@@ -153,4 +153,12 @@ Not UI-touching — no surface changed. Changed paths: `src/autotester/doctor.py
   all. Recorded so a later unit does not build the wrong mechanism.
 - **`git log -S` over 40 commits** is the measured window; an older loss would not show.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Cycle 2, `qa/verdicts/at496-the-ledger-never-loses-a-row.md` (commit `d115c0a`, pushed per D-007).
+Both cycle-1 failures resolved: AT-498 (`ruff check` reproduces `All checks passed!`) and AT-499
+(the manifest's false "restored verbatim" claim corrected; the checker accepted the deferral as the
+right response to the actor half of the finding and performed the byte-restore itself). `AT-401` is
+now field-identical to `9b5cbc5` including `fixed_by`, and `AT-494`'s row is back — re-verified by
+the maker after the verdict, not taken on report. Closed `fixed`: AT-496, AT-498, AT-499. Carried as
+disclosed debt: AT-500 (medium), AT-501 (low).
