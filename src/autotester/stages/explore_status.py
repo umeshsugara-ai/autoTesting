@@ -47,14 +47,25 @@ def login_template(case: Case) -> str | None:
     return url_template(absolute_url(step.target), keep_host=False)
 
 
-def observed_signature(session: object) -> str | None:
+def observed_signature(session: object) -> tuple[str | None, str | None]:
     """The structural signature of the page the session shows now, computed exactly as a
-    crawled node's is — or None if it cannot be observed, in which case X18(a) is simply
-    not judged (never a crash, never a guessed failure)."""
+    crawled node's is — or `(None, "<Type>: <msg>")` if it cannot be observed, in which case
+    X18(a) falls back to the fill-target rule (`never_left_login`) or, when that too cannot
+    decide, is recorded as not judged rather than guessed (AT-474 — never a crash, never a
+    silent skip)."""
     try:
-        return structural_signature(observe(session).elements)
-    except Exception:
-        return None
+        return structural_signature(observe(session).elements), None
+    except Exception as exc:
+        return None, f"{type(exc).__name__}: {exc}"
+
+
+def login_fill_targets(case: Case | None) -> frozenset[str]:
+    """The selectors the login case types into — X18(a)'s fallback identity check when the
+    login page's signature moved (a sticky wrong-password banner, AT-467) or could not be
+    observed at all (AT-474)."""
+    if case is None:
+        return frozenset()
+    return frozenset(s.target for s in case.steps if s.action is Action.FILL)
 
 
 def never_left_login(nodes: Iterable[ScreenNode], case: Case | None,
@@ -65,14 +76,30 @@ def never_left_login(nodes: Iterable[ScreenNode], case: Case | None,
     OBSERVED on the login page before the case typed anything (`login_signature`). Comparing
     the template alone called a working single-page-app login failed (AT-462, cycle 1); so did
     merely counting signatures, when the dashboard behind the login is a single state at the
-    same url (AT-462, cycle 2). Unknown signature (the login page redirected away, or could
-    not be observed) means this cannot be judged here, and it is not."""
+    same url (AT-462, cycle 2).
+
+    A node still counts as the login screen when its `url_template` matches AND EITHER its
+    signature equals the one observed, OR — when that comparison cannot decide, because the
+    signature moved (AT-467: a wrong-password page that grew a sticky error banner) or was
+    never observed (AT-474) — every FILL step target of the login case is still present as an
+    element's `selector` on that node. A FILL target missing from the node's elements leaves
+    the signature-only rule in force, so a genuinely different screen that merely shares the
+    login's url (AT-462's single-page-app dashboard) is never caught by this fallback."""
     reached = list(nodes)
     template = login_template(case) if case is not None else None
     if template is None or not reached:
         return None
-    # An unobserved (None) login signature never equals a node's, so it is never judged.
-    if any(n.url_template != template or n.signature != login_signature for n in reached):
+    fill_targets = login_fill_targets(case)
+
+    def _still_login(node: ScreenNode) -> bool:
+        if node.url_template != template:
+            return False
+        if node.signature == login_signature:
+            return True
+        selectors = {el.selector for el in node.elements}
+        return bool(fill_targets) and fill_targets <= selectors
+
+    if any(not _still_login(node) for node in reached):
         return None
     return NEVER_LEFT_LOGIN.format(template=template)
 
@@ -98,21 +125,35 @@ def is_login_wall(nodes: list[ScreenNode], edges: list[ScreenEdge]) -> bool:
 
 def terminal_status(*, completed: bool, actions_used: int, denied: int,
                     nodes: list[ScreenNode], edges: list[ScreenEdge],
-                    login_case: Case | None,
-                    login_signature: str | None = None) -> tuple[CrawlStatus, str | None]:
+                    login_case: Case | None, login_signature: str | None = None,
+                    login_observe_error: str | None = None,
+                    current_stop_reason: str | None = None) -> tuple[CrawlStatus, str | None]:
     """The status a finished crawl ends in, and a replacement stop reason when the
     status needs one. The wall checks come first: a crawl stuck at the login page is
-    stuck whether its frontier emptied or a bound stopped it."""
+    stuck whether its frontier emptied or a bound stopped it.
+
+    AT-474: when the login page's signature could not be observed AND X18(a) still could
+    not be judged (`never_left_login` found nothing conclusive, even via the fill-target
+    fallback), the status is never silently displayed as an unqualified success — its
+    reason carries a named qualifier saying the check itself could not run."""
     reason = never_left_login(nodes, login_case, login_signature)
     if reason is not None:
         return CrawlStatus.LOGIN_FAILED, reason
     if login_case is None and is_login_wall(nodes, edges):
         return CrawlStatus.LOGIN_WALL, LOGIN_WALL_REASON
     if not completed:
-        return CrawlStatus.STOPPED_BOUND, None
-    if actions_used == 0 and denied > 0:  # AT-242
-        return CrawlStatus.BLOCKED_NO_ACTIONS, None
-    return CrawlStatus.COMPLETED, None
+        status = CrawlStatus.STOPPED_BOUND
+    elif actions_used == 0 and denied > 0:  # AT-242
+        status = CrawlStatus.BLOCKED_NO_ACTIONS
+    else:
+        status = CrawlStatus.COMPLETED
+    reason = (f"{current_stop_reason} -- every reachable action was denied by policy"
+             if status is CrawlStatus.BLOCKED_NO_ACTIONS else None)
+    if login_case is not None and login_observe_error is not None:  # AT-474
+        base = reason or current_stop_reason
+        reason = (f"{base} -- login not judged: could not observe the login page "
+                 f"({login_observe_error})")
+    return status, reason
 
 
 def displayed_status(crawl: Crawl) -> CrawlStatus:

@@ -260,8 +260,44 @@ leads back returns `COMPLETED` while the product behind the wall was never seen 
 all three crawls of `saucedemo` and `checkerdemo` read `status=completed` with 1 screen, 0 actions
 and 3 denied (they predate AT-242's `2bb3270`, and are still displayed as `completed`).
 
-- **(a)** With a declared login case, a crawl that reaches no screen other than the login case's
-  own start screen ends `LOGIN_FAILED` (or a named equivalent), never `COMPLETED`.
+- **(a)** With a declared login case, a reached node counts as *"still the login screen"* when its
+  `url_template` equals the login case's own template AND EITHER its `signature` equals the
+  signature OBSERVED on the login page before the case typed, OR — when that comparison cannot
+  decide, because the signature moved (a sticky wrong-password banner, AT-467) or was never
+  observed at all (AT-474) — every FILL step target of the login case is present as an element's
+  `selector` on that node. A node missing at least one FILL-target selector is never caught by the
+  fallback; signature-only comparison stays in force for it (AT-462's single-page-app dashboard
+  control). A crawl that reaches no screen other than what counts as the login screen ends
+  `LOGIN_FAILED` (or a named equivalent), never `COMPLETED`.
+
+  When the login page's signature could not be observed, `stop_reason` carries an appended
+  qualifier naming why (`-- login not judged: could not observe the login page (<Type>: <msg>)`)
+  and an `IssueKind.EVIDENCE` `CrawlIssue` is filed (so `tool_failures` counts it) — deliberately
+  even when the crawl otherwise resolves conclusively that every reached node is NOT the login
+  screen via a plain `url_template` mismatch alone, which needs no signature at all. This is an
+  intentional, checker-accepted trade (2026-09-17): never let a precheck failure go unmentioned, at
+  the cost of an occasional qualifier appended to an otherwise-clean `COMPLETED`. Pinned live by
+  `test_a_login_page_that_cannot_be_observed_is_not_an_unqualified_success`.
+
+  **Known OPEN gap (checker-found 2026-09-17, tracked as ISS-x18a-1 — not a defect in what
+  landed here, a residual of the mechanism):** the fallback trusts selector equality alone, with
+  no check on a reached node's OTHER elements. A genuinely different screen sharing the login's
+  `url_template` (necessarily an SPA, since X3 already gives a different URL its own node) that
+  happens to expose an element for EVERY one of the login case's FILL-target selectors — e.g. an
+  account-settings screen whose own `#email`/`#password` fields reuse the same generic,
+  non-namespaced ids the login form uses — is misclassified as still-the-login-screen, and the
+  crawl reads `LOGIN_FAILED` despite a genuine successful login. Verified live by the checker: a
+  node built with exactly this shape (different signature, different content, but every FILL
+  target's selector coincidentally present) is classified `LOGIN_FAILED` by the unmodified
+  `_still_login` — no falsification needed, the shipped code does this today. No existing test
+  exercises the combination: the AT-462 control
+  (`test_a_dashboard_sharing_the_login_url_without_login_fields_is_not_login_failed`) only proves
+  the case where NONE of the login case's fields are present, not where all of them coincidentally
+  are. `enumerate.js`'s preference for stable/namespaced selectors over generated ones reduces the
+  odds but does not eliminate them. Remedy is a later unit's, not this checker's: narrowing the
+  fallback to also require the login form's own submit control, or to require the coincidental
+  match to also reproduce the observed signature's element count, are two options that keep the
+  AT-467 catch intact.
 - **(b)** With no declared login case, a crawl whose every reached screen carries a form submit that
   was refused under policy and which has **no `NAVIGATED` edge to a screen offering a different
   structural signature from the seed** ends in a distinct non-success status naming the wall in
@@ -431,3 +467,40 @@ table (Mode D).
   relaxing `READ_ONLY`'s form-submit denial after login, or raising the default bounds — the first
   weakens a D-016 safety invariant (CRITICAL, human), the second is a per-crawl choice that V7's
   coverage number makes visible instead of hiding. Issues: AT-457, AT-458.
+
+- 2026-09-17 · routine · **X18(a) tightened** by /checker at unit `x18a-login-both-directions`
+  (cycle 1), folding the maker's proposed wording with two corrections, both from checker-run
+  evidence, neither weakening the AT-467/AT-474 fixes. The mechanism itself (structural-signature
+  match OR every FILL-target selector present as the fallback) is adopted as proposed and verified
+  independently: three falsifying single-hunk edits to `src/autotester/stages/explore_status.py`
+  were reproduced by the checker in an isolated `git archive e70bb2c` extract (each restored
+  byte-identical before the next), each firing the exact assertion the manifest claimed, plus the
+  maker's own live-browser regression
+  (`test_a_wrong_password_with_a_sticky_error_banner_is_still_login_failed`) re-read as evidence.
+  **(i)** The proposal's closing sentence — "a genuinely different screen that merely shares the
+  login's url is never caught by this fallback" — is FALSE as a blanket claim: the checker built a
+  node sharing the login's `url_template`, carrying a different signature and different content,
+  but with a coincidentally-matching `#email` FILL-target selector, and the unmodified
+  `_still_login` classified it `LOGIN_FAILED`. The blanket sentence is dropped from the criterion;
+  the narrower, TRUE claim (a node missing at least one FILL target is never caught) is kept, and
+  the coincidental-match risk is recorded above as a new Known OPEN gap (**ISS-x18a-1**) rather
+  than assumed away. **(ii)** The not-judged qualifier's own conservatism — firing even when a
+  plain `url_template` mismatch alone already resolves a node as not-the-login-screen, needing no
+  signature — is now stated explicitly in the criterion rather than left to the manifest's prose,
+  because it is contract-relevant behaviour pinned by an existing test
+  (`test_a_login_page_that_cannot_be_observed_is_not_an_unqualified_success`) and the checker
+  accepted it as a deliberate trade, not a defect, on the reasoning already in that test's own
+  docstring. **AT-474 CLOSED** — independently re-verified: the qualifier fires, an
+  `IssueKind.EVIDENCE` `CrawlIssue` is filed, and `tool_failures` counts it. **AT-467 was never a
+  formal `qa/issues.jsonl` row** — referenced in `qa/verdicts/at458-crawl-stuck-at-login-never-
+  completed.md` and `qa/QUEUE.md` but never appended to the ledger itself (a ledger-hygiene gap
+  already tracked as AT-475); the underlying defect it named — a sticky wrong-password banner
+  reading `COMPLETED` — is independently verified fixed here regardless. **Live-browser (Mode D)
+  verification**, against the checker's own real headless Chromium driving the actual product UI
+  (not the maker's screenshots, not `curl`): a crawl started from the Crawls page with a
+  wrong-password login case reads `login_failed` with `badge-blocked` (warning) tone on both the
+  crawl page and the crawls table row; the same flow with a correct password reads `completed`
+  with `badge-pass` (positive) tone. Zero console errors either way. Evidence:
+  `qa/evidence/browser-x18a-login-both-directions-2026-09-17-checker/report.json`. No criterion is
+  removed or weakened; X1-X17 are byte-unchanged. Verdict:
+  `qa/verdicts/x18a-login-both-directions.md`.

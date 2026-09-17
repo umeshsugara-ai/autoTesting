@@ -25,10 +25,13 @@ from autotester.schema.crawl import Crawl
 from autotester.schema.enums import Action, CaseClass, CaseKind, CrawlStatus
 from autotester.schema.flowspec import Step
 from autotester.schema.project import Project
-from autotester.schema.screen_graph import ScreenNode
+from autotester.schema.screen_graph import ElementRef, ScreenNode
 from autotester.stages.explore import run_crawl
 from autotester.stages.explore_status import displayed_status, terminal_status
 from autotester.store.project_store import ProjectStore
+
+_LOGIN_FIELDS = [ElementRef(role="textbox", name="Email", selector="#email"),
+                ElementRef(role="button", name="Sign in", selector="#go", is_form_submit=True)]
 
 SIGNIN = "https://app.test/signin"
 DASHBOARD = "https://app.test/dashboard"
@@ -153,9 +156,11 @@ def test_a_login_case_that_gets_past_the_login_page_is_completed(
     assert crawl.status is CrawlStatus.COMPLETED
 
 
-def _node(template: str, signature: str, depth: int = 0) -> ScreenNode:
+def _node(template: str, signature: str, depth: int = 0,
+         elements: list[ElementRef] | None = None) -> ScreenNode:
     return ScreenNode(crawl_id="c", project="demo", url_template=template,
-                      url_example=f"https://app.test{template}", signature=signature, depth=depth)
+                      url_example=f"https://app.test{template}", signature=signature,
+                      depth=depth, elements=elements or [])
 
 
 def _root_login_case() -> Case:
@@ -200,6 +205,39 @@ def test_an_unobserved_login_screen_is_never_judged_failed() -> None:
                   login_signature=None) is CrawlStatus.COMPLETED
 
 
+def test_a_sticky_wrong_password_banner_is_still_login_failed() -> None:
+    """AT-467: a wrong password redisplays the login form plus a persistent Dismiss
+    control, changing the page's SIGNATURE — but #email is still there, so the
+    fill-target fallback catches it where signature-only comparison read COMPLETED."""
+    banner = [*_LOGIN_FIELDS,
+             ElementRef(role="status", name="Wrong username or password", selector="#err"),
+             ElementRef(role="button", name="Dismiss", selector="#dismiss")]
+    assert _judge([_node("/", "sig_login_plus_banner", elements=banner)], _root_login_case(),
+                  login_signature="sig_login") is CrawlStatus.LOGIN_FAILED
+
+
+def test_a_dashboard_sharing_the_login_url_without_login_fields_is_not_login_failed() -> None:
+    """Control: AT-462's single-page-app dashboard carries no #email field, so the
+    fallback declines to fire and the old signature-only rule stays in force."""
+    dashboard = [ElementRef(role="button", name="Refresh numbers", selector="#refresh")]
+    assert _judge([_node("/", "sig_dashboard", elements=dashboard)], _root_login_case(),
+                  login_signature="sig_login") is CrawlStatus.COMPLETED
+
+
+def test_a_partial_fill_target_match_falls_back_to_signature_only() -> None:
+    """Control: EVERY FILL target must appear. One present (#email), one missing
+    (#password) must NOT trip the fallback — signature-only decides, and reads
+    COMPLETED here since the signature differs."""
+    case = _login_case().model_copy(update={"steps": [
+        Step(order=1, action=Action.NAVIGATE, target="https://app.test/"),
+        Step(order=2, action=Action.FILL, target="#email", value="someone"),
+        Step(order=3, action=Action.FILL, target="#password", value="x"),
+    ]})
+    only_email = [ElementRef(role="textbox", name="Email", selector="#email")]
+    assert _judge([_node("/", "sig_changed", elements=only_email)], case,
+                  login_signature="sig_login") is CrawlStatus.COMPLETED
+
+
 def test_a_placeholder_login_url_is_never_compared_as_the_root_page() -> None:
     """AT-462: a `{{SECRET:KEY}}` target resolves only at fill time; templated raw it is "/",
     so any product whose screens live at "/" would read as a failed login."""
@@ -209,6 +247,38 @@ def test_a_placeholder_login_url_is_never_compared_as_the_root_page() -> None:
 
     assert _judge([_node("/", "sig_home")], case, login_signature="sig_home") \
         is CrawlStatus.COMPLETED
+
+
+# -- observing the login page can itself fail (AT-474) ----------------------------
+
+def test_a_login_page_that_cannot_be_observed_is_not_an_unqualified_success(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AT-474: `observe()` raising during the login precheck must never crash the crawl,
+    but must not vanish silently either. Here login genuinely succeeds (a different
+    screen is reached), so the honest report is: succeeded, AND the precheck itself
+    could not observe the login page."""
+    monkeypatch.setitem(crawl_fake.SITE, SIGNIN, _LOGIN_FORM)
+    monkeypatch.setitem(crawl_fake.SITE, DASHBOARD, [
+        {"role": "link", "name": "Reports", "selector": "a.r", "href": "/dashboard"},
+    ])
+    calls = {"n": 0}
+    real_evaluate = crawl_fake.FakeSitePage.evaluate
+
+    def _flaky_evaluate(self: crawl_fake.FakeSitePage, script: str) -> list[dict]:
+        calls["n"] += 1  # call #1 is the login precheck's own observe
+        if calls["n"] == 1:
+            raise RuntimeError("devtools protocol error")
+        return real_evaluate(self, script)
+    monkeypatch.setattr(crawl_fake.FakeSitePage, "evaluate", _flaky_evaluate)
+
+    crawl = _crawl_with_login(tmp_path, stays_on_signin=False)
+
+    assert crawl.status is CrawlStatus.COMPLETED, crawl.stop_reason
+    assert crawl.stop_reason is not None
+    for marker in ("login not judged", "could not observe the login page", "RuntimeError"):
+        assert marker in crawl.stop_reason
+    assert crawl.tool_failures >= 1
 
 
 # -- (d) legacy artifacts ---------------------------------------------------------

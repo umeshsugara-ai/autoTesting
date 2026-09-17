@@ -5,28 +5,45 @@
   <script>
     // One url for everything (AT-462): signed out it renders a login form, signed in it
     // replaces the form with a dashboard that has exactly ONE structural state.
+    //
+    // AT-467: with ?sticky=1, a wrong password leaves a persistent error banner PLUS a
+    // "Dismiss" BUTTON on the login form -- an interactive control, unlike the old plain
+    // <p>, so it actually changes the page's structural signature. sessionStorage (not a
+    // JS variable) carries the "last attempt failed" flag across the full page reload
+    // run_crawl's re-seed causes.
     function render() {
       var app = document.getElementById('app');
+      var sticky = new URLSearchParams(location.search).get('sticky') === '1';
       if (localStorage.getItem('auth')) {
         app.innerHTML = '<h1>Dashboard</h1><p>Signed in as tester</p>' +
           '<button id="refresh" type="button">Refresh numbers</button>';
         return;
       }
-      app.innerHTML = '<h1>Sign in</h1><form id="signin">' +
+      var banner = (sticky && sessionStorage.getItem('lastAttemptFailed'))
+        ? '<div id="banner" role="status">Wrong username or password' +
+          '<button id="dismiss" type="button">Dismiss</button></div>'
+        : '';
+      app.innerHTML = '<h1>Sign in</h1>' + banner + '<form id="signin">' +
         '<input id="username" aria-label="Username">' +
         '<input id="password" type="password" aria-label="Password">' +
-        '<button id="sign-in" type="submit">Sign in</button></form>' +
-        '<p id="error" hidden>Wrong username or password</p>';
+        '<button id="sign-in" type="submit">Sign in</button></form>';
       document.getElementById('signin').addEventListener('submit', function (event) {
         event.preventDefault();
         if (document.getElementById('username').value === 'tester' &&
             document.getElementById('password').value === 'fixture-pass') {
           localStorage.setItem('auth', 'tester');
-          render();
-        } else {
-          document.getElementById('error').hidden = false;
+        } else if (sticky) {
+          sessionStorage.setItem('lastAttemptFailed', '1');
         }
+        render();
       });
+      var dismiss = document.getElementById('dismiss');
+      if (dismiss) {
+        dismiss.addEventListener('click', function () {
+          sessionStorage.removeItem('lastAttemptFailed');
+          render();
+        });
+      }
     }
     render();
   </script>

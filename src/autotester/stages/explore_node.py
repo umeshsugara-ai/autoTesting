@@ -51,6 +51,14 @@ def capture(rt: ExploreRuntime, node: ScreenNode) -> str | None:
         return None
 
 
+def record_login_observe_failure(rt: ExploreRuntime, error: str | None) -> None:
+    """AT-474: the login page's signature could not be observed for X18(a) — file it as
+    an EVIDENCE issue (never a product bug, X16) so `tool_failures` counts it, instead of
+    the check going silently unjudged. No node exists yet at this point in the crawl."""
+    if error is not None:
+        add_issue(rt, "", IssueKind.EVIDENCE, f"could not observe the login page -- {error}")
+
+
 def add_issue(rt: ExploreRuntime, node_id: str, kind: IssueKind, detail: str,
               *, first_party: bool = True) -> None:
     # AT-341: `detail` is often an exception's own message, which can embed a

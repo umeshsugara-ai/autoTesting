@@ -1,0 +1,37 @@
+{
+  "purpose": "Checker Mode D (D-024) for x18a-login-both-directions: drive AutoTester's OWN UI in a real headless Chromium against a served copy of tests/fixtures/spa_login_site, to prove the crawl page and crawls table show login_failed (non-success tone) for a wrong password and completed (positive tone) for a correct password -- never reading the maker's screenshots, never substituting curl.",
+  "setup": {
+    "site_served": "tests/fixtures/spa_login_site (from an isolated throwaway copy of the tree at build commit e70bb2c, python http.server on an ephemeral 127.0.0.1 port)",
+    "base_url": "http://127.0.0.1:<static_port>/index.html?sticky=1",
+    "ui": "autotester.ui.app:app via uvicorn, isolated AUTOTESTER_ROOT (never the bound worktree's own projects/), synthetic project 'demo'",
+    "cases": [
+      {"title": "Sign in (wrong password)", "password": "nope"},
+      {"title": "Sign in (correct password)", "password": "fixture-pass"}
+    ],
+    "crawl_bounds_used": {"max_screens": 5, "max_actions": 10, "wall_clock_s": 25, "max_depth": 3},
+    "driver": "playwright.sync_api, chromium headless=True, launched from the checker's own script -- the playwright MCP was unavailable (connection failure) so a standalone uv run python script was used instead, per dispatch instructions",
+    "note_on_first_attempt": "A first run hung ~20 minutes with near-zero CPU (0.64s user+kernel over 21 min wall) and no crawl ever landing on disk. Root-caused to uvicorn's subprocess.PIPE stdout filling the OS pipe buffer with request logs while nothing drained it, blocking the server's own response thread. Fixed by redirecting the UI server's stdout/stderr to a real log file instead of a PIPE, adding explicit small crawl bounds, and wrapping the whole run in a 280s hard `timeout`. The stuck processes (uvicorn + its python children) were verified by command line and killed before retrying; a SECOND leftover uvicorn from the fixed run (Windows detaches `uv run uvicorn`'s real process from the Popen handle, so `ui_proc.terminate()` did not reach it) was found and killed the same way afterward -- both cleanups are logged in the checker's own session, not this file's data."
+  },
+  "checks": [
+    {
+      "label": "wrong-password",
+      "crawl_id": "crawl_01M2R47Q2X9N7ZTQEGZVDA82M8",
+      "crawl_page_status_text_present": "login_failed",
+      "crawl_page_contains_status": true,
+      "console_error_count": 0,
+      "crawls_table_row_exact": "<tr><td><a href='/projects/demo/crawls/crawl_01M2R47Q2X9N7ZTQEGZVDA82M8'><code>crawl_01M2R47Q2X9N7ZTQEGZVDA82M8</code></a></td><td><span class='badge badge-blocked'>login_failed</span></td><td>the login case ran, but every screen reached was still the login page (/index.html) -- check the login case's steps and the credentials it uses</td><td>2</td><td>1</td><td>1</td><td>0</td><td>2026-09-17T16:47:13.309167+00:00</td></tr>",
+      "verdict": "PASS -- badge-blocked (warning tone), status text login_failed, non-success on both the crawl page and the crawls table row, verified by exact row parsing (not a substring window)."
+    },
+    {
+      "label": "correct-password",
+      "crawl_id": "crawl_01M2R482FG8TQ7Z3RX183Q65MV",
+      "crawl_page_status_text_present": "completed",
+      "crawl_page_contains_status": true,
+      "console_error_count": 0,
+      "crawls_table_row_exact": "<tr><td><a href='/projects/demo/crawls/crawl_01M2R482FG8TQ7Z3RX183Q65MV'><code>crawl_01M2R482FG8TQ7Z3RX183Q65MV</code></a></td><td><span class='badge badge-pass'>completed</span></td><td>frontier empty</td><td>1</td><td>0</td><td>0</td><td>0</td><td>2026-09-17T16:47:24.749092+00:00</td></tr>",
+      "verdict": "PASS -- badge-pass (positive tone), status text completed, success control confirmed live."
+    }
+  ],
+  "note_on_first_mode_d_report": "An earlier version of this report (produced by the initial script, before the row-parsing was scoped exactly to a <tr>) flagged 'crawls_table_row_has_wrong_badge_class: true' for the correct-password row -- a false alarm from an 800-char substring window that bled from the correct-password row into the adjacent wrong-password row's badge-blocked class. Re-verified directly against the same persisted crawl data with a proper <tr>...</tr> regex (shown above as crawls_table_row_exact for each row): each row carries exactly one badge class, matching its own status. Recorded here so this evidence file explains the discrepancy rather than silently replacing it.",
+  "conclusion": "X18(a)/X18(c) verified live end-to-end through the actual product UI: a crawl started from the Crawls page with a wrong-password login case reads login_failed with a non-success (warning) tone on both the crawl page and the crawls table; the same flow with a correct password reads completed with a positive tone. Zero console errors on either page."
+}
