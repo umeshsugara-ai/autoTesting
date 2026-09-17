@@ -167,4 +167,4 @@ and `tests/test_mutation_check.py`.
 - **`collected_tests` still reads `--collect-only` TEXT.** That is how `kills` labels are validated
   before anything is mutated. It is unchanged by this unit and not a kill decision.
 
-## Status: ready-for-check
+## Status: checked-PASS — `qa/verdicts/at478-479-failures-from-pytest-reports.md` (Cycle checked: 1, commit 222b507, pushed). AT-478 and AT-479 fixed. The checker scored 19/19 on its at469 probe set (the parent instrument got 3 false KILLED and 2 lost kills), plus 14 new shapes including xdist and concurrent runs. It filed AT-481 (low, fail-closed): the plugin reads MUTATION_REPORT only at session end, so a test that changes that variable silently loses kills.
