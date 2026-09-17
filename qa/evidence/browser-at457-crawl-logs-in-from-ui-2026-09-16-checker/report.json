@@ -1,0 +1,169 @@
+{
+  "unit": "at457-crawl-logs-in-from-ui",
+  "cycle_checked": 1,
+  "checker": "Mode D, own headed Playwright Python",
+  "targets": {
+    "fixture": "http://127.0.0.1:8764",
+    "ui": "http://127.0.0.1:8063"
+  },
+  "autotester_file": "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\checker2-at457\\src\\autotester\\__init__.py",
+  "steps": [
+    {
+      "step": "notice before any crawl",
+      "ok": true
+    },
+    {
+      "step": "crawl WITHOUT declaration",
+      "facts": {
+        "crawl_id": "crawl_01M2PG3RR9XXZTZEJW0CR4WZP4",
+        "status": "completed",
+        "stop_reason": "frontier empty",
+        "login_case_id": null,
+        "screens": 1,
+        "actions": 2,
+        "denied": 1,
+        "templates": [
+          "/login.html"
+        ],
+        "edges": [
+          {
+            "action": "click",
+            "target": "#username",
+            "name": "Username",
+            "outcome": "same_screen",
+            "reason": "None"
+          },
+          {
+            "action": "click",
+            "target": "#password",
+            "name": "Password",
+            "outcome": "same_screen",
+            "reason": "None"
+          },
+          {
+            "action": "click",
+            "target": "#sign-in",
+            "name": "Sign in",
+            "outcome": "denied_policy",
+            "reason": "form submit under read_only"
+          }
+        ]
+      },
+      "post_login_templates": [],
+      "http_url": "http://127.0.0.1:8063/projects/loginwall/crawls/crawl_01M2PG3RR9XXZTZEJW0CR4WZP4"
+    },
+    {
+      "step": "declare via form",
+      "card": "Login for crawls\n\n\u2713 LOGS IN FIRST Crawls log in with Sign in as tester before exploring.\n\nLog in first with\nNo login \u2014 the product is public\nSign in as tester\nSave login for crawls",
+      "project_login_case_id": "case_7fb484d25724",
+      "ok": true
+    },
+    {
+      "step": "crawl WITH declaration",
+      "facts": {
+        "crawl_id": "crawl_01M2PG3WM0J62ZK2K0Z6ZPGDKP",
+        "status": "completed",
+        "stop_reason": "frontier empty",
+        "login_case_id": "case_7fb484d25724",
+        "screens": 4,
+        "actions": 6,
+        "denied": 1,
+        "templates": [
+          "/app/dashboard.html",
+          "/app/order-1001.html",
+          "/app/orders.html",
+          "/app/profile.html"
+        ],
+        "edges": [
+          {
+            "action": "navigate",
+            "target": "role=link[name=\"Orders\"] >> nth=0",
+            "name": "Orders",
+            "outcome": "navigated",
+            "reason": "None"
+          },
+          {
+            "action": "navigate",
+            "target": "role=link[name=\"Profile\"] >> nth=0",
+            "name": "Profile",
+            "outcome": "navigated",
+            "reason": "None"
+          },
+          {
+            "action": "click",
+            "target": "role=link[name=\"Log out\"] >> nth=0",
+            "name": "Log out",
+            "outcome": "denied_policy",
+            "reason": "never-click pattern (logout/sign-out)"
+          },
+          {
+            "action": "navigate",
+            "target": "role=link[name=\"Dashboard\"] >> nth=0",
+            "name": "Dashboard",
+            "outcome": "navigated",
+            "reason": "None"
+          },
+          {
+            "action": "navigate",
+            "target": "role=link[name=\"Order 1001\"] >> nth=0",
+            "name": "Order 1001",
+            "outcome": "navigated",
+            "reason": "None"
+          },
+          {
+            "action": "navigate",
+            "target": "role=link[name=\"Dashboard\"] >> nth=0",
+            "name": "Dashboard",
+            "outcome": "navigated",
+            "reason": "None"
+          },
+          {
+            "action": "navigate",
+            "target": "role=link[name=\"Back to orders\"] >> nth=0",
+            "name": "Back to orders",
+            "outcome": "navigated",
+            "reason": "None"
+          }
+        ]
+      },
+      "wanted": [
+        "/app/dashboard.html",
+        "/app/order-1001.html",
+        "/app/orders.html",
+        "/app/profile.html"
+      ],
+      "ok": true,
+      "logout_edges": [
+        {
+          "action": "click",
+          "target": "role=link[name=\"Log out\"] >> nth=0",
+          "name": "Log out",
+          "outcome": "denied_policy",
+          "reason": "never-click pattern (logout/sign-out)"
+        }
+      ],
+      "crawl_page_mentions": {
+        "/app/dashboard.html": true,
+        "/app/order-1001.html": true,
+        "/app/orders.html": true,
+        "/app/profile.html": true
+      },
+      "http_url": "http://127.0.0.1:8063/projects/loginwall/crawls/crawl_01M2PG3WM0J62ZK2K0Z6ZPGDKP"
+    },
+    {
+      "step": "clear declaration",
+      "project_login_case_id": null,
+      "ok": true
+    }
+  ],
+  "console": {
+    "error_count": 0,
+    "errors": []
+  },
+  "seed": {
+    "root": "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\checker2-at457-root",
+    "case_id": "case_7fb484d25724",
+    "declared_at_seed": null
+  },
+  "result": "all steps asserted"
+}
