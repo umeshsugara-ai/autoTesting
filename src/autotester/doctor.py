@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import ast
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -175,6 +176,22 @@ second row takes one (AT-293's convention — AT-297b, AT-298b and AT-299b are l
 rows). `\bAT-\d+\b` matches NOTHING inside `AT-297b`, so reading an id without this
 made every suffixed row invisible to the whole check (AT-500)."""
 
+_MARKER_LEAD = re.compile(r"^[\s>#*_-]*")
+"""Markdown decoration before a marker, which is still the marker."""
+
+
+def _is_marker_line(line: str, marker: str) -> bool:
+    """Does this line MAKE the claim, or merely talk about lines that do (AT-504)?
+
+    `marker in line` could not tell the difference, so a manifest documenting the
+    guard counted itself, its verdict counted too, and the count compounded without
+    bound as more documents discussed it. Measured over the live tree: decoration is
+    common and load-bearing — `**ISSUES-WRITTEN:**` and `## ISSUES-WRITTEN:` are both
+    real, and requiring a bare prefix would have silently dropped 12 true claims. A
+    backtick is the thing that marks prose, so it is deliberately not stripped.
+    """
+    return _MARKER_LEAD.sub("", line).startswith(marker.strip("*"))
+
 
 def check_qa_issue_rows(root: Path) -> list[Violation]:
     """C10: the ledger never silently loses what the handshake recorded (AT-496).
@@ -187,8 +204,6 @@ def check_qa_issue_rows(root: Path) -> list[Violation]:
     handshake artifact names must have a row, and a PASSed unit's issue must not
     still be `open`.
     """
-    import re
-
     ledger = root / "qa" / "issues.jsonl"
     if not ledger.exists():
         return []
@@ -198,7 +213,7 @@ def check_qa_issue_rows(root: Path) -> list[Violation]:
     for kind, marker in (("manifests", "**Issues addressed:**"), ("verdicts", "ISSUES-WRITTEN")):
         for path in sorted((root / "qa" / kind).glob("*.md")):
             body = path.read_text(encoding="utf-8", errors="replace")
-            named = {i for line in body.splitlines() if marker in line
+            named = {i for line in body.splitlines() if _is_marker_line(line, marker)
                      for i in re.findall(rf"\b{ISSUE_ID}\b", line)}
             subject = f"qa/{kind}/{path.name}"
             out += [Violation("ledger-row-lost", subject,
@@ -208,7 +223,7 @@ def check_qa_issue_rows(root: Path) -> list[Violation]:
                 # Only an issue this manifest CLAIMS to have fixed — "AT-x (low, open -> fixed)".
                 # A line may also name issues it deliberately did NOT fix, and those stay open.
                 # "NOT fixed" is a claim about what this unit deliberately left open.
-                claimed = {i for line in body.splitlines() if marker in line
+                claimed = {i for line in body.splitlines() if _is_marker_line(line, marker)
                            for i, note in re.findall(rf"\b({ISSUE_ID})\s*\(([^)]*)\)", line)
                            if "fixed" in note.lower() and "not fixed" not in note.lower()}
                 out += [Violation("ledger-row-stale", subject,

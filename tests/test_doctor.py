@@ -232,6 +232,46 @@ def test_a_letter_suffixed_id_is_read_on_both_sides_of_the_comparison(
     assert codes == ["ledger-row-stale"], "the row EXISTS (never lost), it is only stale"
 
 
+@pytest.mark.parametrize("line", [
+    "ISSUES-WRITTEN: AT-900",
+    "**ISSUES-WRITTEN:** AT-900",
+    "## ISSUES-WRITTEN: AT-900",
+    "  - ISSUES-WRITTEN: AT-900",
+])
+def test_a_decorated_marker_line_is_still_a_marker_line(line: str, tmp_path: Path) -> None:
+    """The AT-504 fix must not read the marker so strictly that real claims vanish.
+    Both decorated forms are live: `at097-session-start-hook-regression.md` writes
+    `**ISSUES-WRITTEN:**` and `at206-guards-that-guard.md` writes `## ISSUES-WRITTEN:`.
+    Measured before the fix: a bare `startswith` would have dropped 12 real claims."""
+    _qa(tmp_path, ledger="", verdicts={"u.md": line})
+
+    assert [v.rule for v in doctor.check_qa_issue_rows(tmp_path)] == ["ledger-row-lost"]
+
+
+@pytest.mark.parametrize("line", [
+    "on manifest `**Issues addressed:**` lines: AT-900 (at900-thing.md)",
+    "none of them sits on a `**Issues addressed:**` line, so AT-900 is invisible",
+])
+def test_prose_that_quotes_the_marker_is_not_a_claim(line: str, tmp_path: Path) -> None:
+    """AT-504: `marker in line` read a document DISCUSSING the marker as one USING it,
+    so at500's own manifest counted itself and then its verdict counted too — the
+    probe's violation count compounded 2 -> 3 -> 4 as each artifact appeared, without
+    bound. A backtick is what separates the two cases; markdown decoration is not."""
+    _qa(tmp_path, ledger="", manifests={"u.md": line})
+
+    assert doctor.check_qa_issue_rows(tmp_path) == []
+
+
+def test_a_line_opening_with_the_marker_in_backticks_is_not_a_claim(tmp_path: Path) -> None:
+    """The real shape from at500's own verdict, and the reason a backtick is not
+    stripped as decoration: here the marker IS at the start of the line's content, so
+    only the backtick separates prose from a claim."""
+    _qa(tmp_path, ledger="",
+        verdicts={"u.md": "`ISSUES-WRITTEN` marker. The only id it newly reads is AT-900."})
+
+    assert doctor.check_qa_issue_rows(tmp_path) == []
+
+
 def test_an_issue_a_manifest_says_it_did_NOT_fix_stays_open(tmp_path: Path) -> None:
     """A manifest may name issues it filed and deliberately left open —
     `at227-first-paint-modal` names AT-335 that way. Reading "NOT fixed" as a fix
