@@ -1,0 +1,27 @@
+{
+  "tests": [
+    "tests/test_analyze_video.py"
+  ],
+  "mutations": [
+    {
+      "name": "AT-216 reopens: a malformed sidecar is swallowed into None, the same as no transcript",
+      "file": "src/autotester/stages/analyze_video.py",
+      "old": "    return load_sidecar(source)\n",
+      "new": "    return None\n",
+      "kills": [
+        "tests/test_analyze_video.py::test_a_malformed_sidecar_is_loaded_as_unreadable_not_as_no_transcript",
+        "tests/test_analyze_video.py::test_every_chunk_prompt_says_the_transcript_is_unreadable_not_silent"
+      ]
+    },
+    {
+      "name": "the chunk prompt asserts silence for an unreadable transcript (the AT-134 defect on the analyze path)",
+      "file": "src/autotester/stages/analyze_video.py",
+      "old": "    narration = narration_block(transcript)  # absent, or unreadable: never silence (AT-216)\n",
+      "new": "    narration = \"(no speech detected — do not invent dialogue)\"\n",
+      "kills": [
+        "tests/test_analyze_video.py::test_an_unreadable_transcript_saved_by_media_prep_is_not_rendered_as_silence",
+        "tests/test_analyze_video.py::test_every_chunk_prompt_says_the_transcript_is_unreadable_not_silent"
+      ]
+    }
+  ]
+}

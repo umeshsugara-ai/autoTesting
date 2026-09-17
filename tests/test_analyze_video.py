@@ -24,6 +24,7 @@ from autotester.stages.analyze_video import (
     NoObservations,
     analyze,
     build_chunk_prompt,
+    load_transcript,
 )
 from autotester.store.project_store import ProjectStore
 
@@ -151,3 +152,46 @@ def test_timestamps_from_a_later_chunk_land_in_whole_video_time(prepared) -> Non
     analysis = analyze(store, source, [SpyProvider("spy:pro")], docs=RepoDocs())
 
     assert {round(s.t_start) for s in analysis.screens} == {1, 166}
+
+
+# -- an unreadable transcript is a third state, never silence (AT-216) -------
+
+def test_a_malformed_sidecar_is_loaded_as_unreadable_not_as_no_transcript(prepared) -> None:
+    """VL1: "an unreadable sidecar is a third state". load_transcript used to swallow the
+    parse error into None, the same value as a recording that was never transcribed."""
+    store, source = prepared
+    Path(source.path).with_suffix(".transcript.json").write_text("{not json", encoding="utf-8")
+
+    transcript = load_transcript(store, source)
+
+    assert transcript is not None and transcript.engine == "unreadable"
+
+
+def test_every_chunk_prompt_says_the_transcript_is_unreadable_not_silent(prepared) -> None:
+    """The analysed prompt must not assert "no speech detected" about a recording whose
+    narration exists but could not be read: the model then reports a silent video."""
+    store, source = prepared
+    Path(source.path).with_suffix(".transcript.json").write_text('{"segments": 3}',
+                                                                  encoding="utf-8")
+    pro = SpyProvider("spy:pro")
+
+    analyze(store, source, [pro], docs=RepoDocs())
+
+    assert pro.calls, "no chunk was analysed"
+    for _path, prompt in pro.calls:
+        assert "could not be read" in prompt
+        assert "no speech detected" not in prompt
+
+
+def test_an_unreadable_transcript_saved_by_media_prep_is_not_rendered_as_silence(prepared) -> None:
+    """media_prep already persists `engine="unreadable"` for a bad sidecar (VL1); that is
+    the path production takes, and the chunk prompt still called it "no speech"."""
+    store, source = prepared
+    store.save_transcript(Transcript(source_id=source.id, engine="unreadable"))
+
+    prompt = build_chunk_prompt(PROMPT_NAMES[0], source, RepoDocs(),
+                                MediaChunk(index=0, path="x", offset_s=0.0, length_s=180.0),
+                                load_transcript(store, source))
+
+    assert "could not be read" in prompt
+    assert "no speech detected" not in prompt

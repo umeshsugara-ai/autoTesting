@@ -22,13 +22,13 @@ import hashlib
 from pathlib import Path
 
 from autotester.core.paths import RepoDocs
-from autotester.media.transcribe import SIDECAR_SUFFIX
 from autotester.providers.base import Provider, ProviderError
 from autotester.schema.analysis import VideoAnalysis
 from autotester.schema.media import MediaChunk, Transcript
 from autotester.schema.observation import ModelObservation, VideoObservation, VisionOptions
 from autotester.schema.project import Source
 from autotester.stages.adjudicate import adjudicate
+from autotester.stages.ingest import load_sidecar, narration_block
 from autotester.stages.media_prep import require_prepared
 from autotester.store.project_store import ProjectStore
 
@@ -62,14 +62,9 @@ def load_transcript(store: ProjectStore, source: Source) -> Transcript | None:
     saved = store.load_transcript(source.id)
     if saved is not None:
         return saved
-    if source.path:
-        sidecar = Path(source.path).with_suffix(SIDECAR_SUFFIX)
-        if sidecar.exists():
-            try:
-                return Transcript.from_sidecar(sidecar, source.id)
-            except Exception:
-                return None
-    return None
+    # AT-216: a malformed sidecar is `engine="unreadable"` (VL1's third state), never
+    # the None of a recording nobody transcribed. ingest owns the one sidecar loader.
+    return load_sidecar(source)
 
 
 def build_chunk_prompt(prompt_name: str, source: Source, docs: RepoDocs,
@@ -80,7 +75,7 @@ def build_chunk_prompt(prompt_name: str, source: Source, docs: RepoDocs,
     watches three minutes of it invites alignment to speech it cannot see, and
     a quote attached to the wrong screen is worse than no quote."""
     template = (docs.prompts_dir / prompt_name).read_text(encoding="utf-8")
-    narration = "(no speech detected — do not invent dialogue)"
+    narration = narration_block(transcript)  # absent, or unreadable: never silence (AT-216)
     if transcript is not None and transcript.segments:
         sliced = transcript.slice(chunk.offset_s, chunk.length_s)
         narration = sliced or "(no speech in this section — do not invent dialogue)"
