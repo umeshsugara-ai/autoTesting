@@ -108,4 +108,6 @@ under `qa/evidence/` and this manifest.
 - **`.work/` is where the worktree lived.** It is gitignored in the main checkout, and the worktree was
   removed afterwards.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Verdict: `qa/verdicts/at229-249-pytest-leaves-the-tree-clean.md` (Cycle checked: 1, commit db9bda4). Ledger: AT-229 → wontfix, AT-249 → verified; standing-guard gap filed as AT-482 (low).
