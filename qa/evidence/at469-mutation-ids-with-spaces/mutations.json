@@ -1,0 +1,43 @@
+{
+  "tests": [
+    "tests/test_mutation_check.py"
+  ],
+  "mutations": [
+    {
+      "name": "AT-469 reopens: the run ignores the collected nodeids, so a spaced id is cut and a kill reads SURVIVED",
+      "file": "scripts/mutation_check.py",
+      "old": "        failures = failed_tests(out, set().union(*collected.values()))\n",
+      "new": "        failures = failed_tests(out)\n",
+      "kills": [
+        "tests/test_mutation_check.py::test_a_mutation_is_attributed_to_a_parametrized_test_with_spaces_in_its_id"
+      ]
+    },
+    {
+      "name": "the parser stops consulting known nodeids at all",
+      "file": "scripts/mutation_check.py",
+      "old": "        whole = [n for n in known or () if line == n or line.startswith(n + \" - \")]",
+      "new": "        whole = []",
+      "kills": [
+        "tests/test_mutation_check.py::test_failed_tests_keeps_a_nodeid_whose_parametrize_id_contains_spaces"
+      ]
+    },
+    {
+      "name": "the shortest matching nodeid wins, so a nodeid that prefixes another steals its failure",
+      "file": "scripts/mutation_check.py",
+      "old": "max(whole, key=len)",
+      "new": "min(whole, key=len)",
+      "kills": [
+        "tests/test_mutation_check.py::test_failed_tests_keeps_a_nodeid_whose_parametrize_id_contains_spaces"
+      ]
+    },
+    {
+      "name": "a known nodeid that is only a PREFIX of an uncollected failing test claims its failure (a false KILLED)",
+      "file": "scripts/mutation_check.py",
+      "old": "line.startswith(n + \" - \")",
+      "new": "line.startswith(n)",
+      "kills": [
+        "tests/test_mutation_check.py::test_failed_tests_keeps_a_nodeid_whose_parametrize_id_contains_spaces"
+      ]
+    }
+  ]
+}

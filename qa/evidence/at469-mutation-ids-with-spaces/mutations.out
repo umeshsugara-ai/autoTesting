@@ -1,0 +1,14 @@
+KILLED  AT-469 reopens: the run ignores the collected nodeids, so a spaced id is cut and a kill reads SURVIVED  (pytest exit 1)
+    claims to kill : tests/test_mutation_check.py::test_a_mutation_is_attributed_to_a_parametrized_test_with_spaces_in_its_id
+    actually failed: tests/test_mutation_check.py::test_a_mutation_is_attributed_to_a_parametrized_test_with_spaces_in_its_id
+KILLED  the parser stops consulting known nodeids at all  (pytest exit 1)
+    claims to kill : tests/test_mutation_check.py::test_failed_tests_keeps_a_nodeid_whose_parametrize_id_contains_spaces
+    actually failed: tests/test_mutation_check.py::test_a_mutation_is_attributed_to_a_parametrized_test_with_spaces_in_its_id, tests/test_mutation_check.py::test_failed_tests_keeps_a_nodeid_whose_parametrize_id_contains_spaces
+KILLED  the shortest matching nodeid wins, so a nodeid that prefixes another steals its failure  (pytest exit 1)
+    claims to kill : tests/test_mutation_check.py::test_failed_tests_keeps_a_nodeid_whose_parametrize_id_contains_spaces
+    actually failed: tests/test_mutation_check.py::test_failed_tests_keeps_a_nodeid_whose_parametrize_id_contains_spaces
+KILLED  a known nodeid that is only a PREFIX of an uncollected failing test claims its failure (a false KILLED)  (pytest exit 1)
+    claims to kill : tests/test_mutation_check.py::test_failed_tests_keeps_a_nodeid_whose_parametrize_id_contains_spaces
+    actually failed: tests/test_mutation_check.py::test_failed_tests_keeps_a_nodeid_whose_parametrize_id_contains_spaces
+
+4/4 mutations killed

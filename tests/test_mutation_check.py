@@ -166,3 +166,43 @@ def test_a_kills_entry_may_be_the_full_nodeid_the_guard_asks_for(
     assert result["killed"] is True
     assert result["expected"] == ["tests/test_mod.py::test_small_values_are_small"]
 
+
+
+# -- AT-469: a parametrized id may contain spaces ------------------------------
+
+def test_failed_tests_keeps_a_nodeid_whose_parametrize_id_contains_spaces() -> None:
+    """AT-469: `\S+` cut `test_x[a b]` to `test_x[a`, so the named test never appeared
+    in the failures and a genuine kill printed as SURVIVED. The collected nodeids are
+    the authority on where a nodeid ends; the longest one the line starts with wins."""
+    known = {"tests/t.py::test_x[a]", "tests/t.py::test_x[a b]", "tests/t.py::test_y",
+             "tests/t.py::test_z[q]", "tests/t.py::test_z[q] - r]"}
+    output = ("FAILED tests/t.py::test_x[a b] - AssertionError: boom" + chr(10)
+              + "FAILED tests/t.py::test_y" + chr(10)
+              + "FAILED tests/t.py::test_z[q] - r] - AssertionError" + chr(10))
+
+    assert failed_tests(output, known) == {"tests/t.py::test_x[a b]", "tests/t.py::test_y",
+                                           "tests/t.py::test_z[q] - r]"}
+    # A known nodeid that is merely a PREFIX of an uncollected one must not claim its
+    # failure: that would be a false KILLED for `test_y`. The regex reading stands.
+    stranger = "FAILED tests/t.py::test_yz - AssertionError" + chr(10)
+    assert failed_tests(stranger, known) == {"tests/t.py::test_yz"}
+
+
+def test_a_mutation_is_attributed_to_a_parametrized_test_with_spaces_in_its_id(
+    mutation_repo: Path,
+) -> None:
+    (mutation_repo / "tests" / "test_spaced.py").write_text(
+        "import sys" + chr(10) + "from pathlib import Path" + chr(10)
+        + "import pytest" + chr(10)
+        + 'sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))' + chr(10)
+        + "from mod import classify" + chr(10) + chr(10) + chr(10)
+        + '@pytest.mark.parametrize("value", [1, 2], ids=["one small value", "two"])' + chr(10)
+        + "def test_small(value):" + chr(10)
+        + '    assert classify(value) == "small"' + chr(10), encoding="utf-8")
+    spaced = "tests/test_spaced.py::test_small[one small value]"
+
+    result = check(spec(tests=["tests/test_mod.py", "tests/test_spaced.py"],
+                        mutation={"kills": [spaced]}), mutation_repo)[0]
+
+    assert result["killed"] is True, result
+    assert spaced in result["failed"]

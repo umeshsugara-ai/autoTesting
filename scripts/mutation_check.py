@@ -126,9 +126,20 @@ def collected_tests(cwd: Path, tests: str | list[str]) -> dict[str, set[str]]:
     return collected
 
 
-def failed_tests(output: str) -> set[str]:
-    """Full nodeids of failed tests — never bare names (AT-320)."""
-    return {m.group("nodeid") for m in FAILED.finditer(output)}
+def failed_tests(output: str, known: set[str] | None = None) -> set[str]:
+    """Full nodeids of failed tests — never bare names (AT-320).
+
+    AT-469: a parametrize id may contain spaces, so the regex's non-space run cut
+    `test_x[a b]` to `test_x[a` and a genuine kill printed SURVIVED. Given the
+    collected nodeids, a line is attributed to the LONGEST one it starts with,
+    followed by the end of the line or " - "; a line matching none keeps the
+    regex's reading."""
+    failures = set()
+    for m in FAILED.finditer(output):
+        line = output[m.start("nodeid"):].splitlines()[0]
+        whole = [n for n in known or () if line == n or line.startswith(n + " - ")]
+        failures.add(max(whole, key=len) if whole else m.group("nodeid"))
+    return failures
 
 
 def _sandbox(repo: Path) -> tuple[Path, Path]:
@@ -256,7 +267,7 @@ def _check_in(work: Path, spec: dict, tests: str | list[str], mutations: list) -
             raise MutationError(f"mutation {mutation['name']!r} changed nothing")
 
         code, out = _run_pytest(work, tests)
-        failures = failed_tests(out)
+        failures = failed_tests(out, set().union(*collected.values()))
         expected = mutation["_nodeids"]  # full nodeids, resolved at validation (AT-320)
         # A kill is the NAMED test failing. Not a non-zero exit (that includes a
         # collection error, which runs nothing), and not some other test failing.
