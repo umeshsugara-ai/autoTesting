@@ -168,11 +168,15 @@ edge/best cases sharing a common entry screen, diverging from there) -- so the o
 what was tested is easy to grasp at a glance, for Umesh and for a future Claude session reading
 the same report. Explicitly framed as optional ("tu chahee tho") and asked to be noted, not
 necessarily built immediately.
-**Status:** unfolded — a real, well-scoped enhancement for a future report-export cycle. Natural
-data source: `FlowSpec.flows[].steps` (entry/exit screens) plus each `Case.case_class`/`kind` as
-the branch label, rendered as an inline SVG or a simple nested-list tree in the same
-self-contained HTML file (no new JS library, matching RE3's "one portable file" constraint).
-Deferred, not started this cycle.
+**Status:** folded → `F-028` (DFS single-path trace + click-to-enlarge lightbox on run-view,
+shipped 2026-09-04, `qa/verdicts/ui-run-view-flow-and-lightbox.md` cycle-1 PASS) and `F-029` (BFS
+merged branch-tree diagram per flow at `GET /projects/{slug}/flow-diagram`, shipped 2026-09-04,
+`qa/verdicts/ui-flow-diagram.md` cycle-1 PASS). Both the DFS-refinement and the original BFS/
+mindmap ask below are delivered — F-028 covers a run's own path, F-029 covers every case in a
+flow merged from a shared entry. Natural data source used: `FlowSpec.flows[].steps` +
+`Case.case_class`/`kind`, exactly as scoped here.
+*/checker 2026-09-17 (Mode B sweep consolidation): folded — re-derived against `docs/FEATURES.jsonl`
+rows F-028/F-029, both checker-PASSed and live. Nothing residual from this entry.*
 
 **Refinement (2026-09-04, later in the same session, per plan §4):** rendering the *full* branch
 tree (every worst/edge/best path, BFS-style — "covering all branches") is the expensive,
@@ -320,13 +324,23 @@ already shipped report-informativeness fixes and both the DFS single-run trace a
 merged-branch-tree *report visualizations*— this reads as asking whether the underlying *test
 strategy* should be BFS-driven, not just its diagram.
 
-**Status:** unfolded — filed as ledger issue AT-052 (goal-drift) and a `GRILL:` row in
-`qa/QUEUE.md`, per checker sweep protocol check 6 (a requirement no contract criterion and no
-existing inbox entry can source — only Umesh can scope what "whole-platform BFS" and "learn from
-this video folder" actually mean for FlowSpec/ingest). Do not fold into a contract until that
-grill happens — (1) risks silently redefining the north star's flow-review model, (2) references
-a path outside any project's `allowed_domains`/input boundary, which needs a scoping decision
-before any code reads it.
+**Status:** folded (2026-09-17, Mode B sweep consolidation) — AT-052 is `verified` (fixed_date/
+verified_date 2026-09-07) and its `GRILL:` row is no longer in `qa/QUEUE.md` (current GRILL rows
+are AT-218/AT-281/AT-402 only). The gate `qa/gates/at052-bfs-video-corpus-grill.md` carries an
+`Answered: 2026-09-07` line (Umesh, option 1 — scope both capabilities, all three tracks in
+parallel; plan `C:/Users/Lenovo/.claude/plans/great-when-you-really-iridescent-ocean.md`). Per-
+sub-ask disposition, so nothing here is silently dropped:
+- **Whole-platform BFS crawl (Track B):** delivered and actively worked — `qa/contracts/explore.md`
+  + `qa/contracts/coverage.md` (X17/X18/V7), built by AT-457 through AT-486; not a stub.
+- **BFS-vs-DFS reporting format:** answered directly in the gate text — "unchanged and not
+  re-litigated"; F-027/F-028/F-029 stand as the report visualizations, the crawl produces a
+  separate *product* graph, not a replacement report format.
+- **Video-corpus mining (Track A, mining `C:\Users\Lenovo\Videos\Screen Recordings` as
+  testing-methodology ground truth):** the video-LEARNING capability (ingest/transcribe a given
+  recording, AT-465/466/468 etc.) is built, but mining *that specific local folder* as ground
+  truth for how the team already tests is **not built and not queued** — carried forward here as
+  a residual, not a new gate (the scoping decision already exists in the answered gate; this is
+  an implementation gap, not an open question).
 2026-09-06 · umesh (live, mid-session, Hinglish) · "bhai ye kessa ui bnaya hai na dashboard na kuch user kese testing krr payegaa" — the AutoTester UI's home page ("/") is a bare project-card grid (`ui/app.py::index`), no dashboard-style overview (no aggregate stats, no recent-run summary across projects, no at-a-glance health view). PATTERN: a non-technical user landing on "/" sees a list of names and case counts, nothing telling them what's passing/failing/stale across their portfolio without clicking into each project one at a time. EVIDENCE: read `ui/app.py:69-85` live during this session — `index()` only ever renders `_project_card` tiles in a grid, no stat tiles, no "N projects, M failing" summary. Contrasts with the already-shipped per-project report page (`routes_report.py`) which DOES have stat tiles (total runs, pass rate, cases in latest run) — that pattern exists and works, it's just never been pulled up to the home page. APPLIES NEXT: any home-page/dashboard redesign work — reuse `theme.py`'s existing stat-tile component instead of inventing a new one.
 2026-09-07 · umesh (live, using the UI) · "dekh maine abhi ERP project ki details daali, there is no back button for easy navigation" — after entering the ERP project's details through the AutoTester UI, there is no back button anywhere for easy navigation. PATTERN: pages that take a user *into* a flow (onboarding form, project detail, env editor, settings, report/run views) give no way back out except the browser's own back button or the top nav — a non-technical user who lands on a sub-page has no visible "← back" affordance. EVIDENCE: reported live by Umesh while onboarding the ERP project through the UI. APPLIES NEXT: any UI route that isn't the home page — the fix belongs in the shared layout (`ui/theme.py::page`) or a shared breadcrumb helper, not per-route one-offs, so no future page can ship without it.
 2026-09-07 · umesh (live, using the UI) · "and live preview and all mai kuch bhi nhi ho rhaa" (nothing at all is happening in the live preview). PATTERN: two distinct causes, both real. (1) The /live page embeds a working noVNC iframe, but when no run is in progress the container's X display is genuinely empty, so it renders as a large dead black rectangle with no explanation — it reads as broken software when it is actually correct-but-idle. Its tip text also still pointed at a stale script command (scripts/regression_proof.py) instead of the ▶ Run tests button that has since shipped. (2) MORE IMPORTANT, found while verifying: a freshly-onboarded project has ZERO cases, so its ▶ Run tests button renders permanently disabled and there is NO UI path anywhere to add a case — onboarding leads to a dead end for a non-technical user, who can create a project and then literally cannot test anything with it. Cases today are only creatable via a Python one-liner against ProjectStore.add_case, or via stages/expand.py from a reviewed FlowSpec that itself requires an ingested video. EVIDENCE: live screenshot of /projects/erp showing "0 CASES" and a greyed-out Run tests button, taken 2026-09-07. APPLIES NEXT: the empty-project dead end is the single biggest "this is not a real product" gap left in the UI — a project with no cases needs either an add-a-case flow or an explicit, prominent next-step prompt telling the user exactly how to get one.
