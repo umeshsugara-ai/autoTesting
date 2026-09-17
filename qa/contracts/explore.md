@@ -277,27 +277,31 @@ and 3 denied (they predate AT-242's `2bb3270`, and are still displayed as `compl
   screen via a plain `url_template` mismatch alone, which needs no signature at all. This is an
   intentional, checker-accepted trade (2026-09-17): never let a precheck failure go unmentioned, at
   the cost of an occasional qualifier appended to an otherwise-clean `COMPLETED`. Pinned live by
-  `test_a_login_page_that_cannot_be_observed_is_not_an_unqualified_success`.
+  `test_a_login_page_that_cannot_be_observed_is_not_an_unqualified_success`. This qualifier and the
+  bound suffix below are mutually exclusive: both are computed in `terminal_status`, but the
+  `LOGIN_FAILED`-via-fallback and `LOGIN_WALL` branches return before the qualifier's check is
+  reached, so the two never combine in one `stop_reason` (verified by reading `terminal_status`'s
+  control flow, not merely asserted).
 
-  **Known OPEN gap (checker-found 2026-09-17, tracked as ISS-x18a-1 — not a defect in what
-  landed here, a residual of the mechanism):** the fallback trusts selector equality alone, with
-  no check on a reached node's OTHER elements. A genuinely different screen sharing the login's
-  `url_template` (necessarily an SPA, since X3 already gives a different URL its own node) that
-  happens to expose an element for EVERY one of the login case's FILL-target selectors — e.g. an
-  account-settings screen whose own `#email`/`#password` fields reuse the same generic,
-  non-namespaced ids the login form uses — is misclassified as still-the-login-screen, and the
-  crawl reads `LOGIN_FAILED` despite a genuine successful login. Verified live by the checker: a
-  node built with exactly this shape (different signature, different content, but every FILL
-  target's selector coincidentally present) is classified `LOGIN_FAILED` by the unmodified
-  `_still_login` — no falsification needed, the shipped code does this today. No existing test
-  exercises the combination: the AT-462 control
-  (`test_a_dashboard_sharing_the_login_url_without_login_fields_is_not_login_failed`) only proves
-  the case where NONE of the login case's fields are present, not where all of them coincidentally
-  are. `enumerate.js`'s preference for stable/namespaced selectors over generated ones reduces the
-  odds but does not eliminate them. Remedy is a later unit's, not this checker's: narrowing the
-  fallback to also require the login form's own submit control, or to require the coincidental
-  match to also reproduce the observed signature's element count, are two options that keep the
-  AT-467 catch intact.
+  **ISS-x18a-1 CLOSED as filed** by /checker at unit `at480-489-wall-bound-and-fill-fallback`
+  (cycle 1, commit `44d2547`, verdict `qa/verdicts/at480-489-wall-bound-and-fill-fallback.md`). The
+  fallback now ALSO requires the login case's own submit control — the selector of its last CLICK
+  step (`login_submit_selector`) — to be present on the node, alongside every FILL target; a case
+  with no CLICK step never fires the fallback at all. This closes the case the issue was filed
+  against (a node exposing every FILL-target selector alone, with no submit control, is never
+  misclassified — verified live:
+  `test_a_dashboard_with_a_matching_field_but_no_sign_in_button_is_not_login_failed` reads
+  `COMPLETED`, and the checker's own falsifying edit — dropping the submit-selector clause,
+  restoring the pre-AT-489 body — reproduces the original `LOGIN_FAILED` misclassification in an
+  isolated copy). **Narrower residual, disclosed rather than assumed away:** a screen that
+  coincidentally reuses BOTH every FILL-target selector AND the login form's own submit-control
+  selector is still classified `LOGIN_FAILED` by design
+  (`test_a_screen_with_the_submit_control_and_every_fill_target_is_still_login_failed` pins this
+  as a control, not a defect) — the fallback is no longer distinguishable from a real repeated
+  login screen by selector alone once both coincide, and D-004 (a rule decides only where certain)
+  favours the narrower false-failure over reopening the AT-467 gap. This residual is structurally
+  smaller than what ISS-x18a-1 named (it now needs a coincidental match on the submit control too,
+  not fields alone) and is accepted, not tracked as a new open issue.
 - **(b)** With no declared login case, a crawl whose every reached screen carries a form submit that
   was refused under policy and which has **no `NAVIGATED` edge to a screen offering a different
   structural signature from the seed** ends in a distinct non-success status naming the wall in
@@ -307,11 +311,37 @@ and 3 denied (they predate AT-242's `2bb3270`, and are still displayed as `compl
 - **(d)** A legacy `crawl.json` whose persisted status is `completed` but whose counts are
   `actions == 0 and denied > 0` is not displayed as a success (the AT-124 legacy-artifact shape, for
   status rather than counts).
+- **(e)** A crawl bound (`max_screens`/`max_actions`/`wall_clock_s`) firing WHILE the crawl is also
+  stuck at (a)'s login wall or (b)'s wall never silences X4: the fired bound is still named in
+  `stop_reason` via an appended clause `-- the <bound> bound fired before every control was tried`,
+  and the wall sentence's "no link led anywhere else" claim is dropped in that case — a bound can
+  leave controls genuinely untried, and the sentence must not claim otherwise. A crawl whose
+  frontier genuinely emptied (no bound fired) keeps today's sentence byte-for-byte; the two never
+  combine, because `stop_reason` at the point `terminal_status` is called is always either
+  `"frontier empty"` (`completed=True`, no suffix) or one of the three bound names
+  (`completed=False`), never an unrelated value — `explore.py`'s only caller sets `completed`
+  from `rt.stop_reason == "frontier empty"` and passes that same string through, so a "spurious
+  suffix on a naturally-completed wall" is not reachable through the shipped call path (verified
+  by checker inspection of `explore.py:298-300`, the single production call site, and live-browser
+  reproduction: `qa/evidence/browser-at480-489-wall-bound-and-fill-fallback-2026-09-17-checker/report.json`).
+  **Known structural gap, tracked not waived:** `max_screens` cannot itself be the bound named on a
+  `LOGIN_WALL` crawl — `_enqueue` (`stages/explore_node.py:104-115`) only declines a new node once
+  `screens_found` has ALREADY reached the cap from an earlier enqueue in the same crawl step, so the
+  node whose own discovery pushed the count to the cap (and any node still queued behind it) is left
+  `queued`, never visited, and therefore never carries its own `DENIED_POLICY` edge; `is_login_wall`
+  requires every discovered node to be walled, so it returns `False` the instant `max_screens` is the
+  bound that fires. Such a crawl correctly reads `STOPPED_BOUND`/`max_screens` instead, which is
+  already X4-honest on its own — not a false claim, the honest boundary of this mechanism. Pinned
+  live by `test_max_screens_on_a_would_be_wall_correctly_stays_a_plain_bound`.
 
 **Verify:** a fixture login page with one followable same-domain link, crawled with no login case →
 status ≠ `completed` with `actions_used ≥ 1`; sabotage `_terminal_status` back to the pre-X18 body in a
 scratch copy → that test fails. The three on-disk legacy crawls render non-success on the crawls
-table (Mode D).
+table (Mode D). **(e)'s bound suffix:** one test per bound (`max_actions`, `wall_clock_s`) on a
+walled page names the bound and drops the untried-links claim; a control pins the unbounded wall
+sentence unchanged; `max_screens`'s structural non-co-occurrence is pinned live, not sabotaged (Mode
+D, checker-driven, confirms the same behaviour against a real browser and a real UI page render, not
+only the pure-function tests).
 
 ## No-fire list (do not raise these as findings)
 
@@ -504,3 +534,42 @@ table (Mode D).
   `qa/evidence/browser-x18a-login-both-directions-2026-09-17-checker/report.json`. No criterion is
   removed or weakened; X1-X17 are byte-unchanged. Verdict:
   `qa/verdicts/x18a-login-both-directions.md`.
+
+- 2026-09-17 · routine · **X18(a) gains its ISS-x18a-1 closure and X18 gains new point (e)**, by
+  /checker at unit `at480-489-wall-bound-and-fill-fallback` (cycle 1, commit `44d2547`, verdict
+  `qa/verdicts/at480-489-wall-bound-and-fill-fallback.md`), adopting the maker's proposed wording
+  with one addition. The maker's mechanism is adopted as proposed and independently re-verified: all
+  4 capability-coverage rows (bound-named-on-a-walled-crawl, bound-honest wall sentence, the
+  submit-control requirement, and the AT-467 sticky-banner control) were reproduced by the checker
+  in an isolated `git archive HEAD` extract — each single-hunk falsifying edit restored
+  byte-identical before the next, each firing the exact assertion the manifest claimed. **Addition
+  beyond the proposal:** the ISS-x18a-1 closure is adopted as "closed **as filed**", not closed
+  outright — the checker traced `terminal_status`'s control flow and confirms a narrower residual
+  survives (a screen coincidentally matching every FILL target AND the submit control is still
+  `LOGIN_FAILED`), which the manifest's own new control test already pins as intentional; this
+  amendment states that residual explicitly rather than letting "CLOSED" read as "no residual",
+  consistent with how every earlier X18/X14/X16 closure in this log has stated its own residual.
+  **Live-browser (Mode D) verification**, against the checker's own headless Chromium driving the
+  real UI app (not the maker's screenshots, not `curl`, and not `tests/fixtures/login_site` — that
+  fixture has no extra links and cannot produce a bound firing mid-wall without also losing the
+  visited node's own `DENIED_POLICY` edge, so the checker authored a small local-only fixture: one
+  denied form submit plus three same-page self-links, served on `127.0.0.1`): a crawl with no
+  declared login case, started from the Crawls page with `max_actions=2` against a 3-self-link
+  walled page, reads `login_wall` with `badge-blocked` (warning) tone on both the crawl-status pill
+  and the stop-reason pill (confirmed from the element's own `outerHTML`, not a page-wide substring
+  match — a `badge-pass` span elsewhere on the page is the visited node's own unrelated
+  "explored" marker), names `max_actions` in `stop_reason`, and drops the "no link led anywhere
+  else" claim, on both the crawl page and the crawls table. Zero console errors. Evidence:
+  `qa/evidence/browser-at480-489-wall-bound-and-fill-fallback-2026-09-17-checker/report.json`. The
+  `max_screens`/`LOGIN_WALL` non-co-occurrence claim in "Known limits" was independently re-derived
+  from `_enqueue`'s and `_bfs`'s code (not merely read) and confirmed accurate — a stronger claim
+  than the manifest's own prose reasoning, since it also covers every node left queued behind the
+  cap-reaching one, not only the cap-reaching node itself. **Hunt on the edited test helper**
+  (`_root_login_case()` gained a CLICK step): reproduced live in the isolated copy — reverting the
+  CLICK-step addition alone (test file only) reddens exactly one existing test,
+  `test_a_sticky_wrong_password_banner_is_still_login_failed` (the AT-467 control), and leaves the
+  other 15 tests in the file green — confirming the edit was a necessary tightening (the banner
+  fixture already carried `#go` before this unit; the case needed a CLICK step to name it as the
+  submit selector) and not a vacuous-guard workaround; no pre-existing AT-462/AT-467/partial-fill
+  test was weakened. No criterion is removed or weakened; X1-X17 and X18(b)/(c)/(d)'s existing text
+  are byte-unchanged aside from the additions named above.

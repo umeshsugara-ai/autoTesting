@@ -1,0 +1,45 @@
+{
+  "unit": "at480-489-wall-bound-and-fill-fallback",
+  "date": "2026-09-17",
+  "checked_by": "checker",
+  "method": "own Playwright script (Python, sync API) -- Playwright MCP unavailable; no maker screenshots or curl trusted",
+  "isolation": "throwaway copy of the worktree (git archive HEAD, projects/erp|pathlynks|vidysea-erp removed, uv sync; autotester.__file__ resolved inside the copy)",
+  "setup": {
+    "fixture": "self-authored local HTML (never the bound tree): one denied form submit (#go, type=submit) plus 3 same-page self-links (href=\"/\") so a tiny max_actions bound cuts the crawl short WHILE it is also walled -- tests/fixtures/login_site/login.html has no extra links and cannot produce this combination without a bound firing before any visit (which drops the visited node's own DENIED_POLICY edge and yields STOPPED_BOUND, not LOGIN_WALL)",
+    "site_server": "python -m http.server on 127.0.0.1:58211, stdout/stderr to log files (never PIPE)",
+    "ui_server": "uv run uvicorn autotester.ui.app:app --host 127.0.0.1 --port 59704, AUTOTESTER_ROOT pinned to a scratch root, stdout/stderr to log files",
+    "project": "demo, base_url=http://127.0.0.1:58211/, allowed_domains=[127.0.0.1], write_policy=READ_ONLY (default), no login_case_id declared",
+    "approval": "RunApproval CRAWL granted for the fixture target before driving the form"
+  },
+  "actions": [
+    "navigated to /projects/demo/crawls",
+    "filled the bounds form: max_screens=10, max_actions=2, wall_clock_s=60, max_depth=4",
+    "clicked the Explore submit button (synchronous POST /projects/demo/explore)",
+    "waited for networkidle / the redirect to the crawl detail page",
+    "read the crawl detail page's status/stop-reason pills and the crawls table row"
+  ],
+  "assertions": {
+    "crawl_page_has_login_wall_text": true,
+    "crawl_page_has_warning_tone_on_status_and_reason_pills": true,
+    "status_pill_class": "badge-blocked",
+    "stop_reason_pill_class": "badge-blocked",
+    "note_on_badge_pass_present_elsewhere": "one span.badge-pass on the page is the visited node's own per-node status pill (\"explored\") -- unrelated to X18(c)'s crawl-level tone, confirmed by reading the specific <p class=\"meta\"> element's outerHTML, not just page-wide substring search",
+    "crawl_page_has_max_actions_in_reason": true,
+    "crawl_page_has_no_link_led_anywhere_else_claim": false,
+    "crawl_page_has_bound_fired_phrase": true,
+    "crawls_table_has_login_wall": true,
+    "crawls_table_has_max_actions": true,
+    "crawls_table_has_no_link_claim": false,
+    "console_errors_count": 0
+  },
+  "raw_stopped_line": "LOGIN_WALL · stopped: STOPPED AT A LOGIN WALL: EVERY SCREEN REACHED ONLY OFFERS A FORM SUBMIT DENIED BY READ_ONLY -- DECLARE A LOGIN CASE TO CRAWL PAST IT -- THE MAX_ACTIONS BOUND FIRED BEFORE EVERY CONTROL WAS TRIED · policy READ_ONLY",
+  "raw_status_pill_html": "<p class=\"meta\"><span class=\"badge badge-blocked\">login_wall</span> · stopped: <span class=\"badge badge-blocked\">stopped at a login wall: every screen reached only offers a form submit denied by read_only -- declare a login case to crawl past it -- the max_actions bound fired before every control was tried</span> · policy <span class=\"badge badge-inconclusive\">read_only</span></p>",
+  "verdict": "X18(b)/(c) and AT-480's bound-honest wall sentence confirmed live: a crawl with no declared login case, cut short mid-wall by max_actions, reads LOGIN_WALL with non-success (badge-blocked) tone on both the crawl page and the crawls table, names the fired bound in stop_reason, and drops the \"no link led anywhere else\" claim. Zero console errors.",
+  "report_xlsx_summary_sheet_stopped_because": "stopped at a login wall: every screen reached only offers a form submit denied by read_only -- declare a login case to crawl past it -- the max_actions bound fired before every control was tried",
+  "report_xlsx_note": "exported the same crawl's report.xlsx (export_crawl_excel) after the browser run and read the Summary sheet's 'Stopped because' row directly with openpyxl -- byte-identical to the crawl page's stop_reason, confirming X16's workbook parity holds for the new bound-suffixed sentence too",
+  "servers_stopped": true,
+  "servers_verified_down": {
+    "site_127.0.0.1_58211": "curl timed out / connection refused after TaskStop",
+    "ui_127.0.0.1_59704": "curl timed out / connection refused after TaskStop"
+  }
+}
