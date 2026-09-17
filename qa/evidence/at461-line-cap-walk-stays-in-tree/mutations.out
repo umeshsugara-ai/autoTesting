@@ -1,0 +1,17 @@
+KILLED  AT-461 reopens: the walk enters junctions, so a loop crashes doctor and a foreign folder is capped  (pytest exit 1)
+    claims to kill : tests/test_doctor.py::test_the_line_cap_never_follows_a_junction_in_or_out_of_the_tree
+    actually failed: tests/test_doctor.py::test_the_line_cap_never_follows_a_junction_in_or_out_of_the_tree
+KILLED  tool caches under tests/ are capped again  (pytest exit 1)
+    claims to kill : tests/test_doctor.py::test_the_line_cap_skips_tool_cache_directories
+    actually failed: tests/test_doctor.py::test_the_line_cap_skips_tool_cache_directories
+KILLED  AT-419 reopens: the walk stops recursing, so nested files are never measured  (pytest exit 1)
+    claims to kill : tests/test_doctor.py::test_the_line_cap_reads_every_file_c2_names_not_only_python
+    actually failed: tests/test_doctor.py::test_long_file_is_flagged, tests/test_doctor.py::test_the_line_cap_reads_every_file_c2_names_not_only_python, tests/test_doctor.py::test_the_line_cap_still_walks_a_repo_opened_through_a_junction
+KILLED  AT-419 reopens: the walk keeps only Python files, so a long .js or fixture passes  (pytest exit 1)
+    claims to kill : tests/test_doctor.py::test_the_line_cap_reads_every_file_c2_names_not_only_python
+    actually failed: tests/test_doctor.py::test_the_line_cap_reads_every_file_c2_names_not_only_python, tests/test_doctor.py::test_the_line_cap_still_walks_a_repo_opened_through_a_junction
+KILLED  the prune compares against the unresolved parent, so a repo opened through a junction loses every subdirectory  (pytest exit 1)
+    claims to kill : tests/test_doctor.py::test_the_line_cap_still_walks_a_repo_opened_through_a_junction
+    actually failed: tests/test_doctor.py::test_the_line_cap_still_walks_a_repo_opened_through_a_junction
+
+5/5 mutations killed

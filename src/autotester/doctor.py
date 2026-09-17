@@ -8,6 +8,7 @@ scratch grew unchecked. `autotester doctor` fails the build before that starts.
 from __future__ import annotations
 
 import ast
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -47,13 +48,21 @@ def _python_files(root: Path) -> list[Path]:
 
 def _capped_files(root: Path) -> list[Path]:
     """C2 caps EVERY file in src/ and tests/, not only Python (AT-419): a 316-line
-    visual_order.js once passed as "doctor: clean". Binary files have no lines."""
-    return [
-        p
-        for base in (root / "src", root / "tests")
-        for p in base.rglob("*")
-        if p.is_file() and ".venv" not in p.parts and "__pycache__" not in p.parts
-    ]
+    visual_order.js once passed as "doctor: clean". Binary files have no lines.
+    The walk never enters a directory that resolves elsewhere (a junction or symlink:
+    a loop crashed doctor, a foreign folder got capped) nor a tool cache (AT-461)."""
+    out: list[Path] = []
+    for base in (root / "src", root / "tests"):
+        for dirpath, dirnames, filenames in os.walk(base):
+            here = os.path.realpath(dirpath)
+            dirnames[:] = [
+                d for d in dirnames
+                if not d.startswith(".") and d != "__pycache__"
+                and os.path.normcase(os.path.realpath(os.path.join(dirpath, d)))
+                == os.path.normcase(os.path.join(here, d))
+            ]
+            out += [Path(dirpath, f) for f in filenames]
+    return out
 
 
 def check_file_sizes(root: Path) -> list[Violation]:

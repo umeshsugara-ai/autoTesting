@@ -1,0 +1,52 @@
+{
+  "tests": [
+    "tests/test_doctor.py"
+  ],
+  "mutations": [
+    {
+      "name": "AT-461 reopens: the walk enters junctions, so a loop crashes doctor and a foreign folder is capped",
+      "file": "src/autotester/doctor.py",
+      "old": "                if not d.startswith(\".\") and d != \"__pycache__\"\n                and os.path.normcase(os.path.realpath(os.path.join(dirpath, d)))\n                == os.path.normcase(os.path.join(here, d))",
+      "new": "                if not d.startswith(\".\") and d != \"__pycache__\"",
+      "kills": [
+        "tests/test_doctor.py::test_the_line_cap_never_follows_a_junction_in_or_out_of_the_tree"
+      ]
+    },
+    {
+      "name": "tool caches under tests/ are capped again",
+      "file": "src/autotester/doctor.py",
+      "old": "                if not d.startswith(\".\") and d != \"__pycache__\"\n",
+      "new": "                if d != \"__pycache__\"\n",
+      "kills": [
+        "tests/test_doctor.py::test_the_line_cap_skips_tool_cache_directories"
+      ]
+    },
+    {
+      "name": "AT-419 reopens: the walk stops recursing, so nested files are never measured",
+      "file": "src/autotester/doctor.py",
+      "old": "            dirnames[:] = [",
+      "new": "            dirnames[:] = [] and [",
+      "kills": [
+        "tests/test_doctor.py::test_the_line_cap_reads_every_file_c2_names_not_only_python"
+      ]
+    },
+    {
+      "name": "AT-419 reopens: the walk keeps only Python files, so a long .js or fixture passes",
+      "file": "src/autotester/doctor.py",
+      "old": "            out += [Path(dirpath, f) for f in filenames]",
+      "new": "            out += [Path(dirpath, f) for f in filenames if f.endswith(\".py\")]",
+      "kills": [
+        "tests/test_doctor.py::test_the_line_cap_reads_every_file_c2_names_not_only_python"
+      ]
+    },
+    {
+      "name": "the prune compares against the unresolved parent, so a repo opened through a junction loses every subdirectory",
+      "file": "src/autotester/doctor.py",
+      "old": "            here = os.path.realpath(dirpath)",
+      "new": "            here = os.path.abspath(dirpath)",
+      "kills": [
+        "tests/test_doctor.py::test_the_line_cap_still_walks_a_repo_opened_through_a_junction"
+      ]
+    }
+  ]
+}

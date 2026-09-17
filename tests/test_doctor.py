@@ -4,7 +4,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from autotester import doctor
+
+try:
+    import _winapi
+except ImportError:  # not Windows
+    _winapi = None
 
 
 def make_repo(tmp_path: Path) -> Path:
@@ -46,6 +53,46 @@ def test_the_line_cap_allows_exactly_the_cap_and_skips_binary_files(tmp_path: Pa
     root = make_repo(tmp_path)
     write_module(root, "at_cap.js", "x;\n" * doctor.MAX_FILE_LINES)
     (root / "tests" / "shot.png").write_bytes(b"\x89PNG\r\n\x1a\n\xff\xfe" + b"\n" * 400)
+    assert not any(v.rule == "file-too-long" for v in doctor.run(root))
+
+
+needs_junctions = pytest.mark.skipif(not hasattr(_winapi, "CreateJunction"),
+                                     reason="Windows junctions only")
+
+
+@needs_junctions
+def test_the_line_cap_never_follows_a_junction_in_or_out_of_the_tree(tmp_path: Path) -> None:
+    """AT-461: rglob walked junctions, so a loop crashed doctor (WinError 1921) and a
+    junction to a foreign folder had that folder's files capped as if they were ours."""
+    root = make_repo(tmp_path / "repo")
+    outside = tmp_path / "elsewhere"
+    outside.mkdir()
+    (outside / "big.txt").write_text("x\n" * (doctor.MAX_FILE_LINES + 100), encoding="utf-8")
+    (root / "tests" / "loop").mkdir()
+    _winapi.CreateJunction(str(root / "tests" / "loop"), str(root / "tests" / "loop" / "back"))
+    _winapi.CreateJunction(str(outside), str(root / "tests" / "ext"))
+    assert not any(v.rule == "file-too-long" for v in doctor.run(root))
+
+
+@needs_junctions
+def test_the_line_cap_still_walks_a_repo_opened_through_a_junction(tmp_path: Path) -> None:
+    """The prune compares a directory with its RESOLVED parent, so a checkout reached
+    through a junction is still ours, not a foreign tree."""
+    real = make_repo(tmp_path / "real")
+    (real / "tests" / "fixtures").mkdir()
+    (real / "tests" / "fixtures" / "big.html").write_text("x\n" * (doctor.MAX_FILE_LINES + 1),
+                                                          encoding="utf-8")
+    _winapi.CreateJunction(str(real), str(tmp_path / "alias"))
+    flagged = [v for v in doctor.run(tmp_path / "alias") if v.rule == "file-too-long"]
+    assert [v.location.replace("\\", "/") for v in flagged] == ["tests/fixtures/big.html"]
+
+
+def test_the_line_cap_skips_tool_cache_directories(tmp_path: Path) -> None:
+    """AT-461: a gitignored .pytest_cache under tests/ is tooling output, not a file of ours."""
+    root = make_repo(tmp_path)
+    cache = root / "tests" / ".pytest_cache" / "v" / "cache"
+    cache.mkdir(parents=True)
+    (cache / "nodeids").write_text("t\n" * (doctor.MAX_FILE_LINES + 1), encoding="utf-8")
     assert not any(v.rule == "file-too-long" for v in doctor.run(root))
 
 
