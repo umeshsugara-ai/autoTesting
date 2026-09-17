@@ -109,16 +109,21 @@ def test_it_refuses_a_spec_with_no_mutations(mutation_repo: Path) -> None:
 
 # -- output parsing ----------------------------------------------------------
 
-def test_failed_tests_reads_names_out_of_pytest_output() -> None:
-    output = (
-        "FAILED tests/test_mod.py::test_small_values_are_small - assert" + chr(10)
-        + "FAILED tests/other/test_mod.py::test_small_values_are_small" + chr(10)
-        + "1 failed, 1 passed" + chr(10))
 
-    # Two tests sharing a bare NAME in different files stay distinct (AT-320).
-    assert failed_tests(output) == {"tests/test_mod.py::test_small_values_are_small",
-                                    "tests/other/test_mod.py::test_small_values_are_small"}
+def test_failed_tests_reads_pytests_own_report_and_nothing_else(tmp_path: Path) -> None:
+    """AT-320 + AT-478: full nodeids, straight from the report the sandbox plugin writes.
+    Two tests sharing a bare name stay distinct; no report means no failures."""
+    work = tmp_path / "repo"
+    work.mkdir()
+    assert failed_tests(work) == set(), "no report must never read as a failure"
+    (tmp_path / "mutation-report.json").write_text(json.dumps([
+        "tests/test_mod.py::test_small_values_are_small",
+        "tests/other/test_mod.py::test_small_values_are_small",
+        "tests/t.py::test_x[a b] - r]"]), encoding="utf-8")
 
+    assert failed_tests(work) == {"tests/test_mod.py::test_small_values_are_small",
+                                  "tests/other/test_mod.py::test_small_values_are_small",
+                                  "tests/t.py::test_x[a b] - r]"}
 
 def test_the_spec_round_trips_through_json(mutation_repo: Path) -> None:
     """Specs live on disk beside a unit's evidence, so they must survive JSON."""
@@ -169,31 +174,6 @@ def test_a_kills_entry_may_be_the_full_nodeid_the_guard_asks_for(
 
 
 # -- AT-469: a parametrized id may contain spaces ------------------------------
-
-def test_failed_tests_keeps_a_nodeid_whose_parametrize_id_contains_spaces() -> None:
-    """AT-469: `\S+` cut `test_x[a b]` to `test_x[a`, so the named test never appeared
-    in the failures and a genuine kill printed as SURVIVED. The collected nodeids are
-    the authority on where a nodeid ends."""
-    known = {"tests/t.py::test_x[a]", "tests/t.py::test_x[a b]", "tests/t.py::test_y",
-             "tests/t.py::test_z[q]", "tests/t.py::test_z[q] - r]"}
-    output = ("FAILED tests/t.py::test_x[a b] - AssertionError: boom" + chr(10)
-              + "FAILED tests/t.py::test_y" + chr(10))
-
-    assert failed_tests(output, known) == {"tests/t.py::test_x[a b]", "tests/t.py::test_y"}
-    # AT-473: `test_z[q]` failing with message "r] - AssertionError" and `test_z[q] - r]`
-    # failing with "AssertionError" print the SAME line. Crediting either is a guess, and
-    # crediting the one that passed is a false KILLED, so neither is credited.
-    ambiguous = "FAILED tests/t.py::test_z[q] - r] - AssertionError" + chr(10)
-    assert failed_tests(ambiguous, known) == set()
-    # Unambiguous siblings are still attributed: the SHORTER one failing with a plain message.
-    shorter = "FAILED tests/t.py::test_z[q] - AssertionError: boom" + chr(10)
-    assert failed_tests(shorter, known) == {"tests/t.py::test_z[q]"}
-    # A known nodeid that is merely a PREFIX of an uncollected one must not claim its
-    # failure: that would be a false KILLED for `test_y`. The regex reading stands.
-    stranger = "FAILED tests/t.py::test_yz - AssertionError" + chr(10)
-    assert failed_tests(stranger, known) == {"tests/t.py::test_yz"}
-
-
 def test_a_mutation_is_attributed_to_a_parametrized_test_with_spaces_in_its_id(
     mutation_repo: Path,
 ) -> None:
@@ -236,3 +216,67 @@ def test_a_passing_sibling_is_never_credited_with_another_tests_failure(
 
     assert result["killed"] is False, result
     assert sibling not in result["failed"]
+
+
+# -- AT-478 / AT-479: failures come from pytest's own reports, not from text ------
+
+def _write(path: Path, *lines: str) -> None:
+    path.write_text(chr(10).join(lines) + chr(10), encoding="utf-8")
+
+
+IMPORT_SCRIPTS = ('import sys', 'from pathlib import Path', 'import pytest',
+                  'sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))')
+
+
+def test_a_failing_test_that_prints_a_summary_line_cannot_fake_a_kill(
+    mutation_repo: Path,
+) -> None:
+    """AT-478: `^FAILED` matched captured stdout, so a failing test printing
+    "FAILED <sibling> - boom" made that PASSING sibling read KILLED."""
+    _write(mutation_repo / "tests" / "test_p.py", *IMPORT_SCRIPTS, "from mod import classify",
+           "", "", "def test_printer():",
+           '    print("FAILED tests/test_p.py::test_ns[x] - boom")',
+           '    assert classify(1) == "small"',
+           "", "", '@pytest.mark.parametrize("v", ["x"])', "def test_ns(v):",
+           '    assert classify(50) == "big"')
+
+    result = check(spec(tests=["tests/test_mod.py", "tests/test_p.py"],
+                        mutation={"kills": ["tests/test_p.py::test_ns[x]"]}), mutation_repo)[0]
+
+    assert "tests/test_p.py::test_printer" in result["failed"], "precondition: the printer failed"
+    assert result["killed"] is False, result
+
+
+def test_a_named_test_that_did_not_run_under_the_mutation_is_never_killed(
+    mutation_repo: Path,
+) -> None:
+    """AT-479: the mutation renames a parametrize id, so `test_gen[c]` does not exist in the
+    mutated run. Its replacement `test_gen[c] - Failed: q]` fails, and its summary line fit
+    the baseline nodeid, which was credited with a kill it never took part in."""
+    _write(mutation_repo / "scripts" / "gen.py", 'GEN = ["c"]')
+    _write(mutation_repo / "tests" / "test_gen.py", *IMPORT_SCRIPTS, "from gen import GEN",
+           "", "", '@pytest.mark.parametrize("v", GEN)', "def test_gen(v):",
+           '    if v != "c":', '        pytest.fail("w")')
+
+    result = check(spec(tests=["tests/test_mod.py", "tests/test_gen.py"], mutation={
+        "file": "scripts/gen.py", "old": 'GEN = ["c"]', "new": 'GEN = ["c] - Failed: q"]',
+        "kills": ["tests/test_gen.py::test_gen[c]"]}), mutation_repo)[0]
+
+    assert result["killed"] is False, result
+    assert "tests/test_gen.py::test_gen[c]" not in result["failed"]
+
+
+def test_a_named_test_that_errors_in_setup_is_not_a_kill(mutation_repo: Path) -> None:
+    """Only a failed CALL is the test noticing the mutation. A fixture that errors never ran
+    the test's own assertion, so it stays out of the failures, as ERROR lines always did."""
+    _write(mutation_repo / "tests" / "test_setup.py", *IMPORT_SCRIPTS, "from mod import classify",
+           "", "", "@pytest.fixture", "def small():",
+           '    assert classify(1) == "small"', "    return 1",
+           "", "", "def test_uses_fixture(small):", "    assert small == 1")
+
+    result = check(spec(tests=["tests/test_mod.py", "tests/test_setup.py"],
+                        mutation={"kills": ["tests/test_setup.py::test_uses_fixture"]}),
+                   mutation_repo)[0]
+
+    assert result["killed"] is False, result
+    assert "tests/test_setup.py::test_uses_fixture" not in result["failed"]

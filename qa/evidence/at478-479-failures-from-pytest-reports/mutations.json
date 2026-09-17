@@ -1,0 +1,46 @@
+{
+  "tests": [
+    "tests/test_mutation_check.py",
+    "tests/test_mutation_check_judgement.py",
+    "tests/test_mutation_sandbox.py"
+  ],
+  "mutations": [
+    {
+      "name": "the report plugin records no failure, so a real kill reads SURVIVED",
+      "file": "scripts/mutation_check.py",
+      "old": "    if report.when == \"call\" and report.failed:",
+      "new": "    if False:",
+      "kills": [
+        "tests/test_mutation_check.py::test_a_real_mutation_is_killed_and_attributed"
+      ]
+    },
+    {
+      "name": "AT-478/479 reopen: summary lines scraped from the text output are trusted again",
+      "file": "scripts/mutation_check.py",
+      "old": "        failures = failed_tests(work)\n",
+      "new": "        failures = failed_tests(work) | {ln.split()[1] for ln in out.splitlines() if ln.startswith(\"FAILED \")}\n",
+      "kills": [
+        "tests/test_mutation_check.py::test_a_failing_test_that_prints_a_summary_line_cannot_fake_a_kill",
+        "tests/test_mutation_check.py::test_a_named_test_that_did_not_run_under_the_mutation_is_never_killed"
+      ]
+    },
+    {
+      "name": "a setup ERROR is counted as the named test noticing the mutation",
+      "file": "scripts/mutation_check.py",
+      "old": "    if report.when == \"call\" and report.failed:",
+      "new": "    if report.failed:",
+      "kills": [
+        "tests/test_mutation_check.py::test_a_named_test_that_errors_in_setup_is_not_a_kill"
+      ]
+    },
+    {
+      "name": "a missing report raises instead of meaning no failures",
+      "file": "scripts/mutation_check.py",
+      "old": "    except (OSError, ValueError):\n        return set()",
+      "new": "    except (OSError, ValueError):\n        raise",
+      "kills": [
+        "tests/test_mutation_check.py::test_failed_tests_reads_pytests_own_report_and_nothing_else"
+      ]
+    }
+  ]
+}

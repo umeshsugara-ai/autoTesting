@@ -34,22 +34,38 @@ naming a test that did not exist):
   syntax exits non-zero having run NOTHING, which the predecessor reported as
   `KILLED  1 error` with an empty failure list.
 - An unrelated failure counted as a kill. The suite going red is not evidence
-  that THIS test noticed; only the named test appearing in FAILED is.
+  that THIS test noticed; only the named test in pytest's own failure reports is.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import re
+import os
 import shutil
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
-FAILED = re.compile(r"^FAILED\s+(?P<nodeid>\S+)", re.MULTILINE)
-INTERRUPTED = 2  # pytest ran tests and was then interrupted — FAILED lines are real
+INTERRUPTED = 2  # pytest ran tests and was then interrupted — its failure reports are real
+REPORT_PLUGIN = "_mutation_report"
+PLUGIN_SOURCE = '''"""Written by mutation_check into its sandbox root; never part of a project."""
+import json
+import os
+
+_failed = set()
+
+
+def pytest_runtest_logreport(report):
+    if report.when == "call" and report.failed:
+        _failed.add(report.nodeid)
+
+
+def pytest_sessionfinish(session):
+    with open(os.environ["MUTATION_REPORT"], "w", encoding="utf-8") as handle:
+        json.dump(sorted(_failed), handle)
+'''
 
 
 class MutationError(RuntimeError):
@@ -93,11 +109,21 @@ def _targets(tests: str | list[str]) -> list[str]:
 
 
 def _run_pytest(cwd: Path, tests: str | list[str], *extra: str) -> tuple[int, str]:
+    """Run pytest in the sandbox with the report plugin, which sits in the sandbox's
+    parent (`_sandbox` writes it) so it is never inside the tree under test."""
+    env = dict(os.environ, MUTATION_REPORT=str(_report_path(cwd)),
+               PYTHONPATH=os.pathsep.join(filter(None, [str(cwd.parent),
+                                                        os.environ.get("PYTHONPATH")])))
+    _report_path(cwd).unlink(missing_ok=True)
     proc = subprocess.run(
         [sys.executable, "-m", "pytest", *_targets(tests), "-o", "addopts=", "-q",
-         "--no-header", "-p", "no:cacheprovider", *extra],
-        cwd=cwd, capture_output=True, text=True)
+         "--no-header", "-p", "no:cacheprovider", "-p", REPORT_PLUGIN, *extra],
+        cwd=cwd, capture_output=True, text=True, env=env)
     return proc.returncode, proc.stdout + proc.stderr
+
+
+def _report_path(cwd: Path) -> Path:
+    return cwd.parent / "mutation-report.json"
 
 
 def collected_tests(cwd: Path, tests: str | list[str]) -> dict[str, set[str]]:
@@ -126,28 +152,21 @@ def collected_tests(cwd: Path, tests: str | list[str]) -> dict[str, set[str]]:
     return collected
 
 
-def failed_tests(output: str, known: set[str] | None = None) -> set[str]:
-    """Full nodeids of failed tests — never bare names (AT-320).
+def failed_tests(cwd: Path) -> set[str]:
+    """Full nodeids of the tests that FAILED in the last run in `cwd` (AT-320), as
+    pytest itself reported them: `report.nodeid` of every failed call phase.
 
-    AT-469: a parametrize id may contain spaces, so the regex's non-space run cut
-    `test_x[a b]` to `test_x[a` and a genuine kill printed SURVIVED. Given the
-    collected nodeids, a line belongs to the ONE known nodeid that is the whole line
-    or is followed by " - " (pytest's separator before the short message).
-
-    AT-473: when TWO known nodeids fit, the line is genuinely ambiguous -- `f[q] - r]`
-    failing and `f[q]` failing with message `r] - ...` print the same bytes -- so it
-    is credited to NEITHER. "Longest wins" once credited a passing sibling, and a
-    false KILLED is the one error this gate may never make. A line matching no known
-    nodeid keeps the regex's reading."""
-    failures = set()
-    for m in FAILED.finditer(output):
-        line = output[m.start("nodeid"):].splitlines()[0]
-        whole = [n for n in known or () if line == n or line.startswith(n + " - ")]
-        if len(whole) == 1:
-            failures.add(whole[0])
-        elif not whole:
-            failures.add(m.group("nodeid"))
-    return failures
+    AT-478/AT-479: this used to scan `^FAILED` over the whole text output. Captured
+    stdout could print a summary line for a sibling that passed, a spaced parametrize
+    id had to be recovered by guessing where the nodeid ended (AT-469/AT-473), and a
+    renamed id's line could fit a baseline nodeid that never ran. Each was a false
+    KILLED or a false SURVIVED. The structured report has none of those failure modes:
+    it names exactly the tests that ran and failed. No report (pytest never reached
+    session end) means no failures, which can only read SURVIVED."""
+    try:
+        return set(json.loads(_report_path(cwd).read_text(encoding="utf-8")))
+    except (OSError, ValueError):
+        return set()
 
 
 def _sandbox(repo: Path) -> tuple[Path, Path]:
@@ -166,6 +185,7 @@ def _sandbox(repo: Path) -> tuple[Path, Path]:
     for name in ("pyproject.toml", "conftest.py"):
         if (repo / name).is_file():
             shutil.copy2(repo / name, work / name)
+    (owned_root / f"{REPORT_PLUGIN}.py").write_text(PLUGIN_SOURCE, encoding="utf-8")
     return work, owned_root
 
 
@@ -275,7 +295,7 @@ def _check_in(work: Path, spec: dict, tests: str | list[str], mutations: list) -
             raise MutationError(f"mutation {mutation['name']!r} changed nothing")
 
         code, out = _run_pytest(work, tests)
-        failures = failed_tests(out, set().union(*collected.values()))
+        failures = failed_tests(work)
         expected = mutation["_nodeids"]  # full nodeids, resolved at validation (AT-320)
         # A kill is the NAMED test failing. Not a non-zero exit (that includes a
         # collection error, which runs nothing), and not some other test failing.
