@@ -1,0 +1,596 @@
+{
+ "unit": "at459-crawl-states-its-coverage",
+ "cycle_checked": 1,
+ "date": "2026-09-17",
+ "checker": "Mode D, headed Playwright Python (Chromium), own driver",
+ "targets": [
+  "http://127.0.0.1:8772 (tests/fixtures/login_site from the checker copy)",
+  "http://127.0.0.1:8067"
+ ],
+ "root": "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\at459_root",
+ "runs": [
+  {
+   "tag": "01-login-max_actions-3",
+   "project": "covprobe",
+   "bounds_entered": {
+    "max_actions": "3"
+   },
+   "crawl_id": "crawl_01M2PPP0RQEMX79BWE5BQHE71K",
+   "status": "stopped_bound",
+   "stop_reason": "max_actions",
+   "actions": 3,
+   "coverage_json": {
+    "controls_discovered": 6,
+    "controls_exercised": 3,
+    "screens_reached": 2,
+    "screens_queued_unvisited": 1,
+    "percent": 50
+   },
+   "holes_by_reason_json": {
+    "policy:never-click pattern (logout/sign-out)": 1,
+    "bound:max_actions": 1,
+    "not_visited": 1
+   },
+   "holes": [
+    [
+     "/app/dashboard.html",
+     "Log out",
+     "policy:never-click pattern (logout/sign-out)"
+    ],
+    [
+     "/app/orders.html",
+     "Order 1001",
+     "bound:max_actions"
+    ],
+    [
+     "/app/profile.html",
+     "Dashboard",
+     "not_visited"
+    ]
+   ],
+   "balance": "3 + 3 == 6",
+   "balanced": true,
+   "page_tile_value": "50%",
+   "page_first_tile_label": "COVERAGE",
+   "page_tile_matches_json": true,
+   "page_coverage_line": "coverage: 50% of controls (3 of 6) \u00b7 not exercised: BOUND:MAX_ACTIONS: 1 NOT_VISITED: 1 POLICY:NEVER-CLICK PATTERN (LOGOUT/SIGN-OUT): 1",
+   "page_run_detail_reasons": "bound:max_actions: 1; not_visited: 1; policy:never-click pattern (logout/sign-out): 1",
+   "page_reasons_all_shown": false,
+   "xlsx_summary_coverage": "50% of controls (3 of 6)",
+   "xlsx_summary_stop": "max_actions",
+   "xlsx_summary_reasons": "bound:max_actions: 1; not_visited: 1; policy:never-click pattern (logout/sign-out): 1",
+   "xlsx_unreached_rows": 3,
+   "xlsx_unreached_matches_json": true,
+   "non_completed_below_100": true,
+   "navigated_edges_to_screens_never_made_nodes": [],
+   "nodes": [
+    [
+     "/app/dashboard.html",
+     "explored",
+     0
+    ],
+    [
+     "/app/orders.html",
+     "explored",
+     1
+    ],
+    [
+     "/app/profile.html",
+     "queued",
+     1
+    ]
+   ],
+   "console_errors": []
+  },
+  {
+   "tag": "02-login-default-bounds",
+   "project": "covprobe",
+   "bounds_entered": {},
+   "crawl_id": "crawl_01M2PPPFBJ1CG6PFRP765BWC94",
+   "status": "completed",
+   "stop_reason": "frontier empty",
+   "actions": 6,
+   "coverage_json": {
+    "controls_discovered": 7,
+    "controls_exercised": 6,
+    "screens_reached": 4,
+    "screens_queued_unvisited": 0,
+    "percent": 85
+   },
+   "holes_by_reason_json": {
+    "policy:never-click pattern (logout/sign-out)": 1
+   },
+   "holes": [
+    [
+     "/app/dashboard.html",
+     "Log out",
+     "policy:never-click pattern (logout/sign-out)"
+    ]
+   ],
+   "balance": "6 + 1 == 7",
+   "balanced": true,
+   "page_tile_value": "85%",
+   "page_first_tile_label": "COVERAGE",
+   "page_tile_matches_json": true,
+   "page_coverage_line": "coverage: 85% of controls (6 of 7) \u00b7 not exercised: POLICY:NEVER-CLICK PATTERN (LOGOUT/SIGN-OUT): 1",
+   "page_run_detail_reasons": "policy:never-click pattern (logout/sign-out): 1",
+   "page_reasons_all_shown": false,
+   "xlsx_summary_coverage": "85% of controls (6 of 7)",
+   "xlsx_summary_stop": "frontier empty",
+   "xlsx_summary_reasons": "policy:never-click pattern (logout/sign-out): 1",
+   "xlsx_unreached_rows": 1,
+   "xlsx_unreached_matches_json": true,
+   "non_completed_below_100": true,
+   "navigated_edges_to_screens_never_made_nodes": [],
+   "nodes": [
+    [
+     "/app/dashboard.html",
+     "explored",
+     0
+    ],
+    [
+     "/app/orders.html",
+     "explored",
+     1
+    ],
+    [
+     "/app/profile.html",
+     "explored",
+     1
+    ],
+    [
+     "/app/order-1001.html",
+     "explored",
+     2
+    ]
+   ],
+   "console_errors": []
+  },
+  {
+   "tag": "03-login-max_depth-1",
+   "project": "covprobe",
+   "bounds_entered": {
+    "max_depth": "1"
+   },
+   "crawl_id": "crawl_01M2PPQ8VZW9WP0Q15ZRB6452H",
+   "status": "completed",
+   "stop_reason": "frontier empty",
+   "actions": 5,
+   "coverage_json": {
+    "controls_discovered": 6,
+    "controls_exercised": 5,
+    "screens_reached": 3,
+    "screens_queued_unvisited": 0,
+    "percent": 83
+   },
+   "holes_by_reason_json": {
+    "policy:never-click pattern (logout/sign-out)": 1
+   },
+   "holes": [
+    [
+     "/app/dashboard.html",
+     "Log out",
+     "policy:never-click pattern (logout/sign-out)"
+    ]
+   ],
+   "balance": "5 + 1 == 6",
+   "balanced": true,
+   "page_tile_value": "83%",
+   "page_first_tile_label": "COVERAGE",
+   "page_tile_matches_json": true,
+   "page_coverage_line": "coverage: 83% of controls (5 of 6) \u00b7 not exercised: POLICY:NEVER-CLICK PATTERN (LOGOUT/SIGN-OUT): 1",
+   "page_run_detail_reasons": "policy:never-click pattern (logout/sign-out): 1",
+   "page_reasons_all_shown": false,
+   "xlsx_summary_coverage": "83% of controls (5 of 6)",
+   "xlsx_summary_stop": "frontier empty",
+   "xlsx_summary_reasons": "policy:never-click pattern (logout/sign-out): 1",
+   "xlsx_unreached_rows": 1,
+   "xlsx_unreached_matches_json": true,
+   "non_completed_below_100": true,
+   "navigated_edges_to_screens_never_made_nodes": [
+    [
+     "role=link[name=\"Order 1001\"] >> nth=0",
+     "node_30dece78b25b"
+    ]
+   ],
+   "nodes": [
+    [
+     "/app/dashboard.html",
+     "explored",
+     0
+    ],
+    [
+     "/app/orders.html",
+     "explored",
+     1
+    ],
+    [
+     "/app/profile.html",
+     "explored",
+     1
+    ]
+   ],
+   "console_errors": []
+  },
+  {
+   "tag": "04-no-login-wall",
+   "project": "wallprobe",
+   "bounds_entered": {},
+   "crawl_id": "crawl_01M2PPQYTEE38FP9RQ0V133D6Z",
+   "status": "login_wall",
+   "stop_reason": "stopped at a login wall: every screen reached only offers a form submit denied by read_only, and no link led anywhere else -- declare a login case to crawl past it",
+   "actions": 2,
+   "coverage_json": {
+    "controls_discovered": 3,
+    "controls_exercised": 2,
+    "screens_reached": 1,
+    "screens_queued_unvisited": 0,
+    "percent": 66
+   },
+   "holes_by_reason_json": {
+    "login_wall": 1
+   },
+   "holes": [
+    [
+     "/login.html",
+     "Sign in",
+     "login_wall"
+    ]
+   ],
+   "balance": "2 + 1 == 3",
+   "balanced": true,
+   "page_tile_value": "66%",
+   "page_first_tile_label": "COVERAGE",
+   "page_tile_matches_json": true,
+   "page_coverage_line": "coverage: 66% of controls (2 of 3) \u00b7 not exercised: LOGIN_WALL: 1",
+   "page_run_detail_reasons": "login_wall: 1",
+   "page_reasons_all_shown": false,
+   "xlsx_summary_coverage": "66% of controls (2 of 3)",
+   "xlsx_summary_stop": "stopped at a login wall: every screen reached only offers a form submit denied by read_only, and no link led anywhere else -- declare a login case to crawl past it",
+   "xlsx_summary_reasons": "login_wall: 1",
+   "xlsx_unreached_rows": 1,
+   "xlsx_unreached_matches_json": true,
+   "non_completed_below_100": true,
+   "navigated_edges_to_screens_never_made_nodes": [],
+   "nodes": [
+    [
+     "/login.html",
+     "explored",
+     0
+    ]
+   ],
+   "console_errors": []
+  }
+ ],
+ "notes": [
+  "page_reasons_all_shown=False is an instrument artefact: the reason pills are CSS-uppercased, so inner_text differs in case; the Run detail row carries the exact reasons and matches crawl.json in all 4 runs.",
+  "An earlier attempt at run 03 with max_depth=0 never submitted: the form's max_depth input has min=1 (HTML validation), so the driver timed out; re-run with max_depth=1. The first two crawls from that attempt remain in the scratch root (crawl_01M2PPB12T2SCNCZ1ASMXJXY8Q, crawl_01M2PPBFR77VBHH0S980JF4TTR) and read identically (50% / 85%).",
+  "Console errors: 0 on every page of every run.",
+  "Servers (8772 fixture, 8067 UI) were served from the checker copy and killed by PID after the run; browser closed in finally.",
+  "FINDING run 03: max_depth=1 crawl reads COMPLETED 83% with a single hole (Log out); the NAVIGATED edge to /app/order-1001.html points at a node that was never created, and that screen and its controls appear in no hole, no reason, no Unreached row (bound:max_depth never emitted)."
+ ],
+ "probes_fake_site": {
+  "A_cap_then_max_actions": {
+   "status": "stopped_bound",
+   "stop": "max_actions",
+   "percent": 50,
+   "discovered": 6,
+   "exercised": 3,
+   "by_reason": {
+    "bound:max_actions": 2,
+    "not_visited": 1
+   },
+   "reached": 2,
+   "queued": 1,
+   "holes": [
+    [
+     "/",
+     "a.p3",
+     "bound:max_actions"
+    ],
+    [
+     "/p1",
+     "button.y",
+     "bound:max_actions"
+    ],
+    [
+     "/p2",
+     "button.z",
+     "not_visited"
+    ]
+   ],
+   "balanced": true,
+   "navigated_to_missing_node": []
+  },
+  "B_max_depth_0": {
+   "status": "completed",
+   "stop": "frontier empty",
+   "percent": 66,
+   "discovered": 3,
+   "exercised": 2,
+   "by_reason": {
+    "off_domain": 1
+   },
+   "reached": 1,
+   "queued": 0,
+   "holes": [
+    [
+     "/",
+     "a.ext",
+     "off_domain"
+    ]
+   ],
+   "balanced": true,
+   "navigated_to_missing_node": [
+    [
+     "a.students",
+     "node_982897b21e0a"
+    ],
+    [
+     "a.settings",
+     "node_1f72768a817a"
+    ]
+   ]
+  },
+  "B_max_depth_1": {
+   "status": "completed",
+   "stop": "frontier empty",
+   "percent": 44,
+   "discovered": 9,
+   "exercised": 4,
+   "by_reason": {
+    "off_domain": 1,
+    "policy:destructive-name deny-list": 1,
+    "policy:form submit under read_only": 1,
+    "policy:never-click pattern (logout/sign-out)": 1,
+    "unnamed": 1
+   },
+   "reached": 3,
+   "queued": 0,
+   "holes": [
+    [
+     "/",
+     "a.ext",
+     "off_domain"
+    ],
+    [
+     "/settings",
+     "button.del",
+     "policy:destructive-name deny-list"
+    ],
+    [
+     "/settings",
+     "button.save",
+     "policy:form submit under read_only"
+    ],
+    [
+     "/settings",
+     "a.out",
+     "policy:never-click pattern (logout/sign-out)"
+    ],
+    [
+     "/settings",
+     "button.icon",
+     "unnamed"
+    ]
+   ],
+   "balanced": true,
+   "navigated_to_missing_node": [
+    [
+     "a.s1",
+     "node_79940700b574"
+    ],
+    [
+     "a.s2",
+     "node_79940700b574"
+    ]
+   ]
+  },
+  "C_duplicate_selectors": {
+   "discovered": 2,
+   "exercised": 2,
+   "percent": 100,
+   "by_reason": {}
+  },
+  "D_dialog_then_abort": {
+   "discovered": 2,
+   "exercised": 1,
+   "percent": 50,
+   "by_reason": {
+    "error": 1
+   }
+  },
+  "E_errored_then_performed": {
+   "discovered": 3,
+   "exercised": 2,
+   "percent": 66,
+   "by_reason": {
+    "error": 1
+   }
+  },
+  "F_denied_then_performed_synthetic": {
+   "discovered": 1,
+   "exercised": 1,
+   "percent": 100,
+   "by_reason": {}
+  },
+  "G_zero_discovered_completed": {
+   "discovered": 0,
+   "exercised": 0,
+   "percent": 100,
+   "by_reason": {}
+  },
+  "G_zero_discovered_stopped_bound": {
+   "discovered": 0,
+   "exercised": 0,
+   "percent": 0,
+   "by_reason": {}
+  },
+  "G_zero_discovered_login_wall": {
+   "discovered": 0,
+   "exercised": 0,
+   "percent": 0,
+   "by_reason": {}
+  },
+  "G_zero_discovered_blocked_no_actions": {
+   "discovered": 0,
+   "exercised": 0,
+   "percent": 0,
+   "by_reason": {}
+  },
+  "G_zero_discovered_aborted": {
+   "discovered": 0,
+   "exercised": 0,
+   "percent": 0,
+   "by_reason": {}
+  },
+  "G_no_nodes_ABORTED": {
+   "discovered": 0,
+   "exercised": 0,
+   "percent": 0,
+   "by_reason": {}
+  },
+  "H_legacy_load": {
+   "file": "crawl.json",
+   "key_was_written": false,
+   "loaded_coverage": "None"
+  },
+  "I_corrupt_flowspec": {
+   "raised": "ValueError: C:\\Users\\Lenovo\\AppData\\Local\\Temp\\p459-ysnpyq65\\projects\\demo\\flowspec.json: 1 validation error for FlowSpec\n  Invalid ",
+   "crawl_json_status_on_disk": "running",
+   "finished_at": null
+  }
+ },
+ "probe_depth_bounded_reads_100": {
+  "max_depth_0": {
+   "status": "completed",
+   "stop": "frontier empty",
+   "screens": 1,
+   "percent": 100,
+   "summary_Coverage": "100% of controls (1 of 1)",
+   "holes": 0
+  },
+  "max_depth_6": {
+   "status": "completed",
+   "screens": 3,
+   "percent": 100,
+   "summary_Coverage": "100% of controls (3 of 3)"
+  }
+ },
+ "capability_coverage_reproduction": [
+  {
+   "row": "V7c named: drop not_visited from tally",
+   "check": "tests/test_crawl_coverage.py::test_a_crawl_with_a_small_max_actions_states_less_than_full_coverage",
+   "sabotaged": "1 failed, 1 warning in 0.51s",
+   "fired": [
+    "E   AssertionError: (c) the books must balance: exercised + every hole == discovered",
+    "    assert False",
+    "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\checker-at459-sab\\tests\\test_crawl_coverage.py:47: AssertionError: (c) the books must balance: exercised + every hole == discovered"
+   ]
+  },
+  {
+   "row": "V7c named: drop bound:* from tally",
+   "check": "tests/test_crawl_coverage.py::test_a_crawl_with_a_small_max_actions_states_less_than_full_coverage",
+   "sabotaged": "1 failed, 1 warning in 0.55s",
+   "fired": [
+    "E   AssertionError: (c) the books must balance: exercised + every hole == discovered",
+    "    assert False",
+    "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\checker-at459-sab\\tests\\test_crawl_coverage.py:47: AssertionError: (c) the books must balance: exercised + every hole == discovered"
+   ]
+  },
+  {
+   "row": "V7d uncapped",
+   "check": "tests/test_crawl_coverage.py::test_a_crawl_that_did_not_complete_never_reads_100",
+   "sabotaged": "1 failed, 1 warning in 0.40s",
+   "fired": [
+    "E   assert 100 < 100",
+    "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\checker-at459-sab\\tests\\test_crawl_coverage.py:108: assert 100 < 100"
+   ]
+  },
+  {
+   "row": "login_wall",
+   "check": "tests/test_crawl_coverage.py::test_a_refused_submit_on_a_login_wall_is_named_login_wall",
+   "sabotaged": "1 failed, 1 warning in 0.41s",
+   "fired": [
+    "E   AssertionError: assert {'policy:form...read_only': 1} == {'login_wall': 1}",
+    "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\checker-at459-sab\\tests\\test_crawl_coverage.py:119: AssertionError: assert {'policy:form...read_only': 1} == {'login_wall': 1}"
+   ]
+  },
+  {
+   "row": "queued->not_visited",
+   "check": "tests/test_crawl_coverage.py::test_a_crawl_with_a_small_max_actions_states_less_than_full_coverage",
+   "sabotaged": "1 failed, 1 warning in 0.61s",
+   "fired": [
+    "E   AssertionError: assert (2 >= 1 and 0 >= 1)",
+    "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\checker-at459-sab\\tests\\test_crawl_coverage.py:51: AssertionError: assert (2 >= 1 and 0 >= 1)"
+   ]
+  },
+  {
+   "row": "per_node cap",
+   "check": "tests/test_crawl_coverage.py::test_the_per_node_cap_is_named_when_it_leaves_controls_untried",
+   "sabotaged": "1 failed, 1 warning in 0.49s",
+   "fired": [
+    "E   AssertionError: assert 0 >= 1",
+    "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\checker-at459-sab\\tests\\test_crawl_coverage.py:71: AssertionError: assert 0 >= 1"
+   ]
+  },
+  {
+   "row": "abandoned->error",
+   "check": "tests/test_crawl_coverage.py::test_an_abandoned_screen_names_its_untried_controls_error",
+   "sabotaged": "1 failed, 1 warning in 0.31s",
+   "fired": [
+    "E   AssertionError: assert {'bound:per_n...ction_cap': 2} == {'error': 2}",
+    "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\checker-at459-sab\\tests\\test_crawl_coverage.py:126: AssertionError: assert {'bound:per_n...ction_cap': 2} == {'error': 2}"
+   ]
+  },
+  {
+   "row": "spec reached",
+   "check": "tests/test_crawl_coverage.py::test_flowspec_screens_reached_are_counted_when_a_spec_exists",
+   "sabotaged": "1 failed, 1 warning in 0.49s",
+   "fired": [
+    "E   assert (None, 2) == (1, 2)",
+    "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\checker-at459-sab\\tests\\test_crawl_coverage.py:137: assert (None, 2) == (1, 2)"
+   ]
+  },
+  {
+   "row": "persisted",
+   "check": "tests/test_crawl_coverage.py",
+   "sabotaged": "1 failed, 1 warning in 0.66s",
+   "fired": [
+    "E   assert None is not None",
+    "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\checker-at459-sab\\tests\\test_crawl_coverage.py:46: assert None is not None"
+   ]
+  },
+  {
+   "row": "page tile",
+   "check": "tests/test_crawl_coverage.py::test_the_crawl_page_shows_the_coverage_figure_and_reasons",
+   "sabotaged": "1 failed, 1 warning in 0.55s",
+   "fired": [
+    "E   AssertionError: a headline tile beside Screens/Actions, same billing as the stop (V7d)",
+    "    assert \"<div class='value'>30%</div><div class='label'>Coverage</div>\" in '<!doctype html><title>Crawl crawl_01M2PP3YHZH562XR7VXWRQFJ47 \u2014 AutoTester</title>\\n<link rel=\"preconnect\" href=\"https...+00:00</td></tr><tr><th>Finished</th><td>2026-09-17T03:21:14.656165+00:00</td></tr></tbody></table></div></main></div>'",
+    "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\checker-at459-sab\\tests\\test_crawl_coverage.py:159: AssertionError: a headline tile beside Screens/Actions, same billing as the stop (V7d)"
+   ]
+  },
+  {
+   "row": "unreached sheet",
+   "check": "tests/test_crawl_coverage.py::test_the_workbook_has_the_figure_and_an_unreached_sheet",
+   "sabotaged": "1 failed, 1 warning in 0.78s",
+   "fired": [
+    "E   AssertionError: assert 0 == 7",
+    "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\checker-at459-sab\\tests\\test_crawl_coverage.py:174: AssertionError: assert 0 == 7"
+   ]
+  },
+  {
+   "row": "not recorded",
+   "check": "tests/test_crawl_coverage.py::test_a_crawl_recorded_before_coverage_says_so_instead_of_inventing_a_number",
+   "sabotaged": "1 failed, 1 warning in 0.48s",
+   "fired": [
+    "E   assert 'not recorded' in '<!doctype html><title>Crawl crawl_old \u2014 AutoTester</title>\\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" c...>0</td></tr><tr><th>Started</th><td>\u2014</td></tr><tr><th>Finished</th><td>\u2014</td></tr></tbody></table></div></main></div>'",
+    "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\checker-at459-sab\\tests\\test_crawl_coverage.py:190: assert 'not recorded' in '<!doctype html><title>Crawl crawl_old \u2014 AutoTester</title>\\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" c...>0</td></tr><tr><th>Started</th><td>\u2014</td></tr><tr><th>Finished</th><td>\u2014</td></tr></tbody></table></div></main></div>'"
+   ]
+  },
+  {
+   "restored_green": "11 passed, 1 warning in 1.35s"
+  }
+ ]
+}
