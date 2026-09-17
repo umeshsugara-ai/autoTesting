@@ -1,0 +1,167 @@
+{
+ "unit": "at458-crawl-stuck-at-login-never-completed",
+ "cycle_checked": 3,
+ "date": "2026-09-17",
+ "checker": "Mode D, headed Playwright Python (Chromium), own driver",
+ "targets": [
+  "http://127.0.0.1:8769",
+  "http://127.0.0.1:8770",
+  "http://127.0.0.1:8066"
+ ],
+ "root": "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\claude\\d--autoTesting\\a8e8ef26-6b21-4ba0-bdc6-003d450b9016\\scratchpad\\at458c3_root",
+ "steps": [
+  {
+   "tag": "01-no-login-wall",
+   "project": "loginprobe",
+   "login_case": null,
+   "crawl_id": "crawl_01M2PMN25M7HT0B6J1ZE4PFCMG",
+   "login_notice": "Login for crawls\n\nNo login case declared. A crawl will only see pages a signed-out visitor can open \u2014 for a product behind a login, that is the login page alone.\n\nLog in first with\nNo login \u2014 the prod",
+   "crawl_json_status": "login_wall",
+   "stop_reason": "stopped at a login wall: every screen reached only offers a form submit denied by read_only, and no link led anywhere else -- declare a login case to crawl past it",
+   "actions": 2,
+   "denied": 1,
+   "screens": [
+    [
+     "/login.html",
+     "6e8bcddd7f1e"
+    ]
+   ],
+   "page_pill_html": "<span class=\"badge badge-blocked\">login_wall</span> \u00b7 stopped: <span class=\"badge badge-blocked\">stopped at a login wall: every screen reached only offers a form submit denied by read_only, and no link led anywhere else -- declare a login case to crawl past it</span> \u00b7 policy <span class=\"badge badge-inconclusive\">read_only</span>",
+   "table_row_has_badge_pass": false,
+   "page_has_badge_pass": false,
+   "console_errors": [],
+   "result": "PASS"
+  },
+  {
+   "tag": "02-wrong-password",
+   "project": "loginprobe",
+   "login_case": "Wrong password",
+   "crawl_id": "crawl_01M2PMN72ESD14RT3MYCAJXFT4",
+   "login_notice": "Login for crawls\n\n\u2713 LOGS IN FIRST Crawls log in with Wrong password before exploring.\n\nLog in first with\nNo login \u2014 the product is public\nWrong password\nCorrect login\nSave login for crawls",
+   "crawl_json_status": "login_failed",
+   "stop_reason": "the login case ran, but every screen reached was still the login page (/login.html) -- check the login case's steps and the credentials it uses",
+   "actions": 2,
+   "denied": 1,
+   "screens": [
+    [
+     "/login.html",
+     "6e8bcddd7f1e"
+    ]
+   ],
+   "page_pill_html": "<span class=\"badge badge-blocked\">login_failed</span> \u00b7 stopped: <span class=\"badge badge-blocked\">the login case ran, but every screen reached was still the login page (/login.html) -- check the login case's steps and the credentials it uses</span> \u00b7 policy <span class=\"badge badge-inconclusive\">read_only</span>",
+   "table_row_has_badge_pass": false,
+   "page_has_badge_pass": false,
+   "console_errors": [],
+   "result": "PASS"
+  },
+  {
+   "tag": "03-correct-login",
+   "project": "loginprobe",
+   "login_case": "Correct login",
+   "crawl_id": "crawl_01M2PMNE4ENPCVMAQWY8QG9ZTV",
+   "login_notice": "Login for crawls\n\n\u2713 LOGS IN FIRST Crawls log in with Correct login before exploring.\n\nLog in first with\nNo login \u2014 the product is public\nWrong password\nCorrect login\nSave login for crawls",
+   "crawl_json_status": "completed",
+   "stop_reason": "frontier empty",
+   "actions": 6,
+   "denied": 1,
+   "screens": [
+    [
+     "/app/dashboard.html",
+     "a0d6dde3798b"
+    ],
+    [
+     "/app/orders.html",
+     "8a3f0f973ecb"
+    ],
+    [
+     "/app/profile.html",
+     "fec336db597b"
+    ],
+    [
+     "/app/order-1001.html",
+     "152bbe70c560"
+    ]
+   ],
+   "page_pill_html": "<span class=\"badge badge-pass\">completed</span> \u00b7 stopped: <span class=\"badge badge-pass\">frontier empty</span> \u00b7 policy <span class=\"badge badge-inconclusive\">read_only</span>",
+   "table_row_has_badge_pass": true,
+   "page_has_badge_pass": true,
+   "console_errors": [],
+   "result": "PASS"
+  },
+  {
+   "tag": "04-own-spa-one-state-correct-login",
+   "project": "spaok",
+   "login_case": "SPA correct login",
+   "crawl_id": "crawl_01M2PMP6MMJ4E6P1YRVN3DK6C1",
+   "login_notice": "Login for crawls\n\n\u2713 LOGS IN FIRST Crawls log in with SPA correct login before exploring.\n\nLog in first with\nNo login \u2014 the product is public\nSPA correct login\nSave login for crawls",
+   "crawl_json_status": "completed",
+   "stop_reason": "frontier empty",
+   "actions": 1,
+   "denied": 0,
+   "screens": [
+    [
+     "/app.html",
+     "ffc077940906"
+    ]
+   ],
+   "page_pill_html": "<span class=\"badge badge-pass\">completed</span> \u00b7 stopped: <span class=\"badge badge-pass\">frontier empty</span> \u00b7 policy <span class=\"badge badge-inconclusive\">read_only</span>",
+   "table_row_has_badge_pass": true,
+   "page_has_badge_pass": true,
+   "console_errors": [],
+   "result": "PASS"
+  },
+  {
+   "tag": "05-own-spa-wrong-password",
+   "project": "spabad",
+   "login_case": "SPA wrong password",
+   "crawl_id": "crawl_01M2PMPC951SPSG3B2EHJWV9AK",
+   "login_notice": "Login for crawls\n\n\u2713 LOGS IN FIRST Crawls log in with SPA wrong password before exploring.\n\nLog in first with\nNo login \u2014 the product is public\nSPA wrong password\nSave login for crawls",
+   "crawl_json_status": "login_failed",
+   "stop_reason": "the login case ran, but every screen reached was still the login page (/app.html) -- check the login case's steps and the credentials it uses",
+   "actions": 0,
+   "denied": 3,
+   "screens": [
+    [
+     "/app.html",
+     "2285ebd6e7af"
+    ]
+   ],
+   "page_pill_html": "<span class=\"badge badge-blocked\">login_failed</span> \u00b7 stopped: <span class=\"badge badge-blocked\">the login case ran, but every screen reached was still the login page (/app.html) -- check the login case's steps and the credentials it uses</span> \u00b7 policy <span class=\"badge badge-inconclusive\">read_only</span>",
+   "table_row_has_badge_pass": false,
+   "page_has_badge_pass": false,
+   "console_errors": [],
+   "result": "PASS"
+  },
+  {
+   "tag": "06-probe-sticky-banner-wrong-password-informational",
+   "project": "spasticky",
+   "login_case": "SPA sticky wrong password",
+   "crawl_id": "crawl_01M2PMPS1Q7TF1B3S2Z0BC9WF9",
+   "login_notice": "Login for crawls\n\n\u2713 LOGS IN FIRST Crawls log in with SPA sticky wrong password before exploring.\n\nLog in first with\nNo login \u2014 the product is public\nSPA sticky wrong password\nSave login for crawls",
+   "crawl_json_status": "completed",
+   "stop_reason": "frontier empty",
+   "actions": 1,
+   "denied": 3,
+   "screens": [
+    [
+     "/app.html",
+     "3076a910ac12"
+    ]
+   ],
+   "page_pill_html": "<span class=\"badge badge-pass\">completed</span> \u00b7 stopped: <span class=\"badge badge-pass\">frontier empty</span> \u00b7 policy <span class=\"badge badge-inconclusive\">read_only</span>",
+   "table_row_has_badge_pass": true,
+   "page_has_badge_pass": true,
+   "console_errors": [],
+   "result": "PASS"
+  }
+ ],
+ "console": {
+  "01-no-login-wall": 0,
+  "02-wrong-password": 0,
+  "03-correct-login": 0,
+  "04-own-spa-one-state-correct-login": 0,
+  "05-own-spa-wrong-password": 0,
+  "06-probe-sticky-banner-wrong-password-informational": 0
+ },
+ "servers_stopped": true
+}

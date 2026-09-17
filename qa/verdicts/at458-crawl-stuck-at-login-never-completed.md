@@ -136,3 +136,94 @@ N1 is load-bearing for the test it names, but the test pins a two-node graph. A 
 - AT-462 stays **open**, with a `cycle2_recheck` note added to its row. `qa/issues.jsonl` is **not committed**: it holds other sessions' uncommitted hunks.
 - AT-458 stays open. Fix cycle 3 of 3 remains.
 - **Push HELD:** `origin/master..HEAD` carries another session's unverified AT-419 commits.
+
+## Cycle 3
+
+**Date:** 2026-09-17
+**Checker:** /checker Mode A + Mode D (fresh subagent, bound to `D:\autoTesting`)
+**Manifest:** `qa/manifests/at458-crawl-stuck-at-login-never-completed.md` (Fix cycle 3 of 3)
+**Cycle checked: 3**
+
+```
+VERDICT: PASS
+SCOREBOARD: 4/4 criteria met (X18 a, b, c, d), 6/6 invariants hold (X3 screen identity now respected by (a); X10 bootstrap still types only via run_case; X16 surfaces unchanged and still load-bearing)
+FAILURES (if any):
+- none
+CAPABILITY-COVERAGE: 7/7 rows reproduced (manifest N3, N4, M1, M2, N2 + checker-own X1 observe->None and N5-pin), baseline 26 passed in the copy and green after every restore; M3-M9 not re-run (cycle 3 did not touch those files; cycles 1 and 2 reproduced them)
+LIVE-BROWSER: qa/evidence/browser-at458-crawl-stuck-at-login-never-completed-2026-09-17-checker-c3/report.json (5/5 required steps PASS + 1 informational probe; 0 console errors on all 6; servers stopped, browser closed)
+ISSUES-WRITTEN: AT-458 -> fixed, AT-462 -> fixed, AT-467 (new, medium: the disclosed sticky-banner under-fire, needs a contract decision)
+EXPLANATION: The cycle-2 failure is really fixed. (a) now compares every node against the login template AND the signature observed on the login page before the case types, so a working single-page-app login whose dashboard is one state at the same url reads COMPLETED (live, on my own fixture), while a wrong password still reads LOGIN_FAILED (live, on both fixtures). Re-inserting the cycle-2 signature-count logic turns the live SPA test red, so that test is not vacuous. The disclosed under-fire, where a failed login leaves a persistent control on the login page and reads COMPLETED, reproduces live. X18(a) as written only demands LOGIN_FAILED when no screen other than the login start screen is reached, and under X3 a different signature is a different screen, so it is filed as AT-467 for a contract decision and not charged.
+```
+
+## What was re-run (cycle 3)
+
+- **Bound tree:**
+  - The 4 named files (login_wall, crawl_status_surfaces, blocked, login_spa_live) gave **26 passed**, matching the manifest.
+  - The 8-file set plus the SPA live file gave **85 passed**.
+  - `ruff check src tests scripts` gave All checks passed!, and `autotester doctor` gave doctor: clean.
+  - `explore.py` is 299 lines and `explore_status.py` is 129 lines.
+  - The checker did NOT re-run the full suite.
+- **Throwaway copy `scratchpad/checker-at458c3`:**
+  - Built with `git archive HEAD`. Projects erp, pathlynks and vidysea-erp were deleted at once, leaving only `regression-demo`.
+  - All 14 unit files were copied in and are cmp-identical, including `tests/fixtures/spa_login_site/index.html`.
+  - `uv sync` ran, and the `explore_status`, `explore` and `crawl_view` `__file__` paths all resolve inside the copy.
+  - The harness's Python restore rewrote files with CRLF endings. I re-copied them from the bound tree, re-asserted cmp-identical, and re-greened the copy (14 passed) before Mode D.
+
+## Capability coverage (checker harness: anchor count == 1, baseline exit 0 asserted, restore in `finally`, green re-asserted)
+
+| Row | Edit | Result |
+|---|---|---|
+| N3: cycle-2 logic re-inserted | comparison line -> `{templates} != {template} or len({signatures}) != 1` | **3 failed**: the one-state SPA unit test, the unobserved-signature test, and the **live** `test_a_correct_login_on_a_single_page_app_is_not_login_failed`. The manifest said 2; the extra red is the None test. |
+| N4: signature never recorded | `explore.py`: delete `rt.login_signature = explore_status.observed_signature(...)` | **2 failed**: the fake-crawl never_leaves_the_login_page test and the **live** wrong-password SPA test |
+| M1: X18 Verify | delete the (a)+(b) block in `terminal_status` | **5 failed**: followable-link-back, never-leaves-login, every-screen-is-observed-login, login-gate (blocked.py), live wrong-password SPA |
+| M2: (a) never fires | comparison line -> `if True:` | **3 failed**: never-leaves-login, every-screen-is-observed-login, live wrong-password SPA |
+| N2: placeholder | `if step is None or PLACEHOLDER_RE...` -> `if step is None:` | **1 failed**: the placeholder test |
+| X1 (checker's own): observation silently broken | `observed_signature` returns None | **2 failed**, the same two as N4, so a broken recording cannot hide |
+| N5 pin (checker's own) | `n.signature != login_signature` -> `(login_signature is not None and n.signature != login_signature)`, which makes a None signature get judged | **1 failed**: `test_an_unobserved_login_screen_is_never_judged_failed` (`LOGIN_FAILED is COMPLETED`), so the behaviour stays pinned after the early-return guard was removed |
+
+## Judgements asked for
+
+- **X10 / AT-226.**
+  - The signature is recorded in `_already_past_login` after goto+settle, only on the not-redirected branch, and before `run_case`.
+  - `observe()` only reads url, title and the enumerated elements. Nothing is typed.
+  - The redirect branch still returns True before recording. The exception branches still return False and set `login_precheck_error`. The return values are unchanged.
+  - `test_explore_login_bypass.py` passed within the 85.
+- **observed_signature raising or returning None.**
+  - `except Exception` returns None, and a None signature never equals a node's, so (a) is not judged and the crawl falls through to the other checks. It cannot crash; it can only under-fire.
+  - LOGIN_FAILED needs every node to match both the login template and the exact pre-typing structure. A working login cannot produce that unless the product shows the login form again.
+- **Disclosed under-fire (1).**
+  - Reproduced live in step 06: with a persistent "Login failed [Dismiss]" banner, a wrong password gives `completed`, coloured green.
+  - X18(a) as written requires "no screen other than the login case's own start screen". Under X3 a screen is template + signature, and the banner page has a different signature. As written, this is **not a failure**.
+  - It is still a false green that the X18 title's intent arguably covers. I filed it as **AT-467** (medium) for a contract decision instead of charging it on the last cycle.
+- **Is the live SPA test non-vacuous?** Yes. N3 turns the correct-login live test red, and N4, M1, M2 and X1 each turn the wrong-password live test red.
+
+## Mode D (my own headed Playwright Python, Chromium; LOCAL 127.0.0.1 only; synthetic data)
+
+**Setup:**
+- `tests/fixtures/login_site` was served from the copy on :8769.
+- **My own SPA fixture**, `scratchpad/spa_fixture_c3/app.html`, is outside the repo and differs from the maker's. It runs on :8770 at one url:
+  - signed out: a "Welcome" login form;
+  - signed in: an "Overview" with exactly one control ("Export report");
+  - `?sticky=1`: a failed-login banner with a Dismiss button that persists.
+- The UI ran from the copy on :8066 with a fresh AUTOTESTER_ROOT (`scratchpad/at458c3_root`), seeded through ProjectStore with projects loginprobe, spaok, spabad and spasticky. Each project has its own CRAWL approval and synthetic login cases.
+- Each login case was chosen through the real "Login for crawls" select, and each crawl was started from the real Explore form.
+
+**Steps:**
+- **01** login_site, no login -> `login_wall` (actions 2, denied 1), no badge-pass on the page or the row. PASS.
+- **02** login_site, wrong password -> `login_failed`, "still the login page (/login.html)", non-success. PASS.
+- **03** login_site, correct login -> `completed`, badge-pass on the page and the row, 4 screens behind the login (/app/dashboard, orders, profile, order-1001). PASS.
+- **04** own SPA, correct login -> **`completed`**, badge-pass. One node, /app.html, sig ffc077940906; the screenshot shows the dashboard with 0 refused. The cycle-2 logic would have called this login_failed. PASS.
+- **05** own SPA, wrong password -> **`login_failed`**, "still the login page (/app.html)", node sig 2285ebd6e7af, non-success. PASS.
+- **06** (informational) own SPA ?sticky=1, wrong password -> `completed`, green. This is the AT-467 under-fire.
+
+**Console and cleanup:**
+- Console errors: 0 on every step.
+- One earlier attempt aborted before any browser action, on a driver typo: the wait URL named index.html instead of app.html. I deleted the root and repeated the full run fresh.
+- Servers stopped (`servers_stopped: true`, no listeners left on 8769/8770/8066), and the browser was closed.
+
+## Ledger / goal / push
+
+- In `qa/issues.jsonl`, AT-458 and AT-462 are now `fixed` (fixed_date 2026-09-17, cycle3_recheck note), and AT-467 was appended. **The file is not committed:** it holds other sessions' uncommitted hunks.
+- No goal task matches this unit, so there is no goal close.
+- The checker does not commit the unit's code; the maker closes it out.
+- **Push HELD:** `origin/master..HEAD` carries another session's unverified AT-419 commits.
