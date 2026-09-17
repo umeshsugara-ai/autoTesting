@@ -1,0 +1,14 @@
+KILLED  AT-496's coverage survived the move: a lost row is no longer reported  (pytest exit 1)
+    claims to kill : tests/test_ledger_checks.py::test_an_issue_a_manifest_names_must_still_have_a_ledger_row, tests/test_ledger_checks.py::test_an_issue_a_verdict_wrote_must_still_have_a_ledger_row
+    actually failed: tests/test_ledger_checks.py::test_a_decorated_marker_line_is_still_a_marker_line[  - ISSUES-WRITTEN: AT-900], tests/test_ledger_checks.py::test_a_decorated_marker_line_is_still_a_marker_line[## ISSUES-WRITTEN: AT-900], tests/test_ledger_checks.py::test_a_decorated_marker_line_is_still_a_marker_line[**ISSUES-WRITTEN:** AT-900], tests/test_ledger_checks.py::test_a_decorated_marker_line_is_still_a_marker_line[ISSUES-WRITTEN: AT-900], tests/test_ledger_checks.py::test_a_letter_suffixed_id_is_an_id_too[AT-900], tests/test_ledger_checks.py::test_a_letter_suffixed_id_is_an_id_too[AT-900b], tests/test_ledger_checks.py::test_an_issue_a_manifest_names_must_still_have_a_ledger_row, tests/test_ledger_checks.py::test_an_issue_a_verdict_wrote_must_still_have_a_ledger_row
+KILLED  AT-500's coverage survived: the id pattern loses its letter suffix  (pytest exit 1)
+    claims to kill : tests/test_ledger_checks.py::test_a_letter_suffixed_id_is_an_id_too[AT-900b], tests/test_ledger_checks.py::test_a_letter_suffixed_id_is_read_on_both_sides_of_the_comparison[AT-900b]
+    actually failed: tests/test_ledger_checks.py::test_a_letter_suffixed_id_is_an_id_too[AT-900b], tests/test_ledger_checks.py::test_a_letter_suffixed_id_is_read_on_both_sides_of_the_comparison[AT-900b]
+KILLED  AT-504's coverage survived: the substring test comes back  (pytest exit 1)
+    claims to kill : tests/test_ledger_checks.py::test_a_line_opening_with_the_marker_in_backticks_is_not_a_claim
+    actually failed: tests/test_ledger_checks.py::test_a_line_opening_with_the_marker_in_backticks_is_not_a_claim, tests/test_ledger_checks.py::test_prose_that_quotes_the_marker_is_not_a_claim[none of them sits on a `**Issues addressed:**` line, so AT-900 is invisible], tests/test_ledger_checks.py::test_prose_that_quotes_the_marker_is_not_a_claim[on manifest `**Issues addressed:**` lines: AT-900 (at900-thing.md)]
+KILLED  the split's OWN risk: run() stops calling the record rules at all  (pytest exit 1)
+    claims to kill : tests/test_ledger.py::test_doctor_run_reports_a_broken_ledger_without_a_traceback
+    actually failed: tests/test_ledger.py::test_doctor_run_reports_a_broken_ledger_without_a_traceback
+
+4/4 mutations killed

@@ -358,3 +358,33 @@ src/autotester/ui/env_editor.py; tests/test_ui_project_intake.py; docs/ARCHITECT
 instructed autonomous maker-checker execution through commit, push and live-browser validation.
 **Links:** D-023; D-024; T-161; T-162; qa/contracts/core-invariants.md;
 qa/contracts/browser-and-secrets.md; qa/contracts/ui.md
+
+## D-026 | 2026-09-18 | type: decision | status: ACTIVE
+**What:** `doctor`'s checks are split by what they read. `src/autotester/doctor.py` keeps the rules
+over SOURCE -- line caps, function length, banned filenames, root clutter, duplicated concepts --
+plus `Violation` and `run()`. The rules over the project's own RECORDS -- `check_ledger` and
+`check_qa_issue_rows`, with `ISSUE_ID`, `_MARKER_LEAD` and `_is_marker_line` -- move to a new module
+`src/autotester/ledger/checks.py`, inside the existing `ledger` package rather than as a new
+top-level concept. `run()` imports them function-locally, the idiom `doctor.py` already used for
+`ledger.render` and `ledger.store`, so no import cycle is created by `checks.py` importing
+`Violation`. Behaviour is unchanged; the split is the whole change.
+**Why:** Three consecutive units (AT-496, AT-500, AT-504) grew `doctor.py` from 264 to 287 lines
+against C2's 300-line cap, and all three landed in the record-rules half. `doctor` itself would not
+have said a word until 301, so the file was one ordinary unit away from failing its own rule with
+no warning -- the checker filed AT-506 for exactly this. The seam is real rather than arithmetic:
+the two halves read different trees (`src/` and `tests/` versus `docs/FEATURES.jsonl` and `qa/`)
+and answer different questions (did the code stay readable, versus did the project's account of
+itself stay true). Splitting on a line count alone would have been drift with a cap for an excuse.
+**Result:** `doctor.py` 287 -> 204 lines, `ledger/checks.py` 105, `tests/test_doctor.py` 282 -> 133,
+new `tests/test_ledger_checks.py` 165 -- every file with real headroom. Behaviour proved identical
+by a fingerprint of both checks over the live `qa/` corpus AND over a copy with five ledger rows
+deleted (11 violations across 11 artifacts), byte-identical before and after. The mutation coverage
+of the three units that built these rules is proved to have survived the move by re-running their
+falsifying edits against the new module path; the closed units' own evidence files are deliberately
+NOT rewritten, because they document what was verified at the commit they were verified at.
+**Changes-authorized:** src/autotester/doctor.py; src/autotester/ledger/checks.py;
+tests/test_doctor.py; tests/test_ledger_checks.py; tests/test_ledger.py; docs/MAP.md (generated);
+docs/ARCHITECTURE.md (the concept-to-file map row for design enforcement, line 46 -- so it no
+longer names doctor.py as the home of ledger validity); qa/manifests/at506-record-rules-leave-the-
+source-rules.md.
+**Links:** AT-506; AT-496; AT-500; AT-504; AT-488; AT-502; qa/contracts/core-invariants.md (C2, C10)

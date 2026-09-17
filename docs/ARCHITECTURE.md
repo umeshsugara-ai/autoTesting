@@ -43,7 +43,7 @@ the previous stage's artifact. A stage never reaches into another stage's intern
 | Persistence: atomic JSON/JSONL primitives + the per-project artifact facade | `store/filestore.py`, `store/project_store.py::ProjectStore` |
 | Pathlynks: onboarding (login + knowledge.md) and the first real best/worst/edge run | `scripts/onboard_pathlynks.py`, `scripts/run_pathlynks_first_cases.py` |
 | Model calls (vision / agent / judge) | `providers/base.py::Provider` + registry in `providers/__init__.py` |
-| Design enforcement (incl. generated-doc freshness, ledger validity, router) | `doctor.py` |
+| Design enforcement — rules over SOURCE (line caps, function length, duplicate concepts, root clutter), generated-doc freshness, router | `doctor.py`; rules over the project's RECORDS (ledger validity, qa/ handshake issue rows) in `ledger/checks.py` |
 | Commands | `cli.py` |
 | Feature ledger rows (`docs/FEATURES.jsonl`) — the only write path | `ledger/store.py` |
 | Derived docs: generated sections of this file, `docs/SNAPSHOT.md`, decision index | `ledger/render.py` |

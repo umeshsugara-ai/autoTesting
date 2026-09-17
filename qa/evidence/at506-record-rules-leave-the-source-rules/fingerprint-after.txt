@@ -1,0 +1,14 @@
+--- live tree, check_qa_issue_rows: 0 ---
+--- live tree, check_ledger: 0 ---
+--- damaged copy (5 rows dropped): 11 ---
+ledger-row-lost|qa/manifests/at298-migration-host-guard.md|AT-298b is named here but has no row in qa/issues.jsonl
+ledger-row-lost|qa/manifests/at401-flake-probe-runs-are-bounded.md|AT-401 is named here but has no row in qa/issues.jsonl
+ledger-row-lost|qa/manifests/at487-pytest-runs-are-bounded.md|AT-401 is named here but has no row in qa/issues.jsonl
+ledger-row-lost|qa/manifests/at494-probe-output-is-a-file-not-a-pipe.md|AT-494 is named here but has no row in qa/issues.jsonl
+ledger-row-lost|qa/manifests/at500-a-letter-suffixed-id-is-an-id.md|AT-500 is named here but has no row in qa/issues.jsonl
+ledger-row-lost|qa/manifests/t135-coverage-merge-expand.md|AT-297b is named here but has no row in qa/issues.jsonl
+ledger-row-lost|qa/verdicts/at401-flake-probe-runs-are-bounded.md|AT-494 is named here but has no row in qa/issues.jsonl
+ledger-row-lost|qa/verdicts/at496-the-ledger-never-loses-a-row.md|AT-500 is named here but has no row in qa/issues.jsonl
+ledger-row-lost|qa/verdicts/at500-a-letter-suffixed-id-is-an-id.md|AT-500 is named here but has no row in qa/issues.jsonl
+ledger-row-lost|qa/verdicts/t135-coverage-merge-expand.b.md|AT-297b is named here but has no row in qa/issues.jsonl
+ledger-row-lost|qa/verdicts/t135-coverage-merge-expand.b.md|AT-298b is named here but has no row in qa/issues.jsonl

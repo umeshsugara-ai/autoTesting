@@ -26,6 +26,7 @@
 | `core/redact.py` | Secret redaction. Every log line and stored artifact passes through here. |
 | `core/urls.py` | URL templating: the identity input a crawled screen shares with the |
 | `doctor.py` | Design enforcement. Runs the rules that keep this repo readable. |
+| `ledger/checks.py` | Design rules over the project's RECORDS, as opposed to its source files. |
 | `ledger/relitigation.py` | The cyclic-rebuild gate: is this new unit a retired feature coming back? |
 | `ledger/render.py` | Derive the living docs from code and the ledger. Nothing here is hand-typed. |
 | `ledger/store.py` | Read and append `docs/FEATURES.jsonl`. The only write path to the ledger. |

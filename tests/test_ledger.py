@@ -223,11 +223,11 @@ def test_duplicate_id_pasted_by_hand_is_rejected_at_load(tmp_path: Path) -> None
 
 
 def test_doctor_reports_a_broken_ledger_instead_of_raising(tmp_path: Path) -> None:
-    from autotester import doctor
+    from autotester.ledger import checks
 
     docs = make_docs(tmp_path)
     docs.features.write_text("{not json\n", encoding="utf-8")
-    found = doctor.check_ledger(tmp_path)
+    found = checks.check_ledger(tmp_path)
     assert [v.rule for v in found] == ["ledger-invalid"]
 
 

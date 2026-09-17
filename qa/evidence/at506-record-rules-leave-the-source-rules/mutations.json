@@ -1,0 +1,48 @@
+{
+  "tests": [
+    "tests/test_ledger_checks.py",
+    "tests/test_doctor.py",
+    "tests/test_ledger.py"
+  ],
+  "timeout_s": 900,
+  "mutations": [
+    {
+      "name": "AT-496's coverage survived the move: a lost row is no longer reported",
+      "old": "            out += [Violation(\"ledger-row-lost\", subject,",
+      "new": "            out += [Violation(\"ledger-row-fine\", subject,",
+      "kills": [
+        "tests/test_ledger_checks.py::test_an_issue_a_manifest_names_must_still_have_a_ledger_row",
+        "tests/test_ledger_checks.py::test_an_issue_a_verdict_wrote_must_still_have_a_ledger_row"
+      ],
+      "file": "src/autotester/ledger/checks.py"
+    },
+    {
+      "name": "AT-500's coverage survived: the id pattern loses its letter suffix",
+      "old": "ISSUE_ID = r\"AT-\\d+[a-z]?\"",
+      "new": "ISSUE_ID = r\"AT-\\d+\"",
+      "kills": [
+        "tests/test_ledger_checks.py::test_a_letter_suffixed_id_is_an_id_too[AT-900b]",
+        "tests/test_ledger_checks.py::test_a_letter_suffixed_id_is_read_on_both_sides_of_the_comparison[AT-900b]"
+      ],
+      "file": "src/autotester/ledger/checks.py"
+    },
+    {
+      "name": "AT-504's coverage survived: the substring test comes back",
+      "old": "    return _MARKER_LEAD.sub(\"\", line).startswith(marker.strip(\"*\"))",
+      "new": "    return marker in line",
+      "kills": [
+        "tests/test_ledger_checks.py::test_a_line_opening_with_the_marker_in_backticks_is_not_a_claim"
+      ],
+      "file": "src/autotester/ledger/checks.py"
+    },
+    {
+      "name": "the split's OWN risk: run() stops calling the record rules at all",
+      "old": "                  check_ledger, check_qa_issue_rows, check_generated_fresh,",
+      "new": "                  check_generated_fresh,",
+      "kills": [
+        "tests/test_ledger.py::test_doctor_run_reports_a_broken_ledger_without_a_traceback"
+      ],
+      "file": "src/autotester/doctor.py"
+    }
+  ]
+}
