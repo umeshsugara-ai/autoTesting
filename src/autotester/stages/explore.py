@@ -71,6 +71,7 @@ class ExploreRuntime:
     distinct from a genuine "not yet authenticated" `False` (diagnostic only)."""
     login_signature: str | None = None
     """X18(a)/AT-462: the login screen's structure, observed before the case typed."""
+    login_observe_error: str | None = None  # AT-474: observed_signature()'s error, if any
     return_error: str | None = None
     """Why the most recent `return_to` failed. Scratch, not persisted — it is
     read straight into the issue text at the failure site (AT-108)."""
@@ -123,10 +124,9 @@ def _bootstrap_login(rt: ExploreRuntime, case: Case) -> bool:
 
 def _already_past_login(rt: ExploreRuntime, login_url: str) -> bool:
     """Navigate to the case's login page; report whether the app redirected away
-    (AT-226). Still there → record the login screen's signature for X18(a).
-
+    (AT-226). Still there -> record the login screen's signature for X18(a).
     AT-273: a nav failure must not read as a genuine "not yet authenticated"
-    `False` — it is still the safe fallback, but its CAUSE is kept."""
+    `False` -- it is still the safe fallback, but its CAUSE is kept."""
     try:
         rt.session.goto(login_url)
         rt.session.settle(timeout_ms=rt.bounds.settle_ms)
@@ -138,7 +138,8 @@ def _already_past_login(rt: ExploreRuntime, login_url: str) -> bool:
         return False
     if urlparse(rt.session.current_url()).path != urlparse(login_url).path:
         return True
-    rt.login_signature = explore_status.observed_signature(rt.session)  # AT-462
+    rt.login_signature, rt.login_observe_error = explore_status.observed_signature(rt.session)
+    explore_node.record_login_observe_failure(rt, rt.login_observe_error)
     return False
 
 
@@ -202,11 +203,10 @@ def _terminal_status(rt: ExploreRuntime, completed: bool, login_case: Case | Non
         completed=completed, actions_used=rt.frontier.actions_used, denied=rt.denied,
         nodes=list(rt.nodes.values()), edges=rt.store.list_edges(rt.crawl.id),
         login_case=login_case, login_signature=rt.login_signature,
+        login_observe_error=rt.login_observe_error, current_stop_reason=rt.stop_reason,
     )
     if reason is not None:
         rt.stop_reason = reason
-    elif status is CrawlStatus.BLOCKED_NO_ACTIONS:
-        rt.stop_reason = f"{rt.stop_reason} -- every reachable action was denied by policy"
     return status
 
 

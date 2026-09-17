@@ -31,14 +31,14 @@ from autotester.store.project_store import ProjectStore
 SITE = Path(__file__).resolve().parent / "fixtures" / "spa_login_site"
 
 
-def _crawl(tmp_path: Path, base: str, password: str) -> Crawl:
+def _crawl(tmp_path: Path, base: str, password: str, *, sticky: bool = False) -> Crawl:
     sync_api = pytest.importorskip("playwright.sync_api")
     try:  # decide "no browser" before the crawl, so a real failure never reads as a skip
         with sync_api.sync_playwright() as pw:
             pw.chromium.launch(headless=True).close()
     except Exception as exc:  # pragma: no cover - browser binary missing
         pytest.skip(f"chromium unavailable: {type(exc).__name__}")
-    url = f"{base}/index.html"
+    url = f"{base}/index.html" + ("?sticky=1" if sticky else "")
     project = Project(slug="spa", name="SPA", base_url=url, allowed_domains=["127.0.0.1"],
                       headed=False)
     paths = ProjectPaths("spa", tmp_path)
@@ -84,3 +84,15 @@ def test_a_wrong_password_on_a_single_page_app_is_login_failed(
 
     assert crawl.status is CrawlStatus.LOGIN_FAILED, crawl.stop_reason
     assert crawl.stop_reason is not None and "login page" in crawl.stop_reason
+
+
+def test_a_wrong_password_with_a_sticky_error_banner_is_still_login_failed(
+    tmp_path: Path, serve_dir: Callable[[Path], str],
+) -> None:
+    """AT-467, live: a wrong password that leaves a persistent Dismiss control visible
+    changes the page's structural signature against a REAL DOM (the fake-site unit test
+    proves the logic; this proves the same fixture family under a real browser). The
+    fill-target fallback must still call it LOGIN_FAILED."""
+    crawl = _crawl(tmp_path, serve_dir(SITE), password="nope", sticky=True)
+
+    assert crawl.status is CrawlStatus.LOGIN_FAILED, crawl.stop_reason
