@@ -1,0 +1,478 @@
+{
+ "unit": "at458-crawl-stuck-at-login-never-completed",
+ "date": "2026-09-17",
+ "checker": "Mode D",
+ "instrument": "Playwright Python (sync API), Chromium HEADED for the UI; crawl engine browser headless per project.headed=False",
+ "targets": {
+  "ui": "http://127.0.0.1:8064",
+  "fixture": "http://127.0.0.1:8766 (tests/fixtures/login_site from checker copy)"
+ },
+ "data": "synthetic project 'wallprobe' in scratch AUTOTESTER_ROOT; no real project, no .env",
+ "steps": [
+  {
+   "step": "1a notice: no login case declared before crawl",
+   "ok": true
+  },
+  {
+   "step": "1b crawl page status pill login_wall, non-success colour",
+   "ok": true,
+   "crawl_id": "crawl_01M2PJ86189BAJQW6XZSC2HGVS",
+   "pills": [
+    [
+     "login_wall",
+     "badge badge-blocked"
+    ],
+    [
+     "stopped at a login wall: every screen reached only offers a form submit denied by read_only, and no link led anywhere else -- declare a login case to crawl past it",
+     "badge badge-blocked"
+    ],
+    [
+     "read_only",
+     "badge badge-inconclusive"
+    ],
+    [
+     "explored",
+     "badge badge-pass"
+    ],
+    [
+     "denied_policy",
+     "badge badge-blocked"
+    ]
+   ]
+  },
+  {
+   "step": "1c crawl.json status login_wall with actions>=1 recorded",
+   "ok": true,
+   "status": "login_wall",
+   "actions": 2,
+   "denied": 1,
+   "stop_reason": "stopped at a login wall: every screen reached only offers a form submit denied by read_only, and no link led anywhere else -- declare a login case to crawl past it"
+  },
+  {
+   "step": "1d crawl-level pills (status + stop reason) not badge-pass; node pills excluded",
+   "ok": true,
+   "crawl_level": [
+    [
+     "login_wall",
+     "badge badge-blocked"
+    ],
+    [
+     "stopped at a login wall: every screen reached only offers a form submit denied by read_only, and no link led anywhere else -- declare a login case to crawl past it",
+     "badge badge-blocked"
+    ]
+   ]
+  },
+  {
+   "step": "1e crawls table row shows login_wall, not green",
+   "ok": true,
+   "row": "<td><a href=\"/projects/wallprobe/crawls/crawl_01M2PJ86189BAJQW6XZSC2HGVS\"><code>crawl_01M2PJ86189BAJQW6XZSC2HGVS</code></a></td><td><span class=\"badge badge-blocked\">login_wall</span></td><td>stopped at a login wall: every screen reached only offers a form submit denied by read_only, and no link led anywhere else -- declare a login case to crawl past it</td><td>1</td><td>1</td><td>0</td><td>0</td><td>2026-09-17T02:13:39.567924+00:00</td>"
+  },
+  {
+   "step": "1f workbook Summary Status for stuck crawl",
+   "ok": true,
+   "summary_status": "login_wall",
+   "stopped_because": "stopped at a login wall: every screen reached only offers a form submit denied by read_only, and no link led anywhere else -- declare a login case to crawl past it"
+  },
+  {
+   "step": "2a legacy row not shown as success",
+   "ok": true,
+   "row": "<td><a href=\"/projects/wallprobe/crawls/crawl_20260101T000000Z_legacy\"><code>crawl_20260101T000000Z_legacy</code></a></td><td><span class=\"badge badge-blocked\">blocked_no_actions</span></td><td>frontier empty</td><td>1</td><td>3</td><td>0</td><td>0</td><td>2026-01-01T00:00:00Z</td>"
+  },
+  {
+   "step": "2b legacy crawl page not success",
+   "ok": true,
+   "pills": [
+    [
+     "blocked_no_actions",
+     "badge badge-blocked"
+    ],
+    [
+     "frontier empty",
+     "badge badge-blocked"
+    ],
+    [
+     "read_only",
+     "badge badge-inconclusive"
+    ]
+   ]
+  },
+  {
+   "step": "2c displayed_status did not rewrite the legacy crawl.json",
+   "ok": true
+  },
+  {
+   "step": "3a wrong case declared",
+   "ok": true
+  },
+  {
+   "step": "3b wrong creds -> login_failed with 'still the login page' reason",
+   "ok": true,
+   "status": "login_failed",
+   "stop_reason": "the login case ran, but every screen reached was still the login page (/login.html) -- check the login case's steps and the credentials it uses",
+   "pills": [
+    [
+     "login_failed",
+     "badge badge-blocked"
+    ],
+    [
+     "the login case ran, but every screen reached was still the login page (/login.html) -- check the login case's steps and the credentials it uses",
+     "badge badge-blocked"
+    ],
+    [
+     "read_only",
+     "badge badge-inconclusive"
+    ],
+    [
+     "explored",
+     "badge badge-pass"
+    ],
+    [
+     "denied_policy",
+     "badge badge-blocked"
+    ]
+   ]
+  },
+  {
+   "step": "3c crawls table login_failed not green",
+   "ok": true,
+   "row": "<td><a href=\"/projects/wallprobe/crawls/crawl_01M2PJ8C38J39ET99W2R1FQYAE\"><code>crawl_01M2PJ8C38J39ET99W2R1FQYAE</code></a></td><td><span class=\"badge badge-blocked\">login_failed</span></td><td>the login case ran, but every screen reached was still the login page (/login.html) -- check the login case's steps and the credentials it uses</td><td>1</td><td>1</td><td>0</td><td>0</td><td>2026-09-17T02:13:45.822375+00:00</td>"
+  },
+  {
+   "step": "4a correct creds -> completed, green pill, screens behind login",
+   "ok": true,
+   "status": "completed",
+   "stop_reason": "frontier empty",
+   "templates": [
+    "/app/dashboard.html",
+    "/app/order-1001.html",
+    "/app/orders.html",
+    "/app/profile.html"
+   ],
+   "pills": [
+    [
+     "completed",
+     "badge badge-pass"
+    ],
+    [
+     "frontier empty",
+     "badge badge-pass"
+    ],
+    [
+     "read_only",
+     "badge badge-inconclusive"
+    ],
+    [
+     "explored",
+     "badge badge-pass"
+    ],
+    [
+     "explored",
+     "badge badge-pass"
+    ],
+    [
+     "explored",
+     "badge badge-pass"
+    ],
+    [
+     "explored",
+     "badge badge-pass"
+    ],
+    [
+     "denied_policy",
+     "badge badge-blocked"
+    ]
+   ]
+  },
+  {
+   "step": "4b crawls table row completed and green",
+   "ok": true,
+   "row": "<td><a href=\"/projects/wallprobe/crawls/crawl_01M2PJ8J6ANPKG7N8JFXWNQ66B\"><code>crawl_01M2PJ8J6ANPKG7N8JFXWNQ66B</code></a></td><td><span class=\"badge badge-pass\">completed</span></td><td>frontier empty</td><td>4</td><td>1</td><td>0</td><td>0</td><td>2026-09-17T02:13:51.917188+00:00</td>"
+  }
+ ],
+ "console": {
+  "error_count": 0,
+  "errors": [],
+  "attribution": "0 console errors on the final run (an earlier aborted run logged one 403 on POST /explore caused by the checker's own form bounds exceeding the seeded approval; fixed in the driver, not a product defect)"
+ },
+ "all_ok": true,
+ "servers_stopped": "UI 8064 and fixture 8766 stopped via TaskStop; curl to both returned 000 afterwards",
+ "probes_unit_level_copy": [
+  {
+   "probe": "search_only_public_page",
+   "status": "login_wall",
+   "actions": "1",
+   "denied": "1",
+   "reason": "stopped at a login wall: every screen reached only offers a form submit denied by read_only, and no link led anywhere else -- declare a login case to crawl past it"
+  },
+  {
+   "probe": "contact_form_single_page",
+   "status": "completed",
+   "actions": "2",
+   "denied": "1",
+   "reason": "frontier empty"
+  },
+  {
+   "probe": "bound_hit_public_site_with_newsletter",
+   "max_screens": "1",
+   "max_actions": "50",
+   "status": "stopped_bound",
+   "actions": "0",
+   "screens": "1",
+   "reason": "max_screens"
+  },
+  {
+   "probe": "bound_hit_public_site_with_newsletter",
+   "max_screens": "50",
+   "max_actions": "1",
+   "status": "stopped_bound",
+   "actions": "1",
+   "screens": "2",
+   "reason": "max_actions"
+  },
+  {
+   "probe": "bound_hit_public_site_with_newsletter",
+   "max_screens": "50",
+   "max_actions": "0",
+   "status": "stopped_bound",
+   "actions": "0",
+   "screens": "1",
+   "reason": "max_actions"
+  },
+  {
+   "probe": "login_template",
+   "target": "https://app.test/signin/?next=/dashboard",
+   "template": "/signin"
+  },
+  {
+   "probe": "login_template",
+   "target": "https://app.test/signin/",
+   "template": "/signin"
+  },
+  {
+   "probe": "login_template",
+   "target": "/signin?x=1",
+   "template": "/signin"
+  },
+  {
+   "probe": "login_template",
+   "target": "app.test/signin",
+   "template": "/signin"
+  },
+  {
+   "probe": "login_template",
+   "target": "{{SECRET:LOGIN_URL}}",
+   "template": "/"
+  },
+  {
+   "probe": "login_template",
+   "target": "https://app.test/",
+   "template": "/"
+  },
+  {
+   "probe": "login_template",
+   "target": "https://app.test/#/login",
+   "template": "/"
+  },
+  {
+   "probe": "spa_dashboard_same_template_as_login",
+   "status": "login_failed",
+   "reason": "the login case ran, but every screen reached was still the login page (/) -- check the login case's steps and the credentials it uses"
+  },
+  {
+   "probe": "hash_route_login_seed_is_dashboard_only",
+   "status": "login_failed"
+  },
+  {
+   "probe": "single_wall_page_max_actions_1",
+   "status": "completed",
+   "actions": 1,
+   "reason": "frontier empty",
+   "nodes": [
+    [
+     "node_e",
+     "/",
+     "87602b"
+    ]
+   ],
+   "edges": [
+    [
+     "same_screen",
+     null,
+     "node_e",
+     "node_e"
+    ]
+   ]
+  },
+  {
+   "probe": "single_wall_page_max_actions_2",
+   "status": "login_wall",
+   "actions": 2,
+   "reason": "stopped at a login wall: every screen reached only offers a form submit denied by read_only, and no link led anywhere else -- declare a login case to crawl past it",
+   "nodes": [
+    [
+     "node_e",
+     "/",
+     "87602b"
+    ]
+   ],
+   "edges": [
+    [
+     "same_screen",
+     null,
+     "node_e",
+     "node_e"
+    ],
+    [
+     "denied_policy",
+     "form submit under read_only",
+     "node_e",
+     ""
+    ],
+    [
+     "same_screen",
+     null,
+     "node_e",
+     "node_e"
+    ]
+   ]
+  }
+ ],
+ "capability_coverage_sabotage": [
+  {
+   "label": "baseline-green",
+   "summary": "19 passed, 1 warning in 2.49s",
+   "fired": []
+  },
+  {
+   "label": "X18-verify-pre-X18-body",
+   "summary": "3 failed, 16 passed, 1 warning in 1.42s",
+   "fired": [
+    "E   AssertionError: assert <CrawlStatus.COMPLETED: 'completed'> is <CrawlStatus.LOGIN_WALL: 'login_wall'>",
+    "E   AssertionError: assert <CrawlStatus.COMPLETED: 'completed'> is <CrawlStatus.LOGIN_FAILED: 'login_failed'>",
+    "E   AssertionError: assert <CrawlStatus.BLOCKED_NO_ACTIONS: 'blocked_no_actions'> is <CrawlStatus.LOGIN_WALL: 'login_wall'>"
+   ]
+  },
+  {
+   "label": "X18-verify-pre-X18-body-restored",
+   "summary": "19 passed, 1 warning in 2.09s",
+   "fired": []
+  },
+  {
+   "label": "a-never-left-login",
+   "summary": "1 failed, 18 passed, 1 warning in 1.76s",
+   "fired": [
+    "E   AssertionError: assert <CrawlStatus.COMPLETED: 'completed'> is <CrawlStatus.LOGIN_FAILED: 'login_failed'>"
+   ]
+  },
+  {
+   "label": "a-never-left-login-restored",
+   "summary": "19 passed, 1 warning in 1.65s",
+   "fired": []
+  },
+  {
+   "label": "b-M3-structural-difference",
+   "summary": "1 failed, 18 passed, 1 warning in 1.80s",
+   "fired": [
+    "E   AssertionError: assert <CrawlStatus.LOGIN_WALL: 'login_wall'> is <CrawlStatus.COMPLETED: 'completed'>"
+   ]
+  },
+  {
+   "label": "b-M3-structural-difference-restored",
+   "summary": "19 passed, 1 warning in 1.60s",
+   "fired": []
+  },
+  {
+   "label": "b-every-node-walled-UNCLAIMED",
+   "summary": "2 failed, 17 passed, 1 warning in 3.63s",
+   "fired": [
+    "E   AssertionError: assert <CrawlStatus.LOGIN_WALL: 'login_wall'> is <CrawlStatus.BLOCKED_NO_ACTIONS: 'blocked_no_actions'>",
+    "E   AssertionError: a page with genuinely nothing to click must not be floored to blocked_no_actions"
+   ]
+  },
+  {
+   "label": "b-every-node-walled-UNCLAIMED-restored",
+   "summary": "19 passed, 1 warning in 2.17s",
+   "fired": []
+  },
+  {
+   "label": "d-legacy-display",
+   "summary": "5 failed, 14 passed, 1 warning in 4.23s",
+   "fired": [
+    "E   AssertionError: assert <CrawlStatus.COMPLETED: 'completed'> is not <CrawlStatus.COMPLETED: 'completed'>",
+    "E   AssertionError: the status word itself must not say completed",
+    "E   assert 'badge-pass' not in \"<div class=...eport.xlsx'>\"",
+    "E   AssertionError: assert 'completed' != 'completed'",
+    "E   AssertionError: assert ': completed ' not in 'crawl_stuck...ool failures'"
+   ]
+  },
+  {
+   "label": "d-legacy-display-restored",
+   "summary": "19 passed, 1 warning in 2.06s",
+   "fired": []
+  },
+  {
+   "label": "c-table-tone",
+   "summary": "2 failed, 17 passed, 1 warning in 2.50s",
+   "fired": [
+    "E   AssertionError: and nothing in the row may be coloured success",
+    "E   AssertionError: and nothing in the row may be coloured success"
+   ]
+  },
+  {
+   "label": "c-table-tone-restored",
+   "summary": "19 passed, 1 warning in 3.84s",
+   "fired": []
+  },
+  {
+   "label": "c-page-tone",
+   "summary": "2 failed, 17 passed, 1 warning in 2.41s",
+   "fired": [
+    "E   assert 'badge-pass' not in \"<div class=...eport.xlsx'>\"",
+    "E   assert 'badge-pass' not in \"<div class=...eport.xlsx'>\""
+   ]
+  },
+  {
+   "label": "c-page-tone-restored",
+   "summary": "19 passed, 1 warning in 1.92s",
+   "fired": []
+  },
+  {
+   "label": "d-workbook-status",
+   "summary": "2 failed, 17 passed, 1 warning in 1.97s",
+   "fired": [
+    "E   AssertionError: assert '>completed<' not in '<!doctype h.../main></div>'",
+    "E   AssertionError: assert 'completed' != 'completed'"
+   ]
+  },
+  {
+   "label": "d-workbook-status-restored",
+   "summary": "19 passed, 1 warning in 2.34s",
+   "fired": []
+  },
+  {
+   "label": "c-cli-colour",
+   "summary": "2 failed, 17 passed, 1 warning in 2.07s",
+   "fired": [
+    "E   AssertionError: assert 'green' != 'green'",
+    "E   AssertionError: assert 'green' != 'green'"
+   ]
+  },
+  {
+   "label": "c-cli-colour-restored",
+   "summary": "19 passed, 1 warning in 1.82s",
+   "fired": []
+  },
+  {
+   "label": "guard-can-say-yes",
+   "summary": "1 failed, 18 passed, 1 warning in 1.71s",
+   "fired": [
+    "E   assert 'badge-pass' in \"crawl_stuck'><code>crawl_stuck</code></a></td><td><span class='badge badge-blocked'>completed</span></td><td>frontier empty</td><td>4</td><td>1</td><td>0</td><td>0</td><td>\u2014</td>\""
+   ]
+  },
+  {
+   "label": "guard-can-say-yes-restored",
+   "summary": "19 passed, 1 warning in 1.78s",
+   "fired": []
+  }
+ ]
+}
