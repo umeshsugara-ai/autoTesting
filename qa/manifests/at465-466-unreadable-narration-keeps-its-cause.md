@@ -155,4 +155,4 @@ Not UI-touching — no surface changed. Changed paths: `src/autotester/schema/me
 - **Proven red-before-fix without touching the shared tree.** No `git stash` this time: the failing run
   above is the new tests against unmodified source, before any source edit was made.
 
-## Status: ready-for-check
+## Status: checked-PASS — `qa/verdicts/at465-466-unreadable-narration-keeps-its-cause.md` (Cycle checked: 1, commit 7252f47, pushed). Checker filed AT-468 (the `unreadable_reason` field description says "never the file", but a validation error quotes sidecar values) and AT-469 (confirmed: mutation_check.py:52 cuts a test id at its first space).
