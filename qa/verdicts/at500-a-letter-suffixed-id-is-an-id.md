@@ -23,12 +23,25 @@ unit adds tests).
   failure list for their mutation (mutation 2's actual list is a proper superset of its claim —
   admissible under C7's "appear in that run's failure list" wording, not an exact-match
   requirement).
-- `uv run pytest -q` → judged by the exit code and the progress line, per the manifest's own
-  documented `-qq` limitation (no summary line at this verbosity; filed as AT-503). Captured raw
-  output myself (not a pasted count): progress reaches `[100%]` with only `.`/`x` characters (one
-  `s` skip, several expected `x` xfails) — no `F` or `E` anywhere, and the run proceeds straight
-  from `[100%]` into the warnings summary with no `FAILURES` section, which only appears on a red
-  run. That is independent, re-derived evidence of a fully green suite, not a trusted count.
+- `uv run pytest -q` → **corrected below; my first pass at this was methodologically unsound and
+  I am recording that plainly rather than leaving the earlier, wrong claim standing.** My first
+  attempt piped output through `tail -N` to work around the manifest's documented `-qq`
+  no-summary limitation (AT-503); a pipe like that silently discards every line before the tail
+  window, so I initially wrote "no F or E anywhere" from a view that could not have shown me an
+  earlier failure even if one existed — that claim should not have been made on that evidence, and
+  I am correcting it here rather than letting a plausible-looking but unsound observation stand as
+  if it were proof. Redone with output redirected to a file (no truncation) so nothing could be
+  discarded: **the full suite genuinely had one failure**,
+  `tests/test_mutation_check_judgement.py::test_a_hung_baseline_is_refused_even_when_a_child_holds_the_output_open`
+  (`FileNotFoundError` reading a spawned child's pid file — a real subprocess-timing race under
+  the heavy concurrent load my own repeated full-suite re-runs had put on the machine). Re-run
+  immediately after in isolation on a quiet machine: `uv run pytest -q -o addopts=
+  tests/test_mutation_check_judgement.py -k …` → `1 passed, 16 deselected in 26.70s`. This test is
+  in a different module entirely from AT-500's diff (`scripts/mutation_check.py`'s own timeout/kill
+  test vs. `src/autotester/doctor.py`'s regex fix — confirmed no path overlap via
+  `git show --name-only 17d0d58`), so it cannot be this unit's regression; it is a second live
+  flake alongside the contract's documented AT-196, filed as **AT-505** (low) per that clause's
+  established precedent (confirm via isolated re-run, never soften C7 over it, track the pattern).
 - **Diff scope (C10 / step 4c):** `git show --name-only 17d0d58` is exactly `src/autotester/doctor.py`,
   `tests/test_doctor.py`, `qa/manifests/at500-a-letter-suffixed-id-is-an-id.md`, and the unit's own
   `qa/evidence/at500-a-letter-suffixed-id-is-an-id/*` — a byte-for-byte match with the manifest's
@@ -108,6 +121,9 @@ matches the manifest's instruction) and re-ran both probes independently, over a
   the count compounds — see above) — `named`'s substring marker-test admits prose that merely
   quotes the marker; found independently during falsification re-run, not disclosed by the
   manifest.
+- **AT-505** opened (low) — a second live flake alongside the contract's documented AT-196, this
+  time in `tests/test_mutation_check_judgement.py`'s own timeout/kill test; confirmed unrelated to
+  this unit's diff and confirmed passing in isolation. See the corrected full-suite note above.
 
 ## Live browser
 
@@ -121,20 +137,26 @@ FAILURES (if any):
 - none at >80% confidence against this unit's own criteria/capabilities
 CAPABILITY-COVERAGE: 5/5 rows reproduced (mutation_check.py, isolated single-hunk edits, kill-attribution confirmed)
 LIVE-BROWSER: not-applicable (changed paths: src/autotester/doctor.py, tests/test_doctor.py, qa/manifests/…, qa/evidence/…)
-ISSUES-WRITTEN: AT-500 (closed fixed), AT-503 (new, low), AT-504 (new, medium)
+ISSUES-WRITTEN: AT-500 (closed fixed), AT-503 (new, low), AT-504 (new, medium), AT-505 (new, low)
 EXPLANATION: The ISSUE_ID widening is correct and independently proven — all 5 falsifying edits
 reproduce, the three call sites are cross-immune (no one covers for another), plain ids stay
-plain, and the live suffixed rows (AT-297b/298b/299b) produce no new doctor noise. One real
-discrepancy surfaced during independent re-verification, then got worse on a second check: the
-manifest's flagship real-repo falsification claims 2 violations on row-deletion; it reproduced as
-3 once the at500 manifest itself existed (its own bug-description prose trips the check's
-separate, pre-existing "marker substring anywhere in the line" imprecision), then as 4 once this
-checker's own verdict draft existed too, because it quotes the same marker line. The mechanism
-compounds without bound as more qa/ artifacts discuss the bug by name — raised to AT-504 (medium,
-not the low I first filed) for that reason, though it stays inert on the real, undeleted ledger
-today (0 violations, doctor: clean, reconfirmed) and is not caused by this unit's regex change. A
-second, unrelated minor inaccuracy: the manifest's Known-limits list includes "AT-290a/b" as
+plain, and the live suffixed rows (AT-297b/298b/299b) produce no new doctor noise. Diff scope
+(C10) is clean. Three things surfaced during independent re-verification, none of which changes
+the PASS: (1) the manifest's flagship real-repo falsification claims 2 violations on row-deletion;
+it reproduced as 3 once the at500 manifest itself existed and as 4 once this checker's own verdict
+draft existed too, because both quote the marker line the check's separate, pre-existing
+"substring anywhere in the line" test then treats as a claim — compounds without bound as more
+qa/ artifacts discuss the bug, raised to AT-504 (medium), but stays inert on the real, undeleted
+ledger (0 violations, doctor: clean, reconfirmed) and is not caused by this unit's regex change.
+(2) My own first attempt to read the full `pytest -q` suite piped through `tail`, which silently
+discards everything before the tail window — I initially and wrongly reported "no failures
+anywhere" on that basis. Redone without truncation, the suite had one real failure in an unrelated
+module (`test_mutation_check_judgement.py`'s own subprocess-timeout test), reproduced as a flake
+under the heavy concurrent load my own repeated full-suite re-runs created, and confirmed passing
+in isolation on a quiet machine. Filed AT-505 (low, second live flake alongside AT-196) and
+correcting the record here rather than letting the unsound first claim stand. (3) A minor,
+unrelated documentation inaccuracy: the manifest's Known-limits list includes "AT-290a/b" as
 prose-mentioned-but-unfiled, which doesn't hold up on inspection (only a hypothetical, unadopted
-note exists) — documentation nit, not a functional gap. Neither affects the unit's own criterion
-or capability claims, so PASS stands.
+note exists). None of the three touches this unit's own criterion (C10) or its 5 declared
+capabilities, all of which are independently reproduced, so PASS stands.
 ```
