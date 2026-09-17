@@ -1,0 +1,77 @@
+{
+  "pages": [
+    {
+      "url": "/projects/checkerdemo483/crawls",
+      "console_errors": 0
+    },
+    {
+      "url": "/projects/checkerdemo483/crawls/crawl_stale483",
+      "console_errors": 0
+    },
+    {
+      "url": "/projects/checkerdemo483/crawls/crawl_fresh483",
+      "console_errors": 0
+    },
+    {
+      "url": "/projects/checkerdemo483/crawls/crawl_legacy483",
+      "console_errors": 0
+    }
+  ],
+  "checks": [
+    {
+      "name": "table: crawl_stale483 row shows 'aborted'",
+      "pass": true,
+      "detail": "crawl_stale483\tABORTED\t\u2014\t12\t3\t1\t0\t2026-09-17T16:56:18.072209+00:00"
+    },
+    {
+      "name": "table: crawl_stale483 row does NOT show 'running'",
+      "pass": true,
+      "detail": "crawl_stale483\tABORTED\t\u2014\t12\t3\t1\t0\t2026-09-17T16:56:18.072209+00:00"
+    },
+    {
+      "name": "table: crawl_fresh483 row shows 'running'",
+      "pass": true,
+      "detail": "crawl_fresh483\tRUNNING\t\u2014\t4\t0\t0\t0\t2026-09-17T18:55:58.072209+00:00"
+    },
+    {
+      "name": "table: crawl_legacy483 row shows 'running' (X18d unaffected)",
+      "pass": true,
+      "detail": "crawl_legacy483\tRUNNING\t\u2014\t1\t3\t0\t0\t2026-09-07T18:56:18.072209+00:00"
+    },
+    {
+      "name": "table: crawl_stale483 row has NO badge-pass pill",
+      "pass": true,
+      "detail": "count=0"
+    },
+    {
+      "name": "detail crawl_stale483: status pill reads 'aborted'",
+      "pass": true,
+      "detail": "ABORTED \u00b7 stopped: UNKNOWN \u00b7 policy READ_ONLY"
+    },
+    {
+      "name": "detail crawl_stale483: badge-pass present == False",
+      "pass": true,
+      "detail": "has_pass=False"
+    },
+    {
+      "name": "detail crawl_fresh483: status pill reads 'running'",
+      "pass": true,
+      "detail": "RUNNING \u00b7 stopped: UNKNOWN \u00b7 policy READ_ONLY"
+    },
+    {
+      "name": "detail crawl_fresh483: badge-pass present == False",
+      "pass": true,
+      "detail": "has_pass=False"
+    },
+    {
+      "name": "detail crawl_legacy483: status pill reads 'running'",
+      "pass": true,
+      "detail": "RUNNING \u00b7 stopped: UNKNOWN \u00b7 policy READ_ONLY"
+    },
+    {
+      "name": "detail crawl_legacy483: badge-pass present == False",
+      "pass": true,
+      "detail": "has_pass=False"
+    }
+  ]
+}
