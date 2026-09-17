@@ -45,10 +45,24 @@ def _python_files(root: Path) -> list[Path]:
     ]
 
 
+def _capped_files(root: Path) -> list[Path]:
+    """C2 caps EVERY file in src/ and tests/, not only Python (AT-419): a 316-line
+    visual_order.js once passed as "doctor: clean". Binary files have no lines."""
+    return [
+        p
+        for base in (root / "src", root / "tests")
+        for p in base.rglob("*")
+        if p.is_file() and ".venv" not in p.parts and "__pycache__" not in p.parts
+    ]
+
+
 def check_file_sizes(root: Path) -> list[Violation]:
     out = []
-    for path in _python_files(root) + list((root / "tests").glob("*.py")):
-        lines = len(path.read_text(encoding="utf-8").splitlines())
+    for path in _capped_files(root):
+        try:
+            lines = len(path.read_text(encoding="utf-8").splitlines())
+        except UnicodeDecodeError:
+            continue
         if lines > MAX_FILE_LINES:
             out.append(Violation("file-too-long", str(path.relative_to(root)),
                                  f"{lines} lines > {MAX_FILE_LINES}; split by responsibility"))

@@ -29,6 +29,26 @@ def test_long_file_is_flagged(tmp_path: Path) -> None:
     assert any(v.rule == "file-too-long" for v in doctor.run(root))
 
 
+def test_the_line_cap_reads_every_file_c2_names_not_only_python(tmp_path: Path) -> None:
+    """AT-419: C2 says "no file in src/ or tests/". Doctor measured only *.py, so a
+    316-line visual_order.js printed "doctor: clean"."""
+    root = make_repo(tmp_path)
+    write_module(root, "browser.js", "x;\n" * (doctor.MAX_FILE_LINES + 1))
+    fixtures = root / "tests" / "fixtures" / "site"
+    fixtures.mkdir(parents=True)
+    page = "<p>x</p>\n" * (doctor.MAX_FILE_LINES + 1)
+    (fixtures / "page.html").write_text(page, encoding="utf-8")
+    flagged = {v.location.replace("\\", "/") for v in doctor.run(root) if v.rule == "file-too-long"}
+    assert flagged == {"src/autotester/browser.js", "tests/fixtures/site/page.html"}
+
+
+def test_the_line_cap_allows_exactly_the_cap_and_skips_binary_files(tmp_path: Path) -> None:
+    root = make_repo(tmp_path)
+    write_module(root, "at_cap.js", "x;\n" * doctor.MAX_FILE_LINES)
+    (root / "tests" / "shot.png").write_bytes(b"\x89PNG\r\n\x1a\n\xff\xfe" + b"\n" * 400)
+    assert not any(v.rule == "file-too-long" for v in doctor.run(root))
+
+
 def test_long_function_is_flagged(tmp_path: Path) -> None:
     root = make_repo(tmp_path)
     body = "def huge():\n" + "    x = 1\n" * (doctor.MAX_FUNCTION_LINES + 5)

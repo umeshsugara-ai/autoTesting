@@ -1,0 +1,33 @@
+{
+  "tests": ["tests/test_doctor.py"],
+  "mutations": [
+    {
+      "name": "AT-419 reopens: the cap reads only Python again, so a long .js or fixture passes",
+      "file": "src/autotester/doctor.py",
+      "old": "        for p in base.rglob(\"*\")",
+      "new": "        for p in base.rglob(\"*.py\")",
+      "kills": ["tests/test_doctor.py::test_the_line_cap_reads_every_file_c2_names_not_only_python"]
+    },
+    {
+      "name": "the cap stops recursing, so files below src/ or tests/ top level are never measured",
+      "file": "src/autotester/doctor.py",
+      "old": "        for p in base.rglob(\"*\")",
+      "new": "        for p in base.glob(\"*\")",
+      "kills": ["tests/test_doctor.py::test_the_line_cap_reads_every_file_c2_names_not_only_python"]
+    },
+    {
+      "name": "a binary file crashes doctor instead of being skipped",
+      "file": "src/autotester/doctor.py",
+      "old": "        except UnicodeDecodeError:\n            continue",
+      "new": "        except UnicodeDecodeError:\n            raise",
+      "kills": ["tests/test_doctor.py::test_the_line_cap_allows_exactly_the_cap_and_skips_binary_files"]
+    },
+    {
+      "name": "off by one: a file of exactly 300 lines is flagged",
+      "file": "src/autotester/doctor.py",
+      "old": "        if lines > MAX_FILE_LINES:",
+      "new": "        if lines >= MAX_FILE_LINES:",
+      "kills": ["tests/test_doctor.py::test_the_line_cap_allows_exactly_the_cap_and_skips_binary_files"]
+    }
+  ]
+}

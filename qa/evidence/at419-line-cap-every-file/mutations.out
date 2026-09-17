@@ -1,0 +1,14 @@
+KILLED  AT-419 reopens: the cap reads only Python again, so a long .js or fixture passes  (pytest exit 1)
+    claims to kill : tests/test_doctor.py::test_the_line_cap_reads_every_file_c2_names_not_only_python
+    actually failed: tests/test_doctor.py::test_the_line_cap_reads_every_file_c2_names_not_only_python
+KILLED  the cap stops recursing, so files below src/ or tests/ top level are never measured  (pytest exit 1)
+    claims to kill : tests/test_doctor.py::test_the_line_cap_reads_every_file_c2_names_not_only_python
+    actually failed: tests/test_doctor.py::test_long_file_is_flagged, tests/test_doctor.py::test_the_line_cap_reads_every_file_c2_names_not_only_python
+KILLED  a binary file crashes doctor instead of being skipped  (pytest exit 1)
+    claims to kill : tests/test_doctor.py::test_the_line_cap_allows_exactly_the_cap_and_skips_binary_files
+    actually failed: tests/test_doctor.py::test_the_line_cap_allows_exactly_the_cap_and_skips_binary_files
+KILLED  off by one: a file of exactly 300 lines is flagged  (pytest exit 1)
+    claims to kill : tests/test_doctor.py::test_the_line_cap_allows_exactly_the_cap_and_skips_binary_files
+    actually failed: tests/test_doctor.py::test_the_line_cap_allows_exactly_the_cap_and_skips_binary_files
+
+4/4 mutations killed
