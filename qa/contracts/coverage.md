@@ -107,6 +107,29 @@ because its screen was left in the queue, is not listed at all. Required:
 the `bound:max_actions` rows non-empty, the identity in (c) holds; drop one reason class from the
 tally in a scratch copy → the (c) test fails. Mode D reads the figure off the crawl page.
 
+### V8 — The map is measured against a known inventory
+At least one local fixture product declares its full post-login route inventory. The inventory
+covers a nav menu, pagination, a route that appears only on a later page, hash routes, a nested
+page, a link inside a click-opened drawer, and a form-gated screen.
+
+A real-browser crawl with the login case must:
+- enter every route marked `reached`;
+- not enter the `policy` route, and name its refusal in V7 coverage.
+
+Under a bound, every missed route must be accounted for by a V7 reason, either on the control that
+leads to it or on a screen upstream that was itself missed. Routes that share a url template are
+told apart by a control only that route shows.
+
+**Verify (load-bearing):** `tests/test_crawl_inventory_live.py`'s two live tests, re-run by the
+checker in an isolated `git archive HEAD` extract — full-crawl (no bound) reaches all 11 `reached`
+routes and refuses `results` with a `policy:form submit under read_only` V7 hole on `/app/search.html`;
+depth-bounded (`max_depth=1`) leaves every miss explained by a V7 reason. Defended by sabotage on the
+same three capabilities the checker re-derives independently: (1) collapsing screens that share a
+`url_template` (`explore_node.py::_enqueue`) fails the full-crawl test with the five routes that share
+a template unentered; (2) disabling the `READ_ONLY` form-submit guard (`explore_safety.py`) fails the
+same test with `AssertionError: read_only must never submit the search form`; (3) dropping coverage
+holes (`crawl_coverage.py::_screens_not_entered`) fails the depth test with the missed routes named.
+
 ## No-fire list
 
 - Screen-level (as opposed to route-level) gap detection — `Screen.name`/`signals` matching is a
@@ -158,3 +181,21 @@ tally in a scratch copy → the (c) test fails. Mode D reads the figure off the 
   The contract's criticality stays MEDIUM on the file, but V7 is the measure the north star is now
   judged by for crawls ("same material, same build … bugs found") and should be treated as such in
   queue ranking. Companion criteria: `explore.md` X17 / X18. Issue: AT-459.
+
+- 2026-09-17 · routine · /checker (v8-known-route-inventory unit, cycle 1) · **V8 added**, adopting
+  the maker's proposed wording verbatim (manifest `qa/manifests/v8-known-route-inventory.md`) — V8
+  is the measuring instrument V7's numbers are judged against. Adds a criterion, softens none; V1-V7
+  byte-unchanged. Re-derived independently, not read from the manifest: the two live tests were
+  re-run by this checker in an isolated `git archive HEAD` extract (`2 passed in 299.12s`); a fresh
+  UI-started crawl was driven in the checker's own browser via Playwright MCP against a new
+  `AUTOTESTER_ROOT`, completing `status=completed, stop_reason=frontier empty, screens=12,
+  actions=79, coverage=85% (79/92)` with all 11 `reached` routes present on the crawl page and in
+  `report.xlsx` (the two hash routes, the page-2-only route, the drawer-opened link and the nested
+  security page included) and `results` absent, its refusal shown as
+  `policy:form submit under read_only: 1`; the three capability-coverage sabotage rows were
+  independently re-run (single-hunk edits, anchor matched once each, byte-restored after) and all
+  three reddened the row's named test, one confirmed to the literal assertion text
+  (`AssertionError: read_only must never submit the search form`). One low finding filed alongside,
+  **AT-483** — a crawl orphaned by its serving process dying mid-run persists `status=running`
+  forever with stale zero counts; not a defect in this unit's mechanism (a clean run completes
+  normally) and not required by V8, recorded for future triage.

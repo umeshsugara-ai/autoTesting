@@ -1,0 +1,107 @@
+{
+  "unit": "v8-known-route-inventory",
+  "cycle_checked": 1,
+  "date": "2026-09-17",
+  "checker_run": true,
+  "setup": {
+    "fixture_server": "http.server on 127.0.0.1:8793 -- tests/fixtures/inventory_site (checker-v8 scratch copy, git archive HEAD)",
+    "ui_server": "uvicorn autotester.ui.app:app on 127.0.0.1:8794, AUTOTESTER_ROOT = a fresh scratch root (checker-v8-mode-d), never used by any prior checker",
+    "project_seed": "seed_inv.py (reused as-is from the reused scratch copy) -- project 'inv', login case navigate /login.html, fill #username=tester #password=fixture-pass, click #sign-in; RunApproval(crawl, max_actions=200/300, wall_clock_s=240/340)"
+  },
+  "crawl_1_bound_probe": {
+    "id": "crawl_01M2Q34XWG4J3ZJK6HAYQ12APE",
+    "wall_clock_s_requested": 200,
+    "status": "stopped_bound",
+    "stop_reason": "wall_clock_s",
+    "note": "wall_clock_s=200 was tighter than the ~230s the unbounded crawl needs at the disclosed ~2.8s/action pace; this is the manifest's disclosed speed limit reproducing itself, not a defect. Approval was widened (new RunApproval, max_actions=300, wall_clock_s=340) and a second crawl started with wall_clock_s=300."
+  },
+  "crawl_2_full": {
+    "id": "crawl_01M2Q3EVA5E9C0X206KWDXFZ6Z",
+    "status": "completed",
+    "stop_reason": "frontier empty",
+    "login_case_id": "case_e10f3988a2d7",
+    "screens": 12,
+    "actions": 79,
+    "denied": 13,
+    "issues": 0,
+    "tool_failures": 0,
+    "coverage": "85% of controls (79 of 92)",
+    "not_exercised_by_reason": "policy:form submit under read_only: 1; policy:never-click pattern (logout/sign-out): 12",
+    "screens_not_entered_by_reason": "none",
+    "started_at": "2026-09-17T07:14:24.238890+00:00",
+    "finished_at": "2026-09-17T07:17:37.117777+00:00",
+    "wall_clock_actual_s": 193,
+    "started_from": "UI Crawls page, 'Explore now' / 'Explore again' button, POST /projects/inv/explore (synchronous)",
+    "login_notice_shown": "'\u2713 Logs in first -- Crawls log in with sign in before exploring.' (X17 UI notice, confirmed before starting the crawl)",
+    "all_11_reached_routes_present": true,
+    "routes_confirmed_on_crawl_page_and_report_xlsx": [
+      "/app/home.html (depth 0, entry point)",
+      "/app/home.html (depth 1, drawer-open state, distinct signature)",
+      "/app/projects.html (depth 1)",
+      "/app/projects.html?page=2 (depth 2, distinct signature)",
+      "/app/project-archived.html (depth 3, reached only from page 2)",
+      "/app/reports.html (depth 1)",
+      "/app/reports.html#/weekly (depth 2, distinct signature)",
+      "/app/reports.html#/monthly (depth 2, distinct signature)",
+      "/app/settings.html (depth 1)",
+      "/app/settings/security.html (depth 2)",
+      "/app/shortcuts.html (depth 2, reached via the drawer link)",
+      "/app/search.html (depth 1)"
+    ],
+    "policy_route_not_entered": "/app/results.html -- absent from Screens sheet and from the crawl page's screen list",
+    "policy_refusal_named": "Refused & skipped table + report.xlsx 'Denied & Skipped' sheet: screen 'Inventory Demo - Search', control 'Search', selector '#go', refusal 'denied_policy', why 'form submit under read_only'",
+    "console_errors_on_crawl_detail_page": 0,
+    "console_errors_session_total": 2,
+    "console_errors_note": "both are 403s from this checker's own earlier attempts (crawl_1's unwidened approval, and one stray from a leftover port-8792 tab in the shared Playwright MCP session) -- not from the completed crawl's own page load",
+    "report_xlsx_path": "downloaded and inspected: Summary sheet numbers match the crawl detail page exactly; Screens sheet lists all 12 rows matching the 11 inventory.json 'reached' routes plus the distinct drawer-open Home signature"
+  },
+  "orphaned_crawl_investigation": {
+    "prior_checker_claim": "crawl_01M2Q2A9F6FHXJ4XMF4AC2VMMR (killed by the stand-down checker) and crawl_01M2Q2MQ1H9BEQDEDE9MZ8HT4T (killed at stand-down) both persisted status=running, screens=0, actions=0 forever after their uvicorn process died mid-POST",
+    "code_read": "src/autotester/stages/explore.py: run_crawl calls store.save_crawl(crawl) exactly twice (once before _bfs, once inside _finish after _bfs returns); nodes.jsonl/edges.jsonl are the only incrementally-written artifacts (X11) -- the Crawl envelope's status/counts are not",
+    "own_reproduction": "This checker's own uninterrupted UI-started crawl (crawl_01M2Q3EVA5E9C0X206KWDXFZ6Z) completed normally in 193s with status=completed -- the crawl mechanism itself does not hang",
+    "conclusion": "Confirmed: the earlier checker's 'stuck at running' observation was an artifact of killing the serving process mid-request, not a hang in the crawl logic. The orphaned-crawl-stays-running-forever gap is real but separate and is filed as AT-483 (low), not charged against this unit."
+  },
+  "capability_coverage_rerun": {
+    "setup": "checker-v8 scratch copy (git archive HEAD, fixture+test copied in, uv synced) -- same copy reused for the baseline pytest run",
+    "baseline": "uv run pytest tests/test_crawl_inventory_live.py -p no:cacheprovider -o addopts= -q -> 2 passed in 299.12s (fresh run by this checker)",
+    "rows": [
+      {
+        "name": "row1-shared-template-collapse",
+        "file": "src/autotester/stages/explore_node.py",
+        "anchor_matches": 1,
+        "file_changed_on_disk": true,
+        "test": "test_a_logged_in_crawl_maps_every_route_and_names_the_one_it_refused",
+        "result": "1 failed in 124.71s",
+        "restored": true
+      },
+      {
+        "name": "row2-read-only-form-submit",
+        "file": "src/autotester/stages/explore_safety.py",
+        "anchor_matches": 1,
+        "file_changed_on_disk": true,
+        "test": "test_a_logged_in_crawl_maps_every_route_and_names_the_one_it_refused",
+        "result": "1 failed in 219.64s",
+        "literal_assertion": "E   AssertionError: read_only must never submit the search form",
+        "restored": true,
+        "note": "restore was re-verified and manually re-applied after a supplementary confirmatory run's driver process was killed mid-way (system contention made it appear hung); byte-diff against HEAD confirmed clean before this verdict was written"
+      },
+      {
+        "name": "row3-depth-bound-coverage-reason",
+        "file": "src/autotester/stages/crawl_coverage.py",
+        "anchor_matches": 1,
+        "file_changed_on_disk": true,
+        "test": "test_every_route_a_depth_bound_kept_out_is_accounted_for_by_coverage",
+        "result": "1 failed in 106.36s",
+        "restored": true
+      }
+    ],
+    "post_run_verification": "all three target files byte-diffed (CRLF-normalised) against D:/autoTesting HEAD after the run -- MATCH on all three"
+  },
+  "verify_commands_rerun_by_checker": {
+    "ruff": "uv run ruff check src tests scripts -> All checks passed!",
+    "doctor": "uv run autotester doctor -> doctor: clean",
+    "pytest_inventory_live_in_copy": "2 passed in 299.12s"
+  },
+  "servers_stopped": true,
+  "issues_filed": ["AT-483"]
+}
