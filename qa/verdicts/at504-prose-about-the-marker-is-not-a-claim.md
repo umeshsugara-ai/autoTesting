@@ -8,7 +8,7 @@ src/autotester/doctor.py, kill-attribution confirmed row-for-row against tests/t
 LIVE-BROWSER: not-applicable (changed paths: src/autotester/doctor.py, tests/test_doctor.py,
 qa/manifests/at504-prose-about-the-marker-is-not-a-claim.md,
 qa/evidence/at504-prose-about-the-marker-is-not-a-claim/*)
-ISSUES-WRITTEN: AT-504 (closed fixed)
+ISSUES-WRITTEN: AT-504 (closed fixed), AT-506 (new, medium)
 EXPLANATION: All manifest claims independently reproduced. `uv run pytest -q -o addopts=
 tests/test_doctor.py` -> 30 passed; `uv run ruff check src tests scripts` -> All checks passed;
 `uv run autotester doctor` -> doctor: clean; `mutation_check.py` -> 4/4 KILLED with each row's
@@ -53,11 +53,15 @@ asterisks; a verdict line's OWN decoration (`**ISSUES-WRITTEN:**`) is handled en
 literal wrapper vs. surrounding line decoration), so the asymmetry is sound and does not hide a
 verdict-side gap.
 
-Structural erosion (signal only, not a blocker): `src/autotester/doctor.py` is 287 lines against
-C2's 300 cap. `git log --follow` confirms three consecutive units (385fec1 AT-496, 17d0d58 AT-500,
-6f97f45 AT-504) have each added to this file. The manifest names this and defers the split rather
-than doing it mid-cycle, which is the right call for a single-purpose bugfix unit; the next unit
-touching this file should treat the split as its first question, per the manifest's own note.
+Structural erosion (signal only, not a blocker -- explicit judgement, not left unstated): `src/
+autotester/doctor.py` is 287 lines against C2's 300 cap. `git log --follow` confirms three
+consecutive units (385fec1 AT-496, 17d0d58 AT-500, 6f97f45 AT-504) have each added to this file.
+Judged the manifest's deferral as the right call for a single-purpose bugfix unit -- splitting
+mid-fix-cycle would have widened this unit's own diff past its claim -- but per AT-502's precedent
+(the same three-units-in-a-row growth shape on scripts/flake_probe.py, already tracked rather than
+left in manifest prose), filed AT-506 (medium, structural-erosion) so the next unit touching this
+file has a queued row to act on instead of a fourth manifest re-noting the same thing. This does
+not change the PASS: it is a Mode-B-shaped signal, never a blocker on a unit that otherwise passes.
 
 Not UI-touching: changed paths are src/autotester/doctor.py, tests/test_doctor.py, the manifest,
 and the evidence directory only -- correctly disclosed, no Mode D needed.
