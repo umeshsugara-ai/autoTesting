@@ -92,6 +92,12 @@ class Project(Artifact):
     providers: ProviderConfig = Field(default_factory=ProviderConfig)
     headed: bool = Field(default=True, description="real visible browser by default")
     description: str | None = None
+    login_case_id: str | None = Field(
+        default=None,
+        description="the case a crawl logs in with before exploring — declared once, here, "
+                    "and used by every entry point (X17); None means the product is crawled "
+                    "signed out",
+    )
 
     def secret(self, key: str) -> SecretRef | None:
         return next((s for s in self.secrets if s.key == key), None)

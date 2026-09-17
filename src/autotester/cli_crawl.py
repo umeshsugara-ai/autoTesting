@@ -43,9 +43,11 @@ def _resolve_crawl_target(project: str, login_case: str | None) -> tuple[Project
     if proj is None:
         typer.secho(f"no project '{project}' yet", fg=typer.colors.RED)
         raise typer.Exit(1)
-    case = store_.get_case(login_case) if login_case else None
-    if login_case and case is None:
-        typer.secho(f"no case '{login_case}' in {project}", fg=typer.colors.RED)
+    # X17: the project's declared login case, which `--login-case` may override for one run.
+    case_id = login_case or proj.login_case_id
+    case = store_.get_case(case_id) if case_id else None
+    if case_id and case is None:
+        typer.secho(f"no case '{case_id}' in {project}", fg=typer.colors.RED)
         raise typer.Exit(1)
     return store_, proj, case
 

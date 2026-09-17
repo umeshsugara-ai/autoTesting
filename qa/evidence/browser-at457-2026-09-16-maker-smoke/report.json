@@ -1,0 +1,16 @@
+{
+  "unit": "at457-crawl-logs-in-from-ui",
+  "role": "maker SMOKE only - not validation; the checker runs its own Mode D",
+  "date": "2026-09-16T17:30Z",
+  "server": "uvicorn from an isolated git-archive extract (Vidysea project dirs removed; HEAD + the unit's 7 files + tests/fixtures/login_site), port 8058",
+  "target": "LOCAL fixture only: python -m http.server 8762 serving tests/fixtures/login_site on 127.0.0.1. Every /app/ page redirects to /login.html unless signed in. No external site was touched.",
+  "autotester_root": "scratchpad/x17root, holding one synthetic project 'loginwall' (base_url http://127.0.0.1:8762/app/dashboard.html, allowed_domains 127.0.0.1), one case 'Sign in as tester' (navigate /login.html, fill #username tester, fill #password fixture-pass, click #sign-in) and one CRAWL approval (actions 60, wall 120), all seeded through ProjectStore. No login case was declared at seed time.",
+  "interactions": [
+    {"did": "open /projects/loginwall/crawls", "expected": "the 'nothing declared' notice shows before any crawl", "observed": "Login for crawls card: 'No login case declared. A crawl will only see pages a signed-out visitor can open - for a product behind a login, that is the login page alone.' The select defaults to 'No login - the product is public'.", "pass": true},
+    {"did": "select 'Sign in as tester' and click 'Save login for crawls'", "expected": "saved on the project; the card names it", "observed": "redirected to /crawls#crawl-login; the card reads 'Logs in first. Crawls log in with Sign in as tester before exploring.' with that option selected", "pass": true},
+    {"did": "set screens 10 / actions 60 / wall 120 and click 'Explore now'", "expected": "a real crawl that logs in and maps the screens behind the login", "observed": "crawl.json: login_case_id=case_628223274750, status completed, stop 'frontier empty', 4 screens, 7 edges, 6 actions, 1 denied. Nodes: /app/dashboard.html (depth 0), /app/orders.html (1), /app/profile.html (1), /app/order-1001.html (2); /login.html is NOT among them. The 'Log out' link was denied_policy 'never-click pattern (logout/sign-out)'. The crawl page lists all 4 screens with how each was reached.", "pass": true}
+  ],
+  "console_errors": {"ui_pages": 0},
+  "product_issue_recorded_by_crawl": "a console 404 on the fixture dashboard (no favicon); fixture noise",
+  "before_this_unit_for_comparison": "every crawl on disk: saucedemo and checkerdemo x2 reached 1 screen with 0 actions, and pathlynks was login_failed with 0 screens"
+}

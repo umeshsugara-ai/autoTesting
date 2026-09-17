@@ -30,6 +30,7 @@ from autotester.ui.helpers import (
     _require_safe_id,
     _reserved_temp_path,
 )
+from autotester.ui.routes_crawl_login import login_card
 
 router = APIRouter()
 
@@ -91,11 +92,12 @@ def _crumbs(slug: str, *tail: tuple[str, str | None]) -> str:
 
 @router.get("/projects/{slug}/crawls", response_class=HTMLResponse)
 def crawls(slug: str) -> str:
-    store, _project = _load_project_or_404(slug)
+    store, project = _load_project_or_404(slug)
     safe = escape(slug)
+    login = login_card(slug, project, store.list_cases())
     crawl_ids = store.list_crawl_ids()
     if not crawl_ids:
-        body = _crumbs(slug) + "<h1>Crawls</h1>" + theme.empty_state(
+        body = _crumbs(slug) + "<h1>Crawls</h1>" + login + theme.empty_state(
             "🕸", "No crawls yet — explore this project to map its screens on its own.",
             _bounds_form(slug, "Explore now"),
         )
@@ -121,7 +123,7 @@ def crawls(slug: str) -> str:
         f"<th>Started</th></tr></thead><tbody>{''.join(rows)}</tbody></table>"
     )
     body = (
-        _crumbs(slug) + "<h1>Crawls</h1>"
+        _crumbs(slug) + "<h1>Crawls</h1>" + login
         + theme.card(_bounds_form(slug, "Explore again"), title="New bounded crawl")
         + theme.card(table)
     )
@@ -211,6 +213,12 @@ def start_crawl(
         bounds = _parse_bounds((max_screens, max_actions, wall_clock_s, max_depth))
     except ValueError as exc:
         return _crawl_error(slug, 400, "Invalid crawl bounds", str(exc))
+    case = store.get_case(project.login_case_id) if project.login_case_id else None
+    if project.login_case_id and case is None:
+        # X17: a declared login that no longer exists must not quietly crawl signed out.
+        return _crawl_error(slug, 400, "Login case not found",
+                            "the login case declared for this project no longer exists — "
+                            "declare another one above the crawl form")
     try:
         explore_stage.require_consent(project, store, bounds)
     except ApprovalRequired as exc:
@@ -224,7 +232,7 @@ def start_crawl(
         with BrowserSession(project, secrets, paths.crawl_shots_dir(crawl_id),
                             paths, observer=observer) as session:
             crawl = explore_stage.run_crawl(project, session, store, observer=observer,
-                                            bounds=bounds, crawl_id=crawl_id)
+                                            bounds=bounds, login_case=case, crawl_id=crawl_id)
     except ApprovalRequired as exc:
         return _crawl_error(slug, 403, "Crawl approval required", str(exc))
     # AT-240, the crawl half. `diff_crawl` was rendered on the crawl page and

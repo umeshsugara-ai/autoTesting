@@ -96,6 +96,7 @@
 | `ui/helpers.py` | Shared request-validation and lookup helpers used by every UI route module. |
 | `ui/project_view.py` | The project page's action card — the operator's control panel for one product. |
 | `ui/routes_cases.py` | Create, list, rename and delete a project's test cases from the UI. |
+| `ui/routes_crawl_login.py` | Which case a crawl logs in with — declared once on the project, shown before a crawl (X17). |
 | `ui/routes_crawls.py` | The explorer, on screen: crawl history, one crawl's screen graph, its |
 | `ui/routes_credentials.py` | The masked .env editor. Contract: qa/contracts/ui.md U3 — a real value is |
 | `ui/routes_flow_diagram.py` | The BFS-style companion to `routes_report.py`'s DFS per-run step flow: |

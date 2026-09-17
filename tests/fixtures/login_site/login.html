@@ -1,0 +1,25 @@
+<!doctype html>
+<html><head><title>Login Demo - Sign in</title></head>
+<body>
+  <h1>Sign in</h1>
+  <p>A fixture product whose every page sits behind this form (X17).</p>
+  <form id="signin">
+    <input id="username" name="username" aria-label="Username">
+    <input id="password" name="password" type="password" aria-label="Password">
+    <button id="sign-in" type="submit">Sign in</button>
+  </form>
+  <p id="error" hidden>Wrong username or password</p>
+  <script>
+    document.getElementById('signin').addEventListener('submit', function (event) {
+      event.preventDefault();
+      var user = document.getElementById('username').value;
+      var pass = document.getElementById('password').value;
+      if (user === 'tester' && pass === 'fixture-pass') {
+        localStorage.setItem('auth', 'tester');
+        location.href = '/app/dashboard.html';
+      } else {
+        document.getElementById('error').hidden = false;
+      }
+    });
+  </script>
+</body></html>

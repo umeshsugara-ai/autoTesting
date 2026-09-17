@@ -170,7 +170,9 @@ def _crawl_reaching(
     crawl = Crawl(project="demo", id="crawl_demo", status=CrawlStatus.COMPLETED,
                   stop_reason="frontier empty", screens=len(urls))
 
-    def fake_run_crawl(project, session, store, observer=None, bounds=None, crawl_id=None):
+    def fake_run_crawl(project, session, store, observer=None, bounds=None, login_case=None,
+                       crawl_id=None):  # mirrors stages.explore.run_crawl, which the UI now
+        # hands the declared login case (X17)
         crawl_ = crawl.model_copy(update={"id": crawl_id or crawl.id})
         for index, url in enumerate(urls):
             store.add_node(ScreenNode(
