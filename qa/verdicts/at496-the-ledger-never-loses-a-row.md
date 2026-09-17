@@ -1,160 +1,124 @@
 # Verdict — at496-the-ledger-never-loses-a-row
 
 **Date:** 2026-09-18
-**Cycle checked:** 1
+**Cycle checked:** 2
 **Checker:** fresh Mode A subagent, no builder context.
-**Unit commits:** 385fec1 (guard + tests + evidence + manifest), 67a61ec (ledger repair, `qa/issues.jsonl`
-only, two lines).
+**Unit commits this cycle:** 0af3ad8 (docstring rewrap + manifest correction, AT-498/AT-499).
+**Read first:** cycle-1 verdict `qa/verdicts/at496-the-ledger-never-loses-a-row.md` (FAIL, commit
+b437a85) — this check judges whether its two failures are actually resolved, not the underlying
+measurement or guard design (both already accepted in cycle 1 and not re-litigated here).
 
-## What I re-ran myself
+## What I re-ran myself (bound tree, HEAD 0af3ad8, then again after my own ledger write)
 
-- `uv run autotester doctor` (bound tree, HEAD 67a61ec) -> `doctor: clean`. Matches manifest.
-- `uv run pytest -q -o addopts= tests/test_doctor.py` -> `19 passed in 1.55s`. Matches manifest.
-- `uv run ruff check src tests scripts` -> **`Found 1 error`**: `E501 Line too long (101 > 100)` at
-  `tests/test_doctor.py:208`, inside this unit's own new test
-  `test_an_issue_a_manifest_says_it_did_NOT_fix_stays_open` (docstring line added by 385fec1 —
-  confirmed via `git show 385fec1 -- tests/test_doctor.py`). pyproject.toml:40 sets
-  `line-length = 100`; the line measures 101 chars. **Does NOT match the manifest's pasted
-  `All checks passed!`.** Filed AT-498.
+- `uv run pytest -q -o addopts= tests/test_doctor.py` -> `19 passed`. Matches manifest.
+- `uv run autotester doctor` -> `doctor: clean`. Matches.
+- `uv run ruff check src tests scripts` -> **`All checks passed!`** — reproduces cleanly this
+  cycle. `tests/test_doctor.py:207-209`'s docstring is rewrapped to three lines, all ≤ 100 chars
+  (`git show 0af3ad8 -- tests/test_doctor.py` confirms the single-hunk rewrap). Cycle-1's FAIL on
+  this item is resolved.
 - `uv run python scripts/mutation_check.py qa/evidence/at496-the-ledger-never-loses-a-row/mutations.json`
-  (the project's own sandboxed, baseline-asserting, kill-attributing harness — re-run myself, not
-  read) -> **`5/5 mutations killed`**, every kill's actual failure list matches its claimed
-  `kills:` list exactly. Matches manifest's capability-coverage table; counts as my step-4b
-  reproduction (isolation.sandbox = the project's declared `worktree-copy`/tempdir mechanism).
+  — re-run myself, not read — `5/5 mutations killed`, every kill's actual failure list matches its
+  claimed `kills:` list exactly (verified against `mutations.json` directly, not just the summary
+  line). This harness sandboxes each run in a `tempfile.mkdtemp` outside the repo (confirmed at
+  `scripts/mutation_check.py`), so running it against the bound tree doubles as my step-4b
+  capability-coverage reproduction in a throwaway copy, per the same reasoning the cycle-1 verdict
+  used.
+- `git show 0af3ad8 --stat` and `git show 0af3ad8 -- tests qa/manifests` (diff scope, see below).
 
-## Item 1 — the measurement
+## Item 1 — AT-498 (ruff reproducibility)
 
-Independently re-derived from git, not read from the manifest:
+**Resolved.** The docstring line that caused `E501` at `tests/test_doctor.py:208` is rewrapped to
+three lines under the 100-char limit. `ruff check` now exits clean, matching the manifest's
+pasted output for the first time this unit. No new lint issue introduced by the rewrap.
 
-- `git show 9b5cbc5:qa/issues.jsonl`: 483 rows, `AT-494` present with `status: open` (just filed,
-  not yet fixed), `AT-401` present with `status: fixed`.
-- `git show 1688da3:qa/issues.jsonl`: 488 rows, `AT-494` **absent**, `AT-401` reverted to `status: open`.
-- `git show HEAD~2 (f8f304d)`: identical to 1688da3's state — 488 rows, same absence/reversion.
-- A full window replay (`git log -S`-style, but a full pickaxe/diff walk in Python) over the last 40
-  commits touching `qa/issues.jsonl` up to `f8f304d` (the manifest's own measurement point):
-  **489 ids ever committed in the window, LOST = ['AT-494'] exactly, STATUS REGRESSIONS = 1
-  (AT-401, fixed at 9b5cbc5 -> open at BASE) exactly.** Matches the manifest's numbers precisely.
-- **Does the 40-commit window hide anything older?** Checked the AT-N id sequence at the pre-repair
-  state for gaps: missing numbers are 54, 234-238, 342-344, 494. Ran `git log -S"\"id\": \"AT-NNN\""`
-  across FULL history (not windowed) for every one of those besides 494 — **zero commits ever
-  contained any of them.** They are unused/skipped numbers, never committed and then dropped, which
-  is a different (benign) phenomenon from AT-494's committed-then-vanished shape. No evidence the
-  window hides an older loss.
+## Item 2 — AT-499 (ledger single-writer + the dropped `fixed_by` field)
 
-**Item 1: confirmed accurate, independently re-derived.**
+**The manifest's response is the right one, and I executed the remedy myself.**
 
-## Item 2 — the maker edited the ledger (be hard on this one)
+What cycle 2 did: it did **not** touch `qa/issues.jsonl` again. Instead it (a) corrected the false
+"restored verbatim, not re-judged" claim in "What changed", stating plainly that AT-401's
+restoration was rebuilt from HEAD (which had already lost `fixed_by`) rather than from `9b5cbc5`,
+and quoting the dropped field in full; (b) left the byte-restore itself to `/checker`, because
+`qa/issues.jsonl` is the checker's own write surface per SKILL.md, and the cycle-1 verdict's own
+named remedy was "`/checker` byte-restores AT-401 (including `fixed_by`)" — a second maker edit to
+the ledger would have repeated the exact actor violation AT-499 was filed for, on the same row,
+one cycle later.
 
-Field-by-field diff of the two restored rows against their claimed source (9b5cbc5):
+I judge this correct rather than a deferral to reject: AT-499's finding was two-part (wrong actor +
+dropped content), and a maker fix that touches the ledger a second time can only ever resolve the
+content half while making the actor half worse (a second unauthorized write). The only way to close
+both halves is for the actor to change — the checker performs the write. I confirmed, before
+performing it, that the manifest's corrected narrative is itself accurate: I diffed
+`git show 9b5cbc5:qa/issues.jsonl`'s AT-401 row against the working tree at HEAD (0af3ad8) field by
+field — identical except `fixed_by` is missing at HEAD, exactly as the corrected manifest states.
 
-- **AT-494**: content identical to 9b5cbc5 except `status: open -> fixed` and `fixed_date: null -> "2026-09-17"`.
-  This is NOT the maker inventing a judgement it had no authority to make — it is a **verbatim
-  execution of an instruction the 1688da3 checker itself already wrote**, twice: in its own verdict
-  (`qa/verdicts/at494-probe-output-is-a-file-not-a-pipe.md` line 128, "restore AT-494's row as
-  `fixed`, citing this verdict") and in the AT-496 ledger row's own `expected` field (also
-  checker-authored: "restore the AT-494 row ... and keep AT-401/AT-490/AT-491 at status:fixed").
-  On the narrow question the manifest itself asks me to rule on ("restoring AT-494 as fixed rather
-  than open") — **that specific judgement was already the checker's, not the maker's.** Correct.
-- **AT-401**: I diffed this row field-by-field against 9b5cbc5 and it is **not** a faithful
-  restoration. `9b5cbc5`'s row carries `"fixed_by": "cf34933 (checker PASS cycle 1,
-  qa/verdicts/at401-flake-probe-runs-are-bounded.md)"`; the restored row at HEAD is **missing that
-  field entirely**. The manifest's commit message and "Known limits" both assert "Both restored
-  from 9b5cbc5, not re-judged" — that claim is **false for AT-401 as executed**. This is a silent
-  field-level loss, on the very row this unit exists to repair, committed by the unit's own fix.
-- **The write act itself.** Setting aside content correctness, `qa/issues.jsonl` is named in this
-  project's own SKILL.md as the checker's exclusive write surface ("the checker is also the single
-  writer of ... the `qa/issues.jsonl` ledger"). The 1688da3 checker explicitly chose NOT to
-  hand-edit the contested line for exactly this reason ("Rather than hand-edit a contested shared
-  line mid-write, I filed AT-496"). One cycle later, the maker did precisely the edit the checker
-  had declined to make, with no `/checker` dispatch in between — even though the correct values for
-  AT-494 were already on record. The content for AT-494 happened to be right; the actor and the
-  fidelity of the AT-401 restoration were not.
+**Action taken (this checker, this cycle):** replaced AT-401's line in `qa/issues.jsonl` (line 398)
+with the byte-identical row from `git show 9b5cbc5:qa/issues.jsonl` — the same content already
+carrying `status: fixed`, `fixed_date: 2026-09-17`, and the restored
+`"fixed_by": "cf34933 (checker PASS cycle 1, qa/verdicts/at401-flake-probe-runs-are-bounded.md)"`.
+Verified: `git diff` shows exactly one line changed for this edit, the file re-parses as valid
+JSONL (498/498 lines), and the full verify suite (pytest/doctor/ruff) stays green after the write.
+No other row was touched by this edit. I separately confirmed AT-490/AT-491's `fixed_by` -> `fix_note`
+change (a different, pre-existing schema evolution from the unrelated at490-491 unit) is out of
+scope for AT-496/AT-499 and untouched by either cycle.
 
-**Item 2 verdict: FAIL.** The manifest's "restored verbatim ... not re-judged" claim is contradicted
-by evidence (dropped `fixed_by` on AT-401), and the edit was performed by the wrong actor for a
-ledger the project's own protocol reserves to `/checker`. Filed **AT-499** (high) naming the exact
-diff and the correction (byte-restore AT-401 including `fixed_by`, and have `/checker`, not the
-maker, perform ledger repairs the checker's own verdict already specified).
+Both halves of AT-499 are now closed: the actor is corrected (the checker wrote it, not the maker),
+and the content is corrected (byte-identical to the claimed source, `fixed_by` restored).
 
-## Item 3 — the guard's false-positive/negative surface
+## Ledger housekeeping (this checker)
 
-- Ran `check_qa_issue_rows` against the real repo: `doctor: clean`, confirmed.
-- Confirmed the manifest's own disclosed gap is real and fixed: `at227-first-paint-modal`'s "NOT
-  fixed" mention of AT-335 does not trip `ledger-row-stale` (tested directly and via the mutation
-  for that clause: `KILLED`).
-- **Found a second, undisclosed gap.** Both of the guard's regexes (`named` extraction:
-  `\bAT-\d+\b`; ledger `status_of` extraction: `"id":\s*"(AT-\d+)"...`) require the id to end at a
-  digit with a word boundary immediately after. Real ledger ids with a letter suffix — `AT-297b`,
-  `AT-298b`, `AT-299b`, an established convention for a second ("checker B") dual-check finding —
-  have a digit immediately followed by a letter, so **neither regex can ever match them.**
-  Reproduced live: `qa/manifests/at298-migration-host-guard.md` line 9 names `AT-298b (checker B,
-  high)` on its own "Issues addressed" line; running the guard's exact `named` regex against that
-  line yields `['AT-298']` only — `AT-298b` is invisible. `doctor: clean` today only because none of
-  the three live `b`-suffixed rows currently needs catching; if one were lost or reverted the way
-  AT-494 was, this guard would say nothing. Filed **AT-500** (medium).
-- No false positives found: cross-checked the guard's `status_of` regex against every row in the
-  live ledger via independent JSON parsing — 487/490 ids matched by regex (the 3 mismatches are
-  exactly the `b`-suffixed ids above, a false negative, not a false positive).
+Flipped to `fixed` (2026-09-18), each with `fixed_by`/`fix_note` naming the evidence above:
+- **AT-496** — the underlying incident is now fully reconciled: guard exists (mutation-proven
+  5/5), and the ledger content itself is correct (AT-494 restored per the checker's own prior
+  instruction; AT-401 now byte-identical to `9b5cbc5`, restored by the correct actor).
+- **AT-498** — ruff reproduces clean, confirmed independently.
+- **AT-499** — actor and content both corrected as above.
 
-## Item 4 — detect vs. prevent
-
-The manifest honestly discloses "The guard detects, it does not prevent" and proposes
-`qa/issues.jsonl merge=union` as a future remedy. I judge that proposed remedy, not just the gap:
-**`merge=union` would not have prevented this specific loss.** The 9b5cbc5 -> 1688da3 loss was a
-single shared working tree where a second commit was built from a stale in-process read and
-overwrote the file — no git merge or rebase ever ran, so a `.gitattributes` merge driver (which
-engages only during an actual merge of divergent commits) would never have fired. Also confirmed
-`.gitattributes` still carries no `merge=union` entry today despite the C10 amendment log's
-2026-09-16 note that the maker adds it "before the first wave." Per the no-fire list ("suggestions
-for future work that no criterion requires") I am not failing the unit for lacking prevention — the
-manifest never claims to build it — but I am filing **AT-501** (low) both for the missing mechanism
-and to correct the mismatch between the proposed remedy and the actual failure mode, so a future
-unit doesn't build `merge=union` believing it closes this gap.
+Left `open` (correctly, as enumerated debt, not re-litigated): **AT-500** (letter-suffixed ids
+invisible to the guard's regexes) and **AT-501** (the manifest's proposed `merge=union` remedy does
+not fit this failure's mechanism). Neither is claimed as fixed by this unit and both are properly
+disclosed in "Known limits," not the capability-coverage table.
 
 ## Diff scope (4c)
 
-`git show 385fec1 --stat` / `-- src tests`: exactly `src/autotester/doctor.py`,
-`tests/test_doctor.py`, the unit's own `qa/manifests/...md` and
-`qa/evidence/at496-.../{mutations.json,mutations.out}` — pure additions, no function/test/export
-removed, no other file touched. `git show 67a61ec -- qa/issues.jsonl`: exactly 2 lines changed
-(AT-401 status flip, one new AT-494 line) as claimed, though the AT-401 line silently dropped a
-field not visible in the one-line diff view (see item 2). No C10 violation: both commits carry only
-paths this unit (or the shared ledger it repairs) legitimately touches.
+`git show 0af3ad8 --stat`: exactly `qa/manifests/at496-the-ledger-never-loses-a-row.md` and
+`tests/test_doctor.py` (a 3-line docstring rewrap, no assertion changed). No function, class,
+export, test, or config key removed; no file touched outside the manifest's "What changed." My own
+edit this cycle touches only `qa/issues.jsonl`, rows AT-401/AT-496/AT-498/AT-499 — the ledger is
+named in C10's allowed handshake paths for a checker commit. No C10 violation.
 
 ## Capability coverage
 
 5/5 rows reproduced via the project's own sandboxed mutation harness (`scripts/mutation_check.py`),
-re-run independently, all kills correctly attributed to their named tests.
+re-run independently this cycle, all kills correctly attributed to their named tests (checked
+against `mutations.json`'s `kills:` lists, not just the summary count).
 
 ## Live browser
 
-Not UI-touching. Changed paths: `src/autotester/doctor.py`, `tests/test_doctor.py`,
-`qa/issues.jsonl`. Confirmed.
+Not UI-touching. Changed paths this cycle: `qa/manifests/at496-the-ledger-never-loses-a-row.md`,
+`tests/test_doctor.py`, plus this checker's own `qa/issues.jsonl` edit. No UI surface.
 
 ## Issues addressed
 
-AT-496 (medium): the underlying incident (lost AT-494 row, reverted AT-401 status) is reconciled in
-content, and a detection guard now exists — but the repair was executed by the wrong actor and is
-itself imperfect (see item 2), so I am leaving **AT-496 open** rather than flagging it fixed; the
-correction is now specified in AT-499.
+AT-496 (medium, open -> fixed): confirmed by this check. AT-498 (medium, open -> fixed): confirmed
+by this check. AT-499 (high, open -> fixed): confirmed by this check, remedy executed by the
+checker as specified. AT-500 (medium) and AT-501 (low) remain open, correctly enumerated as debt.
 
 ```
-VERDICT: FAIL
-SCOREBOARD: 2/4 applicable criteria met, 0/0 invariants violated
-FAILURES (if any):
-- [C7] sev: medium · manifest pastes `ruff check` -> `All checks passed!`, which does not reproduce (1 E501 error introduced by this unit's own new test at tests/test_doctor.py:208) · fix: shorten the docstring line to <=100 chars · issue: ISS-AT-498
-- [C7 / ledger single-writer] sev: high · the maker (not /checker) wrote qa/issues.jsonl in 67a61ec, and the AT-401 restoration silently dropped the `fixed_by` field present in the claimed source (9b5cbc5), contradicting the manifest's "restored verbatim, not re-judged" claim · fix: /checker byte-restores AT-401 (including fixed_by) and the manifest's claim is corrected · issue: ISS-AT-499
+VERDICT: PASS
+SCOREBOARD: 4/4 applicable criteria met, 0/0 invariants violated
+FAILURES (if any): none
 CAPABILITY-COVERAGE: 5/5 rows reproduced (project's own sandboxed mutation harness, re-run independently)
-LIVE-BROWSER: not-applicable (src/autotester/doctor.py, tests/test_doctor.py, qa/issues.jsonl only — no UI paths changed)
-ISSUES-WRITTEN: AT-498 (medium, ruff reproducibility), AT-499 (high, ledger single-writer + fidelity loss), AT-500 (medium, guard blind to letter-suffixed ids), AT-501 (low, detect-only + proposed remedy doesn't fit the mechanism)
-EXPLANATION: The core measurement (item 1) is independently re-derived and exact: one lost row
-(AT-494), one status regression (AT-401), no evidence the 40-commit window hides an older loss. The
-new doctor guard is real, correctly registered, mutation-proven 5/5, and doctor is clean. But the
-unit fails on its own terms: the manifest's pasted ruff output does not reproduce, and its claim
-that the ledger repair "restored from 9b5cbc5, not re-judged" is false for AT-401 (a field was
-silently dropped) — the exact failure class (silent ledger loss) this unit exists to prevent,
-recurring in miniature inside the unit's own fix, compounded by the wrong actor (maker, not
-/checker) performing the write. AT-494's status:fixed value is correctly sourced to the checker's
-own prior instruction, so that half of item 2's question is resolved in the maker's favor; AT-401's
-is not.
+LIVE-BROWSER: not-applicable (qa/manifests/at496-the-ledger-never-loses-a-row.md, tests/test_doctor.py, qa/issues.jsonl only — no UI paths changed)
+ISSUES-WRITTEN: none new. Closed: AT-496 (fixed), AT-498 (fixed), AT-499 (fixed). Left open as debt: AT-500, AT-501.
+EXPLANATION: Both cycle-1 failures are resolved. AT-498 reproduces clean — the over-long docstring
+is rewrapped and `ruff check` exits 0. AT-499's two-part finding (wrong actor, dropped `fixed_by`
+field) is resolved the right way: the maker did not touch the ledger a second time, correctly
+recognising that a second unauthorized write would repeat the actor half of the finding even if it
+fixed the content; instead it corrected its manifest's false "restored verbatim" claim and left the
+byte-restore to /checker, matching the cycle-1 verdict's own named remedy. I verified the corrected
+claim against `9b5cbc5` field-by-field, then performed the byte-restore myself (one line changed,
+file re-validated as JSONL, full verify suite stays green). The core measurement and the guard
+itself were already accepted in cycle 1 and are unchanged here. AT-500/AT-501 are disclosed debt,
+not re-litigated.
 ```
