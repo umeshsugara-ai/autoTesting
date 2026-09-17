@@ -90,4 +90,6 @@ line `src/autotester/cli_video.py:107` (grep `unreadable_reason` over `src/`); n
   validated one at a time, so `loc` is the field name only). Indices and schema field names are not
   sidecar content.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Verdict: `qa/verdicts/at468-unreadable-reason-never-quotes-content.md` (Cycle checked: 1, commit 2e4d9b0, pushed). Checker probed 8 further sidecar shapes, no leak. Ledger: AT-468 → fixed.
