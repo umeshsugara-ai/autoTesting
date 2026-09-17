@@ -223,7 +223,11 @@ def visit_node(rt: ExploreRuntime, node: ScreenNode) -> None:
     _report_overlay(rt, node)
     tried = 0
     for el in node.elements:
-        if tried >= rt.bounds.per_node_action_cap or explore.stop_reason(rt):
+        if tried >= rt.bounds.per_node_action_cap:
+            break
+        reached = explore.stop_reason(rt)
+        if reached:  # AT-463: name the bound, or a last screen reads "frontier empty"
+            rt.stop_reason = reached
             break
         if not crawl_coverage.is_candidate(el) or _candidate_denial(rt, node, el):
             continue
