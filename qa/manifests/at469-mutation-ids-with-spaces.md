@@ -192,4 +192,4 @@ and `tests/test_mutation_check.py`.
 - **The at465-466 renamed ids stay renamed.** Readable space-free ids are fine on their own; nothing
   needs reverting.
 
-## Status: ready-for-check
+## Status: checked-PASS — `qa/verdicts/at469-mutation-ids-with-spaces.md` (Cycle checked: 2, commit 29976d7, pushed). AT-469 and AT-473 fixed. The checker filed AT-478 (`^FAILED` matches captured stdout, so a failing test can fake another test's kill) and AT-479 (a mutation that renames a parametrize id credits a test that never ran). Both are pre-existing false-KILLED shapes; AT-469 widened AT-478 to spaced ids.
