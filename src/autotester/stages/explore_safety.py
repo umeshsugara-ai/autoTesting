@@ -25,6 +25,8 @@ from autotester.schema.screen_graph import ElementRef
 _UNSAFE_SCHEMES = ("javascript:", "mailto:", "tel:")
 FORM_SUBMIT_REFUSED = "form submit under read_only"
 """The refusal a login wall is recognised by (X18) — one string, read by both."""
+OFF_DOMAIN_LINK_REFUSED = "href outside allowed domains"
+"""A link refused BEFORE it is tried (V7's per-node count must not include it)."""
 
 
 def policy_for(project: Project, **overrides: object) -> SafetyPolicy:

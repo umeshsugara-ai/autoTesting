@@ -15,7 +15,7 @@ from autotester.schema.crawl import Crawl, CrawlIssue
 from autotester.schema.enums import EdgeOutcome, NodeStatus
 from autotester.schema.flowspec import FlowSpec, Screen
 from autotester.schema.screen_graph import ScreenEdge, ScreenNode
-from autotester.stages.crawl_report import crawl_summary
+from autotester.stages.crawl_report import coverage_figure, crawl_summary, screens_by_reason
 from autotester.stages.explore_status import displayed_status, is_success
 from autotester.stages.report_export import png_base64
 from autotester.ui import theme
@@ -42,8 +42,19 @@ def summary_stats(crawl: Crawl) -> str:
     # X18(c): tone follows the judged status, not the stop reason's wording — a legacy
     # crawl stuck at the login page also said "frontier empty".
     tone = "positive" if is_success(crawl) else "warning"
+    cov = crawl.coverage
+    reasons = "".join(
+        theme.pill(escape(f"{reason}: {count}"), "neutral") + " "
+        for reason, count in (cov.by_reason().items() if cov else [])
+    )
+    screens = "".join(  # AT-470: screens a bound kept the crawl out of
+        theme.pill(escape(f"{reason}: {count}"), "warning") + " "
+        for reason, count in (screens_by_reason(cov).items() if cov else [])
+    )
     return (
         "<div class='stat-row'>"
+        + theme.stat(f"{cov.percent}%" if cov and not cov.error else "—",  # V7(d)
+                     "Coverage")
         + theme.stat(str(crawl.screens), "Screens")
         + theme.stat(str(crawl.actions), "Actions")
         + theme.stat(str(crawl.denied), "Refused")
@@ -53,6 +64,9 @@ def summary_stats(crawl: Crawl) -> str:
         + f"<p class='meta'>{theme.pill(escape(displayed_status(crawl).value), tone)} · "
         + f"stopped: {theme.pill(escape(crawl.stop_reason or 'unknown'), tone)}"
         + f" · policy {theme.pill(escape(crawl.policy.write_policy.value), 'neutral')}</p>"
+        + f"<p class='meta'>coverage: {escape(coverage_figure(crawl))}"
+        + (f" · not exercised: {reasons}" if reasons else "")
+        + (f" · screens not entered: {screens}" if screens else "") + "</p>"
     )
 
 

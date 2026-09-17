@@ -1,0 +1,17 @@
+{
+  "unit": "at459-crawl-states-its-coverage",
+  "role": "maker SMOKE only - not validation; the checker runs its own Mode D",
+  "date": "2026-09-17T03:10Z",
+  "server": "uvicorn from an isolated git-archive extract of HEAD (includes AT-457/458) + the unit's files, Vidysea project dirs removed, port 8060",
+  "target": "LOCAL fixture only: python -m http.server 8771 serving tests/fixtures/login_site on 127.0.0.1. No external site.",
+  "autotester_root": "scratchpad/v7root, holding one synthetic project 'covsmoke' with a DECLARED login case (Sign in as tester) and a CRAWL approval, seeded through ProjectStore",
+  "interactions": [
+    {"did": "Crawls page: bounds 10 screens / 3 actions / 120 s, click Explore now", "expected": "coverage < 100%, bound:max_actions named, books balance, >= 3 reason classes", "observed": "crawl_01M2PNDB60AN7XSXADCRACGDM8 stopped_bound (max_actions), actions 3; coverage 6 discovered / 3 exercised = 50%; screens reached 2, queued 1; holes: policy:never-click pattern (logout/sign-out) 1, bound:max_actions 1, not_visited 1 (3 + 3 = 6)", "pass": true},
+    {"did": "read that crawl's page", "expected": "a Coverage tile beside the stop, reasons listed", "observed": "tiles: '50% COVERAGE', '3 SCREENS', '3 ACTIONS', ...; meta: 'coverage: 50% of controls (3 of 6) · not exercised: BOUND:MAX_ACTIONS: 1 NOT_VISITED: 1 POLICY:NEVER-CLICK PATTERN (LOGOUT/SIGN-OUT): 1'; Run detail rows Coverage, Screens reached / left queued = 2 / 1, Not exercised by reason", "pass": true},
+    {"did": "download that crawl's report.xlsx", "expected": "Summary has the figure; an Unreached sheet lists each hole with its reason", "observed": "sheets Summary, Screens, Edges, Denied & Skipped, Unreached, Issues, Tool failures, Noise; Summary Coverage '50% of controls (3 of 6)'; Unreached rows: /app/dashboard.html Log out -> policy:never-click; /app/orders.html Order 1001 -> bound:max_actions; /app/profile.html Dashboard -> not_visited", "pass": true},
+    {"did": "Crawls page: bounds 10 / 60 / 120, click Explore again", "expected": "a completed logged-in crawl states an honest figure", "observed": "crawl_01M2PNEFRX0A0JM6VY5M1TFT3F completed, frontier empty, actions 6; 7 discovered / 6 exercised = 85%; screens reached 4 (all behind the login), queued 0; the only hole is 'Log out' (policy:never-click), which is deliberately never pressed", "pass": true},
+    {"did": "CYCLE 2 (AT-470) — cycle-2 extract served on port 8061, same root: bounds 10 / 60 / 120 / max_depth 1, click Explore again", "expected": "the screen behind 'Order 1001' (depth 2) is listed as not entered with bound:max_depth, as the cycle-1 checker's live run 03 found it missing", "observed": "crawl_01M2PQGQCSH4DTEP47CA3WE4EC completed; 6 discovered / 5 exercised = 83%; holes: Log out -> policy:never-click; screens_not_entered: /app/orders.html 'Order 1001' -> bound:max_depth", "pass": true},
+    {"did": "read that crawl's page and download its report.xlsx", "expected": "the not-entered screen shows on the page, the Summary and the Unreached sheet", "observed": "page tile '83% COVERAGE'; meta 'coverage: 83% of controls (5 of 6) · not exercised: POLICY:NEVER-CLICK …: 1 · screens not entered: BOUND:MAX_DEPTH: 1'; Run detail row 'Screens not entered, by reason = bound:max_depth: 1'; workbook Summary same; Unreached sheet row ('/app/orders.html', \"screen behind 'Order 1001' — not entered\", 'role=link[name=\"Order 1001\"] >> nth=0', 'bound:max_depth')", "pass": true}
+  ],
+  "console_errors": {"ui_pages": 0}
+}

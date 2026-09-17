@@ -28,7 +28,7 @@ from autotester.schema.crawl import Crawl, CrawlBounds, NoiseCount, SafetyPolicy
 from autotester.schema.enums import Action, ApprovalKind, CrawlStatus, Outcome
 from autotester.schema.project import Project
 from autotester.schema.screen_graph import CrawlFrontier, ScreenEdge, ScreenNode
-from autotester.stages import explore_node, explore_status
+from autotester.stages import crawl_coverage, explore_node, explore_status
 from autotester.stages.execute import run_case
 from autotester.stages.explore_safety import DialogBreaker
 from autotester.stages.screen_identity import node_from
@@ -222,6 +222,7 @@ def _finish(rt: ExploreRuntime, status: CrawlStatus) -> Crawl:
         "issues": rt.issues,
         "tool_failures": rt.tool_failures,
         "noise_counts": [NoiseCount(host=h, count=c) for h, c in sorted(rt.noise.items())],
+        "coverage": crawl_coverage.of_run(rt, status),  # V7
     })
     rt.crawl = crawl
     rt.store.save_crawl(crawl)

@@ -14,7 +14,7 @@ from pathlib import Path
 from openpyxl import Workbook
 
 from autotester.core.excel import autosize_columns
-from autotester.schema.crawl import Crawl, CrawlIssue
+from autotester.schema.crawl import Crawl, CrawlCoverage, CrawlIssue
 from autotester.schema.enums import EdgeOutcome, IssueKind
 from autotester.schema.screen_graph import ScreenEdge, ScreenNode
 from autotester.stages.explore_status import displayed_status
@@ -37,6 +37,7 @@ def crawl_summary(crawl: Crawl) -> list[tuple[str, str]]:
         ("Stopped because", crawl.stop_reason or "—"),
         ("Write policy", crawl.policy.write_policy.value),
         ("Screens found", str(crawl.screens)),
+        *coverage_rows(crawl),
         ("Actions tried", str(crawl.actions)),
         ("Edges recorded", str(crawl.edges)),
         ("Refused by policy", str(crawl.denied)),
@@ -45,6 +46,43 @@ def crawl_summary(crawl: Crawl) -> list[tuple[str, str]]:
         ("Started", crawl.started_at or "—"),
         ("Finished", crawl.finished_at or "—"),
     ]
+
+
+def coverage_figure(crawl: Crawl) -> str:
+    """The one-line coverage headline (V7d), or an honest 'not recorded' for an old crawl."""
+    cov = crawl.coverage
+    if cov is None:
+        return "not recorded (this crawl predates coverage)"
+    if cov.error:
+        return f"could not be computed ({cov.error})"
+    return f"{cov.percent}% of controls ({cov.controls_exercised} of {cov.controls_discovered})"
+
+
+def coverage_rows(crawl: Crawl) -> list[tuple[str, str]]:
+    """Coverage beside the stop reason, with the same billing (V7d)."""
+    cov = crawl.coverage
+    rows = [("Coverage", coverage_figure(crawl))]
+    if cov is None:
+        return rows
+    rows.append(("Screens reached / left queued",
+                 f"{cov.screens_reached} / {cov.screens_queued_unvisited}"))
+    rows.append(("Not exercised, by reason",
+                 "; ".join(f"{r}: {n}" for r, n in cov.by_reason().items()) or "none"))
+    rows.append(("Screens not entered, by reason",  # AT-470
+                 "; ".join(f"{r}: {n}" for r, n in screens_by_reason(cov).items()) or "none"))
+    if cov.spec_error:
+        rows.append(("FlowSpec screens reached", cov.spec_error))
+    elif cov.spec_screens_total is not None:
+        rows.append(("FlowSpec screens reached",
+                     f"{cov.spec_screens_reached} of {cov.spec_screens_total}"))
+    return rows
+
+
+def screens_by_reason(cov: CrawlCoverage) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for hole in cov.screens_not_entered:
+        counts[hole.reason] = counts.get(hole.reason, 0) + 1
+    return dict(sorted(counts.items()))
 
 
 def _screens_sheet(wb: Workbook, nodes: list[ScreenNode]) -> None:
@@ -88,6 +126,18 @@ def _refused_sheet(wb: Workbook, edges: list[ScreenEdge], names: dict[str, str])
     autosize_columns(ws)
 
 
+def _unreached_sheet(wb: Workbook, crawl: Crawl) -> None:
+    """Every control the crawl discovered and did not perform, each with its one reason (V7d)."""
+    ws = wb.create_sheet("Unreached")
+    ws.append(["URL template", "Control", "Selector", "Reason"])
+    for hole in (crawl.coverage.holes if crawl.coverage else []):
+        ws.append([hole.url_template, hole.name or "(unnamed)", hole.selector, hole.reason])
+    for hole in (crawl.coverage.screens_not_entered if crawl.coverage else []):  # AT-470
+        ws.append([hole.url_template, f"screen behind '{hole.name or hole.selector}' — not entered",
+                   hole.selector, hole.reason])
+    autosize_columns(ws)
+
+
 def _issues_sheet(wb: Workbook, issues: list[CrawlIssue], names: dict[str, str]) -> None:
     ws = wb.create_sheet("Issues")
     ws.append(["Screen", "Kind", "First party", "Detail"])
@@ -126,7 +176,7 @@ def _noise_sheet(wb: Workbook, crawl: Crawl) -> None:
 def export_crawl_excel(
     project_slug: str, crawl_id: str, out_path: Path, root: Path | None = None
 ) -> Path:
-    """Six sheets: Summary, Screens, Edges, Denied & Skipped, Issues, Noise."""
+    """Summary, Screens, Edges, Denied & Skipped, Unreached (V7), Issues, Tool failures, Noise."""
     store = ProjectStore(project_slug, root)
     crawl = store.load_crawl(crawl_id)
     if crawl is None:
@@ -146,6 +196,7 @@ def export_crawl_excel(
     _screens_sheet(wb, nodes)
     _edges_sheet(wb, edges, names)
     _refused_sheet(wb, edges, names)
+    _unreached_sheet(wb, crawl)
     all_issues = store.list_crawl_issues(crawl_id)
     product = [i for i in all_issues if i.kind is not IssueKind.EVIDENCE]
     tool = [i for i in all_issues if i.kind is IssueKind.EVIDENCE]

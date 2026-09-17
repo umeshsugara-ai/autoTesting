@@ -107,6 +107,49 @@ class CrawlIssue(Artifact):
             object.__setattr__(self, "id", content_id("cissue", payload))
 
 
+class CoverageHole(BaseModel):
+    """One control the crawl discovered and did not perform, with the ONE reason why (V7b)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    node_id: str
+    url_template: str
+    selector: str
+    name: str = ""
+    reason: str = Field(description="bound:<name> | policy:<rule> | unnamed | off_domain | "
+                                    "error | login_wall | not_visited")
+
+
+class CrawlCoverage(BaseModel):
+    """What a crawl covered, stated by the crawl itself (coverage.md V7). The books balance:
+    `controls_exercised + len(holes) == controls_discovered`."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    controls_discovered: int = 0
+    controls_exercised: int = 0
+    screens_reached: int = 0
+    screens_queued_unvisited: int = 0
+    percent: int = Field(default=0, description="floor(exercised / discovered * 100); never "
+                                                "100 for a crawl that did not complete (V7d)")
+    holes: list[CoverageHole] = Field(default_factory=list)
+    screens_not_entered: list[CoverageHole] = Field(
+        default_factory=list, description="screens a link led to that a bound kept the crawl "
+                                          "from entering (max_depth / max_screens) — AT-470")
+    spec_screens_reached: int | None = None
+    spec_screens_total: int | None = None
+    spec_error: str | None = Field(default=None, description="why the FlowSpec could not be "
+                                                             "read for the spec counts (AT-472)")
+    error: str | None = Field(default=None, description="why coverage could not be computed; "
+                                                        "the crawl record is kept regardless")
+
+    def by_reason(self) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        for hole in self.holes:
+            counts[hole.reason] = counts.get(hole.reason, 0) + 1
+        return dict(sorted(counts.items()))
+
+
 class NoiseCount(BaseModel):
     """One third-party host's dropped-request tally (never an issue, X9)."""
 
@@ -142,3 +185,5 @@ class Crawl(Artifact):
     product" must not silently include the tool's own failures. Kept as a
     count rather than dropped so "we did not report it" stays auditable."""
     noise_counts: list[NoiseCount] = Field(default_factory=list)
+    coverage: CrawlCoverage | None = Field(
+        default=None, description="V7; None on a crawl recorded before coverage existed")

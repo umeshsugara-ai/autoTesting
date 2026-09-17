@@ -17,9 +17,14 @@ from autotester.browser.session import NavigationRefused, check_destination
 from autotester.schema.crawl import CrawlIssue
 from autotester.schema.enums import Action, EdgeOutcome, IssueKind, NodeStatus
 from autotester.schema.screen_graph import ElementRef, ScreenEdge, ScreenNode
-from autotester.stages import explore
+from autotester.stages import crawl_coverage, explore
 from autotester.stages.explore_return import return_to, why_lost
-from autotester.stages.explore_safety import classify_request, deny_reason, link_is_safe
+from autotester.stages.explore_safety import (
+    OFF_DOMAIN_LINK_REFUSED,
+    classify_request,
+    deny_reason,
+    link_is_safe,
+)
 from autotester.stages.screen_identity import node_from
 
 if TYPE_CHECKING:
@@ -159,7 +164,7 @@ def _candidate_denial(rt: ExploreRuntime, node: ScreenNode, el: ElementRef) -> b
     if (el.role == "link" and el.href
             and not link_is_safe(el, rt.project, rt.session.current_url())):
         record_edge(rt, node, el, Action.NAVIGATE, EdgeOutcome.OFF_DOMAIN_REFUSED,
-                    "href outside allowed domains")
+                    OFF_DOMAIN_LINK_REFUSED)
         add_issue(rt, node.id, IssueKind.NAVIGATION,
                   f"off-domain link refused: {el.name or el.selector}")
         rt.denied += 1
@@ -220,8 +225,7 @@ def visit_node(rt: ExploreRuntime, node: ScreenNode) -> None:
     for el in node.elements:
         if tried >= rt.bounds.per_node_action_cap or explore.stop_reason(rt):
             break
-        if (not el.visible or not el.enabled or el.obscured
-                or _candidate_denial(rt, node, el)):
+        if not crawl_coverage.is_candidate(el) or _candidate_denial(rt, node, el):
             continue
         tried += 1
         rt.frontier.actions_used += 1

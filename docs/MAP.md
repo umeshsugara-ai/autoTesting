@@ -64,6 +64,7 @@
 | `stages/analyze_video.py` | ANALYZE: run the ensemble over a prepared recording, then adjudicate. |
 | `stages/bench.py` | BENCH: the north star made measurable. Contract: qa/contracts/bench.md K1-K5. |
 | `stages/coverage.py` | COVERAGE: diff what a run actually saw against what the FlowSpec knows. |
+| `stages/crawl_coverage.py` | What a crawl covered, stated by the crawl itself — and every hole, with its reason (V7). |
 | `stages/crawl_report.py` | The crawl, as something a human can read: an Excel workbook and the |
 | `stages/execute.py` | EXECUTE: run one case's steps in a real browser, producing a RawResult. |
 | `stages/expand.py` | EXPAND: FlowSpec -> Case[], covering every applicable CaseClass per flow. |
@@ -140,6 +141,8 @@
 | `CrawlBounds` (`schema/crawl.py`) | Bounds the BFS actually stops on — every field must be able to end |
 | `SafetyPolicy` (`schema/crawl.py`) | What the explorer will and won't click, given a project's `write_policy`. |
 | `CrawlIssue` (`schema/crawl.py`) | One problem the crawl noticed — console error, failed first-party |
+| `CoverageHole` (`schema/crawl.py`) | One control the crawl discovered and did not perform, with the ONE reason why (V7b). |
+| `CrawlCoverage` (`schema/crawl.py`) | What a crawl covered, stated by the crawl itself (coverage.md V7). The books balance: |
 | `NoiseCount` (`schema/crawl.py`) | One third-party host's dropped-request tally (never an issue, X9). |
 | `Crawl` (`schema/crawl.py`) | The envelope for one bounded BFS run — `stages/explore.py`'s output. |
 | `SourceRef` (`schema/flowspec.py`) | Where a piece of understanding came from — a video second, a doc line. |

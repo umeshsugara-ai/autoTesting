@@ -15,8 +15,8 @@ from autotester.schema.screen_graph import ScreenEdge, ScreenNode
 from autotester.stages.crawl_report import crawl_summary, export_crawl_excel
 from autotester.store.project_store import ProjectStore
 
-SHEETS = ["Summary", "Screens", "Edges", "Denied & Skipped", "Issues",
-          "Tool failures", "Noise"]
+SHEETS = ["Summary", "Screens", "Edges", "Denied & Skipped", "Unreached", "Issues",
+          "Tool failures", "Noise"]  # "Unreached": coverage.md V7(d), AT-459
 
 
 def seed(tmp_path: Path) -> tuple[ProjectStore, Crawl]:
