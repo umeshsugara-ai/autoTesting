@@ -111,4 +111,6 @@ Not UI-touching — no surface changed. Changed paths: `scripts/mutation_check.p
   is not enabled, so this is not machine-checked).
 - **A 30 s grace** is a judgement. A tree taking longer than that to die is refused as a survivor.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Verdict: `qa/verdicts/at490-491-tree-kill-is-bounded.md` (Cycle checked: 1, commit 992f03f, pushed). Ledger: AT-490, AT-491 → fixed. The checker also re-ran the at468 and at481 specs against the changed harness (3/3 and 1/1, unchanged), so `PYTHONUTF8=1` regresses neither. This close-out also resolves AT-492 (the dispatch gap a sweep filed while the check was still running).
