@@ -155,4 +155,20 @@ this manifest.
 - **`tests/test_flake_probe_real_process.py` adds ~13s to the suite** (two real subprocess-spawning
   tests, ~6s each). The full suite's ~9-minute baseline is not materially affected.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Cycle 1, `qa/verdicts/at495-the-probe-kill-is-proven-not-argued.md` (commit `588cca7`, pushed per
+D-007). PASS with no failures. The checker confirmed independently that the real-process test
+asserts the grandchild **dead** by a pid the test recorded — the sound shape, not the weaker
+"the call returned" shape that a missing `/T` would have satisfied — and that the file split
+follows a seam this family has used twice before (`git log --diff-filter=A`: `1e95b1a`,
+`baf56a1`/`de484fd`).
+
+**The disclosed attribution anomaly is recorded as unmeasured, not absent.** The builder saw one
+mutation misattribute on its first run and could not reproduce it. Three agents have now run the
+set: builder 3 clean after the anomaly, maker 1 clean on master, checker 2 clean — six clean
+against one anomalous, on a machine carrying ~19 concurrent `python.exe` processes and a second
+maker loop. The checker also verified in code (`scripts/mutation_check.py:83-109`) that
+`expected <= failures` cannot manufacture a false PASS: an extra failure only strengthens the
+subset test. Six runs is a sample, not a rate — this repo ships `scripts/flake_probe.py` precisely
+to say so — and the verdict says so rather than reading six greens as a clean bill.
