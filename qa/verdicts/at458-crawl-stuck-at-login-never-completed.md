@@ -66,3 +66,73 @@ Console errors: 0 on the final run. An earlier aborted attempt logged one 403 on
 - AT-462 and AT-463 were appended to `qa/issues.jsonl`. **That file is not committed:** it holds another session's uncommitted hunks, and committing it would sweep them in.
 - AT-458 stays `open`.
 - **Push HELD:** `origin/master..HEAD` carries another session's AT-419 commits.
+
+## Cycle 2
+
+**Date:** 2026-09-17
+**Checker:** /checker Mode A + Mode D (fresh subagent, bound to `D:\autoTesting`)
+**Manifest:** `qa/manifests/at458-crawl-stuck-at-login-never-completed.md` (Fix cycle 2)
+**Cycle checked: 2**
+
+```
+VERDICT: FAIL
+SCOREBOARD: 3/4 criteria met (X18 b, c, d met; a still over-fires on a working same-URL login), 5/6 invariants hold (X3 screen identity still not respected by (a))
+FAILURES (if any):
+- [X18(a)] sev: medium · AT-462 is only half fixed. The new guard is `len({n.signature for n in reached}) != 1`, which counts signatures instead of comparing against the login screen. A working login on a single-page app whose post-login dashboard is ONE structural state (or a hash-routed /#/login -> /#/dashboard with one dashboard state) still reaches one node at the login template with one signature, and ends LOGIN_FAILED "still the login page". Reproduced LIVE through the real UI: my SPA fixture, correct credentials, crawl_01M2PKD40X4963FH7GNN8KYMXQ = 1 node /index.html sig bdc67e3b34fd whose elements are the dashboard's "Refresh numbers" button and whose screenshot reads "Dashboard / Signed in as tester", status login_failed. Also reproduced at unit level (probes P4, P5). The cycle-2 test passes only because it hand-builds TWO nodes · capture the login screen's own signature at bootstrap (observe after the case's NAVIGATE, before FILL) and fire (a) only when every node equals (login template, login signature); add a test with ONE post-login node at the login template that must stay COMPLETED · issue: AT-462 (stays open)
+CAPABILITY-COVERAGE: 11/11 rows reproduced (M1, M2, N1, N2, M3, M4, M9, M5-M8), all attributed to the named tests, baseline 21 passed and green after every restore
+LIVE-BROWSER: qa/evidence/browser-at458-crawl-stuck-at-login-never-completed-2026-09-17-checker-c2/report.json (4/5 steps PASS; step 04 SPA correct login -> login_failed = the FAIL above; 0 console errors on all 5)
+ISSUES-WRITTEN: AT-462 annotated with the cycle-2 reproduction, kept open (no new id)
+EXPLANATION: The manifest counts are now correct (21 passed), the placeholder half of AT-462 is really fixed (including a placeholder mixed into a URL), and X18(b)/(c)/(d) plus the login_site behaviours all hold live. The SPA half is not fixed: "more than one signature" is a proxy for "a screen other than the login screen", and it fails exactly when the logged-in app has one state, which is the plainest SPA shape and the one I was asked to try. Separately, and not charged: a failed login whose login page gains a new CONTROL (a dismissable error banner, a "Try again" link) now yields two signatures and reads COMPLETED. Under X3 that is literally a second screen, so X18(a) as written allows it, but the signature-at-bootstrap fix above would close it too.
+```
+
+## What was re-run (cycle 2)
+
+- Bound tree: the named 3 files -> **21 passed** (matches the corrected manifest); the 8-file set -> **80 passed**, exit 0; `ruff check src tests scripts` -> All checks passed!; `autotester doctor` -> doctor: clean. `explore_status.py` is 112 lines, `explore.py` 300. Full suite not re-run.
+- Throwaway copy `scratchpad/checker-at458c2`: `git archive HEAD`, then projects/erp, pathlynks and vidysea-erp deleted at once (only `regression-demo` left). All 12 unit files copied and cmp-identical, `uv sync` run, and the `explore_status`, `crawl_view` and `explore` `__file__` paths all resolve inside the copy.
+
+## Capability coverage (checker harness: anchor count == 1, file changed, baseline exit 0 asserted, named test must appear in the FAILED list, green re-asserted after restore)
+
+| Row | Edit | Result |
+|---|---|---|
+| M1 X18 Verify | delete the (a)+(b) block in `terminal_status` | 3 failed: followable-link-back, never-leaves-login, login-gate (blocked.py) |
+| M2 (a) | condition line -> `if True:` | 1 failed: never_leaves_the_login_page_is_login_failed |
+| N1 AT-462 | drop ` or len({n.signature ...}) != 1` | 1 failed: single_page_app_that_logged_in_on_the_same_url |
+| N2 AT-462 | `if step is None or PLACEHOLDER_RE.search(...)` -> `if step is None:` | 1 failed: placeholder_login_url_is_never_compared_as_the_root_page |
+| M3 (b) | `False and e.outcome is NAVIGATED` | 1 failed: form_on_every_page_is_still_completed |
+| M4 (d) | legacy condition -> `if False:` | 5 failed: unit + table + page + workbook + CLI |
+| M9 guard says yes | `is_success` -> `return False` | 1 failed: really_completed_crawl_is_still_green_everywhere |
+| M5 table | `_tone` -> positive | 2 failed |
+| M6 page | tone -> positive | 2 failed |
+| M7 workbook | `displayed_status(crawl).value` -> `crawl.status.value` | 2 failed (workbook + page Run detail) |
+| M8 CLI | fg -> GREEN | 2 failed |
+
+N1 is load-bearing for the test it names, but the test pins a two-node graph. A real crawl of a one-state SPA produces a one-node graph, and no row covers that shape (see FAILURE).
+
+## Probes (in the copy, `explore_status.terminal_status`, completed=True)
+
+| Probe | login_template | Status | Judgement |
+|---|---|---|---|
+| P1 failed login, login page gains a 2nd signature (error banner with a control) | /login | **completed** | UNDER-fires. Named, not charged: X3 makes it a second screen, so it is allowed by X18(a) as written. A text-only banner leaves the signature unchanged (live step 02 confirms login_failed on login_site). |
+| P1b failed login, one signature | /login | login_failed | correct |
+| P2 login case with no NAVIGATE | None | completed | (a) is skipped entirely, and (b) is gated on `login_case is None`, so a navigate-less case that never leaves the login page reads COMPLETED. Residual, not charged: `_bootstrap_login` also keys on NAVIGATE, and a login case without a start page is malformed authoring. |
+| P3 `https://app.test/{{SECRET:LOGIN_PATH}}`, stuck on /login | None | completed | The placeholder fix under-fires here: the stuck login is not detected. Acceptable, because the template cannot be known before fill. Recorded. |
+| P3b same, product at / | None | completed | correct (no false login_failed) |
+| **P4 same-URL SPA, working login, one dashboard state** | / | **login_failed** | **the FAILURE** |
+| **P5 hash route /#/login -> one dashboard state** | / | **login_failed** | **the FAILURE** (the fragment is stripped by url_template) |
+| P6 lowercase `{{secret:x}}` | / | login_failed | Not a finding: the placeholder grammar is uppercase-only everywhere (`PLACEHOLDER_RE`), so this is not a placeholder. |
+
+## Mode D (my own headed Playwright Python, Chromium; LOCAL 127.0.0.1 only; synthetic data)
+
+- `tests/fixtures/login_site` from the copy on :8767. My own SPA fixture (`scratchpad/spa_fixture/index.html`, outside the repo) on :8768: the form submit swaps the DOM to a dashboard at the same URL, and auth persists in localStorage. `?tabs=1` adds Overview/Reports tabs, which give a second state. The UI ran from the copy on :8065 with a fresh AUTOTESTER_ROOT (`scratchpad/at458c2_root`) seeded through ProjectStore: projects loginprobe, spaprobe and spatabs, each with its own CRAWL approval and synthetic login cases. Login cases were declared through the real "Login for crawls" select, and each crawl was started from the real Explore form.
+- **01** login_site, no login -> `login_wall` (actions 2, denied 1), no badge-pass on the page or the row. PASS.
+- **02** login_site, wrong password -> `login_failed`, "still the login page (/login.html)", non-success. PASS.
+- **03** login_site, correct login -> `completed`, badge-pass on the page and the row, with 4 screens behind the login (/app/dashboard, orders, profile, order-{id}). PASS.
+- **04** SPA, correct login -> **`login_failed`**. The one node is the Dashboard (screenshot `05-node-3589de.png` shows "Signed in as tester"). **FAIL.**
+- **05** SPA with tabs, correct login -> `completed` (2 signatures at /index.html). PASS. This shows the fix works only when the app happens to have a second state.
+- Console errors: 0 on every step. Servers were stopped (`servers_stopped: true`), and the browser was closed.
+
+## Ledger / push
+
+- AT-462 stays **open**, with a `cycle2_recheck` note added to its row. `qa/issues.jsonl` is **not committed**: it holds other sessions' uncommitted hunks.
+- AT-458 stays open. Fix cycle 3 of 3 remains.
+- **Push HELD:** `origin/master..HEAD` carries another session's unverified AT-419 commits.
