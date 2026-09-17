@@ -1677,3 +1677,34 @@ concurrent maker closed at242-crawl-blocked-status (checked-PASS) and a sweep fi
 -> 0) and finished it.
 -- "full onboarding -> report without touching the CLI" -- WAS FALSE ON THE DAY IT WAS WRITTEN.
 2026-09-17T18:47Z maker BLOCKED at494-probe-output-is-a-file-not-a-pipe cycle 1 -- checker terminated by a session rate limit (429, resets 00:50 IST), wrote no verdict; not a fix cycle, re-dispatch due after the reset
+-- a naive URL prefix match can accept a lookalike domain.
+-- AT-100's ORIGINAL defect, verbatim, on the CRITICAL live-ERP crawl. I wrote it against the three
+-- anchor matched, file changed, ZERO failures. Under the clause as it stood two units ago I would
+--help: a substring cannot tell a real command from a plausible one; the CLI can.
+--map erp1.mp4=<sid> equality match finds ZERO rows. `At` is a STRING "MM:SS", not a number, so the
+-> 1 each. AN's FIRST run was refused by my own harness -- I passed a placeholder anchor and the C7
+-- and all three report commands, the exact reader surfaces AT-120..AT-123 were filed against.
+--note, which is correct -- taking an approval back is also a decision someone made.
+--print` is pinned by running it against the live repo DELIBERATELY (safe precisely because --print
+-- the checker proved it by running ledger add and diffing. AN HONEST NUMBER WITH A WRONG REASON
+-- came back INCONCLUSIVE, because my parametrized test exercises at_mmss DIRECTLY and never the
+--root default resolves to D:\, so the shipped command reads D:\projects\erp\ OUTSIDE THE REPO;
+--root) was STRUCTURALLY INCAPABLE OF CLOSING even once a credential arrived. New test drives it
+-> 0) and finished it.
+-- "full onboarding -> report without touching the CLI" -- WAS FALSE ON THE DAY IT WAS WRITTEN.
+-- a naive URL prefix match can accept a lookalike domain.
+-- AT-100's ORIGINAL defect, verbatim, on the CRITICAL live-ERP crawl. I wrote it against the three
+-- anchor matched, file changed, ZERO failures. Under the clause as it stood two units ago I would
+--help: a substring cannot tell a real command from a plausible one; the CLI can.
+--map erp1.mp4=<sid> equality match finds ZERO rows. `At` is a STRING "MM:SS", not a number, so the
+-> 1 each. AN's FIRST run was refused by my own harness -- I passed a placeholder anchor and the C7
+-- and all three report commands, the exact reader surfaces AT-120..AT-123 were filed against.
+--note, which is correct -- taking an approval back is also a decision someone made.
+--print` is pinned by running it against the live repo DELIBERATELY (safe precisely because --print
+-- the checker proved it by running ledger add and diffing. AN HONEST NUMBER WITH A WRONG REASON
+-- came back INCONCLUSIVE, because my parametrized test exercises at_mmss DIRECTLY and never the
+--root default resolves to D:\, so the shipped command reads D:\projects\erp\ OUTSIDE THE REPO;
+--root) was STRUCTURALLY INCAPABLE OF CLOSING even once a credential arrived. New test drives it
+-> 0) and finished it.
+-- "full onboarding -> report without touching the CLI" -- WAS FALSE ON THE DAY IT WAS WRITTEN.
+2026-09-17T18:50Z maker ADVANCED at494-probe-output-is-a-file-not-a-pipe cycle 1 checker RE-DISPATCHED (the first died on the session rate limit at ~18:30Z with no verdict written -- not a fix cycle; Umesh reported the session back at 00:2xZ) · wave=1 · serial=[AT-483: other loop; AT-488 split: structure decision; AT-408/416: gate unanswered]
