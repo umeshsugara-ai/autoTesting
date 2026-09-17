@@ -148,4 +148,4 @@ and `tests/test_doctor.py`.
 - **The junction test is Windows-only.** On POSIX it is skipped; the same `realpath` comparison covers
   directory symlinks there, but no test pins that on this host.
 
-## Status: ready-for-check
+## Status: checked-PASS — `qa/verdicts/at461-line-cap-walk-stays-in-tree.md` (Cycle checked: 1, commit b594174, pushed). AT-464 (low) filed: the "fails on the loop's OSError first" sentence above is wrong for the mutated code, and two limits (dot-named content folders, a src/ or tests/ root that is itself a junction) were not listed.
