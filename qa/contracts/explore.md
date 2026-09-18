@@ -471,7 +471,7 @@ only the pure-function tests).
   extract with its own `uv sync` venv (`autotester.__file__` resolved inside the extract):
   mutating `_is_rediscovery` to `return False` reproduces the exact original defect shape
   (`assert 2 == 1` in `test_a_same_named_rediscovery_merges_instead_of_duplicating`) while the
-  other 14 tests in `tests/test_explore_merge.py` stay green, and the full suite (`uv run pytest -q`)
+  other 14 tests in `tests/test_explore_merge.py` stay green, and the full suite (`uv run pytest`)
   is green on the live tree. The three dispatch paths — SPA (add, no conflict), genuine conflict
   (add + Conflict), re-discovery (skip) — were checked exhaustive by hand over all
   clash-exists × clash-structural × same-name combinations: a structural clash always takes the

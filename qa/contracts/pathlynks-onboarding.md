@@ -56,7 +56,7 @@ different file than the script.
 - Records which role logged in, the login URL, screens reached, and any anti-bot/2FA signal
   observed (informational — `request_human` exists for a future run if OTP appears).
 
-**Verify:** `uv run pytest tests/test_onboard_pathlynks.py -q` (structural/unit-level checks
+**Verify:** `uv run pytest tests/test_onboard_pathlynks.py` (structural/unit-level checks
 against a script that can run for real or be exercised with a recorded flag) + a real run's
 transcript reviewed for O1 by the checker.
 

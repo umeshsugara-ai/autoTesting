@@ -265,7 +265,7 @@ again at at438 cycle 1. A module whose acceptance line is invented per verdict c
 - **Scope in time.** Charged against manifests whose `Fix cycle` is submitted after the commit that
   adds this criterion. The at438-display-contents cycle-1 verdict and the classes it filed (AT-442 to
   AT-445) are that verdict's to own; this criterion neither discharges nor adds to them.
-- **Verify:** `uv run pytest -q tests/test_browser_scroll_invariance.py tests/test_browser_visual_order.py`
+- **Verify:** `uv run pytest tests/test_browser_scroll_invariance.py tests/test_browser_visual_order.py`
   exits 0 with every xfail strict and each xfail's reason naming a class listed in (c); the checker's
   Mode D run drives its own browser over the unit's changed shape and one shape from each fixture the
   change touches, and records a before/after report count for (b).

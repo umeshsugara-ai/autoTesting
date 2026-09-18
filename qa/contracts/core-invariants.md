@@ -117,7 +117,7 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   A rule that is violated by *not being read* is repaired by making it cost something mechanical, not
   by writing it more firmly. The duty converts a belief into an artifact a checker can judge, and a
   claim submitted without one is treated as an unproven property, not as a justification.
-- **Verify:** `uv run pytest -q` exits 0 and the manifest pastes real output, not a summary; a
+- **Verify:** `uv run pytest` exits 0 and the manifest pastes real output, not a summary; a
   sabotage claim in a manifest is re-run by the checker in its own harness, never read; a unit
   adding or rewriting a test pastes its mutation run, with a green asserted baseline and a named
   failing test per mutation; a manifest containing an unreachability claim pastes the attempted
@@ -377,3 +377,24 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   dispatch-prompt rule binds only the sessions that happened to be dispatched with it, while every
   unit commit is judged against a contract, and the property is re-derivable from `git show` alone.
   Adds a duty, softens nothing.
+- 2026-09-18 · routine · **C7's Verify clause corrected: `uv run pytest -q` → `uv run pytest`** (no
+  criterion text otherwise changed). Why: `pyproject.toml:62`'s `addopts = "-q"` already applies one
+  `-q` to every invocation; the C7 clause's own CLI `-q` stacked on top of it, reaching pytest's
+  `-qq` threshold (an additive `action="count"` flag) and suppressing the `N passed`/`N failed`
+  summary line entirely — leaving only dots and `[100%]`. Two people had already judged a suite
+  "clean" from a `tail` of exactly such a summary-less log and had to retract (AT-505, and the
+  maker). Folded from AT-503's cycle-1 manifest (`qa/manifests/at503-pytest-a-summary-line-not-just-
+  dots.md`), which fixed `qa/adapter.json`'s slot-1 verify command the same way and independently
+  measured the mechanism (bare `uv run pytest` on `tests/test_ledger_checks.py`: `19 passed in
+  0.61s`; the same command with `-q` added, or with `-qq`: dots only, no summary — re-derived by this
+  checker on the same subset with an identical result before folding this entry). The same stale
+  `-q` was also present in `ui.md`'s C-scroll Verify clause, `explore.md`'s merge-dispatch edge-case
+  note, `living-ledger.md`'s Verify clause, `browser-and-secrets.md`'s two Verify clauses (B1-B4,
+  B5-B9), and `pathlynks-onboarding.md`'s Verify clause — all corrected identically in this same
+  commit. `pyproject.toml`'s `addopts` is untouched (it is what keeps the corrected bare form
+  readable, and it applies to every invocation in the tree, not just these). Tightening/correction
+  only — the invariant (exit 0, real pasted output) is unchanged; only the stale shell string is
+  fixed to match the command a checker or maker actually re-runs. Residual outside `qa/contracts/`
+  (`AGENTS.md`, `qa/loop.md`, and ~43 of 50 per-file `cmd` rows in `.goal/goal.json` carry the same
+  doubling) is not a contract concern and is filed to the ledger instead: AT-521, AT-522. Verdict:
+  `qa/verdicts/at503-pytest-a-summary-line-not-just-dots.md` (Cycle checked: 1).

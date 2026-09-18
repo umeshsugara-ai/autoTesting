@@ -740,3 +740,11 @@ level is actually wanted) — the mechanical fix is identical everywhere: **stop
 config already sets it**, never touch `pyproject.toml`. Whether this is worth a repo-wide sweep unit
 of its own, or is cleaned up file-by-file as each one is next edited, is the checker's/maker's call,
 not this unit's — its own file set is `qa/adapter.json` and `CLAUDE.md`'s Commands block only.
+
+**Status:** folded → `qa/contracts/core-invariants.md` (C7 Verify clause + new 2026-09-18 amendment
+log entry), `qa/contracts/ui.md`, `qa/contracts/explore.md`, `qa/contracts/living-ledger.md`,
+`qa/contracts/browser-and-secrets.md` (B1-B4 and B5-B9 Verify clauses), `qa/contracts/pathlynks-
+onboarding.md` — all six Verify clauses' stale `uv run pytest -q` corrected to `uv run pytest`
+(2026-09-18, /checker, at503-pytest-a-summary-line-not-just-dots cycle-1 check). `AGENTS.md`,
+`qa/loop.md`, and `.goal/goal.json`'s ~43 per-file `cmd` rows are outside the checker's contract
+write-surface — filed to the ledger instead as AT-521 and AT-522 rather than edited here.

@@ -32,7 +32,7 @@ human instead of silently rebuilt. It is the product's **overview, not a logger*
   maker shows for confirm-or-edit; `normal`/`low` rows auto-stamp `reason: "update"` with no question.
 - `user_value` is a default, not a fixture: `autotester ledger weight <feature> high` raises it later
   and triggers the reasoning ask once.
-- **Verify:** `uv run pytest tests/test_ledger.py -q` covers: schema validation, refused empty retire
+- **Verify:** `uv run pytest tests/test_ledger.py` covers: schema validation, refused empty retire
   reason, auto-`update` for normal, prefilled reason surfaced for high, weight raise → ask flag.
 
 ### L3 — Row on PASS

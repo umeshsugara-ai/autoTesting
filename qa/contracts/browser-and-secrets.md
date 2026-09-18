@@ -42,7 +42,7 @@ without ever exposing the credentials to a model or writing them to disk outside
 - `Redactor` built from the loaded store masks every secret value in logs and artifacts.
 - Screenshots mask inputs whose field carries a `secret_key` before capture (see B7).
 
-**Verify:** `uv run pytest tests/test_secrets.py -q` exits 0, covering: missing key, undeclared key,
+**Verify:** `uv run pytest tests/test_secrets.py` exits 0, covering: missing key, undeclared key,
 wrong-host refusal, correct-host resolution, prompt gate, redaction of a resolved value.
 
 ## Criteria — T-010 `browser/session.py`
@@ -68,7 +68,7 @@ wrong-host refusal, correct-host resolution, prompt gate, redaction of a resolve
 - No process-wide `taskkill`/`pkill` of Chrome anywhere in the codebase.
   (Brain recipe `selenium-browser-cleanup-targeted.md`: a naive kill destroyed a developer's open tabs.)
 
-**Verify:** `uv run pytest tests/test_browser.py -q` exits 0. Tests that need a real browser are
+**Verify:** `uv run pytest tests/test_browser.py` exits 0. Tests that need a real browser are
 marked and may be skipped when Playwright browsers are not installed, but the domain-refusal,
 masking, and cleanup-scope tests must run without a browser.
 
