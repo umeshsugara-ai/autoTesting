@@ -209,4 +209,36 @@ Not UI-touching — no `src/` file, no `ui/` route, no browser surface changed. 
   corrected the provenance error above. So the last edits to this manifest are the maker's, not the
   original author's — stated because the checker should know whose hand is on which paragraph.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Cycle 1, `qa/verdicts/at507-architecture-doc-regains-its-headroom.md` (commit `226dbaa`), pushed
+per D-007. PASS.
+
+The checker re-derived every number rather than reading them here, and confirmed the unit's central
+argument: `.goal/goal.json` carries **20** `pending` tasks today, so the deleted line "the P0–P5 goal
+backlog is closed" really was **false**, not merely redundant. That is the difference between this
+being a trim and being a deletion of something useful. It also verified D-027/D-028 are genuine
+append-only entries under the `decisions-append-guard.ps1` PreToolUse hook, correctly scoped, and
+that no enforcement path was touched (so no `Approved-by` was needed, and none is present).
+
+**Two low findings, both verified here independently before close-out:**
+
+- **AT-519** — D-027 and this manifest both say the Concept→file table has **34** rows. It has
+  **30** (32 pipe lines, less header and separator). I re-counted: the checker is right. This is
+  the *second* miscount in the same decision entry, after D-028 already had to correct D-027's line
+  arithmetic. One miscount is a slip; two in one entry is a pattern, and it is worth saying that
+  the entry's *reasoning* has been checked and holds — it is only the counting that keeps failing.
+- **AT-520** — the strongest single objection to this unit, and it is correct. The deleted section
+  named `scripts/bench_trial.py` as evidence of a real bench trial. I grepped every routed doc:
+  `ARCHITECTURE.md`, `MAP.md`, `SNAPSHOT.md`, `FEATURES.jsonl` and `CLAUDE.md` all return **zero**
+  hits for `bench_trial`. So "no information was lost" was not quite true — the *feature* survives
+  via `F-017`, but the **file path is now undiscoverable through any routed doc**. The root cause is
+  pre-existing and larger than this unit: `docs/MAP.md` covers `src/autotester/` only and has never
+  covered `scripts/`, which is the same blind spot AT-488 and AT-502 describe from the design-rule
+  side. The trim exposed it rather than caused it, but the manifest's claim was still too strong and
+  I am recording that rather than arguing the distinction.
+
+The checker also corrected a detail of my dispatch brief: the budget constant lives in
+`src/autotester/ledger/render.py:20` (`ARCHITECTURE_MAX_LINES`), imported by
+`doctor.py:158`, not in `doctor.py` as I told it.
+
