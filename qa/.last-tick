@@ -1787,3 +1787,4 @@ concurrent maker closed at242-crawl-blocked-status (checked-PASS) and a sweep fi
 2026-09-18 ADVANCED at521 -q sweep built (43 goal.json rows + 3 doc surfaces); maker fixed the test_goal_done_checks regression the agent disclosed; cycle-1 checker dispatched; at520 scripts/ investigation still running
 2026-09-18 ADVANCED at520 built (MAP.md now covers scripts/) + gate at520-scripts-line-cap opened (17 false positives measured); cycle-1 checker dispatched; at521 checker still running
 2026-09-18 ADVANCED at521 closed checked-PASS; found+recorded a checker concurrency defect (shared qa/issues.jsonl swept into another agent's commit); at520 checker notified, still finishing
+2026-09-18 ADVANCED at520 closed checked-PASS; clean handshake; wave of 2 dispatched: at523 -q regression guard, at526 ledger concurrency investigation
