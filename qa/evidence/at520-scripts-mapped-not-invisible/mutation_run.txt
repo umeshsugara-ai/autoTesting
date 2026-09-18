@@ -1,0 +1,8 @@
+KILLED  scripts section dropped from render_map's returned dict  (pytest exit 1)
+    claims to kill : tests/test_ledger.py::test_a_ps1_script_with_no_header_comment_gets_a_placeholder, tests/test_ledger.py::test_scripts_section_covers_py_and_ps1_and_doctor_sees_staleness
+    actually failed: tests/test_ledger.py::test_a_ps1_script_with_no_header_comment_gets_a_placeholder, tests/test_ledger.py::test_scripts_section_covers_py_and_ps1_and_doctor_sees_staleness
+KILLED  ps1 header-comment line is never matched  (pytest exit 1)
+    claims to kill : tests/test_ledger.py::test_scripts_section_covers_py_and_ps1_and_doctor_sees_staleness
+    actually failed: tests/test_ledger.py::test_scripts_section_covers_py_and_ps1_and_doctor_sees_staleness
+
+2/2 mutations killed

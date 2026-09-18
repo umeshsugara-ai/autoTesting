@@ -28,7 +28,8 @@ def make_docs(tmp_path: Path) -> RepoDocs:
     docs.map.write_text(
         "# map\n\n**Purpose:** p\n**Open me when:** w\n\n"
         "<!-- generated:map -->\n<!-- /generated:map -->\n"
-        "<!-- generated:schema -->\n<!-- /generated:schema -->\n",
+        "<!-- generated:schema -->\n<!-- /generated:schema -->\n"
+        "<!-- generated:scripts -->\n<!-- /generated:scripts -->\n",
         encoding="utf-8",
     )
     pkg = tmp_path / "src" / "autotester"
@@ -136,6 +137,38 @@ def test_map_is_derived_from_docstrings_and_doctor_sees_staleness(tmp_path: Path
 def test_replace_generated_requires_markers() -> None:
     with pytest.raises(ValueError, match="markers"):
         render.replace_generated("no markers here", "map", "x")
+
+
+# -- AT-520: scripts/ is a routed doc section too, not a blind spot ---------
+
+def test_scripts_section_covers_py_and_ps1_and_doctor_sees_staleness(tmp_path: Path) -> None:
+    docs = make_docs(tmp_path)
+    scripts_dir = tmp_path / "scripts"
+    scripts_dir.mkdir()
+    (scripts_dir / "do_thing.py").write_text('"""Does the other thing."""\n', encoding="utf-8")
+    (scripts_dir / "do_other.ps1").write_text(
+        "# do_other.ps1 -- explains itself in its header comment\n"
+        "Write-Host 'hi'\n",
+        encoding="utf-8",
+    )
+    fresh = render.apply_map(docs)
+    assert "| `scripts/do_thing.py` | Does the other thing. |" in fresh
+    assert (
+        "| `scripts/do_other.ps1` | do_other.ps1 -- explains itself in its header comment |"
+        in fresh
+    )
+    assert fresh != docs.map.read_text(encoding="utf-8")  # not yet regenerated
+    docs.map.write_text(fresh, encoding="utf-8")
+    assert render.apply_map(docs) == docs.map.read_text(encoding="utf-8")
+
+
+def test_a_ps1_script_with_no_header_comment_gets_a_placeholder(tmp_path: Path) -> None:
+    docs = make_docs(tmp_path)
+    scripts_dir = tmp_path / "scripts"
+    scripts_dir.mkdir()
+    (scripts_dir / "bare.ps1").write_text("Write-Host 'no header here'\n", encoding="utf-8")
+    fresh = render.apply_map(docs)
+    assert "| `scripts/bare.ps1` | (no description) |" in fresh
 
 
 # -- L5: lean snapshot -------------------------------------------------------

@@ -1,0 +1,30 @@
+=== line counts (wc -l scripts/*.py scripts/*.ps1) ===
+    61 scripts/check_crawl_approval.py
+    79 scripts/check_deliverable.py
+    98 scripts/check_no_secrets.py
+   125 scripts/score_video_issues.py
+   142 scripts/onboard_pathlynks.py
+   144 scripts/append_decision.ps1
+   181 scripts/explore_proof.py
+   184 scripts/bench_trial.py
+   199 scripts/regression_proof.py
+   207 scripts/migrate_url_patterns.py
+   214 scripts/run_pathlynks_first_cases.py
+   244 scripts/flake_probe.py
+   416 scripts/mutation_check.py
+  2294 total
+
+=== check_function_sizes equivalent over scripts/ (functions > 50 lines) ===
+scripts/bench_trial.py:108 main is 72 lines > 50
+scripts/mutation_check.py:308 _check_in is 66 lines > 50
+scripts/onboard_pathlynks.py:78 _write_knowledge is 56 lines > 50
+scripts/run_pathlynks_first_cases.py:143 main is 67 lines > 50
+
+=== check_duplicate_definitions equivalent over scripts/ (top-level name collisions) ===
+build_cases: ['bench_trial.py', 'regression_proof.py', 'run_pathlynks_first_cases.py'] -> 2 violation(s)
+main: ['bench_trial.py', 'check_crawl_approval.py', 'check_deliverable.py', 'explore_proof.py', 'flake_probe.py', 'migrate_url_patterns.py', 'mutation_check.py', 'regression_proof.py', 'run_pathlynks_first_cases.py', 'score_video_issues.py'] -> 9 violation(s)
+make_rubric: ['bench_trial.py', 'regression_proof.py', 'run_pathlynks_first_cases.py'] -> 2 violation(s)
+run_and_grade: ['bench_trial.py', 'regression_proof.py'] -> 1 violation(s)
+scan: ['check_no_secrets.py', 'migrate_url_patterns.py'] -> 1 violation(s)
+start_server: ['bench_trial.py', 'explore_proof.py', 'regression_proof.py'] -> 2 violation(s)
+TOTAL: 17

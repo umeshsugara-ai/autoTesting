@@ -1,7 +1,7 @@
 # AutoTester — map (generated sections; do not edit between markers)
 
-**Purpose:** the directory map (every module's one job, from its docstring) and the schema summary (every model, from its docstring), derived from code by `autotester map`.
-**Open me when:** you need to find which module owns a job or which model holds a shape. `autotester doctor` fails when this file is stale.
+**Purpose:** the directory map (every module's one job, from its docstring), the schema summary (every model, from its docstring), and the `scripts/` inventory (every instrument's one job, from its docstring or header comment) — derived from code by `autotester map`.
+**Open me when:** you need to find which module owns a job, which model holds a shape, or which script does what (AT-520: `scripts/` used to be invisible to every routed doc). `autotester doctor` fails when this file is stale.
 
 ## Directory map
 
@@ -193,3 +193,23 @@
 | `Judgment` (`schema/verdict.py`) | Raw judge output for one grading call — the stage fills in run_id, case_id, |
 | `Verdict` (`schema/verdict.py`) | The judge's output for one case in one run. |
 <!-- /generated:schema -->
+
+## Scripts
+
+<!-- generated:scripts -->
+| Script | One job |
+|---|---|
+| `scripts/append_decision.ps1` | append_decision.ps1 -- the ONLY legitimate write path to docs/DECISIONS.md |
+| `scripts/bench_trial.py` | T-120: the north star made measurable — first real human-vs-AI trial scorecard. |
+| `scripts/check_crawl_approval.py` | T-145's done_check (D-018): a live crawl counts as done only if it actually |
+| `scripts/check_deliverable.py` | Assert a task's deliverables exist — a `done_check` that can actually fail. |
+| `scripts/check_no_secrets.py` | Scan files for any real value currently loaded in .env. Prints OK/LEAK only. |
+| `scripts/explore_proof.py` | Credential-free end-to-end proof of the explorer (Track B3). |
+| `scripts/flake_probe.py` | Measure a flaky test's real failure rate — and say how little N green runs prove. |
+| `scripts/migrate_url_patterns.py` | Repair `url_pattern` values mangled by AT-287/AT-294, in stored project data. |
+| `scripts/mutation_check.py` | Prove a unit's new tests are not vacuous, by killing them on purpose. |
+| `scripts/onboard_pathlynks.py` | Onboard Pathlynks: real login via the credential boundary, evidence, knowledge.md. |
+| `scripts/regression_proof.py` | T-110: break a feature, confirm exactly that case FAILs while an unrelated |
+| `scripts/run_pathlynks_first_cases.py` | T-050: 3 hand-written Pathlynks login cases (best/worst/edge), run headed and |
+| `scripts/score_video_issues.py` | Score AutoTester's issues against a human tester's sheet — T-136's acceptance. |
+<!-- /generated:scripts -->

@@ -59,8 +59,21 @@ def _class_summaries(path: Path) -> list[tuple[str, str]]:
     return out
 
 
+def _script_one_liner(path: Path) -> str:
+    """A script's one-job line: a `.py` docstring, or a `.ps1`'s first `# name -- doc`
+    header comment (AT-520: `scripts/` had no equivalent of a module docstring row —
+    a file's existence was undiscoverable through any routed doc)."""
+    if path.suffix == ".py":
+        return _first_docstring_line(path)
+    for line in path.read_text(encoding="utf-8").splitlines()[:5]:
+        stripped = line.strip()
+        if stripped.startswith("#") and "--" in stripped:
+            return stripped.lstrip("#").strip()
+    return "(no description)"
+
+
 def render_map(root: Path) -> dict[str, str]:
-    """Bodies for the two generated sections: `map` and `schema`."""
+    """Bodies for the three generated sections: `map`, `schema`, `scripts`."""
     pkg = root / "src" / "autotester"
     rows = ["| Module | One job |", "|---|---|"]
     for path in sorted(pkg.rglob("*.py")):
@@ -73,7 +86,15 @@ def render_map(root: Path) -> dict[str, str]:
             continue
         for name, doc in _class_summaries(path):
             schema_rows.append(f"| `{name}` (`schema/{path.name}`) | {doc} |")
-    return {"map": "\n".join(rows), "schema": "\n".join(schema_rows)}
+    script_rows = ["| Script | One job |", "|---|---|"]
+    scripts_dir = root / "scripts"
+    if scripts_dir.exists():
+        for path in sorted(scripts_dir.iterdir()):
+            if path.suffix not in (".py", ".ps1") or "__pycache__" in path.parts:
+                continue
+            script_rows.append(f"| `scripts/{path.name}` | {_script_one_liner(path)} |")
+    return {"map": "\n".join(rows), "schema": "\n".join(schema_rows),
+            "scripts": "\n".join(script_rows)}
 
 
 def apply_map(docs: RepoDocs) -> str:

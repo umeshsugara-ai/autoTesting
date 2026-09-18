@@ -1,0 +1,67 @@
+........................................................................ [  4%]
+.....................................xx....xx..xxxxxx....xx..xxxxxx..xxx [  9%]
+xxxxxxxxxxx............................................................. [ 14%]
+........................................................................ [ 18%]
+........................................................................ [ 23%]
+...............................s........................................ [ 28%]
+........................................................................ [ 33%]
+........................................................................ [ 37%]
+........................................................................ [ 42%]
+...............F........................................................ [ 47%]
+........................................................................ [ 52%]
+........................................................................ [ 56%]
+........................................................................ [ 61%]
+........................................................................ [ 66%]
+........................................................................ [ 71%]
+........................................................................ [ 75%]
+........................................................................ [ 80%]
+.......s................................................................ [ 85%]
+........................................................................ [ 90%]
+........................................................................ [ 94%]
+........................................................................ [ 99%]
+........                                                                 [100%]
+================================== FAILURES ===================================
+__________________ test_revised_goal_contract_is_registered ___________________
+
+    def test_revised_goal_contract_is_registered() -> None:
+        data = json.loads(GOAL.read_text(encoding="utf-8"))
+        by_id = {task["id"]: task for task in data["tasks"]}
+        tests = "tests/"
+        expected = {
+            "T-160": (["T-134"], tests + "test_goal_done_checks.py::"
+                      "test_revised_goal_contract_is_registered"),
+            "T-161": (["T-100", "T-160"], tests + "test_ui_project_intake.py"),
+            "T-162": (["T-161"], tests + "test_source_adapters.py"),
+            "T-163": (["T-135", "T-162"], tests + "test_autonomous_orchestrator.py"),
+            "T-164": (["T-163"], tests + "test_portal_persona.py"),
+            "T-165": (["T-163", "T-144"], tests + "test_explore_completeness.py "
+                      "tests/test_explore_network.py"),
+            "T-166": (["T-125", "T-164", "T-165"], tests + "test_eval_compiler.py"),
+            "T-167": (["T-166", "T-110"], tests + "test_regression_trigger.py"),
+            "T-168": (["T-155", "T-164", "T-165", "T-167"], tests + "test_unified_report.py"),
+            "T-169": (["T-136", "T-145", "T-168"], tests + "test_generic_acceptance.py"),
+        }
+        # No CLI `-q`: pyproject.toml's addopts already sets it, and stacking a second one makes
+        # pytest -qq, which prints no summary line at all (AT-503/AT-522, measured 2026-09-18).
+>       expected = {key: (deps, f"uv run pytest {spec}") for key, (deps, spec) in expected.items()}
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: assert {'T-160': (['...tor.py'), ...} == {'T-160': (['....py -q'), ...}
+E         
+E         Differing items:
+E         {'T-164': (['T-163'], 'uv run pytest tests/test_portal_persona.py')} != {'T-164': (['T-163'], 'uv run pytest tests/test_portal_persona.py -q')}
+E         {'T-163': (['T-135', 'T-162'], 'uv run pytest tests/test_autonomous_orchestrator.py')} != {'T-163': (['T-135', 'T-162'], 'uv run pytest tests/test_autonomous_orchestrator.py -q')}
+E         {'T-161': (['T-100', 'T-160'], 'uv run pytest tests/test_ui_project_intake.py')} != {'T-161': (['T-100', 'T-160'], 'uv run pytest tests/test_ui_project_intake.py -q')}
+E         {'T-169': (['T-136', 'T-145', 'T-168'], 'uv run pytest tests/test_gener...
+E         
+E         ...Full output truncated (8 lines hidden), use '-vv' to show
+
+tests\test_goal_done_checks.py:231: AssertionError
+============================== warnings summary ===============================
+.venv\Lib\site-packages\starlette\testclient.py:53
+  D:\autoTesting\.venv\Lib\site-packages\starlette\testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_goal_done_checks.py::test_revised_goal_contract_is_registered
+1 failed, 1485 passed, 2 skipped, 32 xfailed, 1 warning in 720.25s (0:12:00)

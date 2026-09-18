@@ -1,0 +1,24 @@
+{
+  "mutations": [
+    {
+      "name": "scripts section dropped from render_map's returned dict",
+      "file": "src/autotester/ledger/render.py",
+      "old": "    return {\"map\": \"\\n\".join(rows), \"schema\": \"\\n\".join(schema_rows),\n            \"scripts\": \"\\n\".join(script_rows)}",
+      "new": "    return {\"map\": \"\\n\".join(rows), \"schema\": \"\\n\".join(schema_rows)}",
+      "kills": [
+        "test_scripts_section_covers_py_and_ps1_and_doctor_sees_staleness",
+        "test_a_ps1_script_with_no_header_comment_gets_a_placeholder"
+      ]
+    },
+    {
+      "name": "ps1 header-comment line is never matched",
+      "file": "src/autotester/ledger/render.py",
+      "old": "        if stripped.startswith(\"#\") and \"--\" in stripped:",
+      "new": "        if False and stripped.startswith(\"#\") and \"--\" in stripped:",
+      "kills": [
+        "test_scripts_section_covers_py_and_ps1_and_doctor_sees_staleness"
+      ]
+    }
+  ],
+  "tests": "tests/test_ledger.py"
+}
