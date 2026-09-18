@@ -20,7 +20,7 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
 - No dict-shaped domain object, dataclass, or TypedDict duplicating a schema model exists elsewhere.
 - Every artifact model inherits `schema.base.Artifact` (carries `schema_version`, `created_at`, `provenance`).
 - Models use `extra="forbid"`, so an unknown key raises at load instead of being silently dropped.
-- **Verify:** `uv run pytest tests/test_schema.py -q` exits 0.
+- **Verify:** `uv run pytest tests/test_schema.py` exits 0.
 
 ### C2 — Readable by a human and an agent
 - No file in `src/` or `tests/` exceeds 300 lines; no function exceeds 50 lines.
@@ -53,7 +53,7 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   same-request non-secret validator can echo or persist input, its prompt/artifact guard includes
   the union of pre-existing root secrets and all newly submitted values.
 - `**/.env`, `profiles/`, `.work/`, and `projects/*/runs/` are gitignored.
-- **Verify:** `uv run pytest tests/test_core.py -q` exits 0; `git ls-files | grep -E "\.env$"` returns nothing.
+- **Verify:** `uv run pytest tests/test_core.py` exits 0; `git ls-files | grep -E "\.env$"` returns nothing.
 
 ### C6 — Artifacts are human-editable files
 - Every stage output is JSON, JSONL, or Markdown on disk under `projects/<slug>/`, valid against its model.
@@ -136,7 +136,7 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   against the reader's actual vocabulary in a test, and files the upstream defect in the ledger.
 - Applies to `.goal/goal.json` control fields (`base_criticality`, `done_check`, `approved`) as
   well as to `projects/<slug>/` artifacts.
-- **Verify:** `uv run pytest tests/test_goal_criticality_vocabulary.py tests/test_goal_done_checks.py -q`
+- **Verify:** `uv run pytest tests/test_goal_criticality_vocabulary.py tests/test_goal_done_checks.py`
   exits 0 — one file per control field pinned so far (`base_criticality`, `done_check`). `approved`
   is not yet pinned (AT-156); when it is, its test joins this line.
 
@@ -398,3 +398,14 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   (`AGENTS.md`, `qa/loop.md`, and ~43 of 50 per-file `cmd` rows in `.goal/goal.json` carry the same
   doubling) is not a contract concern and is filed to the ledger instead: AT-521, AT-522. Verdict:
   `qa/verdicts/at503-pytest-a-summary-line-not-just-dots.md` (Cycle checked: 1).
+- 2026-09-18 · routine · **C1, C5, C9's Verify clauses corrected: dropped the same stale CLI `-q`
+  AT-503/C7 already fixed** (`tests/test_schema.py -q` → `tests/test_schema.py`;
+  `tests/test_core.py -q` → `tests/test_core.py`; `tests/test_goal_criticality_vocabulary.py
+  tests/test_goal_done_checks.py -q` → the same two files with no `-q`). No criterion text changed
+  besides the shell string; `pyproject.toml:62`'s `addopts = "-q"` already applies one `-q`, so the
+  clause's own CLI `-q` reached `-qq` and suppressed the summary line, same mechanism as C7. AT-521's
+  checker dispatch flagged these three as a disclosed residual ("at least 3 Verify clauses other
+  than C7") rather than the maker touching contracts itself (maker never edits `qa/contracts/`).
+  Independently re-confirmed by grep before folding: no other Verify clause in this file still
+  carries a bare `-q`. Folded while checking `qa/manifests/at521-finish-the-q-sweep.md` (Cycle
+  checked: 1). Verdict: `qa/verdicts/at521-finish-the-q-sweep.md`.
