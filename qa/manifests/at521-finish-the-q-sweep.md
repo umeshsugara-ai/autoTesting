@@ -313,4 +313,49 @@ outside this unit's declared file set.
 - **`qa/issues.jsonl`'s AT-521/AT-522 rows are not flipped by this manifest** — that ledger is the
   checker's write surface (AT-499); this manifest is the fix for the checker to verify and close.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Cycle 1, `qa/verdicts/at521-finish-the-q-sweep.md` (commit `0fe2b6d`), pushed per D-007. PASS.
+
+The checker did two things worth naming because neither was asked for. It diffed `.goal/goal.json`
+against its **true parent** (`7f7eeeb`) rather than `HEAD~1`, having noticed `HEAD~1` was a
+tick-stamp commit that landed on top — a lazier diff would have mixed two commits together. And it
+reconciled a **one-byte** discrepancy between this manifest's claimed byte-delta (129) and its own
+measurement (130), tracing it to `velocity_per_day` shrinking one character in the unrelated live
+analytics block, rather than waving it through or calling it a defect.
+
+It also confirmed the judgement I made on the maker's side — that the two `-q` hits in
+`tests/test_goal_done_check_shapes.py` are predicate-shape fixtures, not stale assertions — and
+folded three more stale Verify clauses (C1, C5, C9) out of `qa/contracts/core-invariants.md`, which
+is its surface and not mine.
+
+## A concurrency defect this unit did not cause, but did expose
+
+**`qa/issues.jsonl` is a shared surface for every checker, and I ran two checkers at once.** That is
+the orchestrator's error — mine — not this unit's or either checker's.
+
+Commit `0fe2b6d` is the AT-521 checker's. Its own report says it flipped AT-521 and AT-522 and
+appended AT-524. But the commit's actual diff **also** contains:
+
+- `AT-520` flipped `open → fixed`, while `qa/verdicts/at520-*.md` does not exist and that unit's
+  checker is still running;
+- `AT-525` appended, a row whose text is about **AT-520's mutation proof** — plainly the *other*
+  checker's filing.
+
+Neither is in the AT-521 checker's report, and the most consistent reading is that the AT-520
+checker had already written those edits into the working tree when the AT-521 checker ran
+`git commit --only qa/issues.jsonl` and swept them in. **`--only` limits which paths are committed;
+it does not limit the commit to your own changes within those paths** — which is exactly the AT-496
+failure class ("a commit built from a shared copy of `qa/issues.jsonl`"), arriving from a direction
+nobody had guarded.
+
+I have deliberately **not** corrected the ledger: it is the checker's surface (AT-499), and
+unpicking one agent's edits from another's mid-flight is how the AT-496 damage happened in the first
+place. The state resolves itself once the AT-520 checker publishes its verdict. The finding is
+routed to that checker to file, because it owns the row that was flipped.
+
+**The generalisable lesson, recorded so the next wave does not repeat it:** two units having
+disjoint *source* file sets does not make their checkers independent. Every checker writes
+`qa/issues.jsonl`. Either checkers serialise on that file, or the write needs to be append-and-merge
+rather than read-modify-write.
+
