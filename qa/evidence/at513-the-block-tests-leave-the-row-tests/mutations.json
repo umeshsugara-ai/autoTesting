@@ -1,0 +1,49 @@
+{
+  "tests": [
+    "tests/test_ledger_checks.py",
+    "tests/test_marker_blocks.py"
+  ],
+  "timeout_s": 600,
+  "mutations": [
+    {
+      "name": "AT-504's coverage survived the move: the marker test goes back to a substring",
+      "old": "    return _MARKER_LEAD.sub(\"\", line).startswith(marker.strip(\"*\"))",
+      "new": "    return marker in line",
+      "kills": [
+        "tests/test_marker_blocks.py::test_prose_that_quotes_the_marker_is_not_a_claim[on manifest `**Issues addressed:**` lines: AT-900 (at900-thing.md)]",
+        "tests/test_marker_blocks.py::test_prose_that_quotes_the_marker_is_not_a_claim[none of them sits on a `**Issues addressed:**` line, so AT-900 is invisible]",
+        "tests/test_marker_blocks.py::test_a_line_opening_with_the_marker_in_backticks_is_not_a_claim"
+      ],
+      "file": "src/autotester/ledger/checks.py"
+    },
+    {
+      "name": "AT-511's coverage survived: the field label may no longer carry a parenthetical",
+      "old": "_NEW_FIELD = re.compile(r\"^[\\s>#*_-]*[A-Z][A-Z -]*(\\([^)]*\\))?\\s*:\")",
+      "new": "_NEW_FIELD = re.compile(r\"^[\\s>#*_-]*[A-Z][A-Z0-9 -]*:\")",
+      "kills": [
+        "tests/test_marker_blocks.py::test_a_field_label_carrying_a_parenthetical_still_ends_the_block"
+      ],
+      "file": "src/autotester/ledger/checks.py"
+    },
+    {
+      "name": "AT-508's coverage stayed behind and still fires: the negation is dropped",
+      "old": "    return bool(_FIXED.search(note)) and not _NOT_FIXED.search(note)",
+      "new": "    return bool(_FIXED.search(note))",
+      "kills": [
+        "tests/test_ledger_checks.py::test_an_issue_a_manifest_says_it_did_NOT_fix_stays_open",
+        "tests/test_ledger_checks.py::test_a_word_that_merely_contains_fixed_is_not_a_fix_claim[low, not-fixed, deferred]",
+        "tests/test_ledger_checks.py::test_a_word_that_merely_contains_fixed_is_not_a_fix_claim[low, not yet fixed]"
+      ],
+      "file": "src/autotester/ledger/checks.py"
+    },
+    {
+      "name": "the split's OWN risk: the two files stop sharing one helper, so the seam is fake",
+      "old": "ROW = '{\"id\": \"AT-900\", \"severity\": \"low\", \"title\": \"t\", \"status\": \"%s\"}'",
+      "new": "ROW = '{\"id\": \"AT-901\", \"severity\": \"low\", \"title\": \"t\", \"status\": \"%s\"}'",
+      "kills": [
+        "tests/test_marker_blocks.py::test_a_fix_claim_on_a_continuation_line_is_read"
+      ],
+      "file": "tests/test_ledger_checks.py"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+test_a_code_fence_ends_the_block
+test_a_decorated_marker_line_is_still_a_marker_line[  - ISSUES-WRITTEN: AT-900]
+test_a_decorated_marker_line_is_still_a_marker_line[## ISSUES-WRITTEN: AT-900]
+test_a_decorated_marker_line_is_still_a_marker_line[**ISSUES-WRITTEN:** AT-900]
+test_a_decorated_marker_line_is_still_a_marker_line[ISSUES-WRITTEN: AT-900]
+test_a_failed_or_unchecked_unit_leaves_its_issue_open
+test_a_field_label_carrying_a_parenthetical_still_ends_the_block
+test_a_fix_claim_on_a_continuation_line_is_read
+test_a_letter_suffixed_id_is_an_id_too[AT-900]
+test_a_letter_suffixed_id_is_an_id_too[AT-900b]
+test_a_letter_suffixed_id_is_read_on_both_sides_of_the_comparison[AT-900]
+test_a_letter_suffixed_id_is_read_on_both_sides_of_the_comparison[AT-900b]
+test_a_line_opening_with_the_marker_in_backticks_is_not_a_claim
+test_a_passed_unit_whose_issue_is_fixed_is_not_flagged
+test_a_passed_unit_whose_issue_is_still_open_is_a_stale_row
+test_a_project_with_no_qa_directory_is_not_a_violation
+test_a_real_fix_claim_still_counts[fixed]
+test_a_real_fix_claim_still_counts[low, open -> fixed]
+test_a_real_fix_claim_still_counts[medium, open \u2192 fixed]
+test_a_real_fix_claim_still_counts[not a duplicate, open -> fixed]
+test_a_verdict_block_ends_at_the_next_FIELD_not_at_a_blank_line
+test_a_word_that_merely_contains_fixed_is_not_a_fix_claim[low, not yet fixed]
+test_a_word_that_merely_contains_fixed_is_not_a_fix_claim[low, not-fixed, deferred]
+test_a_word_that_merely_contains_fixed_is_not_a_fix_claim[low, prefixed by an earlier note]
+test_a_word_that_merely_contains_fixed_is_not_a_fix_claim[low, unfixed - tracked separately]
+test_an_id_on_a_continuation_line_is_still_named
+test_an_issue_a_manifest_names_must_still_have_a_ledger_row
+test_an_issue_a_manifest_says_it_did_NOT_fix_stays_open
+test_an_issue_a_verdict_wrote_must_still_have_a_ledger_row
+test_an_issue_id_with_a_parenthetical_is_not_a_field_label
+test_prose_that_quotes_the_marker_is_not_a_claim[none of them sits on a `**Issues addressed:**` line, so AT-900 is invisible]
+test_prose_that_quotes_the_marker_is_not_a_claim[on manifest `**Issues addressed:**` lines: AT-900 (at900-thing.md)]
+test_the_block_ends_at_a_blank_line_or_a_heading[\n## Why AT-901 stays open]
+test_the_block_ends_at_a_blank_line_or_a_heading[\n\nAT-901 lives in a later paragraph]
