@@ -182,4 +182,40 @@ Not UI-touching — no `src/` file, no `ui/` route, no browser surface changed. 
 - **`qa/issues.jsonl`'s AT-503 row is not flipped by this manifest.** That ledger is the checker's
   write surface (AT-499); this manifest is the fix for the checker to verify and close.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Cycle 1, `qa/verdicts/at503-pytest-a-summary-line-not-just-dots.md` (commit `e5b3f87`), pushed per
+D-007. PASS. The checker re-derived the doubling on its own subset rather than reading this
+manifest's logs, and confirmed `pyproject.toml:62` is the repo's only `-q` source.
+
+**It did the part this unit could not do, on its own surface.** The contract files are the
+checker's, never the maker's, so the stale `uv run pytest -q` in their Verify clauses was routed to
+`qa/feedback-inbox.md` rather than edited here. The checker folded all of it in: `core-invariants.md`
+(C7, plus a new append-only amendment-log entry), `ui.md`, `explore.md`, `living-ledger.md`,
+`browser-and-secrets.md` (two clauses) and `pathlynks-onboarding.md` — **six contracts, no criterion
+weakened**. That is the hand-off working exactly as designed: the maker reports what it cannot
+touch, and the owner of the surface fixes it.
+
+**Three residual rows filed, and one of them is a correction to this manifest's own reasoning:**
+
+- **AT-523** — this manifest justified leaving `pyproject.toml`'s `addopts` alone partly on the
+  grounds that *"a fully un-quieted pytest prints one line per test."* **That is false, and I
+  verified it myself rather than take the checker's word:** `uv run pytest -o addopts= tests/test_marker_blocks.py`
+  prints `............... [100%]` — dots, exactly like the quiet mode it was being contrasted with.
+  One line per test requires `-v`. The unit's *conclusion* is unaffected, because its other reason —
+  changing `addopts` reaches every pytest invocation in the tree, including other loops' — is
+  independently sufficient. But a decision recorded with a wrong reason is a trap for whoever
+  revisits it, which is why this is a filed row and not a footnote.
+- **AT-521** — `CLAUDE.md`'s two prose mentions outside the Commands block, `AGENTS.md` and
+  `qa/loop.md` still name the doubled command.
+- **AT-522** — **43 of 50** per-file `cmd` rows in `.goal/goal.json` carry the same doubling. The
+  checker recounted independently and matched the number I measured from the orchestrator side
+  exactly. This is the largest remaining surface and it means most per-file verify commands in the
+  backlog still produce summary-less output.
+
+The checker also proposed, rather than imposed, a narrow guard: assert that `qa/adapter.json`'s
+verify `cmd` never stacks a CLI `-q` on top of `pyproject.toml`'s `addopts`. That tests this repo's
+own config consistency rather than pytest's semantics, which is the distinction this manifest used
+to argue no test was warranted — so the proposal is well aimed. It is carried on AT-523, not
+silently adopted here.
+
