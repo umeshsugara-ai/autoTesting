@@ -382,4 +382,11 @@ No product page, template or route changed.
   both show as wrong on the checker's harness for the old code too.
 - **It does not fix AT-451** (a zero-height `contain:paint` / `clip-path` flex or grid box reports its hidden child). It is pre-existing and wrong in the cycle-1 probe and cycle 2 alike; these are the 3 layouts cycle 3 still gets wrong.
 
-## Status: ready-for-check
+## Status: STALLED — 3 of 3 fix cycles spent, gated on `qa/gates/at438-u14b-baseline.md`
+
+Cycle 3 FAILed (`qa/verdicts/at438-display-contents.md`, `Cycle checked: 3`); diagnosis at
+`qa/debug/at438-display-contents-cycle3.md`. The detail is in the `**Status:**` field at the top of
+this manifest — this heading is the machine-readable half and was left at `ready-for-check` when the
+stall was recorded on 2026-09-16 (`76ceb4d`), so the session-start hook has been reporting a pending
+check on a unit that is not waiting on a checker. It is waiting on Umesh.
+
