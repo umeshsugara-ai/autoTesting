@@ -142,4 +142,36 @@ Not UI-touching — no surface changed. Changed paths: `src/autotester/ledger/ch
   practice, but the limit is real.
 - **AT-507 and AT-510 are untouched**, and `docs/ARCHITECTURE.md` still sits at exactly 150/150.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Cycle 1, `qa/verdicts/at509-the-claim-block-is-a-block-not-a-line.md` (commit `e3a902d`, pushed per
+D-007). PASS. The checker re-derived the 50 by calling the **shipped** `_marker_lines` /
+`_is_marker_line` rather than a reimplementation, got exactly 13 manifests / 29 ids and
+9 verdicts / 21 ids, and confirmed independently that all 50 carry a live ledger row. It also
+verified the mutation isolation claim row by row.
+
+On the central judgement I asked it to make rather than ratify — whether counting continuation prose
+as "named" is an acceptable trade — it agreed: confirmed live and inert, and the list-separator
+alternative is not clearly better for a currently zero-consequence risk.
+
+**And it found a second over-run shape in my own stop condition, which this manifest did not test
+for: AT-511 (medium).** `_NEW_FIELD`'s `^[\s>#*_-]*[A-Z][A-Z0-9 -]*:` cannot match a field label
+that carries a parenthetical before its colon. Live in
+`qa/verdicts/at097-session-start-hook-regression.md:259-260`, and I reproduced it against the
+shipped code before accepting it:
+
+```
+259: NEW_FIELD=True   **ISSUES-WRITTEN:** AT-106, AT-107
+260: NEW_FIELD=False  **ISSUES KEPT OPEN (claimed fixed, not fixed):** AT-097, AT-029
+```
+
+So line 260 is swallowed as a continuation and `AT-097`/`AT-029` are misattributed as written by
+`ISSUES-WRITTEN`. Zero live consequence — both already carry `verified` rows — but it is the same
+class as the two false positives this unit's first version produced, in a shape I did not think to
+test. The checker also noted the same root cause lets a closing code fence be swept in.
+
+**AT-512 (low)** confirms the stale-check limit this manifest disclosed is **live, not theoretical**:
+`qa/manifests/at506-record-rules-leave-the-source-rules.md:13` wraps `AT-488` exactly the way that
+defeats the single-line parenthetical match. Also inert today.
+
+Both are mine to fix next; neither is a defect in what this unit claimed.
