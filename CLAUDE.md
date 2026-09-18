@@ -86,7 +86,9 @@ This project runs dev work through the maker-checker pair:
 ## Commands
 
 ```bash
-uv run pytest -q                # tests
+uv run pytest                   # tests — no -q here: pyproject's addopts already sets -q;
+                                 # stacking another -q makes pytest -qq, which prints NO summary
+                                 # line at all (AT-503, measured 2026-09-18)
 uv run ruff check src tests scripts  # lint
 uv run autotester doctor        # design rules
 uv run autotester providers     # which model providers have credentials

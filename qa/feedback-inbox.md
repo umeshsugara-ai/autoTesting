@@ -689,3 +689,54 @@ every unreached screen/control with one reason from a closed set). Every maker f
 code and crawl.json counts; one corrected (the on-disk `completed` wall crawls predate AT-242 — the
 live residual is the actions ≥ 1 path). Not folded: relaxing READ_ONLY after login (CRITICAL, D-016).
 Issues AT-457/458/459 (high), AT-460 (medium). Live target opened as `qa/gates/live-crawl-target.md`.
+
+---
+
+## 2026-09-18 · maker (AT-503) · PATTERN: `pytest -q` on top of `pyproject.toml`'s `addopts = "-q"` becomes `-qq`, which prints no summary line at all — and this exact doubling appears in dozens of places this unit's file set cannot touch
+
+**EVIDENCE (measured today, four captured logs in `qa/evidence/at503-pytest-a-summary-line-not-just-dots/`):**
+- `uv run pytest --collect-only -q` → `collect.log`, exit 0, collection list only (no run).
+- `uv run pytest tests/test_ledger_checks.py` (bare, no `-q` on the CLI — relies on the config's
+  single `-q`) → `bare.log`: `19 passed in 0.61s`, exit 0. **Summary line present.**
+- `uv run pytest -q tests/test_ledger_checks.py` (explicit `-q` stacked on the config's `-q`) →
+  `single_q.log`: dots + `[100%]` only, **no `N passed` line**, exit 0.
+- `uv run pytest -qq tests/test_ledger_checks.py` → `double_q.log`: identical to the `-q` case —
+  confirms `-q` (CLI) + `-q` (config) behaves exactly like an explicit `-qq`.
+
+**This unit's fix (in scope, done):** `qa/adapter.json`'s slot-1 verify command changed from
+`uv run pytest -q` to `uv run pytest` (bare), and `d:/autoTesting/CLAUDE.md`'s Commands block
+updated to match, with a one-line comment naming why. `pyproject.toml`'s `addopts = "-q"` is left
+alone, per the coordinator's instruction — it is what makes the bare form's output readable at all,
+and touching it would reach every other invocation in the tree, not just this one command.
+
+**Residual — the SAME doubling exists in files this unit's file set does not include, so the fix
+above is necessarily partial:**
+- `AGENTS.md` (repo root) carries the identical three `uv run pytest -q` lines this unit fixed in
+  `CLAUDE.md` (its Commands block and two prose mentions) — appears to mirror `CLAUDE.md` closely;
+  not touched here (outside the declared file set: only `CLAUDE.md`'s Commands block was in scope).
+- `d:/autoTesting/CLAUDE.md` itself still names `uv run pytest -q` twice **outside** the Commands
+  block (the "Maker-checker discipline" adapter-summary bullet, and the Lab Protocol "Validators"
+  bullet) — both prose references to the adapter's verify command, now stale against the actual
+  `qa/adapter.json` value. Only the Commands block was in this unit's file set.
+- `qa/contracts/core-invariants.md` **C7**'s Verify clause literally names `uv run pytest -q`
+  (line ~120), and its 2026-09-09 amendment-log entry (line ~225) repeats the same string. Contracts
+  are checker-owned; the maker never edits them — filing here per the standing rule.
+- `qa/contracts/ui.md` (`uv run pytest -q tests/test_browser_scroll_invariance.py …`) and
+  `qa/contracts/explore.md` (`the full suite (uv run pytest -q)`) — same pattern, per-file forms.
+- `qa/loop.md` line 14 names `uv run pytest -q` as slot-1's command.
+- **The broader latent finding, beyond adapter.json's own full-suite command:** every PER-FILE
+  verify command in `.goal/goal.json` (`tasks[].cmd`, ~45 rows, e.g.
+  `"uv run pytest tests/test_ledger.py -q"`) and in several contract Verify clauses and `plan.md`
+  step rows explicitly types `-q` on the CLI. Given `pyproject.toml`'s `addopts = "-q"`, **every one
+  of these also resolves to `-qq` and prints no summary line** — this is not unique to the full-suite
+  invocation AT-503 was filed against. A manifest quoting `N passed` for any of these commands
+  verbatim was either run with a different `addopts` override (several do use
+  `-o addopts=`, which correctly clears it) or is pasting a number pytest did not actually print.
+
+**APPLIES NEXT:** whoever next touches `AGENTS.md`, `qa/contracts/core-invariants.md`,
+`qa/contracts/ui.md`, `qa/contracts/explore.md`, `qa/loop.md`, or `.goal/goal.json`'s per-file `cmd`
+fields should drop the redundant CLI `-q` (or add `-o addopts=` where a *different*, more verbose
+level is actually wanted) — the mechanical fix is identical everywhere: **stop typing `-q` when the
+config already sets it**, never touch `pyproject.toml`. Whether this is worth a repo-wide sweep unit
+of its own, or is cleaned up file-by-file as each one is next edited, is the checker's/maker's call,
+not this unit's — its own file set is `qa/adapter.json` and `CLAUDE.md`'s Commands block only.

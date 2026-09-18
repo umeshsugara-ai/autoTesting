@@ -6,7 +6,7 @@
   "verify": {
     "kind": "shell",
     "commands": [
-      { "cmd": "uv run pytest -q", "expect": "exit 0" },
+      { "cmd": "uv run pytest", "expect": "exit 0" },
       { "cmd": "uv run ruff check src tests scripts", "expect": "exit 0" },
       { "cmd": "uv run autotester doctor", "expect": "exit 0" }
     ]
