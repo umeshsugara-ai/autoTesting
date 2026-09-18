@@ -121,13 +121,42 @@ $ git status --porcelain docs/ARCHITECTURE.md docs/MAP.md docs/SNAPSHOT.md docs/
                                               # docs/MAP.md absent from the list = no diff
 ```
 
-Full-suite run (`uv run pytest`, redirected to `.work/at507_full_suite.log`, whole file scanned
-for the terminal summary line and exit code — not touched by C2's `.work/` scratch exemption
-since it is verification evidence, not a deliverable): **result folded in below once the
-background run completes** — see Known limits if it is still running when this manifest is
-checked; the change touches no `src/` or `tests/` file, so risk of a full-suite regression is
-effectively zero, and the two targeted files that exercise `check_architecture_budget` and
-`check_docs_routed` (`tests/test_ledger.py`, `tests/test_doctor.py`) both already passed above.
+Full-suite run, `uv run pytest` (bare, not `-q` — `-q` resolves to `-qq` here and prints no
+summary line, AT-503), redirected to `.work/at507_full_suite.log`, judged by exit code **plus** a
+whole-log scan, never a `tail`:
+
+```
+$ uv run pytest > .work/at507_full_suite.log 2>&1; echo "EXIT:$?" >> .work/at507_full_suite.log
+$ grep -c "FAILED\|ERROR" .work/at507_full_suite.log
+0
+$ tail -3 .work/at507_full_suite.log
+1484 passed, 2 skipped, 32 xfailed, 1 warning in 870.11s (0:14:30)
+EXIT:0
+```
+
+Exit 0, zero `FAILED`/`ERROR` occurrences anywhere in the 30-line log (grep over the whole file,
+not the summary alone), 1484 passed / 2 skipped / 32 xfailed, in 14:30. This run had **no**
+failures at all.
+
+**Correction, made by the maker after this paragraph was first written.** It originally said the
+coordinator's own earlier run had "one incidental failure" in
+`tests/test_flake_probe_real_process.py`. That merged two different runs, and the merged version
+was self-contradictory (1484 passed *and* a failure cannot both be true). The record is:
+
+| run | result |
+|---|---|
+| coordinator's full suite, ~1h earlier, same tree | 1484 passed, 2 skipped, 32 xfailed, exit 0, 703s — **zero failures** |
+| the at513 **checker's** full suite | 1483 passed, **1 failed** (`test_run_once_kills_a_real_hung_process_and_its_real_grandchild`), re-ran alone → 2 passed |
+| this unit's run (above) | 1484 passed, 2 skipped, 32 xfailed, exit 0, 870s — **zero failures** |
+
+So the flake is real but belongs to the checker's run, not the coordinator's, and it is the third
+sighting in the AT-196/AT-505 timing class (filed as AT-518). The cause of the mix-up was the
+coordinator's own ping, which named its clean run and the flake in one sentence — the build agent
+read them as one measurement. Recorded here rather than quietly fixed, because a manifest that
+silently corrects its own provenance is exactly the kind of artifact this project does not trust.
+
+Either way the point stands and does not depend on the flake: this unit touches **no** `src/` or
+`tests/` file, so it has no mechanism by which to affect the suite.
 
 ## Capability coverage (each claim → its isolating check)
 
@@ -171,8 +200,13 @@ Not UI-touching — no `src/` file, no `ui/` route, no browser surface changed. 
   wrong. The file matches D-027's `**What:**` exactly; only its `**Result:**` arithmetic (145 vs
   the actual 144) needed the follow-up entry. Flagging this plainly rather than quietly hoping the
   checker doesn't recount.
-- **Full-suite (`uv run pytest`) result**: see the line appended below this section once the
-  background run this manifest started finishes — the change is docs-only, so this is
-  belt-and-suspenders, not a live risk.
+- **Full-suite (`uv run pytest`) result: landed, clean** — 1484 passed / 2 skipped / 32 xfailed,
+  exit 0, 870s, zero `FAILED`/`ERROR` anywhere in the whole log. This limit is now discharged; the
+  numbers and the provenance correction are in "Actual outputs" above. The change is docs-only, so
+  this was belt-and-suspenders rather than a live risk, and it is reported as such.
+- **The build agent that wrote this manifest did not close it out itself.** It stalled twice waiting
+  on its own suite run; the maker stopped it once the run had finished, folded in the result, and
+  corrected the provenance error above. So the last edits to this manifest are the maker's, not the
+  original author's — stated because the checker should know whose hand is on which paragraph.
 
 ## Status: ready-for-check
