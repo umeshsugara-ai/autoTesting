@@ -46,6 +46,47 @@ def _is_marker_line(line: str, marker: str) -> bool:
     return _MARKER_LEAD.sub("", line).startswith(marker.strip("*"))
 
 
+_NEW_FIELD = re.compile(r"^[\s>#*_-]*[A-Z][A-Z0-9 -]*:")
+"""An ALL-CAPS label ending in a colon — the next field of a verdict block, not a
+continuation of this one. `AT-901 (low, cycle-1 FAIL)` is not one: no colon follows
+the capitalised run."""
+
+
+def _marker_lines(body: str, marker: str) -> list[str]:
+    """Every line of the marker's PARAGRAPH, not just the first one (AT-509).
+
+    The claim wraps. Both checks gated on a single physical line, so an id on the
+    continuation was read by neither — invisible, never mis-judged. Measured over the
+    live manifests when this was fixed: 14 of them wrap, hiding 30 ids. AT-496
+    disclosed it as a known limit and four units inherited that framing untested.
+
+    A markdown paragraph is the right unit for a MANIFEST, because that is how they
+    are written: the block ends at a blank line or the next block, and every one of
+    the 14 terminates that way. Consuming to the end of the paragraph — rather than a
+    fixed number of lines — keeps the rule honest when someone wraps to three lines.
+
+    A VERDICT is not a paragraph, and assuming it was is the first thing this got
+    wrong. Its block is a run of labelled fields with no blank line between them, so
+    `ISSUES-WRITTEN:` is followed immediately by `EXPLANATION:` and several lines of
+    free prose. Walking to the blank line swallowed all of it and reported two ids
+    that were merely being discussed — the same false-accusation shape as AT-504,
+    reintroduced by the fix for AT-509. Hence `_NEW_FIELD`: an ALL-CAPS label ending
+    in a colon starts the next field and ends this one.
+    """
+    lines = body.splitlines()
+    out: list[str] = []
+    for n, line in enumerate(lines):
+        if not _is_marker_line(line, marker):
+            continue
+        out.append(line)
+        for follow in lines[n + 1:]:
+            if (not follow.strip() or follow.lstrip().startswith("#")
+                    or _NEW_FIELD.match(follow) or _is_marker_line(follow, marker)):
+                break
+            out.append(follow)
+    return out
+
+
 _FIXED = re.compile(r"\bfixed\b", re.IGNORECASE)
 _NOT_FIXED = re.compile(r"\bnot\b[\w\s-]{0,15}?\bfixed\b", re.IGNORECASE)
 
@@ -103,7 +144,7 @@ def check_qa_issue_rows(root: Path) -> list[Violation]:
     for kind, marker in (("manifests", "**Issues addressed:**"), ("verdicts", "ISSUES-WRITTEN")):
         for path in sorted((root / "qa" / kind).glob("*.md")):
             body = path.read_text(encoding="utf-8", errors="replace")
-            named = {i for line in body.splitlines() if _is_marker_line(line, marker)
+            named = {i for line in _marker_lines(body, marker)
                      for i in re.findall(rf"\b{ISSUE_ID}\b", line)}
             subject = f"qa/{kind}/{path.name}"
             out += [Violation("ledger-row-lost", subject,
@@ -112,7 +153,7 @@ def check_qa_issue_rows(root: Path) -> list[Violation]:
             if kind == "manifests" and _passed(root, path.name):
                 # Only an issue this manifest CLAIMS to have fixed — "AT-x (low, open -> fixed)".
                 # A line may also name issues it deliberately did NOT fix, and those stay open.
-                claimed = {i for line in body.splitlines() if _is_marker_line(line, marker)
+                claimed = {i for line in _marker_lines(body, marker)
                            for i, note in re.findall(rf"\b({ISSUE_ID})\s*\(([^)]*)\)", line)
                            if _claims_a_fix(note)}
                 out += [Violation("ledger-row-stale", subject,

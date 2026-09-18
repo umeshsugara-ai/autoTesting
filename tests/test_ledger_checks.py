@@ -165,6 +165,59 @@ def test_an_issue_a_manifest_says_it_did_NOT_fix_stays_open(tmp_path: Path) -> N
     assert checks.check_qa_issue_rows(tmp_path) == []
 
 
+def test_an_id_on_a_continuation_line_is_still_named(tmp_path: Path) -> None:
+    """AT-509: the block wraps. Both checks read only the first physical line, so an id
+    on the continuation was examined by neither — invisible rather than mis-judged.
+    Measured over the live manifests: 14 of them wrap, hiding 30 ids. AT-496 disclosed
+    this as a limit and four units inherited the framing without testing it."""
+    _qa(tmp_path, ledger="", manifests={"u.md":
+        "**Issues addressed:** AT-900 (medium, open -> fixed) ·\nAT-901 (low, cycle-1 FAIL)\n"})
+
+    lost = {d.split()[0] for v in checks.check_qa_issue_rows(tmp_path)
+            for d in [v.detail] if v.rule == "ledger-row-lost"}
+
+    assert lost == {"AT-900", "AT-901"}, "the wrapped half counts too"
+
+
+def test_a_fix_claim_on_a_continuation_line_is_read(tmp_path: Path) -> None:
+    """`at358-visual-order-detector.md` puts four ids and their parenthetical entirely
+    on the wrapped line. A claim there must reach the stale check like any other."""
+    _qa(tmp_path, ledger=ROW % "open",
+        manifests={"u.md": "**Issues addressed:** the two halves are listed below ·\n"
+                           "AT-900 (low, open -> fixed)\n"},
+        verdicts={"u.md": "VERDICT: PASS"})
+
+    assert [v.rule for v in checks.check_qa_issue_rows(tmp_path)] == ["ledger-row-stale"]
+
+
+def test_a_verdict_block_ends_at_the_next_FIELD_not_at_a_blank_line(tmp_path: Path) -> None:
+    """AT-509's own first fix got this wrong and the live tree caught it. A verdict is
+    a run of labelled fields with no blank line between them, so walking to the blank
+    line swallowed `EXPLANATION:` and reported two ids the explanation merely discussed
+    — the AT-504 false-accusation shape, reintroduced by the fix for AT-509."""
+    _qa(tmp_path, ledger="",
+        verdicts={"u.md": "ISSUES-WRITTEN: AT-900 (low)\n"
+                          "EXPLANATION: the widening newly reads AT-901, which has no row\n"})
+
+    named = {d.split()[0] for v in checks.check_qa_issue_rows(tmp_path) for d in [v.detail]}
+
+    assert named == {"AT-900"}, "AT-901 is discussed in the next field, not written by this one"
+
+
+@pytest.mark.parametrize("tail", ["\n\nAT-901 lives in a later paragraph",
+                                  "\n## Why AT-901 stays open"])
+def test_the_block_ends_at_a_blank_line_or_a_heading(tail: str, tmp_path: Path) -> None:
+    """The stop condition is what keeps this from swallowing the whole document. A
+    markdown paragraph ends at a blank line or a new block; every one of the 14 live
+    wrapped manifests terminates that way, so nothing past it is part of the claim."""
+    _qa(tmp_path, ledger="",
+        manifests={"u.md": f"**Issues addressed:** AT-900 (low, open){tail}\n"})
+
+    named = {d.split()[0] for v in checks.check_qa_issue_rows(tmp_path) for d in [v.detail]}
+
+    assert named == {"AT-900"}, "AT-901 is outside the block and must stay unread"
+
+
 @pytest.mark.parametrize("note", [
     "low, unfixed - tracked separately",
     "low, not-fixed, deferred",

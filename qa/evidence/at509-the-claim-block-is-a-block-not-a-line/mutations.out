@@ -1,0 +1,17 @@
+KILLED  AT-509 reopens: `named` goes back to reading one physical line  (pytest exit 1)
+    claims to kill : tests/test_ledger_checks.py::test_an_id_on_a_continuation_line_is_still_named
+    actually failed: tests/test_ledger_checks.py::test_an_id_on_a_continuation_line_is_still_named
+KILLED  the stale check goes back to one line, so a wrapped fix claim is unread  (pytest exit 1)
+    claims to kill : tests/test_ledger_checks.py::test_a_fix_claim_on_a_continuation_line_is_read
+    actually failed: tests/test_ledger_checks.py::test_a_fix_claim_on_a_continuation_line_is_read
+KILLED  the next-FIELD stop is dropped, so a verdict's EXPLANATION is swallowed  (pytest exit 1)
+    claims to kill : tests/test_ledger_checks.py::test_a_verdict_block_ends_at_the_next_FIELD_not_at_a_blank_line
+    actually failed: tests/test_ledger_checks.py::test_a_verdict_block_ends_at_the_next_FIELD_not_at_a_blank_line
+KILLED  the blank-line stop is dropped, so the block runs to the end of the document  (pytest exit 1)
+    claims to kill : tests/test_ledger_checks.py::test_the_block_ends_at_a_blank_line_or_a_heading[\n\nAT-901 lives in a later paragraph]
+    actually failed: tests/test_ledger_checks.py::test_the_block_ends_at_a_blank_line_or_a_heading[\n\nAT-901 lives in a later paragraph]
+KILLED  the heading stop is dropped, so a following section becomes part of the claim  (pytest exit 1)
+    claims to kill : tests/test_ledger_checks.py::test_the_block_ends_at_a_blank_line_or_a_heading[\n## Why AT-901 stays open]
+    actually failed: tests/test_ledger_checks.py::test_the_block_ends_at_a_blank_line_or_a_heading[\n## Why AT-901 stays open]
+
+5/5 mutations killed
