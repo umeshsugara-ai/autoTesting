@@ -1,0 +1,8 @@
+BEFORE vs AFTER this unit, per artifact:
+  verdicts/at097-session-start-hook-regression.md
+     no longer read: ['AT-029', 'AT-097']
+     newly read    : []
+  verdicts/at176-at178-render-not-scan.md
+     no longer read: ['AT-174', 'AT-176', 'AT-178', 'AT-189']
+     newly read    : []
+artifacts changed: 2 | total ids dropped: 6 | added: 0

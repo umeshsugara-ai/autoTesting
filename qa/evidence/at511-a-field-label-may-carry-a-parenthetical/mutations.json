@@ -1,0 +1,44 @@
+{
+  "tests": [
+    "tests/test_ledger_checks.py"
+  ],
+  "timeout_s": 600,
+  "mutations": [
+    {
+      "name": "AT-511 reopens: the label may no longer carry a parenthetical",
+      "old": "_NEW_FIELD = re.compile(r\"^[\\s>#*_-]*[A-Z][A-Z -]*(\\([^)]*\\))?\\s*:\")",
+      "new": "_NEW_FIELD = re.compile(r\"^[\\s>#*_-]*[A-Z][A-Z0-9 -]*:\")",
+      "kills": [
+        "tests/test_ledger_checks.py::test_a_field_label_carrying_a_parenthetical_still_ends_the_block"
+      ],
+      "file": "src/autotester/ledger/checks.py"
+    },
+    {
+      "name": "digits are allowed back into the label, so an issue id becomes a field",
+      "old": "_NEW_FIELD = re.compile(r\"^[\\s>#*_-]*[A-Z][A-Z -]*(\\([^)]*\\))?\\s*:\")",
+      "new": "_NEW_FIELD = re.compile(r\"^[\\s>#*_-]*[A-Z][A-Z0-9 -]*(\\([^)]*\\))?\\s*:\")",
+      "kills": [
+        "tests/test_ledger_checks.py::test_an_issue_id_with_a_parenthetical_is_not_a_field_label"
+      ],
+      "file": "src/autotester/ledger/checks.py"
+    },
+    {
+      "name": "the parenthetical becomes mandatory, so a plain label stops ending the block",
+      "old": "_NEW_FIELD = re.compile(r\"^[\\s>#*_-]*[A-Z][A-Z -]*(\\([^)]*\\))?\\s*:\")",
+      "new": "_NEW_FIELD = re.compile(r\"^[\\s>#*_-]*[A-Z][A-Z -]*(\\([^)]*\\))\\s*:\")",
+      "kills": [
+        "tests/test_ledger_checks.py::test_a_verdict_block_ends_at_the_next_FIELD_not_at_a_blank_line"
+      ],
+      "file": "src/autotester/ledger/checks.py"
+    },
+    {
+      "name": "the code-fence stop is dropped, so the block runs into the fenced quote",
+      "old": "            if (not follow.strip() or stripped.startswith(\"#\") or stripped.startswith(\"```\")",
+      "new": "            if (not follow.strip() or stripped.startswith(\"#\")",
+      "kills": [
+        "tests/test_ledger_checks.py::test_a_code_fence_ends_the_block"
+      ],
+      "file": "src/autotester/ledger/checks.py"
+    }
+  ]
+}

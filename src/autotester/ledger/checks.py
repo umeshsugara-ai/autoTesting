@@ -46,10 +46,21 @@ def _is_marker_line(line: str, marker: str) -> bool:
     return _MARKER_LEAD.sub("", line).startswith(marker.strip("*"))
 
 
-_NEW_FIELD = re.compile(r"^[\s>#*_-]*[A-Z][A-Z0-9 -]*:")
+_NEW_FIELD = re.compile(r"^[\s>#*_-]*[A-Z][A-Z -]*(\([^)]*\))?\s*:")
 """An ALL-CAPS label ending in a colon — the next field of a verdict block, not a
-continuation of this one. `AT-901 (low, cycle-1 FAIL)` is not one: no colon follows
-the capitalised run."""
+continuation of this one.
+
+**The label may carry a parenthetical** (AT-511): `FAILURES (if any):` is in every
+verdict here, and `**ISSUES KEPT OPEN (claimed fixed, not fixed):**` and
+`**ISSUES CLOSED (open → fixed):**` are live in at097's and at176's. Without that,
+each was read as a continuation and its ids misattributed to `ISSUES-WRITTEN` — 6 ids
+across 2 verdicts.
+
+**The label contains no DIGITS, and that is what keeps the rule safe.** `AT-036
+(filed in the previous unit): …` is a list item, not a field. A rule that accepted any
+parenthetical before a colon matched 167 live lines and would have ended blocks early,
+re-creating the very misses AT-509 had just fixed. Measured with the digit rule in
+place: 6 ids drop, 0 are added."""
 
 
 def _marker_lines(body: str, marker: str) -> list[str]:
@@ -80,7 +91,8 @@ def _marker_lines(body: str, marker: str) -> list[str]:
             continue
         out.append(line)
         for follow in lines[n + 1:]:
-            if (not follow.strip() or follow.lstrip().startswith("#")
+            stripped = follow.lstrip()
+            if (not follow.strip() or stripped.startswith("#") or stripped.startswith("```")
                     or _NEW_FIELD.match(follow) or _is_marker_line(follow, marker)):
                 break
             out.append(follow)

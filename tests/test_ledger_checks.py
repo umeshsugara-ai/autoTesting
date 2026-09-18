@@ -218,6 +218,45 @@ def test_the_block_ends_at_a_blank_line_or_a_heading(tail: str, tmp_path: Path) 
     assert named == {"AT-900"}, "AT-901 is outside the block and must stay unread"
 
 
+def test_a_field_label_carrying_a_parenthetical_still_ends_the_block(tmp_path: Path) -> None:
+    """AT-511: the stop condition could not see a label with a parenthetical before its
+    colon, so `**ISSUES KEPT OPEN (claimed fixed, not fixed):**` was swallowed as a
+    continuation. Live in at097's and at176's verdicts — 6 ids misattributed to
+    ISSUES-WRITTEN. `FAILURES (if any):` is the same shape in every verdict here."""
+    _qa(tmp_path, ledger="",
+        verdicts={"u.md": "ISSUES-WRITTEN: AT-900 (low)\n"
+                          "ISSUES KEPT OPEN (claimed fixed, not fixed): AT-901\n"})
+
+    named = {d.split()[0] for v in checks.check_qa_issue_rows(tmp_path) for d in [v.detail]}
+
+    assert named == {"AT-900"}, "AT-901 belongs to the next field, not to this one"
+
+
+def test_an_issue_id_with_a_parenthetical_is_not_a_field_label(tmp_path: Path) -> None:
+    """The counter-direction, and the reason the rule keys on DIGITS. `AT-036 (filed in
+    the previous unit): …` is a list item, not a new field. Measured: a rule that
+    accepted any parenthetical before a colon would have matched 167 live lines, ending
+    blocks early and re-creating the very misses AT-509 fixed."""
+    _qa(tmp_path, ledger="",
+        manifests={"u.md": "**Issues addressed:** AT-900 (low) ·\n"
+                           "AT-901 (filed in the previous unit): why it stayed open\n"})
+
+    named = {d.split()[0] for v in checks.check_qa_issue_rows(tmp_path) for d in [v.detail]}
+
+    assert named == {"AT-900", "AT-901"}, "an id with a parenthetical is still a list item"
+
+
+def test_a_code_fence_ends_the_block(tmp_path: Path) -> None:
+    """Same root cause: a fence closes the block it belongs to, so nothing after it is
+    part of the claim."""
+    _qa(tmp_path, ledger="",
+        verdicts={"u.md": "ISSUES-WRITTEN: AT-900 (low)\n```\nAT-901 is quoted below\n"})
+
+    named = {d.split()[0] for v in checks.check_qa_issue_rows(tmp_path) for d in [v.detail]}
+
+    assert named == {"AT-900"}
+
+
 @pytest.mark.parametrize("note", [
     "low, unfixed - tracked separately",
     "low, not-fixed, deferred",

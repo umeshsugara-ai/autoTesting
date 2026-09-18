@@ -1,0 +1,14 @@
+KILLED  AT-511 reopens: the label may no longer carry a parenthetical  (pytest exit 1)
+    claims to kill : tests/test_ledger_checks.py::test_a_field_label_carrying_a_parenthetical_still_ends_the_block
+    actually failed: tests/test_ledger_checks.py::test_a_field_label_carrying_a_parenthetical_still_ends_the_block
+KILLED  digits are allowed back into the label, so an issue id becomes a field  (pytest exit 1)
+    claims to kill : tests/test_ledger_checks.py::test_an_issue_id_with_a_parenthetical_is_not_a_field_label
+    actually failed: tests/test_ledger_checks.py::test_an_issue_id_with_a_parenthetical_is_not_a_field_label
+KILLED  the parenthetical becomes mandatory, so a plain label stops ending the block  (pytest exit 1)
+    claims to kill : tests/test_ledger_checks.py::test_a_verdict_block_ends_at_the_next_FIELD_not_at_a_blank_line
+    actually failed: tests/test_ledger_checks.py::test_a_verdict_block_ends_at_the_next_FIELD_not_at_a_blank_line
+KILLED  the code-fence stop is dropped, so the block runs into the fenced quote  (pytest exit 1)
+    claims to kill : tests/test_ledger_checks.py::test_a_code_fence_ends_the_block
+    actually failed: tests/test_ledger_checks.py::test_a_code_fence_ends_the_block
+
+4/4 mutations killed
