@@ -1,0 +1,14 @@
+diff --git a/docs/ARCHITECTURE.md b/docs/ARCHITECTURE.md
+index 0e0f876..1a42c94 100644
+--- a/docs/ARCHITECTURE.md
++++ b/docs/ARCHITECTURE.md
+@@ -142,9 +142,3 @@ uv run autotester map          # regenerate docs/MAP.md
+ uv run autotester snapshot     # regenerate docs/SNAPSHOT.md
+ uv run autotester ledger add … # append a feature event (see docs/FEATURES.jsonl)
+ ```
+-
+-## Status
+-
+-**Built:** schema, core, provider seam (mock/anthropic/gemini/langchain-fallback), doctor, CLI (incl. `flowspec status/approve/request-edit`), `browser/` (secrets, session, db), the living map (`ledger/`, `docs/MAP.md`, `docs/SNAPSHOT.md`, `docs/FEATURES.jsonl`), `store/` (filestore + ProjectStore), `projects/pathlynks/` (onboarded, 3 real cases run+graded), `stages/` execute + grade + agent_loop + ingest + review + expand + coverage + bench, `ui/`, a real regression proof and a real bench trial (`scripts/regression_proof.py`, `scripts/bench_trial.py`) — the north star's scorecard is now real, computed, and cited, not just designed.
+-**Next:** the P0–P5 goal backlog is closed. Open for later: a real Pathlynks demo video for
+-`stages/ingest.py`'s golden test; a live, timed human trial (`bench.py` uses an oracle baseline).

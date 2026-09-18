@@ -1,0 +1,2 @@
+before (HEAD): 150 lines
+after (working tree): 144 lines

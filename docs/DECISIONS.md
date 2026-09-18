@@ -388,3 +388,71 @@ docs/ARCHITECTURE.md (the concept-to-file map row for design enforcement, line 4
 longer names doctor.py as the home of ledger validity); qa/manifests/at506-record-rules-leave-the-
 source-rules.md.
 **Links:** AT-506; AT-496; AT-500; AT-504; AT-488; AT-502; qa/contracts/core-invariants.md (C2, C10)
+
+## D-027 | 2026-09-18 | type: fix | status: ACTIVE
+**What:** Remove the hand-maintained `## Status` section (lines 146-150) from
+`docs/ARCHITECTURE.md`. It duplicates the job `docs/SNAPSHOT.md` already does -- generated,
+always fresh, explicitly routed for exactly this ("the whole project in one screen -- what is
+live and why ... what is next") -- and it had drifted false: it claimed "the P0-P5 goal backlog
+is closed" while `.goal/goal.json` currently carries 10+ `pending` tasks (T-122, T-123, T-136,
+T-145, T-125, T-126, T-150-T-153) and `docs/SNAPSHOT.md`'s generated "Next (open goal tasks)"
+section lists five of them. No information is lost: what the section tried to say is already
+covered, correctly and automatically, by `docs/SNAPSHOT.md`, which `CLAUDE.md`'s router already
+points to for this exact purpose. This is the only prose in the file found to be genuine,
+safely-removable redundancy (see Why for what was measured and rejected).
+**Why:** AT-507 -- `docs/ARCHITECTURE.md` sits at exactly its 150-line C2 budget (doctor.py
+`check_architecture_budget`, `ARCHITECTURE_MAX_LINES` in `ledger/render.py`) with zero headroom,
+so the next prose change has nowhere to go. Measured before choosing a fix, per AT-506's own
+precedent (D-008/D-010 raised this same budget 100->150 once already, and D-026 shows the file
+has been edited at the cap via pure row-swaps ever since): (1) the file has NO generated content
+of its own to deduplicate -- the "Directory map and schema summary" was already split out to
+`docs/MAP.md` at genesis (commit 2785312) specifically to stay under this budget, so all 150
+lines are already hand-written prose, not a generated/prose mix `doctor` could discount; (2) the
+34-row "Concept -> file" table is concept-oriented and does not literally duplicate `docs/MAP.md`
+(module-oriented, 117 rows) -- verified every one of its 41 referenced file paths resolves on
+disk, none stale; (3) the `## Commands` section overlaps 4 of 7 lines with `CLAUDE.md`'s own
+Commands section but is not a literal duplicate (different flags: `pytest` vs `pytest -q`, `ruff
+check src tests` vs `...tests scripts`) and carries 3 commands (`map`, `snapshot`, `ledger add`)
+`CLAUDE.md` does not -- removing it would delete information, and fixing the overlap needs an
+edit to `CLAUDE.md`, which is out of this unit's file set (a second build subagent owns it
+concurrently); (4) hard-wrapped paragraphs (e.g. the FlowSpec/Execution-model/Security prose)
+could be collapsed onto single physical lines to cut the raw newline count, but that is a fake
+saving -- it does not reduce the character/token cost an agent actually pays reading the file,
+which is the reason C2 exists, so I rejected it as gaming the line-count proxy rather than
+fixing what it stands in for. Net measurement: the `## Status` section is the only place where
+removing lines removes zero real information (it is redundant with, and already contradicted by,
+a generated doc) -- 5 lines recovered at the same 150-line budget. This is smaller than a
+budget-raise would buy, but it directly answers the stated problem (zero headroom) without
+touching `doctor.py`'s cap, and per the task's own framing a raise is legitimate only for what
+trimming fails to recover -- trimming was not skipped here, it was attempted, measured, and
+found to have exactly one safe target. Not raising the budget in this unit; if the table keeps
+growing by one row per unit, that is arithmetic, not drift, and can be re-measured next time it
+recurs (as D-026 recorded for `doctor.py`'s own cap).
+**Result:** `docs/ARCHITECTURE.md` 150 -> 145 lines. `docs/MAP.md` and `docs/SNAPSHOT.md`
+regenerated (`uv run autotester map`, `uv run autotester snapshot`) and unchanged byte-for-byte
+except SNAPSHOT's own `Last decisions` tail (D-027 added). `uv run autotester doctor` ends clean.
+No code or test changes -- the budget constant is untouched.
+**Changes-authorized:** docs/ARCHITECTURE.md (the `## Status` section only, plus the trailing
+blank-line cleanup it leaves); docs/MAP.md (regenerated only); docs/SNAPSHOT.md (regenerated
+only); qa/manifests/at507-architecture-doc-regains-its-headroom.md.
+**Links:** AT-507; AT-506; D-008; D-010; D-026; qa/contracts/core-invariants.md (C2)
+
+## D-028 | 2026-09-18 | type: fix | status: ACTIVE
+**What:** Correct D-027's `**Result:**` line count. D-027 said `docs/ARCHITECTURE.md` went
+"150 -> 145 lines"; the actual, applied edit (removing the blank line before `## Status` along
+with the section itself, six physical lines total, not five) produced 144 lines. D-027's code
+change and its choice of what to remove are correct and are NOT re-litigated; this entry supplies
+the accurate line count only, per the Lab Protocol's append-only rule (D-027 itself is never
+edited) -- the same pattern D-011 used to correct D-010's authorization text.
+**Why:** Re-counted `docs/ARCHITECTURE.md` immediately after applying D-027's edit as part of
+AT-507's own verification step, before running `doctor`: `wc -l docs/ARCHITECTURE.md` reports 144,
+not the 145 the entry's Result line states. The discrepancy is a one-line arithmetic slip made
+while drafting the entry (miscounting the blank separator line as staying) rather than a
+different edit being applied -- the file on disk matches D-027's `**What:**` and
+`**Changes-authorized:**` exactly.
+**Result:** `docs/ARCHITECTURE.md` is confirmed at 144 lines (150 - 6), 6 lines of headroom under
+its 150-line C2 budget, not 5. No file changes as a result of this entry beyond `docs/DECISIONS.md`
+itself.
+**Changes-authorized:** none (this entry corrects the D-027 record only; no file besides
+`docs/DECISIONS.md` changes as a result of D-028).
+**Links:** D-027; AT-507; D-011 (the precedent for this correction pattern)
