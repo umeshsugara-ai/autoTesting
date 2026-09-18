@@ -14,10 +14,11 @@ human instead of silently rebuilt. It is the product's **overview, not a logger*
 ## Criteria
 
 ### L1 — Derived, never typed (rot defence)
-- `docs/MAP.md` (routed, self-describing) carries two generated sections (directory map from module
-  docstrings; schema summary from the Pydantic models) delimited by markers; `autotester map` regenerates
-  them. `docs/ARCHITECTURE.md` keeps a pointer to MAP.md and stays ≤ 150 lines, enforced by the doctor
-  rule `architecture-too-long` (C2 cap unchanged).
+- `docs/MAP.md` (routed, self-describing) carries three generated sections (directory map from module
+  docstrings; schema summary from the Pydantic models; `scripts/` inventory from each script's docstring
+  or `.ps1` header comment) delimited by markers; `autotester map` regenerates them. `docs/ARCHITECTURE.md`
+  keeps a pointer to MAP.md and stays ≤ 150 lines, enforced by the doctor rule `architecture-too-long`
+  (C2 cap unchanged).
 - `docs/SNAPSHOT.md` is produced only by `autotester snapshot`; it has a "generated — do not edit" header.
 - `autotester doctor` **fails** when `docs/MAP.md` or `docs/SNAPSHOT.md` differs from a fresh regeneration.
 - **Verify:** `uv run autotester map && uv run autotester snapshot && git diff --exit-code docs/MAP.md docs/SNAPSHOT.md`; then change one module docstring → `uv run autotester doctor` exits non-zero (`stale-generated: docs/MAP.md`) until `map` is re-run; `wc -l docs/ARCHITECTURE.md` ≤ 150.
@@ -87,3 +88,11 @@ only, later); Google-Sheet sync.
 
 - 2026-09-03 · routine · L7: backfill list corrected to D-000 genesis/adoption, D-001 design-first, D-002 stack, D-003 root `.env`, D-004 S4 · why: AT-013 (sweep 2aadf21) — the list was off by one against `docs/DECISIONS.md`; tightening only, applied at the T-005 cycle-1 check.
 - 2026-09-03 · routine · L1: generated sections live in `docs/MAP.md` (routed sibling), not in `docs/ARCHITECTURE.md`; doctor fails when MAP.md or SNAPSHOT.md differ from regeneration; ARCHITECTURE.md ≤ 150 is doctor-enforced (`architecture-too-long`) · why: AT-019 — the generated sections pushed ARCHITECTURE.md to 200 lines against the C2 cap; relocation keeps every derived-not-typed guarantee and adds enforcement of the cap; the cap itself is untouched. Pre-declared at the T-005 cycle-1 check, folded at cycle 2.
+- 2026-09-18 · routine · L1: "two generated sections" corrected to "three" — `docs/MAP.md` gained a
+  `scripts` section (`render_map`'s third key) alongside `map`/`schema` · why: AT-520 (checked-PASS
+  cycle 1, `qa/verdicts/at520-scripts-mapped-not-invisible.md`) — `scripts/` (including
+  `mutation_check.py`, the mutation-proof instrument) was undiscoverable through any routed doc;
+  `apply_map`/`check_generated_fresh`/`autotester map` needed no change, confirmed generic over
+  `render_map`'s returned dict by the checker independently (zero-diff `doctor.py`, and a scratch-copy
+  reproduction proving `check_generated_fresh` reddens on both a new untracked script and an edited
+  existing script's docstring). Additive only, no criterion weakened.
