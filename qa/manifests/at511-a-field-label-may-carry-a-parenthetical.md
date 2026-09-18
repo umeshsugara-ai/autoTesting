@@ -137,4 +137,37 @@ Not UI-touching — no surface changed. Changed paths: `src/autotester/ledger/ch
 - **The six ids removed were all already correct in the ledger**, so this fixes an attribution that
   had not yet caused a wrong report. The value is that it cannot now.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Cycle 1, `qa/verdicts/at511-a-field-label-may-carry-a-parenthetical.md` (commits `e5bdb5d`, then
+`a8caf58`), pushed per D-007. PASS. The checker re-derived the historical `6 dropped, 0 added`
+headline from scratch — loading the pre-fix module by path into its own scratchpad, never into the
+bound tree — and got an exact match.
+
+**It corrected an overstatement in this manifest, and it is right.** The "167 live lines … every one
+would end a block early" argument above does not establish what it claims. The checker traced
+whether any of those lines actually sits inside a live marker-continuation walk and found **none**:
+the three cited examples (`AT-036`, `AT-038`, `AT-335`) each sit under their own heading, separated
+from the nearest marker by a blank line and an intervening `##`, so the naive rule would never have
+reached them. I verified this independently by running the naive regex through the same walk across
+the whole corpus and diffing the id sets:
+
+```
+artifacts where the NAIVE rule differs from shipped: 0
+```
+
+So the digit rule is **defence-in-depth, not a fix for an observed defect**. The unit's real
+evidence — the id-set diff showing 6 misattributions removed and 0 added — stands on its own and was
+reproduced exactly. That is the third overstatement of mine corrected tonight (after the at500
+violation count and the at496 continuation claim), and in each case the correction came from
+someone re-deriving rather than reading.
+
+Two findings filed on this manifest's own disclosures: **AT-513** (medium — `tests/test_ledger_checks.py`
+at 295/300 after four consecutive units) and **AT-514** (low — the fence stop is never exercised at
+`at500`'s verdict, so it holds by ordering rather than design).
+
+Also worth recording because the checker disclosed it rather than hiding it: its first ledger write
+reformatted ~40 unrelated lines by switching `qa/issues.jsonl` off the file's `\uXXXX` convention.
+It caught the discrepancy in `git show --stat`, rewrote the change minimally, and pushed a separate
+corrective commit instead of amending. That is the AT-496 failure class — a bulk rewrite of a shared
+ledger — caught by its author before it landed as loss.
