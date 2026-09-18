@@ -142,4 +142,32 @@ Not UI-touching — no surface changed, no `src/` file changed. Changed paths:
   the headline and not the `34 passed`. I claim the tests are the same tests; I do not claim the
   *file* is byte-identical in the moved region — the extraction rstrips trailing blank lines.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Cycle 1, `qa/verdicts/at513-the-block-tests-leave-the-row-tests.md` (commit `90b179a`), pushed per
+D-007. PASS.
+
+**The checker did the one thing that could have falsified this unit, and I could not have done it
+for myself.** A move's claim is that nothing changed, and a green suite cannot see a loosened
+assertion inside a moved function. It extracted all 10 moved functions from the pre-split source by
+AST and compared them to their new home: **byte-identical, all ten** — no weakened assertion, no
+dropped parametrize case. It also re-derived the 34/34 name identity from `b40f6f3` in a scratch
+copy outside this tree rather than reading my evidence files, and reproduced all four
+capability-coverage rows green-before/red-after in throwaway copies.
+
+Both disclosures I made against myself were confirmed rather than waved through, and became rows:
+**AT-515** (low — the `== exactly` prose in at508/at509/at511 describes the mutation harness as
+stricter than its `expected <= failures` predicate; true as observations of those runs, and the
+closed manifests were left unedited) and **AT-516** (medium — this split breaks 3 evidence specs,
+the second occurrence of the AT-506→at504 pattern, flagged as wanting a standing splitting policy
+rather than another one-off).
+
+Two more found on its own initiative: **AT-517** (low — this manifest cites
+`tests/test_flake_probe_real_process.py:15` for the bare-import precedent; the actual line is 27.
+The precedent is real and it re-verified it under three invocation shapes — only my line number was
+wrong) and **AT-518** (low — its full-suite run hit one failure in
+`test_flake_probe_real_process.py`, a file this unit's diff never touches; it re-ran that test alone
+and got 2 passed, then offered it as a **third** data point toward AT-505's own
+"three-or-more-times" threshold rather than escalating unilaterally). My own full-suite run of the
+same tree was 1484 passed / 0 failed, which is what a timing flake looks like from two machines.
+
