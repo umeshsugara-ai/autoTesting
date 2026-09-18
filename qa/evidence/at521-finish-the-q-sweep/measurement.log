@@ -1,0 +1,10 @@
+$ grep -o '"cmd": "[^"]*"' .goal/goal.json | wc -l
+50
+$ grep -o '"cmd": "[^"]*pytest[^"]*"' .goal/goal.json | wc -l
+44
+$ grep -n ' -q' .goal/goal.json | wc -l          # total ' -q' occurrences anywhere in the file
+43
+$ grep -n ' -q' .goal/goal.json | grep -v '"cmd"' # any outside a cmd row?
+(empty)
+$ grep -oE '"cmd": *"[^"]*pytest[^"]*"' .goal/goal.json | grep -vE ' -q( |"|$)'
+"cmd": "uv run pytest tests/test_adjudicate.py tests/test_adjudicate_determinism.py tests/test_analyze_video.py tests/test_analyze_cache.py tests/test_issues.py"

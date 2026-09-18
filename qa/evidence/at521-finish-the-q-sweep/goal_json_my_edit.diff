@@ -1,0 +1,172 @@
+26c26
+<         "cmd": "uv run pytest -q && uv run autotester doctor",
+---
+>         "cmd": "uv run pytest && uv run autotester doctor",
+64c64
+<         "cmd": "uv run pytest tests/test_ledger.py -q && uv run autotester doctor",
+---
+>         "cmd": "uv run pytest tests/test_ledger.py && uv run autotester doctor",
+83c83
+<         "cmd": "uv run pytest tests/test_browser.py -q",
+---
+>         "cmd": "uv run pytest tests/test_browser.py",
+103c103
+<         "cmd": "uv run pytest tests/test_secrets.py -q",
+---
+>         "cmd": "uv run pytest tests/test_secrets.py",
+123c123
+<         "cmd": "uv run pytest tests/test_store.py -q",
+---
+>         "cmd": "uv run pytest tests/test_store.py",
+164c164
+<         "cmd": "uv run pytest tests/test_execute.py -q",
+---
+>         "cmd": "uv run pytest tests/test_execute.py",
+184c184
+<         "cmd": "uv run pytest tests/test_grade.py -q",
+---
+>         "cmd": "uv run pytest tests/test_grade.py",
+206c206
+<         "cmd": "uv run pytest tests/test_db.py -q",
+---
+>         "cmd": "uv run pytest tests/test_db.py",
+245c245
+<         "cmd": "uv run pytest tests/test_ingest.py -q",
+---
+>         "cmd": "uv run pytest tests/test_ingest.py",
+266c266
+<         "cmd": "uv run pytest tests/test_review.py -q",
+---
+>         "cmd": "uv run pytest tests/test_review.py",
+286c286
+<         "cmd": "uv run pytest tests/test_expand.py -q",
+---
+>         "cmd": "uv run pytest tests/test_expand.py",
+306c306
+<         "cmd": "uv run pytest tests/test_agent_loop.py -q",
+---
+>         "cmd": "uv run pytest tests/test_agent_loop.py",
+326c326
+<         "cmd": "uv run pytest tests/test_coverage.py -q",
+---
+>         "cmd": "uv run pytest tests/test_coverage.py",
+347c347
+<         "cmd": "uv run pytest tests/test_ui.py tests/test_ui_crawls.py tests/test_ui_report.py tests/test_ui_runs.py tests/test_ui_dashboard.py tests/test_report_export.py tests/test_ui_learn.py tests/test_coverage_wiring.py tests/test_consent.py -q",
+---
+>         "cmd": "uv run pytest tests/test_ui.py tests/test_ui_crawls.py tests/test_ui_report.py tests/test_ui_runs.py tests/test_ui_dashboard.py tests/test_report_export.py tests/test_ui_learn.py tests/test_coverage_wiring.py tests/test_consent.py",
+404c404
+<         "cmd": "uv run pytest tests/test_langchain_fallback.py -q",
+---
+>         "cmd": "uv run pytest tests/test_langchain_fallback.py",
+442c442
+<         "cmd": "uv run pytest tests/test_execute.py tests/test_run_case_pipeline.py -q",
+---
+>         "cmd": "uv run pytest tests/test_execute.py tests/test_run_case_pipeline.py",
+461c461
+<         "cmd": "uv run pytest tests/test_ui_credential_safety.py tests/test_ui_credential_safety_project.py tests/test_ui_credential_exemption.py -q",
+---
+>         "cmd": "uv run pytest tests/test_ui_credential_safety.py tests/test_ui_credential_safety_project.py tests/test_ui_credential_exemption.py",
+480c480
+<         "cmd": "uv run pytest tests/test_schema.py tests/test_store.py tests/test_execute.py tests/test_ingest.py -q",
+---
+>         "cmd": "uv run pytest tests/test_schema.py tests/test_store.py tests/test_execute.py tests/test_ingest.py",
+500c500
+<         "cmd": "uv run pytest tests/test_providers.py tests/test_ingest.py -q",
+---
+>         "cmd": "uv run pytest tests/test_providers.py tests/test_ingest.py",
+520c520
+<         "cmd": "uv run pytest tests/test_media.py tests/test_media_prep.py tests/test_media_frames.py -q",
+---
+>         "cmd": "uv run pytest tests/test_media.py tests/test_media_prep.py tests/test_media_frames.py",
+561c561
+<         "cmd": "uv run pytest tests/test_ui_product_map.py tests/test_ui_issues.py tests/test_ui_sources.py -q",
+---
+>         "cmd": "uv run pytest tests/test_ui_product_map.py tests/test_ui_issues.py tests/test_ui_sources.py",
+581c581
+<         "cmd": "uv run python scripts/check_deliverable.py --exists src/autotester/stages/merge_flowspec.py tests/test_merge_flowspec.py && uv run pytest tests/test_merge_flowspec.py tests/test_coverage.py -q",
+---
+>         "cmd": "uv run python scripts/check_deliverable.py --exists src/autotester/stages/merge_flowspec.py tests/test_merge_flowspec.py && uv run pytest tests/test_merge_flowspec.py tests/test_coverage.py",
+620c620
+<         "cmd": "uv run pytest tests/test_observe.py tests/test_browser_actions.py tests/test_execute.py tests/test_actuator_chokepoint.py tests/test_browser.py -q",
+---
+>         "cmd": "uv run pytest tests/test_observe.py tests/test_browser_actions.py tests/test_execute.py tests/test_actuator_chokepoint.py tests/test_browser.py",
+640c640
+<         "cmd": "uv run pytest tests/test_urls.py tests/test_screen_identity.py tests/test_store_crawl.py -q",
+---
+>         "cmd": "uv run pytest tests/test_urls.py tests/test_screen_identity.py tests/test_store_crawl.py",
+660c660
+<         "cmd": "uv run pytest tests/test_explore_safety.py -q",
+---
+>         "cmd": "uv run pytest tests/test_explore_safety.py",
+682c682
+<         "cmd": "uv run pytest tests/test_explore.py tests/test_explore_live.py -q && uv run python scripts/explore_proof.py",
+---
+>         "cmd": "uv run pytest tests/test_explore.py tests/test_explore_live.py && uv run python scripts/explore_proof.py",
+702c702
+<         "cmd": "uv run pytest tests/test_explore_merge.py tests/test_coverage.py tests/test_crawl_report.py tests/test_ui_crawls.py -q",
+---
+>         "cmd": "uv run pytest tests/test_explore_merge.py tests/test_coverage.py tests/test_crawl_report.py tests/test_ui_crawls.py",
+742c742
+<         "cmd": "uv run pytest tests/test_consent.py -q",
+---
+>         "cmd": "uv run pytest tests/test_consent.py",
+762c762
+<         "cmd": "uv run pytest tests/test_catalog.py tests/test_ui_catalog.py -q",
+---
+>         "cmd": "uv run pytest tests/test_catalog.py tests/test_ui_catalog.py",
+819c819
+<         "cmd": "uv run pytest tests/test_discover.py -q",
+---
+>         "cmd": "uv run pytest tests/test_discover.py",
+839c839
+<         "cmd": "uv run pytest tests/test_ai_catalog.py -q",
+---
+>         "cmd": "uv run pytest tests/test_ai_catalog.py",
+858c858
+<         "cmd": "uv run pytest tests/test_ai_capture.py -q",
+---
+>         "cmd": "uv run pytest tests/test_ai_capture.py",
+897c897
+<         "cmd": "uv run pytest tests/test_ai_report.py -q",
+---
+>         "cmd": "uv run pytest tests/test_ai_report.py",
+916c916
+<         "cmd": "uv run pytest tests/test_goal_done_checks.py::test_revised_goal_contract_is_registered -q",
+---
+>         "cmd": "uv run pytest tests/test_goal_done_checks.py::test_revised_goal_contract_is_registered",
+937c937
+<         "cmd": "uv run pytest tests/test_ui_project_intake.py -q",
+---
+>         "cmd": "uv run pytest tests/test_ui_project_intake.py",
+957c957
+<         "cmd": "uv run pytest tests/test_source_adapters.py -q",
+---
+>         "cmd": "uv run pytest tests/test_source_adapters.py",
+977c977
+<         "cmd": "uv run pytest tests/test_autonomous_orchestrator.py -q",
+---
+>         "cmd": "uv run pytest tests/test_autonomous_orchestrator.py",
+996c996
+<         "cmd": "uv run pytest tests/test_portal_persona.py -q",
+---
+>         "cmd": "uv run pytest tests/test_portal_persona.py",
+1016c1016
+<         "cmd": "uv run pytest tests/test_explore_completeness.py tests/test_explore_network.py -q",
+---
+>         "cmd": "uv run pytest tests/test_explore_completeness.py tests/test_explore_network.py",
+1037c1037
+<         "cmd": "uv run pytest tests/test_eval_compiler.py -q",
+---
+>         "cmd": "uv run pytest tests/test_eval_compiler.py",
+1057c1057
+<         "cmd": "uv run pytest tests/test_regression_trigger.py -q",
+---
+>         "cmd": "uv run pytest tests/test_regression_trigger.py",
+1079c1079
+<         "cmd": "uv run pytest tests/test_unified_report.py -q",
+---
+>         "cmd": "uv run pytest tests/test_unified_report.py",
+1100c1100
+<         "cmd": "uv run pytest tests/test_generic_acceptance.py -q",
+---
+>         "cmd": "uv run pytest tests/test_generic_acceptance.py",

@@ -226,7 +226,9 @@ def test_revised_goal_contract_is_registered() -> None:
         "T-168": (["T-155", "T-164", "T-165", "T-167"], tests + "test_unified_report.py"),
         "T-169": (["T-136", "T-145", "T-168"], tests + "test_generic_acceptance.py"),
     }
-    expected = {key: (deps, f"uv run pytest {spec} -q") for key, (deps, spec) in expected.items()}
+    # No CLI `-q`: pyproject.toml's addopts already sets it, and stacking a second one makes
+    # pytest -qq, which prints no summary line at all (AT-503/AT-522, measured 2026-09-18).
+    expected = {key: (deps, f"uv run pytest {spec}") for key, (deps, spec) in expected.items()}
     actual = {key: (by_id[key]["deps"], by_id[key]["done_check"]["cmd"]) for key in expected}
     assert actual == expected
     progress = data["progress"]

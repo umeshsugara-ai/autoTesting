@@ -1,0 +1,27 @@
+CLAUDE.md (before AT-521 edit), grep -n 'pytest -q|pytest.*-q':
+68:  `uv run pytest -q`, `uv run ruff check src tests scripts`, `uv run autotester doctor`).
+103:- **Validators:** `qa/contracts/` judged by `/checker` + `uv run autotester doctor` + `uv run pytest -q`. No separate `contracts/verify_contracts.py`.
+
+qa/loop.md (before AT-521 edit):
+14:Verify: the adapter's slot-1 commands (`qa/adapter.json`, `"coding"` adapter) -- `uv run pytest -q`
+
+AGENTS.md (before AT-521 edit), grep -n ' -q':
+68:  `uv run pytest -q`, `uv run ruff check src tests scripts`, `uv run autotester doctor`).
+89:uv run pytest -q                # tests
+101:- **Validators:** `qa/contracts/` judged by `/checker` + `uv run autotester doctor` + `uv run pytest -q`. No separate `contracts/verify_contracts.py`.
+
+diff AGENTS.md CLAUDE.md (before AT-521 edit) -- confirms AGENTS.md is an INDEPENDENT untracked
+file, not a symlink or hardlink of CLAUDE.md (python os.path.islink('AGENTS.md') -> False),
+last modified 2026-09-10 (CLAUDE.md last modified 2026-09-18) -- three real differences:
+17c17
+< Plan of record: `C:/Users/Lenovo/.Codex/plans/great-when-you-really-iridescent-ocean.md`.
+---
+> Plan of record: `C:/Users/Lenovo/.claude/plans/great-when-you-really-iridescent-ocean.md`.
+89c89,91
+< uv run pytest -q                # tests
+---
+> uv run pytest                   # tests -- no -q here: ... (AT-503 fix, not yet mirrored)
+100c102
+< - **Enforcement paths** (`.Codex/hooks/*`, ...)
+---
+> - **Enforcement paths** (`.claude/hooks/*`, ...)

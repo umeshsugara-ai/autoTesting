@@ -11,8 +11,9 @@ command output, write `qa/manifests/<slug>.md`, dispatch a fresh `/checker` suba
 turn, close out on its verdict file, then name a terminal state and either `ScheduleWakeup` the
 next tick or `stop: true`. Never self-certify PASS; never touch `qa/contracts/`.
 
-Verify: the adapter's slot-1 commands (`qa/adapter.json`, `"coding"` adapter) — `uv run pytest -q`
-exit 0, `uv run ruff check src tests scripts` clean, `uv run autotester doctor` clean — re-run
+Verify: the adapter's slot-1 commands (`qa/adapter.json`, `"coding"` adapter) — `uv run pytest`
+(no CLI `-q`; `pyproject.toml`'s `addopts` already sets it, AT-503) exit 0, `uv run ruff check src
+tests scripts` clean, `uv run autotester doctor` clean — re-run
 independently by the checker, never trusted from the maker's paste. A `rubric_ref` `done_check`
 (T-050, T-110, T-120) additionally requires a satisfied `/outcome-grader` verdict once its own
 rubric exists.
