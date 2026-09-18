@@ -223,4 +223,48 @@ Not applicable — no UI/browser surface touched. Changed paths: `docs/MAP.md`,
   that file already follows this header convention, and the new test proves the no-header
   fallback doesn't crash, but it is not a general PowerShell comment-based-help parser.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Cycle 1, `qa/verdicts/at520-scripts-mapped-not-invisible.md` (commit `c3bde8d`), pushed per D-007.
+PASS.
+
+**The checker closed the one hole this manifest admitted to.** The manifest claimed
+`check_generated_fresh` would police the new `scripts` section but said it had not re-run to prove
+it. The checker did exactly that, in a scratch copy exported with `git archive` **outside the bound
+tree**: it added an untracked script, then edited an existing script's docstring, and confirmed
+`doctor` reddens in both cases and goes clean on restore. Without that, the new section could have
+generated once and then rotted silently — which is precisely how the hand-maintained `## Status`
+section in AT-507 came to be false.
+
+It also verified the "zero changes needed elsewhere" claim was **true rather than lucky**: it read
+`apply_map` (`ledger/render.py:100`), `check_generated_fresh` (`doctor.py:129`) and the `map` CLI
+command (`cli.py:68`), confirmed none of them hardcodes `"map"`/`"schema"`, and grepped `src/` for
+any other consumer of `render_map`/`apply_map` to be sure none was missed.
+
+**A number of mine was wrong, and it was heading into a gate.** I told the checker that `scripts/`
+had **7** distinct colliding definition names. It is **6**. I verified the correction myself rather
+than accept it: `check_duplicate_definitions` skips any name beginning with `_`
+(`doctor.py`, `not node.name.startswith("_")`), so `_NoCacheHandler` — which my recount included —
+is invisible to the rule that would do the flagging. The manifest's own **17** (extra definitions,
+not distinct names) was right all along. Both numbers describe the same corpus counted two ways, and
+the gate must not carry the ambiguity into a human decision.
+
+Two findings filed, neither blocking:
+
+- **AT-525** (low) — the mutation proof is thin. 2/2 killed, but it does not isolate the new loop's
+  non-recursive walk or its suffix filter. The checker judged this a finding rather than a failure,
+  which is the right call for coverage depth on a passing unit.
+- **AT-526** (medium) — the concurrency hazard from the previous unit, filed after independent
+  confirmation rather than on my say-so.
+
+**On the gate, the checker made a process critique I accept.** It ruled the unranked four-option
+gate acceptable in principle — this is a genuine governance-design call for Umesh — but noted that
+this manifest's own *Known limits* already leans toward Option 3 while the **gate document itself
+withholds that lean**. That is the wrong way round: if the pair has a view, the human should see it
+in the document he is asked to decide from, not buried in a manifest. I am not editing the gate to
+add a recommendation unilaterally, because the checker ruled the unranked form acceptable and
+changing it now would be me overriding a verdict I just accepted — but it is recorded here, and
+`qa/gates/at520-scripts-line-cap.md` should carry the pair's lean when it is next touched.
+
+`AT-488` and `AT-502` correctly remain **open**, still blocked on that gate. No scope creep.
+
