@@ -1781,3 +1781,4 @@ concurrent maker closed at242-crawl-blocked-status (checked-PASS) and a sweep fi
 2026-09-18 ADVANCED at513-the-block-tests-leave-the-row-tests built, ready-for-check, cycle-1 checker dispatched
 2026-09-18 ADVANCED at513 closed checked-PASS; wave of 2 dispatched (AT-503 adapter verify, AT-507 architecture budget); gate at516 opened
 2026-09-18 ADVANCED sweep closed AT-475/AT-492 (open 158->156); at507 built + suite folded in, cycle-1 checker dispatched; at503 still building
+2026-09-18 ADVANCED at507 closed checked-PASS (AT-519/AT-520 filed); at503 measurement confirmed, agent pinged to finish
