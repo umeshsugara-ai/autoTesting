@@ -8,6 +8,7 @@
     "vidysea.com"
   ],
   "write_policy": "read_only",
+  "login_case_id": "case_35b17ccece2d",
   "secrets": [
     {
       "key": "PATHLYNKS_COUNSELLOR_EMAIL",

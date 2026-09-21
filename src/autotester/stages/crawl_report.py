@@ -9,6 +9,7 @@ bounded crawl must be judged on impossible to miss: **why it stopped**, and
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from openpyxl import Workbook
@@ -19,6 +20,15 @@ from autotester.schema.enums import EdgeOutcome, IssueKind
 from autotester.schema.screen_graph import ScreenEdge, ScreenNode
 from autotester.stages.explore_status import displayed_status
 from autotester.store.project_store import ProjectStore
+
+# openpyxl refuses to write control characters (IllegalCharacterError). Live
+# console output carries them (AT-530: a Pathlynks crawl's issue detail ended
+# the whole report), so every string cell passes through this once.
+_ILLEGAL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+
+
+def _clean(value: object) -> object:
+    return _ILLEGAL.sub("", value) if isinstance(value, str) else value
 
 _REFUSED = (
     EdgeOutcome.DENIED_POLICY,
@@ -91,7 +101,8 @@ def _screens_sheet(wb: Workbook, nodes: list[ScreenNode]) -> None:
                "Controls", "Console errors", "Failed requests"])
     for node in nodes:
         ws.append([
-            node.name or node.title or "—", node.url_template, node.url_example,
+            _clean(node.name or node.title or "—"), _clean(node.url_template),
+            _clean(node.url_example),
             node.depth, node.status.value, len(node.elements),
             len(node.console_errors), len(node.failed_requests),
         ])
@@ -103,9 +114,11 @@ def _edges_sheet(wb: Workbook, edges: list[ScreenEdge], names: dict[str, str]) -
     ws.append(["From", "Control", "Action", "Outcome", "To", "Reason"])
     for edge in edges:
         ws.append([
-            names.get(edge.from_node, edge.from_node), edge.name or edge.target,
+            _clean(names.get(edge.from_node, edge.from_node)),
+            _clean(edge.name or edge.target),
             edge.action.value, edge.outcome.value,
-            names.get(edge.to_node or "", edge.to_node or "—"), edge.reason or "",
+            _clean(names.get(edge.to_node or "", edge.to_node or "—")),
+            _clean(edge.reason or ""),
         ])
     autosize_columns(ws)
 
@@ -120,8 +133,9 @@ def _refused_sheet(wb: Workbook, edges: list[ScreenEdge], names: dict[str, str])
         if edge.outcome not in _REFUSED:
             continue
         ws.append([
-            names.get(edge.from_node, edge.from_node), edge.name or "(unnamed)",
-            edge.target, edge.outcome.value, edge.reason or "",
+            _clean(names.get(edge.from_node, edge.from_node)),
+            _clean(edge.name or "(unnamed)"),
+            _clean(edge.target), edge.outcome.value, _clean(edge.reason or ""),
         ])
     autosize_columns(ws)
 
@@ -131,10 +145,12 @@ def _unreached_sheet(wb: Workbook, crawl: Crawl) -> None:
     ws = wb.create_sheet("Unreached")
     ws.append(["URL template", "Control", "Selector", "Reason"])
     for hole in (crawl.coverage.holes if crawl.coverage else []):
-        ws.append([hole.url_template, hole.name or "(unnamed)", hole.selector, hole.reason])
+        ws.append([_clean(hole.url_template), _clean(hole.name or "(unnamed)"),
+                   _clean(hole.selector), hole.reason])
     for hole in (crawl.coverage.screens_not_entered if crawl.coverage else []):  # AT-470
-        ws.append([hole.url_template, f"screen behind '{hole.name or hole.selector}' — not entered",
-                   hole.selector, hole.reason])
+        ws.append([_clean(hole.url_template),
+                   _clean(f"screen behind '{hole.name or hole.selector}' — not entered"),
+                   _clean(hole.selector), hole.reason])
     autosize_columns(ws)
 
 
@@ -143,8 +159,8 @@ def _issues_sheet(wb: Workbook, issues: list[CrawlIssue], names: dict[str, str])
     ws.append(["Screen", "Kind", "First party", "Detail"])
     for issue in issues:
         ws.append([
-            names.get(issue.node_id, issue.node_id), issue.kind.value,
-            "yes" if issue.first_party else "no", issue.detail,
+            _clean(names.get(issue.node_id, issue.node_id)), issue.kind.value,
+            "yes" if issue.first_party else "no", _clean(issue.detail),
         ])
     autosize_columns(ws)
 
@@ -159,7 +175,8 @@ def _tool_failures_sheet(wb: Workbook, issues: list[CrawlIssue],
     ws = wb.create_sheet("Tool failures")
     ws.append(["Screen", "What the crawler could not do"])
     for issue in issues:
-        ws.append([names.get(issue.node_id or "", issue.node_id or "—"), issue.detail])
+        ws.append([_clean(names.get(issue.node_id or "", issue.node_id or "—")),
+                   _clean(issue.detail)])
     autosize_columns(ws)
 
 
