@@ -1,0 +1,287 @@
+c3bde8d 2026-09-18 09:23:51 +0530 qa(checker): PASS at520-scripts-mapped-not-invisible -- generic-map claim verified, contract folded, concurrency defect filed
+0fe2b6d 2026-09-18 09:14:09 +0530 qa(checker): PASS at521-finish-the-q-sweep -- goal.json/doc sweep verified, 3 more contract clauses folded, AT-524 filed
+e5b3f87 2026-09-18 08:34:41 +0530 qa(checker): PASS at503 -- summary line restored, folded into 6 contracts, residual ledgered
+226dbaa 2026-09-18 08:08:48 +0530 qa(checker): PASS at507 -- headroom trim holds, two low findings filed
+25167db 2026-09-18 07:57:07 +0530 qa(checker): sweep -- close 2 stale-open ledger rows, backlog now 156 open
+90b179a 2026-09-18 07:30:15 +0530 qa(checker): PASS at513 -- verbatim move confirmed independently, 3 disclosures verified
+a8caf58 2026-09-18 06:52:45 +0530 qa(checker): fix a self-inflicted ledger reformat from the at511 PASS commit
+e5bdb5d 2026-09-18 06:50:20 +0530 qa(checker): PASS at511 -- fix holds, two new findings filed on its own disclosures
+e3a902d 2026-09-18 06:12:21 +0530 qa(checker): PASS at509 -- the fix holds, and its own over-run has a second shape
+28ec0ff 2026-09-18 05:27:12 +0530 qa(checker): sharpen AT-509 -- direction is a miss, never a false accusation
+62bc1fd 2026-09-18 05:25:23 +0530 qa(checker): at508-a-word-containing-fixed-is-not-a-fix-claim cycle 1 -- PASS
+86fb554 2026-09-18 04:53:14 +0530 qa(checker): close AT-506 -- ledger row was left `open` after a PASS verdict
+934d895 2026-09-18 04:48:00 +0530 qa(checker): at506-record-rules-leave-the-source-rules cycle 1 -- PASS
+d2b5b98 2026-09-18 04:02:34 +0530 qa(checker): at504-prose-about-the-marker-is-not-a-claim -- file AT-506, structural erosion
+3fff45b 2026-09-18 04:00:45 +0530 qa(checker): at504-prose-about-the-marker-is-not-a-claim cycle 1 -- PASS
+6f016c9 2026-09-18 03:29:34 +0530 qa(checker): at500-a-letter-suffixed-id-is-an-id -- correct the full-suite claim in cycle-1 verdict
+588cca7 2026-09-18 03:14:19 +0530 qa(checker): at495-the-probe-kill-is-proven-not-argued cycle 1 -- PASS
+49f14a0 2026-09-18 03:02:20 +0530 qa(checker): at500-a-letter-suffixed-id-is-an-id cycle 1 -- PASS
+d115c0a 2026-09-18 01:35:47 +0530 qa(checker): at496-the-ledger-never-loses-a-row cycle 2 -- PASS
+b437a85 2026-09-18 01:24:37 +0530 qa(checker): at496-the-ledger-never-loses-a-row cycle 1 -- FAIL
+67a61ec 2026-09-18 01:05:53 +0530 qa(maker): restore the ledger row and status a stale write dropped (AT-496)
+1688da3 2026-09-18 00:41:01 +0530 qa(checker): at494-probe-output-is-a-file-not-a-pipe cycle 1 -- PASS
+9b5cbc5 2026-09-17 23:45:31 +0530 qa(checker): at401-flake-probe-runs-are-bounded cycle 1 -- PASS
+992f03f 2026-09-17 23:27:19 +0530 qa(checker): at490-491-tree-kill-is-bounded cycle 1 -- PASS
+8516565 2026-09-17 22:38:28 +0530 qa(checker): at487-pytest-runs-are-bounded cycle 1 -- PASS
+86d4bff 2026-09-17 21:18:55 +0530 qa(checker): at481-report-path-fixed-at-plugin-load cycle 1 -- PASS
+7698c25 2026-09-17 21:15:34 +0530 qa(checker): commit ledger rows already backed by committed verdicts (AT-475)
+2e4d9b0 2026-09-17 21:06:58 +0530 qa(checker): at468-unreadable-reason-never-quotes-content cycle 1 -- PASS
+6566441 2026-09-17 13:02:49 +0530 qa(checker): fix AT-482 collision from at229-249 verdict commit
+db9bda4 2026-09-17 12:55:50 +0530 qa(checker): at229-249-pytest-leaves-the-tree-clean cycle 1 -- PASS
+222b507 2026-09-17 12:14:52 +0530 qa(checker): at478-479-failures-from-pytest-reports cycle 1 -- PASS
+29976d7 2026-09-17 10:50:27 +0530 qa(checker): at469-mutation-ids-with-spaces cycle 2 -- PASS
+0fdf4dd 2026-09-17 10:15:57 +0530 qa(checker): Mode B sweep of 2026-09-17 10:10 -- post-login mapping queue (FINDINGS: 2)
+2894f4e 2026-09-17 09:21:26 +0530 qa(checker): at469-mutation-ids-with-spaces cycle 1 -- FAIL
+7252f47 2026-09-17 08:45:29 +0530 qa(checker): at465-466-unreadable-narration-keeps-its-cause cycle 1 -- PASS
+b889b53 2026-09-17 08:16:30 +0530 qa(checker): at216-unreadable-transcript-is-not-silence cycle 1 -- PASS
+b594174 2026-09-17 07:56:52 +0530 qa(checker): at461-line-cap-walk-stays-in-tree cycle 1 -- PASS
+200c776 2026-09-17 07:27:28 +0530 qa(checker): at419-line-cap-every-file cycle 1 -- PASS
+b7dfa46 2026-09-16 22:45:40 +0530 qa(checker): Mode B sweep #6 of 2026-09-16 -- fold Umesh's post-login mapping priority (FINDINGS: 4)
+00fcdc3 2026-09-16 21:25:29 +0530 qa(checker): at438-display-contents cycle 3 -- FAIL
+4e36b06 2026-09-16 18:43:21 +0530 qa(checker): at438-display-contents cycle 2 -- FAIL
+b90a695 2026-09-16 18:15:50 +0530 qa(checker): Mode B sweep #5 of 2026-09-16 (FINDINGS: 2)
+da37ff0 2026-09-16 17:55:36 +0530 qa(checker): at438-display-contents cycle 1 -- FAIL
+3ca11d1 2026-09-16 17:37:18 +0530 qa(checker): at432-off-domain-case-step cycle 1 -- PASS
+e4d1350 2026-09-16 17:27:04 +0530 qa(checker): at429-content-visibility-hidden cycle 2 -- PASS
+963a8a3 2026-09-16 17:03:18 +0530 qa(checker): at430-onboard-blank-name cycle 1 -- PASS
+84da9c6 2026-09-16 17:00:08 +0530 qa(checker): at429-content-visibility-hidden cycle 1 -- FAIL
+e33b916 2026-09-16 16:38:06 +0530 qa(maker): close out at410 on the cycle-1 PASS; move my three ledger rows to the canonical schema
+4e7a22a 2026-09-16 16:36:30 +0530 qa(checker): at410-first-glyph-content-visibility cycle 1 -- PASS
+147fbe2 2026-09-16 16:33:09 +0530 qa(checker): live-2026-09-16-ui -- first independent live-browser validation of the UI; FAIL with 6 defects (AT-430..AT-435)
+77cba2d 2026-09-16 16:24:54 +0530 fix(AT-410): a skipped subtree no longer loses its first glyph on the first call
+7fc4ea1 2026-09-16 16:11:11 +0530 qa(checker): at423-scroll-invariance-probe cycle 2 -- PASS
+d2504e8 2026-09-16 16:06:20 +0530 qa(checker): PASS at399-loop-status-integrity cycle 1 (committed by maker)
+d4fb88c 2026-09-16 15:56:15 +0530 fix(AT-425/426): derive each shape's defect from its structure, and remove vacuous shapes
+4094989 2026-09-16 15:19:09 +0530 qa(maker): record the at379 stall diagnosis — loop design, with a contained recovery
+e8021f4 2026-09-16 15:16:08 +0530 qa(checker): Mode B sweep #4 of 2026-09-16 (FINDINGS: 2)
+c3ce57c 2026-09-16 15:11:30 +0530 qa(checker): FAIL at379-scrollable-pane-reachability cycle 3
+952e599 2026-09-16 15:00:18 +0530 qa(checker): PASS at400-gate-premise-corrected cycle 1
+d6a8aeb 2026-09-16 14:47:13 +0530 qa(checker): PASS at405-guard-sees-assertion-messages cycle 1
+4fed6ba 2026-09-16 14:32:40 +0530 qa(checker): AT-411 is a duplicate of AT-407, already fixed in 5e9ae80
+7aaed14 2026-09-16 14:31:59 +0530 qa(checker): FAIL at379-scrollable-pane-reachability cycle 2
+4891a77 2026-09-16 14:26:49 +0530 qa(checker): PASS at396-isolation-flag-claims cycle 1
+130c4c1 2026-09-16 14:16:36 +0530 qa(checker): Mode B sweep #3 of 2026-09-16 (FINDINGS: 6)
+fafe7e7 2026-09-16 14:10:19 +0530 fix(AT-392/393/394): a pane the reader already scrolled loses nothing either
+6e8681a 2026-09-16 14:01:10 +0530 qa(checker): PASS at386-flake-probe-subprocess-coverage cycle 1
+9c1ec15 2026-09-16 13:46:04 +0530 qa(checker): FAIL at379-scrollable-pane-reachability cycle 1
+10e56ee 2026-09-16 13:38:44 +0530 qa(checker): PASS at335-flake-probe-harness cycle 1
+eed01b3 2026-09-16 13:15:29 +0530 qa(checker): PASS at357-scope-sandbox-assertions cycle 2
+93a8fe3 2026-09-16 12:54:07 +0530 qa(checker): FAIL at357-scope-sandbox-assertions cycle 1
+5c2b8f2 2026-09-16 12:46:14 +0530 qa(checker): PASS at368-loop-liveness-visible cycle 1
+5cef256 2026-09-16 12:19:21 +0530 qa(checker): PASS at358-visual-order-detector cycle 3
+f3f4f08 2026-09-16 12:06:35 +0530 qa(checker): PASS at366-images-seen-count cycle 1
+5da3117 2026-09-16 11:51:29 +0530 qa(checker): Mode B sweep #2 of 2026-09-16 (FINDINGS: 2)
+4714db0 2026-09-16 11:35:20 +0530 qa(checker): Mode B sweep 7ab22c9..d08da0f (FINDINGS: 5)
+5c3d036 2026-09-16 11:24:02 +0530 qa(ledger): AT-169 open -> fixed on the at169-media-extra-claim PASS
+79bde71 2026-09-11 15:03:07 +0530 qa(checker): FAIL at358-visual-order-detector cycle 1
+41fa5e6 2026-09-11 14:40:21 +0530 feat(AT-358): port the glyph-order detector into the repo
+8edad51 2026-09-11 14:39:17 +0530 qa(checker): PASS at355-refuse-bidi-overrides cycle 1
+62f2032 2026-09-11 14:37:21 +0530 chore(qa): close out at161-goal-neutering-any-segment (cycle 1 PASS)
+b668e49 2026-09-11 14:36:14 +0530 qa(checker): PASS at161-goal-neutering-any-segment cycle 1
+b0a9843 2026-09-11 14:29:12 +0530 qa(contract): ui.md U13 - the credential guard's spelling threat model
+c1c8f63 2026-09-11 14:23:26 +0530 fix(AT-355): refuse bidi overrides instead of folding them away
+f738635 2026-09-11 14:10:55 +0530 chore(qa): close out at137-repodocs-prompts-dir-named (cycle 1 PASS)
+036e820 2026-09-11 13:59:30 +0530 qa(maker): STALL at345-346-fold-coverage after three FAILs
+cdf82b9 2026-09-11 13:58:00 +0530 qa(checker): FAIL at345-346-fold-coverage cycle 3 (AT-355) - unit is STALLED
+74ee74d 2026-09-11 13:57:14 +0530 chore(qa): close out at126-127-gemini3-detection (cycle 1 PASS)
+f81ea1d 2026-09-11 13:56:17 +0530 qa(checker): PASS at126-127-gemini3-detection cycle 1
+7ab22c9 2026-09-11 13:45:42 +0530 qa(checker): Mode B sweep 7a8d966..eb75e61 (FINDINGS: 0 new)
+eb75e61 2026-09-11 13:30:48 +0530 fix(AT-353): controls are ignorable too, and rename the predicate
+bd3390c 2026-09-11 13:08:33 +0530 qa(checker): FAIL at345-346-fold-coverage cycle 2 (AT-353, AT-354)
+44aeee3 2026-09-11 13:03:32 +0530 chore(qa): close out at076-navigation-secret-escape-hatch (cycle 3 PASS)
+045ea39 2026-09-11 13:02:40 +0530 qa(checker): PASS at076-navigation-secret-escape-hatch cycle 3 (final)
+7b5f55c 2026-09-11 12:44:35 +0530 fix(AT-351): strip on invisibility, not on the Cf category
+cd1c7c5 2026-09-11 12:34:17 +0530 qa(checker): FAIL at345-346-fold-coverage cycle 1 (AT-351, AT-352)
+5328d32 2026-09-11 12:30:03 +0530 qa(checker): FAIL at076-navigation-secret-escape-hatch cycle 2 (AT-350)
+80d915f 2026-09-11 12:22:11 +0530 fix(AT-345/AT-346): close the six fold bypasses a checker found
+bb23965 2026-09-11 11:54:14 +0530 qa(checker): FAIL at076-navigation-secret-escape-hatch cycle 1 (AT-341)
+70f3f7f 2026-09-11 11:34:09 +0530 qa(checker): PASS at102-merge-rediscovery-dedup cycle 1
+749a087 2026-09-11 11:28:20 +0530 fix(AT-340): remove smoke-test residue from the real .env
+bd74f5f 2026-09-11 11:26:01 +0530 qa(checker): INDEPENDENT CONCURRENT CHECK - PASS at079-080-credential-guard-gaps cycle 1
+ec455a5 2026-09-11 11:14:32 +0530 qa(checker): PASS at079-080-credential-guard-gaps cycle 1
+508d164 2026-09-11 11:07:54 +0530 fix(AT-338): stop the schema docstring asserting the reverted behaviour
+dd812bf 2026-09-11 11:05:02 +0530 qa(checker): INDEPENDENT CONCURRENT CHECK - PASS at227-first-paint-modal cycle 1
+1ad5496 2026-09-11 10:52:38 +0530 qa(checker): PASS at227-first-paint-modal cycle 1
+b04d7c9 2026-09-11 10:35:08 +0530 chore(qa): renumber AT-335 -> AT-337 (second collision, trivial)
+e6bd4df 2026-09-11 10:33:09 +0530 qa(checker): PASS at283-agents-md-root-clutter cycle 1
+cec6344 2026-09-11 10:10:06 +0530 chore(qa): close out at255-256-280-ledger-reconcile (cycle 1 PASS); dedupe AT-336
+bdf88f8 2026-09-11 10:09:17 +0530 qa(checker): PASS at255-256-280-ledger-reconcile cycle 1
+2055950 2026-09-11 10:06:28 +0530 chore(qa): dispatch checker for at255-256-280 ledger reconciliation
+2e0e9c0 2026-09-11 10:02:27 +0530 chore(qa): close out at319-issue-id-collision-reconcile (cycle 1 PASS)
+005052c 2026-09-11 06:52:06 +0530 qa(checker): PASS at324-mutation-check-leak-and-remedy cycle 1
+8cb0fad 2026-09-11 06:05:22 +0530 qa(checker): PASS at311-mutation-check cycle 3
+488ff5c 2026-09-11 05:09:31 +0530 qa(checker): FAIL at311-mutation-check cycle 2
+d3b451f 2026-09-11 04:44:27 +0530 qa(checker): FAIL at311-mutation-check cycle 1
+80cbff7 2026-09-11 04:15:34 +0530 qa(checker): PASS at306-verification-artifact-integrity cycle 1
+871af66 2026-09-11 04:04:01 +0530 qa(checker): PASS at300-migration-config-hardening cycle 1
+c5b157b 2026-09-11 03:39:37 +0530 qa(checker): PASS at298-migration-host-guard cycle 1
+992a094 2026-09-11 03:15:01 +0530 qa(checker-b): PASS t135-coverage-merge-expand cycle 3 (second independent check)
+cc00e9b 2026-09-11 02:51:23 +0530 fix(urls): restore the scheme a browser hides (T-135 cycle 3, AT-294)
+0fc71fc 2026-09-11 02:41:52 +0530 qa(checker): FAIL t135-coverage-merge-expand cycle 2
+191be93 2026-09-11 02:19:57 +0530 chore(qa): submit T-135 fix cycle 2
+c3da666 2026-09-11 01:55:05 +0530 qa(checker): FAIL t135-coverage-merge-expand cycle 1
+c2541b0 2026-09-11 01:51:21 +0530 qa(checker-b): FAIL t135-coverage-merge-expand cycle 1 (second independent check)
+140e294 2026-09-11 01:18:18 +0530 qa(checker): sweep addendum — AT-286, a concurrent build landed under the sweep
+4db2e2a 2026-09-11 01:16:54 +0530 qa(checker): mode B sweep 714348f..7a8d966 — reconcile T-161 close-out, requeue top-3
+7381983 2026-09-10 12:25:00 +0530 qa(checker): pass T-161 cycle 2
+dfc5a03 2026-09-10 12:03:27 +0530 qa(checker): fail T-161 cycle 1
+7ae89d6 2026-09-10 10:31:23 +0530 qa(checker): pass T-100 UI reclose
+2bdf05d 2026-09-10 07:20:14 +0530 qa: refresh maker queue after T160
+1cf8777 2026-09-09 17:51:07 +0530 check(AT-277): pass UI learning navigation
+44a7e84 2026-09-09 17:05:58 +0530 check(AT-278): pass cycle 2 scorer boundary fix
+2929cbd 2026-09-09 16:37:23 +0530 check(AT-278): fail short-title similarity boundary
+e3c9f71 2026-09-09 16:18:37 +0530 maker: close out at276-stopwords-second-tranche -- checked-PASS cycle 1
+4bf3327 2026-09-09 16:17:24 +0530 checker: at276-stopwords-second-tranche -- PASS, cycle 1
+d2a44e6 2026-09-09 16:02:58 +0530 checker: record b361a16 live UI failure
+dab532b 2026-09-09 15:59:29 +0530 checker: Mode B sweep -- FINDINGS: 2 (AT-218 grill unanswered 7+ sweeps, fixed-backlog persistence); promoted 5 window-native fixed rows to verified
+47899b9 2026-09-09 15:53:09 +0530 checker: at260-expand-provider-error -- PASS, cycle 1
+6a9f18c 2026-09-09 15:31:24 +0530 maker: correct AT-232's ledger status -- open was left after its own PASS
+e660b45 2026-09-09 15:30:05 +0530 checker: at232-similarity-length-asymmetry -- PASS, cycle 1
+2a7559f 2026-09-09 15:17:56 +0530 maker: at232-similarity-length-asymmetry manifest -- ready-for-check
+9034c1f 2026-09-09 15:01:24 +0530 checker: at215-vl1c-measured-placement -- PASS, cycle 1
+a08118d 2026-09-09 14:41:47 +0530 checker: at273-login-precheck-exception -- PASS cycle 1
+f346d8c 2026-09-09 14:20:54 +0530 checker: at226-at274-fix -- PASS, sabotage reproduced independently, gap closed
+8acce04 2026-09-09 14:11:38 +0530 checker: at226-already-authenticated-crawl -- independent concurrent check, FAIL (C2 not evidenced)
+5e70df8 2026-09-09 14:02:23 +0530 maker: close out at226-already-authenticated-crawl -- checked-PASS cycle 1
+649901c 2026-09-09 13:58:15 +0530 checker: Mode B sweep -- FINDINGS: 1 (AT-273, explore.py silent-failure)
+8bed969 2026-09-09 13:53:20 +0530 maker: close out at242-crawl-blocked-status -- checked-PASS cycle 1
+9611ada 2026-09-09 13:31:03 +0530 checker: at231-adjudicate-duplicate-merge cycle 2 -- PASS, causal claim re-derived clean
+35b3dcb 2026-09-09 13:10:56 +0530 checker: resolve AT-269 id collision -- renumber to AT-271
+a3099ac 2026-09-09 13:08:12 +0530 checker: FAIL on at231-adjudicate-duplicate-merge cycle 1 -- manifest's own real-world-impact evidence misattributes the mechanism
+25d6558 2026-09-09 13:02:16 +0530 checker: PASS verdict on at231-adjudicate-duplicate-merge (cycle 1)
+2f11c94 2026-09-09 12:31:23 +0530 checker: AT-264 cycle 1 PASS -- sabotage-confirmed, live-browser closes the manifest's own gap
+bed21aa 2026-09-09 12:06:01 +0530 chore(AT-225): resolve the duplicate AT-214 ledger id
+d14ce4c 2026-09-09 12:03:04 +0530 checker: at230-gemini-schema cycle 2 verdict -- PASS
+56c7872 2026-09-09 11:49:11 +0530 checker: restore the peer's reconciliation I overwrote; correct AT-230 to fixed
+60d0dca 2026-09-09 11:47:42 +0530 checker: sweep reconciles at230-gemini-schema -- PASS was wrong, peer's FAIL confirmed
+93c7f7e 2026-09-09 11:41:31 +0530 checker: at230-gemini-schema FAIL cycle 1 -- the bypassed change, judged
+456e32d 2026-09-09 11:22:28 +0530 checker: PASS verdict on at230-gemini-schema (cycle 1)
+090ff8e 2026-09-09 11:18:21 +0530 checker: restore the verdict I overwrote; append mine as a concurrent check
+f6b0825 2026-09-09 11:17:07 +0530 checker: PASS verdict on at241-cold-start (cycle 1) -- the product generated a case
+609e7bf 2026-09-09 11:15:30 +0530 checker: at241-cold-start PASS cycle 1 -- Mode D with a real browser, sabotage-proven wire
+6d84e41 2026-09-09 10:34:49 +0530 checker: re-measure -- maker closed AT-239/240/241; correct my own miscount
+14ee136 2026-09-09 10:30:21 +0530 checker: sweep -- the vacuity class escaped the pair entirely (AT-255/256), T-100 reopened
+bf20739 2026-09-09 10:17:55 +0530 checker: reality audit -- really done vs looks-done vs remaining
+99ea27d 2026-09-09 09:37:41 +0530 feat(track-a): a model watched a real recording -- the first real number
+3a1a715 2026-09-09 09:34:01 +0530 checker: business-truth second tranche -- the generator has never produced a case
+186977a 2026-09-09 09:29:54 +0530 checker: business-truth campaign -- FAIL, first Mode D evidence in this repo
+2c00dea 2026-09-09 09:25:12 +0530 checker: PASS verdict on t136-scorer (cycle 2)
+f30dd1d 2026-09-09 08:33:31 +0530 live: first real crawl of a real product -- 3 findings, and a gate I filed in error
+a927a0f 2026-09-09 08:31:06 +0530 checker: FAIL verdict on t136-scorer (cycle 1)
+8d52f6b 2026-09-09 07:48:09 +0530 checker: sweep 2026-09-09T02:15Z -- the rate did not move, and the && chain broke by scope
+413db00 2026-09-09 07:45:09 +0530 checker: PASS verdict on at206-guards-that-guard (cycle 2)
+eabc638 2026-09-09 02:28:49 +0530 fix(guards): AT-206 cycle 2 -- AT-210/211/212/213, the guard's own slack
+fb5f734 2026-09-09 02:24:15 +0530 checker: FAIL verdict on at206-guards-that-guard (cycle 1)
+9351387 2026-09-09 02:02:57 +0530 fix(guards): AT-206 + AT-192 + AT-193 + AT-170 -- make the guards guard
+c4a28a5 2026-09-09 01:50:39 +0530 checker: PASS verdict on t133-ensemble-and-issues (cycle 2)
+ac2a4b7 2026-09-09 01:39:27 +0530 fix(track-a): T-133 cycle 2 -- close the nine issues the checker filed
+196a19a 2026-09-09 01:33:19 +0530 checker: sweep 2026-09-09T01:30 IST -- the countermeasure's guard is itself vacuous
+847bb28 2026-09-09 01:26:42 +0530 checker: FAIL verdict on t133-ensemble-and-issues (cycle 1) + VL2-VL6 authored
+d2af747 2026-09-09 00:48:02 +0530 checker: PASS verdict on at176-at178-render-not-scan (cycle 1)
+7a7c77c 2026-09-09 00:20:15 +0530 checker: PASS verdict on at185-at187-write-not-change (cycle 1)
+1b9ac2f 2026-09-09 00:03:54 +0530 checker: PASS verdict on at177-cli-surface (cycle 2)
+f341fb7 2026-09-08 23:30:06 +0530 checker: FAIL verdict on at177-cli-surface (cycle 1)
+631a839 2026-09-08 23:16:30 +0530 checker: PASS verdict on at172-at173-dead-command-shape (cycle 1)
+125cbaf 2026-09-08 23:10:13 +0530 checker: sweep 2026-09-08T19:05Z -- fixed backlog cleared by execution, 2 findings
+b825496 2026-09-08 18:38:52 +0530 checker: PASS verdict on t132-media-prep (cycle 3)
+829ca81 2026-09-08 18:07:40 +0530 checker: FAIL verdict on t132-media-prep (cycle 2)
+cb10050 2026-09-08 17:47:09 +0530 checker: FAIL verdict on t132-media-prep (cycle 1) + author video-learning.md VL1
+a9b4332 2026-09-08 17:08:44 +0530 checker: PASS verdict on at158-at160-program-position (cycle 1)
+8eaa99f 2026-09-08 16:53:47 +0530 checker: PASS verdict on at154-at157-fail-closed (cycle 1)
+90c15df 2026-09-08 16:38:40 +0530 checker: PASS verdict on at141-at115-done-check-can-fail (cycle 1)
+0017d25 2026-09-08 16:19:48 +0530 checker: PASS verdict on at151-at152-both-arms (cycle 1)
+22a30b8 2026-09-08 15:54:39 +0530 checker: PASS verdict on at149-at150-path-containment (cycle 1)
+73aebca 2026-09-08 15:42:02 +0530 checker: PASS verdict on at147-at148-grant-boundary (cycle 1)
+5253352 2026-09-08 15:25:53 +0530 checker: PASS verdict on at140-crawl-cli-coverage (cycle 2)
+1e08fd6 2026-09-08 15:04:16 +0530 checker: FAIL verdict on at140-crawl-cli-coverage (cycle 1)
+15d646c 2026-09-08 14:41:28 +0530 checker: sweep 2026-09-08T14:40Z -- fixed backlog cleared by execution, 3 findings
+45e9a21 2026-09-08 14:28:17 +0530 checker: PASS verdict on at125-at132-declared-but-unapplied (cycle 2)
+38bf02b 2026-09-08 13:45:25 +0530 checker: FAIL verdict on at125-at132-declared-but-unapplied (cycle 1)
+b83fd92 2026-09-08 13:03:48 +0530 checker: PASS verdict on t131-ingest-persists (cycle 1) + ingest.md I6-I10
+9f1a568 2026-09-08 12:33:34 +0530 checker: PASS verdict on at121-at122-crawl-count-surfaces (cycle 1)
+e0da324 2026-09-08 12:16:41 +0530 checker: PASS verdict on at120-evidence-not-product-issues (cycle 1)
+569a826 2026-09-08 11:54:58 +0530 checker: PASS verdict on at108-at114-swallowed-causes (cycle 1)
+ae0d47c 2026-09-08 11:33:24 +0530 checker: PASS verdict on at116-criticality-vocabulary (cycle 1)
+7df287c 2026-09-08 11:09:54 +0530 checker: PASS verdict on at113-node-recovery-honesty (cycle 1)
+22b27d0 2026-09-08 10:19:51 +0530 checker: PASS verdict on t124-consent-gates (cycle 2)
+392971b 2026-09-08 08:19:39 +0530 checker: Mode B sweep -- verify the regrown `fixed` backlog by re-running, 3 new findings
+ca9931b 2026-09-08 08:02:37 +0530 checker: AT-110/111/112 + AT-100 note, fold the T-124 inbox entry into consent.md
+a990c55 2026-09-08 07:12:24 +0530 checker: PASS verdict on at103-conflict-scope (cycle 1)
+2433d3d 2026-09-08 06:52:15 +0530 checker: ledger -- AT-097/AT-029/AT-106/AT-107 open -> fixed (cycle-2 PASS)
+73d6b7e 2026-09-08 01:07:36 +0530 checker: FAIL verdict on at097-session-start-hook-regression (cycle 1) + AT-106/AT-107
+9b75a88 2026-09-08 00:44:23 +0530 checker: PASS verdict on track-b5-crawl-merge-report (cycle 1) + X13-X16, coverage V1/V5
+465259f 2026-09-08 00:21:57 +0530 checker: Mode B sweep -- clear the `fixed` backlog, refresh stale governance artifacts
+c881767 2026-09-07 23:37:41 +0530 fix(explorer): AT-093 (high, gated T-145) + AT-094/AT-095 from the B3 check
+53a828c 2026-09-07 23:29:01 +0530 checker: PASS verdict on track-b3-crawl-stage (cycle 1) + author qa/contracts/explore.md
+4714859 2026-09-07 22:11:31 +0530 checker: PASS verdict on track-b4-explorer-safety (cycle 2) -- AT-092 verified fixed, AT-093 filed
+d7e176d 2026-09-07 22:05:41 +0530 chore: AT-092 status open -> fixed (pending checker verification)
+cf684b9 2026-09-07 22:05:24 +0530 fix(stages): AT-092 -- never-click can no longer be disarmed via SafetyPolicy
+6020fa2 2026-09-07 18:30:22 +0530 checker: PASS verdict on track-b1-observation-primitives (cycle 1)
+5dc4b00 2026-09-07 18:03:07 +0530 checker: PASS verdict on track-a1-video-schema (cycle 1)
+e362214 2026-09-07 17:22:11 +0530 checker: overdue routine sweep -- AT-052 GRILL resolved, AT-089/AT-090 filed
+db072a3 2026-09-07 16:05:54 +0530 fix(ui): stop echoing a credential pasted into Base URL (AT-088)
+b49904e 2026-09-07 15:56:00 +0530 checker: PASS verdict on ui-credential-guard-project-routes (cycle 3)
+1acf35a 2026-09-07 14:47:56 +0530 checker: FAIL verdict on ui-credential-guard-project-routes (cycle 2)
+a3a9b4a 2026-09-07 14:21:45 +0530 checker: FAIL verdict on ui-credential-guard-project-routes (cycle 1)
+3312c78 2026-09-07 14:00:54 +0530 checker: PASS verdict on ui-credential-safety-all-fields (cycle 1)
+1bd5091 2026-09-07 13:45:10 +0530 checker: PASS verdict on ui-credential-safety (cycle 1)
+f8fcba9 2026-09-07 13:26:55 +0530 fix(ui): never echo a rejected credential key (AT-068); close out Unit 0.1
+877f015 2026-09-07 13:24:45 +0530 checker: PASS verdict on ui-secrets-declaration (cycle 1)
+3b91d1e 2026-09-07 12:05:57 +0530 gate: answer AT-052 -- both capabilities in scope, plus a prerequisite
+c431f1c 2026-09-07 10:42:58 +0530 test(store): prove the case-id cache is cleared on delete (AT-066)
+f930306 2026-09-07 10:38:47 +0530 checker: PASS verdict on ui-case-management (cycle 1)
+d96c4ee 2026-09-07 10:17:12 +0530 maker(scribed by checker): AT-059 -- invalidate a stale auto-generated default rubric
+258f2ac 2026-09-07 08:04:56 +0530 checker: PASS verdict on ui-project-edit-and-domain-validation (cycle 1) -- AT-058 fixed
+1652de5 2026-09-07 07:52:35 +0530 checker: PASS verdict on ui-add-case (cycle 1) + the unit's source changes
+2cd6db8 2026-09-07 07:31:42 +0530 checker: PASS verdict on ui-back-nav-and-live-clarity (cycle 1) + the unit's source changes
+927a097 2026-09-06 19:48:36 +0530 checker sweep -- AT-055 verified (at053/at054 source diffs confirmed genuinely committed), AT-056 filed+fixed (backfill execute.md/docker.md amendment logs), AT-052 GRILL gate reconfirmed standing
+616d8de 2026-09-06 19:44:15 +0530 ledger: file AT-055 -- checker PASS commits missed the maker's source changes
+26b1aab 2026-09-06 12:25:32 +0530 checker: PASS verdict on at053-navigate-settle (cycle 1) -- AT-053 fixed
+f403e55 2026-09-06 12:14:13 +0530 checker sweep -- file AT-052 (goal-drift: BFS whole-platform crawl + video-corpus feedback found unfolded in goal.md), confirm D-012/D-013 hook rewiring out of maker-checker scope
+5c0837f 2026-09-04 20:59:20 +0530 checker sweep -- confirm F-031 close-out clean, file AT-051 (stale notification), promote AT-046/049/050 fixed->verified
+a09fbac 2026-09-04 20:48:47 +0530 checker: PASS verdict on at049-multimodal-grading (cycle 1) — AT-049 closed
+fecef08 2026-09-04 20:43:17 +0530 fix: judge was never shown a screenshot -- text-only grading, every verdict (AT-049)
+c60b621 2026-09-04 16:27:05 +0530 checker sweep -- refresh QUEUE.md, fix contract-trace gap (AT-048)
+e08c08a 2026-09-04 16:22:56 +0530 chore: close at044-entry-case-profile-isolation (PASS), file AT-045, fix AT-047, ledger F-030
+5331261 2026-09-04 16:21:33 +0530 checker: PASS verdict on at044-entry-case-profile-isolation (cycle 1)
+939af44 2026-09-04 16:06:00 +0530 fix: Run button reproduced the INCONCLUSIVE-report bug (AT-044), evidence-timing gap (AT-045)
+278060a 2026-09-04 13:13:31 +0530 checker sweep -- add missing amendment logs (AT-043), verify ui-report-informativeness-fix close-out
+ff74cbb 2026-09-04 10:32:06 +0530 chore: checker sweep -- refresh QUEUE.md, close 2 feedback-inbox fold-in gaps (AT-041, AT-042)
+a5acbbd 2026-09-04 10:20:51 +0530 chore: close ui-report-enrichment (PASS), fix AT-040, ledger F-025
+3af271e 2026-09-04 10:19:19 +0530 checker: PASS verdict on ui-report-enrichment (cycle 1) -- UR1-UR4 closed
+c592f3a 2026-09-04 08:00:24 +0530 fix(AT-039): secrets-scanner URL-key check uses word boundaries, not substring
+a31799c 2026-09-04 07:57:58 +0530 checker: PASS at038-secrets-scan-key-scoped (cycle 1) -- AT-038 closed, files AT-039
+58653c7 2026-09-04 07:54:50 +0530 AT-037 close-out + AT-038 fix: scope secrets-scanner URL exemption by key name
+081f2c2 2026-09-04 07:52:06 +0530 checker: PASS verdict on at037-secrets-scan-false-positive (cycle 1) -- files AT-038 for residual value-vs-key-provenance gap
+9f15a8c 2026-09-04 07:47:15 +0530 Add manual one-time login; drop unused Mongo credential requirement (checker-PASS)
+75f5846 2026-09-04 05:28:28 +0530 chore: checker sweep -- AT-036 promoted to verified, QUEUE.md refreshed
+ad1189b 2026-09-04 05:04:12 +0530 fix(AT-036): retry once on the known transient Xvfb screenshot protocol error
+2f87988 2026-09-04 04:55:07 +0530 Product-grade UI redesign + Docker restart-safety fixes (checker-PASS)
+cc1c5bc 2026-09-03 23:29:56 +0530 checker: PASS verdict on issue-batch-at012-023-024 (cycle 1)
+95f3ebb 2026-09-03 16:34:41 +0530 chore: reconcile stale AT-034 ledger row, refresh dashboard
+cf08ca3 2026-09-03 16:32:46 +0530 chore: checker sweep -- refresh QUEUE.md, correct 3 stale issue-ledger rows
+878fd0f 2026-09-03 15:53:23 +0530 checker: PASS verdict on t100-ui (cycle 2) — U5 fixed, T-100 closed
+9e40695 2026-09-03 15:47:23 +0530 checker: FAIL verdict on t100-ui (cycle 1)
+e7620ab 2026-09-03 15:06:45 +0530 checker: PASS verdict on t060-ingest-video (cycle 1)
+620c4ba 2026-09-03 14:59:44 +0530 checker: PASS verdict on t050-pathlynks-first-run (cycle 2)
+d90a63c 2026-09-03 13:28:39 +0530 feat(T-050): first real Pathlynks run — headed browser, 3 cases, grading deferred
+1790ba1 2026-09-03 13:26:30 +0530 checker: FAIL verdict on t050-pathlynks-first-run (cycle 1)
+f9e3456 2026-09-03 13:21:19 +0530 checker: stall-recovery PASS on at015-at028-hook-adapter-fix
+8d08370 2026-09-03 13:13:39 +0530 checker: FAIL verdict on t015-t028-hook-adapter-fix (cycle 3, LAST)
+3bdd598 2026-09-03 12:55:46 +0530 checker: FAIL verdict on at015-at028-hook-adapter-fix (cycle 2)
+efd8357 2026-09-03 12:50:19 +0530 checker: FAIL verdict on at015-at028-hook-adapter-fix (cycle 1)
+f9a6e66 2026-09-03 12:35:39 +0530 chore(AT-011): author qa/loop.md — the maker's explicit loop spec
+77cbc3d 2026-09-03 12:34:01 +0530 checker: PASS verdict on at011-loop-md (cycle 2)
+db4876f 2026-09-03 12:30:28 +0530 checker: FAIL verdict on at011-loop-md (cycle 1) — Verify line's ruff command not verbatim vs adapter
+29e55d1 2026-09-03 12:01:46 +0530 checker: PASS verdict on t080-agent-loop (cycle 1)
+c7c315e 2026-09-03 10:49:36 +0530 checker: Mode B sweep — AT-021 confirmed fixed, ledger hygiene, queue refresh
+799c6aa 2026-09-03 10:31:30 +0530 checker: PASS verdict on t030-pathlynks-onboarding (cycle 3, last)
+ba79617 2026-09-03 10:25:42 +0530 checker: FAIL verdicts on t030-pathlynks-onboarding (cycles 1-2, redacted)
+837e6cb 2026-09-03 09:10:47 +0530 checker: PASS verdict on t020-filestore (cycle 1)
+6d697ab 2026-09-03 08:55:20 +0530 checker: PASS verdict on t005-living-ledger (cycle 2)
+084074a 2026-09-03 08:49:24 +0530 checker: FAIL verdict on t005-living-ledger (cycle 1)
+2aadf21 2026-09-03 08:38:20 +0530 checker: first Mode B sweep - FINDINGS: 10 (AT-009..AT-018), queue + stamp
+8fe0bbf 2026-09-03 08:29:04 +0530 checker: PASS verdict on t011-secret-store (cycle 3)
+06c614d 2026-09-03 07:45:44 +0530 checker: FAIL verdict on t011-secret-store (cycle 2)
+d6b9647 2026-09-03 07:37:05 +0530 checker: FAIL verdict on t011-secret-store (cycle 1)
+458304a 2026-09-03 07:30:39 +0530 maker-checker init: contracts, adapter, enforcement wiring, goal

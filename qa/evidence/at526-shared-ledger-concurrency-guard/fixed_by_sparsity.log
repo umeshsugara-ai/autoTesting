@@ -1,0 +1,4 @@
+total rows: 523  fixed rows: 150
+fixed rows with NO fixed_by field: 130
+['AT-076', 'AT-079', 'AT-080', 'AT-102', 'AT-126', 'AT-127', 'AT-137', 'AT-161', 'AT-169', 'AT-207', 'AT-208', 'AT-269', 'AT-216', 'AT-219', 'AT-220', 'AT-221', 'AT-222', 'AT-223', 'AT-225', 'AT-228']
+fixed rows whose fixed_by names a verdict file NOT present on disk: 0
