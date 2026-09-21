@@ -39,21 +39,39 @@ def provider_settings_view() -> str:
         return (theme.pill("● Set", "positive") if present.get(key)
                 else theme.pill("○ Not set", "neutral"))
 
-    rows = "".join(
-        f"<tr><td><code>{escape(key)}</code></td>"
-        f"<td>{_status_cell(key)}</td>"
-        f"<form method='post' action='/settings/providers'>"
-        f"<input type='hidden' name='key' value='{escape(key)}'>"
-        "<td><input type='password' name='value' placeholder='new value'></td>"
-        "<td><button class='btn btn-sm' type='submit'>Save</button></td></form></tr>"
-        for key in _PROVIDER_KEYS
-    )
-    table = f"<table><tr><th>Key</th><th>Status</th><th>New value</th><th></th></tr>{rows}</table>"
+    # 2026-09-21 UX amendment (Umesh, Approver): same as the credentials
+    # editor — the stored value is shown IN the field (prefilled, editable);
+    # *_KEY rows stay masked with a show/hide toggle. Owner-only display.
+    _EYE = ("<button type='button' class='btn btn-sm' tabindex='-1' "
+            "onclick=\"var i=this.parentNode.querySelector('input');"
+            "i.type=i.type==='password'?'text':'password';"
+            "this.textContent=i.type==='password'?'show':'hide';\">show</button>")
+
+    def _row(key: str) -> str:
+        is_secret = key.endswith("_KEY")
+        input_type = "password" if is_secret else "text"
+        return (
+            f"<tr><td><code>{escape(key)}</code></td>"
+            f"<td>{_status_cell(key)}</td>"
+            f"<form method='post' action='/settings/providers'>"
+            f"<input type='hidden' name='key' value='{escape(key)}'>"
+            f"<td style='display:flex;gap:6px'>"
+            f"<input type='{input_type}' name='value' "
+            f"value='{escape(present.get(key, ''))}' "
+            f"placeholder='new value' style='flex:1'>{_EYE if is_secret else ''}"
+            f"</td>"
+            f"<td><button class='btn btn-sm' type='submit'>Save</button></td></form></tr>"
+        )
+
+    rows = "".join(_row(key) for key in _PROVIDER_KEYS)
+    table = (f"<table><tr><th>Key</th><th>Status</th>"
+             f"<th>Value (edit and Save)</th><th></th></tr>{rows}</table>")
     body = (
         theme.breadcrumb(("Projects", "/"), ("Settings", None))
         + "<h1>Provider settings</h1>"
         "<p class='subtitle'>Global AI/API keys every project's grading and agent steps fall "
-        "back through. Values are never shown once saved — only whether one is set.</p>"
+        "back through. Saved values are shown (masked with show/hide) so you can verify and "
+        "edit them; they never leave this page.</p>"
         f"{theme.card(table)}"
     )
     return theme.page("Settings", body)

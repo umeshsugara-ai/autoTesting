@@ -35,19 +35,23 @@ def test_settings_page_shows_only_the_known_provider_keys(
     assert "Not set" in response.text
 
 
-def test_settings_page_never_renders_a_real_value(
+def test_settings_page_shows_the_stored_value_masked(
     client: TestClient, scratch_root: Path
 ) -> None:
+    """2026-09-21 UX amendment (Umesh, Approver): stored values render INTO the
+    field so the operator can verify/edit them; *_KEY rows are masked inputs
+    with a show/hide toggle. Owner-only display — never a prompt/log/screenshot."""
     set_env_value(scratch_root / ".env", "GEMINI_API_KEY", "s3cr3t-real-key")
 
     response = client.get("/settings/providers")
 
     assert response.status_code == 200
-    assert "s3cr3t-real-key" not in response.text
+    assert "type='password' name='value' value='s3cr3t-real-key'" in response.text
+    assert "i.type=i.type==='password'?'text':'password'" in response.text
     assert "Set" in response.text
 
 
-def test_settings_submit_writes_via_env_editor_and_never_echoes(
+def test_settings_submit_writes_via_env_editor(
     client: TestClient, scratch_root: Path
 ) -> None:
     response = client.post(
@@ -57,7 +61,6 @@ def test_settings_submit_writes_via_env_editor_and_never_echoes(
     assert response.status_code in (200, 303)
     written = (scratch_root / ".env").read_text(encoding="utf-8")
     assert parse_env(written)["OPENAI_API_KEY"] == "new-real-key"  # round-trip, not spelling
-    assert "new-real-key" not in response.text
 
 
 def test_settings_refuses_an_unknown_key(client: TestClient, scratch_root: Path) -> None:

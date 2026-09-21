@@ -140,6 +140,46 @@ def _future_iso(value: str, offset_minutes: int) -> str:
     return expiry.isoformat()
 
 
+def _env_table(project: object, present: dict[str, str]) -> str:
+    """The editable credentials table. 2026-09-21 UX amendment (Umesh,
+    Approver): the write-only masked editor read as "everything wipes on
+    Save". The stored value is now shown IN the field (prefilled) so the
+    operator sees what is saved and can edit it; password-shaped keys stay
+    masked with a show/hide toggle. Owner-only display in the local UI — the
+    SecretStore boundary (values never reach a prompt, log, or screenshot)
+    is unchanged."""
+    if not project.secrets:  # type: ignore[attr-defined]
+        return theme.empty_state("🔑", "This project declares no credentials.")
+    _EYE = ("<button type='button' class='btn btn-sm' tabindex='-1' "
+            "onclick=\"var i=this.parentNode.querySelector('input');"
+            "i.type=i.type==='password'?'text':'password';"
+            "this.textContent=i.type==='password'?'show':'hide';\">show</button>")
+
+    def _status_cell(key: str) -> str:
+        return (theme.pill("● Set", "positive") if present.get(key)
+                else theme.pill("○ Not set", "neutral"))
+
+    def _row(ref: object) -> str:
+        key = ref.key  # type: ignore[attr-defined]
+        is_secret = "_PASSWORD" in key or "_KEY" in key
+        return (
+            f"<tr><td>{escape(key)}</td>"
+            f"<td>{_status_cell(key)}</td>"
+            f"<form method='post' action='env'>"
+            f"<input type='hidden' name='key' value='{escape(key)}'>"
+            f"<td style='display:flex;gap:6px'>"
+            f"<input type='{'password' if is_secret else 'text'}' name='value' "
+            f"value='{escape(present.get(key, ''))}' "
+            f"placeholder='new value' style='flex:1'>{_EYE if is_secret else ''}"
+            f"</td>"
+            f"<td><button class='btn btn-sm' type='submit'>Save</button></td></form></tr>"
+        )
+
+    rows = "".join(_row(ref) for ref in project.secrets)  # type: ignore[attr-defined]
+    header = "<tr><th>Key</th><th>Status</th><th>Value (edit and Save)</th><th></th></tr>"
+    return f"<table>{header}{rows}</table>"
+
+
 @router.get("/projects/{slug}/env", response_class=HTMLResponse)
 def env_editor_view(slug: str, saved: str = "", existing: str = "") -> str:
     store, project = _load_project_or_404(slug)
@@ -149,30 +189,15 @@ def env_editor_view(slug: str, saved: str = "", existing: str = "") -> str:
     )
     name = escape(project.name)
     safe_slug = escape(slug)
-    if not project.secrets:
-        table = theme.empty_state("🔑", "This project declares no credentials.")
-    else:
-        def _status_cell(key: str) -> str:
-            return (theme.pill("● Set", "positive") if present.get(key)
-                    else theme.pill("○ Not set", "neutral"))
-
-        rows = "".join(
-            f"<tr><td>{escape(ref.key)}</td>"
-            f"<td>{_status_cell(ref.key)}</td>"
-            f"<form method='post' action='env'>"
-            f"<input type='hidden' name='key' value='{escape(ref.key)}'>"
-            "<td><input type='password' name='value' placeholder='new value'></td>"
-            "<td><button class='btn btn-sm' type='submit'>Save</button></td></form></tr>"
-            for ref in project.secrets
-        )
-        header = "<tr><th>Key</th><th>Status</th><th>New value</th><th></th></tr>"
-        table = f"<table>{header}{rows}</table>"
+    table = _env_table(project, present)
     body = (
         theme.breadcrumb(
             ("Projects", "/"), (name, f"/projects/{safe_slug}"), ("Credentials", None),
         )
         + "<h1>Credentials</h1>"
-        "<p class='subtitle'>Values are never shown once saved — only whether one is set.</p>"
+        "<p class='subtitle'>Saved values are shown here so you can verify and edit them. "
+        "They stay masked as ●●● until you press show. They never leave this page — "
+        "no prompt, log, or screenshot ever carries them.</p>"
         f"{theme.card(table)}"
         f"{_crawl_approval_form(slug, project.base_url)}"
         f"{_approvals_card(store.list_approvals(), slug, project.base_url, saved, bool(existing))}"
