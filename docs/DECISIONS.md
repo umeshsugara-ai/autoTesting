@@ -490,3 +490,41 @@ lands, no typed run is authorized.
 qa/gates/post-login-forms.md (already updated with the Answered line); no code files.
 **Links:** qa/gates/post-login-forms.md; qa/gates/live-crawl-target.md; D-016; D-018;
 AT-016 (X10's origin); qa/contracts/explore.md
+
+## D-030 | 2026-09-21 | type: fix | status: ACTIVE
+**What:** Landplane recovery of 88 uncommitted working-tree changes left by prior sessions'
+closed ticks and checker runs. Committed: (1) 75 `qa/evidence/` files — checker evidence from
+nine PASSed units (at500, at521, browser-at435/446/452/455/457/458, 458-c2/c3, 459, 459-c2/c3),
+the same committed asset class as the 335 evidence files already tracked; (2) the two generated
+`.goal/` tick files (dashboard.html, goal.json); (3) `projects/pathlynks/approvals.jsonl` — the
+D-018 gate-2 per-run consent records; (4) five small demo/validation project dirs referenced by
+tests and contracts (`projects/{xssprobe,saucedemo,checkerdemo,t161-final-smoke,t161-pushed-live}`),
+matching the existing per-project metadata precedent (erp/pathlynks/regression-demo/vidysea-erp).
+Ignored via .gitignore (Changes-authorized below): `.codex/` (another agent tool's local hook
+config — T-161's own checked-PASS manifest classifies it a runtime artifact); `projects/*/sources/`
+(transcripts, observations, analysis of ERP tester videos — the standing rule bars transcripts and
+product internals from the public repo; same class as recording.*/chunks/frames);
+`projects/*/sources.jsonl` (the erp registry labels carry the recorded trainer's name);
+`projects/*/screenmap.json` and `projects/*/issues.jsonl` (portal-explorer outputs on a real
+product — internal screen structure and found issues; the D-015 rationale verbatim).
+**Why:** The session-start hook printed `[RECOVERY] 88 uncommitted change(s)` and the Lab
+Protocol requires the tree landed before new build work. Classification was by class evidence,
+not case-by-case taste: evidence dirs are a committed class (335 tracked files; these 13 dirs are
+checker runs of PASSed units); .goal tick files are tracked and were modified by the last tick;
+approval records are the audit trail for live runs; demo project dirs are referenced by
+`tests/test_migrate_url_patterns.py` and `qa/contracts/explore.md`. The ignored set was measured
+first: erp transcripts quote the trainer's spoken words on ERP internals ("CIPSA certificate we
+should mention CITS certificate"); erp sources.jsonl labels name the person recorded;
+screenmap/issues map the real ERP. Committing any of these would put student-surface product data
+in a PUBLIC repo (github.com/umeshsugara-ai/autoTesting).
+**Result:** All five new ignore patterns verified with `git check-ignore -v`; the staged tree
+contains only the committed classes above. Verification gate on the staged tree:
+`uv run pytest` -> PASS (per-module sweep: 100+ files, all green; full-suite run times out under the 10-min shell cap -- per-module evidence in .work/parallel-watch.md); `uv run ruff check src tests scripts` -> PASS (all checks passed);
+`uv run autotester doctor` -> PASS (doctor: clean). DECISIONS staged diff verified additions-only.
+No code changed; no contract or ARCHITECTURE prose edited; no enforcement path touched.
+**Changes-authorized:** .gitignore (the five pattern additions above only); the recovery commit
+itself (qa/evidence/*, .goal/*, projects/* as classified, projects/pathlynks/approvals.jsonl).
+No Approved-by required (no enforcement path in scope).
+**Links:** D-015 (crawl-artifact rationale for real products); D-018 (per-run approval records);
+qa/manifests/t161-unified-project-intake.md (runtime-artifact classification of .codex/);
+AT-500; AT-521

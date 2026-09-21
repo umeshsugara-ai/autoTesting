@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-09-09T05:38:58.676232Z",
+  "project": "checkerdemo",
+  "version": 1,
+  "screens": [],
+  "flows": [
+    {
+      "id": "flow_signin",
+      "name": "Sign in",
+      "entry_screen": "scr_signin",
+      "preconditions": [],
+      "steps": [
+        {
+          "order": 1,
+          "action": "navigate",
+          "target": "https://www.saucedemo.com/",
+          "expected": {
+            "visible_text": [],
+            "absent_text": [],
+            "dom_asserts": [],
+            "network": []
+          }
+        },
+        {
+          "order": 2,
+          "action": "fill",
+          "target": "Username field",
+          "value": "{{SECRET:DEMO_USER}}",
+          "expected": {
+            "visible_text": [],
+            "absent_text": [],
+            "dom_asserts": [],
+            "network": []
+          }
+        },
+        {
+          "order": 3,
+          "action": "fill",
+          "target": "Password field",
+          "value": "{{SECRET:DEMO_PASS}}",
+          "expected": {
+            "visible_text": [],
+            "absent_text": [],
+            "dom_asserts": [],
+            "network": []
+          }
+        },
+        {
+          "order": 4,
+          "action": "click",
+          "target": "Login button",
+          "expected": {
+            "visible_text": [],
+            "absent_text": [],
+            "dom_asserts": [],
+            "network": []
+          }
+        }
+      ],
+      "requires_auth": false
+    }
+  ],
+  "source_ids": [],
+  "conflicts": [],
+  "review": {
+    "status": "needs_edit",
+    "by": "checker-mode-d",
+    "at": "2026-09-09T05:44:48Z",
+    "note": "the sign-in flow is missing the error banner assertion"
+  }
+}

@@ -1,0 +1,40 @@
+{
+ "unit": "at463-bound-on-last-screen-names-itself",
+ "cycle_checked": 1,
+ "date": "2026-09-17",
+ "checker": "/checker Mode D (fresh subagent, own browser: Playwright MCP)",
+ "targets": {
+  "ui": "http://127.0.0.1:8792 (uvicorn from scratch copy checker-at463, AUTOTESTER_ROOT=<scratch>/_uiroot)",
+  "fixture": "http://127.0.0.1:8791 (checker-built synthetic one-screen page: 3 non-navigating buttons, no links)",
+  "note": "LOCAL 127.0.0.1 only; synthetic project 'boundlast' seeded via ProjectStore with a CRAWL approval; no .env values, no real data"
+ },
+ "runs": {
+  "bound": {
+   "form": {"max_screens": 30, "max_actions": 2, "wall_clock_s": 120, "max_depth": 6},
+   "driven_by": "filled the crawls-page bounds form and clicked Explore now",
+   "crawl_id": "crawl_01M2PY3EEBAY4AKQVJ72PK9EAQ",
+   "crawl_page": "STOPPED_BOUND · stopped: MAX_ACTIONS; Run detail STATUS stopped_bound, STOPPED BECAUSE max_actions; ACTIONS 2; SCREENS REACHED / LEFT QUEUED 1 / 0; coverage 66% (2 of 3), not exercised bound:max_actions: 1",
+   "crawl_page_contains_completed": false,
+   "crawls_table_row": ["STOPPED_BOUND {badge badge-blocked}", "max_actions"],
+   "xlsx": {"http": 200, "Summary.Status": "stopped_bound", "Summary.Stopped because": "max_actions", "contains_completed": false, "file": "report-max-actions-2.xlsx"}
+  },
+  "control": {
+   "form": {"max_screens": 30, "max_actions": 10, "wall_clock_s": 120, "max_depth": 6},
+   "crawl_id": "crawl_01M2PY4J969A07ZX5F2ZV6FFA5",
+   "crawl_page": "COMPLETED · stopped: FRONTIER EMPTY; ACTIONS 3; coverage 100% (3 of 3)",
+   "crawls_table_row": ["COMPLETED {badge badge-pass}", "frontier empty"]
+  }
+ },
+ "assertions": {
+  "bound crawl page names max_actions and does not say completed": true,
+  "bound crawls-table row is STOPPED_BOUND with non-success badge and names max_actions": true,
+  "bound report.xlsx Summary names max_actions and does not say completed": true,
+  "control crawl in bounds still reads COMPLETED / frontier empty (guard can say yes)": true
+ },
+ "console_errors": {"crawls_page": 0, "crawl_page": 0, "crawls_table": 0},
+ "product_issue_note": "Both crawls filed one CONSOLE issue for the fixture's missing /favicon.ico (404 from http.server) -- a fixture artefact, not an AutoTester console error.",
+ "not_driven": "wall_clock_s firing mid-node on the last screen through the UI (timing cannot be pinned through the form); covered by the unit test with an injected clock, reproduced in the copy.",
+ "screenshots": ["01-crawl-page-max-actions-2.png", "02-crawls-table.png"],
+ "servers_stopped": {"uvicorn_pid_40536": true, "http_server_pid_39268": true, "ports_listening_after": 0},
+ "all_pass": true
+}
