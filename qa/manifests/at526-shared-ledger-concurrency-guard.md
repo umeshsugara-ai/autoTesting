@@ -190,7 +190,7 @@ Changed paths at close: `qa/manifests/at526-shared-ledger-concurrency-guard.md`,
   whether "measured, proposed, gated" constitutes progress worth a status note, or whether
   it should stay `open` until the gate is answered.
 
-## Status: ready-for-check (proposal, not a code change)
+## Status: checked-PASS (cycle 1) — verdict qa/verdicts/at526-shared-ledger-concurrency-guard.md (commit 65f318f)
 
 This is a completed investigation ending in a gate
 (`qa/gates/at526-shared-ledger-concurrency-guard.md`) and a ready-to-adopt but unmerged
