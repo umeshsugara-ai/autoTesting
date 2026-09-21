@@ -110,4 +110,4 @@ evidence dir. Nothing rendered by a page.
 - AT-524's sweep of the live goal.json happened in the at521 unit by hand; this unit builds
   the standing guard so it cannot come back — it does not re-sweep anything.
 
-## Status: ready-for-check (cycle 1)
+## Status: checked-PASS (cycle 1) — verdict qa/verdicts/at523-a-guard-so-the-q-doubling-cannot-come-back.md (commit 8d8a31c; AT-523/AT-524 flipped by the checker; AT-527 filed low)
