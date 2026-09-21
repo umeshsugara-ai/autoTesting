@@ -207,6 +207,38 @@ def test_env_editor_refuses_a_value_with_a_newline(client: TestClient, scratch_r
     assert "INJECTED_KEY" not in written
 
 
+def test_an_empty_save_never_wipes_a_stored_value(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """2026-09-21 live wipe: pressing Save on an untouched (empty, masked)
+    field overwrote the stored secret with '' — the password save was fine,
+    but a stray Save on the email row blanked the stored email. An empty
+    field means 'nothing typed', never 'erase': the submit must be refused
+    and the stored value must survive byte-identically."""
+    from autotester.browser.secrets import parse_env
+    from autotester.schema.project import Project as ProjectModel
+    from autotester.schema.project import SecretRef
+
+    project = ProjectModel(
+        slug="demo", name="Demo", base_url="https://demo.test", allowed_domains=["demo.test"],
+        secrets=[SecretRef(key="DEMO_PASSWORD", domains=["demo.test"])],
+    )
+    ProjectStore("demo", scratch_root).save_project(project)
+    set_env_value(scratch_root / ".env", "DEMO_PASSWORD", "keep-me-real")
+
+    response = client.post("/projects/demo/env", data={"key": "DEMO_PASSWORD", "value": ""})
+
+    assert response.status_code == 400
+    assert "keep-me-real" not in response.text  # never echoed, even on refusal
+    written = (scratch_root / ".env").read_text(encoding="utf-8")
+    assert parse_env(written)["DEMO_PASSWORD"] == "keep-me-real"
+
+    whitespace = client.post("/projects/demo/env", data={"key": "DEMO_PASSWORD", "value": "   "})
+    assert whitespace.status_code == 400
+    written = (scratch_root / ".env").read_text(encoding="utf-8")
+    assert parse_env(written)["DEMO_PASSWORD"] == "keep-me-real"
+
+
 # -- U4 report and run views read real persisted evidence --------------------
 
 def test_report_and_run_view_reflect_real_persisted_data(

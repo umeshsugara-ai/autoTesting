@@ -181,10 +181,30 @@ def env_editor_view(slug: str, saved: str = "", existing: str = "") -> str:
 
 
 @router.post("/projects/{slug}/env")
-def env_editor_submit(slug: str, key: str = Form(...), value: str = Form(...)) -> RedirectResponse:
+def env_editor_submit(
+    slug: str, key: str = Form(...), value: str = Form("")
+) -> Response:
     _store, project = _load_project_or_404(slug)
     if project.secret(key) is None:
         raise HTTPException(400, f"'{key}' is not a declared secret for '{slug}'")
+    if not value.strip():
+        # An empty field means "nothing typed", never "erase" — the input is a
+        # masked write-only box (placeholder 'new value'), so a submit with
+        # nothing in it is a stray Save press. Overwriting a stored secret
+        # with '' was a silent credential WIPE (2026-09-21: a password saved
+        # while its neighbour email's Save was pressed with an empty field
+        # blanked the email). Refuse; the stored value survives.
+        safe = escape(slug)
+        body = theme.breadcrumb(("Projects", "/"), (escape(project.name), f"/projects/{safe}"),
+                                ("Credentials", None))
+        body += "<h1>Credential not saved</h1>" + theme.card(
+            f"<p>No new value was typed for <code>{escape(key)}</code>, so nothing was "
+            f"changed — the stored value (if any) is untouched.</p>"
+            f"<p><a class='btn' href='/projects/{safe}/env'>Return to credentials</a></p>",
+            title="Empty fields are ignored",
+        )
+        return HTMLResponse(theme.page("Credential not saved", body, active_slug=slug),
+                            status_code=400)
     try:
         set_env_value(repo_root() / ".env", key, value)
     except InvalidEnvValue as exc:

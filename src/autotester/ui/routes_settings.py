@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from html import escape
 
-from fastapi import APIRouter, Form, HTTPException
+from fastapi import APIRouter, Form, HTTPException, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from autotester.browser.secrets import parse_env
@@ -60,9 +60,19 @@ def provider_settings_view() -> str:
 
 
 @router.post("/settings/providers")
-def provider_settings_submit(key: str = Form(...), value: str = Form(...)) -> RedirectResponse:
+def provider_settings_submit(key: str = Form(...), value: str = Form("")) -> Response:
     if key not in _PROVIDER_KEYS:
         raise HTTPException(400, f"'{key}' is not a known provider setting")
+    if not value.strip():
+        # Same wipe-guard as the per-project credentials editor: an empty
+        # masked field means "nothing typed", never "erase" the stored key.
+        body = (theme.breadcrumb(("Projects", "/"), ("Settings", None))
+                + "<h1>Provider key not saved</h1>" + theme.card(
+                    f"<p>No new value was typed for <code>{escape(key)}</code>, so nothing "
+                    f"was changed — the stored key (if any) is untouched.</p>"
+                    f"<p><a class='btn' href='/settings/providers'>Return to settings</a></p>",
+                    title="Empty fields are ignored"))
+        return HTMLResponse(theme.page("Provider key not saved", body), status_code=400)
     try:
         set_env_value(repo_root() / ".env", key, value)
     except InvalidEnvValue as exc:
