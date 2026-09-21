@@ -25,6 +25,7 @@ from autotester.store.project_store import ProjectStore
 from autotester.ui import (
     project_view,
     routes_cases,
+    routes_crawl_approval,
     routes_crawl_login,
     routes_crawls,
     routes_credentials,
@@ -76,6 +77,7 @@ app.include_router(routes_flow_diagram.router)
 app.include_router(routes_crawls.router)
 app.include_router(routes_crawl_login.router)
 app.include_router(routes_credentials.router)
+app.include_router(routes_crawl_approval.router)
 app.include_router(routes_settings.router)
 app.include_router(routes_learn.router)
 app.include_router(routes_sources.router)

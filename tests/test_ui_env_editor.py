@@ -1,4 +1,4 @@
-﻿"""U3, the credentials editor: display, write, and the empty-save wipe guard.
+"""U3, the credentials editor: display, write, and the empty-save wipe guard.
 
 Split from `test_ui.py` for the 300-line cap (2026-09-21). Contract:
 qa/contracts/ui.md U3 as amended 2026-09-21 by Umesh (Approver): the stored
@@ -164,3 +164,70 @@ def test_an_empty_save_never_wipes_a_stored_value(
     assert parse_env(written)["DEMO_PASSWORD"] == "keep-me-real"
 
 
+
+# -- custom credentials + platform URL on the credentials page (2026-09-21) ----
+
+def _seed_demo_project(scratch_root: Path) -> None:
+    from autotester.schema.project import Project as ProjectModel
+
+    project = ProjectModel(
+        slug="demo", name="Demo", base_url="https://demo.test", allowed_domains=["demo.test"],
+    )
+    ProjectStore("demo", scratch_root).save_project(project)
+
+
+def test_add_a_custom_credential_declares_and_stores_in_one_step(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """Umesh, 2026-09-21: 'there should be a place to add custom values'. One
+    submit declares the SecretRef (same validators as the settings page) and
+    writes the value through the one legitimate .env write path."""
+    from autotester.browser.secrets import parse_env
+
+    _seed_demo_project(scratch_root)
+    response = client.post("/projects/demo/env/add", data={
+        "key": "ERP_TENANT_ID", "value": "tenant-42",
+        "domains": "demo.test", "description": "the tenant id",
+    })
+
+    assert response.status_code in (200, 303)
+    project = ProjectStore("demo", scratch_root).load_project()
+    assert project.secret("ERP_TENANT_ID") is not None  # declared
+    written = (scratch_root / ".env").read_text(encoding="utf-8")
+    assert parse_env(written)["ERP_TENANT_ID"] == "tenant-42"  # and stored
+
+
+def test_add_credential_refuses_a_duplicate_key(
+    client: TestClient, scratch_root: Path
+) -> None:
+    from autotester.schema.project import Project as ProjectModel
+    from autotester.schema.project import SecretRef
+
+    project = ProjectModel(
+        slug="demo", name="Demo", base_url="https://demo.test", allowed_domains=["demo.test"],
+        secrets=[SecretRef(key="ERP_TENANT_ID", domains=["demo.test"])],
+    )
+    ProjectStore("demo", scratch_root).save_project(project)
+
+    response = client.post("/projects/demo/env/add", data={
+        "key": "ERP_TENANT_ID", "value": "x", "domains": "demo.test",
+    })
+
+    assert response.status_code == 400
+
+
+def test_the_platform_url_is_editable_from_the_credentials_page(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """Umesh, 2026-09-21: 'url bhi add krr credentials mai'. The base_url and
+    allowed domains render prefilled and save from the same page, reusing the
+    project-edit guards (reachability, unsafe-submission scan)."""
+    _seed_demo_project(scratch_root)
+    response = client.post("/projects/demo/env/url", data={
+        "base_url": "https://demo.test/signin", "allowed_domains": "demo.test, app.test",
+    })
+
+    assert response.status_code in (200, 303)
+    project = ProjectStore("demo", scratch_root).load_project()
+    assert project.base_url == "https://demo.test/signin"
+    assert project.allowed_domains == ["demo.test", "app.test"]
