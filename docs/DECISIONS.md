@@ -456,3 +456,37 @@ itself.
 **Changes-authorized:** none (this entry corrects the D-027 record only; no file besides
 `docs/DECISIONS.md` changes as a result of D-028).
 **Links:** D-027; AT-507; D-011 (the precedent for this correction pattern)
+
+## D-029 | 2026-09-21 | type: decision | status: ACTIVE
+**What:** Amend D-016's typing column and `qa/contracts/explore.md` X10/X5 for one narrow,
+approved surface: the AutoTester explorer MAY fill post-login forms with SYNTHETIC values
+(fixed, non-PII generator output) under the `TEST_ACCOUNT`/`ALLOW_WRITES` write policy, on the
+Pathlynks dev environment only, with the standing prohibition on destructive actions (delete,
+permanent or irreversible changes) unchanged. At every other policy level (`READ_ONLY`,
+production targets, any other project until its own gate answers), X10's "nothing is typed"
+remains exactly as it was. Authorization source: Umesh in chat 2026-09-21, verbatim: *"what is
+actually login form and details like apni best intelligence se system ko fill krr lena chahiye
+like auto tester kya krta hai, they cases and cases various different combinations ki like usse
+hota kya hai and next time kis aur ways se kr ke dekhta hai"* — recorded in
+`qa/gates/post-login-forms.md` (option b), which this entry cites as its authorization source.
+**Why:** The gates `post-login-forms.md` and `live-crawl-target.md` (opened 2026-09-17 and
+2026-09-16 by checker sweeps) were both answered by Umesh on 2026-09-21: Pathlynks is the first
+live end-to-end crawl target, and its coverage holes that sit behind submitted forms (search
+results, created records, wizard steps) are unreachable under the absolute typing ban, leaving
+V7 coverage permanently partial for no safety gain on a dev-environment test account. The ban's
+original purpose (D-016) was to stop the crawler mutating a real product it does not
+understand; synthetic generated values on a test account in a dev environment keep that
+purpose intact while letting the explorer observe what a form actually does — which is the
+north star's own best/worst/edge combination behaviour Umesh explicitly asked for. The
+destructive-action prohibition and the per-run RunApproval consent gate (D-018) are NOT
+relaxed by this entry; every live form-typed run still passes consent gate 2.
+**Result:** `qa/contracts/explore.md` X10 and the X5 matrix are amended by the checker (critical
+amendment, its write surface) to encode the X10-b rule: typing allowed ONLY under
+TEST_ACCOUNT/ALLOW_WRITES + synthetic values + dev-environment target + non-destructive;
+violations of any one of those four conditions remain refusals. The first live use is the
+Pathlynks stage-2 form-exploration crawl after the READ_ONLY map crawl. Until that amendment
+lands, no typed run is authorized.
+**Changes-authorized:** qa/contracts/explore.md (X10 + X5 amendment only, by the checker);
+qa/gates/post-login-forms.md (already updated with the Answered line); no code files.
+**Links:** qa/gates/post-login-forms.md; qa/gates/live-crawl-target.md; D-016; D-018;
+AT-016 (X10's origin); qa/contracts/explore.md

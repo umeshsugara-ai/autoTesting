@@ -77,4 +77,21 @@ Say which option (or name your own). If A, answer the four design questions abov
 next unit becomes drafting the contract from them. If B, just say "B" and the brief gets
 dispatched this tick.
 
-**Answered:** _(unanswered — append `Answered: <ISO date> — <choice> — <where>` below before acting)_
+**Answered:** 2026-09-21 — **(A) Interview now**, answered in chat by Umesh, verbatim decisions:
+
+1. **Source-kind scope:** *Phased* — phase 1 = TEXT + DOC + AUDIO (video already exists from
+   T-060/T-131); DRIVE + EMAIL declared as phase 2 in the same contract, built as a fast-follow
+   unit. (Option "All six in one go" declined.)
+2. **Drive auth:** **OAuth device flow** (interactive consent once, refresh token into the
+   project .env as a SecretRef) — NOT service-account. Phase-2 scope; the contract records the
+   decision and its live-credential surface.
+3. **Audio:** Gemini-first — Umesh: *"i have given gemini api key and all use its model flash
+   3.8 is really considerable"*. Design constraint recorded: audio goes through the Provider
+   seam (`providers/base.py`) using the existing Gemini key/model — Track A3's media-prep
+   (probe/chunk) is reused for chunking; Whisper survives only as the no-API fallback. No
+   duplicate extraction path (anti-drift, one concept one place).
+4. **Email scope:** **.eml/.mbox local files only** for the first version; no mailbox
+   credentials (IMAP fetch deferred — it would need its own unit and SecretRef surface).
+
+Next unit after the Pathlynks campaign: draft `qa/contracts/source-adapters.md` from these
+answers for Umesh's review before any T-162 build.

@@ -34,4 +34,11 @@ Also answer: the bounds for that run (defaults 30 screens / 200 actions / 600 s)
 Reply in chat, e.g. `live-crawl a TEST_ACCOUNT defaults`, or `live-crawl d`. The maker appends
 `Answered: <ISO> — <choice> — <where>` below before acting.
 
-Answered: (pending)
+**Answered:** 2026-09-21 — **(b) Pathlynks** (dev-environment test account already on boarded,
+F-004; `projects/pathlynks/` credentials are SecretRefs in the gitignored project .env) —
+Umesh in chat: *"phle jo pathlynks hai already usko to end to end kar ke le explore and build,
+pathlynks diya tho hai usko login krr and proper reporting de de"*. Per-run consent still
+required (D-018 consent gate 2): the maker registers a RunApproval artifact before each live
+run and cites this gate. First run: READ_ONLY map crawl, bounds 20 screens / 150 actions /
+600 s (tighter than default, first live run). Second stage: TEST_ACCOUNT form-exploration run
+after `post-login-forms.md` (also answered 2026-09-21) and the X10 amendment land.

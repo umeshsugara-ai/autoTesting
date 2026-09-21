@@ -34,4 +34,13 @@ Reply in chat, e.g. `post-login-forms b` or `post-login-forms d`. The maker appe
 `Answered: <ISO> — <choice> — <where>` below before acting. Then a DECISIONS entry supersedes the
 D-016 typing column, and the checker amends X10/X5 as a critical amendment.
 
-Answered: (pending)
+**Answered:** 2026-09-21 — **(b)**, scoped by Umesh in chat: the crawler may fill post-login
+forms using its own intelligence over **synthetic, non-PII, generated values only**, on the
+Pathlynks **dev environment** (test account, F-004), under `TEST_ACCOUNT`/`ALLOW_WRITES`
+policy — with the standing prohibition on destructive actions (delete / permanent /
+irreversible changes). Verbatim basis: *"what is actually login form and details like apni
+best intelligence se system ko fill krr lena chahiye like auto tester kya krta hai, they
+cases and cases various different combinations ki like usse hota kya hai and next time kis
+aur ways se kr ke dekhta hai"*. A DECISIONS entry amending D-016/X10/X5 (as X10-b) is
+required before any live form-typed run; the amendment names this gate file as its
+authorization source.
