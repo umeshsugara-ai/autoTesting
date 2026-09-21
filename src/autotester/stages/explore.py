@@ -2,14 +2,11 @@
 
 Contract: qa/contracts/explore.md. **This is the one stage permitted to
 invent a click or a navigation** — `execute.md` E5 ("`run_case` performs
-exactly the actions in `case.steps`") stays intact and untouched; the
-explorer never routes through `run_case` except for the human-authored
-login bootstrap case.
-
-Every bound here can actually end the crawl and name itself in
-`Crawl.stop_reason`, and no stop condition depends on provider output — a
-crawl completes with `provider=mock` (X4). Per-node work lives in
-`explore_node.py`; the safety decisions in `explore_safety.py`.
+exactly the actions in `case.steps`") stays intact; the explorer never routes
+through `run_case` except for the human-authored login bootstrap case. Every
+bound can end the crawl and name itself in `Crawl.stop_reason`, and no stop
+condition depends on provider output — a crawl completes with `provider=mock`
+(X4). Per-node work lives in `explore_node.py`; safety in `explore_safety.py`.
 """
 
 from __future__ import annotations
@@ -41,9 +38,8 @@ def _now_iso() -> str:
 
 @dataclass
 class ExploreRuntime:
-    """Live objects for one crawl — a session, a store, a clock, and the
-    in-memory node index. Deliberately NOT a schema model: it duplicates no
-    persisted shape (C1), and nothing here is serialisable."""
+    """Live objects for one crawl — session, store, clock, in-memory node
+    index. NOT a schema model: duplicates no persisted shape (C1)."""
 
     project: Project
     session: BrowserSession
@@ -56,9 +52,8 @@ class ExploreRuntime:
     frontier: CrawlFrontier
     nodes: dict[str, ScreenNode] = field(default_factory=dict)
     discovery: dict[str, ScreenEdge] = field(default_factory=dict)
-    """node id -> the edge that first reached it. AT-227: a screen that is only
-    a client-side STATE of another (a dismissed modal) has no URL, so replaying
-    this edge is the only way back."""
+    # node id -> the edge that first reached it (AT-227: a screen that is only a
+    # client-side STATE of another has no URL, so replaying this edge is the way back).
     noise: dict[str, int] = field(default_factory=dict)
     edges: int = 0
     denied: int = 0
@@ -66,15 +61,11 @@ class ExploreRuntime:
     tool_failures: int = 0
     stop_reason: str | None = None
     seed_error: str | None = None
-    login_precheck_error: str | None = None
-    """AT-273: why `_already_past_login` fell through to `False` on an exception,
-    distinct from a genuine "not yet authenticated" `False` (diagnostic only)."""
+    login_precheck_error: str | None = None  # AT-273: the precheck's exception, diagnostic
     login_signature: str | None = None
     """X18(a)/AT-462: the login screen's structure, observed before the case typed."""
     login_observe_error: str | None = None  # AT-474: observed_signature()'s error, if any
-    return_error: str | None = None
-    """Why the most recent `return_to` failed. Scratch, not persisted — it is
-    read straight into the issue text at the failure site (AT-108)."""
+    return_error: str | None = None  # why the last `return_to` failed (AT-108), scratch
 
     @property
     def bounds(self) -> CrawlBounds:
@@ -103,14 +94,13 @@ def _bootstrap_login(rt: ExploreRuntime, case: Case) -> bool:
 
     **AT-226.** A persistent browser profile can already hold a live session,
     in which case the login page itself redirects away before the case's own
-    FILL step ever runs — the field it names (e.g. `input[name="identifier"]`)
-    is not merely empty, it is not on the page at all, and `run_case` blocks
-    for the full step timeout before reporting ERRORED. Checked once, before
-    the case runs, against the case's own NAVIGATE step: if the browser lands
-    somewhere other than the login page itself, the session is already
-    authenticated and the case is skipped rather than run to a guaranteed
-    timeout. This needs no app-specific "am I on the dashboard" marker — a
-    login page that redirects away from itself has already done its job."""
+    FILL step ever runs — the field it names is not on the page at all, and
+    `run_case` blocks for the full step timeout before reporting ERRORED.
+    Checked once, before the case runs, against the case's own NAVIGATE step:
+    if the browser lands somewhere other than the login page itself, the
+    session is already authenticated and the case is skipped rather than run
+    to a guaranteed timeout — a login page that redirects away from itself
+    has already done its job, no app-specific marker needed."""
     login_step = next(
         (s for s in sorted(case.steps, key=lambda s: s.order) if s.action is Action.NAVIGATE),
         None,
@@ -119,14 +109,30 @@ def _bootstrap_login(rt: ExploreRuntime, case: Case) -> bool:
         return True
     result = run_case(case, rt.session)
     rt.store.save_result(rt.crawl.id, result)
-    return result.outcome is Outcome.COMPLETED
+    if result.outcome is not Outcome.COMPLETED:
+        return False
+    # AT-528: a COMPLETED step sequence is NOT proof of authentication — run_case
+    # observes, it never judges (E1); the live Pathlynks crawl
+    # crawl_01M31V5GHN91TE38MMB4BKM6HF completed while the app rendered "Invalid
+    # credentials" (expected.visible_text is best-effort settle, never a gate).
+    # The product's own verdict during the bootstrap is a first-party 401 on the
+    # login API — precise, app-reported, fixture-neutral. A signed-out crawl may
+    # never read COMPLETED: end LOGIN_FAILED naming the evidence.
+    _console, failed, _dialogs, _popups = rt.observer.drain()
+    auth_401 = [(u, why) for u, why in failed if why.rstrip().endswith("401")]
+    if auth_401:
+        url, why = auth_401[0]
+        rt.stop_reason = (f"login case 'completed' but the server rejected it "
+                          f"({url} -> {why} — invalid credentials?) — AT-528 guard")
+        return False
+    return True
 
 
 def _already_past_login(rt: ExploreRuntime, login_url: str) -> bool:
-    """Navigate to the case's login page; report whether the app redirected away
-    (AT-226). Still there -> record the login screen's signature for X18(a).
-    AT-273: a nav failure must not read as a genuine "not yet authenticated"
-    `False` -- it is still the safe fallback, but its CAUSE is kept."""
+    """Navigate to the case's login page; report whether the app redirected
+    away (AT-226). Still there -> record the login signature for X18(a).
+    AT-273: a nav failure must not read as "not yet authenticated" `False` —
+    still the safe fallback, but its CAUSE is kept."""
     try:
         rt.session.goto(login_url)
         rt.session.settle(timeout_ms=rt.bounds.settle_ms)
@@ -146,12 +152,10 @@ def _already_past_login(rt: ExploreRuntime, login_url: str) -> bool:
 def _seed(rt: ExploreRuntime) -> ScreenNode | None:
     """Open `base_url` and record it as the first node.
 
-    AT-098: the cause is bound and kept. Detection was never lost -- the crawl
-    did abort and did say so -- but every distinct failure collapsed to one
-    string, so an operator watching a live ERP crawl could not tell whether the
-    product was down or whether the crawl had been refused by its own domain
-    guard. A `NavigationRefused` is the X7 SECURITY refusal and must never read
-    like a DNS timeout.
+    AT-098: every distinct failure keeps its CAUSE — a `NavigationRefused` is
+    the X7 SECURITY refusal and must never read like a DNS timeout, so the
+    operator watching a live crawl can tell the product was down from the
+    crawl was refused by its own domain guard.
     """
     try:
         rt.session.goto(rt.project.base_url)
@@ -190,7 +194,11 @@ def _bfs(rt: ExploreRuntime) -> None:
 def _login_failed_reason(rt: ExploreRuntime) -> str:
     """AT-273: name the login-precheck's own swallowed cause when the case
     then genuinely failed too, so an operator sees the precheck itself
-    glitched rather than only that login did."""
+    glitched rather than only that login did. AT-528: a failure that already
+    named a SPECIFIC cause (the 401 guard sets its own stop_reason) keeps it
+    verbatim — the vaguer sentence would overwrite the server's verdict."""
+    if rt.stop_reason and "AT-528" in rt.stop_reason:
+        return rt.stop_reason
     reason = "login case did not complete"
     if rt.login_precheck_error:
         reason += f" (precheck also failed: {rt.login_precheck_error})"
@@ -235,12 +243,9 @@ def require_consent(project: Project, store: ProjectStore, bounds: CrawlBounds) 
     browser — `run_crawl` still checks unconditionally, so the seam holds even
     if a new caller forgets the pre-flight.
 
-    AT-111 (checker-found): checking only here was not enough. Both shipped
-    entry points wrap `run_crawl` in `with BrowserSession(...)`, and
-    `BrowserSession.start()` creates `crawl/<id>/shots/` and launches Chromium
-    before `run_crawl` is ever entered — so the "a refused run leaves no trace"
-    property this unit sells was true of the direct call and false of every path
-    an operator actually uses.
+    AT-111 (checker-found): `BrowserSession.start()` creates `crawl/<id>/shots/`
+    and launches Chromium BEFORE `run_crawl` is ever entered, so "a refused run
+    leaves no trace" was false of every path an operator actually uses.
     """
     require_approval(
         store.list_approvals(), project=project.slug, kind=ApprovalKind.CRAWL,
@@ -263,16 +268,10 @@ def run_crawl(
 ) -> Crawl:
     """Crawl `project` breadth-first within `bounds`, refusing anything
     `policy` denies. Returns the finished `Crawl` envelope; the graph itself
-    is on disk (nodes/edges/issues JSONL) and is loadable even if this
-    raises partway (X11).
-
-    `crawl_id` is accepted so a caller can mint it first and point the
-    session's screenshot directory at `crawl/<id>/shots/` — the id has to
-    exist before the session does.
-
-    **Raises `ApprovalRequired` before anything is created or opened** — see
-    `require_consent`.
-    """
+    is on disk (nodes/edges/issues JSONL), loadable even if this raises
+    partway (X11). `crawl_id` is accepted so a caller can mint it first and
+    point the session's screenshot dir at `crawl/<id>/shots/`. **Raises
+    `ApprovalRequired` before anything is created or opened** (D-018)."""
     bounds = bounds or CrawlBounds()
     require_consent(project, store, bounds)
     envelope = {

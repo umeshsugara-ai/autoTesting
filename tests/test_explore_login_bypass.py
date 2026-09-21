@@ -115,3 +115,35 @@ def test_a_transient_precheck_failure_is_named_not_swallowed(tmp_path: Path) -> 
     assert crawl.stop_reason is not None
     assert "precheck also failed" in crawl.stop_reason
     assert "ERR_CONNECTION_RESET" in crawl.stop_reason
+
+
+# -- AT-528: a completed login case is not proof of authentication -------------
+
+def test_a_login_api_401_during_the_bootstrap_is_login_failed(
+    tmp_path: Path,
+) -> None:
+    """The live Pathlynks crawl (crawl_01M31V5GHN91TE38MMB4BKM6HF) completed its
+    login case while the app rendered 'Invalid credentials' and the login API
+    answered 401 — and the crawl proceeded signed-out, reading COMPLETED. The
+    product's own verdict during the bootstrap (a first-party 401 on the login
+    API) now ends the crawl LOGIN_FAILED even though every step ran."""
+    import crawl_fake as cf
+
+    project = make_project()
+    session, page = make_session(tmp_path, project)
+    page.fillable[SIGNIN] = {IDENTIFIER}
+
+    class RejectedObserver(PageObserver):
+        def drain(self):
+            return [], [(f"{BASE}api/auth/login", "401")], [], ([], [])
+
+    store = ProjectStore("demo", tmp_path)
+    grant_crawl_approval(store, project)
+    crawl = run_crawl(project, session, store, observer=RejectedObserver(),
+                      login_case=_login_case())
+
+    assert crawl.status is CrawlStatus.LOGIN_FAILED
+    assert crawl.stop_reason is not None
+    assert "401" in crawl.stop_reason
+    assert "AT-528" in crawl.stop_reason
+    assert cf is not None  # keep the import meaningful if the test evolves
