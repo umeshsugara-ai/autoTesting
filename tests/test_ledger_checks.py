@@ -9,6 +9,7 @@ toward their caps.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -161,3 +162,104 @@ def test_a_real_fix_claim_still_counts(note: str, tmp_path: Path) -> None:
         verdicts={"u.md": "VERDICT: PASS"})
 
     assert [v.rule for v in checks.check_qa_issue_rows(tmp_path)] == ["ledger-row-stale"]
+
+
+# -- AT-523/AT-524: a CLI -q must never stack on pyproject.toml's own addopts -q --
+
+
+def _pyproject(root: Path, addopts: str = "-q") -> None:
+    (root / "pyproject.toml").write_text(
+        f'[tool.pytest.ini_options]\naddopts = "{addopts}"\n', encoding="utf-8")
+
+
+def _adapter(root: Path, cmd: str) -> None:
+    (root / "qa").mkdir(parents=True, exist_ok=True)
+    (root / "qa" / "adapter.json").write_text(
+        json.dumps({"verify": {"commands": [{"cmd": cmd, "expect": "exit 0"}]}}),
+        encoding="utf-8")
+
+
+def _goal(root: Path, tasks: list[dict]) -> None:
+    (root / ".goal").mkdir(parents=True, exist_ok=True)
+    (root / ".goal" / "goal.json").write_text(json.dumps({"tasks": tasks}), encoding="utf-8")
+
+
+def test_adapter_command_matching_addopts_is_not_flagged(tmp_path: Path) -> None:
+    _pyproject(tmp_path, "-q")
+    _adapter(tmp_path, "uv run pytest")
+
+    assert checks.check_adapter_pytest_q(tmp_path) == []
+
+
+def test_adapter_command_stacking_cli_q_on_addopts_is_flagged(tmp_path: Path) -> None:
+    """AT-503's own defect: pyproject's addopts already sets one -q; a second one on
+    the CLI reaches -qq, which prints no summary line at all."""
+    _pyproject(tmp_path, "-q")
+    _adapter(tmp_path, "uv run pytest -q")
+
+    codes = [v.rule for v in checks.check_adapter_pytest_q(tmp_path)]
+
+    assert codes == ["pytest-q-doubled"]
+
+
+def test_an_explicit_addopts_override_is_not_a_doubling(tmp_path: Path) -> None:
+    """`-o addopts=` REPLACES pyproject's addopts for that one invocation (pytest's
+    own rule) — AT-506's own subset runs rely on exactly this to add a bare -q
+    safely. A guard that only grepped for the literal string '-q' would misfire
+    here; this one must actually reason about what addopts is FOR this command."""
+    _pyproject(tmp_path, "-q")
+    _adapter(tmp_path, "uv run pytest -q -o addopts= tests/test_x.py")
+
+    assert checks.check_adapter_pytest_q(tmp_path) == []
+
+
+def test_the_guard_reads_addopts_live_rather_than_assuming_it(tmp_path: Path) -> None:
+    """A guard that hardcoded "-q is always one too many" would misfire the moment
+    addopts stops setting one. This proves the count is derived from the live
+    pyproject.toml, not a copy of today's value baked into the rule."""
+    _pyproject(tmp_path, "")
+    _adapter(tmp_path, "uv run pytest -q")
+
+    assert checks.check_adapter_pytest_q(tmp_path) == []
+
+
+def test_a_missing_adapter_or_pyproject_is_not_a_violation(tmp_path: Path) -> None:
+    assert checks.check_adapter_pytest_q(tmp_path) == []
+
+
+def test_goal_json_cmd_row_stacking_cli_q_is_flagged_with_its_task_id(tmp_path: Path) -> None:
+    """AT-524: the same defect, extended to .goal/goal.json's ~50 done_check rows —
+    43 of them carried it until AT-521/AT-522 swept the live file by hand."""
+    _pyproject(tmp_path, "-q")
+    _goal(tmp_path, [{"id": "T-160",
+                      "done_check": {"type": "cmd", "cmd": "uv run pytest tests/x.py -q"}}])
+
+    violations = checks.check_goal_pytest_q(tmp_path)
+
+    assert [(v.rule, v.location) for v in violations] == \
+        [("pytest-q-doubled", ".goal/goal.json:T-160")]
+
+
+def test_a_non_cmd_done_check_is_not_inspected(tmp_path: Path) -> None:
+    _pyproject(tmp_path, "-q")
+    _goal(tmp_path, [{"id": "T-004", "done_check": {"type": "file", "path": "docs/x.md"}}])
+
+    assert checks.check_goal_pytest_q(tmp_path) == []
+
+
+def test_only_the_pytest_sub_command_of_a_chained_cmd_is_checked(tmp_path: Path) -> None:
+    """A trailing -q after && belongs to a DIFFERENT program; only the pytest
+    invocation's own flags may stack on top of addopts."""
+    _pyproject(tmp_path, "-q")
+    _goal(tmp_path, [{"id": "T-005",
+                      "done_check": {"type": "cmd",
+                                     "cmd": "uv run pytest tests/x.py && "
+                                            "uv run autotester doctor -q"}}])
+
+    assert checks.check_goal_pytest_q(tmp_path) == []
+
+
+def test_a_missing_goal_json_is_not_a_violation(tmp_path: Path) -> None:
+    _pyproject(tmp_path, "-q")
+
+    assert checks.check_goal_pytest_q(tmp_path) == []

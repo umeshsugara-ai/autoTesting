@@ -1,0 +1,17 @@
+KILLED  doubling threshold loosened so a real -qq is not caught  (pytest exit 1)
+    claims to kill : tests/test_ledger_checks.py::test_adapter_command_stacking_cli_q_on_addopts_is_flagged
+    actually failed: tests/test_ledger_checks.py::test_adapter_command_stacking_cli_q_on_addopts_is_flagged, tests/test_ledger_checks.py::test_goal_json_cmd_row_stacking_cli_q_is_flagged_with_its_task_id
+KILLED  addopts count hardcoded instead of read from pyproject.toml  (pytest exit 1)
+    claims to kill : tests/test_ledger_checks.py::test_the_guard_reads_addopts_live_rather_than_assuming_it
+    actually failed: tests/test_ledger_checks.py::test_the_guard_reads_addopts_live_rather_than_assuming_it
+KILLED  an explicit -o addopts= override is ignored, doubling on top of the real config  (pytest exit 1)
+    claims to kill : tests/test_ledger_checks.py::test_an_explicit_addopts_override_is_not_a_doubling
+    actually failed: tests/test_ledger_checks.py::test_an_explicit_addopts_override_is_not_a_doubling
+KILLED  every chained sub-command is treated as a pytest invocation, not only the real one  (pytest exit 1)
+    claims to kill : tests/test_ledger_checks.py::test_only_the_pytest_sub_command_of_a_chained_cmd_is_checked
+    actually failed: tests/test_ledger_checks.py::test_only_the_pytest_sub_command_of_a_chained_cmd_is_checked
+KILLED  goal.json violation location drops the task id  (pytest exit 1)
+    claims to kill : tests/test_ledger_checks.py::test_goal_json_cmd_row_stacking_cli_q_is_flagged_with_its_task_id
+    actually failed: tests/test_ledger_checks.py::test_goal_json_cmd_row_stacking_cli_q_is_flagged_with_its_task_id
+
+5/5 mutations killed

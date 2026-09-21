@@ -1,0 +1,40 @@
+{
+  "tests": "tests/test_ledger_checks.py",
+  "mutations": [
+    {
+      "name": "doubling threshold loosened so a real -qq is not caught",
+      "file": "src/autotester/ledger/checks.py",
+      "old": "            if _effective_q_total(sub, config_q) >= 2:",
+      "new": "            if _effective_q_total(sub, config_q) > 2:",
+      "kills": ["test_adapter_command_stacking_cli_q_on_addopts_is_flagged"]
+    },
+    {
+      "name": "addopts count hardcoded instead of read from pyproject.toml",
+      "file": "src/autotester/ledger/checks.py",
+      "old": "    addopts = data.get(\"tool\", {}).get(\"pytest\", {}).get(\"ini_options\", {}).get(\"addopts\", \"\")\n    return _count_q_tokens(str(addopts))",
+      "new": "    addopts = data.get(\"tool\", {}).get(\"pytest\", {}).get(\"ini_options\", {}).get(\"addopts\", \"\")\n    return 1",
+      "kills": ["test_the_guard_reads_addopts_live_rather_than_assuming_it"]
+    },
+    {
+      "name": "an explicit -o addopts= override is ignored, doubling on top of the real config",
+      "file": "src/autotester/ledger/checks.py",
+      "old": "    override = _ADDOPTS_OVERRIDE.search(subcmd)\n    if override:\n        remainder = subcmd[:override.start()] + subcmd[override.end():]\n        return _count_q_tokens(override.group(1)) + _count_q_tokens(remainder)\n    return config_q + _count_q_tokens(subcmd)",
+      "new": "    return config_q + _count_q_tokens(subcmd)",
+      "kills": ["test_an_explicit_addopts_override_is_not_a_doubling"]
+    },
+    {
+      "name": "every chained sub-command is treated as a pytest invocation, not only the real one",
+      "file": "src/autotester/ledger/checks.py",
+      "old": "    return [p.strip() for p in parts if re.search(r\"(?<![\\w./-])pytest\\b\", p)]",
+      "new": "    return [p.strip() for p in parts]",
+      "kills": ["test_only_the_pytest_sub_command_of_a_chained_cmd_is_checked"]
+    },
+    {
+      "name": "goal.json violation location drops the task id",
+      "file": "src/autotester/ledger/checks.py",
+      "old": "            cmds.append((f\".goal/goal.json:{task.get('id')}\", done_check.get(\"cmd\", \"\")))",
+      "new": "            cmds.append((\".goal/goal.json\", done_check.get(\"cmd\", \"\")))",
+      "kills": ["test_goal_json_cmd_row_stacking_cli_q_is_flagged_with_its_task_id"]
+    }
+  ]
+}

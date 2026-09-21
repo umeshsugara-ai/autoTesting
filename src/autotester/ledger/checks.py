@@ -15,7 +15,9 @@ Nothing here changed behaviour — the split is the whole change.
 
 from __future__ import annotations
 
+import json
 import re
+import tomllib
 from pathlib import Path
 
 from autotester.core.paths import RepoDocs
@@ -178,3 +180,96 @@ def _passed(root: Path, name: str) -> bool:
     verdict = root / "qa" / "verdicts" / name
     return verdict.exists() and "VERDICT: PASS" in verdict.read_text(encoding="utf-8",
                                                                      errors="replace")
+
+
+# -- AT-523/AT-524: a CLI -q must never stack on pyproject.toml's own addopts -----
+
+_Q_TOKEN = re.compile(r"^-q+$")
+_ADDOPTS_OVERRIDE = re.compile(r"-o\s+addopts=(\S*)")
+
+
+def _count_q_tokens(text: str) -> int:
+    """pytest's `-q` is `argparse`'s `action="count"`: `-q` contributes 1, `-qq`
+    contributes 2. Sum every purely-`-q...` short flag among whitespace tokens."""
+    return sum(len(tok) - 1 for tok in text.split() if _Q_TOKEN.match(tok))
+
+
+def _pyproject_addopts_q_count(root: Path) -> int:
+    """How many `-q` pytest's OWN config already contributes, read from the live
+    `pyproject.toml` rather than assumed — so this guard tracks the config, not a
+    copy of today's value baked into the rule (AT-503 found `addopts = "-q"`;
+    nothing says it stays that way)."""
+    path = root / "pyproject.toml"
+    if not path.exists():
+        return 0
+    with path.open("rb") as handle:
+        data = tomllib.load(handle)
+    addopts = data.get("tool", {}).get("pytest", {}).get("ini_options", {}).get("addopts", "")
+    return _count_q_tokens(str(addopts))
+
+
+def _pytest_invocations(cmd: str) -> list[str]:
+    """Split a shell command on `&&`/`||`/`|` and keep only the sub-commands that
+    actually invoke pytest — the config's `addopts` applies to those, not to
+    whatever else a chained command runs afterward."""
+    parts = re.split(r"&&|\|\|?", cmd)
+    return [p.strip() for p in parts if re.search(r"(?<![\w./-])pytest\b", p)]
+
+
+def _effective_q_total(subcmd: str, config_q: int) -> int:
+    """The total `-q` weight ONE pytest invocation actually runs with.
+
+    An explicit `-o addopts=...` on the CLI REPLACES `pyproject.toml`'s `addopts`
+    for that invocation (pytest's own precedence rule) — AT-506's subset runs add
+    a bare `-q` on top of `-o addopts=` for exactly this reason, and that is not a
+    doubling even though the config file still says `-q`. Without this, a guard
+    that merely grepped for `-q` would misfire on every one of those runs."""
+    override = _ADDOPTS_OVERRIDE.search(subcmd)
+    if override:
+        remainder = subcmd[:override.start()] + subcmd[override.end():]
+        return _count_q_tokens(override.group(1)) + _count_q_tokens(remainder)
+    return config_q + _count_q_tokens(subcmd)
+
+
+def _q_doubling_violations(cmds: list[tuple[str, str]], config_q: int) -> list[Violation]:
+    """Shared scan over `(location, cmd)` pairs — the adapter has one, goal.json
+    has one per task, but the rule being checked is identical for both."""
+    out = []
+    for location, cmd in cmds:
+        for sub in _pytest_invocations(cmd):
+            if _effective_q_total(sub, config_q) >= 2:
+                out.append(Violation("pytest-q-doubled", location,
+                                     f"'{sub}' stacks a CLI -q on addopts's own -q; "
+                                     "the summary line is suppressed"))
+    return out
+
+
+def check_adapter_pytest_q(root: Path) -> list[Violation]:
+    """AT-523: `qa/adapter.json`'s verify command must never stack a CLI `-q` on
+    top of `pyproject.toml`'s `addopts` — that reaches `-qq`, which prints no
+    `N passed`/`N failed` summary line at all (AT-503)."""
+    path = root / "qa" / "adapter.json"
+    if not path.exists():
+        return []
+    data = json.loads(path.read_text(encoding="utf-8"))
+    cmds = [("qa/adapter.json", entry.get("cmd", ""))
+            for entry in data.get("verify", {}).get("commands", [])]
+    return _q_doubling_violations(cmds, _pyproject_addopts_q_count(root))
+
+
+def check_goal_pytest_q(root: Path) -> list[Violation]:
+    """AT-524: the same guard, extended to every `done_check.cmd` in
+    `.goal/goal.json` — 43 of its ~50 rows carried this exact defect until
+    AT-521/AT-522 swept the live file by hand; nothing stopped it coming back."""
+    from autotester.ledger.store import load_goal_tasks
+
+    goal_path = root / ".goal" / "goal.json"
+    if not goal_path.exists():
+        return []
+    config_q = _pyproject_addopts_q_count(root)
+    cmds = []
+    for task in load_goal_tasks(goal_path):
+        done_check = task.get("done_check") or {}
+        if done_check.get("type") == "cmd":
+            cmds.append((f".goal/goal.json:{task.get('id')}", done_check.get("cmd", "")))
+    return _q_doubling_violations(cmds, config_q)

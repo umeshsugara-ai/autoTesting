@@ -192,13 +192,19 @@ def check_docs_routed(root: Path) -> list[Violation]:
 
 def run(root: Path | None = None) -> list[Violation]:
     """All checks, in reporting order."""
-    from autotester.ledger.checks import check_ledger, check_qa_issue_rows
+    from autotester.ledger.checks import (
+        check_adapter_pytest_q,
+        check_goal_pytest_q,
+        check_ledger,
+        check_qa_issue_rows,
+    )
 
     base = root or repo_root()
     violations: list[Violation] = []
     for check in (check_file_sizes, check_function_sizes, check_file_names,
                   check_root_clean, check_duplicate_definitions,
-                  check_ledger, check_qa_issue_rows, check_generated_fresh,
+                  check_ledger, check_qa_issue_rows, check_adapter_pytest_q,
+                  check_goal_pytest_q, check_generated_fresh,
                   check_architecture_budget, check_docs_routed):
         violations.extend(check(base))
     return violations
