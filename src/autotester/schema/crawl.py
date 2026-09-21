@@ -86,6 +86,14 @@ class SafetyPolicy(BaseModel):
         default_factory=lambda: list(DEFAULT_THIRD_PARTY_IGNORE)
     )
     click_unnamed: bool = False
+    synthetic_typing: bool = Field(
+        default=False,
+        description="X10-b (D-029): the crawler may type SYNTHETIC, non-PII, "
+        "deterministic values into post-login form fields. Deliberately OFF by "
+        "default — a run sets it only when all four conditions hold "
+        "(TEST_ACCOUNT/ALLOW_WRITES + synthetic values + non-production target + "
+        "non-destructive); typing_allowed() is the one gate that reads it.",
+    )
 
 
 class CrawlIssue(Artifact):

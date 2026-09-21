@@ -78,15 +78,8 @@ class BrowserSession:
     composes them per step and records the returned evidence.
     """
 
-    def __init__(
-        self,
-        project: Project,
-        secrets: SecretStore,
-        run_dir: Path,
-        paths: ProjectPaths | None = None,
-        *,
-        observer: Any | None = None,
-    ) -> None:
+    def __init__(self, project: Project, secrets: SecretStore, run_dir: Path,
+                 paths: ProjectPaths | None = None, *, observer: Any | None = None) -> None:
         self.project = project
         self.secrets = secrets
         self.paths = paths or ProjectPaths(project.slug)
@@ -116,8 +109,7 @@ class BrowserSession:
             if self._context is not None:
                 self._context.close()
         finally:
-            self._context = None
-            self._page = None
+            self._context = self._page = None
             if self._playwright is not None:
                 self._playwright.stop()
                 self._playwright = None
@@ -195,6 +187,18 @@ class BrowserSession:
         self.page.locator(locator).select_option(value)
         return self._record(EvidenceKind.DOM, f"selected {value!r} in {locator}",
                              step_order=step_order)
+
+    def first_option(self, locator: str) -> str | None:
+        """A `<select>`'s first non-empty option value (X10-b). `None` when not
+        a combobox or nothing selectable — the caller records that honestly."""
+        try:
+            for option in self.page.locator(locator).locator("option").all():
+                value = option.get_attribute("value")
+                if value:
+                    return value
+        except Exception:
+            return None
+        return None
 
     def upload(self, locator: str, file_path: str, *, step_order: int | None = None) -> Evidence:
         self.page.locator(locator).set_input_files(file_path)
@@ -286,14 +290,8 @@ class BrowserSession:
         return self.state.hitl
 
     # -- evidence ---------------------------------------------------------------
-    def _record(
-        self,
-        kind: EvidenceKind,
-        path: str,
-        *,
-        step_order: int | None = None,
-        label: str | None = None,
-    ) -> Evidence:
+    def _record(self, kind: EvidenceKind, path: str, *, step_order: int | None = None,
+                label: str | None = None) -> Evidence:
         scrubbed = self.secrets.redactor().scrub(path)
         item = Evidence(kind=kind, path=scrubbed, step_order=step_order, label=label, masked=True)
         self.state.evidence.append(item)

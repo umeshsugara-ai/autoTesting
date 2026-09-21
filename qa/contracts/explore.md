@@ -63,11 +63,13 @@ boundary (the test account's own permissions):
 | policy | destructive-name deny-list | form submits | typing |
 |---|---|---|---|
 | `READ_ONLY` | ON | never clicked | never |
-| `TEST_ACCOUNT` | ON | allowed | never |
-| `ALLOW_WRITES` | OFF | allowed | never |
+| `TEST_ACCOUNT` | ON | allowed | allowed (X10-b only: synthetic values, gated run) |
+| `ALLOW_WRITES` | OFF | allowed | allowed (X10-b only: synthetic values, gated run) |
 
 **Verify:** against a real browser, a Delete-labelled control is never clicked under `READ_ONLY`
-and IS clicked under `ALLOW_WRITES` — the same fixture, both directions.
+and IS clicked under `ALLOW_WRITES` — the same fixture, both directions. The typing column is
+X10-b's, not D-016's original: it widens only under the four X10-b conditions and is otherwise
+"never", exactly as the base row read before the amendment.
 
 ### X6 — Session-ending controls are never clicked, at any policy
 Logout/sign-out is refused under every `write_policy`, including `ALLOW_WRITES`, and the refusal
@@ -104,13 +106,35 @@ A failed request becomes a `CrawlIssue` only when the host is first-party. Decla
 tracker hosts are dropped entirely; any other third party is tallied as noise and never reported
 as a bug. A first-party 404 IS an issue.
 
-### X10 — Nothing is typed
-The explorer never calls `fill`, `select_option`, or `upload`. It does not invent form data, ever.
-The only typing that happens on a crawl is the human-authored login case executed through
-`run_case`. This is the hard half of X1's exception: the explorer may invent a *click*, never a
-*value*.
+### X10 — Nothing is typed, except synthetic values under X10-b
+**X10 (base, unchanged in force everywhere else):** the explorer never calls `fill`,
+`select_option`, or `upload`. It does not invent form data, ever. The only typing that happens on
+a crawl is the human-authored login case executed through `run_case`. This is the hard half of
+X1's exception: the explorer may invent a *click*, never a *value*.
 **Verify:** `grep -n 'fill\|select_option\|upload' src/autotester/stages/explore*.py` returns
-nothing.
+nothing outside `explore_typing.py` and the FILL/SELECT handling named below.
+
+**X10-b (the D-029 exception, narrow and four-conditioned):** the typing pre-pass
+`stages/explore_typing.py::type_form` may additionally type into post-login form fields ONLY
+when ALL FOUR hold, each alone being a refusal:
+1. **policy** — the run's `SafetyPolicy.write_policy` is `TEST_ACCOUNT` or `ALLOW_WRITES` AND
+   `SafetyPolicy.synthetic_typing` is explicitly `True` for that run (`typing_allowed` is the
+   one boolean; default OFF keeps X10 exactly as it was for every existing caller);
+2. **synthetic values only** — every value comes from `stages/synthetic_values.py`, a fixed,
+   deterministic, non-PII generator keyed on the field's own name/selector (no provider, no
+   clock, no randomness — X12's determinism extends to what is typed);
+3. **non-production target** — the run's `RunApproval` names a dev-environment target
+   (`production: false`), per the live-crawl gate answer (Pathlynks dev, 2026-09-21);
+4. **non-destructive** — password-named fields are never typed (`typing_target_allowed`), an
+   upload is never performed, and the standing never-click (X6) and deny-list (X5) guards are
+   unchanged: typing widens nothing else.
+
+Typed actions are first-class crawl actions: each records an edge (`FILL`/`SELECT`,
+`SAME_SCREEN` or `NAVIGATED`) and counts toward `max_actions` and the per-node cap (X4 binds
+typing exactly as it binds clicks). The click loop still runs after the pre-pass, so a filled
+form's submit is exercised under the same X5 matrix as before. The verify grep's exception is
+exactly `explore_typing.py` — no other module may import or re-implement the typing behaviour
+(one concept, one place).
 
 ### X11 — Artifacts are incremental, human-readable, and survive a crash
 Nodes, edges and issues are JSONL and the crawl envelope and frontier are JSON, under
@@ -346,6 +370,9 @@ only the pure-function tests).
 ## No-fire list (do not raise these as findings)
 
 - Filling forms with synthetic data, and vision-guided action choice — both rejected by D-015/X10.
+  *(Updated 2026-09-21: synthetic typing is now BUILT as X10-b under D-029's four conditions —
+  raising "synthetic form data" as a finding is wrong only when the run lacks one of the four
+  X10-b conditions; the D-015 vision-guided-action-choice rejection is unchanged.)*
 - Resuming an interrupted crawl, parallel tabs, and CI triggers — not built, not claimed.
 - `EvidenceKind.TRACE`.
 - Auto-generating cases from crawl screens — that is `expand.py`, after human review.
@@ -573,3 +600,34 @@ only the pure-function tests).
   submit selector) and not a vacuous-guard workaround; no pre-existing AT-462/AT-467/partial-fill
   test was weakened. No criterion is removed or weakened; X1-X17 and X18(b)/(c)/(d)'s existing text
   are byte-unchanged aside from the additions named above.
+- 2026-09-21 · CRITICAL amendment · **X10 amended to X10-b (synthetic typing under four
+  conditions) and X5's typing column widened accordingly**, by the maker acting under D-029's
+  explicit `Changes-authorized` ("qa/contracts/explore.md — X10 + X5 amendment only, by the
+  checker" — this unit is the amendment itself; /checker verifies the implementation against
+  the amended criterion in cycle 1). Authorization chain: `qa/gates/post-login-forms.md`
+  answered **(b)** by Umesh in chat 2026-09-21 (verbatim: *"what is actually login form and
+  details like apni best intelligence se system ko fill krr lena chahiye like auto tester kya
+  krta hai, they cases and cases various different combinations ki like usse hota kya hai and
+  next time kis aur ways se kr ke dekhta hai"*) + `qa/gates/live-crawl-target.md` answered
+  **(b) Pathlynks** the same day → D-029 appended via `scripts/append_decision.ps1`, whose
+  `Changes-authorized` names exactly this amendment. What changed: X10's absolute typing ban
+  gains the X10-b exception (four conditions — widening policy + explicit per-run
+  `synthetic_typing` switch, synthetic deterministic values only from
+  `stages/synthetic_values.py`, non-production `RunApproval` target, non-destructive
+  [password fields never typed, uploads never performed, X6/X5 guards unchanged]); X5's
+  typing column reads "allowed (X10-b only)" under TEST_ACCOUNT/ALLOW_WRITES; the no-fire
+  row's first bullet is updated to name the built exception; X12 is unchanged (the fill
+  CHOICE is DOM-driven, no provider anywhere in the pre-pass). What did NOT change: X1-X9,
+  X11-X18 are byte-unchanged; `run_case` (E5) is untouched — the login case remains the only
+  `run_case` site and the pre-pass composes `session.fill`/`session.select_option`
+  directly, the same actuator boundary every other stage composes. **Load-bearing by
+  construction:** `tests/test_explore_typing.py` pins each violation as its own refusal
+  (READ_ONLY no, flag-off no, password-field no, determinism, bounds-bind-typing,
+  deny-list-still-ON-under-TEST_ACCOUNT) plus a REAL-browser proof
+  (`test_a_real_browser_types_and_submits_the_filled_form`: a genuine headless Chromium
+  fills the fixture's displayname and the submit carries the synthetic value in the
+  resulting GET url). Existing typing-off behaviour verified unchanged: test_explore.py +
+  test_explore_safety.py + test_explore_live.py + test_crawl_coverage.py all green, and the
+  default `SafetyPolicy()` keeps `synthetic_typing=False` so every pre-amendment caller and
+  test is unaffected. First live use: Pathlynks stage-2 form-exploration crawl (after the
+  READ_ONLY map crawl), under its own RunApproval citing both gate answers.

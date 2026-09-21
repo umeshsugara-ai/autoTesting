@@ -27,6 +27,29 @@ FORM_SUBMIT_REFUSED = "form submit under read_only"
 """The refusal a login wall is recognised by (X18) — one string, read by both."""
 OFF_DOMAIN_LINK_REFUSED = "href outside allowed domains"
 """A link refused BEFORE it is tried (V7's per-node count must not include it)."""
+TYPING_DISABLED = "typing disabled under this policy (X10-b)"
+"""Why a form field was not typed: the run has not met D-029's four conditions."""
+
+_TYPING_POLICIES = frozenset({WritePolicy.TEST_ACCOUNT, WritePolicy.ALLOW_WRITES})
+
+
+def typing_allowed(policy: SafetyPolicy) -> bool:
+    """X10-b's one gate (D-029). True only when the write policy is one a human
+    deliberately widened AND the run's policy carries `synthetic_typing` — the
+    default is OFF, so every existing crawl and every existing test keeps X10
+    exactly as it was."""
+    return policy.synthetic_typing and policy.write_policy in _TYPING_POLICIES
+
+
+def typing_target_allowed(el: ElementRef) -> bool:
+    """Which elements may receive a synthetic value: textbox/textarea/combobox
+    roles the observer already reports, never an upload, never a field whose
+    own name marks it a password/credential field (a "change password" form is
+    a credential change — D-029's non-destructive clause)."""
+    if el.role not in ("textbox", "combobox", "search"):
+        return False
+    label = f"{el.name} {el.selector}".lower()
+    return not ("password" in label or "passwd" in label)
 
 
 def policy_for(project: Project, **overrides: object) -> SafetyPolicy:

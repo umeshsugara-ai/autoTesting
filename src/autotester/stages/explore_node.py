@@ -2,7 +2,7 @@
 happened, and get back to the node before trying the next one.
 
 Split from `explore.py` for the 300-line cap. Contract: qa/contracts/explore.md
-X5-X9 — every decision about whether an action is allowed is delegated to
+X5-X9 â€” every decision about whether an action is allowed is delegated to
 `explore_safety.py`; nothing here re-implements a safety rule.
 """
 
@@ -32,13 +32,13 @@ if TYPE_CHECKING:
 
 
 def capture(rt: ExploreRuntime, node: ScreenNode) -> str | None:
-    """Screenshot this node through the session (masked, B7). Never fatal —
+    """Screenshot this node through the session (masked, B7). Never fatal â€”
     a crawl that cannot screenshot still produces a graph.
 
     AT-114: staying non-fatal is right; staying SILENT was not. `session.
     screenshot` retries the one transient CDP race AT-036 documents and
     deliberately re-raises everything else, because everything else is real.
-    A bare `except Exception: return None` threw that distinction away — a node
+    A bare `except Exception: return None` threw that distinction away â€” a node
     with no screenshot looked identical whether the compositor hiccuped twice
     or the browser had died. The cause is now recorded as an EVIDENCE issue, a
     kind of its own so a tool failure is never counted as a product bug.
@@ -47,12 +47,12 @@ def capture(rt: ExploreRuntime, node: ScreenNode) -> str | None:
         return rt.session.screenshot(f"node-{node.id[-6:]}").path
     except Exception as exc:
         add_issue(rt, node.id, IssueKind.EVIDENCE,
-                  f"could not screenshot this screen — {type(exc).__name__}: {exc}")
+                  f"could not screenshot this screen â€” {type(exc).__name__}: {exc}")
         return None
 
 
 def record_login_observe_failure(rt: ExploreRuntime, error: str | None) -> None:
-    """AT-474: the login page's signature could not be observed for X18(a) — file it as
+    """AT-474: the login page's signature could not be observed for X18(a) â€” file it as
     an EVIDENCE issue (never a product bug, X16) so `tool_failures` counts it, instead of
     the check going silently unjudged. No node exists yet at this point in the crawl."""
     if error is not None:
@@ -62,7 +62,7 @@ def record_login_observe_failure(rt: ExploreRuntime, error: str | None) -> None:
 def add_issue(rt: ExploreRuntime, node_id: str, kind: IssueKind, detail: str,
               *, first_party: bool = True) -> None:
     # AT-341: `detail` is often an exception's own message, which can embed a
-    # resolved secret (AT-076) — scrub before this reaches disk, same as evidence.
+    # resolved secret (AT-076) â€” scrub before this reaches disk, same as evidence.
     issue = CrawlIssue(crawl_id=rt.crawl.id, project=rt.project.slug, kind=kind,
                        node_id=node_id, detail=rt.session.secrets.scrub_optional(detail) or "",
                        first_party=first_party)
@@ -153,7 +153,7 @@ def try_action(rt: ExploreRuntime, node: ScreenNode, el: ElementRef) -> ScreenEd
 
 
 def _mark(rt: ExploreRuntime, node: ScreenNode, status: NodeStatus) -> None:
-    """Record how this node ended, in memory AND on disk — `add_node` is
+    """Record how this node ended, in memory AND on disk â€” `add_node` is
     idempotent, so an updated status needs `update_node` to land."""
     updated = node.model_copy(update={"status": status})
     rt.nodes[node.id] = updated
@@ -208,27 +208,31 @@ def _names(elements: list[ElementRef], limit: int = 8) -> str:
     return ", ".join(shown) + (f" (+{more} more)" if more > 0 else "")
 
 
+
 def visit_node(rt: ExploreRuntime, node: ScreenNode) -> None:
     """Try every allowed candidate on `node`, bounded by the per-node cap.
 
     AT-113 (checker-found, gated T-145): a node the crawl could never get back
-    to used to be marked ABORTED_ERROR with NO issue filed, and — mid-loop —
+    to used to be marked ABORTED_ERROR with NO issue filed, and â€” mid-loop â€”
     the same failure recorded an edge but then fell through to EXPLORED
     anyway. Neither surfaced anywhere a human would look: the crawl still
     reported `status=completed`, `stop_reason='frontier empty'`, `issues=0`,
     and the unreachable node entered the FlowSpec via `merge_screens` as an
-    ordinary screen — a partial crawl indistinguishable from a complete one,
+    ordinary screen â€” a partial crawl indistinguishable from a complete one,
     which is the one failure mode a live production run can least afford.
     Both paths now file a NAVIGATION issue and the node's final status always
     matches what actually happened to it.
     """
     if not return_to(rt, node):
         add_issue(rt, node.id, IssueKind.NAVIGATION,
-                  "could not return to this screen before exploring it — abandoned "
+                  "could not return to this screen before exploring it â€” abandoned "
                   f"unexplored: {why_lost(rt)}")
         _mark(rt, node, NodeStatus.ABORTED_ERROR)
         return
     _report_overlay(rt, node)
+    from autotester.stages.explore_typing import type_form  # lazy: explore_typing imports back
+
+    type_form(rt, node)
     tried = 0
     for el in node.elements:
         if tried >= rt.bounds.per_node_action_cap:
@@ -250,7 +254,7 @@ def visit_node(rt: ExploreRuntime, node: ScreenNode) -> None:
             record_edge(rt, node, el, Action.BACK, EdgeOutcome.ERRORED,
                         f"could not return to this screen: {why_lost(rt)}")
             add_issue(rt, node.id, IssueKind.NAVIGATION,
-                      "lost this screen mid-exploration — remaining controls not "
+                      "lost this screen mid-exploration â€” remaining controls not "
                       f"tried: {why_lost(rt)}")
             _mark(rt, node, NodeStatus.ABORTED_ERROR)
             return

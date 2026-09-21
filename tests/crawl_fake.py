@@ -47,6 +47,10 @@ SITE: dict[str, list[dict[str, Any]]] = {
         {"role": "button", "name": "Save", "selector": "button.save", "is_form_submit": True},
         {"role": "link", "name": "Log out", "selector": "a.out", "href": "/logged-out"},
         {"role": "button", "name": "", "selector": "button.icon"},
+        # X10-b: post-login form fields the typing pre-pass may fill.
+        {"role": "textbox", "name": "Display name", "selector": "input.displayname",
+         "tag": "input"},
+        {"role": "combobox", "name": "Grade", "selector": "select.grade", "tag": "select"},
     ],
     "https://app.test/deleted": [],
     "https://app.test/saved": [],
@@ -65,6 +69,14 @@ def _element(raw: dict[str, Any]) -> dict[str, Any]:
             "tag": "button", **raw}
 
 
+class FakeOption:
+    def __init__(self, value: str) -> None:
+        self._value = value
+
+    def get_attribute(self, name: str) -> str | None:
+        return self._value if name == "value" else None
+
+
 class FakeLocator:
     def __init__(self, page: FakeSitePage, selector: str) -> None:
         self.page, self.selector = page, selector
@@ -80,6 +92,19 @@ class FakeLocator:
 
     def inner_text(self) -> str:
         return ""
+
+    def locator(self, selector: str) -> FakeLocator:
+        return FakeLocator(self.page, f"{self.selector} >> {selector}")
+
+    def all(self) -> list[FakeOption]:
+        """X10-b: a combobox's options. The fake serves one empty (placeholder)
+        plus one real option for any `option` query, none otherwise."""
+        if "option" in self.selector:
+            return [FakeOption(""), FakeOption("grade-a")]
+        return []
+
+    def select_option(self, value: str) -> None:
+        self.page.selects.append((self.selector, value))
 
     def fill(self, value: str) -> None:
         """AT-226's fake: a field only 'exists' where the test registers it via
@@ -102,6 +127,7 @@ class FakeSitePage:
         self.history: list[str] = [url]
         self.clicks: list[str] = []
         self.fills: list[tuple[str, str]] = []
+        self.selects: list[tuple[str, str]] = []
         self.shots: list[str] = []
         self.redirects: dict[str, str] = {}
         """AT-226: simulates a login page redirecting away when the persistent

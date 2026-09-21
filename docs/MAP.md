@@ -75,6 +75,7 @@
 | `stages/explore_return.py` | Getting the browser back onto a screen the crawl has already seen. |
 | `stages/explore_safety.py` | The explorer's inner safety guard (Track B4, D-016). |
 | `stages/explore_status.py` | How a finished crawl is judged, and how a stored one is shown (X16, X18). |
+| `stages/explore_typing.py` | The X10-b typing pre-pass (D-029): what the crawler types, and where it |
 | `stages/grade.py` | GRADE: an independent, stateless judge reads a Rubric + a RawResult's evidence. |
 | `stages/ingest.py` | INGEST: turn a video Source into a FlowSpec, provenance-tracked to the second. |
 | `stages/issues.py` | ISSUES: turn an adjudicated analysis into rows a human tester can read. |
@@ -88,6 +89,7 @@
 | `stages/score.py` | SCORE: compare AutoTester's issues against a human tester's own sheet. |
 | `stages/screen_identity.py` | Screen identity: turn one `PageObservation` into a `ScreenNode`. |
 | `stages/similarity_score.py` | How two bug reports are compared for `stages/score.py`'s T-136 scorer. |
+| `stages/synthetic_values.py` | The synthetic value generator (X10-b, D-029): what the crawler types. |
 | `store/crawl_store.py` | Crawl artifact persistence — split from `project_store.py` at the |
 | `store/filestore.py` | The one place any artifact is read from or written to disk. Contract: core-invariants.md C6. |
 | `store/project_store.py` | Typed convenience over `filestore` for one project's directory. |
