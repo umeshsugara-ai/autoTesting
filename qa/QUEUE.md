@@ -266,3 +266,51 @@ at253 (ARCHITECTURE Execution-model D-entry) · t136-model-credentials.
 **Terminal state: `FINDINGS: 3`** (AT-555 medium; AT-556/557 low; AT-553 dup-id pattern reconciled
 by judgment, no renumber; 0 new gates opened; sweep report: this consolidation, shards at
 `qa/sweeps/shard-{1,2,3}-2026-09-22c.md`).
+
+---
+
+## Sweep refresh — 2026-09-22d (focused reconcile; not a full sweep — delta since 18:56/6b0e744,
+now HEAD `370a017`)
+
+Targeted reconcile of the 4 checker-verified units merged since the last full sweep (`93fad7b`
+onward): the ledger already carried the correct flips from those units' own verdicts —
+re-verified rather than re-derived from scratch, per the dispatch's bounds.
+
+**Ledger state re-confirmed against `qa/verdicts/`:**
+- **AT-541, AT-542, AT-543, AT-547** — `qa/verdicts/at541-543-ensemble-honesty.md` = PASS (cycle 1).
+  Already `status: fixed` on disk with the verdict's own retro-coverage notes; confirmed, not
+  re-flipped to `verified` (this checker's convention: `fixed` now, `verified` only on a later
+  independent re-check, per the checker protocol — not this reconcile).
+- **AT-550** (the `checker-sweep` ensemble-shrink row, line 547) — confirmed **OPEN**, partial-fix
+  note intact: record-the-shrink half fixed+verified in `7c3626b`
+  (`schema/analysis.py:59-93` → `adjudicate()` → `routes_sources.py:252`, mutation-tested 3/3 in
+  the verdict), the empty-config half (`schema/project.py:70` `return seen or ["gemini"]`) still
+  untouched. Left open, not closed.
+- **AT-555** — `qa/verdicts/at555-url-guard.md` = PASS (cycle 1). Already `status: fixed` on disk
+  (`met()`'s url branch now guarded via `_page_url()`, independently falsified in a throwaway copy).
+- **AT-557** (docs/SNAPSHOT.md stale) — `uv run autotester doctor` re-run at HEAD `370a017` →
+  **`doctor: clean`**. Flipped `open → fixed` this reconcile (evidence: "doctor clean at 370a017,
+  SNAPSHOT regenerated" — the ensemble unit's landing evidently re-ran `autotester snapshot`).
+- **AT-556** (ScheduleWakeup blocked by classifier outage) — loop-resilience observation, not a
+  code defect. Left **open, low**; annotated that this session's tick survived via
+  subagent-notification + heartbeat (no dead loop observed).
+
+No other rows touched. `qa/issues.jsonl` re-validated line-by-line as valid JSON after edits (560
+lines, unchanged count).
+
+### TOP-3 BUILDABLE NEXT UNITS (2026-09-22d refresh)
+
+| # | Unit | Why |
+|---|---|---|
+| **1** | **AT-110 (high)** — RunApproval tamper-check defeat, now the oldest untouched high-severity row on the board (~14 days). | No mechanical blocker; the highest-severity buildable defect with no human gate in front of it. |
+| **2** | **AT-550 empty-config remainder** — make `schema/project.py:70`'s `return seen or ["gemini"]` explicit (refuse, or default-with-note) instead of a silent substitution; the record-the-shrink half is already done and verified, this is the narrow remainder. | Small, well-scoped, closes the last disclosed gap on a row already half-fixed. |
+| **3** | **AT-554 (HUMAN_GATE, not a buildable unit)** — `/settings/providers` + env editor serve the real credential VALUE in the HTTP response/DOM, contradicting `browser-and-secrets.md:59`/`core-invariants.md:47`; CRITICAL-class (weakening a credential boundary needs Umesh + a D-entry). Noted here as a gate row so it stays visible, not picked up as ordinary work. | Blocks nothing else buildable but is high-severity and needs a human decision before any code touches it. |
+
+**GRILL — human decision, not a build row (carried, unanswered):**
+- GRILL: recurring vacuous-guard prevention policy (AT-218).
+- GRILL: real two-mode acceptance thresholds for D-023/T-169 (AT-281).
+- GRILL (AT-402): structure-before-code review of `visual_order.js`.
+
+**Terminal state: `focused reconcile — 0 new findings, 6 rows reconciled`** (AT-541/542/543/547/555
+confirmed `fixed`; AT-550 confirmed `open`/partial; AT-557 flipped `open → fixed` on a clean
+doctor; AT-556 annotated, left `open`/low; HEAD `370a017`).
