@@ -52,7 +52,7 @@ the previous stage's artifact. A stage never reaches into another stage's intern
 | Running a case's steps in a browser, no judgement (that's grade.py) | `stages/execute.py::run_case` |
 | Judging a case's evidence against its rubric — stateless, evidence-only | `stages/grade.py::grade` |
 | Read-only backend assertions (Mongo) + manual one-time login + tester report export (Excel + HTML) + generic run+grade with a self-healing default rubric | `browser/db.py::ReadOnlyCollection`, `stages/manual_login.py`, `stages/report_export.py`, `stages/run_case_pipeline.py::run_and_grade_case` |
-| Agent fallback: fix one broken step, persist the corrected case | `stages/agent_loop.py::run_with_fallback` |
+| Agent fallback: fix one broken step, persist the corrected case (unwired — queued unit, D-031) | `stages/agent_loop.py::run_with_fallback` |
 | Multi-vendor fallback (Anthropic→Gemini→Ollama→ChatGPT; no single-provider dependency) — default agent/judge (standalone `AnthropicProvider` also registered) | `providers/langchain_fallback.py::LangChainFallbackProvider` |
 | Gemini provider (vision role — video understanding) | `providers/gemini.py::GeminiProvider` |
 | Video → FlowSpec (screens/flows, provenance to the second) | `stages/ingest.py::ingest_video` |
@@ -84,10 +84,15 @@ self-extension loop; `BenchCorpus`/`BenchTrial` run the human-vs-AI comparison.
 
 ## Execution model
 
-Per case: **script-first** (run the durable Playwright script if one exists) → **agent fallback**
-(provider `act` loop: write → run → read failure → edit, capped iterations) → on success the agent
-emits a script. So a stable suite costs ~zero tokens to re-run; the agent only pays for new or
-broken cases.
+Per case: `run_case` performs exactly the case's steps in a real browser and produces a
+`RawResult` (outcome, evidence, iterations). Judgement belongs entirely to the independent
+grader (`stages/grade.py`), which sees evidence only — the executor never grades itself.
+
+**Not yet built (queued wiring unit, D-031):** durable script-first replay and the agent
+fallback are scaffolding only — `Script` and `case.script_ref` exist in the schema and
+`agent_loop.run_with_fallback` is implemented but has zero production callers. A stable suite
+does NOT yet cost ~zero tokens to re-run; every re-run is a fresh run. Wiring this is the
+queued unit's goal, not a shipped fact.
 
 Browser is **headed by default** (`Project.headed`), driven against a persistent profile in
 `profiles/<slug>/` so login happens once. OTP/2FA puts the run in `blocked_hitl` and asks the human.

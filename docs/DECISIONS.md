@@ -528,3 +528,36 @@ No Approved-by required (no enforcement path in scope).
 **Links:** D-015 (crawl-artifact rationale for real products); D-018 (per-run approval records);
 qa/manifests/t161-unified-project-intake.md (runtime-artifact classification of .codex/);
 AT-500; AT-521
+
+## D-031 | 2026-09-22 | type: decision | status: ACTIVE
+**What:** Correct `docs/ARCHITECTURE.md`'s "Execution model" section to describe the system
+that actually exists. Today it claims: "**Per case: script-first** (run the durable Playwright
+script if one exists) â†’ agent fallback ... on success the agent emits a script. So a stable
+suite costs ~zero tokens to re-run; the agent only pays for new or broken cases." None of that
+exists: `Script` (`src/autotester/schema/case.py:87`) is never instantiated in `src/`;
+`case.script_ref` (`:31`) is declared and copied through, never read for behaviour;
+`stages/agent_loop.py::run_with_fallback` has zero production callers â€”
+`stages/run_case_pipeline.py:95`, `stages/explore.py:109` and the UI all call
+`stages/execute.py::run_case` directly. Every re-run today is a fresh vision-graded run.
+Verified independently by the 2026-09-22 sweep (AT-540's fold; verdict
+qa/verdicts/sweep-2026-09-22.md) and by the TestSprite research audit
+(docs/research/testsprite-2026-09.md, Â§7 row 1 â€” filed as AT-253's re-verification).
+**Why:** Under the Lab Protocol, generated docs must not claim behaviour the code does not
+have; a false execution model misleads every reader (human or agent) who plans work on top of
+it, and it blocks the upcoming script-first wiring unit (D-entry for that unit will cite this
+correction as its prose baseline). The replacement prose describes today's reality: per case,
+`run_case` performs the steps in a real browser and produces a RawResult; judgement belongs
+entirely to the independent grader (`stages/grade.py`); there is no durable-script replay and
+no token amortization yet â€” that is the design goal of the queued script-first unit, not a
+shipped fact. The `Script` schema and the unwired `run_with_fallback` are described as
+scaffolding for that queued unit.
+**Result:** The "Execution model" section is rewritten to: (1) per-case execution = `run_case`
+direct, producing RawResult; (2) grading = independent stateless judge, multimodal;
+(3) an honest "Not yet built" sentence naming script-first replay + agent fallback as the
+queued wiring unit's goal (AT-253 answered: wire, not retire â€” Umesh 2026-09-22). No other
+section changes. The concept-to-file table row for agent fallback is reworded to
+"unwired (queued)" so MAP and ARCHITECTURE agree.
+**Changes-authorized:** docs/ARCHITECTURE.md (the "Execution model" section only + the one
+concept-to-file table row's wording).
+**Links:** AT-253; AT-540; qa/verdicts/sweep-2026-09-22.md; docs/research/testsprite-2026-09.md;
+schema/case.py (Script, script_ref); stages/agent_loop.py; stages/run_case_pipeline.py:95
