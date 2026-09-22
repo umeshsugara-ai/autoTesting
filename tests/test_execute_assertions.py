@@ -19,8 +19,9 @@ from pathlib import Path
 
 from test_execute import LOGIN, make_case, session_with_fake_page
 
+from autotester.browser import assertions
 from autotester.schema.enums import Action, EvidenceKind, Outcome
-from autotester.schema.flowspec import Step
+from autotester.schema.flowspec import ExpectedState, Step
 from autotester.stages.execute import run_case
 
 
@@ -136,6 +137,43 @@ def test_absent_text_on_an_unreadable_page_fails_safe_not_silently_met(tmp_path:
     assert result.outcome is Outcome.ASSERTION_FAILED
     assert any("absent_text: unmet (page unreadable)" in e.path for e in result.evidence
                if e.kind is EvidenceKind.DOM)
+
+
+def test_met_url_branch_fails_safe_on_an_unreadable_page(tmp_path: Path) -> None:
+    """AT-555: `met()`'s url branch used to read `session.page.url` raw,
+    INSIDE the outer `with contextlib.suppress(Exception):`. On a crashed
+    page that read raises, the suppress swallowed it and execution fell
+    through to the final `return True` -- a url-bearing expectation on an
+    unreadable page recorded SATISFIED instead of failing safe. Twin of
+    AT-551's body_text fix: `_page_url` now returns None on a read failure
+    and `met()` treats None as unmet, never met.
+
+    Probes `met()` directly rather than through `run_case`: `assert_expected`
+    records each field's evidence via its OWN independently-guarded reader
+    (`_url_label`/`_text_label`, both already fixed pre-AT-555 for their own
+    incidents), so a `met()`-only regression does not flip the run's final
+    Outcome or evidence text -- it only changes how many times the poll
+    loop retries before falling back to that evidence. The actual contract
+    `met()` makes (and that `session._met()` / any future direct caller
+    relies on) has to be pinned at `met()` itself."""
+    session = session_with_fake_page(tmp_path)
+    real_page = session.page
+
+    class PageWithUnreadableUrl:
+        """Delegates everything to the real fake page except `.url`, whose
+        read raises -- mirrors test_execute.py's crashing_body_locator
+        pattern but for the url property instead of a locator method."""
+
+        def __getattr__(self, name: str):
+            return getattr(real_page, name)
+
+        @property
+        def url(self) -> str:
+            raise RuntimeError("page crashed mid-read")
+
+    session._page = PageWithUnreadableUrl()
+
+    assert assertions.met(session, ExpectedState(url="/success")) is False
 
 
 def test_a_met_expectation_keeps_the_run_completed(tmp_path: Path) -> None:
