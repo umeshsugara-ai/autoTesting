@@ -1,10 +1,13 @@
-"""SOURCE ADAPTERS (T-162 phase-1a). Contract: qa/contracts/source-adapters.md.
+"""SOURCE ADAPTERS -- TEXT + DOC (T-162 phase-1a). Contract:
+qa/contracts/source-adapters.md. AUDIO lives in test_source_adapters_audio.py
+(split by responsibility, doctor's file-length rule) but shares this file's
+fixtures/helpers pattern.
 
-Covers the adapter seam plus TEXT and DOC (AUDIO/DRIVE/EMAIL are later units):
-SA1 (one store, one enum), SA2 (content-addressed dedupe), the SA-table
-(TEXT verbatim, no model call; DOC extracted host-side), SA4 (provenance is the
-Source id), and SA5 (honest degradation — an unreadable doc keeps an
-`extraction_error` note, never silent empty text).
+Covers the adapter seam for TEXT and DOC: SA1 (one store, one enum), SA2
+(content-addressed dedupe), the SA-table (TEXT verbatim, no model call; DOC
+extracted host-side), SA4 (provenance is the Source id), and SA5 (honest
+degradation — an unreadable doc keeps an `extraction_error` note, never
+silent empty text).
 
 No provider is constructed anywhere in this file: the adapters take no model,
 which is the SA6/"a model may NAME, never DECIDE" boundary enforced by shape.
