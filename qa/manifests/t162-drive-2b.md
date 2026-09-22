@@ -12,7 +12,13 @@
   AUDIO phase-1b.
 - **Issues addressed:** none — new feature (fast-follow of `t162-email-2a`, completing T-162's
   declared phase-2 DRIVE scope).
-- **Status:** ready-for-check.
+- **Status:** checked-PASS (dual check, reconciled at cycle 2). Cycle 1: primary
+  `qa/verdicts/t162-drive-2b.md` PASS + blind secondary `qa/verdicts/t162-drive-2b.b.md` FAIL on one
+  low-sev C7 gap (6th test lacked a pasted mutation row) — both agreed SA1-SA6 hold, SA3 verified by
+  full code read on both sides. Cycle 2 (manifest-only fix, code byte-identical): C7 mutation row
+  added + independently reproduced, verdict `qa/verdicts/t162-drive-2b.md` PASS (d650eaf), full repo
+  1568 passed / 0 failed. Completes T-162 phase-2 (all adapters done). ISS-t162-drive-2b-1
+  (T-162 done_check too narrow) stays open as a separate finding — fixed on close-out.
 
 ## Scope delivered (phase-2b)
 
