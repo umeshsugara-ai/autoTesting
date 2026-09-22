@@ -2,18 +2,15 @@
 
 Contract: qa/contracts/video-learning.md VL3/VL4. **Pure and deterministic — no
 provider, no clock, no randomness.** Given the same cached observations in any
-order it produces byte-identical output, which is what makes the on-disk
-observation cache worth having: re-running the analysis costs nothing and
-changes nothing.
+order it produces byte-identical output — what makes the on-disk observation
+cache worth having: re-running the analysis costs nothing and changes nothing.
 
 Two jobs, and they are separate on purpose:
 
-* **seams** — chunks overlap by design, so the same click is seen twice. What
-  the model reports in an overlap is shifted into whole-video time here (in
-  code, never by the model) and the duplicate dropped.
+* **seams** — chunks overlap by design, so the same click is seen twice; it is
+  shifted into whole-video time here (in code, never by the model) and dropped.
 * **cross-model** — two models (or one model's two prompts, VL4a) describe the
-  same footage slightly differently. Agreement raises confidence; disagreement
-  is kept, not averaged.
+  same footage slightly differently. Agreement raises confidence, never averaged.
 
 The merge is deliberately dumb: casefolded names, overlapping intervals, a
 fixed window. A cleverer matcher would be a second model, unauditable, and
@@ -29,10 +26,10 @@ from autotester.schema.observation import ModelObservation, ObservedIssue, Obser
 SEAM_WINDOW_S = 10.0
 """How far apart two reports of the same thing can be and still be one thing.
 
-Chunks overlap by 15s, so a click near a boundary is seen by both chunks at
-timestamps that differ by however much the two models disagree about when it
-happened — not by the overlap. 10s is wide enough for that disagreement and
-narrower than the overlap, so a genuine repeat 15s later is not swallowed."""
+Chunks overlap by 15s, so a boundary click is seen by both at timestamps that
+differ by however much the two models disagree, not by the overlap — wide
+enough for that, narrower than the overlap, so a genuine repeat 15s later
+is not swallowed."""
 
 
 def shift(observation: ModelObservation) -> ModelObservation:
@@ -254,11 +251,13 @@ def _collect(shifted: list[ModelObservation]) -> tuple[list, list, list, list[st
 
 
 def adjudicate(observations: list[ModelObservation], source_id: str, *,
-               expected: int | None = None) -> VideoAnalysis:
+               expected: int | None = None,
+               requested_providers: list[str] | None = None) -> VideoAnalysis:
     """Every model's every chunk, merged into one reading of one recording.
 
     `expected` is how many model calls the caller PLANNED. Omitting it records
-    **0, meaning unknown** — never a flattering guess (AT-208).
+    **0, meaning unknown** — never a flattering guess (AT-208). `requested_
+    providers` (AT-550) is who was ASKED for; omitted, it defaults to who answered.
 
     Sorted before merging so the result does not depend on the order the
     observations happened to be loaded in — the property VL4 asks for, and the
@@ -288,7 +287,8 @@ def adjudicate(observations: list[ModelObservation], source_id: str, *,
         source_id=source_id,
         observations_used=len(shifted),
         observations_expected=0 if expected is None else expected,
-        provider_labels=sorted({o.provider_label for o in shifted}),
+        provider_labels=(labels := sorted({o.provider_label for o in shifted})),
+        requested_providers=sorted(set(requested_providers)) if requested_providers else labels,
         prompt_names=sorted({o.prompt_name for o in shifted}),
         screens=joined,
         flows=flows,

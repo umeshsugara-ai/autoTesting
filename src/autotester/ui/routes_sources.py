@@ -236,13 +236,20 @@ def analyze_source(slug: str, source_id: str):
         # exactly one — `vision_ensemble()` splits the comma-separated config.
         # A provider with no credential is skipped (the ensemble degrades,
         # never dies); analyze itself refuses only when EVERY call fails.
+        # AT-550: skipping it here used to be silent — `ready` alone decided
+        # `expected`, so a 2-provider config missing one credential persisted
+        # an analysis that read as a complete 2-model reading. `requested_
+        # providers` carries the full configured ensemble through so the
+        # saved artifact can show the shrink even though only `ready` is ever
+        # called.
         ensemble = [providers.get(name) for name in project.providers.vision_ensemble()]
         ready = [p for p in ensemble if p.available()]
         if not ready:
             raise ProviderError(
                 "no configured vision provider has a credential — "
                 f"checked: {[p.id for p in ensemble]}")
-        analysis = analyze(store, source, ready, docs=RepoDocs(), options=VisionOptions())
+        analysis = analyze(store, source, ready, docs=RepoDocs(), options=VisionOptions(),
+                           requested_providers=[p.label for p in ensemble])
     except (ProviderError, SourceNotPrepared, UnreadableRecording,
             NoObservations, DuplicateProviders) as exc:
         return _refusal(slug, str(exc), title="Analysis could not finish")

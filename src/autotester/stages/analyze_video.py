@@ -140,12 +140,21 @@ def _cached(store: ProjectStore, source_id: str, label: str, prompt_name: str,
 
 def analyze(store: ProjectStore, source: Source, providers: list[Provider], *,
             docs: RepoDocs | None = None, options: VisionOptions | None = None,
-            force: bool = False) -> VideoAnalysis:
+            force: bool = False,
+            requested_providers: list[str] | None = None) -> VideoAnalysis:
     """Every model, every prompt, every chunk -- adjudicated into one reading.
 
     Refuses without `media.json` rather than silently analysing an unprepared
     recording as a single blob — prep is where chunking and narration happen,
-    and skipping it changes the answer without saying so."""
+    and skipping it changes the answer without saying so.
+
+    `requested_providers` (AT-550) lets a caller that already filtered
+    `providers` down (e.g. by credential `.available()`, as the UI route
+    does) still record what it originally asked for, so the persisted
+    `VideoAnalysis` can show the shrink instead of quietly reporting on
+    whichever smaller ensemble happened to run. Omit it when `providers` IS
+    the full requested set (every other caller, e.g. the CLI) — it then
+    defaults to `[p.label for p in providers]`, recording no degradation."""
     labels = [p.label for p in providers]
     if len(set(labels)) != len(labels):
         raise DuplicateProviders(
@@ -173,6 +182,8 @@ def analyze(store: ProjectStore, source: Source, providers: list[Provider], *,
             f"Check `autotester providers` for credentials.")
 
     expected = len(providers) * len(PROMPT_NAMES) * len(prep.chunks)
-    analysis = adjudicate(observations, source.id, expected=expected)
+    analysis = adjudicate(
+        observations, source.id, expected=expected,
+        requested_providers=requested_providers or [p.label for p in providers])
     store.save_analysis(analysis)
     return analysis
