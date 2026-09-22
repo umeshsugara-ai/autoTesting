@@ -182,7 +182,8 @@ def _crawl_reaching(
         store.save_crawl(crawl_)
         return crawl_
 
-    monkeypatch.setattr(explore_stage, "require_consent", lambda *a, **k: None)
+    monkeypatch.setattr("autotester.stages.explore_consent.require_consent",
+                        lambda *a, **k: None)
     monkeypatch.setattr(explore_stage, "run_crawl", fake_run_crawl)
     monkeypatch.setattr(BrowserSession, "__enter__", lambda self: self)
     monkeypatch.setattr(BrowserSession, "__exit__", lambda self, *exc: None)

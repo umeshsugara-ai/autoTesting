@@ -212,7 +212,9 @@ def start_crawl(
     from autotester.browser.secrets import SecretStore
     from autotester.browser.session import BrowserSession
     from autotester.core.consent import ApprovalRequired
+    from autotester.schema.crawl import SafetyPolicy
     from autotester.stages import explore as explore_stage
+    from autotester.stages import explore_consent
 
     store, project = _load_project_or_404(slug)
     try:
@@ -226,7 +228,9 @@ def start_crawl(
                             "the login case declared for this project no longer exists — "
                             "declare another one above the crawl form")
     try:
-        explore_stage.require_consent(project, store, bounds)
+        explore_consent.require_consent(
+            project, store, bounds,
+            policy=SafetyPolicy(write_policy=project.write_policy))
     except ApprovalRequired as exc:
         return _crawl_error(slug, 403, "Crawl approval required", str(exc))
     paths = ProjectPaths(slug)

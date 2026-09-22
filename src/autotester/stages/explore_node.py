@@ -24,6 +24,8 @@ from autotester.stages.explore_safety import (
     classify_request,
     deny_reason,
     link_is_safe,
+    typing_allowed,
+    typing_target_allowed,
 )
 from autotester.stages.screen_identity import node_from
 
@@ -209,34 +211,20 @@ def _names(elements: list[ElementRef], limit: int = 8) -> str:
 
 
 
-def visit_node(rt: ExploreRuntime, node: ScreenNode) -> None:
-    """Try every allowed candidate on `node`, bounded by the per-node cap.
-
-    AT-113 (checker-found, gated T-145): a node the crawl could never get back
-    to used to be marked ABORTED_ERROR with NO issue filed, and â€” mid-loop â€”
-    the same failure recorded an edge but then fell through to EXPLORED
-    anyway. Neither surfaced anywhere a human would look: the crawl still
-    reported `status=completed`, `stop_reason='frontier empty'`, `issues=0`,
-    and the unreachable node entered the FlowSpec via `merge_screens` as an
-    ordinary screen â€” a partial crawl indistinguishable from a complete one,
-    which is the one failure mode a live production run can least afford.
-    Both paths now file a NAVIGATION issue and the node's final status always
-    matches what actually happened to it.
-    """
-    if not return_to(rt, node):
-        add_issue(rt, node.id, IssueKind.NAVIGATION,
-                  "could not return to this screen before exploring it â€” abandoned "
-                  f"unexplored: {why_lost(rt)}")
-        _mark(rt, node, NodeStatus.ABORTED_ERROR)
-        return
-    _report_overlay(rt, node)
-    from autotester.stages.explore_typing import type_form  # lazy: explore_typing imports back
-
-    type_form(rt, node)
+def _click_loop(rt: ExploreRuntime, node: ScreenNode, typed: int) -> bool:
+    """The click phase after the typing pre-pass (AT-533: ONE shared per-node
+    budget). Returns False when the node ended ABORTED_DIALOG/ABORTED_ERROR;
+    True when it was fully explored."""
     tried = 0
     for el in node.elements:
-        if tried >= rt.bounds.per_node_action_cap:
+        # AT-533: typing and clicking share ONE per-node budget — the typed
+        # pre-pass consumed its share first, the click loop gets the rest.
+        if tried + typed >= rt.bounds.per_node_action_cap:
             break
+        # AT-534: never click a form field the gate refused to type — a click
+        # that "exercises" it is a wasted click and a false coverage claim.
+        if typing_target_allowed(el) and not typing_allowed(rt.policy):
+            continue
         reached = explore.stop_reason(rt)
         if reached:  # AT-463: name the bound, or a last screen reads "frontier empty"
             rt.stop_reason = reached
@@ -249,13 +237,47 @@ def visit_node(rt: ExploreRuntime, node: ScreenNode) -> None:
         if edge.outcome is EdgeOutcome.DIALOG:
             add_issue(rt, node.id, IssueKind.DIALOG, "dialog repeat limit reached")
             _mark(rt, node, NodeStatus.ABORTED_DIALOG)
-            return
+            return False
         if not return_to(rt, node):
             record_edge(rt, node, el, Action.BACK, EdgeOutcome.ERRORED,
                         f"could not return to this screen: {why_lost(rt)}")
             add_issue(rt, node.id, IssueKind.NAVIGATION,
-                      "lost this screen mid-exploration â€” remaining controls not "
+                      "lost this screen mid-exploration — remaining controls not "
                       f"tried: {why_lost(rt)}")
             _mark(rt, node, NodeStatus.ABORTED_ERROR)
-            return
+            return False
     _mark(rt, node, NodeStatus.EXPLORED)
+    return True
+
+
+def visit_node(rt: ExploreRuntime, node: ScreenNode) -> None:
+    """Try every allowed candidate on `node`, bounded by the per-node cap.
+
+    AT-534: a typing target the pre-pass was not allowed to fill must not be
+    silently clicked afterwards and counted exercised — the click loop skips
+    the pre-pass's refusal targets, whose DENIED_POLICY edge is already on
+    disk. (`typing_allowed` is false but a *different* element is a click
+    candidate, ordinary rules apply.)
+
+    AT-113 (checker-found, gated T-145): a node the crawl could never get back
+    to used to be marked ABORTED_ERROR with NO issue filed, and — mid-loop —
+    the same failure recorded an edge but then fell through to EXPLORED
+    anyway. Neither surfaced anywhere a human would look: the crawl still
+    reported `status=completed`, `stop_reason='frontier empty'`, `issues=0`,
+    and the unreachable node entered the FlowSpec via `merge_screens` as an
+    ordinary screen — a partial crawl indistinguishable from a complete one,
+    which is the one failure mode a live production run can least afford.
+    Both paths now file a NAVIGATION issue and the node's final status always
+    matches what actually happened to it.
+    """
+    if not return_to(rt, node):
+        add_issue(rt, node.id, IssueKind.NAVIGATION,
+                  "could not return to this screen before exploring it — abandoned "
+                  f"unexplored: {why_lost(rt)}")
+        _mark(rt, node, NodeStatus.ABORTED_ERROR)
+        return
+    _report_overlay(rt, node)
+    from autotester.stages.explore_typing import type_form  # lazy: explore_typing imports back
+
+    typed = type_form(rt, node)
+    _click_loop(rt, node, typed)

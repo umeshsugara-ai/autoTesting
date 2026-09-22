@@ -1,0 +1,20 @@
+{
+  "unit": "x10b-form-typing",
+  "cycle": 2,
+  "checker": true,
+  "date": "2026-09-22",
+  "browser": "headless Chromium (real)",
+  "base_url": "http://127.0.0.1:56878/settings.html",
+  "crawl_status": "stopped_bound",
+  "stop_reason": "max_screens",
+  "screens": 8,
+  "typed_edges": 2,
+  "typed_edge_outcomes": [
+    "same_screen",
+    "same_screen"
+  ],
+  "saved_urls_with_synthetic_value": [
+    "http://127.0.0.1:56878/saved.html?displayname=AutoTester+College+810"
+  ],
+  "synthetic_value_visible_in_url": true
+}

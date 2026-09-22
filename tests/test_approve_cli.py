@@ -60,7 +60,7 @@ def test_approve_writes_a_row_that_covers_the_cli_defaults(root: Path) -> None:
     seam is the two refusal tests above, which read the bounds out of the real
     command's output. Kept, correctly described."""
     from autotester.schema.crawl import CrawlBounds
-    from autotester.stages.explore import require_consent
+    from autotester.stages.explore_consent import require_consent
 
     assert grant("--max-actions", str(CLI_DEFAULT_ACTIONS),
                  "--wall-clock", CLI_DEFAULT_WALL_CLOCK).exit_code == 0
@@ -75,7 +75,7 @@ def test_an_approval_narrower_than_the_run_still_refuses(root: Path) -> None:
     a gate that never checks its own bounds."""
     from autotester.core.consent import ApprovalRequired
     from autotester.schema.crawl import CrawlBounds
-    from autotester.stages.explore import require_consent
+    from autotester.stages.explore_consent import require_consent
 
     assert grant("--max-actions", str(CLI_DEFAULT_ACTIONS - 1),
                  "--wall-clock", CLI_DEFAULT_WALL_CLOCK).exit_code == 0
@@ -161,7 +161,7 @@ def test_the_grant_and_the_runtime_agree_on_every_expiry_they_accept(
     `approve` ACCEPTS must be one `require_consent` will HONOUR. The two used
     different comparisons, so there was a whole day where they disagreed."""
     from autotester.schema.crawl import CrawlBounds
-    from autotester.stages.explore import require_consent
+    from autotester.stages.explore_consent import require_consent
 
     for offset in (1, 2, 30):
         when = (date.today() + timedelta(days=offset)).isoformat()

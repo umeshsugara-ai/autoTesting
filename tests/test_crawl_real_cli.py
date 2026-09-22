@@ -128,7 +128,7 @@ def test_the_refusals_command_grants_the_run_once_a_human_fills_it_in(
     must grant exactly the run that was refused — not a narrower one that
     refuses again."""
     from autotester.schema.crawl import CrawlBounds
-    from autotester.stages.explore import require_consent
+    from autotester.stages.explore_consent import require_consent
 
     refusal = runner.invoke(app, ["explore", "demo"]).output
     match = re.search(r"autotester approve.*", refusal)

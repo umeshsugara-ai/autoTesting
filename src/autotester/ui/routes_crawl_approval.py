@@ -2,8 +2,8 @@
 
 Split from `routes_credentials.py` for the 300-line cap - a separate concept
 (human consent for one bounded run) from value editing. This form is the
-granting surface; `require_consent` in `stages/explore.py` is the runtime
-gate that reads what lands here.
+granting surface; `require_consent` in `stages/explore_consent.py` is the
+runtime gate that reads what lands here.
 """
 
 from __future__ import annotations

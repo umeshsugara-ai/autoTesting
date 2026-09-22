@@ -81,7 +81,8 @@ def launched(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, object]]:
         return Crawl(project="demo", id=str(kwargs["crawl_id"]))
 
     monkeypatch.setattr("autotester.browser.session.BrowserSession", Session)
-    monkeypatch.setattr("autotester.stages.explore.require_consent", lambda *_a: None)
+    monkeypatch.setattr("autotester.stages.explore_consent.require_consent",
+                        lambda *_a, **_k: None)
     monkeypatch.setattr("autotester.stages.explore.run_crawl", run)
     return calls
 

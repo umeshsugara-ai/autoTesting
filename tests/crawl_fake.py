@@ -52,6 +52,13 @@ SITE: dict[str, list[dict[str, Any]]] = {
          "tag": "input"},
         {"role": "combobox", "name": "Grade", "selector": "select.grade", "tag": "select"},
     ],
+    # AT-532: a form whose fill auto-submits to ANOTHER domain (a real
+    # onchange auto-submit) — typing it must never create/explore the
+    # off-domain node.
+    "https://app.test/trap": [
+        {"role": "textbox", "name": "Search", "selector": "input.offdomain"},
+    ],
+    "https://evil.test/trap": [],
     "https://app.test/deleted": [],
     "https://app.test/saved": [],
     "https://app.test/logged-out": [],
@@ -61,6 +68,9 @@ SITE: dict[str, list[dict[str, Any]]] = {
 CLICK_TARGETS = {"button.del": "https://app.test/deleted",
                  "button.save": "https://app.test/saved",
                  "button.icon": "https://app.test/deleted"}
+
+# AT-532: a fill that auto-submits — the url the browser lands on after.
+FILL_TARGETS = {"input.offdomain": "https://evil.test/trap"}
 
 
 def _element(raw: dict[str, Any]) -> dict[str, Any]:
@@ -117,6 +127,11 @@ class FakeLocator:
         # not merely that the crawl completed -- `crawl.status` alone cannot
         # distinguish "the login case ran" from "the login case was skipped".
         self.page.fills.append((self.selector, value))
+        # AT-532: a fill whose onchange auto-submits (a real-world search box
+        # with an instant-submit handler).
+        target = FILL_TARGETS.get(self.selector)
+        if target:
+            self.page.visit(target)
 
 
 class FakeSitePage:

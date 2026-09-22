@@ -26,10 +26,12 @@ def _preflight_consent(proj: Any, store_: ProjectStore, bounds: Any) -> None:
     "a refused run leaves no trace" has to mean what it says.
     """
     from autotester.core.consent import ApprovalRequired
-    from autotester.stages import explore as explore_stage
+    from autotester.schema.crawl import SafetyPolicy
+    from autotester.stages import explore_consent
 
     try:
-        explore_stage.require_consent(proj, store_, bounds)
+        explore_consent.require_consent(
+            proj, store_, bounds, policy=SafetyPolicy(write_policy=proj.write_policy))
     except ApprovalRequired as exc:
         typer.secho(str(exc), fg=typer.colors.YELLOW)
         raise typer.Exit(2) from None

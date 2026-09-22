@@ -1,4 +1,4 @@
-"""X10-b (D-029): the explorer's synthetic typing pre-pass.
+﻿"""X10-b (D-029): the explorer's synthetic typing pre-pass.
 
 The four conditions and their violations: typing happens ONLY under
 TEST_ACCOUNT/ALLOW_WRITES with the run's `synthetic_typing` switch on, values
@@ -30,7 +30,7 @@ SETTINGS_URL = "https://app.test/settings"
 
 def _register_fillable(page: object) -> None:
     """The fake's fill only 'exists' where a test registered it (AT-226's
-    mechanism) — register the settings page's typing targets."""
+    mechanism) â€” register the settings page's typing targets."""
     page.fillable[SETTINGS_URL] = {  # type: ignore[attr-defined]
         "input.displayname", "select.grade",
     }
@@ -98,7 +98,7 @@ def test_typing_never_happens_under_read_only(tmp_path: Path) -> None:
 
 
 def test_typing_never_happens_without_the_flag(tmp_path: Path) -> None:
-    """The policy alone is not enough — the run must deliberately enable
+    """The policy alone is not enough â€” the run must deliberately enable
     synthetic typing; D-029's default is OFF."""
     _crawl, _store, page = crawl_typing(
         tmp_path, policy=SafetyPolicy(write_policy=WritePolicy.TEST_ACCOUNT),
@@ -118,7 +118,7 @@ def test_typed_edges_are_recorded(tmp_path: Path) -> None:
 
 
 def test_bounds_bind_typing(tmp_path: Path) -> None:
-    """X4: max_actions counts typed actions — a 1-action bound stops the
+    """X4: max_actions counts typed actions â€” a 1-action bound stops the
     typing pre-pass after one field, and the crawl names the bound."""
     crawl, _store, page = crawl_typing(
         tmp_path, policy=TYPED_POLICY, project=make_project(WritePolicy.TEST_ACCOUNT),
@@ -142,7 +142,7 @@ def test_values_are_deterministic_and_non_pii() -> None:
 
 
 def test_a_password_field_is_never_typed(tmp_path: Path) -> None:
-    """A 'change password' form is a credential change — D-029's
+    """A 'change password' form is a credential change â€” D-029's
     non-destructive clause. The field's own name refuses it."""
     from autotester.schema.screen_graph import ElementRef
     from autotester.stages.explore_safety import typing_target_allowed
@@ -164,6 +164,7 @@ def test_the_click_loop_still_runs_after_typing(tmp_path: Path) -> None:
     assert "button.save" in page.clicks  # the filled form's submit is pressed
     assert "button.del" not in page.clicks
 
+# -- the REAL browser proof (the fake cannot prove Playwright actually typed) --
 
 # -- the REAL browser proof (the fake cannot prove Playwright actually typed) --
 
@@ -173,7 +174,7 @@ def test_a_real_browser_types_and_submits_the_filled_form(
 ) -> None:
     """Mode D-style live proof, fixture-level: a real headless Chromium fills
     settings.html's displayname with a synthetic value and its submit carries
-    the value in the resulting GET url (/saved.html?displayname=…). Skipped
+    the value in the resulting GET url (/saved.html?displayname=ΓÇª). Skipped
     when Chromium is unavailable, like every live test."""
     pytest.importorskip("playwright")
     from autotester.browser.secrets import SecretStore

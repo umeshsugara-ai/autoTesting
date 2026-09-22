@@ -19,13 +19,12 @@ from urllib.parse import urlparse
 
 from autotester.browser.observe import PageObserver, observe
 from autotester.browser.session import BrowserSession, NavigationRefused
-from autotester.core.consent import require_approval
 from autotester.schema.case import Case
 from autotester.schema.crawl import Crawl, CrawlBounds, NoiseCount, SafetyPolicy
-from autotester.schema.enums import Action, ApprovalKind, CrawlStatus, Outcome
+from autotester.schema.enums import Action, CrawlStatus, Outcome
 from autotester.schema.project import Project
 from autotester.schema.screen_graph import CrawlFrontier, ScreenEdge, ScreenNode
-from autotester.stages import crawl_coverage, explore_node, explore_status
+from autotester.stages import crawl_coverage, explore_consent, explore_node, explore_status
 from autotester.stages.execute import run_case
 from autotester.stages.explore_safety import DialogBreaker
 from autotester.stages.screen_identity import node_from
@@ -238,22 +237,6 @@ def _finish(rt: ExploreRuntime, status: CrawlStatus) -> Crawl:
     return crawl
 
 
-def require_consent(project: Project, store: ProjectStore, bounds: CrawlBounds) -> None:
-    """D-018 gate 2. Public so a caller can ALSO check it before opening a
-    browser — `run_crawl` still checks unconditionally, so the seam holds even
-    if a new caller forgets the pre-flight.
-
-    AT-111 (checker-found): `BrowserSession.start()` creates `crawl/<id>/shots/`
-    and launches Chromium BEFORE `run_crawl` is ever entered, so "a refused run
-    leaves no trace" was false of every path an operator actually uses.
-    """
-    require_approval(
-        store.list_approvals(), project=project.slug, kind=ApprovalKind.CRAWL,
-        target=project.base_url, actions=bounds.max_actions,
-        wall_clock_s=bounds.wall_clock_s,
-    )
-
-
 def run_crawl(
     project: Project,
     session: BrowserSession,
@@ -273,11 +256,14 @@ def run_crawl(
     point the session's screenshot dir at `crawl/<id>/shots/`. **Raises
     `ApprovalRequired` before anything is created or opened** (D-018)."""
     bounds = bounds or CrawlBounds()
-    require_consent(project, store, bounds)
+    policy = policy or SafetyPolicy(write_policy=project.write_policy)
+    # D-018 gate 2 + X10-b condition 3 (AT-535), decided in `explore_consent`
+    # (line-cap split) — before anything is created or opened.
+    explore_consent.require_consent(project, store, bounds, policy=policy)
     envelope = {
         "project": project.slug,
         "bounds": bounds,
-        "policy": policy or SafetyPolicy(write_policy=project.write_policy),
+        "policy": policy,
         "login_case_id": login_case.id if login_case else None,
         "started_at": _now_iso(),
     }
