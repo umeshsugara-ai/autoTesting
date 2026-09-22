@@ -83,7 +83,7 @@ def test_the_deliberate_copy_has_not_drifted_from_its_source() -> None:
         pytest.skip(f"cannot import shared classifier from {CLASSIFIER_SOURCE}: {exc}")
 
     source_vocabulary = set(criticality._ORDER)
-    assert CLASSIFIER_VOCABULARY == source_vocabulary, (
+    assert source_vocabulary == CLASSIFIER_VOCABULARY, (
         "this file's copy of the classifier vocabulary has drifted from the "
         f"source at {CLASSIFIER_SOURCE}: local copy={CLASSIFIER_VOCABULARY}, "
         f"source={source_vocabulary}"
