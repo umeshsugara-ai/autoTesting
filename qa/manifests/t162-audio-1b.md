@@ -6,7 +6,7 @@
 - **Fix cycle:** 1 of 3.
 - **Dual check: required** (T-162 is CRITICAL, and this unit touches the credential boundary SA3).
 - **Issues addressed:** none — new feature (fast-follow of `t162-source-adapters-1a`).
-- **Status:** ready-for-check.
+- **Status:** checked-PASS. DUAL PASS (primary ac5f38ba 6/6 994d698/f5bcfea; blind secondary a4b4fc71 6/6 54a2935); both reproduced 5 capability rows + full suite 1557 passed. Phase-1 (TEXT+DOC+AUDIO) complete.
 
 ## Scope delivered (phase-1b)
 
