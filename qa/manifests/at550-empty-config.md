@@ -150,4 +150,10 @@ route). Changed paths this cycle: `src/autotester/schema/project.py`,
 `src/autotester/stages/analyze_video.py`, `src/autotester/ui/routes_sources.py`,
 `src/autotester/cli_video.py`, `tests/test_schema.py`, `tests/test_ensemble_honesty.py`.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Checker `ad02db55` returned **VERDICT: PASS** (Cycle checked: 1) — see `qa/verdicts/at550-empty-config.md`.
+Independently reproduced the falsification (green→red-for-the-right-reason→green in a throwaway copy),
+confirmed the fallback value is byte-identical (no new hard error), single shared parser (doctor clean),
+full suite 1538 passed / 0 failed. AT-550 flipped open→fixed. Verdict + ledger committed on the wave
+branch (c4abcc5); merged here. **Ensemble-honesty theme fully closed** (AT-541/542/543/547/550-core/550-remainder).
