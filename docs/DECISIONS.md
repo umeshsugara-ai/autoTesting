@@ -711,3 +711,37 @@ approval as the contract's authorizing D-record per its own header requirement.
 **Links:** T-162; `qa/gates/t162-contract-approval.md` (Answered: 2026-09-21, Option A);
 `qa/manifests/t162-source-adapters-1a.md`; `qa/verdicts/t162-source-adapters-1a.md`; unit commit
 5e243b7; `qa/contracts/core-invariants.md` C1/C3/C7/C10 (all judged in the same check).
+
+## D-036 | 2026-09-23 | type: decision | status: ACTIVE
+
+**What:** Build T-163, the resumable learn-or-explore orchestrator, and promote DISCOVER + MODEL to
+named canonical stages. Add `schema/run_state.py` (RunState + StageCheckpoint + a StageName enum) and
+`stages/orchestrate.py::run_or_resume`. Use the existing per-stage filestore artifacts (T-020) as the
+durable checkpoint substrate — no LangGraph / database dependency is added. Resume = re-enter the first
+stage whose artifact is missing (the checkpoint's status is not done/skipped). Entry-path selection is
+recorded on RunState (`mode`: teaching Sources present -> learn/INGEST; absent -> explore/DISCOVER via
+the existing bounded-BFS crawl). Both paths converge on MODEL (FlowSpec assembly) and PROPOSE into a
+DRAFT spec, stopping at the existing review gate (`stages/review.py::require_reviewed`); merge uses the
+existing `merge_flowspec` which already resets to DRAFT (F-035) and refuses to discard an APPROVED spec
+(F-037). Add a new contract `qa/contracts/orchestrator.md` (OR1-OR6) and take it DRAFT->ACTIVE on the
+unit's checker PASS. Default run keying: one run_id per invocation, sequential per project (a later
+superseding entry can widen to concurrent same-project runs if the operator needs it).
+
+**Why:** The T-16x reusable-platform roadmap (D-023) named T-163 as the orchestrator that promotes
+DISCOVER/MODEL; T-162 (all source adapters) is now done, clearing its last dependency. Reusing the
+strongest thing already built — durable artifact-per-stage persistence — instead of introducing an
+orchestration engine keeps the change small, keeps the human-reviewed-truth invariant that F-035/F-037
+already enforce, and makes DISCOVER/MODEL first-class per the approved roadmap. Design grounded in the
+operating brain (concepts/langgraph/persistence.md checkpointer+resume model; concepts/langgraph/hitl.md
+draft-review archetype) — see `.work/t163-orchestrator-design.md`.
+
+**Result:** Pending build. On checker PASS: `schema/run_state.py` + `stages/orchestrate.py` land,
+`qa/contracts/orchestrator.md` goes ACTIVE, and `docs/ARCHITECTURE.md` Pipeline + execution-model
+sections gain the `{INGEST | DISCOVER} -> MODEL -> ...` framing (regenerated within the 150-line budget).
+
+**Changes-authorized:** docs/ARCHITECTURE.md ("Pipeline" and the stage-execution paragraph — add
+DISCOVER/MODEL and the resumable-run framing, kept within the 150-line budget) · qa/contracts/orchestrator.md
+(new, DRAFT->ACTIVE on this unit's checker PASS).
+
+**Links:** T-163, T-160/D-023 (roadmap that registered it), T-162 (F-044, the dependency now cleared),
+`.work/t163-orchestrator-design.md`, brain trace 0ee72e8c9a36.
