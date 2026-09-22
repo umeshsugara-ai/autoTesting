@@ -9,6 +9,7 @@ class SourceKind(StrEnum):
     VIDEO = "video"
     DOC = "doc"
     TEXT = "text"
+    AUDIO = "audio"
     URL = "url"
     EVAL = "eval"
     CONDITION = "condition"
