@@ -748,3 +748,58 @@ onboarding.md` — all six Verify clauses' stale `uv run pytest -q` corrected to
 (2026-09-18, /checker, at503-pytest-a-summary-line-not-just-dots cycle-1 check). `AGENTS.md`,
 `qa/loop.md`, and `.goal/goal.json`'s ~43 per-file `cmd` rows are outside the checker's contract
 write-surface — filed to the ledger instead as AT-521 and AT-522 rather than edited here.
+
+---
+
+2026-09-22 · Umesh asked "what is TestSprite, how does it work, can we learn from it" → research doc
+`docs/research/testsprite-2026-09.md` (commit `3ce3401`). Constraint he set: nothing leaves the
+machine, so this is docs-only analysis; no product, URL or credential went to any vendor.
+
+**PATTERN: reading a competitor's shipped architecture is a cheap way to audit our own claims, and
+the audit is worth more than the comparison.** Writing the comparison required verifying our side,
+and the three capabilities TestSprite ships turned out to be the three `docs/ARCHITECTURE.md`
+asserts and our code does not have. None of this needed a competitor account — only an honest grep.
+
+**EVIDENCE** (each verified directly on 2026-09-22, not taken from the research agent's report):
+- `ARCHITECTURE.md` "Execution model" claims script-first replay and *"a stable suite costs ~zero
+  tokens to re-run"*. `Script` (`schema/case.py:87`) is never instantiated in `src/`;
+  `case.script_ref` (`:31`) is only declared and copied through (`:60`), never read for behaviour;
+  `run_with_fallback` (`stages/agent_loop.py:67`) has **zero** callers in `src/` —
+  `run_case_pipeline.py:95`, `explore.py:109` and the UI all call `execute.run_case` directly. Every
+  re-run is a fresh vision call. **Under the Lab Protocol this prose is currently false.**
+- No deterministic assertion layer. `absent_text`/`dom_asserts`/`visual_signal`/`network`
+  (`schema/flowspec.py:65-68`) have **zero read sites in `src/`**; `url`/`visible_text` are read only
+  in `browser/session.py:230,245` inside `_poll_for_expected`, which returns either way on timeout
+  and records no failure; `Action.ASSERT` is `lambda session, step: None` (`stages/execute.py:43`).
+  All pass/fail is an LLM on a screenshot (`stages/grade.py:123`).
+- `CaseClass.REGRESSION_ANCHOR` appears only at `schema/enums.py:69,87` — absent from
+  `CLASS_DESCRIPTIONS` and `applicable_classes`, so it can never be generated. Straight bug.
+- F-039 claims a two-model ensemble; every erp issue row says `"models_agreeing": 1`.
+- `stages/bench.py:51 oracle_human_trial` takes `duration_s: 300.0` as a literal, so "AutoTester
+  wins on time" is 13.6s vs a hardcoded 300, over one seeded typo in one static HTML file.
+  `stages/score.py` is careful code with no truth sheet in the repo (T-136 open).
+- Feature ledger stops at F-043 / 2026-09-10; ~12 days of crawler work through 2026-09-21 unledgered.
+
+**APPLIES NEXT:**
+1. **These belong in `qa/issues.jsonl`, which is the checker's surface (AT-499), not the maker's** —
+   that is why they are here verbatim rather than filed. Severities proposed in
+   `docs/research/testsprite-2026-09.md` §7: the ARCHITECTURE.md falsehood and the dead assertion
+   fields are **high**; `REGRESSION_ANCHOR`, F-039, the bench literal and the ledger drift are
+   **medium**.
+2. **Correcting the ARCHITECTURE.md Execution model is a prerequisite**, not a follow-up, for any
+   unit that wires script-first replay — a Lab-Protocol `docs/DECISIONS.md` entry has to authorize
+   the prose change first.
+3. **A decision worth recording before someone re-proposes it:** refuse "regenerate the test instead
+   of maintaining it" (TestSprite's answer to flakiness). If the oracle is regenerated from current
+   app state, the oracle moves with the bug; they never address it. Reasoning in §6. If this ever
+   needs revisiting it owes a `**Supersedes:**` entry arguing against that section.
+4. **Open architectural question for a human, not a unit:** Meticulous's differential oracle (replay
+   against base *and* head, baseline computed at replay time, recorded backend responses replayed
+   for determinism) **needs no assertions at all** — so it is a genuine *alternative* to building our
+   assertion layer, not merely a complement. It assumes two deployable builds, which we may never
+   have for a hosted product like Pathlynks. §4E.
+5. Standing caution for any doc that positions us: video→test is **not** unclaimed territory
+   (`market-2026-09.md` already recorded Fume, Meticulous, Checksum, testRigor on 2026-09-03). Our
+   differentiator is the reviewed oracle, the unknown-screen escalation and the scorecard — and two
+   of those three are unproven (escalation has fired once on a 0-screen fixture; the scorecard has
+   never run against a real human).
