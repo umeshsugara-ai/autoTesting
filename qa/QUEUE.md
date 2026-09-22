@@ -106,3 +106,53 @@ under `.goal/`, `.codex/`, `AGENTS.md`, untracked `projects/*`.
 
 **Terminal state: `FINDINGS: 1`** (AT-502 medium, structural-erosion signal; 0 new gates opened,
 AT-488/AT-365/AT-485/AT-415/AT-486 dups avoided).
+
+---
+
+## Sweep refresh — 2026-09-22 (this sweep supersedes the top-3 above; full sweep report: qa/verdicts/sweep-2026-09-22.md)
+
+**AT-539 confirm:** maker retarget (3da1f56) verified — `uv run pytest tests/test_approve_cli.py`
+10 passed; FULL SUITE `uv run pytest` **1514 passed, 5 skipped, 32 xfailed, 0 failed, exit 0**
+(831.61s, whole-log scan, .work/checker_sweep_full_suite.txt). AT-539 -> fixed.
+
+**Inbox fold (2026-09-22 TestSprite audit):** 6 new ledger rows + 1 dup-resolution. New rows:
+AT-540 high (dead assertion layer: ExpectedState's absent_text/dom_asserts/visual_signal/network
+zero read sites, Action.ASSERT no-op), AT-541 medium (REGRESSION_ANCHOR unreachable),
+AT-542 medium (F-039 ensemble claim vs models_agreeing:1 in all 3 erp rows), AT-543 medium
+(bench duration_s=300.0 literal), AT-544 medium (feature ledger 12 days stale, last row F-043),
+AT-545 low (orphaned running crawl), AT-546 low (contract staleness: explore.md/consent.md name
+the removed stages/explore.py seam for require_consent; line anchors drifted). The
+ARCHITECTURE.md script-first claim folds into existing high row AT-253 (duplicate — same greps
+re-verified, not re-filed).
+
+**Contract staleness (X17/X18-era references):** explore.md:266 names `require_consent` without
+the new `stages/explore_consent.py` module; line anchors `explore.py:200-211` (X18) and
+`:298-300` drifted (file now 285 lines; `_terminal_status` at :207, call site at :285). Filed
+AT-546 low; the contract is NOT edited by this sweep (checker-owned but this sweep files, the
+next contract-touching unit or amendment applies the re-point).
+
+## TOP-3 BUILDABLE NEXT UNITS (2026-09-22 refresh)
+
+| # | Unit | Why |
+|---|---|---|
+| **1** | **AT-540 (high)** — the dead assertion layer: wire `absent_text`/`dom_asserts` into `_poll_for_expected` so a settled-but-unmet expectation records a failure instead of returning normally, and give `Action.ASSERT` a real evaluator; DECISIONS entry first (ARCHITECTURE.md Execution-model prose correction is its prerequisite per the inbox). Umesh approved assertions-first order. | Highest-leverage open product defect; the sweep's re-derivation confirms it blocks the oracle-quality north-star axis. |
+| **2** | **AT-529 (high, HUMAN_GATE)** — PATHLYNKS_USER_* dev credentials 401; only Umesh can supply valid test-account values in the env editor, then re-run the stage-1 crawl to reach the post-login surface. | Unchanged; blocks the entire live-crawl-target acceptance run and X17/X18 Mode-D proof. |
+| **3** | **AT-546 (low) + AT-253 (high, DECISIONS-gated):** AT-546 is the checker's own one-amendment re-point of require_consent references + line anchors in explore.md/consent.md (routine, this checker next contract touch); AT-253's resolution is the D-entry correcting the Execution-model prose (human-approved, bundled with AT-540's design decision). | Cheap checker-owned housekeeping + the human gate the assertions work must pass through first. |
+
+**Deprioritised (not cancelled):** AT-497 (orphaned running crawl heartbeat — now AT-545 joins it as
+a second on-disk instance, same fix unit can close both), AT-460, AT-488, AT-502 signals.
+
+## HUMAN_GATE — do not build as ordinary units (verified unanswered on disk)
+
+| Gate | Blocks |
+|---|---|
+| `live-crawl-target.md` | The live post-login acceptance run of X17/X18/V7. |
+| `post-login-forms.md` | Any crawler typing, selecting or uploading after login (X10, D-016). |
+| `erp-credentials.md` / AT-529 | Valid Pathlynks test-account values. |
+| `t162-contract-approval.md` | T-162–T-169. |
+| `at438-u14b-baseline.md`, `commit-before-verdict.md` | Other session's AT-438; protocol departure. |
+| `at416-clip-vs-reach-direction.md`, `at383-loop-status-consumer.md`, `at365-data-class-declaration.md` | Various |
+| `at110-approval-forgery.md`, `at147`, `at218`, `at253` (ARCHITECTURE Execution-model D-entry), `t136-model-credentials.md` | Various |
+
+**Terminal state: `FINDINGS: 7`** (AT-540 high; AT-541/542/543/544 medium; AT-545/546 low;
+AT-539 flipped fixed; 0 new gates opened; ARCHITECTURE.md fold deduped onto AT-253).

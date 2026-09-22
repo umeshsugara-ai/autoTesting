@@ -1,1 +1,2 @@
 2026-09-18T02:28:20Z sweep qa/sweeps/2026-09-18-stale-open-rows.md (25167db): 21 rows examined, 2 closed (AT-475, AT-492), open 158 -> 156
+2026-09-22T13:16:00+05:30 FINDINGS: 7 (AT-540 high, AT-541/542/543/544 medium, AT-545/546 low; AT-539 fixed on sweep instruments; inbox 2026-09-22 folded; AT-546 contract staleness filed)

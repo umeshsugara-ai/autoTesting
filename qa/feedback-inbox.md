@@ -803,3 +803,21 @@ asserts and our code does not have. None of this needed a competitor account —
    differentiator is the reviewed oracle, the unknown-screen escalation and the scorecard — and two
    of those three are unproven (escalation has fired once on a 0-screen fixture; the scorecard has
    never run against a real human).
+
+**FOLDED: 2026-09-22 by `/checker` (Mode B sweep, AT-539 confirmation + inbox fold).** Each claim
+re-derived on this tree before filing, not taken from the research doc: ARCHITECTURE.md
+script-first falsehood -> **duplicate of existing open high row AT-253** (filed 2026-09-09 with the
+same three greps; re-verified today: Script never instantiated outside schema exports, script_ref
+only copied at case.py:60, run_with_fallback zero src/ callers, run_case_pipeline.py:95 +
+explore.py:109 + UI routes all call execute.run_case) — not re-filed, AT-253 stays open at high;
+the four dead ExpectedState fields + no-op Action.ASSERT -> **AT-540 (high)**; REGRESSION_ANCHOR
+unreachable -> **AT-541 (medium)**; F-039 ensemble-vs-1-model -> **AT-542 (medium)**; the 300.0
+bench literal -> **AT-543 (medium)**; the ledger staleness (last row F-043/2026-09-10) ->
+**AT-544 (medium)**; the orphaned running crawl -> **AT-545 (low)**. Item 2 (the ARCHITECTURE.md
+Execution-model correction as prerequisite to any script-first unit) recorded here as the
+DECISIONS-gate note it proposes: correcting that prose section requires a `docs/DECISIONS.md`
+entry first per the Lab Protocol; the sweep files no defect row for it beyond AT-253's existing
+coverage. Item 3 (refuse oracle-regeneration) needs its own `**Supersedes:**`-capable D-entry when
+someone re-proposes — recorded, not gated. Items 4-5 (Meticulous differential-oracle alternative;
+positioning caution) are strategy notes for Umesh, not ledger defects. Verdict file:
+`qa/verdicts/sweep-2026-09-22.md`.
