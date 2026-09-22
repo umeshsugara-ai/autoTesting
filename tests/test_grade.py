@@ -55,6 +55,37 @@ def test_errored_is_inconclusive_without_calling_the_judge() -> None:
     assert judge.prompts == []
 
 
+# -- C7/D-032 an ASSERTION_FAILED run is evidence, not a refusal to judge ----
+
+def test_assertion_failed_run_still_reaches_the_judge_and_the_judge_owns_the_verdict() -> None:
+    """AT-549: D-032 added a 4th deterministic outcome, but unlike
+    BLOCKED_HITL/ERRORED above it is NOT one `_outcome_verdict` short-circuits
+    -- an unmet declared expectation is a fact for the judge to weigh, not a
+    refusal. C7 holds: this pins that the judge is actually called, and that
+    the verdict PASSES/FAILS by the judgment returned, not by a fixed
+    rule-verdict for the outcome (which is exactly the isolating edit: making
+    `_outcome_verdict` short-circuit ASSERTION_FAILED reddens both asserts
+    below -- the judge would never be called, and the result would be
+    whatever the short-circuit hardcodes instead of the judgment's PASS)."""
+    rubric = make_rubric()
+    evidence = [
+        Evidence(kind=EvidenceKind.SCREENSHOT, path="01-login.png", step_order=1),
+        Evidence(kind=EvidenceKind.DOM, path="assert visible_text: unmet (expected 'Dashboard')",
+                  step_order=1),
+    ]
+    result = make_result(Outcome.ASSERTION_FAILED, evidence=evidence)
+    # the judge disagrees with the wrongly-authored expectation and PASSes anyway --
+    # proof the grader, not the outcome enum, owns the verdict (C7)
+    judgment = Judgment(result=Result.PASS, scoreboard="2/2 met", criteria_met=2, criteria_total=2)
+    judge = MockProvider(responses={"judge": [judgment]})
+
+    verdict = grade(rubric, result, "run_1", judge)
+
+    assert judge.prompts, "an ASSERTION_FAILED run never reached the judge"
+    assert verdict.result is Result.PASS  # the judgment's verdict, not a fixed rule outcome
+    assert verdict.grader_provider == "mock"
+
+
 # -- G1 stateless prompt contains only rubric + evidence ---------------------
 
 def test_prompt_carries_only_rubric_and_evidence_no_case_metadata() -> None:

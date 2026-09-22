@@ -60,10 +60,81 @@ def test_absent_text_and_dom_asserts_are_evaluated(tmp_path: Path) -> None:
     ]
     session = session_with_fake_page(tmp_path)
     session.page.body_text = "Invalid credentials"  # the absent_text IS present
+    # the dom_asserts selector genuinely exists here -- this test's own
+    # dom_asserts row must read met, or it isn't isolating anything (AT-548)
+    result = run_case(make_case(steps), session)
+    assert result.outcome is Outcome.ASSERTION_FAILED  # absent_text alone fails the run
+    assert any("absent_text: unmet" in e.path for e in result.evidence
+               if e.kind is EvidenceKind.DOM)
+    assert any("dom_asserts: met" in e.path for e in result.evidence
+               if e.kind is EvidenceKind.DOM)
+
+
+def test_dom_asserts_is_met_only_when_the_selector_genuinely_exists(tmp_path: Path) -> None:
+    """AT-548: the checker's cycle-1 finding -- the fixture had no `count()`,
+    so `selector_exists` could only ever read False (unmet) and this
+    capability had no met path at all. `FakeLocator.count()` now reports a
+    selector present unless the test marks it `missing_selectors`, so both
+    directions are reachable: forcing `selector_exists` to always return
+    True (the cycle-1 falsifying edit) must redden the second case below."""
+    steps = [
+        Step(order=1, action=Action.NAVIGATE, target=LOGIN),
+        Step(order=2, action=Action.CLICK, target="button[type=submit]",
+             expected={"dom_asserts": ["div.success-banner"]}),
+    ]
+    session = session_with_fake_page(tmp_path)  # div.success-banner exists (default)
 
     result = run_case(make_case(steps), session)
+
+    assert result.outcome is Outcome.COMPLETED
+    assert any("dom_asserts: met" in e.path for e in result.evidence
+               if e.kind is EvidenceKind.DOM)
+
+
+def test_dom_asserts_is_unmet_when_the_selector_is_absent(tmp_path: Path) -> None:
+    """The other half of AT-548: a genuinely-missing selector must flip the
+    run to ASSERTION_FAILED, not read as met by default."""
+    steps = [
+        Step(order=1, action=Action.NAVIGATE, target=LOGIN),
+        Step(order=2, action=Action.CLICK, target="button[type=submit]",
+             expected={"dom_asserts": ["div.error-banner"]}),
+    ]
+    session = session_with_fake_page(tmp_path)
+    session.page.missing_selectors.add("div.error-banner")
+
+    result = run_case(make_case(steps), session)
+
     assert result.outcome is Outcome.ASSERTION_FAILED
-    assert any("absent_text: unmet" in e.path for e in result.evidence
+    assert any("dom_asserts: unmet" in e.path for e in result.evidence
+               if e.kind is EvidenceKind.DOM)
+
+
+def test_absent_text_on_an_unreadable_page_fails_safe_not_silently_met(tmp_path: Path) -> None:
+    """AT-551: `body_text` raising (a crashed page) used to collapse to "",
+    and an absent_text expectation reads "the text is absent from ''" as
+    met -- the executor would report a clean pass on a page it never
+    actually saw. It must fail safe: unmet, never a silent COMPLETED.
+    Crashes only the body read (not the click) -- a locator override local
+    to this test, no shared-fixture change needed for a single scenario."""
+    steps = [
+        Step(order=1, action=Action.NAVIGATE, target=LOGIN),
+        Step(order=2, action=Action.CLICK, target="button[type=submit]",
+             expected={"absent_text": ["Invalid credentials"]}),
+    ]
+    session = session_with_fake_page(tmp_path)
+    real_locator = session.page.locator
+
+    def crashing_body_locator(selector: str):
+        if selector == "body":
+            raise RuntimeError("page crashed mid-read")
+        return real_locator(selector)
+
+    session.page.locator = crashing_body_locator
+
+    result = run_case(make_case(steps), session)
+
+    assert result.outcome is Outcome.ASSERTION_FAILED
+    assert any("absent_text: unmet (page unreadable)" in e.path for e in result.evidence
                if e.kind is EvidenceKind.DOM)
 
 
@@ -98,15 +169,19 @@ def test_an_assert_step_with_no_expectation_is_harmless(tmp_path: Path) -> None:
 
 
 def test_errored_still_beats_assertion_failed(tmp_path: Path) -> None:
-    """A mid-step exception is still ERRORED even when an earlier step's
-    assertion was unmet — the exception's own outcome wins (it explains why
-    the rest of the case never ran)."""
+    """A mid-step exception still wins even when an EARLIER step's own
+    assertion was unmet -- real precedence between two different steps, not
+    just 'exception -> ERRORED' re-pinned under this name (AT-550: cycle-1's
+    version made the raising step the SAME step as the expectation, so it
+    only proved the single-step case test_step_exception_is_errored_not_a_crash
+    already covers)."""
     steps = [
-        Step(order=1, action=Action.CLICK, target="button.broken",
-             expected={"visible_text": ["Never checked"]}),
-        Step(order=2, action=Action.CLICK, target="button.never-reached"),
+        Step(order=1, action=Action.CLICK, target="button[type=submit]",
+             expected={"visible_text": ["Never arrives"]}),
+        Step(order=2, action=Action.CLICK, target="button.broken"),
     ]
     session = session_with_fake_page(tmp_path)
+    session.page.body_text = "something else entirely"  # step 1's expectation never arrives
 
     result = run_case(make_case(steps), session)
 

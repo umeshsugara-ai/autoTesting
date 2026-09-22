@@ -1,8 +1,7 @@
 ﻿"""EXECUTE stage. Contract: qa/contracts/execute.md E1-E5.
 
-A fake page exercises run_case without a real browser â€” same pattern as
-test_browser.py, extended with the actions execute.py newly composes
-(select_option, upload, wait_for).
+A fake page exercises run_case without a real browser -- same pattern as
+test_browser.py, extended with the actions execute.py composes.
 """
 
 from __future__ import annotations
@@ -54,6 +53,8 @@ class FakeLocator:
 
     def inner_text(self) -> str:
         return self.page.body_text
+    def count(self) -> int:
+        return 0 if self.selector in self.page.missing_selectors else 1
 
 
 class FakePage:
@@ -70,6 +71,7 @@ class FakePage:
         self.shots: list[str] = []
         self.settled: list[tuple[str, int]] = []
         self.body_text = ""
+        self.missing_selectors: set[str] = set()  # AT-548/AT-551: locator().count()==0
 
     def locator(self, selector: str) -> FakeLocator:
         return FakeLocator(self, selector)
@@ -217,6 +219,57 @@ def test_select_upload_and_wait_actions(tmp_path: Path) -> None:
     assert session.page.uploaded["input[type=file]"] == "/tmp/doc.pdf"
     assert session.page.waited == [("div.loaded", 5000)]
     assert session.page.timeouts == [250]
+
+
+def test_step_exception_is_errored_not_a_crash(tmp_path: Path) -> None:
+    steps = [
+        Step(order=1, action=Action.NAVIGATE, target=LOGIN),
+        Step(order=2, action=Action.CLICK, target="button.broken"),
+        Step(order=3, action=Action.CLICK, target="button.never-reached"),
+    ]
+    session = session_with_fake_page(tmp_path)
+    result = run_case(make_case(steps), session)
+
+    assert result.outcome is Outcome.ERRORED
+    assert "RuntimeError" in result.error and "not attached" in result.error
+    assert "button.never-reached" not in session.page.clicks
+    # step 1's screenshot exists; step 2 never got one (it raised first)
+    shots = [e for e in result.evidence if e.kind is EvidenceKind.SCREENSHOT]
+    assert len(shots) == 1
+
+
+def test_missing_secret_blocks_for_a_human_instead_of_erroring(tmp_path: Path) -> None:
+    steps = [
+        Step(order=1, action=Action.FILL, target="input[name=password]",
+             value="{{SECRET:PATHLYNKS_PASSWORD}}"),
+    ]
+    session = session_with_fake_page(tmp_path, secret_present=False)
+    result = run_case(make_case(steps), session)
+
+    assert result.outcome is Outcome.BLOCKED_HITL
+    assert result.error is None
+    assert "PATHLYNKS_PASSWORD" in result.hitl_prompt
+
+
+def test_a_secret_value_inside_an_exception_message_is_scrubbed_before_persisting(
+    tmp_path: Path,
+) -> None:
+    """AT-341: an exception's own message can embed a raw secret value (not
+    only the named NavigationRefused case AT-076 introduced) — `_result`
+    scrubs `error`/`hitl_prompt` through the session's own redactor before
+    they ever reach a RawResult, the same boundary `_record` already holds
+    for evidence paths."""
+    steps = [
+        Step(order=1, action=Action.FILL, target="input[name=password]",
+             value="{{SECRET:PATHLYNKS_PASSWORD}}"),
+        Step(order=2, action=Action.CLICK, target="button.leaks-a-secret"),
+    ]
+    session = session_with_fake_page(tmp_path)
+    result = run_case(make_case(steps), session)
+
+    assert result.outcome is Outcome.ERRORED
+    assert "hunter2" not in result.error
+    assert "REDACTED" in result.error
 
 
 # -- E4 persistence round-trips through ProjectStore -------------------------
