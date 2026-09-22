@@ -184,4 +184,11 @@ opening a browser against a route whose HTML is provably unchanged.
   vs empty) already carries that distinction for a reader who checks both fields, and collapsing
   it into one boolean would lose it.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Checker `a664cec` returned **VERDICT: PASS** (Cycle checked: 1) — see
+`qa/verdicts/at541-543-ensemble-honesty.md`. AT-541/542/543/547 flipped to fixed; AT-550 core
+(silent-shrink now recorded) verified, its second ask (empty-config handling at project.py:70) left
+open as partial-fix. Verdict + ledger committed by the checker on the wave branch (ee59a66); merged
+to master here. (The checker's task hit an API error on handback *after* it committed — the work
+landed on disk, which is exactly what the file-handshake protects.)
