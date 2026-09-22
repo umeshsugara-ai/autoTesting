@@ -17,8 +17,13 @@ criterion there applies (this unit touches no `stages/ingest.py` code).
 AT-503 no-`-q` fix applied to the manifest's own combined-file command above, not an
 unscoped whole-repo run — confirmed against `qa/verdicts/t162-source-adapters-1a.md`,
 which re-ran the same targeted pattern, never a bare unscoped suite, on the same
-contract. An unscoped `uv run pytest` was launched as extra diligence but is not part
-of this unit's evidence; it was not required to reach this verdict.)
+contract. An unscoped `PYTHONUTF8=1 uv run pytest` (whole repo, no path filter) was
+also launched as extra diligence, in the background since it ran long on this
+environment's shared machine (many concurrent maker/checker sessions). It has since
+completed: **`1557 passed, 5 skipped, 32 xfailed, 1 warning in 642.78s`, exit 0** — a
+whole-log scan found no `FAILED`/`ERROR`/bare `E` line anywhere. Not required to reach
+this verdict, but it is now real evidence and is recorded here for completeness: zero
+regressions anywhere in the repo from this unit's purely-additive change.)
 
 ## Criteria judged
 
