@@ -3,7 +3,12 @@
     "allow": [
       "Bash",
       "Edit",
-      "Read"
+      "Read",
+      "Bash(uv run pytest*)",
+      "Bash(uv run ruff check src tests scripts)",
+      "Bash(uv run autotester doctor)",
+      "Bash(powershell -ExecutionPolicy Bypass -File scripts/append_decision.ps1 *)",
+      "Bash(python D:/ai_os/scripts/delegate_unit.py *)"
     ],
     "deny": [
       "Bash(sudo:*)",

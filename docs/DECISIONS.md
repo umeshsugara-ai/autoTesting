@@ -605,3 +605,35 @@ docs/ARCHITECTURE.md (the one sentence in the corrected section).
 **Links:** AT-540; AT-253 (D-031, the prose prerequisite, already landed); docs/research/
 testsprite-2026-09.md Â§4B; qa/contracts/execute.md E1; qa/contracts/core-invariants.md C7;
 Umesh approval 2026-09-22 (assertions-first order, chat, quoted in qa/feedback-inbox.md)
+
+## D-033 | 2026-09-22 | type: decision | status: ACTIVE
+
+**What:** Add narrow, outage-safe allow rules to `.claude/settings.json` so this project's `/maker`
+loop survives an auto-mode classifier outage. Rules added: `Bash(uv run pytest*)`,
+`Bash(uv run ruff check src tests scripts)`, `Bash(uv run autotester doctor)`,
+`Bash(powershell -ExecutionPolicy Bypass -File scripts/append_decision.ps1 *)`, and
+`Bash(python D:/ai_os/scripts/delegate_unit.py *)`. The bare `Bash` allow stays for normal use but is
+inert in auto mode (dropped as over-broad).
+
+**Why:** In Claude Code auto mode every tool call is classified by a model; when that model is
+unavailable the call fails closed. Measured across all transcripts: 837 such refusals, 16 of them
+`ScheduleWakeup` — a silently dead loop. Only NARROW allow rules resolve before the classifier and
+survive an outage (proven under `CLAUDE_CODE_AUTO_MODE_MODEL=does-not-exist`). This repo currently has
+only a bare `Bash` allow, which auto mode drops — so during an outage its whole loop freezes (the
+D-088 failure elsewhere: `append_decision.ps1` itself could not run). The rules above are the verify
+commands from `qa/adapter.json`, the decisions-appender, and the delegation entrypoint — each a
+narrow, argument-scoped form, never a wildcard interpreter. Cross-ref: `D:/ai_os/umesh/decisions/log.md`
+2026-09-22 "Auto-mode classifier outages".
+
+**Result:** the five rules are present in `.claude/settings.json`, and a forced-outage harness
+(`CLAUDE_CODE_AUTO_MODE_MODEL=does-not-exist`, then a bogus base-URL model) confirms the verify
+commands and `append_decision.ps1` run under the outage while a non-allowlisted command still blocks.
+Evidence recorded in `D:/ai_os/umesh/decisions/log.md` after the validation run.
+
+**Changes-authorized:** `.claude/settings.json` (add the five narrow allow rules above; no deny-list
+or hook change).
+
+**Approved-by:** Umesh (chat, 2026-09-22 — "Haan, D-entry + settings karo").
+
+**Links:** D-088 (the outage failure that prompted this), `D:/ai_os/umesh/decisions/log.md` 2026-09-22
+classifier-outage entry, `qa/adapter.json` (source of the verify commands).

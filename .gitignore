@@ -74,3 +74,4 @@ projects/*/issues.jsonl
 
 # maker-checker parallel wave worktrees (AIOS /maker convention)
 .worktrees/
+.claude/settings.json.bak-*
