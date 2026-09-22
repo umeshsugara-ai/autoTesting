@@ -66,6 +66,14 @@ class VideoAnalysis(Artifact):
     means the caller did not say (older analyses, or a caller that ran exactly
     what it was given); non-empty and equal to `provider_labels` means the full
     requested ensemble answered. See `degraded_providers` below."""
+    vision_config_defaulted: bool = False
+    """AT-550: True when the project's `vision` config was empty and the
+    caller substituted `ProviderConfig.DEFAULT_VISION_PROVIDER`
+    (`schema/project.py`) instead of what an operator explicitly chose —
+    set from `ProviderConfig.vision_ensemble_defaulted()`. False both for an
+    explicit single-provider config and for a caller that predates this
+    field; the point is that a defaulted run must never look identical to an
+    explicit one on the persisted artifact."""
     prompt_names: list[str] = Field(default_factory=list)
     screens: list[AnalysedScreen] = Field(default_factory=list)
     flows: list[ObservedFlow] = Field(default_factory=list)
