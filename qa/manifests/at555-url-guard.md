@@ -112,4 +112,9 @@ Not UI-touching — pure oracle-probe logic in `src/autotester/browser/assertion
 surface changed. Changed paths this cycle: `src/autotester/browser/assertions.py`,
 `tests/test_execute_assertions.py`, `qa/manifests/at555-url-guard.md`.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Checker `a8ce8b47` returned **VERDICT: PASS** (Cycle checked: 1) — see `qa/verdicts/at555-url-guard.md`.
+Independently reproduced the falsification, confirmed the `_page_url` dedup (one definition, doctor
+clean), validated the run_case false-positive finding, full suite 1535 passed / 0 failed. AT-555
+flipped open→fixed. Verdict + ledger committed on the wave branch (62a0fef); merged here.
