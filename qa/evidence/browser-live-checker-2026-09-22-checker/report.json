@@ -1,0 +1,37 @@
+{
+  "mode": "D (live feature validation)",
+  "actor": "checker (fresh live-browser drive, independent of maker screenshots)",
+  "date": "2026-09-22",
+  "instrument": "playwright MCP browser vs real AutoTester UI started by checker at 127.0.0.1:8010 (uv run uvicorn autotester.ui.app:app)",
+  "instrument_note": "The pre-existing process on :8000 was a FOREIGN stub returning {\"ok\":true} on every route -- NOT the AutoTester app. Validating against it would have been a false pass (Mode D: wrong instrument = SKIP). Started the real app on :8010.",
+  "pages": [
+    {"url": "/", "title": "Projects — AutoTester", "render": "pass", "console_errors": 0,
+     "notes": "9 projects, stat tiles (9 projects / 29 cases / 3 clean / 1 failing / 5 never-run), project cards with PASS/FAIL badges"},
+    {"url": "/projects/regression-demo/report", "title": "Report — regression-demo", "render": "pass", "console_errors": 0,
+     "notes": "27 total runs, 50% latest-run pass rate, full run-history table newest-first with PASS/FAIL/INCONCLUSIVE badges, Excel/HTML download links"},
+    {"url": "/projects/regression-demo/runs/run-after-01M1MSV7...", "title": "Run detail", "render": "pass", "console_errors": 0,
+     "notes": "1 PASS / 1 FAIL scoreboard; FAIL case shows the real grader reasoning ('DOM evidence shows Invalid credentials instead of Login successful', judged by gemini) + step-flow with lightbox links -- regression-proof feature (F-016) rendering live"},
+    {"url": "/settings/providers", "title": "Settings", "render": "pass", "console_errors": 0,
+     "console_verbose": 4,
+     "notes": "4 VERBOSE autocomplete hints (not errors). SECURITY FINDING below."}
+  ],
+  "interactions": [
+    {"did": "load home", "expected": "project list + tiles render", "observed": "rendered fully, 0 console errors", "pass": true},
+    {"did": "render xssprobe project named <script>alert(1)</script>", "expected": "escaped as text, no script execution", "observed": "rendered as literal text, no alert dialog, title normal -- AT-035 escaping holds", "pass": true},
+    {"did": "navigate report -> run detail", "expected": "real graded run content", "observed": "PASS/FAIL with gemini grader reasoning + step flow", "pass": true},
+    {"did": "load /settings/providers", "expected": "credential values MASKED-ABSENT per contract (never render a value)", "observed": "the real GEMINI_API_KEY 40-char value is served in the raw HTML response and prefilled into the input value", "pass": false}
+  ],
+  "findings": [
+    {"id": "AT-554", "severity": "high", "class": "credential-boundary / CRITICAL-amendment",
+     "summary": "The provider settings page and the per-project env editor SERVE the real saved credential VALUE in the HTTP response / DOM (confirmed: live GEMINI_API_KEY value in the raw HTML of GET /settings/providers).",
+     "contract_conflict": "browser-and-secrets.md:59 ('masked so the rendered image cannot contain a credential') and core-invariants.md:47 ('masked from logs, prompts, and artifacts') say the value must be ABSENT. The UI treats 'masked' as a password-input visual with a show/hide toggle, so the value IS present.",
+     "codified_by_tests": "test_ui_settings.py::test_settings_page_shows_the_stored_value_masked; test_ui_env_editor.py ('masked input carrying the value, with a show/hide toggle') -- the tests lock in the value-present behaviour, so the suite is green while the contract is violated.",
+     "authorization": "No DECISIONS.md entry authorizes weakening the credential boundary. Under the Lab Protocol, weakening a safety invariant needs an Approved-by D-entry first.",
+     "decision_required": "Umesh: (A) accept value-visible owner-only local editor -> a DECISIONS entry + amend browser-and-secrets.md / core-invariants.md to scope the boundary to non-UI artifacts and state the residual (value reaches HTTP responses, DOM, screenshots); or (B) bug -> restore F-026 never-echo (render empty inputs; the value never enters the response).",
+     "note": "Real value redacted everywhere. Local browser snapshot that captured it was deleted; .playwright-mcp is gitignored; .env (the value's correct home) is gitignored."}
+  ],
+  "minor_notes": [
+    "settings inputs emit 4 VERBOSE console hints ('inputs should have autocomplete=new-password') -- benign; adding autocomplete=new-password would silence them"
+  ],
+  "verdict": "3/4 surfaces clean and interactive; 1 high-severity credential-boundary violation surfaced for a CRITICAL human decision. Read-only validation only -- no run triggered (Pathlynks/live runs are credential-gated)."
+}
