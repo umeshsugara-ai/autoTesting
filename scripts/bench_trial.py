@@ -165,7 +165,10 @@ def main() -> None:
     ai_trial = bench.run_autotester_trial(
         f"trial_ai_{ulid()}", corpus, verdicts, case_bug_map, duration_s,
     )
-    human_trial = bench.oracle_human_trial(f"trial_human_{ulid()}", corpus, duration_s=300.0)
+    # AT-543: the human side has never been timed by a real tester — passing a
+    # hardcoded 300.0 turned the scorecard's "wins on time" row into a
+    # comparison against a made-up constant. 0.0 = unmeasured, honestly.
+    human_trial = bench.oracle_human_trial(f"trial_human_{ulid()}", corpus)
     store.save_bench_trial(ai_trial)
     store.save_bench_trial(human_trial)
 

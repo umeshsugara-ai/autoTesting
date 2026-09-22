@@ -66,12 +66,23 @@ def test_run_autotester_trial_detects_the_seeded_bug() -> None:
 
 def test_oracle_human_trial_is_labeled_a_baseline_not_a_live_run() -> None:
     corpus = _corpus()
-    trial = bench.oracle_human_trial("trial_human", corpus, duration_s=300.0)
+    trial = bench.oracle_human_trial("trial_human", corpus)
     assert trial.participant is Participant.HUMAN
     assert trial.participant_label == "human-oracle-baseline"
     score = trial.score(corpus)
     assert score["detection_rate"] == 1.0
     assert score["false_positive_rate"] == 0.0
+
+
+def test_oracle_human_trial_never_carries_a_hardcoded_duration() -> None:
+    """AT-543: the oracle baseline is unmeasured — a literal 300.0 made the
+    scorecard's time comparison fake. Default duration is 0.0 (unmeasured), and
+    a caller who timed a real human passes the real number."""
+    corpus = _corpus()
+    trial = bench.oracle_human_trial("trial_human", corpus)
+    assert trial.duration_s == 0.0
+    timed = bench.oracle_human_trial("trial_human_timed", corpus, duration_s=142.5)
+    assert timed.duration_s == 142.5
 
 
 def test_scorecard_calls_bench_trial_score_for_every_trial() -> None:
@@ -80,7 +91,7 @@ def test_scorecard_calls_bench_trial_score_for_every_trial() -> None:
         "trial_ai", corpus, [_verdict("case_login", Result.FAIL)],
         {"case_login": "bug_login"}, duration_s=12.0,
     )
-    human = bench.oracle_human_trial("trial_human", corpus, duration_s=300.0)
+    human = bench.oracle_human_trial("trial_human", corpus)
     card = bench.scorecard(corpus, [ai, human])
     assert card["autotester-real-run"] == ai.score(corpus)
     assert card["human-oracle-baseline"] == human.score(corpus)

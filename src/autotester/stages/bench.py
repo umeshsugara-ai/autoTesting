@@ -48,18 +48,28 @@ def run_autotester_trial(
     )
 
 
-def oracle_human_trial(trial_id: str, corpus: BenchCorpus, duration_s: float) -> BenchTrial:
+def oracle_human_trial(
+    trial_id: str, corpus: BenchCorpus, duration_s: float | None = None
+) -> BenchTrial:
     """Documented baseline, not a live trial (qa/contracts/bench.md Purpose):
     a perfect-precision, perfect-recall reviewer who finds exactly the seeded
     bugs and nothing else. `participant_label` says so explicitly so no
-    downstream reader can mistake this for a real timed human run."""
+    downstream reader can mistake this for a real timed human run.
+
+    AT-543: `duration_s` is measured-when-a-real-human-runs, never hardcoded.
+    A literal 300.0 here produced a scorecard whose "AutoTester wins on time"
+    row compared a real 13.6 s against a made-up constant. `None` (the default)
+    scores the human side with `duration_s=0.0` — which every comparison
+    surface must render as *unmeasured*, not as a winning margin. A caller who
+    has actually timed a human passes the real number."""
     findings = [
         Finding(text=f"{bug.location}: {bug.detect_hint}", matched_bug_id=bug.id)
         for bug in corpus.seeded_bugs
     ]
     return BenchTrial(
         id=trial_id, corpus_id=corpus.id, participant=Participant.HUMAN,
-        participant_label="human-oracle-baseline", findings=findings, duration_s=duration_s,
+        participant_label="human-oracle-baseline", findings=findings,
+        duration_s=duration_s if duration_s is not None else 0.0,
     )
 
 
