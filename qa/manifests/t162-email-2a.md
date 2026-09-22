@@ -9,7 +9,11 @@
   — "no mailbox credentials" — the same criticality class as AUDIO phase-1b).
 - **Issues addressed:** none — new feature (fast-follow of `t162-source-adapters-1a` /
   `t162-audio-1b`, completing T-162's declared phase-2 EMAIL scope).
-- **Status:** ready-for-check.
+- **Status:** checked-PASS (dual check, cycle 1). Primary `qa/verdicts/t162-email-2a.md` (e22df4f)
+  + blind secondary `qa/verdicts/t162-email-2a.b.md` (d8d4c9c) both PASS: 6/6 SA1-SA6, all 5
+  capability rows independently reproduced (incl. SA5's real stdlib CloseBoundaryNotFoundDefect),
+  SA3 no-credential-surface and SA4 provenance-reuse both confirmed by direct code read, full repo
+  1562 passed / 0 failed. T-162 stays `pending` (DRIVE phase-2b unbuilt).
 
 ## Scope delivered (phase-2a)
 
