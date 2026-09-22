@@ -21,6 +21,7 @@ Plan of record: `C:/Users/Lenovo/.claude/plans/great-when-you-really-iridescent-
 | Open | When |
 |---|---|
 | `docs/SNAPSHOT.md` | every session start (the hook injects it) and before picking a unit — the whole project in one screen |
+| `target.md` | you want the roadmap: what's shipped (✅) vs target (🎯), the milestone checklist, and the two-layer goal — open at session start to stay on track |
 | `docs/ARCHITECTURE.md` | you need where a concept lives, how stages fit, the data model, execution or security model |
 | `docs/MAP.md` | you need the generated directory map (module → one job) or schema summary (model → meaning) |
 | `docs/FEATURES.jsonl` | you need a feature's history, its reason, or whether it was retired (append only via `autotester ledger add`) |

@@ -21,11 +21,13 @@ ALLOWED_ROOT_ENTRIES = {
     ".claude", ".dockerignore", ".git", ".gitignore", ".goal", ".python-version", ".venv",
     ".work", "AGENTS.md", "CLAUDE.md", "README.md", "docker", "docker-compose.yml", "Dockerfile",
     "docs", "goal.md", "plan.md", "profiles", "projects", "pyproject.toml", "qa", "scripts",
-    "src", "tests",
+    "src", "target.md", "tests",
     "uv.lock",
 }
 """AGENTS.md sits beside CLAUDE.md (AT-283): a second AI tool's project-instruction file at the
-same root, not scratch or evidence — the thing check_root_clean actually exists to catch."""
+same root, not scratch or evidence — the thing check_root_clean actually exists to catch.
+target.md is the human roadmap (shipped-vs-target milestone checklist, routed in CLAUDE.md),
+a sibling of goal.md/plan.md — a real project-doc surface, not scratch."""
 
 
 @dataclass(frozen=True)
