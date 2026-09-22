@@ -637,3 +637,37 @@ or hook change).
 
 **Links:** D-088 (the outage failure that prompted this), `D:/ai_os/umesh/decisions/log.md` 2026-09-22
 classifier-outage entry, `qa/adapter.json` (source of the verify commands).
+
+## D-034 | 2026-09-22 | type: decision | status: ACTIVE
+
+**What:** ACCEPT (option A) that the owner-only local credential editor may render saved secret
+values. `GET /settings/providers` and the per-project env editor serve the real saved credential
+VALUE behind a show/hide toggle so the operator can verify and edit it; this is a deliberate,
+authorized exception to the credential boundary, not a leak to fix (AT-554). No src/ change; the
+behaviour stands, and test_ui_settings.py::test_settings_page_shows_the_stored_value_masked +
+test_ui_env_editor.py remain green as its codification.
+
+**Why:** Checker live-browser validation (2026-09-22,
+qa/evidence/browser-live-checker-2026-09-22-checker/report.json) confirmed a live GEMINI_API_KEY value
+in the raw HTML of the settings page. Read literally against core-invariants.md C5 ("masked from logs,
+prompts, and artifacts") that was a boundary violation with no authorizing entry. But the AutoTester UI
+runs owner-only on 127.0.0.1 for the operator who already owns .env, so showing the saved value to that
+same operator is not an exposure to anyone new. The boundary's core intent is unchanged and still
+enforced: a secret value never reaches a MODEL, a LOG, a SHARED/committed artifact, or a captured
+PRODUCT screenshot (core.redact.Redactor.scrub and contract B7 stay exactly as they are). Residual,
+accepted knowingly: the value reaches the local operator's own HTTP response, DOM, and any screenshot
+of the settings/env page -- such a screenshot must never be fed to a model or shared; the checker's own
+live-browser snapshots that captured it are gitignored and were deleted.
+
+**Result:** core-invariants.md C5 gains an owner-only-editor exception bullet + amendment-log row;
+browser-and-secrets.md gains a clarifying amendment-log row (B7 substance unchanged); AT-554 flips to
+`wontfix` (accepted by decision, not a code fix). The full suite stays green (1534 passed, 0 failed at
+HEAD a30f535) and ruff + doctor clean.
+
+**Changes-authorized:** qa/contracts/core-invariants.md (C5 only -- the exception bullet + amendment-log
+row, by the checker); qa/contracts/browser-and-secrets.md (amendment-log clarifying row only; B7
+substance unchanged). No src/ or test change.
+
+**Approved-by:** Umesh (chat, 2026-09-22 -- "A").
+
+**Links:** AT-554; qa/gates/at554-credential-value-in-ui.md; qa/evidence/browser-live-checker-2026-09-22-checker/report.json; qa/evidence/live-quality-validation-2026-09-22b-checker/report.json.

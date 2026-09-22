@@ -33,4 +33,4 @@ Reply "A" or "B" (optionally with a note). On answer, append below:
 - The credential-boundary contract amendment.
 Does NOT block: at541-543-ensemble-honesty (in flight), other non-UI-credential units.
 
-Answered:
+Answered: 2026-09-22 — A (ACCEPT, owner-only-local value-visible editor) — Umesh, chat. Authorized by D-034; contract scoped in core-invariants.md C5 + browser-and-secrets.md amendment log; AT-554 → wontfix (accepted by decision).

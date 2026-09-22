@@ -49,6 +49,13 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   moment of typing into the browser, scoped to that `SecretRef`'s `domains` (which lie within the
   project's `allowed_domains`).
 - Every log line and stored artifact passes `core.redact.Redactor.scrub`.
+- **Exception (D-034, owner-only editor):** the local UI credential editor — `/settings/providers`
+  and the per-project env editor (`ui/routes_credentials.py`) — MAY render a saved value behind a
+  show/hide toggle so the operator who owns `.env` can verify and edit it. This is the ONLY surface
+  that carries a value. The value still never reaches a model, a log, a shared/committed artifact, or
+  a captured **product** screenshot (B7 unchanged). Residual, accepted by D-034: the value is present
+  in the local HTTP response/DOM and in any screenshot **of the settings/env page**, which must never
+  be fed to a model or shared.
 - Any route that accepts a new raw credential value must treat it as secret immediately: before any
   same-request non-secret validator can echo or persist input, its prompt/artifact guard includes
   the union of pre-existing root secrets and all newly submitted values.
@@ -409,3 +416,9 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   Independently re-confirmed by grep before folding: no other Verify clause in this file still
   carries a bare `-q`. Folded while checking `qa/manifests/at521-finish-the-q-sweep.md` (Cycle
   checked: 1). Verdict: `qa/verdicts/at521-finish-the-q-sweep.md`.
+- 2026-09-22 · CRITICAL (D-034, Approved-by Umesh) · C5 gains an **owner-only-editor exception**: the
+  local UI credential editor (`/settings/providers` + the per-project env editor) may render a saved
+  value behind a show/hide toggle. Scoping, not a blanket weakening — the value still never reaches a
+  model, a log, a shared/committed artifact, or a product screenshot (B7 intact). Found live by checker
+  Mode D (AT-554: a real GEMINI_API_KEY in the settings HTML); decided away from any verdict via
+  `qa/gates/at554-credential-value-in-ui.md`. AT-554 → wontfix (accepted by decision).

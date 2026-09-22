@@ -129,3 +129,9 @@ page and mocks.
   D-025/T-161's all-secret guard, cross-project key ownership and atomic repeated `.env` batch into
   the credential contract before judging. Tightening only: B1-B9 are unchanged, and accepting a raw
   value at this one UI boundary does not license it to cross into a response, log or artifact.
+- 2026-09-22 · CRITICAL (D-034, Approved-by Umesh) · **refines the B10 line above** ("does not license
+  it to cross into a response"): the owner-only local credential editor is the one authorized surface
+  where a saved value DOES appear in the (local, 127.0.0.1) HTTP response/DOM, for operator verify/edit.
+  B1–B9 and B7 (product-screenshot masking) are unchanged; the value still never reaches a model, log,
+  shared artifact, or product screenshot. Full scope lives in core-invariants.md C5's owner-only-editor
+  exception. Found live by checker Mode D (AT-554); decided by Umesh (option A).
