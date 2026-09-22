@@ -63,6 +63,8 @@
 | `schema/verdict.py` | Grading. An independent, stateless judge reads evidence against a rubric. |
 | `sources/adapters.py` | Convert teaching material into the ONE content-addressed `Source` model. |
 | `sources/audio.py` | Gemini-first transcription for AUDIO sources, Whisper as the no-API fallback. |
+| `sources/drive.py` | Google Drive folder listing + file fetch, and the OAuth device-flow token |
+| `sources/drive_register.py` | Registration for DRIVE sources: `register_drive` -> `Source` rows. |
 | `sources/email.py` | Parsing for EMAIL sources: `.eml`/`.mbox` LOCAL files only. |
 | `sources/email_register.py` | Registration for EMAIL sources: `register_email` -> `Source` rows. |
 | `sources/extract.py` | Deterministic host-side text extraction for DOC sources. |

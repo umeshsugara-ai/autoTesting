@@ -15,6 +15,7 @@ from autotester.core.ids import content_id, file_sha256
 from autotester.core.paths import RepoDocs
 from autotester.core.urls import absolute_url, url_template
 from autotester.providers.base import Provider
+from autotester.schema.base import Provenance
 from autotester.schema.enums import ReviewStatus, SourceKind
 from autotester.schema.flowspec import Flow, FlowSpec, Screen, SourceRef, Step
 from autotester.schema.media import Transcript
@@ -95,10 +96,17 @@ def require_recording_suffix(name: str) -> str:
 
 
 def register_source(store: ProjectStore, path: Path, *, label: str | None = None,
-                    recorded_on: str | None = None) -> Source:
+                    recorded_on: str | None = None, url: str | None = None,
+                    provenance: Provenance | None = None) -> Source:
     """Record a video on disk as a `Source`. Idempotent on content: the same
     bytes registered twice return the existing row rather than a second id, so
-    re-running a shell command never silently doubles the corpus."""
+    re-running a shell command never silently doubles the corpus.
+
+    `url` and `provenance` are optional and default to `None` (every existing
+    caller is unchanged): `register_drive` passes the Drive file id in `url` and
+    a `Provenance` linking the recording to its Drive folder (SA4), so a video
+    fetched from Drive goes through this ONE video adapter rather than a
+    reimplementation (SA1)."""
     require_recording_suffix(path.name)
     if not path.exists():
         raise FileNotFoundError(f"no such recording: {path}")
@@ -110,7 +118,7 @@ def register_source(store: ProjectStore, path: Path, *, label: str | None = None
             return existing
     return store.add_source(Source(
         project=store.paths.slug, kind=SourceKind.VIDEO, path=str(path.resolve()),
-        sha256=digest, label=label, recorded_on=recorded_on,
+        sha256=digest, label=label, recorded_on=recorded_on, url=url, provenance=provenance,
     ))
 
 
