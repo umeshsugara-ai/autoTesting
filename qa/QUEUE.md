@@ -156,3 +156,113 @@ a second on-disk instance, same fix unit can close both), AT-460, AT-488, AT-502
 
 **Terminal state: `FINDINGS: 7`** (AT-540 high; AT-541/542/543/544 medium; AT-545/546 low;
 AT-539 flipped fixed; 0 new gates opened; ARCHITECTURE.md fold deduped onto AT-253).
+
+---
+
+## Sweep refresh — 2026-09-22b (sharded Mode B; consolidation of 3 read-only shards; full report: qa/verdicts/sweep-2026-09-22b.md)
+
+Window `3833218..00e36a8` (7 commits) + working tree. Full suite at this tree: **1521 passed, 5 skipped, 32 xfailed, 0 failed, exit 0** (1113.89s, `.work/full-suite-2026-09-22-1549.txt`); doctor + ruff CLEAN at 00e36a8 (shard 3). The **at540-assertion-layer Mode A checker is IN FLIGHT** (dispatched 15:38; no verdict on disk at 16:10) — expected pending handshake, not a finding; its files untouched.
+
+**GRILL — human decision, not a build row (carried):**
+- GRILL: recurring vacuous-guard prevention policy (AT-218). Unanswered, carried.
+- GRILL: real two-mode acceptance thresholds for D-023/T-169 (AT-281). Carried.
+- GRILL (AT-402): structure-before-code review of `visual_order.js`. Carried.
+
+### Findings this sweep — FINDINGS: 6
+
+| Issue | Sev | What |
+|---|---|---|
+| AT-547 | high | **Bypass:** AT-541+AT-542 fixes (df529f2) and AT-543 (a5e5b81) landed as bare commits — no manifest, no verdict; all three ledger rows stay open (a flip needs a verdict). Remediation: retro-manifests + Mode A checks. |
+| AT-548 | medium | df529f2's message claims "+ F-044 ledger correction appended" — no F-044 row exists in docs/FEATURES.jsonl and the commit never touches the file (shards 1+2 deduped to one row). |
+| AT-549 | medium | x10b-form-typing terminal-STALLED (manifest :230) at cycle 3 of 3 with FAIL verdict and NO qa/debug/x10b-form-typing* diagnosis — its sole FAIL cause (AT-539) is since fixed; stall without diagnosis. |
+| AT-550 | medium | AT-542's ensemble wiring silently shrinks: routes_sources.py:237-241 drops uncredentialed providers with no recorded signal; project.py:61-70 substitutes ["gemini"] for empty config (extends open AT-542). |
+| AT-551 | medium | browser/assertions.py met() swallows probe errors into True and body_text() returns "" on a broken page — absent_text-only expectation on a crashed page records met and completes clean; visible_text/dom_asserts fail safe. Ruled defect-not-contract vs D-032's Result (no-raise is satisfiable failing-safe). |
+| AT-552 | low | Inbox residual: umesh's 2026-09-06 home-page-dashboard ask never filed (the two sibling 2026-09-07 asks were delivered — Status lines annotated, entry folded onto this row). |
+
+**Deduped / not filed:** opus_sub_share — shard 3 measured **0.289 (over the 0.25 line)** at 15:54:51; consolidation re-read **0.153 (UNDER)** at 16:10:25 — volatile around the threshold; scan line appended to `qa/token-ledger.jsonl` and open **AT-486** extended with both numbers (its Opus-dispatch audit is still not performed; no new row). grade.md **G2** ("Only Outcome.COMPLETED results are sent to the judge") + execute.md **E1** — both D-032-wave staleness, folded into the in-flight at540 checker's contract touch (no row; the next sweep files if its verdict lands without them). AT-541/542/543 got evidence notes (fixes in-tree, UNVERIFIED) — **no flips this sweep**; AT-253 NOT flipped (D-031 prose landed, wiring question still gated); AT-415 re-confirmed; AT-488/AT-502 unchanged in window (no refile); data-boundary gate still fires (no `data_class`) — standing **AT-365**; no graph.json → blast radius NOT-APPLICABLE.
+
+### TOP-3 BUILDABLE NEXT UNITS (2026-09-22b)
+
+| # | Unit | Why |
+|---|---|---|
+| **1** | **at540-assertion-layer Mode A check** — in flight (dispatched 15:38), not to be raced. Its contract touch (execute.md E1 per D-032) should also absorb the grade.md G2 line and, if convenient, the AT-546 require_consent re-point. | The pending handshake the board waits on; its verdict lets AT-540 close. |
+| **2** | **AT-547 (high) bypass remediation** — retro-manifests + Mode A checks for AT-541/AT-542/AT-543. | The only high row filed this sweep; three open rows carry real in-tree fixes awaiting a check. |
+| **3** | **The buildable tail:** AT-529 (high, HUMAN_GATE — Umesh's test-account credentials) · AT-546 checker re-point (bundle with the at540 contract touch if its verdict allows) · AT-544 via the F-044 remediation (AT-548) · AT-545+AT-497 heartbeat unit · T-123 medium batch · AT-550/AT-551 as natural follow-ons to at540. | Ordered by severity + unblocking value. |
+
+### HUMAN_GATE — do not build as ordinary units (carried from the 2026-09-22 refresh, verified unchanged)
+
+live-crawl-target · post-login-forms · erp-credentials/AT-529 · t162-contract-approval · at438-u14b-baseline + commit-before-verdict · at416-clip-vs-reach-direction · at383-loop-status-consumer · at365-data-class-declaration · at110-approval-forgery · at147 · at218 · at253 (ARCHITECTURE Execution-model D-entry) · t136-model-credentials.
+
+**Terminal state: `FINDINGS: 6`** (AT-547 high; AT-548/549/550/551 medium; AT-552 low; 0 flips; AT-486 extended with the token reading; sweep report: qa/verdicts/sweep-2026-09-22b.md).
+
+---
+
+## Sweep refresh — 2026-09-22c (sharded Mode B; consolidation of 3 read-only shards, HEAD `93fad7b`)
+
+Window `00e36a8..93fad7b`. The at540-assertion-layer Mode A check landed **cycle-2 checked-PASS**
+(`d7d8405` fix, `41ff0e1` close-out) since the prior sweep — AT-547/548/549/550/552 (checker-unit
+set, its own cycle-1 findings) flipped `fixed`; AT-551 (sweep set, met()/body_text fail-unsafe)
+also flipped `fixed`. `target.md` milestone tracker landed (`93fad7b`), routed at `CLAUDE.md:24`.
+
+**GRILL — human decision, not a build row (carried):**
+- GRILL: recurring vacuous-guard prevention policy (AT-218). Unanswered, carried.
+- GRILL: real two-mode acceptance thresholds for D-023/T-169 (AT-281). Carried.
+- GRILL (AT-402): structure-before-code review of `visual_order.js`. Carried.
+
+### Findings this sweep — FINDINGS: 3 new + 1 reconciled (no renumber) + aging restatement
+
+| Issue | Sev | What |
+|---|---|---|
+| AT-555 | medium | `assertions.py::met()`'s url branch stays fail-UNSAFE (blanket `contextlib.suppress` → `return True` on a `page.url` read failure) — the AT-540 fix closed the `body_text`/`absent_text` half of AT-551 but not this one; disclosed as "row 11" debt in `qa/verdicts/at540-assertion-layer.md:21-23` but carried no issue id until now. |
+| AT-556 | low | One `ScheduleWakeup` call blocked today by a `glm-5.3-flash` classifier outage (6 outages total) — same failure shape as AT-368's multi-day dead loop; loop did not visibly stall this time, leading-indicator only. |
+| AT-557 | low | `uv run autotester doctor` not clean: `docs/SNAPSHOT.md` stale vs its own regeneration — likely the `target.md` commit or at540's landing not re-running `autotester snapshot`. |
+
+**AT-553 (dup-id pattern) — reconciled by judgment, NOT renumbered.** Evaluated the dispatch's
+preferred renumber (keep at540-set AT-547..552 `found_by=checker-unit`, renumber sweep-set
+AT-547..552 `found_by=checker-sweep` to fresh ids) and rejected it: the sweep-set AT-551 content
+(met()/body_text fail-unsafe) is cited by id inside `src/autotester/browser/assertions.py` and two
+test files — files this role is barred from editing — so a clean renumber isn't achievable without
+orphaning permanent code comments. Every one of the twelve colliding rows (AT-547..552 ×2,
+AT-288..291 ×2) already carries a `found_by`/`checker` discriminator, mirroring the precedent
+AT-293 (2026-09-11, verified) already set for the AT-288..291 case — that ruling stands, not
+re-litigated. Full reasoning recorded in AT-553's own `evidence` field. Old→new id mapping: **none
+— no renumber performed.**
+
+**Non-findings confirmed, not re-filed:** AT-541/542/543 (bypass-fixed-but-unverified) re-derived
+independently by shard 3 as still legitimately OPEN — no manifest/verdict exists for any of the
+three; AT-550 (ensemble silent-shrink) confirmed still reproduces in code, unchanged. Gate-answered-
+off-disk sweep over all 21 `qa/gates/*.md` found zero violations (one cosmetic stray placeholder at
+`t136-model-credentials.md:44`, not filed). `target.md`'s north-star framing is not literally
+covered by check 6's trigger (goal.json's `north_star` field itself is unedited) but is
+un-reconciled with a second, higher-visibility statement of the goal — noted, not filed as a new
+row this sweep (informational only, folded into the TOP-3 below instead). Data-boundary (AT-365),
+loop.md agreement, and structural erosion (session.py at 299/300 lines, watch-item) all re-confirmed
+unchanged.
+
+### TOP-3 BUILDABLE NEXT UNITS (2026-09-22c refresh)
+
+| # | Unit | Why |
+|---|---|---|
+| **1** | **AT-541/542/543 retro-remediation** — verify-or-revert the bare commits `df529f2`/`a5e5b81` (no manifest, no verdict, per AT-547) through the maker-checker pair properly: retro-manifest the three fixes (What changed + verify commands), dispatch Mode A, let the rows flip only on a real verdict. Bundle the **AT-550** fix (silent ensemble-shrink at `routes_sources.py:236-244` / `schema/project.py:70` — record which provider was skipped instead of a silent drop; refuse or note the empty-config `["gemini"]` default) into the same unit since it extends the same AT-542 surface. | The only high-severity row with real in-tree fixes still awaiting a check; unblocks three open ledger rows plus AT-550 in one pass. |
+| **2** | **AT-529 (high, HUMAN_GATE)** — PATHLYNKS_USER_* dev credentials 401; only Umesh can supply valid test-account values. | Unchanged; blocks the entire live-crawl-target acceptance run. |
+| **3** | **AT-555 (medium, new)** — guard `met()`'s url-read the same way `body_text()`/`selector_exists()` are now guarded, with a falsifying test that a raising `page.url` does not leave `met()` returning `True`. Cheap, same file already touched by at540. | Closes the last disclosed gap from the at540 fix cycle; small, isolated, well-scoped. |
+
+**Aging (not new, restated for priority):** AT-110 (14d, high, RunApproval tamper-check defeat) is
+the oldest untouched high-severity row on the board — no code change this sweep, still needs a
+build slot. AT-218/AT-281 (GRILL rows, 13d/12d) remain HUMAN_GATE, not buildable.
+
+**Deprioritised (not cancelled):** AT-544 (feature-ledger stale, via the F-044 remediation AT-548,
+already fixed by at540's cycle-2 close-out — re-check on next ledger touch) · AT-545/AT-497
+(orphaned-running-crawl heartbeat) · AT-488/AT-502 structural-erosion signals · AT-556/AT-557 (low,
+no urgency).
+
+### HUMAN_GATE — do not build as ordinary units (carried, verified unanswered on disk)
+
+live-crawl-target · post-login-forms · erp-credentials/AT-529 · t162-contract-approval ·
+at438-u14b-baseline + commit-before-verdict · at416-clip-vs-reach-direction ·
+at383-loop-status-consumer · at365-data-class-declaration · at110-approval-forgery · at147 · at218 ·
+at253 (ARCHITECTURE Execution-model D-entry) · t136-model-credentials.
+
+**Terminal state: `FINDINGS: 3`** (AT-555 medium; AT-556/557 low; AT-553 dup-id pattern reconciled
+by judgment, no renumber; 0 new gates opened; sweep report: this consolidation, shards at
+`qa/sweeps/shard-{1,2,3}-2026-09-22c.md`).
