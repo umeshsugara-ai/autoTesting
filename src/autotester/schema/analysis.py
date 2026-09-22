@@ -56,6 +56,16 @@ class VideoAnalysis(Artifact):
     and "23 of 24 calls failed" produce the same screens and the same issues —
     and a reader who cannot tell them apart will trust the second one."""
     provider_labels: list[str] = Field(default_factory=list)
+    requested_providers: list[str] = Field(default_factory=list)
+    """AT-550: the provider labels the CALLER asked for, before credential
+    availability was checked — always known, even for a provider that never
+    produced a single observation. `providers.get(n) for n in vision_ensemble()`
+    used to be filtered down to `available()` providers before `analyze` ever
+    ran, so a 2-provider config with one missing credential silently became an
+    ensemble of one, and nothing on disk recorded that it had shrunk. Empty
+    means the caller did not say (older analyses, or a caller that ran exactly
+    what it was given); non-empty and equal to `provider_labels` means the full
+    requested ensemble answered. See `degraded_providers` below."""
     prompt_names: list[str] = Field(default_factory=list)
     screens: list[AnalysedScreen] = Field(default_factory=list)
     flows: list[ObservedFlow] = Field(default_factory=list)
@@ -70,3 +80,14 @@ class VideoAnalysis(Artifact):
         having; it is worth knowing that it is partial."""
         return (self.observations_expected > 0
                 and self.observations_used >= self.observations_expected)
+
+    @property
+    def degraded_providers(self) -> list[str]:
+        """AT-550: providers that were REQUESTED but produced zero observations
+        — a credential gap or a total per-provider failure, distinct from
+        `is_complete`'s per-chunk partial completion. Empty when the caller did
+        not record `requested_providers`, OR when every requested provider
+        answered — the two honest cases are not distinguishable from this
+        property alone, which is why `requested_providers` itself is also on
+        the artifact rather than only this derived list."""
+        return sorted(set(self.requested_providers) - set(self.provider_labels))
