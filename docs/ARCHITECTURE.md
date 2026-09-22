@@ -87,6 +87,7 @@ self-extension loop; `BenchCorpus`/`BenchTrial` run the human-vs-AI comparison.
 Per case: `run_case` performs exactly the case's steps in a real browser and produces a
 `RawResult` (outcome, evidence, iterations). Judgement belongs entirely to the independent
 grader (`stages/grade.py`), which sees evidence only — the executor never grades itself.
+Deterministic assertions (D-032) are evidence, not judgement: `browser/assertions.py` records each expectation's `met|unmet` fact; the grader alone still owns every verdict.
 
 **Not yet built (queued wiring unit, D-031):** durable script-first replay and the agent
 fallback are scaffolding only — `Script` and `case.script_ref` exist in the schema and

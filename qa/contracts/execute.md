@@ -13,12 +13,21 @@ only observes" line in the T-040 goal task note, made literal.
 
 ## Criteria
 
-### E1 — No judgement, only observation
-`stages/execute.py::run_case` never assigns PASS/FAIL/INCONCLUSIVE. Its only outputs are the
-three `Outcome` values: `COMPLETED` (every step ran without raising), `ERRORED` (an exception
-mid-step), `BLOCKED_HITL` (a step needed a secret the project does not have — see E3). An
-`Action.ASSERT` step is executed as evidence capture (screenshot + current URL) only; the stage
-never compares the captured evidence against `Step.expected` itself.
+### E1 — The executor observes and records; it never grades
+`stages/execute.py::run_case` never assigns PASS/FAIL/INCONCLUSIVE. Its outputs are the four
+`Outcome` observations: `COMPLETED` (every step ran without raising), `ERRORED` (an exception
+mid-step), `BLOCKED_HITL` (a step needed a secret the project does not have — see E3), and
+`ASSERTION_FAILED` (D-032/AT-540: a step's declared expectation — or an `Action.ASSERT` step's
+declared expectation — deterministically did not hold at settle time; an observation, never a
+grade). `Action.ASSERT` evaluates the step's declared expectation (`url`/`visible_text`/
+`absent_text`/`dom_asserts`) through `browser/assertions.py` and records one
+`assert <field>: met|unmet (<detail>)` DOM evidence item per evaluated field; after any step
+whose `expected` declares checkable fields the expectation is evaluated post-settle the same
+way. A bare ASSERT (nothing declared) stays harmless. `network` stays observer-derived and
+`visual_signal` stays the judge's (no-fire). The executor never grades: a declared expectation
+either held or did not — recorded as evidence — and `grade.py` still owns every verdict (C7:
+an `ASSERTION_FAILED` run reaches the judge, which weighs the recorded facts and may disagree
+with a wrongly-authored expectation).
 
 ### E2 — Every step composes existing session primitives
 `run_case` dispatches each `Step.action` to a `BrowserSession` method
@@ -86,3 +95,14 @@ has no way to add or remove actions from what the case already specifies.
   live against `https://www.vidysea.com/erp` (3 consecutive real PASSes, real Gemini multimodal
   grading). Found unrecorded by this sweep — same contract-side-trace gap class as AT-048; this
   entry closes it for AT-053.
+- 2026-09-22 · routine (fold-in of D-032, authorized there) · **E1 superseded** per
+  docs/DECISIONS.md D-032 (AT-540, Umesh's 2026-09-22 assertions-first approval): the executor
+  now evaluates each step's declared deterministic expectation (`Action.ASSERT` is real,
+  `absent_text`/`dom_asserts` are evaluated, `Outcome.ASSERTION_FAILED` is added as a fourth
+  observation — never a grade) and records per-field `assert <field>: met|unmet` DOM evidence
+  via `browser/assertions.py`. C7 unchanged: grade.py still owns every verdict, and an
+  `ASSERTION_FAILED` run reaches the judge with its recorded facts (D-032 point 4 is this
+  entry; the one-sentence docs/ARCHITECTURE.md Execution-model addition lands with it).
+  Note: AT-540's cycle-1 check (`qa/verdicts/at540-assertion-layer.md`) is FAIL on
+  capability-coverage rows (dom_asserts / ERRORED-precedence / C7-for-assertions unisolated)
+  plus three deleted E3 tests — the behaviour is in and verified; the checks lag the claims.
