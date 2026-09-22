@@ -71,3 +71,6 @@ projects/*/sources.jsonl
 # (same rationale as the crawl artifacts above, D-015).
 projects/*/screenmap.json
 projects/*/issues.jsonl
+
+# maker-checker parallel wave worktrees (AIOS /maker convention)
+.worktrees/
