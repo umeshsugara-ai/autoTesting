@@ -1,17 +1,22 @@
 """Convert teaching material into the ONE content-addressed `Source` model.
 
-The seam the learn-or-explore orchestrator (T-163) consumes: TEXT, DOC and
-AUDIO uploads all become `Source` rows in the same `sources.jsonl`, never a
-second store (SA1). Content-addressed (sha256) dedupe means the same bytes
+The seam the learn-or-explore orchestrator (T-163) consumes: TEXT, DOC, AUDIO
+and EMAIL uploads all become `Source` rows in the same `sources.jsonl`, never
+a second store (SA1). Content-addressed (sha256) dedupe means the same bytes
 registered twice is ONE Source and the second call reports `created=False`
 (SA2). TEXT is stored verbatim with no model call (SA-table); DOC is
 extracted host-side via `sources.extract`; AUDIO is transcribed Gemini-first
-via `sources.audio` (the Provider seam), Whisper as the no-API fallback. An
-unreadable document or untranscribable recording is registered with an
-`extraction_error` note, never silently as empty text (SA5). Only AUDIO calls
-a model, and only to transcribe -- SA6's "a model may NAME, never DECIDE"
-boundary is enforced by shape (`sources.audio` never returns anything but a
-transcript).
+via `sources.audio` (the Provider seam), Whisper as the no-API fallback;
+EMAIL (`.eml`/`.mbox` LOCAL files only, no mailbox credentials -- SA3) is
+parsed via `sources.email`, one Source per message, its attachments
+registered as CHILD Sources through these SAME DOC/AUDIO adapters -- never a
+re-implementation of extraction -- linked to their parent via
+`Source.provenance` (SA4), the envelope every `Artifact` already carries. An
+unreadable document, untranscribable recording, or unparseable message is
+registered with an `extraction_error` note, never silently as empty text
+(SA5). Only AUDIO calls a model, and only to transcribe -- SA6's "a model may
+NAME, never DECIDE" boundary is enforced by shape (`sources.audio` never
+returns anything but a transcript).
 """
 
 from __future__ import annotations
@@ -23,6 +28,7 @@ from typing import NamedTuple
 
 from autotester.core.ids import file_sha256
 from autotester.providers.base import Provider
+from autotester.schema.base import Provenance
 from autotester.schema.enums import SourceKind
 from autotester.schema.project import Source
 from autotester.sources.audio import AUDIO_SUFFIXES, transcribe_audio
@@ -73,6 +79,7 @@ def register_document(
     *,
     label: str | None = None,
     recorded_on: str | None = None,
+    provenance: Provenance | None = None,
 ) -> Registration:
     """A `.txt`/`.md`/`.docx`/`.pdf` upload -> a content-addressed DOC `Source`.
 
@@ -80,6 +87,11 @@ def register_document(
     document that cannot be read is still registered, with an `extraction_error`
     note and `text=None`, never silently as empty text (SA5). The same file
     registered twice is ONE Source and is not re-extracted (SA2).
+
+    `provenance` is optional and used unchanged by callers with nothing to
+    say (VIDEO/DOC uploaded directly); `register_email` passes one so a
+    document attachment cites its parent message (SA4) without this function
+    knowing anything about EMAIL.
     """
     if not path.exists():
         raise FileNotFoundError(f"no such document: {path}")
@@ -107,6 +119,7 @@ def register_document(
             label=label,
             recorded_on=recorded_on,
             notes=note,
+            provenance=provenance,
         )
     )
     return Registration(source, created=True)
@@ -120,6 +133,7 @@ def register_audio(
     secrets: Iterable[str] = (),
     label: str | None = None,
     recorded_on: str | None = None,
+    provenance: Provenance | None = None,
 ) -> Registration:
     """A `.mp3`/`.wav`/`.m4a`/`.ogg`/`.opus` upload -> a content-addressed
     AUDIO `Source`, transcribed via `sources.audio.transcribe_audio`
@@ -130,13 +144,19 @@ def register_audio(
     silently as a clean one (SA5); a clean transcript is persisted alongside
     it via `ProjectStore.save_transcript`, addressable by the Source id
     (SA4) the same way VIDEO's transcript already is.
+
+    `provenance` is optional, same rationale as `register_document`'s:
+    `register_email` sets it for an audio attachment; every other caller
+    leaves it `None`.
     """
     _require_audio_file(path)
     digest = file_sha256(path)
     existing = _existing_by_digest(store, digest)
     if existing is not None:
         return Registration(existing, created=False)
-    source = _add_audio_source(store, path, digest, provider, secrets, label, recorded_on)
+    source = _add_audio_source(
+        store, path, digest, provider, secrets, label, recorded_on, provenance
+    )
     return Registration(source, created=True)
 
 
@@ -161,6 +181,7 @@ def _add_audio_source(
     secrets: Iterable[str],
     label: str | None,
     recorded_on: str | None,
+    provenance: Provenance | None = None,
 ) -> Source:
     """Transcribe and persist a new AUDIO `Source` + its `Transcript` sidecar.
 
@@ -179,6 +200,7 @@ def _add_audio_source(
             label=label,
             recorded_on=recorded_on,
             notes=outcome.note,
+            provenance=provenance,
         )
     )
     if outcome.transcript is not None:

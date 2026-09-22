@@ -10,6 +10,7 @@ class SourceKind(StrEnum):
     DOC = "doc"
     TEXT = "text"
     AUDIO = "audio"
+    EMAIL = "email"
     URL = "url"
     EVAL = "eval"
     CONDITION = "condition"
@@ -290,10 +291,9 @@ class CrawlStatus(StrEnum):
     LOGIN_FAILED = "login_failed"
     ABORTED = "aborted"
     BLOCKED_NO_ACTIONS = "blocked_no_actions"
-    """AT-242: the frontier emptied with every reachable action refused by
-    policy (denied > 0) and none performed (actions_used == 0). Distinct from
-    COMPLETED (a real page with nothing denied is genuinely fully explored)
-    and from LOGIN_FAILED (the login CASE specifically did not complete)."""
+    """AT-242: the frontier emptied with every reachable action refused by policy
+    (denied > 0) and none performed (actions_used == 0). Distinct from COMPLETED
+    (nothing denied is genuinely explored) and LOGIN_FAILED (login didn't complete)."""
     LOGIN_WALL = "login_wall"
     """X18/AT-458: no login case declared, every screen ends in a refused form
     submit, no link led anywhere structurally different — the crawl met a

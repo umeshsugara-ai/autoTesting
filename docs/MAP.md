@@ -63,6 +63,8 @@
 | `schema/verdict.py` | Grading. An independent, stateless judge reads evidence against a rubric. |
 | `sources/adapters.py` | Convert teaching material into the ONE content-addressed `Source` model. |
 | `sources/audio.py` | Gemini-first transcription for AUDIO sources, Whisper as the no-API fallback. |
+| `sources/email.py` | Parsing for EMAIL sources: `.eml`/`.mbox` LOCAL files only. |
+| `sources/email_register.py` | Registration for EMAIL sources: `register_email` -> `Source` rows. |
 | `sources/extract.py` | Deterministic host-side text extraction for DOC sources. |
 | `stages/adjudicate.py` | ADJUDICATE: merge every model's chunked observations into one reading. |
 | `stages/agent_loop.py` | Agent fallback: when a case's steps break, ask the agent for a fix and retry. |
