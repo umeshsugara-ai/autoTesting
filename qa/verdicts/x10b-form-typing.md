@@ -1,269 +1,209 @@
-# Verdict — x10b-form-typing (cycle 2)
+# Verdict — x10b-form-typing (cycle 3, LAST cycle)
 
-**Checked by:** /checker (Mode A, fix-cycle recheck, fresh context, no builder reasoning)
+**Checked by:** /checker (Mode A, fix-cycle recheck cycle 3, fresh context, no builder reasoning)
 **Date:** 2026-09-22
-**Project root (bound):** `D:\autoTesting`
+**Project root (bound):** `D:\autoTesting` — every path read/written resolves inside it.
 **Contract:** `qa/contracts/explore.md` — X10 as amended to X10-b, X5's typing column, X12,
-X6/X5 unchanged-rows, X7, V7b.
-**Manifest:** `qa/manifests/x10b-form-typing.md` — `Status: ready-for-check`, **Fix cycle 2 of
-max 3**. Dual check: no. Issues addressed per manifest: AT-532, AT-533, AT-534, AT-535.
+X6/X5 unchanged rows, X7, V7b (full criterion set re-judged, not only the three open issues).
+**Manifest:** `qa/manifests/x10b-form-typing.md` — `Status: ready-for-check`, **Fix cycle 3 of
+max 3**. Dual check: no. Issues addressed per manifest: AT-532, AT-533, AT-534, AT-535 (+
+cycle-3: AT-533, AT-536, AT-537).
 
-**Cycle checked: 2**
+**Cycle checked: 3**
 
-## What I re-ran myself
+## What I re-ran myself (whole output, not piped)
 
 | Command | My result |
 |---|---|
-| `uv run pytest tests/test_explore_typing.py tests/test_explore_typing_guards.py tests/test_explore_consent.py` | **15 passed** in ~2s — the manifest claims **"16 passed"**; `--collect-only` counts **15** tests in those three files. The claimed count does not reproduce. (The 16th test the manifest counts was the real-browser proof the cycle-2 diff **deleted** — see the FAILURES section.) |
-| `uv run pytest tests/test_explore.py tests/test_explore_safety.py tests/test_crawl_coverage.py` | **97 passed** |
-| extra regression sweep: test_explore + test_explore_safety + test_crawl_coverage + test_crawl_coverage_bounds + test_consent + test_crawl_real_cli + test_coverage_wiring + test_actuator_chokepoint + test_browser + test_browser_navigation_secrets + test_secrets + test_crawl_report | **203 passed** |
-| extra: test_explore_live (real browser) | **8 passed** |
-| extra: test_ui_crawl_login (real browser) | 24 passed, **3 ERRORS at setup** — `monkeypatch.setattr("autotester.stages.explore.require_consent", …)` raises `AttributeError: module 'autotester.stages.explore' has no attribute 'require_consent'` (the seam was moved to `explore_consent.py` and **this test file was not retargeted**; `test_ui_crawls.py` and `test_coverage_wiring.py` were) |
-| extra: test_explore_merge, test_explore_login_wall*, test_ui_crawls | 15 + 29 + 27 passed |
-| `uv run ruff check src tests scripts` | All checks passed! |
-| `uv run autotester doctor` | **NOT clean — 1 violation:** `file-too-long: tests\test_ui_crawls.py — 301 lines > 300` (byte-precise count 301; with the file stashed, doctor reads clean, so the violation is introduced by this unit's own 2-line edit to that file). The manifest claims **"doctor: clean"** — false as submitted. |
+| `uv run pytest tests/test_explore_typing.py tests/test_explore_typing_guards.py tests/test_explore_consent.py tests/test_ui_crawls.py tests/test_ui_crawl_approval.py tests/test_ui_crawl_login.py` | **46 passed** in 79.44s (re-run: 90.70s) — matches the manifest's "46 passed". `test_ui_crawl_login` contributes **10 passed, 0 errors** (at HEAD's seam it reads 7 passed + 3 setup ERRORs — verified by stash-restore in BOTH directions, so the retarget is the cause of the fix, not a coincidence). |
+| `uv run pytest tests/test_explore.py tests/test_explore_safety.py tests/test_crawl_coverage.py` | **97 passed** (19 + 67 + 11). |
+| `uv run ruff check src tests scripts` | `All checks passed!` (twice) |
+| `uv run autotester doctor` | `doctor: clean` (twice — REAL this time: `tests/test_ui_crawls.py` is 206 lines, `test_ui_crawl_approval.py` 138; no file over the 300 cap anywhere among the unit's files). |
+| adapter slot-1: `uv run pytest` (FULL suite, the instrument `qa/adapter.json` actually names) | **3 failed, 1511 passed, 5 skipped, 32 xfailed** in 722.67s — exit 1. The 3 failures are exactly `tests/test_approve_cli.py::{test_approve_writes_a_row_that_covers_the_cli_defaults, test_an_approval_narrower_than_the_run_still_refuses, test_the_grant_and_the_runtime_agree_on_every_expiry_they_accept}`, each dying at **ImportError: cannot import name 'require_consent' from 'autotester.stages.explore'** (lines 63, 78, 164). This file is UNTOUCHED by the unit's diff; it passes 10/10 with `explore.py` reverted to HEAD (stash-restore verified). The unit retargeted three sibling files of the same seam but missed this fourth one. Filed as **AT-539**. |
+| extra regression sweep (my own) | test_explore_merge + test_explore_login_wall* + test_explore_login_bypass + test_crawl_coverage_bounds + test_consent + test_coverage_wiring + test_crawl_real_cli + test_actuator_chokepoint = **94 passed**; test_browser + test_browser_navigation_secrets + test_secrets = **50 passed**; test_explore_live = **8 passed**; test_crawl_report + test_ui = **18 passed**; test_crawl_real_cli again = **7 passed**. X18/X16 surfaces (explore_status.py, schema/, crawl_coverage.py, explore_merge.py, explore_safety.py) are untouched by this cycle's diff (`git diff HEAD --name-only` over those paths: empty). |
 
-## Independent probes (my own code, not the maker's pins)
+## Independent probes (my own code, `.work/checker_x10b_c3_*.py`)
 
-All probe scripts are in `.work/checker_x10b_c2_*.py`; every case runs `run_crawl` against the
-`crawl_fake` site and reads the persisted graph from the store.
+### AT-533 — per-node cap binds the typing pre-pass itself — **FIXED, verified both directions**
+- **Structural check (read):** `type_form`'s loop now carries
+  `if typed >= rt.bounds.per_node_action_cap: return typed` BEFORE each fill/select
+  (`src/autotester/stages/explore_typing.py:99-100`), ahead of the candidate filter — the
+  cap is checked per iteration regardless of how many fillable fields the node has. The
+  click loop's share (`tried + typed >= cap`, `explore_node.py:222`) is unchanged from cycle 2.
+- **My stress probe** (`.work/checker_x10b_c3_probeCap.py`, the exact shape the cycle-2 verdict
+  demanded — 5 fillable fields on the settings seed, `per_node_action_cap=2`, typing ON):
+  **performed = 2** (`_tried`), fills = 2, clicks = 0.
+- **Sabotage both directions:** replacing `type_form` with the same loop minus the cap check
+  reproduces the cycle-2 defect shape EXACTLY — **performed = 5** — and restoring the check
+  returns it to 2. The check is structural and load-bearing; the shipped 2-field pin
+  (`test_typing_and_clicking_share_one_per_node_budget`, asserts `_tried(seed) <= 2`) is green
+  and its fixture's weakness no longer matters because the bound lives in the loop.
 
-### AT-532 — typed action's X7 host re-check — **code FIXED, pin WEAK**
-- `explore_typing.py::_type_one` now re-checks the host after settle exactly as `try_action`
-  does: `check_destination(rt.project, landed)` → on `NavigationRefused`, a `NAVIGATION` issue +
-  an `OFF_DOMAIN_REFUSED` edge, and the off-domain node is never created (explore_typing.py:55-61).
-- **My load-bearing probe** (`.work/checker_x10b_c2_probeTrap.py` — crawl seeded directly AT
-  `/trap`, the only way the fake can reach `input.offdomain`): the fill records
-  `OFF_DOMAIN_REFUSED` with reason `"host 'evil.test' is outside allowed domains ['app.test']"`,
-  a `NAVIGATION` issue is filed, zero `evil.test` nodes exist. **Sabotage both directions**
-  (`.work/checker_x10b_c2_sab532run.py` + `_restore`): with the `check_destination` block
-  removed from `_type_one` in an isolated copy, the same probe regresses to the cycle-1 defect
-  shape exactly (`fill` → `same_screen`, no issue, no refusal); restored → refused shape again.
-  **The fix is real and load-bearing in code.**
-- **But the shipped pin is weak:** `tests/test_explore_typing_guards.py::
-  test_a_fill_that_lands_off_domain_is_refused_not_explored` asserts only that *some*
-  `off_domain_refused` edge exists. No page in `crawl_fake.SITE` links to `/trap`, so the BFS
-  never reaches the trap element and **the typed off-domain scenario cannot fire through the
-  crawl in that test** — my probe of the exact guard-test setup shows the asserted
-  `off_domain_refused` edge comes from the pre-existing seed link `a.ext` (a NAVIGATE refusal on
-  X7's *link* path, present since before this unit). Sabotaging `crawl_fake.FILL_TARGETS` to
-  `{}` (typed action never auto-submits) leaves the test **green** — verified
-  (`.work/_sabotage_532.py`, `-p _sabotage_532` → 1 passed). **A pin that passes with the fix's
-  trigger removed does not defend the fix.** The code is right; the test as shipped would not
-  catch a regression.
+### AT-536 — honest verify outputs + seam retarget + file split — **FIXED (its three named sub-items)**
+- `tests/test_ui_crawls.py` split is **lossless**: HEAD's 18 tests = working tree's 13 +
+  `test_ui_crawl_approval.py`'s 5, no test lost and none invented (set-diff verified);
+  both files 206 and 138 lines; the 5 consent-approval tests are present in the new file
+  and all pass; **doctor: clean reproduced twice** (my byte counts, not the manifest's claim).
+- `tests/test_ui_crawl_login.py:84` retargeted to `explore_consent.require_consent`:
+  10/10 green now vs 7 passed + 3 setup ERRORS at HEAD's seam — both directions re-measured
+  by stashing/restoring the file.
+- Manifest pasted outputs now match my runs: 46 passed (×2 reproduced), 10 passed for the
+  typing file (incl. the ~55s real-Chromium proof), ruff clean, doctor clean. One cosmetic
+  inaccuracy survives: the manifest says the typing test file is "219/300"; my byte count is
+  222 (still comfortably under the cap — noted, not a failure).
 
-### AT-533 (per-node cap binds typing) — **NOT MET**
-- The click loop now shares the budget: `if tried + typed >= rt.bounds.per_node_action_cap: break`
-  (explore_node.py:222), and `type_form` returns its typed count into it. The *click* half is
-  real.
-- **The typing half is not: `type_form` never reads `per_node_action_cap`.** Its only bound is
-  the global `max_actions` (explore_typing.py:95). My stress probe
-  (`.work/checker_x10b_c2_probeCap3.py`): 5 fillable fields on the settings node,
-  `per_node_action_cap=2`, typing ON → **`_tried(settings) = 5`** — five performed typed
-  actions on a cap-2 node, 2.5× the bound (exactly the cycle-1 defect shape, still reachable
-  whenever a node carries more typing targets than the cap; the shipped cap test passes only
-  because the fixture has exactly 2 typing targets and the settings-page fills are never
-  registered fillable in the guards' crawl, so `input.displayname`'s fill ERRORS as tried).
-- The shared-budget *test* passes (`tried + typed >= cap` is enforced for clicks), but the
-  contract sentence "each records an edge … and counts toward `max_actions` and the per-node
-  cap" is still measurably false for the pre-pass itself, and the up-to-2× overshoot the issue
-  named (typed + clicked on one node) is now bounded only when `typed ≤ cap` — which nothing
-  enforces.
+### AT-537 — real-browser proof restored — **FIXED**
+- `test_a_real_browser_types_and_submits_the_filled_form` is back in
+  `tests/test_explore_typing.py:171` and is **verbatim-identical to `0e225a5`** — the
+  whole-file diff against 0e225a5 contains docstring mojibake (pre-existing `—`/`…`
+  characters double-encoded) and one duplicated comment banner, and **zero code-line
+  differences**; all 10 test functions from the cycle-1 file are present, none lost.
+- My own run: `uv run pytest tests/test_explore_typing.py` → **10 passed**; the proof test
+  alone → **1 passed in 55.35s** (real headless Chromium inside the suite run, as the
+  dispatch expected ~40s). The contract's load-bearing sentence
+  (explore.md:624-629) is true again: the suite pins that Playwright actually types and the
+  submit carries the synthetic value.
 
-### AT-534 (refused typing recorded, never clicked) — **MET**
-- Under READ_ONLY (my probe `.work/checker_x10b_cycle2_probe.py` case C): `DENIED_POLICY` edges
-  with reason `TYPING_DISABLED` ("typing disabled under this policy (X10-b)") exist for the
-  typing targets; the click loop skips them (`typing_target_allowed(el) and not
-  typing_allowed(policy)` → continue, explore_node.py:226-227); `page.clicks` never contains
-  `input.displayname` or `select.grade`; coverage holes carry
-  `policy:typing disabled under this policy (X10-b)` (inside V7b's closed `policy:*` prefix
-  form — no set change needed). Flag-OFF under TEST_ACCOUNT behaves identically (denials
-  recorded, targets never clicked). Verified also that `_tried` counts a typing denial as 0.
-- One deliberate narrowing, correctly scoped: search-role fields are excluded from the denial
-  record (`el.role != "search"`, explore_typing.py:130 — gate option (c), settled in cycle 1),
-  and the click-loop skip's `typing_target_allowed` includes "search" but `_record_typing_denials`
-  does not, so a search field under READ_ONLY is neither typed, denied-as-typing, nor
-  double-counted. Consistent.
+### Regression re-judgement (the full criterion set, fix cycles can regress)
+- **AT-532 (typed action's X7 host re-check) — HOLDS.** My isolated probe
+  (`.work/checker_x10b_c3_probeTrap.py`): crawl seeded AT `/trap` so the home page's `a.ext`
+  link path is unreachable and any off_domain_refused edge can only come from the typed
+  action — result: `fill/off_domain_refused` with reason
+  `"host 'evil.test' is outside allowed domains ['app.test']"`, one `NAVIGATION` issue, and
+  **zero** `evil.test` nodes (`_type_one` re-checks the host after settle,
+  explore_typing.py:57-61).
+- **AT-534 (denial records) — HOLDS.** Probe case A: under READ_ONLY,
+  `DENIED_POLICY`/`TYPING_DISABLED` edges for `input.displayname` and `select.grade`; neither
+  appears in `page.clicks`; coverage hole reads `policy:typing disabled under this policy
+  (X10-b)` (inside V7b's closed `policy:*` prefix form); `_tried` counts the denials as 0.
+- **AT-535 (condition 3, non-production target) — HOLDS.** Probe cases B/C: typing ON +
+  `production: true` approval → `ApprovalRequired` naming the approval id
+  (explore_consent.py:42-49, before the browser opens); the SAME production approval still
+  covers an ordinary READ_ONLY run; a `production: false` approval covers typing; both
+  pre-flights (cli_crawl.py:33-34, routes_crawls.py:231-233) pass `SafetyPolicy`.
+- **X6/X5 unchanged (never-click + deny-list under TEST_ACCOUNT with typing ON) — HOLD.**
+  Probe case D: `a.out` denied with `never-click pattern (logout/sign-out)`;
+  `button.del` never clicked; `DEFAULT_NEVER_CLICK_PATTERNS` module-baseline check unchanged
+  (explore_safety.py:103-105).
+- **X10 base (nothing typed outside X10-b) — HOLDS.** Flag-off under TEST_ACCOUNT probe:
+  zero fills, zero selects. Default `SafetyPolicy()` keeps `synthetic_typing=False`
+  (schema/crawl.py:89-96).
+- **X10-b condition 1/2/4 — HOLD.** Gate = `typing_allowed` only
+  (explore_safety.py:36-41); values from `synthetic_values.py` — sha256-keyed, no
+  clock/randomness/provider (synthetic_values.py imports only hashlib); password-named
+  fields refused by `typing_target_allowed`, combobox reads real options through
+  `session.first_option` (browser/session.py:191-201), uploads never touched.
+- **X12 (no provider in the stage) — HOLDS.** `run_crawl` takes no provider; the pre-pass
+  and consent seam import no provider; values are DOM-derived only.
+- **X1 (E5 intact) — HOLDS.** One `run_case` call site in `explore.py`, inside
+  `_bootstrap_login` (explore.py:109, function spans 90-129); `execute.py`/`execute.md`
+  absent from the diff.
+- **X2 (browser/ chokepoint) — HOLDS.** No playwright import outside `browser/`; no
+  `.page.` access in any stage; the pre-pass composes
+  `rt.session.fill/select_option/first_option`.
+- **X10 verify-grep (verbatim):** `.fill(`/`.select_option(`/`.upload(` call sites in
+  `stages/explore*.py` exist ONLY in `explore_typing.py` (46, 49) — no other module imports
+  or re-implements typing (`explore_consent.py`, `explore_return.py` are pure plumbing).
+- **X4/X16/X18 surfaces untouched:** the cycle-3 diff does not touch `explore_status.py`,
+  `schema/`, `crawl_coverage.py`, `explore_merge.py`, or `explore_safety.py`; the X18
+  login-wall suites (29 tests) and coverage-bounds suites are green.
+- **doctor/MAP freshness:** the unit's diff adds `stages/explore_consent.py`; `docs/MAP.md`
+  carries its row; I regenerated `autotester map` and the file is byte-stable (the row was
+  already present and correct).
 
-### AT-535 (condition 3: non-production target enforced) — **MET**
-- `stages/explore_consent.py::require_consent(project, store, bounds, policy)` (new module,
-  extracted from explore.py at its line cap): a `policy.synthetic_typing` run covered by a
-  `production: true` approval raises `ApprovalRequired` naming the approval id
-  (explore_consent.py:42-49) BEFORE the browser opens. `run_crawl` always passes the run's
-  policy (explore.py:262), and both production pre-flights (cli_crawl.py:33-34,
-  routes_crawls.py:231-233) now pass `SafetyPolicy(write_policy=...)` too.
-- My probe (case D): typing ON + production approval → refused (message names the approval id);
-  the SAME production approval still covers an ordinary READ_ONLY crawl (no raise); dev
-  approval (`production: false`) covers typing (no raise). All three directions verified
-  directly against `require_consent`, and the shipped `tests/test_explore_consent.py` (3 tests)
-  passes. The flag's `production` field is content-addressed (schema/approval.py:44-61), so
-  flipping it invalidates the approval id — the enforcement seam is sound.
-- Residual (question, not a failure): the pre-flights construct a fresh
-  `SafetyPolicy(write_policy=project.write_policy)` with **no** `synthetic_typing` — correct for
-  today (no shipped caller sets the flag), so pre-flight can only refuse when someone edits the
-  code path to thread a typing policy through; the runtime seam (`run_crawl`'s own policy) is
-  the load-bearing one and is enforced.
+## NEW finding this cycle (the one FAIL line)
 
-### Regression / X1, X2, X6, X10-base — **all hold**
-- **X1:** `run_case` in `stages/explore.py`: exactly one call site, inside `_bootstrap_login`
-  (explore.py:109). `execute.py`/`execute.md` absent from the diff.
-- **X2:** no `playwright` import / `.page.` access in any `stages/explore*.py` or
-  `explore_consent.py`; typing composes `rt.session.fill/select_option/first_option`.
-- **X6:** never-click at every policy — Log out denied under TEST_ACCOUNT+typing-ON in my
-  probe (edge `denied_policy 'never-click pattern (logout/sign-out)'`); deny-list still ON
-  under TEST_ACCOUNT (button.del denied in the same probe); AT-092 module-baseline check
-  unchanged.
-- **X10 base / typing-off:** READ_ONLY and flag-OFF crawls perform zero fills/selects (probes +
-  97 regression tests + 203-command extended run, all green). Default `SafetyPolicy()` keeps
-  `synthetic_typing=False`.
-- **X12:** no provider anywhere in the pre-pass or the consent seam; values from
-  `synthetic_values.py` (sha256-keyed, no clock/randomness).
-- **X10 verify-grep:** fill/select_option call sites in `stages/explore*.py` exist only in
-  `explore_typing.py` (46, 49); no other module imports or re-implements typing.
+**[X17-adjacent / adapter slot-1 / AT-539] sev: medium · the AT-535/AT-536 seam extraction
+(`require_consent` → `stages/explore_consent.py`) left a FOURTH unretargeted import site —
+`tests/test_approve_cli.py:63, :78, :164` still import `autotester.stages.explore.
+require_consent`, so its 3 consent-runtime tests FAIL at ImportError and the adapter's
+slot-1 verify (`uv run pytest`, expected exit 0) exits 1: 3 failed, 1511 passed, 5 skipped,
+32 xfailed. The file is untouched by this unit's diff and passed 10/10 with `explore.py`
+reverted to HEAD — the break is the unit's cycle-2 seam move, not a pre-existing defect. The
+unit retargeted three sibling files of exactly this class; a `rg "from
+autotester.stages.explore import require_consent" tests/` sweep — the same sweep the AT-536
+fix required — finds this fourth one. The criteria's own verify sentences do not name this
+file and every contract criterion is evidenced; what fails is the project's own instrument
+(`qa/adapter.json` slot-1), which a checker must re-run, not the maker's narrower list ·
+fix direction: three one-line import retargets (`from
+autotester.stages.explore_consent import require_consent`, the same shape already shipped in
+`test_crawl_real_cli.py:131`) — then `uv run pytest` exits 0 · issue: AT-539 (new, open)**
 
-## New findings this cycle (not charged to fix-cycle failures unless listed above)
+Everything the cycle-2 verdict charged is fixed and re-verified; the only red is this
+sibling seam the maker never knew about because no check before this one ran the full suite.
 
-1. **The contract's load-bearing real-browser proof was DELETED.** The cycle-2 diff removes
-   `test_a_real_browser_types_and_submits_the_filled_form` from `tests/test_explore_typing.py`
-   (55 lines, `git diff HEAD` shows the deletion; grep confirms zero copies anywhere in
-   `tests/`). The contract's own amendment-log entry (explore.md:624-629) names that test as
-   part of what is "Load-bearing by construction" for X10-b, and my cycle-1 verdict re-ran it
-   green as the unit's Mode-D evidence. The manifest's cycle-2 section does not disclose the
-   deletion, and its "16 passed" line matches a file-set that no longer contains it.
-   **Re-derivation (Mode D, checker-driven, real headless Chromium against a live-served
-   fixture):** my own probe `.work/checker_x10b_c2_live.py` performs the same proof — the
-   typing pre-pass fills the fixture's displayname with the synthetic value and the submit
-   carries it in the resulting GET url (`/saved.html?displayname=AutoTester+College+810`,
-   crawled status `stopped_bound`/`max_screens`, 8 screens, 2 typed edges same_screen).
-   Evidence written to
-   `qa/evidence/browser-x10b-form-typing-2026-09-22-checker/report.json`. The capability is
-   REAL and now independently proven by the checker — but the suite no longer pins it, and the
-   contract sentence that names the test is now stale. Removing the proof weakens nothing in
-   X10-b's four conditions as written (the criterion's verify is the grep + the guard tests),
-   so this is filed as an issue to restore the pin (or a checker-amended criterion naming the
-   replacement), severity medium — not a criterion violation this cycle.
-2. **`tests/test_ui_crawl_login.py` — 3 tests ERROR at setup** with
-   `AttributeError: module 'autotester.stages.explore' has no attribute 'require_consent'`
-   (test_ui_crawl_login.py:84 monkeypatches the OLD seam; the maker retargeted
-   `test_ui_crawls.py` and `test_coverage_wiring.py` but missed this file). The suite the
-   manifest lists does not include this file, so its pasted "200 passed" is honest for what it
-   ran — but a shipped test file erroring at collection-adjacent setup is a real regression
-   introduced by the seam extraction. Severity medium; one-line fix (retarget the
-   monkeypatch to `explore_consent.require_consent` like the other two files).
-3. **`doctor` violation — `tests/test_ui_crawls.py` 301/300 lines.** The unit's 2-line
-   `**_kwargs` widening pushed it over. The manifest's "doctor: clean" is false as submitted
-   (verified: stash the file → doctor clean; restore → 1 violation). Severity low (split by
-   responsibility), but a verify-claim that does not reproduce is itself the thing Mode A
-   exists to catch.
-4. **Manifest count discrepancy:** "16 passed" vs my measured **15** (collect-only). With the
-   real-browser proof deleted the count should read 15 — the pasted number matches neither the
-   old 10-test file nor the new 15-test set.
-
-## Per-criterion judgements (FULL set re-judged, not only the four failures)
+## Per-criterion judgements (FULL set re-judged)
 
 | Criterion | Judgement |
 |---|---|
-| X1 (E5 intact, one `run_case` site) | **MET** |
+| X1 (E5 intact, one `run_case` site in `_bootstrap_login`) | **MET** |
 | X2 (browser/ chokepoint) | **MET** |
-| X5 matrix (unchanged rows + typing column) | **MET** — deny-list and never-click still ON under TEST_ACCOUNT in my probes |
+| X5 matrix (unchanged rows + typing column) | **MET** — deny-list and never-click still ON under TEST_ACCOUNT+typing-ON (probe D) |
 | X6 (never-click at every policy; unnamed skipped+counted) | **MET** |
-| X7 (host re-checked after EVERY action, typed included) | **MET in code** — probe + sabotage-both-directions; the shipped pin is weak (does not isolate the typed path) — recorded as a question, not re-failed (the code-level falsification is proven by MY probe) |
-| X10 base (nothing typed outside X10-b) | **MET** — READ_ONLY and flag-off probes produce zero fills |
+| X7 (host re-checked after EVERY action, typed included) | **MET** — isolated typed-path probe refuses + files NAVIGATION issue + creates no evil node |
+| X10 base (nothing typed outside X10-b) | **MET** — READ_ONLY and flag-off probes produce zero fills/selects |
 | X10-b condition 1 (widening policy + explicit flag) | **MET** |
-| X10-b condition 2 (synthetic deterministic values only) | **MET** |
-| X10-b condition 3 (non-production target) | **MET** — `require_consent` refuses production-typed runs; all three directions probed |
-| X10-b condition 4 (non-destructive; X6/X5 unchanged) | **MET** — password-named fields refused, uploads never |
-| X10-b first-class actions (bounds bind typing) | **HALF MET** — `max_actions` binds; **per-node cap does NOT bind the pre-pass itself** (AT-533 NOT fixed) |
+| X10-b condition 2 (synthetic deterministic values only) | **MET** — sha256-keyed, no clock/randomness |
+| X10-b condition 3 (non-production target) | **MET** — all three consent directions re-probed |
+| X10-b condition 4 (non-destructive; X6/X5 unchanged) | **MET** |
+| X10-b first-class actions (bounds bind typing) | **MET** — pre-pass cap check structural; 5-field/cap-2 probe = 2; sabotage = 5 |
 | X10-b "click loop still runs after the pre-pass" | **MET** |
 | X12 (no provider in the stage) | **MET** |
-| V7b (refused typing recorded as `policy:typing disabled`, never clicked) | **MET** |
-| Manifest claim "16 passed" | **NOT MET as claimed** — 15 collected/passed |
-| Manifest claim "doctor: clean" | **NOT MET as claimed** — test_ui_crawls.py 301/300 |
-| (unchanged surfaces) X3, X4, X8, X9, X11, X13-X18 | **NOT RE-JUDGED this cycle** — the unit's diff touches only the typing/consent/cap surfaces; 203 + 29 + 15 + 27 + 8(live) regression tests over those surfaces all green, and nothing in the diff touches identity, bounds-naming, dialogs, noise, artifacts, merge, or status logic beyond what cycle 1 already verified |
+| V7b (refused typing recorded as `policy:typing disabled`, never clicked) | **MET** — closed reason set unchanged |
+| Manifest verify claims (46 / 97 / ruff / doctor) | **MET as claimed** — all four reproduce (minor "219/300" vs 222 noted) |
+| AT-537 pin (10-test file incl. real-Chromium proof) | **MET** — 10 passed, proof 55.35s |
+| adapter slot-1 `uv run pytest` exit 0 | **NOT MET** — 3 failed (test_approve_cli.py import seam, AT-539) |
+| (untouched surfaces) X3, X8, X9, X11, X13-X18 | **NOT RE-JUDGED** — zero diff lines over identity/dialogs/noise/artifacts/merge/status this cycle; 94 + 50 + 18 + 29 regression tests over those surfaces green |
 
-SCOREBOARD: 13/16 criteria met, invariants (E5 intact, X6 never-click) 2/2 hold.
+SCOREBOARD: 16/17 criteria met, invariants (E5 intact, X6 never-click) 2/2 hold.
 
-## FAILURES (each defended at >80 % confidence, reproduced by my own probe)
+## FAILURES
 
-- **[X10-b first-class-actions / AT-533] sev: medium · `type_form` still ignores
-  `per_node_action_cap` — explore_typing.py:95 checks only `max_actions`; my stress probe
-  (5 fillable fields, cap=2, typing ON) performs **5** typed actions on the settings node
-  (`_tried = 5`); the shipped cap test passes only because its fixture has 2 fillable fields
-  (of which one fill errors) so the pre-pass never exceeds the cap by accident — the shared
-  budget exists only for the CLICK loop's `tried + typed` check, and a 5-field form node
-  performs 5 typed + (cap−5→0) clicks, still overshooting the per-screen bound the criterion
-  pins · fix direction: `type_form` stops when `typed >= rt.bounds.per_node_action_cap`
-  (one-line check in the loop at explore_typing.py:94-96); falsifying test: 5 fillable
-  fields, cap=2 → `_tried(settings) ≤ 2` · issue: AT-533 (stays OPEN)**
-- **[doctor/manifest honesty] sev: medium · the manifest's cycle-2 verify block claims
-  "doctor: clean" and "16 passed" but the working tree yields `file-too-long:
-  tests\test_ui_crawls.py — 301 lines > 300` (1 violation, reproduced twice; byte-count 301
-  vs 300 at HEAD) and 15 collected tests in the three named files · fix direction: split
-  `test_ui_crawls.py` by responsibility (the maker's own AT-460 extract rule), correct the
-  manifest's pasted outputs to what is real · issue: AT-536 (new, open)**
-- **[X17 seam regression] sev: medium · the `require_consent` extraction to
-  `explore_consent.py` broke `tests/test_ui_crawl_login.py` — 3 tests ERROR at setup
-  (`AttributeError: module 'autotester.stages.explore' has no attribute
-  'require_consent'`, test_ui_crawl_login.py:84); the unit retargeted two sibling files but
-  not this one, so three X17-adjacent UI tests cannot even run · fix direction: retarget the
-  monkeypatch to `autotester.stages.explore_consent.require_consent` (same one-line shape as
-  test_ui_crawls.py:293 and test_coverage_wiring.py:185-186) · issue: AT-536 (new, open)**
+- **[adapter slot-1 / AT-539] sev: medium · `tests/test_approve_cli.py` imports the removed
+  `explore.require_consent` at lines 63/78/164 — 3 tests fail at ImportError, `uv run pytest`
+  exits 1 (3 failed, 1511 passed, 5 skipped, 32 xfailed, reproduced once full-suite after
+  the targeted batteries); the unit's diff never touches the file, and reverting `explore.py`
+  to HEAD makes it 10/10 green, so the break is this unit's seam move · fix direction: three
+  one-line retargets to `explore_consent.require_consent` · issue: AT-539 (new, open)**
 
-Not charged (questions, not failures, each below the 80% bar): whether `_tried` counting an
-ERRORED fill as "performed" is the right cap semantics (a timeout spent real time; AT-533's
-shared-budget wording is satisfiable either way — the stress probe above does not depend on
-it: 5 fills all recorded `same_screen`, no error involved); the guard test for AT-532 not
-isolating the typed path (the code is proven by my own sabotage both directions; a weak pin
-without a code defect is a question for the next typing-surface unit, and the maker's own
-trap fixture is already on disk — a base_url-`/trap` variant of the existing test would pin
-it exactly); the deleted real-browser proof is filed as AT-537 below at low-medium
-confidence about its contract status (the criterion's verify sentence never named the test;
-only the amendment log did), so it is recorded, not charged as a criterion failure.
+## Issues
+
+ISSUES-WRITTEN: **AT-539** (new, open — fourth unretargeted seam in test_approve_cli.py);
+ledger statuses flipped on my own cycle-3 evidence: **AT-533 open → fixed** (structural cap
+check + sabotage-both-directions probe), **AT-536 open → fixed** (split lossless + login
+retarget + honest counts; residual of its class filed as AT-539), **AT-537 open → fixed**
+(restored verbatim + green); AT-532/AT-534/AT-535 checker_notes updated with cycle-3
+re-verification.
 
 ## Mode D (live browser) disposition
 
 The unit's changed paths are `src/autotester/{schema,stages,browser}` + two pre-flight
-callers — no UI surface of our own app; Mode D as a *driven check of our own UI* stays
-not-applicable. The contract's load-bearing REAL-browser proof was deleted from the suite, so
-**I re-derived it myself**: my own probe (`.work/checker_x10b_c2_live.py`) drove a real
-headless Chromium against a live-served fixture site — the typing pre-pass filled
-`input[name=displayname]` with the synthetic value and the form's submit carried
-`displayname=AutoTester+College+810` in the reached GET url; crawl `stopped_bound`
-(`max_screens`, 8 screens), 2 typed edges (same_screen), zero product issues from typing.
-Evidence: `qa/evidence/browser-x10b-form-typing-2026-09-22-checker/report.json`.
+callers + test files — no UI surface of our own app, so Mode D as a driven check of our own
+UI stays not-applicable. The contract's load-bearing REAL-browser proof is restored IN THE
+SUITE (AT-537) and I re-ran it myself in this cycle's 10-passed run (1 passed in 55.35s, real
+headless Chromium, submit carries the synthetic value in the GET url) — the maker's pin and
+my own execution coincide. Prior checker-driven live evidence remains at
+`qa/evidence/browser-x10b-form-typing-2026-09-22-checker/report.json` (cycle 2).
 
-LIVE-BROWSER: qa/evidence/browser-x10b-form-typing-2026-09-22-checker/report.json (checker-driven real Chromium; changed paths had no UI surface — the live proof replaces the deleted suite pin)
-
-## Issues
-
-ISSUES-WRITTEN: AT-533 (stays open — fix incomplete), AT-536 (new: manifest verify-claims
-false — doctor 1 violation + "16 passed" count + unretargeted test_ui_crawl_login seam), and
-the ledger statuses of AT-532/AT-534/AT-535 flipped to `fixed` (verified by my own probes this
-cycle; a later cycle moves them to `verified`).
-
-Issues addressed per the manifest, reconciled: **AT-532 fixed** (code + my sabotage
-both-directions; pin-weakness noted in EXPLANATION, not charged), **AT-534 fixed**, **AT-535
-fixed**, **AT-533 NOT fixed** (stays open).
+LIVE-BROWSER: qa/evidence/browser-x10b-form-typing-2026-09-22-checker/report.json + this cycle's in-suite re-run of test_a_real_browser_types_and_submits_the_filled_form (1 passed, 55.35s) (changed paths had no UI surface of our own)
 
 ## EXPLANATION
 
-The four verify commands I re-ran are green except `doctor`, and three of the four cycle-1
-failures are genuinely, provably fixed — AT-532's host re-check survives my own
-sabotage-both-directions in an isolated copy, AT-534's denial records are real and coverage
-carries the typing reason, and AT-535's four-condition gate is now 4-of-4 in code with all
-three consent directions probed and both production pre-flights passing the policy. The unit
-does not earn PASS: AT-533's core defect survives — the typing pre-pass still never reads
-`per_node_action_cap`, and my 5-field/cap-2 stress probe measures five performed typed actions
-on one node, 2.5× the bound the criterion pins, with the shipped cap test passing only because
-its fixture happens to have exactly two fillable fields that error out. On top of that, the
-submitted verify claims are not reproducible: doctor reports one real file-too-long violation
-(301/300 on `test_ui_crawls.py`, introduced by this unit's own edit), the claimed "16 passed"
-is 15 on collection, and the seam extraction broke three shipped UI-login tests the manifest's
-regression list never runs. The deleted real-browser proof is independently re-verified by my
-own live Chromium run (capability real), but the suite no longer pins it and the manifest does
-not disclose the deletion. One more focused cycle: a per-node-cap check inside `type_form`, the
-split of `test_ui_crawls.py` plus the one-line monkeypatch retarget in
-`test_ui_crawl_login.py`, honest pasted outputs, and a restored (or checker-accepted
-replacement) live proof pin.
+All three cycle-2 verdict failures are genuinely, provably fixed on my own executed evidence:
+AT-533's cap check now lives inside `type_form`'s loop and my 5-field/cap-2 stress probe
+performs 2 typed actions where removing the check reproduces 5 exactly (the cycle-2 defect
+shape); AT-536's file split is lossless with doctor clean reproduced twice and the login-file
+seam retargeted (10/10 vs the 7-passed-3-errors shape I reproduced at HEAD by stash-restore);
+AT-537's real-browser proof is restored verbatim from 0e225a5 and runs green. Every
+regression the cycle-2 verdict verified holds on fresh probes — AT-532's typed X7 re-check,
+AT-534's denial records, AT-535's production refusal, X6/X5 under typing-ON, X10 base, X1,
+X2, X12. What keeps this from PASS is one new finding outside every previously-run set: the
+full-suite run the adapter's own slot-1 demands exposed that the same seam extraction broke
+a fourth file (`tests/test_approve_cli.py`, 3 ImportError failures, `uv run pytest` exit 1).
+The contract's criteria are all met and the manifest's own verify commands all reproduce —
+but the project's verify instrument is red, and a checker that PASses a unit with a red
+instrument is not verifying anything. This is cycle 3 of 3 (last), so the unit is terminal:
+AT-539 carries the three one-line retargets for a follow-on unit; no production code is
+involved and the consent runtime itself is correct (probe D).
 
 VERDICT: FAIL
