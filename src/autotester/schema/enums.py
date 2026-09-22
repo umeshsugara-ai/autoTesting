@@ -11,6 +11,7 @@ class SourceKind(StrEnum):
     TEXT = "text"
     AUDIO = "audio"
     EMAIL = "email"
+    DRIVE = "drive"
     URL = "url"
     EVAL = "eval"
     CONDITION = "condition"
@@ -198,11 +199,10 @@ class UserValue(StrEnum):
 
 
 class IssueCategory(StrEnum):
-    """What kind of problem a video-derived `Issue` is. The first 12 come
-    from the proven external pipeline's bug taxonomy; `FEATURE_GAP`/
-    `WRONG_MODEL`/`DATA_ERROR` were added for D-014 after a real ground-truth
-    workbook showed 10/33 rows were spoken change requests with no home in
-    the original 12 ("this should be X", "remove this")."""
+    """What kind of problem a video-derived `Issue` is. The first 12 come from the
+    proven external pipeline's bug taxonomy; `FEATURE_GAP`/`WRONG_MODEL`/`DATA_ERROR`
+    were added for D-014 after a real ground-truth workbook showed 10/33 rows were
+    spoken change requests with no home in the original 12 ("this should be X")."""
 
     VALIDATION = "validation"
     LAYOUT = "layout"

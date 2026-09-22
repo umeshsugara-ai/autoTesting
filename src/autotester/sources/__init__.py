@@ -15,6 +15,16 @@ from autotester.sources.adapters import (
     register_text,
 )
 from autotester.sources.audio import AUDIO_SUFFIXES, TranscriptionOutcome, transcribe_audio
+from autotester.sources.drive import (
+    DeviceCode,
+    DriveClient,
+    DriveFetch,
+    DriveFile,
+    HttpDriveClient,
+    exchange_device_code,
+    request_device_code,
+)
+from autotester.sources.drive_register import register_drive
 from autotester.sources.email import (
     EMAIL_SUFFIXES,
     Attachment,
@@ -30,16 +40,24 @@ __all__ = [
     "DOC_SUFFIXES",
     "EMAIL_SUFFIXES",
     "Attachment",
+    "DeviceCode",
+    "DriveClient",
+    "DriveFetch",
+    "DriveFile",
     "Extraction",
+    "HttpDriveClient",
     "ParsedMessage",
     "Registration",
     "TranscriptionOutcome",
+    "exchange_device_code",
     "extract_document_text",
     "iter_mbox_messages",
     "parse_eml_bytes",
     "register_audio",
     "register_document",
+    "register_drive",
     "register_email",
     "register_text",
+    "request_device_code",
     "transcribe_audio",
 ]
