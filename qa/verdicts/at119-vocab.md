@@ -1,67 +1,73 @@
-# Verdict — at119-vocab
+# Verdict — at119-vocab (cycle 2)
 
 **Date:** 2026-09-22
-**Cycle checked:** 1
-**Bound root:** `D:/autoTesting/.worktrees/at119-vocab` (branch `wave/at119-vocab`, commit `424568d`)
-**Base for diff scope:** `ab404dd`
+**Cycle checked: 2**
+**Bound root:** `D:/autoTesting/.worktrees/at119-vocab` (branch `wave/at119-vocab`, commit `162947f`)
+**Base for diff scope:** `ab404dd` · cycle-1 commit `424568d` · cycle-2 commit `162947f`
+**EXECUTOR:** `ollama/deepseek-v4.1-flash` (delegated build via `D:/ai_os/scripts/delegate_unit.py`,
+opencode runner) — I am `claude-sonnet-subagent`, a fresh checker subagent on the Anthropic
+session, not the executor. No `ANTHROPIC_BASE_URL` override in this session.
 
 ## What I re-ran myself
-- `uv run pytest tests/test_goal_criticality_vocabulary.py -q -rs` and `-v` → 3 passed, 0 skipped,
-  0.13s. Confirmed the new test `test_the_deliberate_copy_has_not_drifted_from_its_source` **runs**
-  on this machine (D:/ai_os present), not skips.
-- `uv run ruff check src tests scripts` → **exit 1**. `SIM300 Yoda condition detected` at
-  `tests/test_goal_criticality_vocabulary.py:86:12` on the new assertion
-  `assert CLASSIFIER_VOCABULARY == source_vocabulary`. This does not reproduce the manifest's
-  claimed "exit 0". Confirmed introduced by this unit: checked out base commit `ab404dd` in a
-  disposable worktree (`git worktree add`, later removed) — no violation there.
-- `uv run autotester doctor` → exit 1, one violation (`ledger-row-lost: qa/verdicts/x10b-form-typing.md`
-  — AT-536 has no ledger row). Re-checked at base commit `ab404dd`: **same violation, same exit 1,
-  pre-existing and unrelated to this unit's diff** (this unit touches only the vocab test file). Not
-  charged to this unit; the manifest's "exit 0" expectation for doctor was already stale before this
-  unit ran, on an unrelated pre-existing gap.
-- `git diff ab404dd...HEAD --stat` / full diff → exactly one file,
-  `tests/test_goal_criticality_vocabulary.py`, +33/-0. Matches "What changed" exactly. Nothing
-  deleted, nothing else touched.
-- **My own sabotage proof** (never touched the bound tree): copied the worktree to a scratch dir
-  outside the bound root (`/tmp/checker-scratch/at119-vocab-copy`), confirmed the named test green
-  in the copy first, then edited the copy's `CLASSIFIER_VOCABULARY` to drop `"critical"`. The test
-  failed with the exact assertion it's named for (`AssertionError: ... local copy={'low','high',
-  'medium'}, source={'low','critical','high','medium'}`) — not a collection/import error. Restored
-  is moot (throwaway copy, discarded). Capability-coverage: 1/1 reproduced.
-- Confirmed `D:/ai_os/.claude/skills/goal/scripts/criticality.py::_ORDER` keys
-  (`low, medium, high, critical`) match `CLASSIFIER_VOCABULARY` — the guard is not just runnable
-  but currently true.
+- `uv run ruff check src tests scripts` → **exit 0, "All checks passed!"**. Reproduces the
+  manifest's claim; the cycle-1 defect (AT-538, SIM300 Yoda condition at line 86) is gone.
+- `uv run pytest tests/test_goal_criticality_vocabulary.py -q -rs` → **3 passed, 0 skipped**.
+  `test_the_deliberate_copy_has_not_drifted_from_its_source` ran (not skipped) — `D:/ai_os` is
+  present on this machine, so the guard is live, not inert.
+- `git diff 424568d 162947f` → the entire cycle-2 change is one hunk in
+  `tests/test_goal_criticality_vocabulary.py`: line 86 operand order swapped from
+  `CLASSIFIER_VOCABULARY == source_vocabulary` to `source_vocabulary == CLASSIFIER_VOCABULARY`.
+  The assertion message (lines 87-89) is byte-identical; no other line, no other file touched.
+  Confirms the manifest's "one line changed, nothing else" claim exactly.
+- `git diff ab404dd...HEAD --stat` → one file, `tests/test_goal_criticality_vocabulary.py`,
+  `+33/-0`. No deletions, no renames, no file outside "What changed" touched.
+- `uv run autotester doctor` → exit 1, one violation: `ledger-row-lost:
+  qa/verdicts/x10b-form-typing.md — AT-536 has no row in qa/issues.jsonl`. Independently
+  confirmed **pre-existing and unrelated**, without needing a disposable worktree: `git show
+  ab404dd:qa/verdicts/x10b-form-typing.md` already exists at base, and `AT-536` is absent from
+  `qa/issues.jsonl` both at `HEAD` and at base `ab404dd` (`git show ab404dd:qa/issues.jsonl | grep
+  AT-536` → no match, same as HEAD). This unit's diff never touches `qa/issues.jsonl` or any
+  `qa/verdicts/` file, so the doctor failure is charged to whatever unit produced AT-536's
+  ledger-row gap, not to at119-vocab.
+- **My own sabotage proof**, in a disposable copy (`tar`-copied working tree minus `.git`/`.venv`/
+  caches to a scratch dir outside the bound root; ran via the bound tree's own venv interpreter
+  path, never editing the bound tree): named test green in the copy first (3 passed, 0 skipped),
+  then edited the copy's `CLASSIFIER_VOCABULARY` to `{"low", "medium", "high"}` (dropped
+  `"critical"`). Re-run: the named assertion at line 86 fired —
+  `AssertionError: ... local copy={'high','medium','low'}, source={'high','critical','medium','low'}` —
+  not a collection/import error, and both sets are named as the manifest promised.
+  CAPABILITY-COVERAGE: 1/1 reproduced. Copy discarded after.
 
-## Known weakness (manifest flagged it; my judgment)
-`CLASSIFIER_SOURCE` is a hardcoded `D:/ai_os/...` absolute path. On any machine without that
-checkout the guard silently degrades to a skip — disclosed, not hidden, and directly implements
-AT-119's own issue text (which explicitly specified this exact skip-if-absent design as acceptable,
-"keeps the suite green on any machine without the AIOS checkout while making a divergence loud on
-the machines that have it"). Judged acceptable for this repo, not a FAIL: hard-failing on a missing
-cross-repo path would break the suite on CI/other machines, which is worse. Filing a low-severity
-follow-up (env-override / CI-visibility) is reasonable but not required to PASS this unit — leaving
-as a noted limitation rather than opening a new issue, since AT-119's own text already pre-accepted
-this tradeoff.
+## Two judgment calls, on the merits
+1. **Hardcoded `D:/ai_os/...` `CLASSIFIER_SOURCE` path.** Read AT-119's own issue text
+   (`qa/issues.jsonl` id `AT-119`) directly rather than taking cycle-1's framing on trust: it
+   explicitly specifies "importlib-load criticality.py from the known path, `pytest.skip` if it
+   is not importable" as the accepted design — precisely what this unit built. A hard dependency
+   on the cross-repo path would break the suite on any machine/CI without the AIOS checkout,
+   which is worse than a silent-but-loud-on-the-right-machines skip. I independently agree this
+   is acceptable, not a defect — it implements the issue's own pre-approved tradeoff.
+2. **`autotester doctor` failure.** Independently re-derived as pre-existing (see above) — not
+   charged to this unit.
 
 ## Diff scope, Issues addressed, capability coverage
-No deletions, no out-of-scope files touched. AT-119 is the only issue claimed fixed; its ledger
-row status is `open` (project ledger; flipping to `fixed` is deferred — see VERDICT below, this
-unit does not PASS this cycle).
+No deletions, no out-of-scope files touched — confirmed independently (not carried over from
+cycle 1). AT-119 (hardening follow-up) and AT-538 (cycle-1 FAIL) are the issues claimed
+addressed; AT-538 is verifiably fixed by this cycle's one-line operand swap — ledger flipped
+`open → fixed`. AT-119 has no shipped-defect status to flip (filed as a hardening follow-up, not
+a FAIL); its guard is now confirmed live and correct.
 
-VERDICT: FAIL
-SCOREBOARD: 2/3 criteria met, 1/1 invariants hold
-FAILURES (if any):
-- [verify] sev: low · manifest claims `uv run ruff check src tests scripts` exits 0; it actually exits 1 (SIM300 Yoda condition, new line 86, this unit's own diff) · swap operands to `source_vocabulary == CLASSIFIER_VOCABULARY` · issue: AT-538
-CAPABILITY-COVERAGE: 1/1 rows reproduced (drift-guard sabotage proof: green-in-copy before, named assertion fires red after, restored via discard of throwaway copy)
-LIVE-BROWSER: not-applicable (changed paths: tests/test_goal_criticality_vocabulary.py only — no UI surface)
-ISSUES-WRITTEN: AT-538
+VERDICT: PASS
+SCOREBOARD: 3/3 criteria met, 1/1 invariants hold
+FAILURES (if any): none
+CAPABILITY-COVERAGE: 1/1 rows reproduced (drift-guard sabotage proof: green-in-copy before, named
+assertion fires red after with both sets named, copy discarded)
+LIVE-BROWSER: not-applicable (changed paths: tests/test_goal_criticality_vocabulary.py only — no
+UI surface)
+ISSUES-WRITTEN: none this cycle (AT-538 closed: open -> fixed)
 EXECUTOR: ollama/deepseek-v4.1-flash (checker: claude-sonnet-subagent)
-EXPLANATION: The delegated unit is functionally correct and its one real capability claim — a
-drift guard between this repo's duplicated vocabulary and the shared AIOS classifier — is genuine:
-it runs (not skips) here, matches the true source today, and fails for the right reason when
-sabotaged. But the manifest's own stated verify bar ("ruff check ... exit 0") does not reproduce:
-the new code the external model wrote trips a real lint rule (Yoda condition) that was not caught
-before submission. Per checker discipline, a manifest verify command I cannot reproduce is a FAIL
-on that item regardless of unit size — this is a one-line, low-severity fix, so cycle 2 should
-close it immediately. `autotester doctor`'s failure is confirmed pre-existing/unrelated and not
-counted against this unit.
+EXPLANATION: Cycle 2 is exactly the claimed single operand swap — diffed and confirmed, assertion
+message untouched, no scope creep. Ruff now exits 0 and pytest shows the guard running (not
+skipping) and passing, both re-run by me rather than trusted from the manifest. My own disposable-
+copy sabotage confirms the guard bites for the right reason. The hardcoded-path design and the
+doctor pre-existing failure were both independently re-derived rather than inherited from cycle
+1's judgment, and both land the same way. PASS.
