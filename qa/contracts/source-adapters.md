@@ -1,14 +1,14 @@
-# Contract — SOURCE ADAPTERS (T-162) — DRAFT for Umesh's review
+# Contract — SOURCE ADAPTERS (T-162)
 
-**Status:** DRAFT — authored 2026-09-21 by the maker from the T-162 gate interview
-(`qa/gates/t162-contract-approval.md`, answered **(A)** by Umesh in chat 2026-09-21).
-Nothing in `src/` implements this yet; this document is the review artifact. On approval
-it becomes a D-0xx-authorized contract and the checker assumes ownership.
+**Status:** ACTIVE — finalized 2026-09-22 by /checker (D-035), authorized by the T-162 gate
+interview (`qa/gates/t162-contract-approval.md`, answered **(A)** by Umesh in chat 2026-09-21).
+Phase-1a (the adapter seam + TEXT + DOC) is built and checker-PASSed against this contract
+(`qa/verdicts/t162-source-adapters-1a.md`); AUDIO/DRIVE/EMAIL remain unbuilt fast-follow units.
 **Covers:** goal task T-162 (multi-source adapters: Google Drive, video, audio, document,
 email and text into one evidence model) — **phase 1: TEXT, DOC, AUDIO** (VIDEO exists,
 T-060/T-131); **phase 2 (declared, fast-follow unit): DRIVE (OAuth device flow), EMAIL
 (.eml/.mbox local files only).**
-**Owner:** /checker (on approval). **Criticality:** CRITICAL — T-163 (orchestrator),
+**Owner:** /checker. **Criticality:** CRITICAL — T-163 (orchestrator),
 T-164..T-169 all sit behind this stage.
 **Depends on:** `core-invariants.md` (all), `browser-and-secrets.md` B5-B9 (credentials
 never reach a model/log/screenshot), `ingest.md` (the VIDEO half this extends, never
@@ -75,3 +75,10 @@ dedupe: the same file uploaded twice is ONE Source.
 2. Max upload size per Source (proposed: 200 MB; larger -> chunked like video already is).
 3. Should TEXT sources be reviewable/editable in the UI before the orchestrator reads
    them (proposed: yes — the FlowSpec Review gate discipline, applied to Sources).
+
+## Amendment log (append-only; git history is the version)
+
+- 2026-09-22 · init · contract finalized from gate-A-approved DRAFT to ACTIVE (D-035), on the
+  cycle-1 checker-PASS of `t162-source-adapters-1a` (the adapter seam + TEXT + DOC). No wording
+  changed from the draft. AUDIO/DRIVE/EMAIL remain declared-but-unbuilt phase-2 scope. Verdict:
+  `qa/verdicts/t162-source-adapters-1a.md`.

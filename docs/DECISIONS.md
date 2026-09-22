@@ -671,3 +671,43 @@ substance unchanged). No src/ or test change.
 **Approved-by:** Umesh (chat, 2026-09-22 -- "A").
 
 **Links:** AT-554; qa/gates/at554-credential-value-in-ui.md; qa/evidence/browser-live-checker-2026-09-22-checker/report.json; qa/evidence/live-quality-validation-2026-09-22b-checker/report.json.
+
+## D-035 | 2026-09-22 | type: decision | status: ACTIVE
+
+**What:** Finalize `qa/contracts/source-adapters.md` from gate-A-approved DRAFT to an active,
+checker-owned contract. No wording changed from the draft the maker authored at intake; this entry
+is the authorizing D-record the contract's own header requires before its DRAFT status can be
+lifted.
+
+**Why:** The contract was authored as a review artifact from `qa/gates/t162-contract-approval.md`,
+answered **(A) Interview now** by Umesh in chat 2026-09-21 (source-kind phasing: TEXT+DOC+AUDIO in
+phase 1, DRIVE+EMAIL as phase 2; Drive OAuth device flow, not service-account; audio Gemini-first
+via the existing Provider seam with Whisper as no-API fallback; email limited to local .eml/.mbox,
+no mailbox credentials). T-162 phase-1a (the adapter seam + TEXT + DOC) was then built against this
+draft and checker-PASSed (`qa/verdicts/t162-source-adapters-1a.md`, cycle 1): SA1 (one `Source`
+model, one `sources.jsonl`, `SourceKind.TEXT`/`SourceKind.DOC` reused from the existing enum, no
+second store or parallel enum), SA2 (sha256 content-addressed dedupe, tested and mutation-proven),
+SA4 (extraction addressable by `Source.id`), SA5 (honest `extraction_error` degradation for a
+corrupt `.docx`, a DOCTYPE-bearing `.docx`, and an undeclared-dependency `.pdf` — never silent empty
+text), and SA6 (no `Provider` parameter anywhere in the seam — a model cannot be called, structurally,
+not just by convention) are all evidenced by a passing test suite (11/11 unit tests,
+1549 passed/0 failed across the full repo suite) and by 4/4 capability-coverage rows independently
+reproduced by the checker in a throwaway copy (single-hunk falsifying edit -> named test reddens for
+the claimed reason -> revert -> green). A contract that already governed a checker-PASSed unit is no
+longer merely a review artifact; leaving its header at DRAFT after that point would misstate its own
+status to the next reader.
+
+**Result:** `qa/contracts/source-adapters.md`'s header changes from "DRAFT for Umesh's review" to
+active/checker-owned, citing this entry; no criteria (SA1-SA6), phase-1/phase-2 scope split, or
+no-fire list text changes. T-162 phase-1a is `checked-PASS`.
+
+**Changes-authorized:** `qa/contracts/source-adapters.md` (header status line only, by the checker —
+this is a contract, not an enforcement path).
+
+**Approved-by:** Umesh — the contract's substance was approved via `qa/gates/t162-contract-approval.md`
+Option A, chat, 2026-09-21 (the four verbatim design answers quoted there); this entry records that
+approval as the contract's authorizing D-record per its own header requirement.
+
+**Links:** T-162; `qa/gates/t162-contract-approval.md` (Answered: 2026-09-21, Option A);
+`qa/manifests/t162-source-adapters-1a.md`; `qa/verdicts/t162-source-adapters-1a.md`; unit commit
+5e243b7; `qa/contracts/core-invariants.md` C1/C3/C7/C10 (all judged in the same check).
