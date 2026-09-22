@@ -26,10 +26,16 @@ def met(session, expected: ExpectedState) -> bool:
     AT-551: a page that cannot be read is not a page whose text can be
     confirmed present OR absent -- `body_text` returning None (not "") on a
     read failure makes visible_text/absent_text fail SAFE (unmet) here
-    instead of falling through to the blanket `return True` below."""
+    instead of falling through to the blanket `return True` below.
+    AT-555: the url read is its own twin of that same bug -- `_page_url`
+    returning None on a read failure keeps the url branch fail-safe too,
+    instead of the outer suppress swallowing the exception and falling
+    through to `return True`."""
     with contextlib.suppress(Exception):
-        if expected.url and expected.url not in session.page.url:
-            return False
+        if expected.url:
+            current = _page_url(session)
+            if current is None or expected.url not in current:
+                return False
         if expected.visible_text or expected.absent_text:
             body = body_text(session)
             if body is None:
@@ -89,12 +95,24 @@ def _url_label(session, url: str) -> str:
     """AT-552: `assert_expected`'s docstring promises 'raises nothing' -- the
     url read is its own probe (not `met()`'s, which already suppresses),
     wrapped so an unreadable `page.url` records unmet instead of surfacing
-    as an uncaught ERRORED."""
-    try:
-        current = session.page.url or ""
-    except Exception:
+    as an uncaught ERRORED. AT-555: shares `_page_url` with `met()` rather
+    than duplicating the guarded read."""
+    current = _page_url(session)
+    if current is None:
         return "unmet (url unreadable)"
     return "met" if url in current else "unmet"
+
+
+def _page_url(session) -> str | None:
+    """The page's current url, or None if it could not be read at all --
+    mirrors `body_text`'s None-on-read-failure shape (AT-551) so a
+    crashed/closed page fails a url expectation safe (unmet), never
+    silently met (AT-555). The single guarded raw read shared by `met()`
+    and `_url_label`."""
+    try:
+        return session.page.url or ""
+    except Exception:
+        return None
 
 
 def _text_label(body: str | None, text: str, *, want_present: bool) -> str:
