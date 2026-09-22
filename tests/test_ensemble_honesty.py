@@ -217,3 +217,76 @@ def test_analyze_route_records_no_degradation_when_the_full_ensemble_has_credent
     assert analysis.provider_labels == ["anthropic", "gemini"]
     assert analysis.requested_providers == ["anthropic", "gemini"]
     assert analysis.degraded_providers == []
+
+
+# -- the second AT-550 gap: an EMPTY vision config silently defaults --------
+
+def test_analyze_route_records_the_default_when_vision_config_is_empty(
+    client: TestClient, scratch_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AT-550 remainder: `ProviderConfig.vision_ensemble()` substitutes
+    `DEFAULT_VISION_PROVIDER` for an empty config instead of refusing (the
+    single-credential-must-still-work policy, unchanged). That substitution
+    must be OBSERVABLE on the persisted artifact — not indistinguishable from
+    an operator who explicitly typed "gemini". This is the falsifying case:
+    it goes RED against the pre-fix `return seen or ["gemini"]`, which had no
+    way for a caller to tell the two apart."""
+    store = ProjectStore("demo", scratch_root)
+    store.save_project(Project(
+        slug="demo", name="Demo", base_url="https://demo.test",
+        allowed_domains=["demo.test"],
+        providers=ProviderConfig(vision=""),
+    ))
+    recording = tmp_path / "prepared.mp4"
+    recording.write_bytes(b"video")
+    source = register_source(store, recording, label="Prepared")
+    store.save_media_prep(MediaPrep(
+        source_id=source.id,
+        chunks=[MediaChunk(index=0, path=str(recording), offset_s=0, length_s=3)],
+    ))
+    fakes = {"gemini": _NamedFakeProvider("gemini", has_credential=True)}
+    monkeypatch.setattr("autotester.ui.routes_sources.providers.get", lambda name: fakes[name])
+
+    response = client.post(
+        f"/projects/demo/sources/{source.id}/analyze", follow_redirects=False)
+
+    assert response.status_code == 303
+    analysis = store.load_analysis(source.id)
+    assert analysis is not None
+    assert analysis.requested_providers == ["gemini"]
+    assert analysis.vision_config_defaulted is True, (
+        "an empty vision config that fell back to the default must be "
+        "recorded as defaulted, not silently identical to an explicit choice")
+
+
+def test_analyze_route_records_no_default_when_vision_is_explicitly_gemini(
+    client: TestClient, scratch_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The mirror case: an operator who explicitly configured `vision="gemini"`
+    must NOT be reported as having received a default — same resulting
+    ensemble (`["gemini"]`) as the empty-config case above, opposite
+    `vision_config_defaulted`."""
+    store = ProjectStore("demo", scratch_root)
+    store.save_project(Project(
+        slug="demo", name="Demo", base_url="https://demo.test",
+        allowed_domains=["demo.test"],
+        providers=ProviderConfig(vision="gemini"),
+    ))
+    recording = tmp_path / "prepared.mp4"
+    recording.write_bytes(b"video")
+    source = register_source(store, recording, label="Prepared")
+    store.save_media_prep(MediaPrep(
+        source_id=source.id,
+        chunks=[MediaChunk(index=0, path=str(recording), offset_s=0, length_s=3)],
+    ))
+    fakes = {"gemini": _NamedFakeProvider("gemini", has_credential=True)}
+    monkeypatch.setattr("autotester.ui.routes_sources.providers.get", lambda name: fakes[name])
+
+    response = client.post(
+        f"/projects/demo/sources/{source.id}/analyze", follow_redirects=False)
+
+    assert response.status_code == 303
+    analysis = store.load_analysis(source.id)
+    assert analysis is not None
+    assert analysis.requested_providers == ["gemini"]
+    assert analysis.vision_config_defaulted is False

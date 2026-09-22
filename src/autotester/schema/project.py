@@ -7,6 +7,12 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from autotester.schema.base import Artifact
 from autotester.schema.enums import ProviderRole, SourceKind, WritePolicy
 
+DEFAULT_VISION_PROVIDER = "gemini"
+"""AT-550: the vision provider `vision_ensemble()` substitutes when the
+configured `vision` string is empty. Named explicitly so the substitution
+is a documented constant, not a bare literal buried in the fallback — and so
+`vision_ensemble_defaulted()` below can tell callers when this happened."""
+
 
 class SecretRef(BaseModel):
     """A declared credential. Holds the KEY and its scope — never the value.
@@ -58,16 +64,34 @@ class ProviderConfig(BaseModel):
     def for_role(self, role: ProviderRole) -> str:
         return getattr(self, str(role))
 
-    def vision_ensemble(self) -> list[str]:
-        """The vision provider ids in order, deduplicated — the ensemble the
-        analyze callers run. One entry = ensemble of one (honest, not an
-        error: a single credential must still work)."""
+    def _configured_vision_providers(self) -> list[str]:
+        """The vision provider ids explicitly named in `vision`, in order,
+        deduplicated — empty when the config is blank/whitespace/commas
+        only. No fallback here; shared by `vision_ensemble()` (which applies
+        the default) and `vision_ensemble_defaulted()` (which reports
+        whether it had to), so the parsing rule lives in exactly one place."""
         seen: list[str] = []
         for name in self.vision.split(","):
             name = name.strip()
             if name and name not in seen:
                 seen.append(name)
-        return seen or ["gemini"]
+        return seen
+
+    def vision_ensemble(self) -> list[str]:
+        """The vision provider ids in order, deduplicated — the ensemble the
+        analyze callers run. One entry = ensemble of one (honest, not an
+        error: a single credential must still work)."""
+        return self._configured_vision_providers() or [DEFAULT_VISION_PROVIDER]
+
+    def vision_ensemble_defaulted(self) -> bool:
+        """AT-550: True when `vision` was empty and `vision_ensemble()`
+        substituted `DEFAULT_VISION_PROVIDER` — distinct from an operator who
+        explicitly configured that same single provider. An empty config
+        falling back to a default must be observable, not silent; callers
+        (`ui/routes_sources.py`, `cli_video.py`) record this alongside
+        `requested_providers` on the persisted `VideoAnalysis` so a defaulted
+        run is never indistinguishable from an explicit one."""
+        return not self._configured_vision_providers()
 
 
 class Source(Artifact):

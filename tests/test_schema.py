@@ -107,6 +107,21 @@ def test_vision_ensemble_empty_config_falls_back_to_gemini() -> None:
     assert ProviderConfig(vision=",").vision_ensemble() == ["gemini"]
 
 
+def test_vision_ensemble_defaulted_distinguishes_empty_from_explicit_gemini() -> None:
+    """AT-550 (remainder): an empty config falling back to the default must
+    be observable, not silent. Both an empty config and an explicit
+    `vision="gemini"` produce the same `vision_ensemble() == ["gemini"]`, but
+    only the empty one substituted a default an operator never chose —
+    `vision_ensemble_defaulted()` is what lets a caller tell them apart."""
+    from autotester.schema.project import ProviderConfig
+
+    assert ProviderConfig(vision="").vision_ensemble_defaulted() is True
+    assert ProviderConfig(vision=",").vision_ensemble_defaulted() is True
+    assert ProviderConfig(vision=" , ").vision_ensemble_defaulted() is True
+    assert ProviderConfig(vision="gemini").vision_ensemble_defaulted() is False
+    assert ProviderConfig(vision="gemini,anthropic").vision_ensemble_defaulted() is False
+
+
 def test_secret_ref_rejects_lowercase_keys() -> None:
     SecretRef(key="PATHLYNKS_PASSWORD", domains=["p.test"])
     with pytest.raises(ValidationError):

@@ -251,32 +251,31 @@ def _collect(shifted: list[ModelObservation]) -> tuple[list, list, list, list[st
 
 
 def adjudicate(observations: list[ModelObservation], source_id: str, *,
-               expected: int | None = None,
-               requested_providers: list[str] | None = None) -> VideoAnalysis:
+               expected: int | None = None, requested_providers: list[str] | None = None,
+               vision_config_defaulted: bool = False) -> VideoAnalysis:
     """Every model's every chunk, merged into one reading of one recording.
 
-    `expected` is how many model calls the caller PLANNED. Omitting it records
-    **0, meaning unknown** — never a flattering guess (AT-208). `requested_
-    providers` (AT-550) is who was ASKED for; omitted, it defaults to who answered.
+    `expected` is how many model calls the caller PLANNED (0 records "unknown", never a
+    flattering guess, AT-208). `requested_providers`/`vision_config_defaulted` (AT-550) are who
+    was ASKED for and whether that ask was itself a defaulted substitution — both default to
+    "no known degradation" when a caller omits them (see `VideoAnalysis.vision_config_defaulted`).
 
     Sorted before merging so the result does not depend on the order the
     observations happened to be loaded in — the property VL4 asks for, and the
     one a test can actually check by shuffling the input.
 
-    **The sort key must leave no ties.** My first version omitted `prompt_name`,
-    so one model's two prompts on one chunk tied and Python's stable sort handed
-    the merge back to caller order — determinism held for every fixture I wrote
-    (all single-prompt) and failed in the shipped two-prompt shape. A tie in the
-    key IS the caller's order leaking back in, so the key names every field that
-    distinguishes one observation from another.
+    **The sort key must leave no ties.** My first version omitted `prompt_name`, so one
+    model's two prompts on one chunk tied and Python's stable sort handed the merge back to
+    caller order — determinism held for every fixture I wrote (all single-prompt) and failed
+    in the shipped two-prompt shape. A tie in the key IS the caller's order leaking back in,
+    so the key names every field that distinguishes one observation from another.
 
-    **AT-208 — why `expected=None` records 0 rather than the count present.** It
-    used to default to `len(shifted)`, so any caller that did not pass `expected`
-    got an artifact declaring itself COMPLETE: a default-value fallback inside
-    the very field added to stop one. `analyze` always passes the real product;
-    T-136's scorer re-adjudicates cached observations and is the caller this
-    protects, because a fragment reading as a full run would corrupt the one
-    number the north star is measured by."""
+    **AT-208 — why `expected=None` records 0 rather than the count present.** It used to
+    default to `len(shifted)`, so any caller that did not pass `expected` got an artifact
+    declaring itself COMPLETE: a default-value fallback inside the very field added to stop
+    one. `analyze` always passes the real product; T-136's scorer re-adjudicates cached
+    observations and is the caller this protects, because a fragment reading as a full run
+    would corrupt the one number the north star is measured by."""
     ordered = sorted(observations, key=lambda o: (o.offset_s, o.provider_label,
                                                   o.prompt_name, o.chunk_index))
     shifted = [shift(o) for o in ordered]
@@ -289,6 +288,7 @@ def adjudicate(observations: list[ModelObservation], source_id: str, *,
         observations_expected=0 if expected is None else expected,
         provider_labels=(labels := sorted({o.provider_label for o in shifted})),
         requested_providers=sorted(set(requested_providers)) if requested_providers else labels,
+        vision_config_defaulted=vision_config_defaulted,
         prompt_names=sorted({o.prompt_name for o in shifted}),
         screens=joined,
         flows=flows,

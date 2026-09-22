@@ -241,16 +241,20 @@ def analyze_cmd(
     source = _require_source(store, project, source_id)
     # AT-542: default to the project's own vision config (which may name
     # several providers); an explicit --models still overrides.
+    defaulted = False
     if models:
         names = models
     else:
         project_record = store.load_project()
-        names = (",".join(project_record.providers.vision_ensemble())
-                 if project_record is not None else "gemini")
+        if project_record is not None:
+            names = ",".join(project_record.providers.vision_ensemble())
+            defaulted = project_record.providers.vision_ensemble_defaulted()
+        else:
+            names = "gemini"
     provs = [providers.get(name.strip()) for name in names.split(",") if name.strip()]
     try:
         analysis = analyze(store, source, provs, docs=RepoDocs(), options=VisionOptions(),
-                           force=force)
+                           force=force, vision_config_defaulted=defaulted)
     except (SourceNotPrepared, UnreadableRecording, NoObservations, DuplicateProviders) as exc:
         typer.secho(str(exc), fg=typer.colors.RED)
         raise typer.Exit(2) from None
