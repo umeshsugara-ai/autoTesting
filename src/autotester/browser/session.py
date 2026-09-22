@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from autotester.browser import assertions
 from autotester.browser.launch import launch_options
 from autotester.browser.secrets import SecretStore, host_of
 from autotester.core.paths import ProjectPaths
@@ -60,10 +61,8 @@ class SessionState:
 
 def check_destination(project: Project, url: str) -> str:
     """Return the host if `url` is inside the project's domains, else raise (B6).
-
     AT-341: `url` can carry a resolved secret (AT-076), so the message never
-    embeds `url` itself — only the already-extracted, never-secret HOST.
-    """
+    embeds `url` itself — only the already-extracted, never-secret HOST."""
     host = host_of(url)
     if not host or not project.allows_domain(host):
         where = f"host {host!r}" if host else "an unparseable destination"
@@ -128,11 +127,10 @@ class BrowserSession:
         return self._page
 
     def goto(self, url: str) -> Evidence:
-        """Navigate to `url`. A `{{SECRET:KEY}}` value is resolved against its
-        OWN declared domains (AT-076: unlike `fill`, the whole target may be a
-        placeholder, with no host to scope by up front — see
+        """Navigate to `url`. A `{{SECRET:KEY}}` target resolves against its OWN
+        declared domains (AT-076: the whole target may be a placeholder — see
         `SecretStore.resolve_for_navigation`); `check_destination` then binds
-        `allowed_domains` on the resolved destination, same as any URL."""
+        `allowed_domains` on the resolved destination."""
         real = self.secrets.resolve_for_navigation(url) if PLACEHOLDER_RE.search(url) else url
         check_destination(self.project, real)
         self.page.goto(real, wait_until="domcontentloaded")
@@ -205,28 +203,16 @@ class BrowserSession:
         return self._record(EvidenceKind.DOM, f"uploaded to {locator}", step_order=step_order)
 
     def settle(self, expected: ExpectedState | None = None, timeout_ms: int = 8000) -> None:
-        """Best-effort wait for an async page transition (e.g. a client-side
-        redirect after a form submit, or an inline validation message) to
-        finish before evidence is captured. Bounded and never raises — AT-045:
-        `execute.py` used to screenshot a CLICK step immediately, mid-
-        transition, so the grader saw evidence of the click but never of what
-        it actually caused.
-
-        AT-046: a generic settle (network-idle + a fixed grace period) is a
-        probabilistic proxy for "did the page finish updating" — good enough
-        for a full navigation, unreliable for a pure client-side re-render
-        with no network signal at all (an inline "Invalid credentials"
-        message needs no request). When the step declares what it actually
-        expects (`expected.url` and/or `expected.visible_text` —
-        `schema/flowspec.py::ExpectedState`, already part of every `Step`),
-        poll for that literal, real signal instead — the same proven pattern
-        `scripts/run_pathlynks_first_cases.py` used for its own URL check,
-        generalized past "URL only" via the case's own declared expectation
-        rather than a second hardcoded heuristic. Returns the instant the
-        condition is met, so this is a ceiling, not a fixed cost. Falls back
-        to the generic network-idle+grace wait when a step declares neither
-        (execute.md E5 still holds either way: no extra click/submit/
-        navigation, purely observation)."""
+        """Best-effort wait for an async page transition to finish before
+        evidence is captured. Bounded, never raises (AT-045: the grader used
+        to see evidence of a click but never of what it caused; history in
+        execute.md's amendment log). When the step declares what it expects
+        (`expected.url`/`visible_text` — `schema/flowspec.py::ExpectedState`),
+        poll for that literal signal instead of the generic network-idle
+        proxy (AT-046: an inline "Invalid credentials" message needs no
+        request). Returns the instant the condition is met; falls back to
+        network-idle+grace when nothing is declared (E5 holds either way:
+        purely observation)."""
         if expected and (expected.url or expected.visible_text):
             self._poll_for_expected(expected, timeout_ms)
             return
@@ -250,6 +236,25 @@ class BrowserSession:
                 self.page.wait_for_timeout(poll_ms)
             elapsed += poll_ms
 
+    def _met(self, expected: ExpectedState) -> bool:
+        """Whether the expectation holds right now (one probe, no waiting)."""
+        return assertions.met(self, expected)
+
+    def assert_expected(self, expected: ExpectedState, *,
+                        timeout_ms: int = 8000, step_order: int | None = None) -> list:
+        """D-032/AT-540: evaluate a declared expectation and RECORD the result.
+
+        Deterministic fields only (`url`/`visible_text`/`absent_text`/
+        `dom_asserts`); `network` is observer-derived and `visual_signal` is
+        the judge's (execute.md E1's no-fire line). Polls to `timeout_ms`,
+        records one `assert <field>: met|unmet` DOM evidence item per
+        evaluated field, raises nothing — the caller decides the
+        observation-level consequence. C7 holds: facts recorded, the grader
+        still owns the verdict. Implementation: `browser/assertions.py` (the
+        line-cap split); this is the session's door to it."""
+        return assertions.assert_expected(self, expected, timeout_ms=timeout_ms,
+                                          step_order=step_order)
+
     def wait_for(
         self, locator: str | None, *, timeout_ms: int = 5000, step_order: int | None = None
     ) -> Evidence:
@@ -262,15 +267,11 @@ class BrowserSession:
         return self._record(EvidenceKind.DOM, label, step_order=step_order)
 
     def screenshot(self, label: str, *, step_order: int | None = None) -> Evidence:
-        """Capture with every secret input masked first (B7).
-
-        AT-036: under Xvfb, `Page.screenshot` intermittently raises a CDP
-        protocol error ("Unable to capture screenshot") right after a
-        click-triggered DOM update — a transient rendering-compositor race,
-        not a real failure of the page or the step. One retry after a short
-        wait resolves it every time it's been observed; a second consecutive
-        failure is treated as real and allowed to propagate.
-        """
+        """Capture with every secret input masked first (B7). AT-036: under
+        Xvfb, `Page.screenshot` intermittently raises a transient CDP
+        compositor race right after a DOM update — one retry after a short
+        wait resolves it; a second consecutive failure is real and
+        propagates (full history: execute.md's amendment log)."""
         self.page.add_style_tag(content=MASK_CSS)
         self.state.screenshots += 1
         name = f"{self.state.screenshots:02d}-{label}.png"

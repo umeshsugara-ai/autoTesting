@@ -8,6 +8,7 @@
 <!-- generated:map -->
 | Module | One job |
 |---|---|
+| `browser/assertions.py` | Deterministic assertion evaluation (D-032/AT-540) — split from |
 | `browser/db.py` | Read-only backend assertions against MongoDB. Contract: qa/contracts/db-assert.md. |
 | `browser/launch.py` | Playwright launch options for one project's persistent browser context. |
 | `browser/observe.py` | Passive observation: enumerate a page's controls, capture console/network |

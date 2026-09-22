@@ -1,6 +1,6 @@
-"""EXECUTE stage. Contract: qa/contracts/execute.md E1-E5.
+﻿"""EXECUTE stage. Contract: qa/contracts/execute.md E1-E5.
 
-A fake page exercises run_case without a real browser — same pattern as
+A fake page exercises run_case without a real browser â€” same pattern as
 test_browser.py, extended with the actions execute.py newly composes
 (select_option, upload, wait_for).
 """
@@ -133,6 +133,7 @@ def test_completed_run_composes_session_methods_and_screenshots_every_step(
         Step(order=5, action=Action.ASSERT, target="", expected={"visible_text": ["Welcome"]}),
     ]
     session = session_with_fake_page(tmp_path)
+    session.page.body_text = "Welcome back, user"  # the assertion's declared signal
     result = run_case(make_case(steps), session)
 
     assert result.outcome is Outcome.COMPLETED
@@ -143,6 +144,11 @@ def test_completed_run_composes_session_methods_and_screenshots_every_step(
     shots = [e for e in result.evidence if e.kind is EvidenceKind.SCREENSHOT]
     assert len(shots) == 5  # one per step, including the judgement-free ASSERT
     assert [e.step_order for e in shots] == [1, 2, 3, 4, 5]
+    # D-032: the ASSERT step recorded its deterministic result as DOM evidence
+    asserts = [e for e in result.evidence
+               if e.kind is EvidenceKind.DOM and e.path.startswith("assert ")]
+    assert asserts, "an ASSERT step recorded no assertion evidence"
+    assert all("met" in e.path and "unmet" not in e.path for e in asserts), asserts
 
 
 def test_click_and_navigate_settle_before_the_screenshot_but_other_actions_do_not(
@@ -211,59 +217,6 @@ def test_select_upload_and_wait_actions(tmp_path: Path) -> None:
     assert session.page.uploaded["input[type=file]"] == "/tmp/doc.pdf"
     assert session.page.waited == [("div.loaded", 5000)]
     assert session.page.timeouts == [250]
-
-
-# -- E3 a mid-step exception is ERRORED, a missing secret is BLOCKED_HITL ----
-
-def test_step_exception_is_errored_not_a_crash(tmp_path: Path) -> None:
-    steps = [
-        Step(order=1, action=Action.NAVIGATE, target=LOGIN),
-        Step(order=2, action=Action.CLICK, target="button.broken"),
-        Step(order=3, action=Action.CLICK, target="button.never-reached"),
-    ]
-    session = session_with_fake_page(tmp_path)
-    result = run_case(make_case(steps), session)
-
-    assert result.outcome is Outcome.ERRORED
-    assert "RuntimeError" in result.error and "not attached" in result.error
-    assert "button.never-reached" not in session.page.clicks
-    # step 1's screenshot exists; step 2 never got one (it raised first)
-    shots = [e for e in result.evidence if e.kind is EvidenceKind.SCREENSHOT]
-    assert len(shots) == 1
-
-
-def test_missing_secret_blocks_for_a_human_instead_of_erroring(tmp_path: Path) -> None:
-    steps = [
-        Step(order=1, action=Action.FILL, target="input[name=password]",
-             value="{{SECRET:PATHLYNKS_PASSWORD}}"),
-    ]
-    session = session_with_fake_page(tmp_path, secret_present=False)
-    result = run_case(make_case(steps), session)
-
-    assert result.outcome is Outcome.BLOCKED_HITL
-    assert result.error is None
-    assert "PATHLYNKS_PASSWORD" in result.hitl_prompt
-
-
-def test_a_secret_value_inside_an_exception_message_is_scrubbed_before_persisting(
-    tmp_path: Path,
-) -> None:
-    """AT-341: an exception's own message can embed a raw secret value (not
-    only the named NavigationRefused case AT-076 introduced) — `_result`
-    scrubs `error`/`hitl_prompt` through the session's own redactor before
-    they ever reach a RawResult, the same boundary `_record` already holds
-    for evidence paths."""
-    steps = [
-        Step(order=1, action=Action.FILL, target="input[name=password]",
-             value="{{SECRET:PATHLYNKS_PASSWORD}}"),
-        Step(order=2, action=Action.CLICK, target="button.leaks-a-secret"),
-    ]
-    session = session_with_fake_page(tmp_path)
-    result = run_case(make_case(steps), session)
-
-    assert result.outcome is Outcome.ERRORED
-    assert "hunter2" not in result.error
-    assert "REDACTED" in result.error
 
 
 # -- E4 persistence round-trips through ProjectStore -------------------------

@@ -112,6 +112,10 @@ class Outcome(StrEnum):
     COMPLETED = "completed"
     ERRORED = "errored"
     BLOCKED_HITL = "blocked_hitl"
+    ASSERTION_FAILED = "assertion_failed"
+    """D-032/AT-540: a step's declared expectation (or an Action.ASSERT
+    step's expected state) deterministically did not hold at settle time.
+    An OBSERVATION, not a grade — the grader still owns the verdict."""
 
 
 class Result(StrEnum):
@@ -192,13 +196,11 @@ class UserValue(StrEnum):
 
 
 class IssueCategory(StrEnum):
-    """What kind of problem a video-derived `Issue` is.
-
-    The first 12 come from the proven external pipeline's bug taxonomy;
-    `FEATURE_GAP`/`WRONG_MODEL`/`DATA_ERROR` were added for D-014 after a
-    real ground-truth workbook showed 10/33 rows were spoken change requests
-    with no home in the original 12 ("this should be X", "remove this").
-    """
+    """What kind of problem a video-derived `Issue` is. The first 12 come
+    from the proven external pipeline's bug taxonomy; `FEATURE_GAP`/
+    `WRONG_MODEL`/`DATA_ERROR` were added for D-014 after a real ground-truth
+    workbook showed 10/33 rows were spoken change requests with no home in
+    the original 12 ("this should be X", "remove this")."""
 
     VALIDATION = "validation"
     LAYOUT = "layout"
@@ -288,13 +290,10 @@ class CrawlStatus(StrEnum):
     ABORTED = "aborted"
     BLOCKED_NO_ACTIONS = "blocked_no_actions"
     """AT-242: the frontier emptied with every reachable action refused by
-    policy (denied > 0) and none performed (actions_used == 0) — a crawl that
-    learned the product has controls but could act on none of them. Distinct
-    from COMPLETED (a real page with nothing denied, e.g. no interactive
-    controls at all, is genuinely fully explored) and from LOGIN_FAILED (the
-    login CASE specifically did not complete)."""
+    policy (denied > 0) and none performed (actions_used == 0). Distinct from
+    COMPLETED (a real page with nothing denied is genuinely fully explored)
+    and from LOGIN_FAILED (the login CASE specifically did not complete)."""
     LOGIN_WALL = "login_wall"
-    """X18/AT-458: no login case was declared, every screen reached ends in a form
-    submit this crawl may not press, and no link led to a structurally different
-    screen — the crawl met a sign-in wall and saw nothing behind it, however many
-    actions it spent going round in front of it. Never success."""
+    """X18/AT-458: no login case declared, every screen ends in a refused form
+    submit, no link led anywhere structurally different — the crawl met a
+    sign-in wall and saw nothing behind it. Never success."""

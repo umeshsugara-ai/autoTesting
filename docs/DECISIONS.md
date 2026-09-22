@@ -561,3 +561,47 @@ section changes. The concept-to-file table row for agent fallback is reworded to
 concept-to-file table row's wording).
 **Links:** AT-253; AT-540; qa/verdicts/sweep-2026-09-22.md; docs/research/testsprite-2026-09.md;
 schema/case.py (Script, script_ref); stages/agent_loop.py; stages/run_case_pipeline.py:95
+
+## D-032 | 2026-09-22 | type: decision | status: ACTIVE
+**What:** Make the executor's deterministic assertion layer real (AT-540, adoption B of
+docs/research/testsprite-2026-09.md). Today `ExpectedState.absent_text/dom_asserts/visual_signal/
+network` (schema/flowspec.py:65-68) have zero read sites in src/, `Action.ASSERT` is
+`lambda session, step: None` (stages/execute.py:43), and `BrowserSession._poll_for_expected`
+(browser/session.py:238-251) is a settle hint that returns normally on timeout, recording no
+failure. 100% of pass/fail judgement is an LLM reading a screenshot (stages/grade.py:123).
+**Why:** Umesh approved assertions-first (2026-09-22): the grader's opinion on a screenshot is
+currently the only oracle in the system, and a deterministic assertion is the cheapest defence
+against both false PASSes and false FAILs. TestSprite ships an explicit `type: "assertion"`
+plan-step class; we have the schema for one and no implementation. This does NOT break C7
+("the executor never grades itself", qa/contracts/core-invariants.md): an assertion result is
+EVIDENCE â€” a recorded fact about the DOM/URL at a moment in time â€” and `grade.py` still owns
+the Verdict. What changes is that the grader will now have deterministic facts to weigh, and a
+`RawResult` whose own recorded assertions failed can no longer be graded PASS without the
+grader contradicting recorded evidence (grade.py's existing self-consistency/downgrade logic
+already distrusts evidence-contradicting verdicts; this gives it real evidence to contradict).
+**Result:** (1) New `BrowserSession.assert_expected(expected, timeout_ms)` â€” evaluates the
+deterministic fields (`url` contains, `visible_text` present, `absent_text` truly absent,
+`dom_asserts` selectors exist) by polling like `_poll_for_expected`, records each result as
+`EvidenceKind.DOM` evidence with an explicit `assert <field>: met|unmet (<detail>)` label, and
+raises nothing â€” the executor reads the recorded results and decides outcome-only consequences:
+an unmet assertion on a step's own `expected` or on an `Action.ASSERT` step makes `run_case`
+return a new `Outcome.ASSERTION_FAILED` (a fourth observation, not a judgement: it states a
+declared expectation did not hold, which is observation, not grading). (2) `Action.ASSERT`'s
+handler evaluates `step.expected` through the same method (a no-expected ASSERT records
+`assert: nothing expected` DOM evidence and stays harmless). (3) `network` stays
+observer-derived (PageObserver already records NETWORK evidence; no per-step wait is added) and
+`visual_signal` stays the judge's (E1's existing no-fire line). (4) The execute.md contract is
+amended by the checker (E1's "never compares the captured evidence against Step.expected" line
+is superseded by this D-entry; E1's three-outcome list gains ASSERTION_FAILED; the
+"executor only observes" line is reworded to "the executor never grades â€” a declared
+expectation either held or did not, and the grader still owns the verdict"). (5) ARCHITECTURE.md's
+corrected Execution-model section (D-031) gains one sentence: deterministic assertions are
+evidence; the grader still owns every verdict.
+**Changes-authorized:** src/autotester/schema/enums.py (Outcome.ASSERTION_FAILED);
+src/autotester/browser/session.py (assert_expected + _poll_for_expected reuse);
+src/autotester/stages/execute.py (Action.ASSERT handler + post-step expected evaluation);
+qa/contracts/execute.md (E1 supersession + amendment log, by the checker);
+docs/ARCHITECTURE.md (the one sentence in the corrected section).
+**Links:** AT-540; AT-253 (D-031, the prose prerequisite, already landed); docs/research/
+testsprite-2026-09.md Â§4B; qa/contracts/execute.md E1; qa/contracts/core-invariants.md C7;
+Umesh approval 2026-09-22 (assertions-first order, chat, quoted in qa/feedback-inbox.md)

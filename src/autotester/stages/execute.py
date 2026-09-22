@@ -2,9 +2,12 @@
 
 No judgement here — PASS/FAIL belongs to GRADE (T-041). This stage only performs
 the case's steps on an already-started `BrowserSession` and records what
-happened: a screenshot after every step, and one of three outcomes —
-COMPLETED, ERRORED (an exception mid-step), or BLOCKED_HITL (a secret the
-project does not have yet, the OTP/2FA case). Contract: qa/contracts/execute.md.
+happened: a screenshot after every step, and one of four outcomes —
+COMPLETED, ERRORED (an exception mid-step), BLOCKED_HITL (a secret the
+project does not have yet, the OTP/2FA case), or ASSERTION_FAILED (D-032/
+AT-540: a step's declared expectation deterministically did not hold — an
+observation, not a grade; the grader still owns the verdict).
+Contract: qa/contracts/execute.md.
 """
 
 from __future__ import annotations
@@ -40,7 +43,14 @@ _ACTIONS: dict[Action, StepHandler] = {
         timeout_ms=int(step.value) if step.value else _DEFAULT_WAIT_MS,
         step_order=step.order,
     ),
-    Action.ASSERT: lambda session, step: None,  # evidence only — see run_case's screenshot
+    # D-032/AT-540: ASSERT evaluates the step's own declared expectation and
+    # records the result as DOM evidence. A no-expected ASSERT records
+    # nothing to evaluate and stays harmless (the screenshot below is still
+    # taken). Raising nothing here is deliberate — the consequence is decided
+    # in run_case, not in the dispatch table.
+    Action.ASSERT: lambda session, step: session.assert_expected(
+        step.expected, step_order=step.order
+    ),
     Action.BACK: lambda session, step: session.go_back(step_order=step.order),
     Action.HOVER: lambda session, step: session.hover(step.target, step_order=step.order),
     Action.PRESS_KEY: lambda session, step: session.press_key(
@@ -58,14 +68,36 @@ class StepNotExecutable(RuntimeError):
     execution failure — a run reports it, never crashes on it."""
 
 
+def _assertions_unmet(session: BrowserSession, evidence_start: int) -> bool:
+    """Whether any recorded assert evidence after `evidence_start` says unmet
+    (D-032). Reads only the labels this system itself wrote
+    (`browser/assertions.py`'s `assert <field>: met|unmet` shape)."""
+    unmet = "assert "
+    for item in session.state.evidence[evidence_start:]:
+        if item.kind.value == "dom" and item.path.startswith(unmet) and "unmet" in item.path:
+            return True
+    return False
+
+
 def run_case(case: Case, session: BrowserSession) -> RawResult:
-    """Execute `case.steps` in order on `session`. E1/E2/E3: observe, never judge."""
+    """Execute `case.steps` in order on `session`. E1/E2/E3: observe, never judge.
+
+    D-032/AT-540: after every step whose `expected` declares something the
+    executor can check deterministically (url/visible_text/absent_text/
+    dom_asserts), the expectation is evaluated and recorded as DOM evidence;
+    an unmet one makes the run's outcome ASSERTION_FAILED — an observation
+    that a declared expectation did not hold, never a grade."""
     start = time.monotonic()
+    assertion_failed = False
     for step in sorted(case.steps, key=lambda s: s.order):
         try:
             handler = _ACTIONS.get(step.action)
             if handler is None:
                 raise StepNotExecutable(f"{step.action.value} has no browser handler yet")
+            if step.action is Action.ASSERT or _declares_expectation(step.expected):
+                pre = len(session.state.evidence)
+            else:
+                pre = None
             handler(session, step)
             if step.action in (Action.CLICK, Action.NAVIGATE, Action.BACK):
                 # AT-045/AT-053: a click or a fresh navigation both trigger an
@@ -76,6 +108,12 @@ def run_case(case: Case, session: BrowserSession) -> RawResult:
                 # brand-new production URL captured a blank NAVIGATE
                 # screenshot and false-FAILed on it).
                 session.settle(step.expected)
+            if pre is not None:
+                if step.action is not Action.ASSERT:
+                    # the step's own declared expectation, evaluated after settle
+                    session.assert_expected(step.expected, step_order=step.order)
+                if _assertions_unmet(session, pre):
+                    assertion_failed = True
             session.screenshot(f"step{step.order:02d}-{step.action}", step_order=step.order)
         except MissingSecret as exc:
             return _result(case, session, start, Outcome.BLOCKED_HITL, hitl_prompt=str(exc))
@@ -83,7 +121,17 @@ def run_case(case: Case, session: BrowserSession) -> RawResult:
             return _result(
                 case, session, start, Outcome.ERRORED, error=f"{type(exc).__name__}: {exc}"
             )
+    if assertion_failed:
+        return _result(case, session, start, Outcome.ASSERTION_FAILED)
     return _result(case, session, start, Outcome.COMPLETED)
+
+
+def _declares_expectation(expected: object) -> bool:
+    """Whether an `ExpectedState` carries anything the executor can check
+    deterministically (D-032). `visual_signal` and `network` are excluded —
+    they are the judge's/observer's."""
+    return bool(expected.url or expected.visible_text or expected.absent_text
+                or expected.dom_asserts)
 
 
 def _result(

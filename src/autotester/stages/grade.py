@@ -120,6 +120,23 @@ def _withheld(
     return None
 
 
+def _outcome_verdict(result: RawResult, rubric: Rubric, run_id: str) -> Verdict | None:
+    """The deterministic outcomes a judge never sees (D-032: ASSERTION_FAILED
+    is deliberately NOT one of them — a declared expectation failing is
+    evidence to weigh, not a refusal to judge; the judge may disagree with a
+    wrongly-authored expectation, and only the grader can tell a case defect
+    from a product defect)."""
+    if result.outcome is Outcome.BLOCKED_HITL:
+        return _verdict(run_id, result, rubric, verdict_result=Result.BLOCKED,
+                         provider_id="rule", scoreboard="not judged: execution was blocked",
+                         note=result.hitl_prompt)
+    if result.outcome is Outcome.ERRORED:
+        return _verdict(run_id, result, rubric, verdict_result=Result.INCONCLUSIVE,
+                         provider_id="rule", scoreboard="not judged: execution errored",
+                         note=result.error)
+    return None
+
+
 def grade(rubric: Rubric, result: RawResult, run_id: str, judge: Provider,
           docs: RepoDocs | None = None, run_dir: Path | None = None,
           secrets: SecretStore | None = None) -> Verdict:
@@ -130,15 +147,12 @@ def grade(rubric: Rubric, result: RawResult, run_id: str, judge: Provider,
     documented as "call before every model call" but had no production
     caller: protection rested entirely on evidence having been scrubbed at
     `session._record`. Optional so the existing script callers are unchanged.
-    """
-    if result.outcome is Outcome.BLOCKED_HITL:
-        return _verdict(run_id, result, rubric, verdict_result=Result.BLOCKED,
-                         provider_id="rule", scoreboard="not judged: execution was blocked",
-                         note=result.hitl_prompt)
-    if result.outcome is Outcome.ERRORED:
-        return _verdict(run_id, result, rubric, verdict_result=Result.INCONCLUSIVE,
-                         provider_id="rule", scoreboard="not judged: execution errored",
-                         note=result.error)
+    D-032/AT-540: an ASSERTION_FAILED run still reaches the judge — the
+    recorded unmet assertions travel inside the evidence list, so the judge
+    weighs recorded facts, not just pixels."""
+    outcome = _outcome_verdict(result, rubric, run_id)
+    if outcome is not None:
+        return outcome
 
     prompt = build_grade_prompt(rubric, result, docs or RepoDocs())
     withheld = _withheld(run_id, result, rubric, prompt, secrets)
