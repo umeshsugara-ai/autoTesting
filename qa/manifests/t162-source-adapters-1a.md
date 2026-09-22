@@ -6,7 +6,7 @@
 - **Fix cycle:** 1 of 3.
 - **Dual check: required** (T-162 is CRITICAL).
 - **Issues addressed:** none — new feature.
-- **Status:** ready-for-check.
+- **Status:** checked-PASS. DUAL check PASS (primary a7187214 6/6 fb18d13 + contract D-035 f227f9b; blind secondary a13040b5 5/5 14b6830); both re-derived 4 capability rows + full suite 1549 passed. source-adapters.md DRAFT->ACTIVE.
 
 ## Scope delivered (phase-1a)
 
