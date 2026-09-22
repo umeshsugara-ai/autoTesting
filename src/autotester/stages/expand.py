@@ -30,6 +30,11 @@ CLASS_DESCRIPTIONS: dict[CaseClass, str] = {
     CaseClass.LOCALE_I18N: "the same flow with a non-default locale/language",
     CaseClass.CONCURRENT_TAB: "the same flow open in two browser tabs at once",
     CaseClass.DEEPLINK_UNAUTH: "a deep link into the flow without being authenticated first",
+    CaseClass.REGRESSION_ANCHOR: (
+        "the flow's happy path as a REGRESSION ANCHOR: a stable, minimal replay of exactly "
+        "the observed steps, whose only job is to fail loudly when a future change breaks "
+        "this flow — prefer the flow's own steps unchanged, adding nothing clever"
+    ),
 }
 
 # Classes every flow is asked about, regardless of what steps it has (D-004:
@@ -54,7 +59,13 @@ def _has_auth_field(flow: Flow) -> bool:
 def applicable_classes(flow: Flow) -> list[CaseClass]:
     """The classes this flow is asked about — HAPPY always, input classes only
     when the flow actually fills something, auth classes only when a fill step
-    references a secret, universal classes always."""
+    references a secret, universal classes always, and the REGRESSION_ANCHOR
+    last (AT-541: it was declared in `KIND_BY_CLASS` with `CaseKind.ANCHOR`
+    but unreachable from here — the one kind the pipeline could never
+    produce. It is asked like a universal class, and the model may still
+    decline; a declined anchor is fine because the regression-proof scripts
+    build their anchors directly, and T-167's release trigger will consume
+    whatever anchors exist)."""
     classes = [CaseClass.HAPPY]
     if _has_fill(flow):
         classes += [CaseClass.INPUT_EMPTY, CaseClass.INPUT_BOUNDARY,
@@ -62,6 +73,7 @@ def applicable_classes(flow: Flow) -> list[CaseClass]:
     if _has_auth_field(flow):
         classes += [CaseClass.AUTH_WRONG_CREDS, CaseClass.AUTH_EXPIRED_SESSION]
     classes += UNIVERSAL_CLASSES
+    classes.append(CaseClass.REGRESSION_ANCHOR)
     return classes
 
 

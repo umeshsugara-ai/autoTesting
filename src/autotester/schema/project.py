@@ -40,7 +40,14 @@ class SecretRef(BaseModel):
 
 
 class ProviderConfig(BaseModel):
-    """Which provider serves each role. Roles are swappable per project."""
+    """Which provider serves each role. Roles are swappable per project.
+
+    AT-542: `vision` may name SEVERAL providers, comma-separated
+    (`"gemini,anthropic"`), which run as the video ensemble — the one place
+    where agreement between independent readings is the signal itself
+    (qa/contracts/video-learning.md). A single name is an ensemble of one and
+    is exactly what the F-039 overstatement was: real agreement never ran.
+    `for_role` returns the whole string; the analyze callers split it."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -50,6 +57,17 @@ class ProviderConfig(BaseModel):
 
     def for_role(self, role: ProviderRole) -> str:
         return getattr(self, str(role))
+
+    def vision_ensemble(self) -> list[str]:
+        """The vision provider ids in order, deduplicated — the ensemble the
+        analyze callers run. One entry = ensemble of one (honest, not an
+        error: a single credential must still work)."""
+        seen: list[str] = []
+        for name in self.vision.split(","):
+            name = name.strip()
+            if name and name not in seen:
+                seen.append(name)
+        return seen or ["gemini"]
 
 
 class Source(Artifact):

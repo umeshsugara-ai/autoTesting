@@ -223,8 +223,10 @@ def run_cmd(
 def analyze_cmd(
     project: str = typer.Argument(..., help="project slug"),
     source_id: str = typer.Argument(..., help="a source id from `ingest list`"),
-    models: str = typer.Option("gemini", "--models",
-                               help="comma-separated provider ids; two is the ensemble"),
+    models: str = typer.Option(None, "--models",
+                               help="comma-separated provider ids; two is the ensemble "
+                                    "(default: the project's vision config, which may "
+                                    "name several)"),
     force: bool = typer.Option(False, "--force", help="re-request cached observations"),
 ) -> None:
     """Run the ensemble over a prepared recording and adjudicate it.
@@ -237,7 +239,15 @@ def analyze_cmd(
 
     store = ProjectStore(project)
     source = _require_source(store, project, source_id)
-    provs = [providers.get(name.strip()) for name in models.split(",") if name.strip()]
+    # AT-542: default to the project's own vision config (which may name
+    # several providers); an explicit --models still overrides.
+    if models:
+        names = models
+    else:
+        project_record = store.load_project()
+        names = (",".join(project_record.providers.vision_ensemble())
+                 if project_record is not None else "gemini")
+    provs = [providers.get(name.strip()) for name in names.split(",") if name.strip()]
     try:
         analysis = analyze(store, source, provs, docs=RepoDocs(), options=VisionOptions(),
                            force=force)

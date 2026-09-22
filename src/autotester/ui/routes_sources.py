@@ -232,10 +232,17 @@ def analyze_source(slug: str, source_id: str):
     except SourceNotPrepared as exc:
         return _refusal(slug, str(exc), title="Prepare this recording first")
     try:
-        provider = providers.get(project.providers.vision)
-        if not provider.available():
-            raise ProviderError("the configured vision provider has no credential")
-        analysis = analyze(store, source, [provider], docs=RepoDocs(), options=VisionOptions())
+        # AT-542: the ensemble is every configured vision provider, not always
+        # exactly one — `vision_ensemble()` splits the comma-separated config.
+        # A provider with no credential is skipped (the ensemble degrades,
+        # never dies); analyze itself refuses only when EVERY call fails.
+        ensemble = [providers.get(name) for name in project.providers.vision_ensemble()]
+        ready = [p for p in ensemble if p.available()]
+        if not ready:
+            raise ProviderError(
+                "no configured vision provider has a credential — "
+                f"checked: {[p.id for p in ensemble]}")
+        analysis = analyze(store, source, ready, docs=RepoDocs(), options=VisionOptions())
     except (ProviderError, SourceNotPrepared, UnreadableRecording,
             NoObservations, DuplicateProviders) as exc:
         return _refusal(slug, str(exc), title="Analysis could not finish")

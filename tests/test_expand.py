@@ -66,6 +66,35 @@ def test_no_fill_flow_skips_input_and_auth_classes() -> None:
     assert CaseClass.DOUBLE_SUBMIT in classes  # universal class, always asked
 
 
+def test_regression_anchor_is_reachable() -> None:
+    """AT-541: REGRESSION_ANCHOR sat in KIND_BY_CLASS but was absent from
+    applicable_classes, so the ANCHOR kind could never be generated. Every
+    flow is now asked about it, and an accepting model produces an ANCHOR
+    case."""
+    classes = applicable_classes(LOGIN_FLOW)
+    assert CaseClass.REGRESSION_ANCHOR in classes
+
+    non_happy = [c for c in classes if c is not CaseClass.HAPPY]
+    responses = [make_steps(f"field for {c.value}") for c in non_happy]
+    provider = MockProvider(responses={"agent": responses})
+    cases = expand_flow(LOGIN_FLOW, "pathlynks", provider)
+    anchors = [c for c in cases if c.kind is CaseKind.ANCHOR]
+    assert anchors, "the model accepted the anchor ask but no ANCHOR case was built"
+    assert all(c.case_class is CaseClass.REGRESSION_ANCHOR for c in anchors)
+
+
+def test_a_declined_anchor_produces_no_case() -> None:
+    """X4 applies to the anchor like any other class: the model may decline."""
+    classes = [c for c in applicable_classes(LOGIN_FLOW) if c is not CaseClass.HAPPY]
+    responses = [
+        not_applicable() if c is CaseClass.REGRESSION_ANCHOR else make_steps(f"f {c.value}")
+        for c in classes
+    ]
+    provider = MockProvider(responses={"agent": responses})
+    cases = expand_flow(LOGIN_FLOW, "pathlynks", provider)
+    assert not [c for c in cases if c.kind is CaseKind.ANCHOR]
+
+
 # -- expand_flow: at least 12 cases for the login flow (goal task's own bar) --
 
 def test_login_flow_produces_at_least_twelve_cases() -> None:

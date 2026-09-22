@@ -88,6 +88,25 @@ def test_project_defaults_to_read_only_and_headed() -> None:
     assert project.headed is True
 
 
+def test_vision_ensemble_splits_the_config_and_deduplicates() -> None:
+    """AT-542: one config string may name the whole ensemble."""
+    from autotester.schema.project import ProviderConfig
+
+    assert ProviderConfig(vision="gemini,anthropic").vision_ensemble() == [
+        "gemini", "anthropic"]
+    # whitespace tolerated, duplicates dropped, empty segments dropped
+    assert ProviderConfig(vision=" gemini , anthropic , gemini , ").vision_ensemble() == [
+        "gemini", "anthropic"]
+    # single name = ensemble of one (honest, still works)
+    assert ProviderConfig().vision_ensemble() == ["gemini"]
+
+
+def test_vision_ensemble_empty_config_falls_back_to_gemini() -> None:
+    from autotester.schema.project import ProviderConfig
+
+    assert ProviderConfig(vision=",").vision_ensemble() == ["gemini"]
+
+
 def test_secret_ref_rejects_lowercase_keys() -> None:
     SecretRef(key="PATHLYNKS_PASSWORD", domains=["p.test"])
     with pytest.raises(ValidationError):
