@@ -211,4 +211,9 @@ assertions are exercised against a browser only through the fakes above; the rea
 is the existing `test_run_pathlynks_first_cases.py` set (not re-run in this fix cycle per the
 brief — the checker runs the full suite).
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Cycle-2 checker (`a6b0b72c1083333ae`) returned **VERDICT: PASS** — see
+`qa/verdicts/at540-assertion-layer.md` (`Cycle checked: 2`). All four cycle-1 FAIL causes closed and
+independently re-falsified; full suite 1528 passed / 0 failed; ruff + doctor clean. Verdict was
+stranded by a plan-mode block on the checker and landed by the orchestrator (QA-1445 recovery class).
