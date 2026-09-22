@@ -6,7 +6,7 @@
   Binding "Explicit no-fire list": device flow ONLY, no service-account auth, no IMAP.
 - **Goal task:** T-162 (multi-source adapters). DRIVE is the LAST phase-2 adapter (EMAIL merged as
   phase-2a). **On this PASS T-162's phase-2 scope is complete and T-162 can close.**
-- **Fix cycle:** 1 of 3.
+- **Fix cycle:** 2 of 3.
 - **Dual check: required** — T-162 is CRITICAL, and this unit touches the credential boundary (SA3:
   an OAuth refresh token held as a `SecretRef`), the same criticality class as EMAIL phase-2a and
   AUDIO phase-1b.
@@ -155,12 +155,15 @@ mutation).
 | **SA5 — honest degradation (unfetchable)** | `drive_register._register_unfetchable`: `notes=f"{_EXTRACTION_ERROR_PREFIX}: could not fetch..."` → `notes=f"unreadable: could not fetch..."` | `test_drive_unfetchable_file_registers_extraction_error` | GREEN→RED: `AssertionError` — `notes` was `'unreadable: could not fetch from Drive -- HTTPStatusError: 403 Forbidden'`, fails `.startswith("extraction_error")` |
 | **SA4 — provenance links child→folder** | `drive_register._register_drive_file`: `Provenance(produced_by=..., inputs=[parent.id])` → `inputs=[]` | `test_drive_child_provenance_links_to_the_folder` | GREEN→RED: `AssertionError: assert [] == ['src_59e3babe3bae']` at `child.provenance.inputs == [folder.id]` |
 | **SA3 — credential never reaches a stored Source / disk** | `drive.HttpDriveClient.list_folder`: `DriveFile(f["id"], f.get("name","file"), ...)` → `DriveFile(f["id"], headers["Authorization"], ...)` (bearer token into the file name) | `test_drive_credential_never_reaches_stored_sources` | GREEN→RED: `assert 'ACCESS_BEARER_TOKEN_QWER' not in '...'` — the bearer token reached `label` and the on-disk `sources.jsonl` |
+| **device-flow exchange returns the refresh token** (mechanism test, added cycle 2 per C7) | `drive.exchange_device_code` line 119: `return resp.json()["refresh_token"]` → `return "WRONG_TOKEN"` | `test_device_code_exchange_returns_refresh_token_offline` | GREEN→RED: `AssertionError: assert 'WRONG_TOKEN' == 'NEW_REFRESH_TOKEN'` at `tests/test_source_adapters_drive.py:188` (`assert token == "NEW_REFRESH_TOKEN"`); applied and reverted, `git status --short` clean afterward, `6 passed` restored |
 
 The 6th test, `test_device_code_exchange_returns_refresh_token_offline`, exercises the device-flow
 mechanism itself (SA3's chosen auth): `request_device_code` + `exchange_device_code` over
 `httpx.MockTransport`, asserting the exchange returns a refresh token the CALLER stores as a
-`SecretRef` (never inline). It is a mechanism-presence test, not one of the five SA capability rows,
-so it has no separate falsifying row.
+`SecretRef` (never inline). It is not one of the five SA capability rows, but C7 requires a pasted
+mutation run for every added test unconditionally — so its falsifying row is now in the table above
+(cycle-2 correction: the cycle-1 manifest wrongly claimed a "mechanism-presence" exemption from C7,
+which the blind checker `t162-drive-2b.b.md` flagged; the mutation kills cleanly with no code change).
 
 All five hunks were applied and reverted ONE AT A TIME (not stacked); each RED was captured in full
 before reverting. SA3 was additionally checked by a direct grep of `drive.py`/`drive_register.py`:
