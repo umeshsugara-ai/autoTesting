@@ -15,10 +15,15 @@ here, on the data.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 from pathlib import Path
 
+import pytest
+
 GOAL = Path(__file__).resolve().parents[1] / ".goal" / "goal.json"
+
+CLASSIFIER_SOURCE = Path("D:/ai_os/.claude/skills/goal/scripts/criticality.py")
 
 # Mirrors `goal/scripts/criticality.py::_ORDER`. Duplicated deliberately: that
 # file is a shared AIOS skill outside this repo, so importing it would make this
@@ -55,3 +60,31 @@ def test_the_highest_risk_pending_work_actually_derives_critical() -> None:
             f"{task_id} derives {by_id[task_id].get('criticality')!r}, not 'critical' — "
             "it would be dispatched to a single checker"
         )
+
+
+def test_the_deliberate_copy_has_not_drifted_from_its_source() -> None:
+    """The copy above is only safe if it still mirrors the source. If the shared
+    `_ORDER` ever changes, every assertion in this file keeps passing against a
+    stale set — the same silent divergence AT-116 was. Skips when the source
+    checkout is absent, so this suite stays green without it."""
+    if not CLASSIFIER_SOURCE.exists():
+        pytest.skip(f"shared classifier not present at {CLASSIFIER_SOURCE}")
+
+    spec = importlib.util.spec_from_file_location(
+        "criticality_source", CLASSIFIER_SOURCE
+    )
+    if spec is None or spec.loader is None:
+        pytest.skip(f"cannot load shared classifier from {CLASSIFIER_SOURCE}")
+
+    criticality = importlib.util.module_from_spec(spec)
+    try:
+        spec.loader.exec_module(criticality)
+    except Exception as exc:
+        pytest.skip(f"cannot import shared classifier from {CLASSIFIER_SOURCE}: {exc}")
+
+    source_vocabulary = set(criticality._ORDER)
+    assert CLASSIFIER_VOCABULARY == source_vocabulary, (
+        "this file's copy of the classifier vocabulary has drifted from the "
+        f"source at {CLASSIFIER_SOURCE}: local copy={CLASSIFIER_VOCABULARY}, "
+        f"source={source_vocabulary}"
+    )
