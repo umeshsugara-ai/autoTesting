@@ -1,0 +1,23 @@
+{
+  "mode": "checker live + quality validation of merged master (user-directed, not a single-unit Mode A)",
+  "date": "2026-09-22",
+  "head": "a30f535 (at541-543-ensemble-honesty merged + closed-PASS; verdict ee59a66)",
+  "actor": "checker, in-session (subagents skipped — a prior dispatched checker died on a network ENOTFOUND)",
+  "quality_gates": {
+    "ruff": "All checks passed! (uv run ruff check src tests scripts)",
+    "doctor": "doctor: clean (uv run autotester doctor)",
+    "pytest_full_suite": "1534 passed, 5 skipped, 32 xfailed, 0 FAILED (677s) — merged master fully green, incl. test_ensemble_honesty.py"
+  },
+  "live_browser": {
+    "instrument": "playwright MCP vs real app started by checker on 127.0.0.1:8013 (uv run uvicorn autotester.ui.app:app). The foreign {ok:true} stub on :8000 avoided.",
+    "pages": [
+      {"url": "/projects/erp/sources", "title": "ERP · Sources", "render": "pass", "console_errors": 0,
+       "notes": "the surface at541-543 (AT-550 ensemble-honesty) touched via ui/routes_sources.py; register+upload forms render, ERP recordings table shows 3 real sources (erp1/2/3.mp4). Did NOT click Analyze — it triggers real vision-model runs on real trainer-video data (gated)."}
+    ]
+  },
+  "findings": [
+    {"id": "AT-554", "status": "STILL OPEN (unchanged)", "severity": "high",
+     "summary": "GET /settings/providers still serves the real credential VALUE in the HTML (1 occurrence confirmed by count, value not dumped). Gate qa/gates/at554-credential-value-in-ui.md remains unanswered (A/B pending Umesh). Behaviour unchanged — correct, since no decision was made."}
+  ],
+  "verdict_partial": "ruff + doctor CLEAN on merged master; sources UI surface renders with 0 console errors. AT-554 credential-value-in-UI remains the one open high finding, awaiting Umesh's A/B. Full pytest verdict pending (running)."
+}
