@@ -87,6 +87,12 @@ class ProjectPaths:
         return self.dir / "knowledge.md"
 
     @property
+    def portal_persona(self) -> Path:
+        """The durable cross-run product model (T-164). One JSON file per
+        project; `knowledge` is its regenerated human-readable view."""
+        return self.dir / "portal_persona.json"
+
+    @property
     def bench_dir(self) -> Path:
         return self.dir / "bench"
 

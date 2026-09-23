@@ -37,8 +37,8 @@ AutoTester wins on bugs found, false positives, and time (`schema/bench.py` comp
 - T-145 [high] Live bounded READ_ONLY crawl of vidysea.com/erp with the test account
 - T-125 [high] Test catalog: which case classes apply, which are runnable, which are blocked and why (+ cheap->expensive ordering)
 ## Last decisions (computed status)
-- D-033 2026-09-22 decision ACTIVE
 - D-034 2026-09-22 decision ACTIVE
 - D-035 2026-09-22 decision ACTIVE
 - D-036 2026-09-23 decision ACTIVE
 - D-037 2026-09-23 fix ACTIVE
+- D-038 2026-09-23 decision ACTIVE

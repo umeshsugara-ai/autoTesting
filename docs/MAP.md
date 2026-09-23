@@ -56,6 +56,7 @@
 | `schema/ledger.py` | The feature ledger row and the relitigation verdict. Contract: qa/contracts/living-ledger.md. |
 | `schema/media.py` | Host-side media preparation artifacts: transcripts and chunk manifests. |
 | `schema/observation.py` | A vision model's raw reading of one video — INGEST's input material. |
+| `schema/portal_persona.py` | The durable Portal Persona — what AutoTester knows about one product, kept |
 | `schema/project.py` | Project configuration and the secret contract. One directory per project. |
 | `schema/run.py` | What EXECUTE observed. Deliberately contains no judgement — see verdict.py. |
 | `schema/run_state.py` | RunState: the durable per-run ledger over the filestore's stage artifacts. |
@@ -94,6 +95,8 @@
 | `stages/merge_flowspec.py` | Fold a freshly ingested FlowSpec into the reviewed one (Track A6, T-135). |
 | `stages/orchestrate.py` | ORCHESTRATE: drive the stage pipeline as a resumable learn-or-explore run. |
 | `stages/orchestrate_runners.py` | The concrete stage runners the orchestrator threads — thin adapters over the |
+| `stages/portal_persona.py` | PORTAL PERSONA: promote per-crawl knowledge into the durable, cross-run |
+| `stages/portal_persona_view.py` | Render a `PortalPersona` as `knowledge.md` — a human-readable VIEW of the |
 | `stages/product_map.py` | PRODUCT MAP: fold every recording analysis into one navigable screen map. |
 | `stages/report_export.py` | Tester-style run reports: an Excel summary and a screen-by-screen HTML |
 | `stages/review.py` | FlowSpec review gate: nothing generates cases from an unreviewed understanding |
@@ -185,6 +188,16 @@
 | `VisionOptions` (`schema/observation.py`) | Generation config for a vision call — the settings the proven external |
 | `VideoObservation` (`schema/observation.py`) | A vision provider's raw reading of one video (or chunk) — turned into a |
 | `ModelObservation` (`schema/observation.py`) | One model's raw answer for one chunk — cached on disk so re-running the |
+| `PersonaProfile` (`schema/portal_persona.py`) | What the product is, at a glance — the durable header of the persona. |
+| `AuthField` (`schema/portal_persona.py`) | One credential input the login SHAPE has. Carries the SecretRef KEY, never |
+| `AuthShape` (`schema/portal_persona.py`) | How the product authenticates, described by shape alone (PP5): which |
+| `PersonaScreen` (`schema/portal_persona.py`) | One distinct screen the product has. Accumulated across runs (PP2). |
+| `PersonaTransition` (`schema/portal_persona.py`) | One learned move between screens — what control takes you where. |
+| `FlowRunRef` (`schema/portal_persona.py`) | A stable, runnable reference a Quick Re-Run resolves to re-exercise a |
+| `TaughtFlow` (`schema/portal_persona.py`) | An end-to-end journey the product supports, carried durably with a stable |
+| `Gotcha` (`schema/portal_persona.py`) | One thing that bit us — a quirk of this product worth remembering. |
+| `PersonaRevision` (`schema/portal_persona.py`) | One dated entry in the persona's history: when it was updated and a |
+| `PortalPersona` (`schema/portal_persona.py`) | The durable, cross-run model of one product under test (PP1). A single |
 | `SecretRef` (`schema/project.py`) | A declared credential. Holds the KEY and its scope — never the value. |
 | `ProviderConfig` (`schema/project.py`) | Which provider serves each role. Roles are swappable per project. |
 | `Source` (`schema/project.py`) | An immutable input the system learned from. |
