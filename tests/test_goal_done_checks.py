@@ -220,7 +220,8 @@ def test_revised_goal_contract_is_registered() -> None:
                   "tests/test_source_adapters_audio.py "
                   "tests/test_source_adapters_email.py "
                   "tests/test_source_adapters_drive.py"),
-        "T-163": (["T-135", "T-162"], tests + "test_autonomous_orchestrator.py"),
+        "T-163": (["T-135", "T-162"], tests + "test_orchestrate.py "
+                  "tests/test_orchestrate_runners.py"),
         "T-164": (["T-163"], tests + "test_portal_persona.py"),
         "T-165": (["T-163", "T-144"], tests + "test_explore_completeness.py "
                   "tests/test_explore_network.py"),
