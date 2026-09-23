@@ -4,6 +4,8 @@
       "Bash",
       "Edit",
       "Read",
+      "EnterWorktree",
+      "ExitWorktree",
       "Bash(uv run pytest*)",
       "Bash(uv run ruff check src tests scripts)",
       "Bash(uv run autotester doctor)",
