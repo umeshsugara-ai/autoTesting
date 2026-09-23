@@ -745,3 +745,28 @@ DISCOVER/MODEL and the resumable-run framing, kept within the 150-line budget) Â
 
 **Links:** T-163, T-160/D-023 (roadmap that registered it), T-162 (F-044, the dependency now cleared),
 `.work/t163-orchestrator-design.md`, brain trace 0ee72e8c9a36.
+
+## D-037 | 2026-09-23 | type: fix | status: ACTIVE
+
+**What:** Add `EnterWorktree` and `ExitWorktree` to `permissions.allow` in `.claude/settings.json` so
+auto-mode approves them without a human click. These tools were NOT allowlisted, so when a parallel
+build subagent used `EnterWorktree` to relocate into its worktree, auto-mode fell back to a permission
+prompt; with nothing running between turns, the T-163 build sat frozen on that prompt for ~3 hours
+overnight. The two build briefs are also hardened to forbid the worktree tools and run verify via the
+already-allowlisted `Bash` tool (defense in depth), but the allowlist is the durable fix: a gated tool
+must never be able to silently kill the maker loop.
+
+**Why:** Umesh reported the freeze directly (screenshot of the `EnterWorktree` prompt) and asked why the
+loop waited all night despite permissions being granted. Root cause: the standing allowlist covered
+`Bash`/`Edit`/`Read` and specific commands, but not the worktree tools the parallel-wave pattern relies
+on. Allowlisting them removes the only human-click dependency in the otherwise self-driving build loop.
+
+**Result:** `permissions.allow` gains `"EnterWorktree"` and `"ExitWorktree"`. The frozen T-163 build was
+stopped and re-dispatched with the tools forbidden; it completed (commit 6cad8e0, ready-for-check).
+
+**Changes-authorized:** .claude/settings.json (permissions.allow: add EnterWorktree, ExitWorktree).
+
+**Approved-by:** Umesh
+
+**Links:** T-163, the 2026-09-23 freeze Umesh reported; user CLAUDE.md "run, don't ask" / maker
+CONTINUATION-RULE (nothing runs between turns, so a gated prompt is a loop-killer).
