@@ -17,16 +17,15 @@ AutoTester wins on bugs found, false positives, and time (`schema/bench.py` comp
 
 ## Pipeline
 
+Two entry paths converge on one reviewed model as a resumable run — `stages/orchestrate.py::run_or_resume`, per-stage `RunState` checkpoints over the filestore artifacts, no new DB (D-036):
+
 ```
-INGEST ──► EXPAND ──► EXECUTE ──► GRADE ──► REPORT + COVERAGE ──► BENCH
-sources    FlowSpec    Case         RawResult   Verdict    gaps/requests   scorecard
-  │          │            │            │           │            │
-  │        Case[]    RawResult      Verdict     report      VideoRequest
-  └──────────────────────── new material ◄──────────────────────┘
+{INGEST | DISCOVER} ─► MODEL ─► EXPAND ─► EXECUTE ─► GRADE ─► REPORT + COVERAGE ─► BENCH
+ teach  | explore     FlowSpec  Case      RawResult  Verdict  gaps/requests   scorecard
+   └───────────────────────── new material ◄──────────────────────────────┘
 ```
 
-Each stage is a pure typed function `run(input, ctx) -> output`, one file in `stages/`, reading only
-the previous stage's artifact. A stage never reaches into another stage's internals.
+Teaching Sources pick INGEST (learn); credentials-only picks DISCOVER (bounded BFS). Both PROPOSE into a DRAFT FlowSpec that MODEL folds via `merge_flowspec` (never overwriting APPROVED truth), then stop at the review gate. Each stage is a pure `run(input, ctx) -> output` in `stages/` reading only the previous artifact, never another stage's internals; a crash resumes at the first non-done stage.
 
 ## Concept → file (one concept, one place)
 
@@ -59,6 +58,7 @@ the previous stage's artifact. A stage never reaches into another stage's intern
 | FlowSpec review gate (draft → approved; blocks case generation until reviewed) | `stages/review.py::require_reviewed` |
 | FlowSpec → Case[] covering every applicable taxonomy class | `stages/expand.py::expand` |
 | Self-extension: unseen route → CoverageGap → deduped VideoRequest, then a recording folded into the reviewed FlowSpec and the asks it answers closed | `stages/coverage.py::diff_coverage`, `stages/merge_flowspec.py::merge_flowspec`/`::resolve_requests` |
+| Resumable learn-or-explore run: entry-path choice (teach→INGEST / creds→DISCOVER), per-stage checkpoints over filestore artifacts, both paths PROPOSE into a DRAFT then stop at the review gate (D-036) | `stages/orchestrate.py::run_or_resume` + `stages/orchestrate_runners.py`, ledger `schema/run_state.py::RunState` |
 | Web UI: unified intake, masked .env editor, run/report views, shared visual theme (thin, no second store) | `ui/app.py` + `ui/env_editor.py` + `ui/theme.py::page` |
 | Docker: containerized app + virtual display + noVNC live-watch view (local dev only) | `Dockerfile`, `docker/entrypoint.sh`, `docker-compose.yml` |
 | Regression proof (break a fixture, confirm exactly that case FAILs) + bench (north star scorecard: seeded corpus, real trial vs human-oracle baseline) | `scripts/regression_proof.py`, `stages/bench.py::scorecard` |

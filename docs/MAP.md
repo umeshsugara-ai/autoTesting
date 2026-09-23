@@ -58,6 +58,7 @@
 | `schema/observation.py` | A vision model's raw reading of one video — INGEST's input material. |
 | `schema/project.py` | Project configuration and the secret contract. One directory per project. |
 | `schema/run.py` | What EXECUTE observed. Deliberately contains no judgement — see verdict.py. |
+| `schema/run_state.py` | RunState: the durable per-run ledger over the filestore's stage artifacts. |
 | `schema/screen_graph.py` | What one page-visit observed: its interactive elements and identity inputs. |
 | `schema/screenmap.py` | The product map — every screen the system has learned across all a |
 | `schema/verdict.py` | Grading. An independent, stateless judge reads evidence against a rubric. |
@@ -91,6 +92,8 @@
 | `stages/manual_login.py` | Manual one-time login. Contract: qa/contracts/manual-login.md ML1-ML5. |
 | `stages/media_prep.py` | MEDIA PREP: make a recording readable — probe it, cut it, transcribe it. |
 | `stages/merge_flowspec.py` | Fold a freshly ingested FlowSpec into the reviewed one (Track A6, T-135). |
+| `stages/orchestrate.py` | ORCHESTRATE: drive the stage pipeline as a resumable learn-or-explore run. |
+| `stages/orchestrate_runners.py` | The concrete stage runners the orchestrator threads — thin adapters over the |
 | `stages/product_map.py` | PRODUCT MAP: fold every recording analysis into one navigable screen map. |
 | `stages/report_export.py` | Tester-style run reports: an Excel summary and a screen-by-screen HTML |
 | `stages/review.py` | FlowSpec review gate: nothing generates cases from an unreviewed understanding |
@@ -190,6 +193,9 @@
 | `ProviderUsage` (`schema/run.py`) | Token and call accounting per provider role — the cost story per run. |
 | `RawResult` (`schema/run.py`) | One case's execution record. |
 | `Run` (`schema/run.py`) | One regression run over a set of cases. |
+| `StageName` (`schema/run_state.py`) | The pipeline stages a run drives, in canonical order. |
+| `StageCheckpoint` (`schema/run_state.py`) | One stage's durable record within a run. |
+| `RunState` (`schema/run_state.py`) | The ledger for one run, keyed by `run_id` (`OR5`: one run_id, one lineage). |
 | `ElementRef` (`schema/screen_graph.py`) | One interactive element found by `browser/enumerate.js`. |
 | `PageObservation` (`schema/screen_graph.py`) | One page-visit's raw material: its url/title and interactive elements. |
 | `ScreenNode` (`schema/screen_graph.py`) | One distinct screen the crawl found. Identity is structural |
