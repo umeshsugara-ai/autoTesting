@@ -1,6 +1,7 @@
 # Contract — orchestrator (resumable learn-or-explore run)
 
-**Status:** DRAFT (authorized by D-036; the checker takes it DRAFT->ACTIVE on T-163's first PASS).
+**Status:** ACTIVE (was DRAFT, authorized by D-036; taken ACTIVE by /checker on T-163 cycle-1 PASS,
+2026-09-23 — `qa/verdicts/t163-orchestrator.md`).
 **Feature:** the run orchestrator that drives the stage pipeline as a resumable run, choosing between
 the teaching (INGEST/learn) and credential-bootstrapped exploration (DISCOVER) entry paths and merging
 both into a reviewed FlowSpec without overwriting human-approved truth.
@@ -61,3 +62,19 @@ resume pointer. No LangGraph / external database dependency is added (D-036).
 `uv run pytest <the orchestrator test module>` (bare, no CLI -q, AT-503) + `uv run ruff check src tests
 scripts` + `uv run autotester doctor`, all exit 0; each OR criterion carries a capability-coverage row
 with a single-hunk falsifying edit reproduced green->red-for-the-named-reason->revert->green.
+
+## Amendment log (append-only; git history is the version)
+
+- 2026-09-23 · /checker (t163-orchestrator cycle 1) · **DRAFT -> ACTIVE.** OR1-OR6 each re-verified
+  independently: whole-suite pytest green (1578 passed, 0 failed), ruff clean, and all 6
+  capability-coverage rows reproduced green-before -> red-for-the-named-reason -> revert in a throwaway
+  copy outside the bound tree. OR3 additionally cross-checked by reading `merge_flowspec.py` and
+  `review.py` in full: an existing `Screen`/`Flow` is never modified or replaced (only new rows
+  appended), a real change resets `review.status` to DRAFT (never auto-approves), and
+  `require_reviewed` raises until re-approval — matching the contract's own interpretation note.
+  `uv run autotester doctor` showed 1 violation (`stale-generated: docs/SNAPSHOT.md`), traced to the
+  branch's base commit itself (already stale there, predating this unit, caused by D-036/D-037 landing
+  on master without a snapshot regen) — filed as `ISS-t163-1`, not counted against this unit per the
+  standing precedent (`AT-557`, `ISS-t162-drive-2b-1`: pre-existing staleness a unit did not cause is
+  ledger debt, not a PASS blocker). No criterion text changed by this amendment — status flip only, per
+  D-036's own authorization. Verdict: `qa/verdicts/t163-orchestrator.md` (Cycle checked: 1).
