@@ -5,7 +5,11 @@
 - **Fix cycle:** 1 of 3
 - **Dual check: required**
 - **Issues addressed:** none (new unit)
-- **Status: ready-for-check**
+- **Status: checked-PASS** (dual check, cycle 1). Primary `qa/verdicts/t163-orchestrator.md` (71badf2)
+  + blind secondary `qa/verdicts/t163-orchestrator.b.md` (00036af) both PASS: 6/6 OR1-OR6 reproduced,
+  OR3 (never overwrites APPROVED truth) verified end-to-end via merge_flowspec/require_reviewed on both
+  sides, full suite 1578 passed / 0 failed, contract taken ACTIVE (D-036). ISS-t163-1 (stale SNAPSHOT.md,
+  low, pre-existing) filed; regenerated at merge close-out.
 
 ## What changed
 
