@@ -216,7 +216,10 @@ def test_revised_goal_contract_is_registered() -> None:
         "T-160": (["T-134"], tests + "test_goal_done_checks.py::"
                   "test_revised_goal_contract_is_registered"),
         "T-161": (["T-100", "T-160"], tests + "test_ui_project_intake.py"),
-        "T-162": (["T-161"], tests + "test_source_adapters.py"),
+        "T-162": (["T-161"], tests + "test_source_adapters.py "
+                  "tests/test_source_adapters_audio.py "
+                  "tests/test_source_adapters_email.py "
+                  "tests/test_source_adapters_drive.py"),
         "T-163": (["T-135", "T-162"], tests + "test_autonomous_orchestrator.py"),
         "T-164": (["T-163"], tests + "test_portal_persona.py"),
         "T-165": (["T-163", "T-144"], tests + "test_explore_completeness.py "
