@@ -824,3 +824,9 @@ coverage. Item 3 (refuse oracle-regeneration) needs its own `**Supersedes:**`-ca
 someone re-proposes — recorded, not gated. Items 4-5 (Meticulous differential-oracle alternative;
 positioning caution) are strategy notes for Umesh, not ledger defects. Verdict file:
 `qa/verdicts/sweep-2026-09-22.md`.
+
+## 2026-09-23T07:30:10+05:30 · source: Umesh, chat (plan review, verbatim; approved plan C:/Users/Lenovo/.claude/plans/understand-what-all-we-zany-thunder.md)
+> "video is optional, i also have to explore by itself. and apart from bfs do dfs also really need to be considered and also do it is also savin the website sccheam and flow anywhere so the enxt time it really need to retrace everything and also agar koi chiz break ya update hogi tho vo bhi track ho jaying. also kya market me esse tools nhi hai. how about you use some crawling tools like scrapling or esse autotesters. like unke code se you can buid and plant it in more industy standard way"
+> "aur like jo account mai dunga usme jitni persmiison hogi uthi tho testing ho hi jaani chaiyee naa"
+Decisions given via AskUserQuestion: Reuse = research spike, then PORT patterns (MIT/Apache/BSD only, no AGPL) · DFS = hybrid (BFS maps portal + bounded DFS per workflow; flagged vs D-023 "avoid single happy-path DFS" -- distinct, to be recorded in a D-entry) · Writes = ALL writes the role allows on a consented TEST_ACCOUNT, including delete (destructive ordered last).
+PATTERN: persistence without read-back is not memory -- a durable model (portal_persona.json) must seed the next crawl and diff against it (new/changed/missing/broken), else every run retraces from zero · EVIDENCE: explore.py never reads the persona; persona merge is add-only (PP2) with no last_seen/missing marking · APPLIES NEXT: T-165 frontier, T-167 regression, T-168 damage report; coverage denominator = the role's permission surface, not the screens a read-only crawl happened to see.
