@@ -4,7 +4,7 @@
   "north_star": "A reusable AI testing platform where an operator submits any project URL, domain-scoped test-account credential references, and optional evals, conditions, use cases, video, audio, documents, text, email or Google Drive sources. AutoTester learns from supplied evidence or logs in and performs bounded breadth-first exploration, preserves a durable Portal Persona, compiles traceable best/worst/edge evals, reruns them after developer releases in a real visible browser, and reports workflow/API regressions through clear HTML, Excel, text and screenshots. First acceptance targets: Vidysea ERP and Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-23T05:57:01",
+  "updated": "2026-09-23T06:01:40",
   "progress": {
     "total": 55,
     "done": 36,
@@ -1283,6 +1283,6 @@
     "velocity_per_day": 1.71,
     "eta_days": 11.1
   },
-  "last_deterministic_tick": "2026-09-23T05:57:01",
+  "last_deterministic_tick": "2026-09-23T06:01:40",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }
