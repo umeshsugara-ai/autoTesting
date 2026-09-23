@@ -314,3 +314,98 @@ lines, unchanged count).
 **Terminal state: `focused reconcile — 0 new findings, 6 rows reconciled`** (AT-541/542/543/547/555
 confirmed `fixed`; AT-550 confirmed `open`/partial; AT-557 flipped `open → fixed` on a clean
 doctor; AT-556 annotated, left `open`/low; HEAD `370a017`).
+
+---
+
+## Sweep refresh — 2026-09-23 (Mode B safety-net, reconcile after T-162/T-163/D-037 merge burst)
+
+Window `370a017..24043b8` (48 commits): T-162 fast-follow phases AUDIO/EMAIL/DRIVE landed and
+closed (F-044, `checked-PASS` each, dual-checked), T-163 resumable orchestrator landed and closed
+(D-036, F-045, dual-checked cycle 1), the `EnterWorktree`/`ExitWorktree` allowlist fix landed
+(D-037, `Approved-by: Umesh`), and a `test_goal_done_checks.py` registration guard was corrected
+twice (`bfb8c48`, `b8c2297`) to match the widened T-162 `done_check` and the actual T-163 test
+file names.
+
+**Bypass detection — CLEAN, no new bypasses.** Every `feat`/`fix` commit in the window traces to a
+manifest→verdict handshake: t162-source-adapters-1a (`5e243b7`→`14b6830`/`fb18d13`→`f2f2f9a`),
+t162-audio-1b (`efbb17e`→`994d698`/`54a2935`→`3b32871`), t162-email-2a (`53adcc8`→`e22df4f`/
+`d8d4c9c`→`f4a8c54`), t162-drive-2b (`2485ca2`→`46a7094`→FAIL`f4ec8c0`→cycle-2`b602226`→
+`d650eaf`→`15804a1`), t163-orchestrator (`6cad8e0`+merged-in `4f84b45`/`bfb8c48`/`b8c2297`→
+`71badf2`/`00036af`→`75bad93`). `4f84b45` (settings.json allowlist) is the one config change with
+no manifest of its own — correctly so: it is an **enforcement-path** change authorized by
+`D-037` with `Approved-by: Umesh` per the Lab Protocol's own rule (a DECISIONS entry, not a
+maker-checker unit, is the gate for `.claude/settings.json`). `bfb8c48`/`b8c2297` (test registration
++ `.goal/goal.json` done_check strings) were committed straight to master, then merged into
+`wave/t163-orchestrator` at `daafba4` *before* the dual check ran — both checkers' diff-scope step
+(step 4c) explicitly inspected them and recorded them as "changed only outside judged scope …
+confirmed by inspection" (`qa/verdicts/t163-orchestrator.b.md:69-70`), i.e. reviewed and
+consciously scoped, not silently skipped. No unreviewed code/schema/contract change found.
+
+**Ledger reconciliation:**
+- **`ISS-t162-drive-2b-1`** (T-162 done_check too narrow) → **CLOSED, `open → fixed`.**
+  `.goal/goal.json` T-162.done_check.cmd is now the 4-file form
+  (`tests/test_source_adapters.py tests/test_source_adapters_audio.py
+  tests/test_source_adapters_email.py tests/test_source_adapters_drive.py`, via `b8c2297`), and
+  `tests/test_goal_done_checks.py::test_revised_goal_contract_is_registered` expects the identical
+  string (via `bfb8c48`) — read directly, both match byte-for-byte.
+- **`ISS-t163-1`** (stale `docs/SNAPSHOT.md`) → **CLOSED, `open → fixed`.** `uv run autotester
+  doctor` at HEAD `24043b8` → `doctor: clean`; `docs/SNAPSHOT.md`'s "Last decisions" list now
+  reads through `D-037` (grep-confirmed).
+- No other open row references T-162/T-163/adapters/orchestrator as stale — `AT-420`/`AT-447`
+  (the older `t162-contract-approval.md` gate-premise pair) are unrelated to this burst and still
+  legitimately open, left untouched.
+
+**Contract staleness/liveness — CLEAN.** `qa/contracts/source-adapters.md` header reads ACTIVE,
+finalized by /checker under D-035, phase-1a + phase-2a/2b all cite their real verdict files —
+matches shipped code (adapters seam + TEXT/DOC/AUDIO/EMAIL/DRIVE all present under
+`src/autotester/sources/`). `qa/contracts/orchestrator.md` header reads ACTIVE (was DRAFT,
+authorized by D-036, taken ACTIVE by /checker on T-163 cycle-1 PASS) with OR1-OR6 each carrying a
+falsifying-edit row in its own amendment log — matches `stages/orchestrate.py` +
+`schema/run_state.py` on disk.
+
+**Enforcement liveness — CLEAN.** `.claude/settings.json` `permissions.allow` contains both
+`"EnterWorktree"` and `"ExitWorktree"` (D-037's fix is actually installed, not just decided).
+SessionStart/PreToolUse/Stop hook files it references
+(`qa/hooks/mc-sessionstart.ps1`, `.claude/hooks/lab-session-start.ps1`,
+`qa/hooks/mc-precommit.ps1`, `.claude/hooks/decisions-append-guard.ps1`,
+`.claude/hooks/lab-session-end.ps1`) all exist on disk. Repo has commits (HEAD `24043b8`, not an
+empty-history gate). `uv run ruff check src tests scripts` → `All checks passed!`.
+
+**Goal-coverage gap — no drift.** `.goal/goal.json` progress = **37/55 done (67%)**, matching the
+dispatch's stated 37/55. T-164 (Portal Persona, deps `["T-163"]` ✓) and T-165 (deps
+`["T-163","T-144"]`, both ✓) are now mechanically ready — no dependency gap. `qa/.regrill-due`
+absent, `qa/.paused` absent, `qa/.last-tick` fresh (`2026-09-23T00:59:10Z`, names this exact
+reconcile + the T-164/T-165 fork) — no re-grill trigger fired (north star unedited this window, no
+requirement newly `missing` with no source, no unit re-PASSed twice on the same evidence).
+
+**Doctor — CLEAN.** `uv run autotester doctor` → `doctor: clean` at HEAD `24043b8`. Full-suite
+`pytest` not re-run per dispatch (already green at 1568 passed on master).
+
+### TOP-3 BUILDABLE NEXT UNITS (2026-09-23 refresh)
+
+| # | Unit | Why |
+|---|---|---|
+| **1** | **T-164 — Portal Persona** (deps `T-163` ✓, `done_check`: `uv run pytest tests/test_portal_persona.py`) | Newly unblocked this window; the next roadmap milestone unit with no mechanical or human blocker. T-165 (deps `T-163`+`T-144`, both ✓) is equally ready as an alternative/parallel pick. |
+| **2** | **AT-110 (high)** — RunApproval tamper-check defeat; oldest untouched high-severity row on the board (~15 days), no human gate in front of it. | Carried unchanged from the 2026-09-22d refresh; still the highest-severity buildable defect. |
+| **3** | **AT-529 (high, HUMAN_GATE)** — PATHLYNKS_USER_* dev credentials 401; only Umesh can supply valid test-account values, then re-run the stage-1 crawl. | Unchanged; blocks the entire live-crawl-target acceptance run (X17/X18/V7 Mode-D proof) — named here so it stays visible, not picked up as ordinary work. |
+
+**Deprioritised (not cancelled):** AT-497/AT-545 (orphaned running-crawl heartbeat, same fix unit
+closes both) · AT-488/AT-502 (structural-erosion signals, advisory only) · AT-556 (loop-liveness
+observation, low) · AT-546 (checker-owned `require_consent` contract re-point, routine, next
+contract touch).
+
+**GRILL — human decision, not a build row (carried, unanswered):**
+- GRILL: recurring vacuous-guard prevention policy (AT-218).
+- GRILL: real two-mode acceptance thresholds for D-023/T-169 (AT-281).
+- GRILL (AT-402): structure-before-code review of `visual_order.js`.
+
+### HUMAN_GATE — do not build as ordinary units (carried, verified unanswered on disk)
+
+live-crawl-target · post-login-forms · erp-credentials/AT-529 · t162-contract-approval ·
+at438-u14b-baseline + commit-before-verdict · at416-clip-vs-reach-direction ·
+at383-loop-status-consumer · at365-data-class-declaration · at110-approval-forgery · at147 ·
+at218 · at253 (ARCHITECTURE Execution-model D-entry) · t136-model-credentials.
+
+**Terminal state: `FINDINGS: 0`** (no new issues opened; 2 closed — `ISS-t162-drive-2b-1`,
+`ISS-t163-1`, both `open → fixed`; 0 bypasses; contracts + enforcement + goal-coverage all CLEAN;
+HEAD `24043b8`).
