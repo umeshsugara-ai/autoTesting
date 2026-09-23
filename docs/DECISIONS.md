@@ -770,3 +770,33 @@ stopped and re-dispatched with the tools forbidden; it completed (commit 6cad8e0
 
 **Links:** T-163, the 2026-09-23 freeze Umesh reported; user CLAUDE.md "run, don't ask" / maker
 CONTINUATION-RULE (nothing runs between turns, so a gated prompt is a loop-killer).
+
+## D-038 | 2026-09-23 | type: decision | status: ACTIVE
+
+**What:** Build T-164, the durable Portal Persona. Add `schema/portal_persona.py` (a Pydantic
+`PortalPersona` model: profile, auth shape, screens, transitions, taught flows, gotchas, screenshot
+refs, and a dated `history` list) and a stage `stages/portal_persona.py` that BUILDS/UPDATES the
+persona from a crawl's screen graph (screen_graph.py/screenmap.py) + the reviewed FlowSpec, persisting
+it as a durable cross-run artifact at `projects/<slug>/portal_persona.json` (the T-020 filestore) and
+regenerating the human-readable `projects/<slug>/knowledge.md` page from it. Cross-run means: a later
+run MERGES into the existing persona (new screens/transitions/flows appended, never silently dropping
+prior knowledge) and records a dated `history` entry with a change summary (change detection). Add a
+new contract `qa/contracts/portal-persona.md` (criteria PP1-PPn), DRAFT->ACTIVE on the unit's checker
+PASS. This does NOT change the canonical pipeline in ARCHITECTURE.md — the persona is a durable
+artifact and a stage, documented via the generated MAP/SNAPSHOT, not a new pipeline stage.
+
+**Why:** The T-16x reusable-platform roadmap (D-023, milestone M9) named T-164 as the durable Portal
+Persona: today portal-explorer knowledge is per-crawl scoped and lost between runs. T-163 (the
+resumable orchestrator) is done, so a run now has a stable place to build/update the persona from.
+Making the persona durable + versioned is the substrate T-166 (eval compiler) and T-167
+(release-triggered regression) later read from.
+
+**Result:** Pending build. On checker PASS: `schema/portal_persona.py` + `stages/portal_persona.py`
+land, `qa/contracts/portal-persona.md` goes ACTIVE, and each run updates a durable persona +
+knowledge page with dated history.
+
+**Changes-authorized:** qa/contracts/portal-persona.md (new, DRAFT->ACTIVE on this unit's checker
+PASS). No ARCHITECTURE.md prose change (generated MAP/SNAPSHOT reflect the new module).
+
+**Links:** T-164, T-160/D-023 (roadmap M9), T-163/F-045 (orchestrator, the run substrate now cleared),
+D-036 (the filestore-as-durable-store precedent this reuses).
