@@ -118,4 +118,4 @@ Not UI-touching — no surface changed. This unit touches only `src/autotester/b
 `apps/web/**`, `**/routes/**`, `**/pages/**`, or `**/components/**`, and no `ui/` file changed
 (`git status --porcelain` confirms). No `qa/ui-surfaces.json` narrowing was needed.
 
-## Status: ready-for-check
+## Status: checked-PASS (qa/verdicts/t170-network-assertions.md, cycle 1, 2026-09-24)
