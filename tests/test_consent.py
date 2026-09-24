@@ -31,7 +31,7 @@ def approval(**overrides: object) -> RunApproval:
         "expires_at": "2026-09-09",
     }
     fields.update(overrides)
-    return RunApproval(**fields)  # type: ignore[arg-type]
+    return RunApproval(**fields).sign()  # type: ignore[arg-type]
 
 
 def require(approvals: list[RunApproval], **kw: object) -> RunApproval:
