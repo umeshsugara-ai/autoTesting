@@ -13,6 +13,7 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
+from autotester.core.trace import TraceWriter
 from autotester.schema.observation import VisionOptions
 from autotester.schema.run import ProviderUsage
 
@@ -39,6 +40,10 @@ class Provider(ABC):
     def __init__(self, **options: Any) -> None:
         self.options = options
         self.usage: list[ProviderUsage] = []
+        self.trace: TraceWriter | None = None
+        """Attached by a caller (e.g. `stages/orchestrate_runners.py`) when
+        this provider is serving a traced run (D-041 phase 1). None by
+        default, so untraced use (tests, standalone scripts) costs nothing."""
 
     @property
     def label(self) -> str:
@@ -53,22 +58,28 @@ class Provider(ABC):
 
     # -- role: vision -------------------------------------------------------
     def see_video(self, path: Path, prompt: str, schema: type[ModelT],
-                  options: VisionOptions | None = None) -> ModelT:
+                  options: VisionOptions | None = None, *,
+                  prompt_file: str | None = None, fed_id: str | None = None) -> ModelT:
         """Watch a video and return a structured reading of it.
 
         `options` carries the generation settings a vision call needs (fps,
         seed, resolution) — they belong to the CALL, not the provider, because
-        one provider serves several stages that want different ones."""
+        one provider serves several stages that want different ones.
+        `prompt_file`/`fed_id` are trace-span metadata (D-041 RT4): the
+        prompt-file id this call used, and the case/verdict id it fed —
+        forwarded to `record()` by implementations, never required."""
         raise Unsupported(f"{self.id} does not support video understanding")
 
     # -- role: agent --------------------------------------------------------
-    def act(self, prompt: str, schema: type[ModelT] | None = None) -> Any:
+    def act(self, prompt: str, schema: type[ModelT] | None = None, *,
+            prompt_file: str | None = None, fed_id: str | None = None) -> Any:
         """Reason about browser state and decide the next action or script edit."""
         raise Unsupported(f"{self.id} does not support agent actions")
 
     # -- role: judge --------------------------------------------------------
     def judge(
-        self, prompt: str, schema: type[ModelT], images: list[Path] | None = None
+        self, prompt: str, schema: type[ModelT], images: list[Path] | None = None, *,
+        prompt_file: str | None = None, fed_id: str | None = None,
     ) -> ModelT:
         """Grade evidence against a rubric in a fresh context. `images`, when
         given, are real screenshot files the judge must actually see (not
@@ -82,20 +93,39 @@ class Provider(ABC):
     def available(self) -> bool:
         """True when credentials/binaries for this provider are present."""
 
-    def record(self, role: str, input_tokens: int = 0, output_tokens: int = 0) -> None:
-        """Accumulate usage so a run can report its cost."""
+    def record(
+        self, role: str, input_tokens: int = 0, output_tokens: int = 0, *,
+        prompt_file: str | None = None, fed_id: str | None = None,
+        latency_s: float = 0.0, retries: int = 0, fallback_hops: int = 0,
+    ) -> None:
+        """Accumulate usage so a run can report its cost, and — when a
+        `TraceWriter` is attached (`self.trace`) — emit this call's LLM-call
+        span. This is the ONLY site that appends such a span (D-041 RT5): no
+        stage writes one for itself. `prompt_file`/`fed_id`/`latency_s`/
+        `retries`/`fallback_hops` are trace metadata only; usage accounting
+        below is unchanged from before this span emission was added."""
+        matched = False
         for entry in self.usage:
             if entry.role == role:
                 entry.calls += 1
                 entry.input_tokens += input_tokens
                 entry.output_tokens += output_tokens
-                return
-        self.usage.append(
-            ProviderUsage(
-                provider=self.id,
-                role=role,
-                calls=1,
-                input_tokens=input_tokens,
-                output_tokens=output_tokens,
+                matched = True
+                break
+        if not matched:
+            self.usage.append(
+                ProviderUsage(
+                    provider=self.id,
+                    role=role,
+                    calls=1,
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                )
             )
-        )
+        if self.trace is not None:
+            self.trace.record_llm(
+                provider=self.label, role=role, prompt_file=prompt_file,
+                input_tokens=input_tokens, output_tokens=output_tokens,
+                latency_s=latency_s, retries=retries, fallback_hops=fallback_hops,
+                fed_id=fed_id,
+            )

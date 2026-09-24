@@ -215,6 +215,13 @@ class Redactor:
         folded = fold_credential(text)
         return any(value in folded for value in self._folded)
 
+    def assert_clean(self, text: str) -> None:
+        """Hard gate: raise if a known secret value survives in `text` even
+        after `scrub` (D-041 RT6) -- the last check before something is
+        persisted. Reuses this Redactor's own loaded values, so a caller
+        never has to hold the raw secrets separately just to gate on them."""
+        assert_no_raw_secrets(text, self._values)
+
 
 def placeholder_keys(text: str) -> list[str]:
     """Secret keys referenced as `{{SECRET:KEY}}` inside `text`."""

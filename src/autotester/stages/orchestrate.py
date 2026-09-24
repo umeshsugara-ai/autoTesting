@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
+from autotester.core.trace import TraceWriter
 from autotester.schema.base import utc_now
 from autotester.schema.enums import SourceKind
 from autotester.schema.project import Project, Source
@@ -65,6 +66,14 @@ class StageContext:
     run_id: str
     runners: dict[StageName, StageRunner] = field(default_factory=dict)
     clock: Callable[[], datetime] = utc_now
+    trace: TraceWriter | None = None
+    """The run's redacted trace (D-041 phase 1). Built automatically from
+    `store.paths.run_trace(run_id)` when not given, so every run is traced by
+    default and a caller never has to remember to wire it (RT1)."""
+
+    def __post_init__(self) -> None:
+        if self.trace is None:
+            self.trace = TraceWriter(self.store.paths.run_trace(self.run_id), self.run_id)
 
 
 def choose_mode(sources: list[Source]) -> tuple[str, str]:
@@ -113,9 +122,16 @@ def _persist(ctx: StageContext, state: RunState) -> RunState:
 
 def _record(ctx: StageContext, state: RunState, index: int,
             checkpoint: StageCheckpoint) -> RunState:
-    """Replace the checkpoint at `index` and persist."""
+    """Replace the checkpoint at `index` and persist.
+
+    A checkpoint reaching a terminal status (RT3) also gets its stage span
+    written here — the single place every checkpoint transition already
+    passes through, so a `pending`/`running` checkpoint (never terminal)
+    produces no span, matching "a stage that never ran produces no span"."""
     stages = list(state.stages)
     stages[index] = checkpoint
+    if checkpoint.status in ("done", "failed", "skipped") and ctx.trace is not None:
+        ctx.trace.record_stage(checkpoint)
     return _persist(ctx, state.model_copy(update={"stages": stages}))
 
 
