@@ -92,3 +92,5 @@ also an argument for answering the older gates sooner: `t162-contract-approval` 
 days, and nothing guarantees its stated premise has aged any better than this one did.
 
 Answered:
+
+Answered: 2026-09-24T16:32:17+05:30 — Umesh declined option a: "ye dependecy user ne jo testing account diya hai usse depend krti hai, ye tho account dene wale tester ki galti hai hum concerned nhi hongee" — no shared data_boundary.py change; AT-365 to be closed as accepted/wontfix by the checker with this reason — chat 2026-09-24

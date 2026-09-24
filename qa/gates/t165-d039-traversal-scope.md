@@ -23,3 +23,5 @@ Approve D-040 (renumbered: D-039 is taken by the T-125 catalog entry) registerin
 
 ## Answer format
 Reply e.g. "D-040 approve · 1 yes · 2 split · 3 park · 4 yes" (or edits). The maker then appends D-040 with `Approved-by: Umesh`, registers the units in goal.json, and builds.
+
+Answered: 2026-09-24T16:32:17+05:30 — Umesh: "go on" — D-040 APPROVED with the recommended answers: 1 yes · 2 split (permission-surface coverage = its own T-id) · 3 park (Playwright healer spike later) · 4 yes (API capture as a small unit first) — chat 2026-09-24

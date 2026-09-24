@@ -52,3 +52,5 @@ Reply with `1`, `2`, or `3`. On any answer I append
 Nothing, immediately. The consent gate works against accidents today, and AT-111 (the real
 cycle-2 failure) is being fixed independently. This gate decides only what the gate is *allowed to
 claim* — and it should be answered before T-145 runs against the live ERP.
+
+Answered: 2026-09-24T16:32:17+05:30 — Umesh: "if needed tho krr dee" — option a: sign RunApproval with a secret key held in .env (keyed HMAC), so a widened row cannot be re-minted — chat 2026-09-24

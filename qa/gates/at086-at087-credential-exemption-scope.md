@@ -16,4 +16,4 @@
 ## Answer format
 "AT-087 a|b · AT-086 a|b" (+ edits). The maker records `Answered:` here, then builds or closes as wontfix.
 
-Answered:
+Answered: 2026-09-24T16:32:17+05:30 — Umesh: "go with the best" — AT-087 a (per-field exemption, kept in the join) · AT-086 a (explicit declared list of public .env key names, never inferred) — chat 2026-09-24

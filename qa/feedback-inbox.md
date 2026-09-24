@@ -851,3 +851,16 @@ PATTERN: "worst-case default" is a checkable UI defect class — a forced-choice
 PATTERN: stalled-handoff checks — a request routed to a role (counsellor request → school admin / super admin) needs a "nobody acted in N days" nudge path; the tester should ask what happens when the next actor never opens it · EVIDENCE: 03:30-04:41 · APPLIES NEXT: multi-role flow cases (T-166), T-168 report "risk" section
 PATTERN: per-flow validation plans accumulate and are stitched into one release regression that ends in an issues log — this is the product's own north star as the customer states it · EVIDENCE: 09:28-09:47 · APPLIES NEXT: T-167 release-triggered regression, T-168 damage-control report
 **Status:** unfolded
+
+
+## 2026-09-24T16:33:00+05:30 · source: Umesh, chat (answers to the seven open decisions, verbatim)
+> D-039 / decision-log append: "allow krr doo , goal pura hona chaiyee"
+> D-040 / T-165 chain: "go on"
+> AT-086 / AT-087: "go with the best"
+> AT-365 data_class: "nhi ye dependecy user ne jo testing account diya hai usse depend krti hai , ye tho account dene wale tester ki galti hai hum concerende nhi hongee"
+> ERP test account: "ye mai dungaa jab mai confident ho jaungee ki pathynks pr shi se chal rhaa, aur baaki koi bhi de skta hu , not only erp"
+> T-126 adapter allowlist: "allow krr dee"
+> AT-110 approval signing: "if needed tho krr dee"
+PATTERN: acceptance is Pathlynks-first -- a new product's credentials (ERP or any other) are supplied only after AutoTester is proven on Pathlynks; the platform must stay product-agnostic ("not only erp") · EVIDENCE: ERP answer above · APPLIES NEXT: T-122/T-145/T-136 (ERP-named tasks should be re-scoped to "a second product"), T-169 two-mode acceptance
+PATTERN: data exposure through a tester-supplied account is the account provider's responsibility, not a gate AutoTester enforces on its own repo scratch · EVIDENCE: AT-365 answer · APPLIES NEXT: AT-365 close-out, core-invariants data-boundary wording
+**Status:** unfolded (gate answers recorded in qa/gates/: t125-d039-entry-draft, t165-d039-traversal-scope, at086-at087-credential-exemption-scope, at365-data-class-declaration, at110-approval-forgery)

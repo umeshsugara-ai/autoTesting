@@ -26,3 +26,5 @@ this unit's checker PASS). No ARCHITECTURE.md prose change.
 
 **Links:** T-125; plan.md §5A; D-023 (registered T-125, Approved-by Umesh 2026-09-09); T-152; T-166;
 qa/gates/t165-d039-traversal-scope.md (that proposal is renumbered D-040, since this entry takes D-039)
+
+Answered: 2026-09-24T16:32:17+05:30 — Umesh: "allow krr doo, goal pura hona chaiyee" — append D-039 (permission allow requested) — chat 2026-09-24
