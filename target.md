@@ -209,7 +209,7 @@ fixture-proven only. The ERP trust number is the first time AutoTester is measur
 2. Both intake modes work on a real target and beat-or-match a human tester (T-169).
 3. Every finding is evidence-backed and correctly classified; coverage shows untested branches.
 
-## Progress (from `.goal/goal.json`, 2026-09-24): 39 / 67 done (58% — the roadmap grew by 12 tasks via D-040/D-041/D-042, not a regression). In flight: AT-110 (paused on RAM). Next: T-172, T-173, AT-086/087, T-175, T-126, AT-335, then T-125 / T-165; the Deep Agents layer (T-179..T-181) after Wave 1.
+## Progress (from `.goal/goal.json`, 2026-09-24): 39 / 67 done (58% — the roadmap grew by 12 tasks via D-040/D-041/D-042, not a regression). Status 2026-09-25: AT-110 checker PASS (merge waits on builder commit); with the checker: T-175, AT-086/087, T-172, T-173; building: AT-335, T-125; next: T-165 (after AT-335), T-174 + T-178 (after T-125); the Deep Agents layer (T-179..T-181) after Wave 1.
 _Machine backlog + done-checks: `.goal/goal.json`. Whole-project screen: `docs/SNAPSHOT.md`._
 _Note: rewriting `.goal/goal.json`'s north star or adding DISCOVER/MODEL to `docs/ARCHITECTURE.md`
 is a state change that needs an authorizing `docs/DECISIONS.md` entry first (Lab Protocol) — this
