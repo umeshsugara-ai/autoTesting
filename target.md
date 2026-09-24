@@ -162,7 +162,7 @@ fixture-proven only. The ERP trust number is the first time AutoTester is measur
 
 ### M8 · Systematic exploration upgrades
 - [x] T-163 resumable learn-or-explore orchestrator + durable per-stage checkpoints (F-045, dual PASS)
-- [~] T-170 first-party API/network assertions (D-040 split from T-165) — built d81d6cf, checker running
+- [x] T-170 first-party API/network assertions (D-040 split from T-165) — F-047, checker PASS, merged 1fc7276
 - [ ] T-165 hybrid BFS→bounded-DFS traversal + frontier completeness + form-input replay + persona-seeded
       incremental crawl + change tracking (D-040; contract `crawl-traversal.md` DRAFT; CRITICAL dual-check)
 - [ ] T-171 permission-surface coverage — every reachable control exercised or blocked-with-reason (D-040)
@@ -208,7 +208,7 @@ fixture-proven only. The ERP trust number is the first time AutoTester is measur
 2. Both intake modes work on a real target and beat-or-match a human tester (T-169).
 3. Every finding is evidence-backed and correctly classified; coverage shows untested branches.
 
-## Progress (from `.goal/goal.json`, 2026-09-24): 38 / 64 done (59% — the roadmap grew by 9 tasks via D-040/D-041, not a regression). In flight: T-170, AT-110. Next: T-172, T-173, AT-086/087, T-175, T-126, AT-335, then T-125 / T-165.
+## Progress (from `.goal/goal.json`, 2026-09-24): 39 / 64 done (61% — the roadmap grew by 9 tasks via D-040/D-041, not a regression). In flight: AT-110 (paused on RAM), D-042 registration (T-179..T-181). Next: T-172, T-173, AT-086/087, T-175, T-126, AT-335, then T-125 / T-165.
 _Machine backlog + done-checks: `.goal/goal.json`. Whole-project screen: `docs/SNAPSHOT.md`._
 _Note: rewriting `.goal/goal.json`'s north star or adding DISCOVER/MODEL to `docs/ARCHITECTURE.md`
 is a state change that needs an authorizing `docs/DECISIONS.md` entry first (Lab Protocol) — this
