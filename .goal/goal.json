@@ -4,15 +4,15 @@
   "north_star": "A reusable AI testing platform where an operator submits any project URL, domain-scoped test-account credential references, and optional evals, conditions, use cases, video, audio, documents, text, email or Google Drive sources. AutoTester learns from supplied evidence or logs in and performs bounded breadth-first exploration, preserves a durable Portal Persona, compiles traceable best/worst/edge evals, reruns them after developer releases in a real visible browser, and reports workflow/API regressions through clear HTML, Excel, text and screenshots. First acceptance targets: Vidysea ERP and Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-24T22:50:18",
+  "updated": "2026-09-25T05:23:16",
   "progress": {
     "total": 67,
-    "done": 39,
+    "done": 40,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 28,
+    "pending": 27,
     "current": "T-122",
-    "percent": 58
+    "percent": 60
   },
   "tasks": [
     {
@@ -451,7 +451,7 @@
     {
       "id": "T-123",
       "title": "Medium-issue batch: AT-087 per-field exemption, AT-076/086 config-field rule, AT-079/080, AT-065, AT-085",
-      "status": "pending",
+      "status": "done",
       "base_criticality": "low",
       "deps": [
         "T-121"
@@ -465,7 +465,8 @@
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
       "user_value": "normal",
-      "criticality": "low"
+      "criticality": "low",
+      "completed": "2026-09-25T05:23:16"
     },
     {
       "id": "T-130",
@@ -1589,9 +1590,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 1.71,
-    "eta_days": 16.4
+    "velocity_per_day": 1.69,
+    "eta_days": 16.6
   },
-  "last_deterministic_tick": "2026-09-24T22:50:18",
+  "last_deterministic_tick": "2026-09-25T05:22:02",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }
