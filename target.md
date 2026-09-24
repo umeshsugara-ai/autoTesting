@@ -149,7 +149,7 @@ comes only after that — "not only erp". T-122/T-145/T-136 get re-scoped to "se
 - [!] T-136 score recordings vs a trainer truth sheet → real recall/FP/time — **needs the truth sheet**
 - [~] T-123 medium credential-safety batch — AT-085 `/healthz` + AT-065 rubric stamp ✅ (18ff2a9); AT-086/087 🎯 (gate answered: both a)
 - [ ] T-125 test catalog (runnable/blocked + cheap→expensive) — D-039 ✅, contract `catalog.md` DRAFT
-- [~] T-126 governance debt sweep — maker side ✅ (allowlist + FEATURES backfill, checker PASS, merged); follow-up AT-560 (allowlist note wording)
+- [~] T-126 governance debt sweep — maker side ✅ (allowlist + FEATURES backfill, checker PASS, merged); AT-560 follow-up ✅ merged f94c5c2; goal close = checker
 - [~] AT-110 tamper-proof consent approvals (HMAC keyed from `.env`) — build in progress
 - [x] AT-483 orphaned-crawl liveness — re-landed onto master (2d58215) after its 09-18 PASS never merged
 
