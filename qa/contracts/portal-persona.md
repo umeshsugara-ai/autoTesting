@@ -1,6 +1,7 @@
 # Contract — portal-persona (durable cross-run product model)
 
-**Status:** DRAFT (authorized by D-038; the checker takes it DRAFT->ACTIVE on T-164's first PASS).
+**Status:** ACTIVE (taken DRAFT->ACTIVE by /checker on T-164's first PASS, 2026-09-24,
+`qa/verdicts/t164-portal-persona.md`).
 **Feature:** the durable Portal Persona — per-crawl portal-explorer knowledge promoted to a durable,
 versioned cross-run artifact (`projects/<slug>/portal_persona.json`) plus a regenerated human-readable
 knowledge page (`projects/<slug>/knowledge.md`), so what AutoTester learns about a product accumulates
