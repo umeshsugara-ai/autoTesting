@@ -2,7 +2,7 @@
 **Contract:** qa/contracts/consent.md (CN3)
 **Goal task:** none (issue-fix unit, not a `.goal` task)
 **Date:** 2026-09-24
-**Fix cycle:** 1 of 3
+**Fix cycle:** 2 of 3
 **Dual check:** no
 **Issues addressed:** AT-110
 **Executor:** claude-sonnet-subagent
@@ -143,4 +143,35 @@ FAILED tests/test_goal_criticality_vocabulary.py::test_every_base_criticality_is
 2 failed, 1617 passed, 5 skipped, 32 xfailed, 1 warning in 910.86s (0:15:10)
 ```
 
-## Status: checked-PASS (qa/verdicts/at110-approval-signing.md, cycle 1, 3ede308; commit 283edf4 == checked tree)
+## Fix cycle 2 (maker orchestrator, 2026-09-25) -- merge-verify failure
+
+Cycle 1 PASSed (qa/verdicts/at110-approval-signing.md, 3ede308). On merge into master
+(11776d4), the merged-tree verify failed:
+`tests/test_cli_advice_resolves.py::test_no_advice_site_can_vanish_unnoticed` -- `assert 17 == 16`.
+The same test PASSES on pre-merge master 11776d4 (25 passed, run in a detached worktree), so the
+cycle-1 note above calling it "pre-existing" is WRONG: that check diffed cli*.py only and missed
+that this unit's own `core/consent.py:81` adds a deliberate new advice site
+("re-grant it with `uv run autotester approve`"). The local merge was undone (never pushed).
+
+What changed in cycle 2:
+- master 11776d4 merged INTO wave/at110-approval-signing (da6eb97), so the check runs against the current tree.
+- `tests/test_cli_advice_resolves.py:185-189` -- EXPECTED_SITE_COUNT 16 -> 17 and the docstring names
+  the new site. EXPECTED_SITES is unchanged: ("core/consent.py", "approve") was already a member;
+  the new site repeats that command.
+- No source file changed in cycle 2.
+
+Verify (cycle 2, maker's own run in this worktree):
+- `uv run pytest tests/test_cli_advice_resolves.py tests/test_approval_signing.py tests/test_consent.py tests/test_goal_criticality_vocabulary.py tests/test_goal_done_checks.py` -> `70 passed in 8.99s`
+- `uv run ruff check src tests scripts` -> `All checks passed!`
+- `uv run autotester doctor` -> `doctor: clean`
+- The other cycle-1 failure (`test_goal_criticality_vocabulary`, T-175 "normal") is already fixed on master and passes here.
+- Full suite NOT re-run in cycle 2 -- RAM 1.9 GB (AT-558).
+
+Capability coverage (cycle 2): the count pin is the check. Falsifying edit: EXPECTED_SITE_COUNT = 16.
+Observed: before this cycle, at 16 on the merged tree -> `assert 17 == 16` FAILED (pasted above); at 17 -> passes (70 passed).
+
+Builder note: the cycle-1 builder agent was stopped before committing. The orchestrator committed its
+tree as 283edf4 after verifying that its code equals the checker-PASSed snapshot 81457e9 (empty diff;
+only this manifest's full-suite note differed).
+
+## Status: ready-for-check
