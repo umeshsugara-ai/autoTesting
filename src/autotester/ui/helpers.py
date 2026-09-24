@@ -194,12 +194,10 @@ def _refuse_direction_override(value: str, field: str) -> None:
 
 def _refuse_unsafe_value(
     value: str, project: Project, secrets: SecretStore, *, field: str = "this field",
-    exempt: frozenset[str] = frozenset(),
+    exempt_value: str | None = None,
 ) -> None:
-    """One field. Placeholders must name a declared key; a literal must not be a
-    real `.env` value.
-
-    Two distinct mistakes, both silent before this existed:
+    """One field. Placeholders must name a declared key; a literal must not be
+    a real `.env` value. Two distinct mistakes, both silent before this existed:
     - Typing the credential ITSELF into a text box. `cases.jsonl` is git-TRACKED
       in a public repo, so that is a credential committed in cleartext; and
       because no `{{SECRET:KEY}}` placeholder is present, `session.fill` never
@@ -220,14 +218,14 @@ def _refuse_unsafe_value(
                     f"Declare it in Project settings first, then use it here."
                 ))
         return
-    if value in exempt:
-        # AT-078: a field re-submitted byte-identical to what is already on
-        # disk for that same field of that same project. `.env` holds plain
-        # configuration as well as credentials -- `pathlynks`'s own base_url
-        # is byte-identical to the non-secret PATHLYNKS_USER_LOGIN_URL -- so
-        # without this, a no-op save of a project's own data was refused with
-        # no fix the user could express. Narrow on purpose: it exempts only
-        # data the system itself already stored, never fresh input (AT-083).
+    if exempt_value is not None and value == exempt_value:
+        # AT-078/AT-087: byte-identical to what THIS SAME FIELD already holds
+        # on disk -- never another field's value (the flat-set bug) or fresh
+        # input (AT-083).
+        return
+    if value in secrets.public_values():
+        # AT-086: a declared-public .env value (never inferred --
+        # core.env.PUBLIC_ENV_KEYS) is not a credential at all.
         return
     redactor = secrets.redactor()
     variants = _credential_variants(value)
@@ -244,7 +242,7 @@ def _refuse_unsafe_value(
 
 def _refuse_unsafe_submission(
     texts: list[tuple[str, str]], project: Project, secrets: SecretStore,
-    *, exempt: frozenset[str] = frozenset(),
+    *, exempt: dict[str, str] | None = None,
 ) -> None:
     """Every user-supplied field of a case, and their concatenation.
 
@@ -255,29 +253,32 @@ def _refuse_unsafe_submission(
     grade prompt, where `guard_prompt` raises and 500s every later run.
 
     AT-083: matching runs over EVERY value in `.env`, declared or not -- an
-    undeclared key (a provider API key, say) is still a credential, and this
-    repo is public. Scoping to declared-only was a real hole.
+    undeclared key is still a credential, and this repo is public.
 
-    AT-071: checking fields one at a time also missed a value split across two
-    rows, which reassembles byte-for-byte on disk. So the joined text is checked
-    too. A false positive there costs a clear error message asking for a
-    placeholder; a false negative costs a committed credential.
+    `exempt` maps a field's label to the ONE already-stored value it may
+    re-submit unchanged (AT-078/AT-087 -- per-field, never a flat set that
+    lets one field's value exempt another). AT-071/AT-087: fields checked one
+    at a time also missed a value split across rows/types and reassembled on
+    disk -- so the joined text is checked too, with an exempt field kept IN it
+    as CONTEXT (dropping it hid exactly this split). Only each field's own
+    exempt value, and any declared-public value (AT-086), is excluded from
+    the join's match set -- every OTHER secret still trips it.
     """
+    exempt = exempt or {}
     for label, text in texts:
-        _refuse_unsafe_value(text.strip(), project, secrets, field=label, exempt=exempt)
-    # An exempt field holds data the system itself already stored, so it cannot
-    # be half of a freshly-pasted credential -- and leaving it in would re-fire
-    # the very false positive the exemption exists to stop (AT-078: pathlynks's
-    # own base_url contains a non-secret .env URL, so the join always matched).
-    fresh = [(label, text.strip()) for label, text in texts if text.strip() not in exempt]
+        _refuse_unsafe_value(
+            text.strip(), project, secrets, field=label, exempt_value=exempt.get(label),
+        )
+    fresh = [(label, text.strip()) for label, text in texts]
     joined = "".join(text for _label, text in fresh)
-    redactor = secrets.redactor()
+    excluded = {v for v in exempt.values() if v} | secrets.public_values()
+    redactor = secrets.redactor(exclude=excluded)
     joined_variants = _credential_variants(joined)
     if joined and (any(not redactor.is_clean(v) for v in joined_variants)
                    or any(redactor.contains_folded(v) for v in joined_variants)):
         raise HTTPException(400, (
             "a real credential appears to be split across "
-            f"{', '.join(sorted({label for label, _t in fresh}))}. Declare it in Project "
+            f"{', '.join(sorted({label for label, t in fresh if t}))}. Declare it in Project "
             "settings and use {{SECRET:KEY}} in a step's Value box instead."
         ))
 

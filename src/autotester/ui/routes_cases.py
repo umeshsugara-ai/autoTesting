@@ -273,7 +273,7 @@ def rename_case(slug: str, case_id: str, title: str = Form(...)) -> RedirectResp
         raise HTTPException(404, f"no case '{case_id}'")
     secrets = SecretStore.load(project, ProjectPaths(slug).env_file, strict=False)
     _refuse_unsafe_submission([("the title", title)], project, secrets,
-                               exempt=frozenset({case.title}))
+                               exempt={"the title": case.title})
     store.update_case(case.model_copy(update={"title": title.strip()}))
     return RedirectResponse(f"/projects/{slug}/cases", status_code=303)
 
