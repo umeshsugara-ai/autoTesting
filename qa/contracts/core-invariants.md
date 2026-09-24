@@ -169,6 +169,10 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
 - Suggestions for future work that no criterion requires.
 - The `src/` layout differing from the plan's prose `autotester/` — this was a deliberate,
   recorded choice (standard Python packaging); it is not a finding.
+- MC-003 `data_boundary.py` violations that are attribution lines, RFC 2606 `.test` fixture
+  domains, or `pyproject.toml` author metadata under gitignored `.work/` scratch — AT-365, accepted
+  wontfix (2026-09-24, Umesh). The check keeps firing by design (an undeclared `data_class` is
+  itself a violation); do not re-file it as a fresh finding each sweep, only note it stands.
 
 ## Amendment log (append-only; git history is the version)
 
@@ -422,3 +426,16 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   model, a log, a shared/committed artifact, or a product screenshot (B7 intact). Found live by checker
   Mode D (AT-554: a real GEMINI_API_KEY in the settings HTML); decided away from any verdict via
   `qa/gates/at554-credential-value-in-ui.md`. AT-554 → wontfix (accepted by decision).
+- 2026-09-24 · routine · codifies the accepted posture behind **AT-365 → wontfix**: MC-003's
+  `data_boundary.py` gate (outside this root, at `D:/ai_os/.claude/skills/_shared_validation/`)
+  fires on `qa/adapter.json` having no declared `data_class`, and every violation it has ever found
+  here is attribution (`Co-Authored-By: Claude … <noreply@anthropic.com>`), RFC 2606 `.test` fixture
+  domains in security tests, or the repo author's own `pyproject.toml` metadata — never third-party
+  personal data — and every hit lives under gitignored `.work/` scratch. Decided by Umesh (chat
+  2026-09-24, `qa/gates/at365-data-class-declaration.md`): a tester-supplied test account's own data
+  exposure is that account provider's responsibility, not a boundary this project's own repo-scratch
+  gate enforces; no change to the shared `data_boundary.py`, no purge of `.work/`. This is not a new
+  criterion or a weakening of any existing one — C5 (secrets) is untouched and unaffected; it only
+  records why the MC-003 signal is expected to stay red here and routes future sweeps to the No-fire
+  list entry below instead of re-filing AT-365 fresh each time. Folded from
+  `qa/feedback-inbox.md` 2026-09-24T16:33 entry (PATTERN 2). Sweep: `qa/verdicts/sweep-2026-09-24b.md`.
