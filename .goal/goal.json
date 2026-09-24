@@ -4,15 +4,15 @@
   "north_star": "A reusable AI testing platform where an operator submits any project URL, domain-scoped test-account credential references, and optional evals, conditions, use cases, video, audio, documents, text, email or Google Drive sources. AutoTester learns from supplied evidence or logs in and performs bounded breadth-first exploration, preserves a durable Portal Persona, compiles traceable best/worst/edge evals, reruns them after developer releases in a real visible browser, and reports workflow/API regressions through clear HTML, Excel, text and screenshots. First acceptance targets: Vidysea ERP and Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-24T14:32:05",
+  "updated": "2026-09-24T16:35:10",
   "progress": {
-    "total": 55,
+    "total": 57,
     "done": 38,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 17,
+    "pending": 19,
     "current": "T-122",
-    "percent": 69
+    "percent": 67
   },
   "tasks": [
     {
@@ -1007,7 +1007,7 @@
     },
     {
       "id": "T-165",
-      "title": "BFS frontier completeness, forward/back recovery and first-party API/network assertions",
+      "title": "Hybrid BFS+bounded-DFS traversal, frontier completeness, form-input replay, persona-seeded incremental crawl and change tracking (D-040)",
       "status": "pending",
       "base_criticality": "critical",
       "deps": [
@@ -1016,14 +1016,52 @@
       ],
       "done_check": {
         "type": "cmd",
-        "cmd": "uv run pytest tests/test_explore_completeness.py tests/test_explore_network.py",
+        "cmd": "uv run pytest tests/test_explore_completeness.py tests/test_explore_traversal.py tests/test_persona_changes.py",
         "expect_exit": 0
       },
-      "note": "Complete means frontier exhausted; any safety/time/action/depth bound is named as incomplete with every denied, skipped and unreached control visible.",
+      "note": "Complete means frontier exhausted; any safety/time/action/depth bound is named as incomplete with every denied, skipped and unreached control visible. | D-040 (2026-09-24): widened in place -- strategy bfs|hybrid (Crawljax idea port), fill-value replay, incremental crawl seeded from portal_persona.json, new/changed/missing/broken persona revisions. API assertions moved to T-170; permission surface to T-171.",
       "attempts": 0,
       "created": "2026-09-10T05:58:09",
       "user_value": "high",
       "criticality": "critical"
+    },
+    {
+      "id": "T-170",
+      "title": "First-party API/network assertions during crawl and run (Playwright response capture, D-040)",
+      "deps": [
+        "T-163"
+      ],
+      "base_criticality": "high",
+      "criticality": "high",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_network_assertions.py",
+        "expect_exit": 0
+      },
+      "note": "D-040: split from T-165; ADOPT page.on('response'); built first (no traversal dependency). Contract qa/contracts/network-assertions.md (checker DRAFT).",
+      "status": "pending",
+      "attempts": 0,
+      "created": "2026-09-24T16:34:17",
+      "user_value": "high"
+    },
+    {
+      "id": "T-171",
+      "title": "Permission-surface coverage: every reachable control exercised or listed blocked-with-reason (D-040)",
+      "deps": [
+        "T-165"
+      ],
+      "base_criticality": "high",
+      "criticality": "high",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_permission_surface.py",
+        "expect_exit": 0
+      },
+      "note": "D-040: split from T-165. Writes only under write_policy=TEST_ACCOUNT + per-run RunApproval; destructive actions last; a blocked control never counts as covered.",
+      "status": "pending",
+      "attempts": 0,
+      "created": "2026-09-24T16:34:17",
+      "user_value": "high"
     },
     {
       "id": "T-166",
@@ -1033,7 +1071,8 @@
       "deps": [
         "T-125",
         "T-164",
-        "T-165"
+        "T-165",
+        "T-170"
       ],
       "done_check": {
         "type": "cmd",
@@ -1274,6 +1313,20 @@
       "message": "T-169 is CRITICAL — human required",
       "task_id": "T-169",
       "acked": false
+    },
+    {
+      "ts": "2026-09-24T16:34:17",
+      "level": "warn",
+      "message": "T-170 needs review (high)",
+      "task_id": "T-170",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-24T16:34:17",
+      "level": "warn",
+      "message": "T-171 needs review (high)",
+      "task_id": "T-171",
+      "acked": false
     }
   ],
   "preferences": {
@@ -1283,8 +1336,8 @@
   },
   "analytics": {
     "velocity_per_day": 1.69,
-    "eta_days": 10.1
+    "eta_days": 11.2
   },
-  "last_deterministic_tick": "2026-09-24T14:32:05",
+  "last_deterministic_tick": "2026-09-24T16:35:10",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }

@@ -800,3 +800,79 @@ PASS). No ARCHITECTURE.md prose change (generated MAP/SNAPSHOT reflect the new m
 
 **Links:** T-164, T-160/D-023 (roadmap M9), T-163/F-045 (orchestrator, the run substrate now cleared),
 D-036 (the filestore-as-durable-store precedent this reuses).
+
+## D-039 | 2026-09-24 | type: decision | status: ACTIVE
+
+**What:** Authorize building T-125, the test catalog, exactly as `plan.md` §5A specifies. It adds a
+pure stage `stages/catalog.py::catalog(project, spec, store) -> Catalog`, a schema
+`schema/catalog.py` (`CatalogEntry`, `Catalog`, enum `BlockedReason` with the closed vocabulary
+`no_flowspec`, `flowspec_not_approved`, `missing_credential`, `no_ground_truth`, `needs_write_policy`,
+`no_live_endpoint`), and a `tier` for each `CaseClass` (`static` -> `behavioural` -> `adversarial`) so runs go
+cheap-to-expensive. It also adds a read-only page `GET /projects/{slug}/catalog`. Add a new contract
+`qa/contracts/catalog.md` (criteria CT1-CTn). /checker authors it from §5A as DRAFT, and it goes
+DRAFT->ACTIVE on this unit's checker PASS.
+
+**Why:** `stages/expand.py` generates cases without saying which ones can actually run. A tester then
+sees a case count that silently includes cases blocked on a missing credential, an unapproved
+FlowSpec or a write policy. The catalog makes "what is runnable now, what is blocked, and the one
+action that unblocks it" explicit. T-152 (Track C check registry) and T-166 (traceable eval compiler)
+both depend on T-125 and must reuse this one Catalog, never a second one. T-125 has been ready since
+D-023 registered it, but no contract existed, so no maker could build it.
+
+**Result:** Pending build. On checker PASS: the catalog stage, schema and page land, and
+`qa/contracts/catalog.md` goes ACTIVE. `tests/test_catalog.py` and `tests/test_ui_catalog.py` are
+the registered done_check. No ARCHITECTURE.md prose change: the catalog is a derived view over
+existing artifacts, reflected in the generated MAP/SNAPSHOT, not a new pipeline stage.
+
+**Changes-authorized:** qa/contracts/catalog.md (new, authored by /checker as DRAFT, DRAFT->ACTIVE on
+this unit's checker PASS). No ARCHITECTURE.md prose change.
+
+**Links:** T-125; plan.md §5A; D-023 (registered T-125, Approved-by Umesh 2026-09-09); T-152; T-166;
+qa/gates/t165-d039-traversal-scope.md (that proposal is renumbered D-040, since this entry takes D-039)
+
+## D-040 | 2026-09-24 | type: decision | status: ACTIVE
+
+**What:** Widen T-165 in place and register two split-out units, following the crawl-reuse spike
+(`docs/research/crawl-reuse-2026-09.md`).
+- **T-165** keeps BFS frontier completeness and adds the following:
+  - a traversal `strategy: bfs | hybrid`. Hybrid means BFS maps the portal, then a bounded DFS goes
+    deep through each workflow, using Crawljax's depth-first candidate ordering ported as fresh
+    Python (Apache-2.0, idea only, no code copied).
+  - form-input replay: `_replay_discovery` re-issues a discovering step's `fill` values, not only
+    its click.
+  - an incremental crawl: the frontier is seeded from `portal_persona.json`, and a screen whose
+    `(url_template, structural_signature)` matches the stored `PersonaScreen.signature` is skipped
+    (Stagehand cache-key pattern, MIT, idea only).
+  - change tracking: a persona revision records new, changed, missing and broken screens and flows.
+    This extends `portal_persona.py::_merge` beyond add-only PP2 and feeds T-168.
+- **T-170 (new, built first, no dependency on the traversal work):** first-party API/network
+  assertions during a crawl or run. It ADOPTs Playwright `page.on('response')` (already a
+  dependency). T-165's original "first-party API/network assertions" clause moves here.
+- **T-171 (new):** permission-surface coverage. Every control the role can reach is either
+  exercised or listed as blocked with a reason. Writes happen only under `write_policy=TEST_ACCOUNT`
+  plus a per-run `RunApproval`, and destructive actions are ordered last.
+- **Parked:** a Playwright Test Agents healer spike. Its internals are not public, so it is not
+  blocking.
+
+**Why:** Umesh, 2026-09-23 (qa/feedback-inbox.md): "video is optional, i also have to explore by
+itself. and apart from bfs do dfs also … saving the website schema and flow … so the next time it
+really need to retrace everything … agar koi chiz break ya update hogi tho vo bhi track ho", and
+"jo account mai dunga usme jitni permission hogi utni tho testing ho hi jaani chaiyee". The hybrid
+strategy is explicitly NOT a revival of D-023's rejected single happy-path DFS: BFS still maps the
+whole portal, and the DFS is bounded per workflow. Splitting T-170 and T-171 out keeps T-165
+checkable in one cycle. T-170 has no reuse candidate to wait on, so it ships value first.
+
+**Result:** Pending build. T-165 stays critical (dual check). T-170 and T-171 are registered in
+`.goal/goal.json`: T-170 has no dependency on T-165, and T-171 depends on T-165. T-166 now depends
+on T-165 and T-170. Contracts: `qa/contracts/crawl-traversal.md` (new, T-165) and
+`qa/contracts/network-assertions.md` (new, T-170) are authored by /checker as DRAFT and go
+DRAFT->ACTIVE on each unit's first checker PASS.
+
+**Changes-authorized:** docs/ARCHITECTURE.md "Pipeline" section: add one line naming the explore
+traversal strategy (bfs | hybrid) once T-165 PASSes. qa/contracts/crawl-traversal.md and
+qa/contracts/network-assertions.md (new, checker-authored DRAFT). .goal/goal.json: register T-170
+and T-171, and widen T-165's note and done_check.
+
+**Approved-by:** Umesh -- "go on" to the D-040 gate (qa/gates/t165-d039-traversal-scope.md), chat 2026-09-24, with the recommended answers 1 yes, 2 split, 3 park, 4 yes.
+
+**Links:** T-165; T-166; T-168; T-170; T-171; D-023; D-038 (T-164 persona); D-039; docs/research/crawl-reuse-2026-09.md; qa/gates/t165-d039-traversal-scope.md; qa/feedback-inbox.md 2026-09-23T07:30
