@@ -876,3 +876,57 @@ and T-171, and widen T-165's note and done_check.
 **Approved-by:** Umesh -- "go on" to the D-040 gate (qa/gates/t165-d039-traversal-scope.md), chat 2026-09-24, with the recommended answers 1 yes, 2 split, 3 park, 4 yes.
 
 **Links:** T-165; T-166; T-168; T-170; T-171; D-023; D-038 (T-164 persona); D-039; docs/research/crawl-reuse-2026-09.md; qa/gates/t165-d039-traversal-scope.md; qa/feedback-inbox.md 2026-09-23T07:30
+
+## D-041 | 2026-09-24 | type: decision | status: ACTIVE
+
+**What:** Set AutoTester's AI-framework layering, its knowledge-graph and observability approach, and
+register seven units for the add-ons and competitor features Umesh chose.
+
+1. **Framework layers** (Vidysea agentic standard, 4 layers):
+   - Workflow: **LangGraph 1.x, starting at T-167** (release regression: checkpointer and `interrupt()` for consent/review). Existing stages migrate to LangGraph nodes only when a unit touches them. No whole-pipeline rewrite.
+   - Agents: typed Pydantic outputs. No multi-agent framework.
+   - Skills: `SKILL.md`.
+   - Tools: Playwright stays the deterministic actuator. browser-use (MIT) is the fallback for unknown screens, and AutoTester is exposed as an MCP server.
+   - Model routing: LiteLLM.
+   - Tracing: Langfuse self-hosted, phase 2.
+2. **Knowledge graph** = the existing portal-persona screen graph (`PersonaScreen`/`PersonaTransition`), extended with typed nodes and edges for screen, control, flow, scenario, case, verdict, API and release. It stays JSON on the filestore (D-002). No graph database and no GraphRAG. Folded into T-166 as a traceability-graph criterion.
+3. **Observability:**
+   - Phase 1 (T-172): a local, redacted `trace.jsonl` per run.
+   - Phase 2: export to Langfuse self-hosted (`TELEMETRY_ENABLED=false`, OSS edition, never Langfuse Cloud) once AutoTester runs on a server.
+4. **Refused:** "regenerate tests instead of maintaining them" (docs/research/testsprite-2026-09.md §6).
+5. **Deferred to Umesh:** the differential base-vs-head oracle (research item E). It needs two deployable builds of the app under test.
+6. **New units:**
+
+   | Unit | What it is | Depends on |
+   |---|---|---|
+   | T-172 | run trace | T-163 |
+   | T-173 | parallel case execution in N isolated browser contexts, bounded by measured RAM/CPU and `project.max_parallel`; write-policy cases run serially | T-163 |
+   | T-174 | CLI contract (`--output json`, documented exit codes, `--dry-run`) + AutoTester MCP server | T-125 |
+   | T-175 | prompts become `SKILL.md` | none |
+   | T-176 | persist and replay the generated script, plus semantic locators and a declared test-id attribute priority | T-165 |
+   | T-177 | browser-use fallback actuator; revives `agent_loop.run_with_fallback`, closes AT-253 | T-176 |
+   | T-178 | atomic failure bundle, case priority p0–p3, and human pruning of proposed cases | T-125 |
+
+**Why:**
+- Umesh asked whether AutoTester should use an AI framework, a knowledge graph and observability. On 2026-09-24 (AskUserQuestion) he chose LangGraph from T-167 (Recommended), plus a browser-use fallback, AutoTester as an MCP server, prompts as SKILL.md and tracing. He also asked for "other functionality that competitors use or what we had built till now, parallel processing".
+- The Vidysea standard (`umesh/operating-brain/wiki/patterns/agentic-architecture-standard.md`, 2026-09-23) sets the defaults: LangGraph for products, SKILL.md + MCP + typed schemas + LiteLLM as the portable core, and Langfuse self-hosted for tracing. It also says to use the simplest layer that fits, and to go multi-agent only with a measured gain.
+- D-002 kept the stages node-shaped for exactly this migration. Adopting LangGraph at T-167 puts it where durable pause/resume pays, without rewriting working stages.
+- Competitor items A, C, D, F, G and H come from docs/research/testsprite-2026-09.md §4. B, the assertion layer, is already built (AT-540).
+- Parallel runs address the observed serial bottleneck: TestSprite fans out to parallel browsers, and ours runs one case at a time.
+
+**Result:**
+- Pending builds. `.goal/goal.json` gains T-172 to T-178, T-167 gains a LangGraph note and T-166 gains a knowledge-graph note.
+- The roadmap guard pins the new rows.
+- /checker authors each new contract as DRAFT: run-trace.md, parallel-run.md, cli-mcp.md, skills.md, script-replay.md, agent-fallback.md and failure-bundle.md. Each goes ACTIVE on its unit's first checker PASS.
+- Dependencies (langgraph, browser-use) are added to pyproject.toml only by the unit that builds with them.
+
+**Changes-authorized:**
+- `.goal/goal.json`: register T-172 to T-178, and add notes to T-166 and T-167.
+- `tests/test_goal_done_checks.py`: pin the new rows; the count goes from 57 to 64.
+- `pyproject.toml`: langgraph and browser-use, added only within T-167 and T-177.
+- New checker-authored DRAFT contracts under `qa/contracts/`, as listed in Result.
+- `docs/ARCHITECTURE.md` "Pipeline" gets one line on the LangGraph workflow layer once T-167 PASSes.
+
+**Approved-by:** Umesh -- AskUserQuestion answers and plan approval, chat 2026-09-24.
+
+**Links:** T-163; T-165; T-166; T-167; T-172; T-173; T-174; T-175; T-176; T-177; T-178; AT-253; AT-540; D-002; D-036; D-040; docs/research/testsprite-2026-09.md; umesh/operating-brain/wiki/patterns/agentic-architecture-standard.md

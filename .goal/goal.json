@@ -4,15 +4,15 @@
   "north_star": "A reusable AI testing platform where an operator submits any project URL, domain-scoped test-account credential references, and optional evals, conditions, use cases, video, audio, documents, text, email or Google Drive sources. AutoTester learns from supplied evidence or logs in and performs bounded breadth-first exploration, preserves a durable Portal Persona, compiles traceable best/worst/edge evals, reruns them after developer releases in a real visible browser, and reports workflow/API regressions through clear HTML, Excel, text and screenshots. First acceptance targets: Vidysea ERP and Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-24T16:37:02",
+  "updated": "2026-09-24T17:38:10",
   "progress": {
-    "total": 57,
+    "total": 64,
     "done": 38,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 19,
+    "pending": 26,
     "current": "T-122",
-    "percent": 67
+    "percent": 59
   },
   "tasks": [
     {
@@ -1079,7 +1079,7 @@
         "cmd": "uv run pytest tests/test_eval_compiler.py",
         "expect_exit": 0
       },
-      "note": "Generates best/worst/edge evals with source traceability; component PASS cannot hide workflow/application failure.",
+      "note": "Generates best/worst/edge evals with source traceability; component PASS cannot hide workflow/application failure. | D-041: include the traceability knowledge graph (persona graph extended: screen/control/flow/scenario/case/verdict/API/release nodes+edges; JSON, no graph DB).",
       "attempts": 0,
       "created": "2026-09-10T05:58:09",
       "user_value": "high",
@@ -1099,7 +1099,7 @@
         "cmd": "uv run pytest tests/test_regression_trigger.py",
         "expect_exit": 0
       },
-      "note": "Developer changes trigger the approved project suite; results are durable and compare against the last trusted baseline.",
+      "note": "Developer changes trigger the approved project suite; results are durable and compare against the last trusted baseline. | D-041: build on LangGraph 1.x (checkpointer + interrupt() for consent/review); langgraph added to pyproject in this unit.",
       "attempts": 0,
       "created": "2026-09-10T05:58:09",
       "user_value": "high",
@@ -1147,6 +1147,137 @@
       "created": "2026-09-10T05:58:09",
       "user_value": "high",
       "criticality": "critical"
+    },
+    {
+      "id": "T-172",
+      "title": "Run trace: redacted trace.jsonl per run (stage + LLM spans: model, tokens, latency, cost, fallback hops, verdict fed) + UI panel (D-041)",
+      "status": "pending",
+      "deps": [
+        "T-163"
+      ],
+      "base_criticality": "high",
+      "criticality": "high",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_run_trace.py",
+        "expect_exit": 0
+      },
+      "note": "D-041 phase 1; phase 2 = Langfuse self-hosted export when on a server.",
+      "attempts": 0,
+      "created": "2026-09-24T17:37:32",
+      "user_value": "high"
+    },
+    {
+      "id": "T-173",
+      "title": "Parallel case execution: N isolated browser contexts bounded by measured RAM/CPU and project.max_parallel; write-policy cases serial (D-041)",
+      "status": "pending",
+      "deps": [
+        "T-163"
+      ],
+      "base_criticality": "high",
+      "criticality": "high",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_parallel_run.py",
+        "expect_exit": 0
+      },
+      "note": "D-041; must prove parallel verdicts == serial verdicts on a fixture.",
+      "attempts": 0,
+      "created": "2026-09-24T17:37:32",
+      "user_value": "high"
+    },
+    {
+      "id": "T-174",
+      "title": "CLI contract (--output json, documented exit codes, --dry-run) + AutoTester MCP server (run tests, get report, get catalog) (D-041)",
+      "status": "pending",
+      "deps": [
+        "T-125"
+      ],
+      "base_criticality": "high",
+      "criticality": "high",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_cli_mcp.py",
+        "expect_exit": 0
+      },
+      "note": "D-041; competitor F + Umesh MCP ask.",
+      "attempts": 0,
+      "created": "2026-09-24T17:37:32",
+      "user_value": "high"
+    },
+    {
+      "id": "T-175",
+      "title": "Prompts as SKILL.md: grader, test-design, bug-hunting, ingest prompts in skill folders loaded via the provider seam (D-041)",
+      "status": "pending",
+      "deps": [],
+      "base_criticality": "normal",
+      "criticality": "low",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_prompt_skills.py",
+        "expect_exit": 0
+      },
+      "note": "D-041; Vidysea portable core.",
+      "attempts": 0,
+      "created": "2026-09-24T17:37:32",
+      "user_value": "normal"
+    },
+    {
+      "id": "T-176",
+      "title": "Persist + replay generated script with semantic locators (get_by_role/label) and declared test-id priority (D-041)",
+      "status": "pending",
+      "deps": [
+        "T-165"
+      ],
+      "base_criticality": "high",
+      "criticality": "high",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_script_replay.py",
+        "expect_exit": 0
+      },
+      "note": "D-041; competitor A + C; wires existing Script/case.script_ref.",
+      "attempts": 0,
+      "created": "2026-09-24T17:37:32",
+      "user_value": "high"
+    },
+    {
+      "id": "T-177",
+      "title": "browser-use fallback actuator for unknown screens with typed outputs; revives agent_loop.run_with_fallback (AT-253) (D-041)",
+      "status": "pending",
+      "deps": [
+        "T-176"
+      ],
+      "base_criticality": "high",
+      "criticality": "high",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_agent_fallback.py",
+        "expect_exit": 0
+      },
+      "note": "D-041; adds browser-use (MIT) to pyproject only in this unit.",
+      "attempts": 0,
+      "created": "2026-09-24T17:37:32",
+      "user_value": "high"
+    },
+    {
+      "id": "T-178",
+      "title": "Atomic failure bundle + case priority p0-p3 + human pruning of proposed cases before LLM spend (D-041)",
+      "status": "pending",
+      "deps": [
+        "T-125"
+      ],
+      "base_criticality": "high",
+      "criticality": "high",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_failure_bundle.py",
+        "expect_exit": 0
+      },
+      "note": "D-041; competitor D + H + G.",
+      "attempts": 0,
+      "created": "2026-09-24T17:37:32",
+      "user_value": "high"
     }
   ],
   "decisions": [],
@@ -1327,6 +1458,48 @@
       "message": "T-171 needs review (high)",
       "task_id": "T-171",
       "acked": false
+    },
+    {
+      "ts": "2026-09-24T17:38:10",
+      "level": "warn",
+      "message": "T-172 needs review (high)",
+      "task_id": "T-172",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-24T17:38:10",
+      "level": "warn",
+      "message": "T-173 needs review (high)",
+      "task_id": "T-173",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-24T17:38:10",
+      "level": "warn",
+      "message": "T-174 needs review (high)",
+      "task_id": "T-174",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-24T17:38:10",
+      "level": "warn",
+      "message": "T-176 needs review (high)",
+      "task_id": "T-176",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-24T17:38:10",
+      "level": "warn",
+      "message": "T-177 needs review (high)",
+      "task_id": "T-177",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-24T17:38:10",
+      "level": "warn",
+      "message": "T-178 needs review (high)",
+      "task_id": "T-178",
+      "acked": false
     }
   ],
   "preferences": {
@@ -1335,9 +1508,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 1.69,
-    "eta_days": 11.2
+    "velocity_per_day": 1.68,
+    "eta_days": 15.5
   },
-  "last_deterministic_tick": "2026-09-24T16:37:02",
+  "last_deterministic_tick": "2026-09-24T17:38:10",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }

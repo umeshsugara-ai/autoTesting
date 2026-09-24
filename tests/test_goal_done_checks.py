@@ -228,6 +228,13 @@ def test_revised_goal_contract_is_registered() -> None:
         "T-166": (["T-125", "T-164", "T-165", "T-170"], tests + "test_eval_compiler.py"),
         "T-170": (["T-163"], tests + "test_network_assertions.py"),
         "T-171": (["T-165"], tests + "test_permission_surface.py"),
+        "T-172": (["T-163"], tests + "test_run_trace.py"),
+        "T-173": (["T-163"], tests + "test_parallel_run.py"),
+        "T-174": (["T-125"], tests + "test_cli_mcp.py"),
+        "T-175": ([], tests + "test_prompt_skills.py"),
+        "T-176": (["T-165"], tests + "test_script_replay.py"),
+        "T-177": (["T-176"], tests + "test_agent_fallback.py"),
+        "T-178": (["T-125"], tests + "test_failure_bundle.py"),
         "T-167": (["T-166", "T-110"], tests + "test_regression_trigger.py"),
         "T-168": (["T-155", "T-164", "T-165", "T-167"], tests + "test_unified_report.py"),
         "T-169": (["T-136", "T-145", "T-168"], tests + "test_generic_acceptance.py"),
@@ -238,7 +245,7 @@ def test_revised_goal_contract_is_registered() -> None:
     actual = {key: (by_id[key]["deps"], by_id[key]["done_check"]["cmd"]) for key in expected}
     assert actual == expected
     progress = data["progress"]
-    assert progress["total"] == len(data["tasks"]) == 57  # D-040 registered T-170 + T-171
+    assert progress["total"] == len(data["tasks"]) == 64  # D-040: T-170, T-171; D-041: T-172..T-178
     for key in ("done", "in_progress", "pending", "blocked"):
         assert progress[key] == sum(task["status"] == key for task in data["tasks"])
     assert progress["percent"] == round(100 * progress["done"] / progress["total"])
