@@ -17,6 +17,7 @@ from autotester.schema.flowspec import FlowSpec
 from autotester.schema.issue import Issue
 from autotester.schema.media import MediaPrep, Transcript
 from autotester.schema.observation import ModelObservation
+from autotester.schema.portal_persona import PortalPersona
 from autotester.schema.project import Project, Source
 from autotester.schema.run import RawResult, Run
 from autotester.schema.screenmap import ScreenMap
@@ -278,3 +279,10 @@ class ProjectStore(CrawlStoreMixin, RequestStoreMixin):
 
     def load_screen_map(self) -> ScreenMap | None:
         return read_json(self.paths.screen_map, ScreenMap)
+
+    # -- portal persona (durable, single JSON store; knowledge.md is its view) --
+    def save_portal_persona(self, persona: PortalPersona) -> None:
+        write_json(self.paths.portal_persona, persona)
+
+    def load_portal_persona(self) -> PortalPersona | None:
+        return read_json(self.paths.portal_persona, PortalPersona)
