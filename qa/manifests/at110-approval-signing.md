@@ -143,4 +143,4 @@ FAILED tests/test_goal_criticality_vocabulary.py::test_every_base_criticality_is
 2 failed, 1617 passed, 5 skipped, 32 xfailed, 1 warning in 910.86s (0:15:10)
 ```
 
-## Status: ready-for-check
+## Status: checked-PASS (qa/verdicts/at110-approval-signing.md, cycle 1, 3ede308; commit 283edf4 == checked tree)
