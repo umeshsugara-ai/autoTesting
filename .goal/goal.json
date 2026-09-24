@@ -4,15 +4,15 @@
   "north_star": "A reusable AI testing platform where an operator submits any project URL, domain-scoped test-account credential references, and optional evals, conditions, use cases, video, audio, documents, text, email or Google Drive sources. AutoTester learns from supplied evidence or logs in and performs bounded breadth-first exploration, preserves a durable Portal Persona, compiles traceable best/worst/edge evals, reruns them after developer releases in a real visible browser, and reports workflow/API regressions through clear HTML, Excel, text and screenshots. First acceptance targets: Vidysea ERP and Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-24T22:40:51",
+  "updated": "2026-09-24T22:50:18",
   "progress": {
-    "total": 64,
+    "total": 67,
     "done": 39,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 25,
+    "pending": 28,
     "current": "T-122",
-    "percent": 61
+    "percent": 58
   },
   "tasks": [
     {
@@ -1043,7 +1043,7 @@
       "attempts": 0,
       "created": "2026-09-24T16:34:17",
       "user_value": "high",
-      "completed": "2026-09-24T22:40:51"
+      "completed": "2026-09-24T22:50:18"
     },
     {
       "id": "T-171",
@@ -1100,7 +1100,7 @@
         "cmd": "uv run pytest tests/test_regression_trigger.py",
         "expect_exit": 0
       },
-      "note": "Developer changes trigger the approved project suite; results are durable and compare against the last trusted baseline. | D-041: build on LangGraph 1.x (checkpointer + interrupt() for consent/review); langgraph added to pyproject in this unit.",
+      "note": "Developer changes trigger the approved project suite; results are durable and compare against the last trusted baseline. | D-041: build on LangGraph 1.x (checkpointer + interrupt() for consent/review); langgraph added to pyproject in this unit. | D-042: runs the lead agent on LangGraph checkpoints.",
       "attempts": 0,
       "created": "2026-09-10T05:58:09",
       "user_value": "high",
@@ -1256,7 +1256,7 @@
         "cmd": "uv run pytest tests/test_agent_fallback.py",
         "expect_exit": 0
       },
-      "note": "D-041; adds browser-use (MIT) to pyproject only in this unit.",
+      "note": "D-041; adds browser-use (MIT) to pyproject only in this unit. | D-042: becomes a runner-subagent tool.",
       "attempts": 0,
       "created": "2026-09-24T17:37:32",
       "user_value": "high"
@@ -1278,6 +1278,65 @@
       "note": "D-041; competitor D + H + G.",
       "attempts": 0,
       "created": "2026-09-24T17:37:32",
+      "user_value": "high"
+    },
+    {
+      "id": "T-179",
+      "title": "Deep Agents lead tester + stage tools (crawl, run_case, get_persona, get_catalog, capture_network, grade_case, report) with deterministic guards inside each tool (D-042)",
+      "status": "pending",
+      "deps": [
+        "T-170",
+        "T-172",
+        "T-175"
+      ],
+      "base_criticality": "high",
+      "criticality": "high",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_agent_layer.py",
+        "expect_exit": 0
+      },
+      "note": "D-042: Deep Agents lead tester (create_deep_agent) wraps existing deterministic stages as tools; safety/credential/write-policy guards stay inside the tools, not the model.",
+      "attempts": 0,
+      "created": "2026-09-24T22:20:00",
+      "user_value": "high"
+    },
+    {
+      "id": "T-180",
+      "title": "Subagents: explorer, test-designer, runner, independent grader (no action tools, C7), reporter (D-042)",
+      "status": "pending",
+      "deps": [
+        "T-179"
+      ],
+      "base_criticality": "high",
+      "criticality": "high",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_agent_subagents.py",
+        "expect_exit": 0
+      },
+      "note": "D-042: the grader subagent holds no action tools and runs in its own context, so C7 (executor never grades itself) still holds.",
+      "attempts": 0,
+      "created": "2026-09-24T22:20:00",
+      "user_value": "high"
+    },
+    {
+      "id": "T-181",
+      "title": "Agent guardrails + measured gain vs pipeline (bugs found, FP, tokens, time) on a fixture; per-run token/cost budget (D-042)",
+      "status": "pending",
+      "deps": [
+        "T-180"
+      ],
+      "base_criticality": "high",
+      "criticality": "high",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_agent_gain.py",
+        "expect_exit": 0
+      },
+      "note": "D-042: the agent layer stays only if it shows a measured gain over the plain pipeline on this fixture.",
+      "attempts": 0,
+      "created": "2026-09-24T22:20:00",
       "user_value": "high"
     }
   ],
@@ -1501,6 +1560,27 @@
       "message": "T-178 needs review (high)",
       "task_id": "T-178",
       "acked": false
+    },
+    {
+      "ts": "2026-09-24T22:37:02",
+      "level": "warn",
+      "message": "T-179 needs review (high)",
+      "task_id": "T-179",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-24T22:37:02",
+      "level": "warn",
+      "message": "T-180 needs review (high)",
+      "task_id": "T-180",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-24T22:37:02",
+      "level": "warn",
+      "message": "T-181 needs review (high)",
+      "task_id": "T-181",
+      "acked": false
     }
   ],
   "preferences": {
@@ -1510,8 +1590,8 @@
   },
   "analytics": {
     "velocity_per_day": 1.71,
-    "eta_days": 14.6
+    "eta_days": 16.4
   },
-  "last_deterministic_tick": "2026-09-24T22:40:51",
+  "last_deterministic_tick": "2026-09-24T22:50:18",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }
