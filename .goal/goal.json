@@ -4,7 +4,7 @@
   "north_star": "A reusable AI testing platform where an operator submits any project URL, domain-scoped test-account credential references, and optional evals, conditions, use cases, video, audio, documents, text, email or Google Drive sources. AutoTester learns from supplied evidence or logs in and performs bounded breadth-first exploration, preserves a durable Portal Persona, compiles traceable best/worst/edge evals, reruns them after developer releases in a real visible browser, and reports workflow/API regressions through clear HTML, Excel, text and screenshots. First acceptance targets: Vidysea ERP and Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-24T17:38:10",
+  "updated": "2026-09-24T22:14:27",
   "progress": {
     "total": 64,
     "done": 38,
@@ -1210,8 +1210,8 @@
       "title": "Prompts as SKILL.md: grader, test-design, bug-hunting, ingest prompts in skill folders loaded via the provider seam (D-041)",
       "status": "pending",
       "deps": [],
-      "base_criticality": "normal",
-      "criticality": "low",
+      "base_criticality": "medium",
+      "criticality": "medium",
       "done_check": {
         "type": "cmd",
         "cmd": "uv run pytest tests/test_prompt_skills.py",
@@ -1508,9 +1508,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 1.68,
-    "eta_days": 15.5
+    "velocity_per_day": 1.67,
+    "eta_days": 15.6
   },
-  "last_deterministic_tick": "2026-09-24T17:38:10",
+  "last_deterministic_tick": "2026-09-24T22:14:27",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }
