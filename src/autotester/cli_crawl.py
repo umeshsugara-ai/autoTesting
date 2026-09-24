@@ -223,6 +223,17 @@ def _warn_on_target_mismatch(target: str, proj: Any) -> None:
         fg=typer.colors.YELLOW)
 
 
+def _signed_or_refuse(candidate: Any) -> None:
+    """AT-110: sign in place, or refuse the grant naming the missing key."""
+    from autotester.core.ids import SigningKeyMissing
+
+    try:
+        candidate.sign()
+    except SigningKeyMissing as exc:
+        typer.secho(str(exc), fg=typer.colors.RED)
+        raise typer.Exit(1) from None
+
+
 def approve_cmd(
     project: str,
     kind: str = typer.Option(..., "--kind", help="read | crawl | adversarial | live_case"),
@@ -239,11 +250,10 @@ def approve_cmd(
 ) -> None:
     """Grant a human's approval for one kind of run against one target (D-018).
 
-    Nothing outward-facing starts without one. The approval is content-addressed,
-    so an accidental edit to the row invalidates it rather than silently taking
-    effect — but the hash is unkeyed, so this is tamper EVIDENCE, not tamper
-    proofing: anyone who can write approvals.jsonl can recompute a valid id
-    (AT-110).
+    Content-addressed AND signed with an HMAC keyed from
+    `AUTOTESTER_APPROVAL_KEY` in the repo-root `.env` (AT-110): tamper-proof
+    against anyone who does not hold that key — not against an agent that can
+    edit the code (`core/consent.py`) which checks it.
     """
     from autotester.schema.approval import RunApproval
     from autotester.schema.enums import ApprovalKind
@@ -259,12 +269,14 @@ def approve_cmd(
         typer.secho(f"--kind must be one of: {allowed}", fg=typer.colors.RED)
         raise typer.Exit(1) from None
     _validate_grant(expires, target, store_.load_project())
-    approval = store_.add_approval(RunApproval(
+    candidate = RunApproval(
         project=project, run_kind=run_kind, target=target, scope=scope,
         max_actions=max_actions, max_probes=max_probes, wall_clock_s=wall_clock,
         production=production, granted_by=granted_by,
         granted_at=date.today().isoformat(), expires_at=expires,
-    ))
+    )
+    _signed_or_refuse(candidate)
+    approval = store_.add_approval(candidate)
     typer.secho(
         f"{approval.id}: {run_kind.value} on {target} until {expires} "
         f"(actions<={max_actions}, probes<={max_probes})",
