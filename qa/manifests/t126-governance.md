@@ -155,4 +155,4 @@ CLI-regenerated). None of `*.tsx|jsx|vue|svelte|html|css`, `apps/web/**`, `**/ro
 `**/pages/**`, `**/components/**` were touched, and nothing here changes what a UI page renders
 or how data flows into one — no `qa/ui-surfaces.json` narrowing needed, no browser step applies.
 
-## Status: ready-for-check
+## Status: checked-PASS (qa/verdicts/t126-governance.md, cycle 1, 2026-09-25; follow-up AT-560 non-blocking)
