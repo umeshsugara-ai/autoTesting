@@ -409,3 +409,72 @@ at218 · at253 (ARCHITECTURE Execution-model D-entry) · t136-model-credentials.
 **Terminal state: `FINDINGS: 0`** (no new issues opened; 2 closed — `ISS-t162-drive-2b-1`,
 `ISS-t163-1`, both `open → fixed`; 0 bypasses; contracts + enforcement + goal-coverage all CLEAN;
 HEAD `24043b8`).
+
+---
+
+## Sweep refresh — 2026-09-24 (sharded Mode B; consolidation of 3 read-only shards; full report:
+`qa/verdicts/sweep-2026-09-24.md`)
+
+Window `761982d..087ab84` (12 commits: D-038 T-164 build → checked-PASS → close-out → reuse spike →
+D-039 gate write). HEAD at consolidation `2263e9a` (tick stamp only). T-123 build
+(`.worktrees/t123-medium-batch`) and the AT-483 re-land (fix cycle 2,
+`.worktrees/at483-reland`, branch `wave/at483-reland`) both running concurrently — out of scope,
+not judged or touched.
+
+**GRILL — human decision, not a build row (carried, unanswered):**
+- GRILL: recurring vacuous-guard prevention policy (AT-218).
+- GRILL: real two-mode acceptance thresholds for D-023/T-169 (AT-281).
+- GRILL (AT-402): structure-before-code review of `visual_order.js`.
+
+### Findings this sweep — FINDINGS: 0 new · 1 reopened · 1 evidence-refresh
+
+| Issue | Sev | What |
+|---|---|---|
+| **AT-483** | low (reopen) | Its 2026-09-18 checked-PASS (`9e11559`) certified a fix that never reached master — `git merge-base --is-ancestor 9673f6b master` = NOT-ANCESTOR, `grep heartbeat src/autotester/stages/explore_status.py` on master = no match. Reopened `fixed → open` with `reopen_reason`; re-land already in progress on `wave/at483-reland` (not touched by this sweep); `.work/wave-at483` left unpruned. |
+| **AT-415** | medium (evidence refresh, no flip) | Gate-rot count re-derived: `qa/gates/` now 24 files (was 14 at filing), only 6 carry an `Answered:` line, only 1 (`at554`, D-034) is truly answered. `checker_note` appended; row stays open. |
+
+**Inbox:** `qa/feedback-inbox.md`'s 2026-09-23T07:30:10 Umesh entry got a missing `**Status:**`
+line added — GATED at `qa/gates/t165-d039-traversal-scope.md` (D-039), T-164 portion folded to
+`portal-persona.md` (PASS `05fc732`).
+
+**Non-findings confirmed, not re-filed:** 0 bypasses (t164-portal-persona manifest/verdict
+reconcile clean, cycle 1 PASS `05fc732`, closed `3ceb7b9`); delegation health n=1 external unit
+(`at119-vocab`), below the ≥10-unit sample threshold, no finding; contracts not stale; data
+boundary still fires — standing **AT-365**, not re-filed; enforcement liveness CLEAN (`doctor:
+clean`, ruff `All checks passed!`, `.last-tick` fresh, no `.paused`); goal-coverage **38/55
+(69%)**, up from 37/55 (T-164 closed), no drift; silent-failure hunt over T-164's new code — none
+found. Token scan re-run: `opus_sub_share=0.0`, 8 sub-agents, 0 compactions — well under the 25%
+diet threshold; no unit at fix cycle 3 this window. Line appended to `qa/token-ledger.jsonl`.
+Worktrees `checker-at540/row1..row10`, `.work/t161-primary-4c09990`,
+`.claude/worktrees/agent-a6095f6e2fc40863a` confirmed merged/content-identical, safe to prune —
+**report only, not pruned** this sweep.
+
+**Bypass-detection gap noted (not filed as a row):** a checker-PASS + close-out on a wave branch
+that never merges to master is currently invisible to the bypass check, which reads handshake
+existence rather than master-ancestry. AT-483 is the live example; folded into that row's own
+evidence rather than filed separately.
+
+### TOP-3 BUILDABLE NEXT UNITS (2026-09-24 refresh)
+
+| # | Unit | Why |
+|---|---|---|
+| **1** | **AT-483 re-land (fix cycle 2)** — in progress on `wave/at483-reland`; the next Mode A check re-verifies the heartbeat/liveness fix actually reaches master (same ancestor + grep check used this sweep) before flipping the row back to `fixed`. | The false-fixed claim is the highest-severity live governance issue on the board; re-land already started, needs its check dispatched when ready. |
+| **2** | **T-165 HUMAN_GATE (D-039)** — `qa/gates/t165-d039-traversal-scope.md`, 4 spike questions awaiting Umesh (traversal strategy, permission-surface scope, Playwright Healer, API-capture ordering). | Blocks T-165/T-166/T-167/T-168/T-169 downstream; highest-leverage open gate. |
+| **3** | **AT-110 (high)** — RunApproval tamper-check defeat, oldest untouched high-severity row with no human gate in front of it. | Carried unchanged across multiple prior sweeps; still the highest-severity buildable defect. |
+
+**Deprioritised (not cancelled):** AT-497/AT-545 (orphaned-running-crawl heartbeat — folds into
+the AT-483 re-land, same fix class) · AT-488/AT-502 (structural-erosion signals, advisory only) ·
+AT-556 (loop-liveness observation, low) · AT-546 (checker-owned `require_consent` contract
+re-point) · AT-529 (HUMAN_GATE, Pathlynks test-account credentials).
+
+### HUMAN_GATE — do not build as ordinary units (carried, verified unanswered on disk unless noted)
+
+live-crawl-target · post-login-forms · erp-credentials/AT-529 · t162-contract-approval ·
+at438-u14b-baseline + commit-before-verdict · at416-clip-vs-reach-direction ·
+at383-loop-status-consumer · at365-data-class-declaration · at110-approval-forgery · at147 ·
+at218 · at253 (ARCHITECTURE Execution-model D-entry) · t136-model-credentials ·
+**t165-d039-traversal-scope** (new this window — D-039, 4 spike questions).
+
+**Terminal state: `FINDINGS: 0`** (0 new issue ids; 1 reopened — AT-483 high-severity governance
+finding on a low-severity defect row; 1 evidence-refresh — AT-415; 1 inbox status line added; 0
+bypasses; contracts + enforcement CLEAN; goal-coverage 38/55, no drift; HEAD `2263e9a`).
