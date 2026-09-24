@@ -184,9 +184,10 @@ removing it without putting this in its place was a net loss.
 
 Two sites in `media_prep.py` share a command (the constant and the message that
 interpolates it), so this set has ten entries for eleven sites; the count is
-asserted separately."""
+asserted separately. AT-110 added a second `core/consent.py` "approve" site
+(re-grant an unsigned approval), so that command now has two sites as well."""
 
-EXPECTED_SITE_COUNT = 16
+EXPECTED_SITE_COUNT = 17
 
 
 def test_no_advice_site_can_vanish_unnoticed() -> None:
