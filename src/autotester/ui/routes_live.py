@@ -1,11 +1,26 @@
-"""Presentation-only noVNC page for watching the container's real browser."""
+"""Presentation-only noVNC page for watching the container's real browser, plus
+a process-freshness probe (`/healthz`, AT-085)."""
+
+from __future__ import annotations
+
+from datetime import UTC, datetime
 
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
 
+from autotester.core.paths import repo_root
 from autotester.ui import theme
 
 router = APIRouter()
+
+# AT-085: the container's uvicorn runs without `--reload` (docker/entrypoint.sh),
+# so a source edit made after this module was imported is silently NOT served --
+# a "verified live" claim can describe the previous build with nothing on the
+# surface to say so. Frozen once, at import time, which for a real `uv run
+# uvicorn` process (no reloader) happens exactly once, before the first request
+# -- the same "process start" a checker previously read off `ps -o lstart=`.
+_PROCESS_STARTED_AT = datetime.now(UTC)
+_SRC_ROOT = repo_root() / "src" / "autotester"
 
 
 @router.get("/live", response_class=HTMLResponse)
@@ -24,3 +39,29 @@ def live_view() -> str:
         "vnc.html?autoconnect=true&resize=scale'></iframe></div>"
     )
     return theme.page("Live view", body)
+
+
+def _newest_source_mtime() -> datetime:
+    """The most recent mtime under `src/autotester`, scanned fresh on every
+    call -- unlike `_PROCESS_STARTED_AT`, this reflects a source edit made
+    AFTER the process started. `_SRC_ROOT` is read from the module global (not
+    a bound default) so tests can monkeypatch it onto a throwaway directory."""
+    mtimes = [p.stat().st_mtime for p in _SRC_ROOT.rglob("*.py")]
+    if not mtimes:
+        return _PROCESS_STARTED_AT
+    return datetime.fromtimestamp(max(mtimes), tz=UTC)
+
+
+@router.get("/healthz")
+def healthz() -> dict[str, str | bool]:
+    """One HTTP call standing in for the `ps` + `find -newermt` archaeology
+    AT-085's checker had to do by hand: when this process started, and
+    whether any `.py` file under `src/autotester` is newer than that. Reads no
+    project state and loads no store -- same presentation-only invariant
+    `/live` (D4) holds."""
+    newest = _newest_source_mtime()
+    return {
+        "started_at": _PROCESS_STARTED_AT.isoformat(),
+        "newest_source_mtime": newest.isoformat(),
+        "serving_stale_code": newest > _PROCESS_STARTED_AT,
+    }
