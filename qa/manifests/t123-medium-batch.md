@@ -162,4 +162,4 @@ failure mode AT-085 describes, now surfaced by one HTTP call. Server stopped aft
 touched at any point (`/`, `/live`, `/healthz` only). `scripts/migrate_stamp_legacy_rubrics.py` is
 a CLI script with no UI surface — covered by its own pytest suite above, no browser applicable.
 
-## Status: ready-for-check
+## Status: checked-PASS (qa/verdicts/t123-medium-batch.md, cycle 1, 2026-09-24) -- AT-085 + AT-065 fixed; AT-086/087 deferred to gate qa/gates/at086-at087-credential-exemption-scope.md; T-123 stays pending
