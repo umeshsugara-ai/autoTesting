@@ -2,4 +2,4 @@
 # maker step 4b reads THIS, never the raw manifests.
 # class · executor · n · pass@1 · pass@<=3 · med_wall_s · $/unit · rank · last
 
-test-hardening · ollama/deepseek-v4.1-flash · n=1 · pass@1=0% · pass@<=3=100% · 166s · $0.0000 · rank=1.00 · 2026-09-22
+test-hardening · ollama/deepseek-v4.1-flash · n=1 · pass@1=0% · pass@<=3=100% · 166s · $? · rank=0.85 · 2026-09-22
