@@ -59,4 +59,4 @@ No other new capability claims in this unit — it is governance data (goal-trac
 ## Live browser evidence
 Not UI-touching — no surface changed. Only `.goal/goal.json` (data), `.goal/dashboard.html` (regenerated static report page, via the standard `monitor.py` regen step), `tests/test_goal_done_checks.py` (a pinning test), `target.md` (a markdown roadmap doc), and `docs/SNAPSHOT.md` (regenerated static snapshot) changed; no `*.tsx|jsx|vue|svelte|html|css` application UI, route, page, or component file was touched.
 
-## Status: ready-for-check
+## Status: checked-PASS (qa/verdicts/d042-registration.md, cycle 1, 2026-09-24)
