@@ -930,3 +930,47 @@ register seven units for the add-ons and competitor features Umesh chose.
 **Approved-by:** Umesh -- AskUserQuestion answers and plan approval, chat 2026-09-24.
 
 **Links:** T-163; T-165; T-166; T-167; T-172; T-173; T-174; T-175; T-176; T-177; T-178; AT-253; AT-540; D-002; D-036; D-040; docs/research/testsprite-2026-09.md; umesh/operating-brain/wiki/patterns/agentic-architecture-standard.md
+
+## D-042 | 2026-09-24 | type: decision | status: ACTIVE
+
+**What:** AutoTester's product agent layer is built on **LangChain Deep Agents** (on LangGraph 1.x), after Wave 1 (T-170, AT-110, T-172, T-173, AT-086/087, T-175, T-126, AT-335).
+
+- **Lead tester agent** (`create_deep_agent`): plans each job as a to-do list (Deep Agents planning middleware) and delegates to subagents. The project artifacts under `projects/<slug>/` are its filesystem backend.
+- **Subagents:** explorer, test-designer, runner, **grader** and reporter.
+  - The grader runs in its own context and holds **no action tools**. It only reads evidence and returns a verdict, so C7 still holds: the executor never grades itself.
+- **Skills:** the `SKILL.md` folders from T-175, loaded through `skills=`.
+  - The grader rubric, test design (best/worst/edge), bug-hunting, ingest, scenario-list coverage and worst-case-default detection are all skills.
+  - Prompts are skills, not tools.
+- **Tools:** the existing deterministic stages, wrapped rather than rewritten:
+  - crawl, run_case, get_persona, get_catalog, capture_network, grade_case and report;
+  - a browser-use step for unknown screens (T-177).
+  - The safety policy, credential boundary (`{{SECRET:KEY}}` refs only, never values), write_policy and consent/RunApproval checks stay in code **inside** the tools. They are deterministic guards the model cannot bypass (Vidysea standard rule 3).
+- **Scope of subagents:** used only where judgement is needed. Everything else stays a plain tool call (standard rule 2: multi-agent costs ~15x tokens).
+- **Tracing:** every agent and tool span goes through T-172's trace, and later to Langfuse self-hosted.
+- **New units:**
+
+  | Unit | What it builds | Depends on |
+  |---|---|---|
+  | T-179 | Deep Agents lead tester + stage tools + deepagents dependency (skills need deepagents >= 1.7) | T-170, T-172, T-175 |
+  | T-180 | subagents (explorer, designer, runner, independent grader, reporter) | T-179 |
+  | T-181 | agent guardrails + measured gain: deterministic guards before every acting tool, a per-run token/cost budget, and a fixture comparison of agent vs pipeline on bugs found, false positives, tokens and time. The layer stays only if it shows a gain | T-180 |
+
+  T-177 (browser-use) becomes one of the runner's tools. T-167 (release regression) runs the lead agent on LangGraph checkpoints.
+
+**Supersedes:** D-041 -- D-041 point 1 said "Agents: typed Pydantic nodes. No multi-agent framework", with LangGraph starting only at T-167. That is replaced by a Deep Agents layer, because the users want AutoTester to plan and delegate like a real tester using skills and tools. D-041's other points (knowledge graph, observability, SKILL.md, MCP server, browser-use, competitor units, parallel runs, the refusal and the deferral) remain in force unchanged. The new approach is better because the deterministic stages keep every safety guarantee inside tools, while planning, test design and judging get the Deep Agents harness (planning, subagents, skills). That harness is the Vidysea standard for products that need skills and subagents. T-181 must prove a measured gain before the layer is kept.
+
+**Why:** Chat 2026-09-24: "and for subagents and all deepagents use ho rhee hai?" and "tho humko deepagents with skills and all bnaane hai with tools . prompts as tool dene hai right /maker". AskUserQuestion answers: "Haan, Umesh approve (Recommended)" and "Wave 1 ke baad (Recommended)". The Vidysea agentic standard (`umesh/operating-brain/wiki/patterns/agentic-architecture-standard.md`) names LangGraph 1.x + Deep Agents as the product default where skills or subagents are needed.
+
+**Result:** Pending. `.goal/goal.json` gains T-179, T-180 and T-181, and the roadmap guard pins them (64 -> 67 tasks). /checker authors the DRAFT contract `qa/contracts/agent-layer.md` before T-179 builds. `target.md` M10b is updated.
+
+**Changes-authorized:**
+- `.goal/goal.json`: register T-179 to T-181, and note on T-167 and T-177.
+- `tests/test_goal_done_checks.py`: pin the new rows; the count goes to 67.
+- `target.md`: M10b.
+- `pyproject.toml`: add deepagents, within T-179 only.
+- `qa/contracts/agent-layer.md`: new, checker-authored DRAFT.
+- `docs/ARCHITECTURE.md` "Pipeline": one line naming the agent layer, once T-179 PASSes.
+
+**Approved-by:** Umesh -- AskUserQuestion option "Haan, Umesh approve (Recommended)", 2026-09-24 (qa/gates/d042-deep-agents.md).
+
+**Links:** D-041; D-002; T-167; T-170; T-172; T-175; T-177; T-179; T-180; T-181; qa/gates/d042-deep-agents.md; umesh/operating-brain/wiki/patterns/agentic-architecture-standard.md; umesh/operating-brain/wiki/concepts/krishnaik/deep-agents.md

@@ -881,3 +881,12 @@ maker to re-scope T-122/T-145/T-136's ERP naming, not actioned by this sweep (ch
 their own gate files (unchanged from the note below). Sweep: `qa/verdicts/sweep-2026-09-24b.md`.
 Gate answers recorded in qa/gates/: t125-d039-entry-draft, t165-d039-traversal-scope,
 at086-at087-credential-exemption-scope, at365-data-class-declaration, at110-approval-forgery.
+
+
+## 2026-09-24T23:00:00+05:30 · source: chat (session under himanshu@ account; approval option selected: "Haan, Umesh approve")
+> "and for subagents and all deepagents use ho rhee hai?"
+> "tho humko deepagents with skills and all bnaane hai with tools . prompts as tool dene hai right /maker"
+> AskUserQuestion: "Haan, Umesh approve (Recommended)" · "Wave 1 ke baad (Recommended)"
+PATTERN: agents plan, deterministic tools act -- every AutoTester stage becomes a tool whose safety/credential/consent logic stays in code; the LLM layer only chooses what to do next · EVIDENCE: D-042 design · APPLIES NEXT: T-179..T-181, T-177
+PATTERN: prompts are skills, not tools -- know-how ships as SKILL.md loaded on demand; tools are actions · EVIDENCE: user asked "prompts as tool"; corrected in chat · APPLIES NEXT: T-175, T-179
+**Status:** unfolded (decision recorded as D-042; gate qa/gates/d042-deep-agents.md)
