@@ -93,6 +93,7 @@
 | `stages/manual_login.py` | Manual one-time login. Contract: qa/contracts/manual-login.md ML1-ML5. |
 | `stages/media_prep.py` | MEDIA PREP: make a recording readable — probe it, cut it, transcribe it. |
 | `stages/merge_flowspec.py` | Fold a freshly ingested FlowSpec into the reviewed one (Track A6, T-135). |
+| `stages/network_capture.py` | First-party network capture as evidence (T-170, NA1/NA2/NA4/NA5/NA6). |
 | `stages/orchestrate.py` | ORCHESTRATE: drive the stage pipeline as a resumable learn-or-explore run. |
 | `stages/orchestrate_runners.py` | The concrete stage runners the orchestrator threads — thin adapters over the |
 | `stages/portal_persona.py` | PORTAL PERSONA: promote per-crawl knowledge into the durable, cross-run |

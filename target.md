@@ -141,12 +141,17 @@ DISCOVER and MODEL are primary stages, not side features. 🎯 (promotion tracke
 
 ## THE PROOF (must clear before AutoTester counts as "working on a real product")
 
-### M7 · ERP trust number — 🔒 human-gated, then 🎯
-- [!] T-122 ERP login case + first logged-in run — **needs ERP_EMAIL/ERP_PASSWORD from Umesh** (401 today)
-- [!] T-145 live bounded READ_ONLY crawl of vidysea.com/erp — needs T-122 + consent (CRITICAL, dual-check)
-- [!] T-136 score erp1/2/3 vs `ERP_Issues_Trainers.xlsx` → real recall/FP/time — **needs the truth sheet**
-- [ ] T-123 medium credential-safety batch · [ ] T-125 test catalog (runnable/blocked + cheap→expensive)
-- [ ] T-126 governance debt sweep (adapter allowlist, QUEUE/SNAPSHOT drift, ledger backfill)
+### M7 · Real-product trust number — 🔒 human-gated, then 🎯
+*Umesh 2026-09-24: prove it on **Pathlynks first**; a second product's test account (ERP or any other)
+comes only after that — "not only erp". T-122/T-145/T-136 get re-scoped to "second product".*
+- [!] T-122 login case + first logged-in run on the second product — credentials after Pathlynks is proven
+- [!] T-145 live bounded READ_ONLY crawl of the second product — needs T-122 + consent (CRITICAL, dual-check)
+- [!] T-136 score recordings vs a trainer truth sheet → real recall/FP/time — **needs the truth sheet**
+- [~] T-123 medium credential-safety batch — AT-085 `/healthz` + AT-065 rubric stamp ✅ (18ff2a9); AT-086/087 🎯 (gate answered: both a)
+- [ ] T-125 test catalog (runnable/blocked + cheap→expensive) — D-039 ✅, contract `catalog.md` DRAFT
+- [~] T-126 governance debt sweep — maker side ✅ (allowlist + FEATURES backfill, checker PASS, merged); AT-560 follow-up ✅ merged f94c5c2; goal close = checker
+- [~] AT-110 tamper-proof consent approvals (HMAC keyed from `.env`) — build in progress
+- [x] AT-483 orphaned-crawl liveness — re-landed onto master (2d58215) after its 09-18 PASS never merged
 
 *Status truth: the plumbing is real, but everything downstream of a **learned** FlowSpec is
 fixture-proven only. The ERP trust number is the first time AutoTester is measured against a human.*
@@ -156,17 +161,36 @@ fixture-proven only. The ERP trust number is the first time AutoTester is measur
 ## THE PRODUCT VISION (reusable platform) — 🎯 target, mostly unbuilt
 
 ### M8 · Systematic exploration upgrades
-- [ ] T-163 resumable learn-or-explore orchestrator + durable per-stage checkpoints (promotes DISCOVER/MODEL)
-- [ ] T-165 BFS frontier completeness + forward/back recovery + first-party API/network assertions
+- [x] T-163 resumable learn-or-explore orchestrator + durable per-stage checkpoints (F-045, dual PASS)
+- [x] T-170 first-party API/network assertions (D-040 split from T-165) — F-047, checker PASS, merged 1fc7276
+- [ ] T-165 hybrid BFS→bounded-DFS traversal + frontier completeness + form-input replay + persona-seeded
+      incremental crawl + change tracking (D-040; contract `crawl-traversal.md` DRAFT; CRITICAL dual-check)
+- [ ] T-171 permission-surface coverage — every reachable control exercised or blocked-with-reason (D-040)
+- [ ] T-173 parallel case execution — N isolated browsers, RAM/CPU-bounded (D-041; `parallel-run.md` DRAFT)
 
 ### M9 · Durable product model
-- [ ] T-164 durable **Portal Persona** JSON + knowledge page (cross-run graph; today per-crawl scoped)
-- [ ] T-162 multi-source adapters (Drive, video, audio, doc, email, text → one evidence model)
+- [x] T-164 durable **Portal Persona** JSON + knowledge page + change history (F-046, 3ceb7b9)
+- [x] T-162 multi-source adapters (Drive, video, audio, doc, email, text → one evidence model) (F-044)
+- 🎯 Knowledge graph = the persona graph extended (screen/control/flow/scenario/case/verdict/API/release;
+  JSON, no graph DB) — built inside T-166 (D-041)
 
 ### M10 · Compile, re-run, report
-- [ ] T-166 traceable eval compiler (rules + taught flows + persona + discoveries → best/worst/edge)
-- [ ] T-167 commit/release-triggered visible-browser regression (consent, history, resumable retries)
+- [ ] T-166 traceable eval compiler (rules + scenarios + taught flows + persona + discoveries → best/worst/edge) + KG
+- [ ] T-167 commit/release-triggered visible-browser regression — **built on LangGraph 1.x** (D-041)
 - [ ] T-168 unified damage-control report (regression diff, API failures, workflows, screenshots, Excel)
+- [ ] T-176 persist + replay generated script, semantic locators (competitor A+C, D-041)
+- [ ] T-178 atomic failure bundle + case priority p0–p3 + human pruning of proposed cases (competitor D+H+G)
+
+### M10b · Platform & AI-framework layer (D-041, 2026-09-24; Agents row superseded by D-042, 2026-09-24)
+| Layer | Choice | Unit |
+|---|---|---|
+| Workflow graph | LangGraph 1.x, from T-167 (stages migrate only when touched) | T-167 |
+| Agents | LangChain Deep Agents lead tester + subagents (explorer, designer, runner, independent grader, reporter), after Wave 1 — T-179..T-181 (D-042, supersedes D-041's no-multi-agent) | T-179 · T-180 · T-181 |
+| Skills | prompts as `SKILL.md` | T-175 (contract `skills.md` DRAFT) |
+| Tools / MCP | Playwright (deterministic) · browser-use fallback · AutoTester as MCP server + CLI contract | T-177 · T-174 |
+| Observability | local redacted `trace.jsonl` → Langfuse self-hosted on a server | T-172 (contract `run-trace.md` DRAFT) |
+- Prompts ship as `SKILL.md` skills (T-175) while crawl / run_case / get_persona / get_catalog / capture_network / grade_case / report stay plain tools with deterministic guards (safety, credentials, write-policy) inside them, not left to the model (D-042).
+- Refused: "regenerate tests instead of maintaining them". Deferred to Umesh: differential base-vs-head oracle.
 
 ### M11 · Adversarial / below-the-UI (Track C)
 - [ ] T-150 Track C governance (file ai-target.md + adversarial.md criteria for the checker)
@@ -185,7 +209,7 @@ fixture-proven only. The ERP trust number is the first time AutoTester is measur
 2. Both intake modes work on a real target and beat-or-match a human tester (T-169).
 3. Every finding is evidence-backed and correctly classified; coverage shows untested branches.
 
-## Progress (from `.goal/goal.json`, 2026-09-22): 35 / 55 done (64%). Next current task: T-122.
+## Progress (from `.goal/goal.json`, 2026-09-24): 39 / 67 done (58% — the roadmap grew by 12 tasks via D-040/D-041/D-042, not a regression). Status 2026-09-25: AT-110 checker PASS (merge waits on builder commit); with the checker: T-175, AT-086/087, T-172, T-173; building: AT-335, T-125; next: T-165 (after AT-335), T-174 + T-178 (after T-125); the Deep Agents layer (T-179..T-181) after Wave 1.
 _Machine backlog + done-checks: `.goal/goal.json`. Whole-project screen: `docs/SNAPSHOT.md`._
 _Note: rewriting `.goal/goal.json`'s north star or adding DISCOVER/MODEL to `docs/ARCHITECTURE.md`
 is a state change that needs an authorizing `docs/DECISIONS.md` entry first (Lab Protocol) — this

@@ -872,4 +872,21 @@ Left unfolded pending whichever unit builds T-171/T-166/T-167/T-168's contracts.
 > AT-110 approval signing: "if needed tho krr dee"
 PATTERN: acceptance is Pathlynks-first -- a new product's credentials (ERP or any other) are supplied only after AutoTester is proven on Pathlynks; the platform must stay product-agnostic ("not only erp") · EVIDENCE: ERP answer above · APPLIES NEXT: T-122/T-145/T-136 (ERP-named tasks should be re-scoped to "a second product"), T-169 two-mode acceptance
 PATTERN: data exposure through a tester-supplied account is the account provider's responsibility, not a gate AutoTester enforces on its own repo scratch · EVIDENCE: AT-365 answer · APPLIES NEXT: AT-365 close-out, core-invariants data-boundary wording
-**Status:** unfolded (gate answers recorded in qa/gates/: t125-d039-entry-draft, t165-d039-traversal-scope, at086-at087-credential-exemption-scope, at365-data-class-declaration, at110-approval-forgery)
+**Status:** partially folded (2026-09-24, Mode B sweep) — PATTERN 2 (AT-365 data-boundary posture)
+folded → `qa/contracts/core-invariants.md` amendment log (2026-09-24 row) + No-fire list entry;
+ledger `AT-365` → `wontfix` with the same reasoning. PATTERN 1 (Pathlynks-first acceptance / ERP
+task re-scoping) is a task-scope note, not a contract criterion — queued in `qa/QUEUE.md` for the
+maker to re-scope T-122/T-145/T-136's ERP naming, not actioned by this sweep (checker never edits
+`.goal/goal.json` task text). D-039/D-040/AT-086-087/AT-110/T-126 gate answers already recorded on
+their own gate files (unchanged from the note below). Sweep: `qa/verdicts/sweep-2026-09-24b.md`.
+Gate answers recorded in qa/gates/: t125-d039-entry-draft, t165-d039-traversal-scope,
+at086-at087-credential-exemption-scope, at365-data-class-declaration, at110-approval-forgery.
+
+
+## 2026-09-24T23:00:00+05:30 · source: chat (session under himanshu@ account; approval option selected: "Haan, Umesh approve")
+> "and for subagents and all deepagents use ho rhee hai?"
+> "tho humko deepagents with skills and all bnaane hai with tools . prompts as tool dene hai right /maker"
+> AskUserQuestion: "Haan, Umesh approve (Recommended)" · "Wave 1 ke baad (Recommended)"
+PATTERN: agents plan, deterministic tools act -- every AutoTester stage becomes a tool whose safety/credential/consent logic stays in code; the LLM layer only chooses what to do next · EVIDENCE: D-042 design · APPLIES NEXT: T-179..T-181, T-177
+PATTERN: prompts are skills, not tools -- know-how ships as SKILL.md loaded on demand; tools are actions · EVIDENCE: user asked "prompts as tool"; corrected in chat · APPLIES NEXT: T-175, T-179
+**Status:** unfolded (decision recorded as D-042; gate qa/gates/d042-deep-agents.md)

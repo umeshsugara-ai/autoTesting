@@ -478,3 +478,124 @@ at218 · at253 (ARCHITECTURE Execution-model D-entry) · t136-model-credentials 
 **Terminal state: `FINDINGS: 0`** (0 new issue ids; 1 reopened — AT-483 high-severity governance
 finding on a low-severity defect row; 1 evidence-refresh — AT-415; 1 inbox status line added; 0
 bypasses; contracts + enforcement CLEAN; goal-coverage 38/55, no drift; HEAD `2263e9a`).
+
+---
+
+## Sweep refresh — 2026-09-24b (single-agent Mode B, not sharded — RAM tight, per dispatch;
+full report: `qa/verdicts/sweep-2026-09-24b.md`)
+
+Window `2263e9a..f1b8569` (26 commits: T-123/AT-483-reland merges + PASS, gate answers `b8d14bd`,
+D-039/D-040/D-041 appended + T-170..T-178 registered, six DRAFT contracts authored, tick stamps).
+**Out of scope, not judged/touched:** `.worktrees/t170-network-assertions`,
+`.worktrees/at110-approval-signing`, `.worktrees/at335-modal-determinism`.
+
+**GRILL — human decision, not a build row (carried, unanswered):**
+- GRILL: recurring vacuous-guard prevention policy (AT-218).
+- GRILL: real two-mode acceptance thresholds for D-023/T-169 (AT-281).
+- GRILL (AT-402): structure-before-code review of `visual_order.js`.
+
+### Findings this sweep — FINDINGS: 0 new · 1 closed (wontfix) · 3 annotated
+
+| Issue | Sev | What |
+|---|---|---|
+| **AT-365** | high → **wontfix** | Gate answer (`qa/gates/at365-data-class-declaration.md`, 2026-09-24) not yet reflected on the ledger row. Closed `open → wontfix`: Umesh declined both a shared `data_boundary.py` fix and a `.work/` purge — a tester-supplied test account's own data exposure is that account provider's responsibility, not this repo's own scratch-boundary gate. `data_class` stays undeclared by design; MC-003 will keep firing (expected, not a new finding each sweep). Folded → `qa/contracts/core-invariants.md` amendment log + No-fire list; `qa/feedback-inbox.md` 2026-09-24T16:33 entry partially folded. |
+| AT-110 | high (unchanged, open) | `checker_note` appended: gate answered 2026-09-24 (option 1, HMAC keyed from `.env`); build already dispatched to `.worktrees/at110-approval-signing` (out of scope this sweep). Row correctly stays open — design decided, fix not yet merged. No inconsistency found. |
+| AT-086 | medium (unchanged, open) | `checker_note` set: gate answered 2026-09-24 ("go with the best" → option a, explicit declared `.env` public-key allowlist). Not yet built; queued. No inconsistency found. |
+| AT-087 | medium (unchanged, open) | `checker_note` set: gate answered 2026-09-24 (option a, per-field exemption kept in the concatenation join). Not yet built; queued. No inconsistency found. |
+
+**AT-483-class gap re-check (per dispatch item c) — CLEAN, no new findings.** Sampled 24 distinct
+commit SHAs cited as evidence across 18 `fixed`/`verified` rows closed since 2026-09-17 (AT-216,
+AT-401, AT-461, AT-478, AT-483, AT-495, AT-539, AT-541, AT-555, `ISS-t162-drive-2b-1`,
+`ISS-t163-1`, plus AT-065/AT-085 via `18ff2a9` already visible in this window's own log) —
+`git merge-base --is-ancestor <sha> master` returned **ANCESTOR for all 24**, including AT-483's
+own `9673f6b` (now merged via the `wave/at483-reland` re-land, `2d58215`). The class of bug this
+check hunts (a close-out that flips the ledger without the merge reaching master) is not present
+elsewhere in the sampled window; AT-483 itself is the one known instance and it is now resolved.
+
+**Non-findings confirmed, not re-filed:**
+- **Bypass check (26 commits):** only two touch `src/`/`tests/` — `d5db88b` (T-123: AT-085
+  `/healthz` + AT-065 rubric-stamp migration; manifest `qa/manifests/t123-medium-batch.md` →
+  verdict `97d74d7` → close-out `17a8a3d` → merge `18ff2a9`) and `9673f6b` (AT-483, already
+  reconciled by the prior sweep and re-landed `87e247b`/`2d58215`). Both trace to a proper
+  manifest→verdict handshake. All other commits are decisions (`ea6b7c3`/`310e7c1`, both
+  `Approved-by: Umesh` per the Lab Protocol), contract DRAFTs (checker-owned surface), gate/inbox
+  writes, or tick stamps. CLEAN.
+- **Pair-state reconciliation:** no manifest on master sits at `Status: ready-for-check` (both
+  in-flight units live in their own worktrees, out of scope). `qa/.last-tick` fresh
+  (`2026-09-24T21:50:55+05:30`, this session). No `qa/.paused`. CLEAN.
+- **Delegation health:** `qa/delegation-ledger.jsonl` — no run-dispatch gap (the one external
+  `ollama/deepseek-v4.1-flash` unit, `at119-vocab`, carries a matching `run` row); weak-executor
+  check `n=1` for that `(task_class, executor)` pair, below the ≥10-unit sample floor — no finding.
+- **Gate-answered-off-disk:** all five gates touched this window
+  (`t125-d039-entry-draft`, `t165-d039-traversal-scope`, `at086-at087-credential-exemption-scope`,
+  `at365-data-class-declaration`, `at110-approval-forgery`) carry a real `Answered:` line dated
+  2026-09-24T16:32:17+05:30. Zero found answered-off-disk.
+- **Contract staleness:** the six new DRAFT contracts (`catalog.md`, `network-assertions.md`,
+  `crawl-traversal.md`, `run-trace.md`, `parallel-run.md`, `skills.md`) are correctly `DRAFT` —
+  authored this window, no unit has built against any yet. No stale criterion found elsewhere.
+- **Enforcement liveness:** `.claude/settings.json` hooks (`SessionStart`, `PreToolUse`,
+  `SessionEnd`) all resolve to files on disk (`qa/hooks/mc-sessionstart.ps1`,
+  `.claude/hooks/lab-session-start.ps1`, `qa/hooks/mc-precommit.ps1`,
+  `.claude/hooks/decisions-append-guard.ps1`, `.claude/hooks/lab-session-end.ps1`); `qa/loop.md`'s
+  Stop/Human-gate lines uncontradicted by `qa/adapter.json`; repo has commits (HEAD `f1b8569`).
+  CLEAN.
+- **Data-boundary (MC-003):** still fires — `qa/adapter.json` has no `data_class`, by design now
+  (see AT-365 close-out above). Not re-filed as a fresh finding; codified in the contract's No-fire
+  list.
+- **Goal-coverage:** `.goal/goal.json` = **38/64 done (59%)** — done count unchanged (T-164 last
+  closed it), total rose 55→64 via D-041's T-172..T-178 registration (+9, all `pending`, deps
+  satisfied or `[]`). No drift: no requirement newly `missing` with no source, north star unedited.
+- **Goal-drift / re-grill:** `qa/.regrill-due` absent. No new GRILL trigger.
+- **Silent-failure hunt** over `d5db88b`'s new code (`ui/routes_live.py::healthz`,
+  `_newest_source_mtime`): none found — the one fallback (`if not mtimes: return
+  _PROCESS_STARTED_AT`) is a benign empty-directory case, not an error swallow.
+- **Doctor + ruff, re-run at HEAD `f1b8569`:** `uv run autotester doctor` → `doctor: clean`;
+  `uv run ruff check src tests scripts` → `All checks passed!`. Full `pytest` NOT run per dispatch
+  (RAM; a build running).
+- **Token ledger:** re-measured, `opus_sub_share=0.0` (0/250,154,319 sub-agent tokens are Opus; 16
+  sub-agents, all `claude-sonnet-5`), 0 compactions, no unit at fix cycle 3 this window — under the
+  25% diet threshold, no finding. Line appended to `qa/token-ledger.jsonl`.
+- **Structural erosion:** no new signal — only `ui/routes_live.py` (first touch) and the already
+  known `explore_*` files (AT-483 saga, unchanged this window) were edited; `AT-488`/`AT-502`
+  carried, numbers unchanged.
+
+### TOP-3 BUILDABLE NEXT UNITS (2026-09-24b refresh)
+
+| # | Unit | Why |
+|---|---|---|
+| **1** | **T-172 — Run trace** (`trace.jsonl` per run: stage + LLM spans, model/tokens/latency/cost/fallback/verdict + UI panel; D-041, deps `T-163` ✓) | Newly registered, dependency satisfied, no human gate; contract `run-trace.md` (DRAFT) already authored this window. |
+| **2** | **T-173 — Parallel case execution** (N isolated browser contexts bounded by measured RAM/CPU + `project.max_parallel`; write-policy cases serial; D-041, deps `T-163` ✓) | Same readiness as T-172; contract `parallel-run.md` (DRAFT) already authored this window. |
+| **3** | **AT-086/AT-087 (medium×2)** — both gate-answered ("go with the best": AT-087 per-field exemption kept in the join; AT-086 explicit declared `.env` public-key allowlist), deferred by T-123, not yet built. | Decision no longer blocks; smallest well-scoped buildable unit left with a resolved gate. |
+
+**Queued after top-3, per the standing build-order plan:** T-175 (Prompts as SKILL.md, deps `[]`,
+no contract yet), T-126 (adapter allowlist, gate-answered "allow krr dee"), AT-335 (modal crawl
+determinism — worktree already prepared at `.worktrees/at335-modal-determinism`). **In flight,
+not re-queued:** T-170 (network-assertions, `.worktrees/t170-network-assertions`), AT-110
+(approval signing, `.worktrees/at110-approval-signing`).
+
+**Deprioritised (not cancelled):** AT-497/AT-545 (orphaned-running-crawl heartbeat, folded into
+the now-merged AT-483 fix) · AT-488/AT-502 (structural-erosion signals, advisory only) · AT-556
+(loop-liveness observation, low) · AT-546 (checker-owned `require_consent` contract re-point) ·
+AT-529 (HUMAN_GATE, Pathlynks test-account credentials).
+
+### HUMAN_GATE — do not build as ordinary units (re-verified on disk this sweep)
+
+| Gate | Status |
+|---|---|
+| `live-crawl-target.md`, `post-login-forms.md`, `erp-credentials.md`/AT-529 | Still unanswered — blocks the live post-login acceptance run. |
+| `t162-contract-approval.md` | Still unanswered (T-162…T-169 umbrella; individual chains since split and separately gated/answered). |
+| `at438-u14b-baseline.md`, `commit-before-verdict.md` | Other session's AT-438; protocol departure. Unchanged. |
+| `at416-clip-vs-reach-direction.md`, `at383-loop-status-consumer.md` | Still unanswered. |
+| `at147-expiry-end-of-day.md`, `at218-vacuous-guard-class.md`, `t136-model-credentials.md` | Still unanswered. |
+| `at253-agent-fallback-wiring.md` | Still unanswered (ARCHITECTURE Execution-model D-entry). |
+| ~~`t165-d039-traversal-scope.md`~~ | **Answered 2026-09-24** (D-040 approved) — removed from this table. |
+| ~~`t125-d039-entry-draft.md`~~ | **Answered 2026-09-24** (D-039 appended) — removed from this table. |
+| ~~`at365-data-class-declaration.md`~~ | **Answered 2026-09-24** — AT-365 closed wontfix, removed from this table. |
+| ~~`at110-approval-forgery.md`~~ | **Answered 2026-09-24** (option 1) — build dispatched; removed from this table (no longer a *decision* blocker, tracked as an in-flight unit instead). |
+| ~~`at086-at087-credential-exemption-scope.md`~~ | **Answered 2026-09-24** ("go with the best") — removed; tracked as TOP-3 #3 above instead. |
+
+**Terminal state: `FINDINGS: 0`** (0 new issue ids; 1 closed `open → wontfix` — AT-365; 3 rows
+annotated — AT-110/AT-086/AT-087 gate-answered notes; 0 bypasses; AT-483-class ancestry re-check
+CLEAN across 24 sampled SHAs; contracts + enforcement + delegation health CLEAN; goal-coverage
+38/64, no drift; 5 gates newly answered and removed from the open-HUMAN_GATE table; HEAD
+`f1b8569`).

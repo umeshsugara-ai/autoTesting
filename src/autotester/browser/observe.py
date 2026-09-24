@@ -36,6 +36,10 @@ class PageObserver:
         self.failed: list[tuple[str, str]] = []
         self.dialogs: list[DialogEvent] = []
         self.popups = 0
+        self.responses: list[tuple[str, str, int]] = []
+        """T-170/NA1: EVERY response (method, url, status), not only the
+        failing ones `.failed` already counts -- the evidence-producing
+        second read of `attach`'s one response listener (NA6)."""
         self._attached = False
 
     def attach(self, page: Any) -> None:
@@ -63,6 +67,10 @@ class PageObserver:
     def _on_response(self, response: Any) -> None:
         if response.status >= 400:
             self.failed.append((response.url, str(response.status)))
+        # T-170/NA1: every response, independent of status -- the second,
+        # evidence-producing read of the same stream (NA6, no second listener).
+        method = getattr(getattr(response, "request", None), "method", "GET")
+        self.responses.append((method, response.url, response.status))
 
     def _on_dialog(self, dialog: Any) -> None:
         action = self.dialog_action(dialog.type)
@@ -83,6 +91,14 @@ class PageObserver:
         console, failed, dialogs, popups = self.console, self.failed, self.dialogs, self.popups
         self.console, self.failed, self.dialogs, self.popups = [], [], [], 0
         return console, failed, dialogs, popups
+
+    def drain_responses(self) -> list[tuple[str, str, int]]:
+        """Return and clear the (method, url, status) stream since the last
+        drain -- kept separate from `drain()` (T-170/NA1) so existing callers
+        of `drain()` are unaffected."""
+        responses = self.responses
+        self.responses = []
+        return responses
 
 
 def enumerate_elements(page: Any) -> list[ElementRef]:

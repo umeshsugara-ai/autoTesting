@@ -24,7 +24,13 @@ from autotester.schema.crawl import Crawl, CrawlBounds, NoiseCount, SafetyPolicy
 from autotester.schema.enums import Action, CrawlStatus, Outcome
 from autotester.schema.project import Project
 from autotester.schema.screen_graph import CrawlFrontier, ScreenEdge, ScreenNode
-from autotester.stages import crawl_coverage, explore_consent, explore_node, explore_status
+from autotester.stages import (
+    crawl_coverage,
+    explore_consent,
+    explore_node,
+    explore_status,
+    network_capture,
+)
 from autotester.stages.execute import run_case
 from autotester.stages.explore_safety import DialogBreaker
 from autotester.stages.screen_identity import node_from
@@ -217,7 +223,16 @@ def _terminal_status(rt: ExploreRuntime, completed: bool, login_case: Case | Non
     return status
 
 
+def _fold_network_evidence(rt: ExploreRuntime) -> None:
+    """T-170/NA1: fold first-party responses into NETWORK evidence, once,
+    at the end (no per-step RawResult to fold into, unlike execute.py)."""
+    for item in network_capture.first_party_evidence(
+            rt.observer.drain_responses(), rt.project, rt.policy, rt.session.secrets.redactor()):
+        rt.store.add_crawl_network(rt.crawl.id, item)
+
+
 def _finish(rt: ExploreRuntime, status: CrawlStatus) -> Crawl:
+    _fold_network_evidence(rt)
     crawl = rt.crawl.model_copy(update={
         "status": status,
         "stop_reason": rt.session.secrets.scrub_optional(rt.stop_reason),  # AT-350

@@ -1,6 +1,6 @@
 # Contract — network-assertions (first-party API/network capture as evidence)
 
-**Status:** DRAFT (goes DRAFT->ACTIVE on T-170's first checker PASS).
+**Status:** ACTIVE (went DRAFT->ACTIVE on T-170's first checker PASS, 2026-09-24).
 **Feature:** ADOPTs Playwright's `page.on('response')` (already a direct dependency, already
 attached once per session via `browser/observe.py::PageObserver.attach`) to record first-party
 API/network calls made during a crawl or a run as first-class **evidence** — `(method, url pattern,
@@ -98,3 +98,6 @@ justified module per C3 rather than pushing the file over budget.
 - 2026-09-24 · init · contract authored by /checker as DRAFT, from D-040 (Approved-by Umesh — "go
   on" to `qa/gates/t165-d039-traversal-scope.md`) and `docs/research/crawl-reuse-2026-09.md` §6.
   No prior draft existed; nothing amended.
+- 2026-09-24 · PASS (DRAFT->ACTIVE) · t170-network-assertions cycle 1, PASS, all six NA1-NA6
+  criteria evidenced in code and independently falsified in an isolated copy (6/6 capability rows
+  reproduced). No criterion changed. Verdict: `qa/verdicts/t170-network-assertions.md`.

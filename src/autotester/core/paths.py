@@ -167,6 +167,10 @@ class ProjectPaths:
     def crawl_issues(self, crawl_id: str) -> Path:
         return self.crawl_dir(crawl_id) / "issues.jsonl"
 
+    def crawl_network(self, crawl_id: str) -> Path:
+        """T-170/NA1: first-party NETWORK evidence captured during the crawl."""
+        return self.crawl_dir(crawl_id) / "network.jsonl"
+
     def crawl_frontier(self, crawl_id: str) -> Path:
         return self.crawl_dir(crawl_id) / "frontier.json"
 
