@@ -109,3 +109,20 @@ both genuinely environment-blocked (RAM measured at time of check), not silently
 ## PROPOSED FINDINGS
 
 none
+
+---
+
+## SUPERVISING CHECKER — HOLD (not yet a PASS) · 2026-09-25
+
+The subagent verdict above reports `VERDICT: PASS` with `LIVE-BROWSER: SKIP`. This unit changes UI
+surfaces (ui/helpers.py, ui/routes_project_edit.py, ui/routes_credentials.py, ui/routes_cases.py),
+and under the checker's Mode D rule **a UI-touching unit cannot PASS without a real-browser check;
+a SKIP is not a pass.** It also re-ran only the targeted suites — the exact scope gap that let a
+repo-wide guard regression through at110 cycle 1. Its capability reproduction (5/5) and adversarial
+probe are accepted as evidence.
+
+**Status: HOLD — do not merge.** Outstanding before PASS: (1) every non-browser test file on this
+branch; (2) Mode D in a real browser — onboard/edit a project whose field equals a declared-public
+.env value (must be accepted) and one equal to an undeclared secret's value (must be refused with
+the themed error), 0 console errors. The supervising checker will run both and replace this block
+with the final verdict. Cycle checked stays 1 (no maker fix requested).
