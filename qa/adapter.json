@@ -1,6 +1,6 @@
 {
   "adapter": "coding",
-  "_note": "Commands here are allowlisted at the START gate (2026-09-03). The maker must never add free-form shell mid-run; an un-allowlisted command is CONTRACT_MISMATCH.",
+  "_note": "Commands here are allowlisted at the START gate (2026-09-03). The maker must never add free-form shell mid-run; an un-allowlisted command is CONTRACT_MISMATCH. Widened 2026-09-24 under D-018 + Umesh's feedback-inbox 'allow krr dee' (T-126) to also name the read-only inspection commands checkers already legitimately run — see verify.read_only_allowlist below; the three required gates in verify.commands are unchanged.",
   "unit_vocab": { "id_prefix": "AT", "severity": ["S1", "S2", "S3"] },
 
   "verify": {
@@ -9,7 +9,21 @@
       { "cmd": "uv run pytest", "expect": "exit 0" },
       { "cmd": "uv run ruff check src tests scripts", "expect": "exit 0" },
       { "cmd": "uv run autotester doctor", "expect": "exit 0" }
-    ]
+    ],
+    "read_only_allowlist": {
+      "_note": "D-018 (2026-09-08) + Umesh 2026-09-24 (qa/feedback-inbox.md 16:33, 'T-126 adapter allowlist: allow krr dee'): evidence-gathering commands a checker already legitimately runs mid-check, beyond the three required gates above — none of these are part of the pass/fail gate itself. Read-only/inspection ONLY: nothing here may write, push, delete or reach the network; a command not covered by verify.commands or this list is CONTRACT_MISMATCH per domain-adapter.md's Security invariant.",
+      "commands": [
+        { "cmd_prefix": "uv run python scripts/explore_proof.py", "note": "T-126 done_check asserts this literal entry exists; live-browser proof of the explorer crawl (D-024) against the local fixture site only — read-only, no live product touched" },
+        { "cmd_prefix": "uv run python scripts/regression_proof.py", "note": "mirrors the explorer's proof script for the regression suite; read-only against the local fixture site (tests/fixtures/regression_site/)" },
+        { "cmd_prefix": "docker inspect", "note": "reads container metadata (e.g. StartedAt for the AT-085 live-run staleness guard); never starts, stops or mutates a container" },
+        { "cmd_prefix": "git show", "note": "reads one commit/blob to confirm what a manifest's cited SHA actually contains" },
+        { "cmd_prefix": "git diff", "note": "read-only diff inspection between commits or worktrees while re-deriving a manifest's claim" },
+        { "cmd_prefix": "git log", "note": "read-only history inspection to confirm a commit exists, or its ordering relative to another" },
+        { "cmd_prefix": "md5sum", "note": "content-hash comparison of an evidence file, POSIX shells" },
+        { "cmd_prefix": "certutil -hashfile", "note": "content-hash comparison of an evidence file, Windows equivalent of md5sum" },
+        { "cmd_prefix": ".work/", "note": "checker-authored one-off probe scripts, scoped to the project's scratch dir (never the repo root); each is read-only toward the bound tree by the capability-coverage falsification rule (maker/SKILL.md), which requires perturbation to happen in a throwaway copy outside it" }
+      ]
+    }
   },
 
   "artifact": {
