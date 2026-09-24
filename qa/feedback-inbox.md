@@ -831,7 +831,11 @@ positioning caution) are strategy notes for Umesh, not ledger defects. Verdict f
 Decisions given via AskUserQuestion: Reuse = research spike, then PORT patterns (MIT/Apache/BSD only, no AGPL) · DFS = hybrid (BFS maps portal + bounded DFS per workflow; flagged vs D-023 "avoid single happy-path DFS" -- distinct, to be recorded in a D-entry) · Writes = ALL writes the role allows on a consented TEST_ACCOUNT, including delete (destructive ordered last).
 PATTERN: persistence without read-back is not memory -- a durable model (portal_persona.json) must seed the next crawl and diff against it (new/changed/missing/broken), else every run retraces from zero · EVIDENCE: explore.py never reads the persona; persona merge is add-only (PP2) with no last_seen/missing marking · APPLIES NEXT: T-165 frontier, T-167 regression, T-168 damage report; coverage denominator = the role's permission surface, not the screens a read-only crawl happened to see.
 
-**Status:** GATED → `qa/gates/t165-d039-traversal-scope.md` (D-039 awaiting Umesh); T-164 portion folded → `qa/contracts/portal-persona.md` (PASS `05fc732`). Re-derived by Mode B sweep 2026-09-24 (sharded, consolidation): D-038/T-164 shipped and closed (`ec82440` decision → `df97924` build → `05fc732` PASS → `3ceb7b9` close-out, F-046 ledgered); the reuse-spike ask landed as `docs/research/crawl-reuse-2026-09.md` (`b9c237e`); the remaining widened-scope ask (hybrid traversal, incremental crawl, change tracking, permission surface, API capture) is held at the T-165 gate pending D-039 approval, not dropped.
+**Status:** folded → D-040 approved the widened scope (2026-09-24, "go on"); the DFS/hybrid,
+schema-persistence and change-tracking asks are now `qa/contracts/crawl-traversal.md` (T-165,
+CR1/CR3/CR4) and the API-capture ask is `qa/contracts/network-assertions.md` (T-170, NA1-NA6). T-164
+portion already folded → `qa/contracts/portal-persona.md` (PASS `05fc732`). The "permission = testing
+surface" clause is routed to T-171 (not yet contracted; split out of T-165 by D-040), not dropped.
 
 
 ## 2026-09-24T16:10:00+05:30 · source: Umesh, chat — pasted transcript of a Vidysea product-demo meeting (parent/child/counsellor flow; verbatim excerpts, timestamps from the transcript)
@@ -850,7 +854,12 @@ PATTERN: a scenario list is the input contract for a teaching recording — reco
 PATTERN: "worst-case default" is a checkable UI defect class — a forced-choice field (relation: father/mother/other) that arrives pre-selected lets a user click through a wrong value; the explorer/grader should flag required choices with a default already applied · EVIDENCE: 02:08-02:49 · APPLIES NEXT: explore/grade heuristics, T-165 permission-surface pass
 PATTERN: stalled-handoff checks — a request routed to a role (counsellor request → school admin / super admin) needs a "nobody acted in N days" nudge path; the tester should ask what happens when the next actor never opens it · EVIDENCE: 03:30-04:41 · APPLIES NEXT: multi-role flow cases (T-166), T-168 report "risk" section
 PATTERN: per-flow validation plans accumulate and are stitched into one release regression that ends in an issues log — this is the product's own north star as the customer states it · EVIDENCE: 09:28-09:47 · APPLIES NEXT: T-167 release-triggered regression, T-168 damage-control report
-**Status:** unfolded
+**Status:** judged out of scope for D-039/D-040's three contracts (catalog.md, network-assertions.md,
+crawl-traversal.md) — checked against each: the scenario-list pattern belongs to
+`video-learning.md`/T-166 (not authored this pass); the worst-case-default pattern names "T-165
+permission-surface pass," which D-040 split out to **T-171** (no contract yet); the stalled-handoff
+and stitched-regression patterns belong to T-166/T-167/T-168. None fit CT/NA/CR criteria as scoped.
+Left unfolded pending whichever unit builds T-171/T-166/T-167/T-168's contracts.
 
 
 ## 2026-09-24T16:33:00+05:30 · source: Umesh, chat (answers to the seven open decisions, verbatim)
