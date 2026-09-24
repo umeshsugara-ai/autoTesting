@@ -245,9 +245,9 @@ class BrowserSession:
         """D-032/AT-540: evaluate a declared expectation and RECORD the result.
 
         Deterministic fields only (`url`/`visible_text`/`absent_text`/
-        `dom_asserts`); `network` is observer-derived and `visual_signal` is
-        the judge's (execute.md E1's no-fire line). Polls to `timeout_ms`,
-        records one `assert <field>: met|unmet` DOM evidence item per
+        `dom_asserts`/`network`, T-170); `visual_signal` remains the judge's
+        (execute.md E1's no-fire line). Polls to `timeout_ms`,
+        records one `assert <field>: met|unmet` DOM/NETWORK evidence item per
         evaluated field, raises nothing — the caller decides the
         observation-level consequence. C7 holds: facts recorded, the grader
         still owns the verdict. Implementation: `browser/assertions.py` (the

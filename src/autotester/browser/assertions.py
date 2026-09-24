@@ -3,10 +3,13 @@
 assertion layer arrived).
 
 One job: evaluate a declared `ExpectedState` against the live page and record
-each field's result as DOM evidence. Deterministic fields only — `url`
-(substring), `visible_text` (present), `absent_text` (truly absent),
-`dom_asserts` (selectors exist). `network` is observer-derived and
-`visual_signal` is the judge's (execute.md E1's no-fire line, unchanged).
+each field's result as DOM/NETWORK evidence. Deterministic fields only —
+`url` (substring), `visible_text` (present), `absent_text` (truly absent),
+`dom_asserts` (selectors exist), `network` (T-170/NA3: a substring match
+against the first-party NETWORK evidence `stages/execute.py` already folded
+in for this run, via `stages/network_capture.py` — no second classifier
+here, C3). `visual_signal` is still the judge's (execute.md E1's no-fire
+line).
 
 C7 holds by construction: these functions RECORD facts, they never assign
 PASS/FAIL — the grader still owns the verdict.
@@ -47,6 +50,8 @@ def met(session, expected: ExpectedState) -> bool:
         for selector in expected.dom_asserts:
             if not selector_exists(session, selector):
                 return False
+        if expected.network and not all(_network_met(session, p) for p in expected.network):
+            return False
     return True
 
 
@@ -88,7 +93,23 @@ def assert_expected(session, expected: ExpectedState, *,
             EvidenceKind.DOM, f"assert dom_asserts: {'met' if found else 'unmet'} "
             f"(selector {selector!r} {'exists' if found else 'not found'})",
             step_order=step_order))
+    for pattern in expected.network:
+        found = _network_met(session, pattern)
+        evidence.append(session._record(
+            EvidenceKind.NETWORK, f"assert network: {'met' if found else 'unmet'} ({pattern!r})",
+            step_order=step_order))
     return evidence
+
+
+def _network_met(session, pattern: str) -> bool:
+    """T-170/NA3: whether `pattern` appears in any first-party NETWORK
+    evidence already captured on this session (`stages/execute.py`'s
+    `_drain_network_evidence`, folded before every assertion check) -- a
+    pure read of the observed response stream (NA4), never a second capture
+    mechanism (NA6). Excludes this module's own `assert network: ...`
+    records so a prior assertion's own label can never satisfy a later one."""
+    return any(pattern in item.path for item in session.state.evidence
+               if item.kind == EvidenceKind.NETWORK and not item.path.startswith("assert "))
 
 
 def _url_label(session, url: str) -> str:

@@ -18,9 +18,11 @@ from collections.abc import Callable
 from autotester.browser.secrets import MissingSecret
 from autotester.browser.session import BrowserSession
 from autotester.schema.case import Case
+from autotester.schema.crawl import SafetyPolicy
 from autotester.schema.enums import Action, Outcome
 from autotester.schema.flowspec import Step
 from autotester.schema.run import RawResult
+from autotester.stages import network_capture
 
 _DEFAULT_WAIT_MS = 5000
 
@@ -68,15 +70,35 @@ class StepNotExecutable(RuntimeError):
     execution failure — a run reports it, never crashes on it."""
 
 
+_ASSERT_EVIDENCE_KINDS = ("dom", "network")  # T-170/NA3: network joins the deterministic set
+
+
 def _assertions_unmet(session: BrowserSession, evidence_start: int) -> bool:
     """Whether any recorded assert evidence after `evidence_start` says unmet
     (D-032). Reads only the labels this system itself wrote
     (`browser/assertions.py`'s `assert <field>: met|unmet` shape)."""
     unmet = "assert "
     for item in session.state.evidence[evidence_start:]:
-        if item.kind.value == "dom" and item.path.startswith(unmet) and "unmet" in item.path:
+        if (item.kind.value in _ASSERT_EVIDENCE_KINDS and item.path.startswith(unmet)
+                and "unmet" in item.path):
             return True
     return False
+
+
+def _drain_network_evidence(session: BrowserSession) -> None:
+    """T-170/NA1: fold every first-party response the observer saw since the
+    last drain into NETWORK evidence -- called after every step so a
+    same-step `expected.network` check (`assert_expected`) already sees it.
+    A no-op when no observer is attached (session.observer is None), which
+    keeps every pre-existing run_case call unaffected."""
+    if session.observer is None:
+        return
+    responses = session.observer.drain_responses()
+    if not responses:
+        return
+    policy = SafetyPolicy(write_policy=session.project.write_policy)
+    session.state.evidence.extend(network_capture.first_party_evidence(
+        responses, session.project, policy, session.secrets.redactor()))
 
 
 def run_case(case: Case, session: BrowserSession) -> RawResult:
@@ -84,9 +106,10 @@ def run_case(case: Case, session: BrowserSession) -> RawResult:
 
     D-032/AT-540: after every step whose `expected` declares something the
     executor can check deterministically (url/visible_text/absent_text/
-    dom_asserts), the expectation is evaluated and recorded as DOM evidence;
-    an unmet one makes the run's outcome ASSERTION_FAILED — an observation
-    that a declared expectation did not hold, never a grade."""
+    dom_asserts/network — T-170), the expectation is evaluated and recorded
+    as DOM/NETWORK evidence; an unmet one makes the run's outcome
+    ASSERTION_FAILED — an observation that a declared expectation did not
+    hold, never a grade."""
     start = time.monotonic()
     assertion_failed = False
     for step in sorted(case.steps, key=lambda s: s.order):
@@ -108,6 +131,7 @@ def run_case(case: Case, session: BrowserSession) -> RawResult:
                 # brand-new production URL captured a blank NAVIGATE
                 # screenshot and false-FAILed on it).
                 session.settle(step.expected)
+            _drain_network_evidence(session)  # T-170/NA1: before this step's own assert_expected
             if pre is not None:
                 if step.action is not Action.ASSERT:
                     # the step's own declared expectation, evaluated after settle
@@ -128,10 +152,11 @@ def run_case(case: Case, session: BrowserSession) -> RawResult:
 
 def _declares_expectation(expected: object) -> bool:
     """Whether an `ExpectedState` carries anything the executor can check
-    deterministically (D-032). `visual_signal` and `network` are excluded —
-    they are the judge's/observer's."""
+    deterministically (D-032). `network` joined this set at T-170/NA3
+    (`_drain_network_evidence` folds the observed stream into evidence before
+    `assert_expected` reads it); `visual_signal` remains the judge's."""
     return bool(expected.url or expected.visible_text or expected.absent_text
-                or expected.dom_asserts)
+                or expected.dom_asserts or expected.network)
 
 
 def _result(
