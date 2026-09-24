@@ -115,4 +115,4 @@ running against `tmp_path` fixtures) — no browser, no UI, no live product surf
 allowlist note + robust fixture restore" (branch `wave/at560-allowlist-note`, worktree
 `D:/autoTesting/.worktrees/at560-allowlist-note`)
 
-Status: ready-for-check
+Status: checked-PASS (qa/verdicts/at560-allowlist-note.md, cycle 1, 898879e)
