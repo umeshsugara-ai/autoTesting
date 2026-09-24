@@ -30,6 +30,7 @@ Plan of record: `C:/Users/Lenovo/.claude/plans/great-when-you-really-iridescent-
 | `docs/research/market-2026-09.md` | choosing a library to reuse or positioning against a competitor |
 | `docs/research/schema-2026-09.md` | changing a schema model, adding an interop adapter, or wiring a benchmark |
 | `docs/research/testsprite-2026-09.md` | choosing a mechanism for the oracle, the failure bundle or the CLI contract — how the funded competitors do it, and the verified gaps between our execution-model claims and our code |
+| `docs/research/crawl-reuse-2026-09.md` | designing T-165 crawl units (hybrid BFS/DFS, incremental crawl, change tracking, permission surface, API capture) — licence + ADOPT/PORT/AVOID per tool |
 | `qa/contracts/*.md` | building or checking a unit — the criteria it is judged against |
 | `.work/grill-*.md` | the reasoning behind a design (grill captures); not committed |
 
