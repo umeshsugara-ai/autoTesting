@@ -51,3 +51,30 @@ Both live edits (rows 1–2) were reverted immediately; the copy re-ran green (1
 - qa/gates/at110-approval-forgery.md still carries `Status: OPEN` in its header even though its `Answered:` line is present (bookkeeping only; the answer is on disk, so this is not the D-006 "gate answered off-disk" failure). Cosmetic; flag for a gate-status tidy on merge.
 
 ## Status: PASS — maker to merge wave/at110-approval-signing and push (D-007).
+
+---
+
+## Cycle 2 — VERDICT: PASS
+
+**Date:** 2026-09-25 · **Checker:** /checker Mode A, sole direct checker (in-session) · **Head checked:** 1f5153a (merge of master 11776d4 at da6eb97 + cycle-2 commit)
+**Cycle checked: 2** (manifest Fix cycle: 2 of 3)
+
+```
+VERDICT: PASS
+SCOREBOARD: CN3 met; CN1–CN2, CN4–CN9 not regressed; the cycle-1 merged-tree regression (advice-site guard) resolved; ALL 136 non-browser test files green on the merged branch
+CAPABILITY-COVERAGE: 7/7 carried from cycle 1 — src is content-identical to the cycle-1 frozen copy (diff --strip-trailing-cr clean on ids.py, consent.py, approval.py, cli_crawl.py, routes_crawl_approval.py; test_approval_signing.py byte-identical); cycle 2 changes only tests/test_cli_advice_resolves.py (count) + the manifest
+LIVE-BROWSER: carried from cycle 1 — qa/evidence/browser-at110-approval-signing-2026-09-24-checker/report.json; valid because the UI code is content-identical and the master merge touched no src/autotester/ui code (git diff 283edf4 da6eb97 -- src/autotester/ui: empty)
+ISSUES-WRITTEN: none new; AT-110 reopened after cycle 1, now open -> fixed
+EXPLANATION: Cycle 1 was PASSed by this checker on targeted suites only and missed a repo-wide guard: at110 adds a second `core/consent.py` "approve" advice site (consent.py:82), so test_cli_advice_resolves::test_no_advice_site_can_vanish_unnoticed saw 17 != 16. The maker caught it at merged-tree verify. Confirmed introduced by this unit (master: one site at consent.py:35, guard 25 passed) — the cycle-1 manifest's "pre-existing" claim was false. Cycle 2 pins the count at 17; this is legitimate, not a softened guard, because the parametrized resolve test re-checks every collected site (the new one included) and EXPECTED_SITES already holds ("core/consent.py","approve").
+```
+
+### What I re-ran for cycle 2
+- Isolated the unit delta: `git diff da6eb97^2 1f5153a` = the 21 cycle-1 files + tests/test_cli_advice_resolves.py (+manifest/verdict). Cycle-2 commit alone: manifest + the count line + a docstring note. No source change.
+- Guard on master (no at110): `tests/test_cli_advice_resolves.py` 25 passed; `grep "autotester approve" core/consent.py`: master line 35 only, branch lines 36 and 82.
+- **Every non-browser test file on the merged branch** (136 files; the 18 files that launch a browser excluded, list in the checker scratchpad): **1502 passed, 5 skipped, 0 failed** in 283 s. The full suite including browser files was not run (RAM, AT-558); the excluded files are browser crawl/explore tests that exercise approvals only through the conftest session key, and the at110 UI path is covered by the cycle-1 live Mode D.
+- CN6 re-judged for the new site: the bare `re-grant it with \`uv run autotester approve\`` is a per-row reason inside the refusal; every ApprovalRequired still ends with `Grant one with:` + the full `_grant_command(...)` (consent.py:129-133), so the operator is always given a pasteable, working command. Not a finding.
+
+### Checker lesson recorded
+The cycle-1 PASS was issued on targeted suites. From this cycle on, this checker does not PASS a unit without every non-browser test file green on the unit's tree — repo-wide guards (advice sites, doctor, vocabularies, done-checks) live outside any targeted set.
+
+## Status: PASS (cycle 2) — maker to merge wave/at110-approval-signing and push.
