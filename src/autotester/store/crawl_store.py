@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from autotester.core.paths import ProjectPaths
 from autotester.schema.crawl import Crawl, CrawlIssue
+from autotester.schema.run import Evidence
 from autotester.schema.screen_graph import CrawlFrontier, ScreenEdge, ScreenNode
 from autotester.store.filestore import (
     append_jsonl,
@@ -74,6 +75,13 @@ class CrawlStoreMixin:
 
     def list_crawl_issues(self, crawl_id: str) -> list[CrawlIssue]:
         return read_jsonl(self.paths.crawl_issues(crawl_id), CrawlIssue)
+
+    def add_crawl_network(self, crawl_id: str, evidence: Evidence) -> None:
+        """T-170/NA1: one first-party NETWORK evidence row for this crawl."""
+        append_jsonl(self.paths.crawl_network(crawl_id), evidence)
+
+    def list_crawl_network(self, crawl_id: str) -> list[Evidence]:
+        return read_jsonl(self.paths.crawl_network(crawl_id), Evidence)
 
     def save_frontier(self, crawl_id: str, frontier: CrawlFrontier) -> None:
         write_json(self.paths.crawl_frontier(crawl_id), frontier)
