@@ -126,3 +126,21 @@ branch; (2) Mode D in a real browser — onboard/edit a project whose field equa
 .env value (must be accepted) and one equal to an undeclared secret's value (must be refused with
 the themed error), 0 console errors. The supervising checker will run both and replace this block
 with the final verdict. Cycle checked stays 1 (no maker fix requested).
+
+---
+
+## FINAL — supervising checker · 2026-09-25 · replaces the HOLD above
+
+**Cycle checked: 1**
+
+```
+VERDICT: PASS
+SCOREBOARD: AT-086 (declared-public .env keys, source-only list) and AT-087 (per-field exemption, exempt fields stay in the joined-credential check) implemented per gate answers (a)/(a); diff scope clean (8 files, all in "What changed"); ALL 136 non-browser test files green
+CAPABILITY-COVERAGE: 5/5 reproduced by the subagent in its own throwaway copy (accepted — rows A–E above, incl. the undeclared-key collision case)
+NON-BROWSER SUITE: 1494 passed, 5 skipped, 0 failed (251 s) on this branch; the 18 browser-launching files excluded (RAM, AT-558)
+LIVE-BROWSER: qa/evidence/browser-at086-087-exemption-2026-09-25-checker/report.json — real browser against the SHIPPED PUBLIC_ENV_KEYS with dummy *.example.test values: A declared-public base_url onboards (redirect to /projects/portal); B undeclared key's value refused, value not echoed; C value shared by the declared-public key and an undeclared secret (GEMINI_API_KEY) refused, nothing stored. Only console errors are the browser's own 400 logs for the refused submissions.
+ISSUES-WRITTEN: none new; AT-086 and AT-087 open -> fixed
+EXPLANATION: The subagent's PASS was held because it skipped Mode D on a UI-touching unit and ran only targeted suites; both gaps are now closed by the supervising checker. The live browser also shows refusals render as a raw FastAPI JSON body — reproduced identically on master (400 application/json), so it is the pre-existing AT-439, not charged to this unit.
+```
+
+## Status: PASS — maker to merge wave/at086-087-exemption and push.
