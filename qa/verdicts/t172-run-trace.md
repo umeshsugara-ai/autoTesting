@@ -158,3 +158,31 @@ call site that builds a `TraceWriter` (`StageContext.__post_init__`) never threa
 nothing. This is reproducible today with the exact wiring the unit ships (confirmed above) and is
 not disclosed anywhere in the manifest as a residual. For a unit whose whole point is a credential-
 boundary-adjacent redaction gate (C5), this is a FAIL, not a warning.
+
+---
+
+## SUPERVISING CHECKER — FAIL confirmed, severity recalibrated · 2026-09-25
+
+**FAIL stands.** Independently re-read: the only production construction of a `TraceWriter` is
+`stages/orchestrate.py:76` (`StageContext.__post_init__`), which passes no `redactor=`, so
+`core/trace.py:26` falls back to `Redactor({})`. `_append` then runs `scrub` and `assert_clean`
+against an empty secret set — the RT6 gate can never fire on a real run. RT6's own falsification
+("seed a fixture project with a fake secret bound to a SecretRef, drive a run … grep trace.jsonl →
+zero matches") is not evidenced by any test: every RT6 test hand-builds a populated `Redactor`, so
+they prove the mechanism, never the wiring. This is the recurring vacuous-guard class (AT-218).
+
+**Severity: high, not critical.** `LLMSpan`/`StageSpan` are `extra="forbid"` and every text field
+is a system identifier (provider label, role, prompt_file id, fed_id = case/verdict id) — no
+prompt/response text is persisted, and the subagent's leak repro had to plant a secret inside
+`fed_id` by hand. There is no realistic raw-secret path today; the defect is that the C5 gate is
+silently inert, so the first free-text span field (an error message, a prompt excerpt) would
+persist unguarded.
+
+**For cycle 2 (maker):** (1) thread the project's `SecretStore.redactor()` into the writer
+`StageContext` builds (the pattern at `stages/execute.py:101` / `stages/explore.py:230`), and make
+a `TraceWriter` that will hold real spans refuse to exist without a real redactor rather than fall
+back to `Redactor({})`; (2) add the contract's RT6 falsification as a test through the REAL wiring
+(`StageContext` with no `trace=` kwarg, a project with a fake SecretRef value, a span that would
+carry it → zero raw matches), with a capability row that removes the redactor threading and goes
+red; (3) every non-browser test file green on the branch (checker bar since at110). Ledger: AT-561.
+Cycle checked: 1.
