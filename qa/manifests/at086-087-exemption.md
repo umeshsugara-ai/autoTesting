@@ -139,4 +139,4 @@ the fix, not a new scope question, and no passing test relied on the fan-out (co
 reading every test in `test_ui_credential_safety_project.py` and
 `test_ui_credential_exemption.py` before removing it).
 
-## Status: ready-for-check
+## Status: checked-PASS (qa/verdicts/at086-087-exemption.md FINAL, Cycle checked: 1, c7591ef)
