@@ -123,7 +123,7 @@
 | `ui/routes_flow_diagram.py` | The BFS-style companion to `routes_report.py`'s DFS per-run step flow: |
 | `ui/routes_issues.py` | Operator-facing video issue ledger and its human-compatible workbook. |
 | `ui/routes_learn.py` | The learning loop on screen — review the FlowSpec, generate cases, see the asks. |
-| `ui/routes_live.py` | Presentation-only noVNC page for watching the container's real browser. |
+| `ui/routes_live.py` | Presentation-only noVNC page for watching the container's real browser, plus |
 | `ui/routes_product_map.py` | Product-map cards, recorded journeys, and guarded learned-frame serving. |
 | `ui/routes_project_edit.py` | Edit a project's own settings after onboarding. Contract: qa/contracts/ui.md. |
 | `ui/routes_report.py` | Run history, per-case screenshots, and portable downloads. Contract: |
@@ -237,6 +237,7 @@
 | `scripts/check_no_secrets.py` | Scan files for any real value currently loaded in .env. Prints OK/LEAK only. |
 | `scripts/explore_proof.py` | Credential-free end-to-end proof of the explorer (Track B3). |
 | `scripts/flake_probe.py` | Measure a flaky test's real failure rate — and say how little N green runs prove. |
+| `scripts/migrate_stamp_legacy_rubrics.py` | Stamp `Provenance` on legacy default rubrics, in stored project data. |
 | `scripts/migrate_url_patterns.py` | Repair `url_pattern` values mangled by AT-287/AT-294, in stored project data. |
 | `scripts/mutation_check.py` | Prove a unit's new tests are not vacuous, by killing them on purpose. |
 | `scripts/onboard_pathlynks.py` | Onboard Pathlynks: real login via the credential boundary, evidence, knowledge.md. |

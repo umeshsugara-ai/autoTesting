@@ -1,0 +1,33 @@
+{
+  "unit": "t123-medium-batch",
+  "date": "2026-09-24",
+  "actor": "checker (independent, not the maker's evidence)",
+  "note": "GET /healthz is a JSON API route with no template/DOM/interaction target (confirmed by reading routes_live.py::healthz in full -- it never calls theme.page()), so a Playwright click-through has no surface to exercise. Driven instead with real HTTP requests against two independently checker-started uvicorn processes, never reusing the maker's server or port.",
+  "servers": [
+    {
+      "label": "server A - bound root",
+      "root": "D:/autoTesting/.worktrees/t123-medium-batch",
+      "port": 8790,
+      "probes": [
+        {"path": "/healthz", "result": "{\"started_at\":\"2026-09-24T10:00:33.728895+00:00\",\"newest_source_mtime\":\"2026-09-24T09:33:19.671621+00:00\",\"serving_stale_code\":false}"},
+        {"path": "/live", "status": 200},
+        {"path": "/", "status": 200}
+      ],
+      "stopped_and_confirmed_down": true
+    },
+    {
+      "label": "server B - throwaway copy (row2, outside bound root)",
+      "root": "C:/Users/Lenovo/AppData/Local/Temp/claude/checker-t123/row2",
+      "port": 8791,
+      "sequence": [
+        {"step": "start", "healthz": {"started_at": "2026-09-24T10:00:52.630457+00:00", "newest_source_mtime": "2026-09-24T09:33:19.671621+00:00", "serving_stale_code": false}},
+        {"step": "touched src/autotester/ui/theme.py mtime IN THE COPY ONLY (never the bound root)", "action": "Set-Item LastWriteTime = now"},
+        {"step": "re-hit /healthz on the SAME running process, no restart", "healthz": {"started_at": "2026-09-24T10:00:52.630457+00:00", "newest_source_mtime": "2026-09-24T10:01:26.449767+00:00", "serving_stale_code": true}}
+      ],
+      "result": "serving_stale_code flipped false -> true with no restart -- the exact AT-085 scenario, reproduced independently against the checker's own server and own throwaway copy.",
+      "stopped_and_confirmed_down": true
+    }
+  ],
+  "console_errors": "not-applicable (no browser/DOM surface -- JSON API only)",
+  "conclusion": "AT-085 behaviour confirmed live, independently of the maker's evidence and without editing any file in the bound root."
+}
