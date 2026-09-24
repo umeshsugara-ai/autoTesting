@@ -1,0 +1,68 @@
+{
+  "unit": "at483-orphaned-running-crawl",
+  "date": "2026-09-17",
+  "checked_by": "maker (smoke only -- checker's Mode D is the validation)",
+  "method": "own Playwright script (Python, sync API) against a real uvicorn process; Playwright MCP unavailable this session",
+  "setup": {
+    "ui_server": "uv run uvicorn autotester.ui.app:app --host 127.0.0.1 --port 59713, AUTOTESTER_ROOT pinned to a scratch root, stdout/stderr to log files",
+    "seed": "two RUNNING crawls with no login_case, heartbeat_stale_after_s=600 (wide, so the smoke script's own wall-clock delay cannot cross it): crawl_stale (heartbeat 1 hour old, screens=12 actions=54 edges=76, matching the AT-483 evidence's non-zero partial-progress shape) and crawl_fresh (heartbeat 5 seconds old)"
+  },
+  "pages": [
+    "/projects/demo/crawls",
+    "/projects/demo/crawls/crawl_stale",
+    "/projects/demo/crawls/crawl_fresh"
+  ],
+  "console_errors": {
+    "/projects/demo/crawls": 0,
+    "/projects/demo/crawls/crawl_stale": 0,
+    "/projects/demo/crawls/crawl_fresh": 0
+  },
+  "interactions": [
+    {
+      "did": "read the crawls table row for crawl_stale",
+      "expected": "status pill reads aborted, warning tone (badge-blocked), not badge-pass, not the word 'running'",
+      "observed": {
+        "has_aborted": true,
+        "has_running_text": false,
+        "has_badge_pass": false,
+        "has_badge_blocked": true
+      },
+      "pass": true
+    },
+    {
+      "did": "read the crawls table row for crawl_fresh",
+      "expected": "status pill still reads running (fresh heartbeat, not stale)",
+      "observed": {
+        "has_running": true,
+        "has_aborted": false
+      },
+      "pass": true
+    },
+    {
+      "did": "read the crawl-page summary-stats status pill for crawl_stale",
+      "expected": "aborted, warning tone, and the stored crawl.json is untouched (status on disk stays running -- display-only)",
+      "observed": {
+        "stat_row_has_aborted": true,
+        "stat_row_has_badge_pass": false
+      },
+      "pass": true
+    },
+    {
+      "did": "read the crawl-page summary-stats status pill for crawl_fresh",
+      "expected": "still running, since its heartbeat is 5s old (< 60s threshold)",
+      "observed": {
+        "stat_row_has_running": true
+      },
+      "pass": true
+    },
+    {
+      "did": "read crawl_stale's crawl.json straight off disk after both page loads",
+      "expected": "status field is still 'running' -- the check is display-only, crawl.json is never rewritten",
+      "observed": {
+        "status_on_disk": "running"
+      },
+      "pass": true
+    }
+  ],
+  "all_pass": true
+}

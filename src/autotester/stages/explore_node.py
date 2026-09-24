@@ -8,6 +8,7 @@ X5-X9 â€” every decision about whether an action is allowed is delegated to
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 from urllib.parse import urljoin
 
@@ -117,6 +118,23 @@ def _enqueue(rt: ExploreRuntime, new: ScreenNode, edge: ScreenEdge) -> None:
     rt.frontier.screens_found += 1
 
 
+def _heartbeat_due(rt: ExploreRuntime) -> bool:
+    n = rt.frontier.actions_used
+    return n == 1 or n % rt.bounds.heartbeat_every_actions == 0
+
+
+def heartbeat(rt: ExploreRuntime) -> None:
+    """AT-483: re-persist the crawl envelope mid-BFS -- progress counts + a fresh
+    `heartbeat_at`, the liveness signal `explore_status.displayed_status` checks."""
+    rt.crawl = rt.crawl.model_copy(update={
+        "heartbeat_at": datetime.now(UTC).isoformat(),
+        "screens": len(rt.nodes), "actions": rt.frontier.actions_used,
+        "edges": rt.edges, "denied": rt.denied, "issues": rt.issues,
+        "tool_failures": rt.tool_failures,
+    })
+    rt.store.save_crawl(rt.crawl)
+
+
 def _perform(rt: ExploreRuntime, el: ElementRef) -> Action:
     """Do the thing: navigate a safe link by URL, otherwise click. Returns the
     `Action` performed so the edge records it truthfully."""
@@ -210,19 +228,16 @@ def _names(elements: list[ElementRef], limit: int = 8) -> str:
     return ", ".join(shown) + (f" (+{more} more)" if more > 0 else "")
 
 
-
 def _click_loop(rt: ExploreRuntime, node: ScreenNode, typed: int) -> bool:
-    """The click phase after the typing pre-pass (AT-533: ONE shared per-node
-    budget). Returns False when the node ended ABORTED_DIALOG/ABORTED_ERROR;
-    True when it was fully explored."""
+    """The click phase after the typing pre-pass (AT-533: ONE shared per-node budget).
+    Returns False when the node ended ABORTED_DIALOG/ABORTED_ERROR; True otherwise."""
     tried = 0
     for el in node.elements:
         # AT-533: typing and clicking share ONE per-node budget — the typed
         # pre-pass consumed its share first, the click loop gets the rest.
         if tried + typed >= rt.bounds.per_node_action_cap:
             break
-        # AT-534: never click a form field the gate refused to type — a click
-        # that "exercises" it is a wasted click and a false coverage claim.
+        # AT-534: never click a form field the gate refused to type (wasted click, false coverage)
         if typing_target_allowed(el) and not typing_allowed(rt.policy):
             continue
         reached = explore.stop_reason(rt)
@@ -234,6 +249,8 @@ def _click_loop(rt: ExploreRuntime, node: ScreenNode, typed: int) -> bool:
         tried += 1
         rt.frontier.actions_used += 1
         edge = try_action(rt, node, el)
+        if _heartbeat_due(rt):
+            heartbeat(rt)
         if edge.outcome is EdgeOutcome.DIALOG:
             add_issue(rt, node.id, IssueKind.DIALOG, "dialog repeat limit reached")
             _mark(rt, node, NodeStatus.ABORTED_DIALOG)

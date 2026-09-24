@@ -19,7 +19,13 @@ from autotester.browser.session import NavigationRefused, check_destination
 from autotester.schema.enums import Action, EdgeOutcome, IssueKind
 from autotester.schema.screen_graph import ScreenEdge, ScreenNode
 from autotester.stages import crawl_coverage
-from autotester.stages.explore_node import _enqueue, add_issue, record_edge
+from autotester.stages.explore_node import (
+    _enqueue,
+    _heartbeat_due,
+    add_issue,
+    heartbeat,
+    record_edge,
+)
 from autotester.stages.explore_return import return_to, why_lost
 from autotester.stages.explore_safety import TYPING_DISABLED, typing_allowed, typing_target_allowed
 from autotester.stages.screen_identity import node_from
@@ -110,6 +116,8 @@ def type_form(rt: ExploreRuntime, node: ScreenNode) -> int:
             record_edge(rt, node, el,
                         Action.SELECT if el.role == "combobox" else Action.FILL,
                         EdgeOutcome.ERRORED, f"{type(exc).__name__}: {exc}")
+        if _heartbeat_due(rt):  # AT-483: typing shares the click loop's action budget,
+            heartbeat(rt)       # so it must share the liveness heartbeat too
         if not return_to(rt, node):
             add_issue(rt, node.id, IssueKind.NAVIGATION,
                       "could not return to this screen after typing — remaining "

@@ -14,6 +14,7 @@ status is a judgement about a finished graph, not part of walking it.
 from __future__ import annotations
 
 from collections.abc import Iterable
+from datetime import UTC, datetime
 
 from autotester.browser.observe import observe
 from autotester.core.redact import PLACEHOLDER_RE
@@ -179,12 +180,32 @@ def terminal_status(*, completed: bool, actions_used: int, denied: int,
     return status, reason
 
 
-def displayed_status(crawl: Crawl) -> CrawlStatus:
+def _heartbeat_stale(crawl: Crawl, now: datetime) -> bool:
+    """AT-483: a RUNNING crawl whose serving process died leaves `heartbeat_at` frozen
+    while `now` keeps moving. A crawl with no `heartbeat_at` yet -- a legacy crawl.json
+    (X18(d)) or one not a `heartbeat_every_actions`'th action in -- is never flagged;
+    there is nothing to compare, so the honest answer is "not yet judged", not "stale"."""
+    if crawl.heartbeat_at is None:
+        return False
+    age = (now - datetime.fromisoformat(crawl.heartbeat_at)).total_seconds()
+    return age >= crawl.bounds.heartbeat_stale_after_s
+
+
+def displayed_status(crawl: Crawl, *, now: datetime | None = None) -> CrawlStatus:
     """X18(d): what a human is SHOWN. A crawl.json written before AT-242 says `completed`
     with 0 actions and refusals — the file is history and stays as written, but it is
-    not displayed as success."""
+    not displayed as success.
+
+    AT-483: a RUNNING crawl whose heartbeat has gone stale (its serving process died
+    mid-BFS, so `explore_node`'s incremental writes stopped) displays as ABORTED — the
+    same display-only reuse this function already makes for BLOCKED_NO_ACTIONS, not a
+    new `CrawlStatus` member (`schema/enums.py` sits at its own 300-line C2 cap with no
+    safe trim). `crawl.json` itself is never rewritten by this check, so a crawl that is
+    genuinely still running reverts the instant its next heartbeat lands."""
     if crawl.status is CrawlStatus.COMPLETED and crawl.actions == 0 and crawl.denied > 0:
         return CrawlStatus.BLOCKED_NO_ACTIONS
+    if crawl.status is CrawlStatus.RUNNING and _heartbeat_stale(crawl, now or datetime.now(UTC)):
+        return CrawlStatus.ABORTED
     return crawl.status
 
 
