@@ -174,4 +174,4 @@ Builder note: the cycle-1 builder agent was stopped before committing. The orche
 tree as 283edf4 after verifying that its code equals the checker-PASSed snapshot 81457e9 (empty diff;
 only this manifest's full-suite note differed).
 
-## Status: ready-for-check
+## Status: checked-PASS (qa/verdicts/at110-approval-signing.md, Cycle checked: 2, 4c3b1b3)
