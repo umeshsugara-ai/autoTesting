@@ -16,7 +16,7 @@ from autotester.core.ids import ulid
 from autotester.core.paths import ProjectPaths
 from autotester.providers.langchain_fallback import LangChainFallbackProvider
 from autotester.schema.case import Case
-from autotester.schema.enums import Action
+from autotester.schema.enums import Action, Outcome
 from autotester.schema.project import Project
 from autotester.schema.run import RawResult, Run
 from autotester.schema.run_state import StageCheckpoint, StageName
@@ -31,7 +31,6 @@ from autotester.stages.parallel_run import (
 )
 from autotester.stages.run_case_pipeline import (
     grade_errored_result,
-    run_and_grade_case,
     run_and_grade_case_resilient,
 )
 from autotester.store.project_store import ProjectStore
@@ -53,6 +52,29 @@ def _is_entry_case(case: Case, project: Project) -> bool:
         and case.steps[0].target == project.base_url
 
 
+def _run_and_grade_resilient(
+    case: Case, session: BrowserSession, judge: LangChainFallbackProvider, run_id: str,
+    store: ProjectStore,
+) -> tuple[RawResult, Verdict]:
+    """Never let one case take the whole run down (AT-574). `run_and_grade_
+    case_resilient` already keeps a real COMPLETED result when only grading
+    fails after execution (AT-573); this adds the outer guard for an
+    exception in `run_case` itself, or anything else the resilient wrapper
+    doesn't catch -- the same shape `stages/parallel_run.py::_run_one`
+    already applies on the parallel path, expressed here for callers that
+    run one case at a time (the serial loop and the shared dedicated-profile
+    entry-case session) so every case still gets a saved result+verdict
+    through the exact `grade_errored_result` path AT-568 built, and the
+    caller never sees an exception to propagate into a 500."""
+    try:
+        return run_and_grade_case_resilient(case, session, judge, run_id, store)
+    except Exception as exc:  # AT-574: reported as this case's own ERRORED result
+        result = RawResult(case_id=case.id, outcome=Outcome.ERRORED,
+                            error=f"{type(exc).__name__}: {exc}")
+        verdict = grade_errored_result(case, result, judge, run_id, store)
+        return result, verdict
+
+
 def _run_entry_case(
     case: Case, project: Project, secrets: SecretStore, run_dir: Path, slug: str,
     judge: LangChainFallbackProvider, run_id: str, store: ProjectStore,
@@ -66,7 +88,7 @@ def _run_entry_case(
     session = BrowserSession(project, secrets, run_dir, entry_paths)
     session.start()
     try:
-        return run_and_grade_case(case, session, judge, run_id, store)
+        return _run_and_grade_resilient(case, session, judge, run_id, store)
     finally:
         session.close()
 
@@ -94,12 +116,18 @@ def _run_cases_serially(
     run_dir: Path, paths: ProjectPaths, slug: str, judge: LangChainFallbackProvider,
     run_id: str, store: ProjectStore,
 ) -> None:
-    """`plan.n <= 1` (the default, AT-562/PR1): the pre-existing behaviour,
-    UNCHANGED — one shared session reused across every non-entry case (login
-    continuity across the whole run), one dedicated wiped profile per entry
-    case (AT-044). Not routed through `run_cases`: that module's contract
-    starts and closes one session per case (PR2's isolation), which would
-    tear down this shared session after the first case."""
+    """`plan.n <= 1` (the default, AT-562/PR1): one shared session reused
+    across every non-entry case (login continuity across the whole run), one
+    dedicated wiped profile per entry case (AT-044). Not routed through
+    `run_cases`: that module's contract starts and closes one session per
+    case (PR2's isolation), which would tear down this shared session after
+    the first case.
+
+    AT-574: each case goes through `_run_and_grade_resilient` -- before this
+    fix, a grader/provider exception, or a `run_case` crash, propagated
+    straight out of this loop, 500ing `trigger_run` before the remaining
+    cases ran or the `Run` record was saved. Now a crash is reported as that
+    case's own result+verdict and the loop, and the run, continue."""
     session: BrowserSession | None = None
     if not all(entry_flags):
         session = BrowserSession(project, secrets, run_dir, paths)
@@ -112,7 +140,7 @@ def _run_cases_serially(
                 )
             else:
                 assert session is not None
-                result, verdict = run_and_grade_case(case, session, judge, run_id, store)
+                result, verdict = _run_and_grade_resilient(case, session, judge, run_id, store)
             store.save_result(run_id, result)
             store.save_verdict(run_id, verdict)
     finally:
@@ -207,8 +235,10 @@ def _execute_with_trace(
 def trigger_run(slug: str) -> RedirectResponse:
     """A real, synchronous run: the request waits for the browser to finish
     every case before redirecting to the report (RU1-RU4 — v1's honest
-    boundary, no background job queue). Calls the exact same
-    `run_and_grade_case` (stages/run_case_pipeline.py) a CLI script would.
+    boundary, no background job queue). Runs every case through the same
+    resilient pipeline (stages/run_case_pipeline.py) whether serial or
+    parallel (AT-574) -- a CLI script that wants the un-guarded, self-grading
+    path still calls `run_and_grade_case` directly.
 
     AT-562/AT-564: this is the live entry point wired to the T-172/T-173
     machinery those goal-coverage gaps named -- see `_execute_with_trace`."""
