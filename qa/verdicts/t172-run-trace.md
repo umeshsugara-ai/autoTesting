@@ -186,3 +186,29 @@ back to `Redactor({})`; (2) add the contract's RT6 falsification as a test throu
 carry it → zero raw matches), with a capability row that removes the redactor threading and goes
 red; (3) every non-browser test file green on the branch (checker bar since at110). Ledger: AT-561.
 Cycle checked: 1.
+
+---
+
+## Cycle 2 — VERDICT: PASS
+
+**Date:** 2026-09-25 · **Checker:** /checker Mode A, supervising checker (in-session) · **Head checked:** 0d333dc (46e7c29 AT-561 fix, a96b0ef master merge incl. T-175, 2ef6ddf SKILL_NAME follow-up, 0d333dc manifest)
+**Cycle checked: 2** (manifest Fix cycle: 2 of 3)
+
+```
+VERDICT: PASS
+SCOREBOARD: RT1–RT7 met at unit level; the cycle-1 RT6 failure (AT-561) is fixed within the orchestrator; the T-175 merge hazard is resolved; non-browser suite green apart from two failures attributed to causes outside this unit (below)
+CAPABILITY-COVERAGE: cycle-1 8/8 stand (unchanged mechanism); new row reproduced by the checker in a throwaway copy — orchestrate.py `redactor = self.secrets.redactor()` -> `None`: test_the_real_stagecontext_wiring_never_leaks_a_declared_secret goes red on its named assertion with the secret VISIBLE in the LLM span ("fed_id":"case-sk-real-DEADBEEF12345"), green after revert (10/10) — so the new test is not vacuous
+LIVE-BROWSER: carried from cycle 1 — qa/evidence/browser-t172-run-trace-2026-09-25-checker/report.json; valid because routes_report.py, core/trace.py and schema/trace.py are unchanged between ac9ecf8 and 0d333dc (git diff --stat: empty)
+ISSUES-WRITTEN: AT-564 (medium, goal-coverage: the orchestrator — the only trace writer — has no live caller); AT-561 to flip to fixed after merge
+EXPLANATION: StageContext now takes `secrets: SecretStore | None` and threads `secrets.redactor()` into the auto-built TraceWriter; without secrets it emits a RuntimeWarning naming the risk instead of silently scrubbing nothing. A warning rather than a refusal is accepted: a context that declares no secrets legitimately has nothing to scrub, and — verified — nothing in src/ constructs a StageContext or calls run_or_resume today, so the obligation to pass `secrets=` lands on the future unit that wires the orchestrator into the CLI/UI (recorded in AT-564).
+```
+
+### What I re-ran for cycle 2
+- Unit delta vs merged master: AT-561 fix in stages/orchestrate.py; SKILL_NAME follow-up at grade.py:173, expand.py:126, ingest.py:262 (`prompt_file=SKILL_NAME`, so a span records the skill id); no PROMPT_NAME left in those three. analyze_video.py keeps `PROMPT_NAMES` deliberately as stable ids/cache keys and maps them through `SKILL_NAMES[prompt_name]` -> `load_skill_prompt` (line 88), identical to master — the deleted prompts/*.md files are never read.
+- Three test-only fake Providers (video_fakes.SpyProvider, test_ensemble_honesty._NamedFakeProvider, test_expand_cli._Exploding) gained keyword-only `prompt_file=None, fed_id=None` to match the real Provider signature; no assertion changed — legitimate.
+- Every non-browser test file on the branch (140 files): **1543 passed, 5 skipped, 2 failed**:
+  - test_goal_done_checks::test_revised_goal_contract_is_registered — caused by the checker's own T-175 close, which committed goal.json without .goal/dashboard.html; fixed on master by 2eaf36d, which this branch predates. Passes 7/7 on current master.
+  - test_flake_probe_real_process::test_run_once_kills_a_real_hung_process_and_its_real_grandchild — known load-dependent flake, already ledgered (AT-518 / ISS-t164-1, open); this unit does not touch flake_probe; passes 2/2 in isolation on this branch and 2/2 on master.
+- Merging current master into the branch before merge will clear the first; the second is AT-518's.
+
+## Status: PASS (cycle 2) — maker to merge wave/t172-run-trace (merge current master in first) and push.
