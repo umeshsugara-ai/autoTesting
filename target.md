@@ -166,7 +166,7 @@ fixture-proven only. The ERP trust number is the first time AutoTester is measur
 - [ ] T-165 hybrid BFS→bounded-DFS traversal + frontier completeness + form-input replay + persona-seeded
       incremental crawl + change tracking (D-040; contract `crawl-traversal.md` DRAFT; CRITICAL dual-check)
 - [ ] T-171 permission-surface coverage — every reachable control exercised or blocked-with-reason (D-040)
-- [x] T-173 parallel case execution — N isolated browsers, RAM/CPU-bounded (D-041) — ✅ checker PASS, merged 626fa03; live-path wiring = AT-562 (after T-172 + T-175 merge)
+- [~] T-173 parallel case execution — merged 626fa03, REOPENED: AT-565 (a failed browser launch crashes the whole parallel call) being fixed in at562-564-live-wiring together with live wiring AT-562
 
 ### M9 · Durable product model
 - [x] T-164 durable **Portal Persona** JSON + knowledge page + change history (F-046, 3ceb7b9)
