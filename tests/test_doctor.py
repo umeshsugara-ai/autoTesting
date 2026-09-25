@@ -24,6 +24,13 @@ def write_module(root: Path, name: str, body: str) -> None:
     (root / "src" / "autotester" / name).write_text(body, encoding="utf-8")
 
 
+def write_pyproject(root: Path, dependencies: list[str]) -> None:
+    deps = ",\n".join(f'    "{d}"' for d in dependencies)
+    (root / "pyproject.toml").write_text(
+        f'[project]\nname = "fixture"\ndependencies = [\n{deps}\n]\n', encoding="utf-8"
+    )
+
+
 def test_clean_repo_reports_nothing(tmp_path: Path) -> None:
     root = make_repo(tmp_path)
     write_module(root, "ok.py", "def small():\n    return 1\n")
@@ -131,3 +138,75 @@ def test_a_second_ai_tools_instruction_file_is_not_root_clutter(tmp_path: Path) 
     root = make_repo(tmp_path)
     (root / "AGENTS.md").write_text("# instructions\n", encoding="utf-8")
     assert not any(v.rule == "root-clutter" for v in doctor.run(root))
+
+
+# -- check_dependencies_declared (AT-130) --------------------------------------
+# `pytest` is used as the "undeclared third-party import" fixture below because it
+# is guaranteed installed (this file needs it to run) yet is never in
+# [project].dependencies (it is a dev-group tool) -- a stand-in for the real bug,
+# `google-genai` resolving only via `langchain-google-genai`'s transitive pin.
+
+
+def test_undeclared_third_party_import_is_flagged(tmp_path: Path) -> None:
+    root = make_repo(tmp_path)
+    write_pyproject(root, [])
+    write_module(root, "uses_pytest.py", "import pytest\n\n\ndef f():\n    return pytest\n")
+    violations = [v for v in doctor.run(root) if v.rule == "undeclared-dependency"]
+    assert any("uses_pytest.py" in v.location for v in violations)
+
+
+def test_declared_third_party_import_passes(tmp_path: Path) -> None:
+    root = make_repo(tmp_path)
+    write_pyproject(root, ["pytest"])
+    write_module(root, "uses_pytest.py", "import pytest\n\n\ndef f():\n    return pytest\n")
+    assert not any(v.rule == "undeclared-dependency" for v in doctor.run(root))
+
+
+def test_a_lazy_import_inside_a_function_body_is_still_caught(tmp_path: Path) -> None:
+    """The real AT-130 import was never module-level -- GeminiProvider imports
+    `google.genai` lazily inside `_structured` so the SDK loads only when a provider
+    call actually runs (test_providers.py: "both SDKs are imported lazily ... so
+    these tests never need a real API key or a socket"). A check that only read
+    module-level imports would have missed the exact bug it exists to catch."""
+    root = make_repo(tmp_path)
+    write_pyproject(root, [])
+    write_module(root, "lazy.py", "def f():\n    import pytest\n    return pytest\n")
+    violations = [v for v in doctor.run(root) if v.rule == "undeclared-dependency"]
+    assert any("lazy.py" in v.location for v in violations)
+
+
+def test_stdlib_imports_are_never_flagged(tmp_path: Path) -> None:
+    root = make_repo(tmp_path)
+    write_pyproject(root, [])
+    write_module(root, "stdlib_user.py", "import os\nimport json\nfrom pathlib import Path\n")
+    assert not any(v.rule == "undeclared-dependency" for v in doctor.run(root))
+
+
+def test_own_package_imports_are_never_flagged(tmp_path: Path) -> None:
+    root = make_repo(tmp_path)
+    write_pyproject(root, [])
+    write_module(root, "a.py", "def a():\n    return 1\n")
+    write_module(root, "b.py", "from autotester.a import a\n")
+    assert not any(v.rule == "undeclared-dependency" for v in doctor.run(root))
+
+
+def test_an_import_the_environment_cannot_resolve_is_not_this_checks_job(tmp_path: Path) -> None:
+    """A typo'd or genuinely-missing module is caught by `import` itself at runtime --
+    this check only catches the "installed but undeclared" hazard."""
+    root = make_repo(tmp_path)
+    write_pyproject(root, [])
+    write_module(root, "typo.py", "import totally_fake_module_xyz_at130\n")
+    assert not any(v.rule == "undeclared-dependency" for v in doctor.run(root))
+
+
+def test_no_pyproject_is_not_this_checks_job(tmp_path: Path) -> None:
+    root = make_repo(tmp_path)
+    write_module(root, "uses_pytest.py", "import pytest\n")
+    assert not any(v.rule == "undeclared-dependency" for v in doctor.run(root))
+
+
+def test_the_real_repo_declares_every_third_party_import_it_makes() -> None:
+    """Direct regression proof for AT-130: run the check against this actual repo, not
+    a fixture -- clean now that both `google-genai` and `starlette` (the second live
+    instance this check found) are declared."""
+    assert doctor.check_dependencies_declared(doctor.repo_root()) == []
