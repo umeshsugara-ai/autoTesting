@@ -32,10 +32,10 @@ AutoTester wins on bugs found, false positives, and time (`schema/bench.py` comp
 - 2026-09-10 updated F-042 Web UI: complete no-CLI crawl approval and truthful reports — T-100 reopened because full onboarding-to-report still leaked CLI recovery and report/run truth defects; independent checker PASSed 17/17 criteria plus headed-browser validation.
 ## Next (open goal tasks)
 - T-122 [high] Track 0 tail: login case + first logged-in ERP run (HUMAN_GATE: ERP_EMAIL/ERP_PASSWORD values)
-- T-123 [normal] Medium-issue batch: AT-087 per-field exemption, AT-076/086 config-field rule, AT-079/080, AT-065, AT-085
 - T-136 [high] Track A acceptance: erp1/2/3 scored vs ERP_Issues_Trainers.xlsx with recall/FP numbers in the manifest
 - T-145 [high] Live bounded READ_ONLY crawl of vidysea.com/erp with the test account
 - T-125 [high] Test catalog: which case classes apply, which are runnable, which are blocked and why (+ cheap->expensive ordering)
+- T-126 [normal] Governance debt sweep: adapter allowlist (D-018), QUEUE/SNAPSHOT drift, ledger backfill
 ## Last decisions (computed status)
 - D-038 2026-09-23 decision ACTIVE
 - D-039 2026-09-24 decision ACTIVE
