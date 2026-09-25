@@ -974,3 +974,30 @@ register seven units for the add-ons and competitor features Umesh chose.
 **Approved-by:** Umesh -- AskUserQuestion option "Haan, Umesh approve (Recommended)", 2026-09-24 (qa/gates/d042-deep-agents.md).
 
 **Links:** D-041; D-002; T-167; T-170; T-172; T-175; T-177; T-179; T-180; T-181; qa/gates/d042-deep-agents.md; umesh/operating-brain/wiki/patterns/agentic-architecture-standard.md; umesh/operating-brain/wiki/concepts/krishnaik/deep-agents.md
+
+## D-043 | 2026-09-25 | type: decision | status: ACTIVE
+
+**What:** Scope core-invariants.md C8's prompt-location line to the T-175 migration. C8 said "Prompts
+live in `src/autotester/prompts/*.md` as versioned files, never inline string literals." Since T-175
+merged (9b3fd5e), four prompts -- grade, expand-case, ingest-video, video-issues -- live as
+`src/autotester/skills/<name>/SKILL.md` and are loaded through `providers.base.load_skill_prompt`;
+the remaining prompts (e.g. relitigation_v1.md, agent_fix_v1.md) still live in `prompts/*.md`. C8 now
+names both locations. The invariant's substance is unchanged: every prompt is a versioned file, never
+an inline string literal.
+
+**Why:** D-041 (Approved-by Umesh, 2026-09-24) decided prompts become SKILL.md (point 1 "Skills:
+SKILL.md"; point 6 "T-175 | prompts become SKILL.md"), but its Changes-authorized did not name
+qa/contracts/core-invariants.md, so the contract was left describing a location the four migrated
+prompts no longer use. The t175 checker ruled the migration authorized (not a C8 violation) and
+proposed scoping the prose; under the Lab Protocol a contract edit needs an authorizing entry, so this
+entry records the consequence of D-041 rather than a new direction. It weakens nothing: the
+never-inline rule and the Provider seam are untouched, and the loader fails loudly on a missing or
+malformed skill (verified in the t175 verdict), so a prompt can never silently become empty.
+
+**Result:** core-invariants.md C8 prompt line names `prompts/*.md` and `skills/<name>/SKILL.md` as
+the two versioned-file locations, plus one amendment-log row. No src/ or test change. doctor clean.
+
+**Changes-authorized:** qa/contracts/core-invariants.md (C8 prompt-location line + one amendment-log
+row, by the checker). No enforcement path.
+
+**Links:** D-041; T-175; qa/verdicts/t175-prompt-skills.md; AT-563.
