@@ -11,8 +11,18 @@ today after a manual `ingest run` or `explore --merge`.
 Split out of `cli.py` for the same reason `cli_crawl.py` is: that file is at
 its line budget, and a stage's commands belong beside the stage they drive.
 No new logic is added here beyond wiring — the stage adapters
-(`stages/orchestrate_runners.py`) and the existing crawl/consent/secret
-primitives `cli_crawl.py`'s `explore` command already uses are reused as-is.
+(`stages/orchestrate_runners.py`) and `cli_crawl.py`'s own D-018 consent
+preflight (`_preflight_consent`) are called directly, never copied (C3,
+checker cycle 1: a statement-for-statement copy of a security gate is a bug
+waiting to drift the first time one copy is tightened and the other isn't).
+
+Cycle 2 (checker FAIL, verdict `a6efb6c`) also fixed: a resume now reads
+`mode` from the STORED `RunState` rather than recomputing `choose_mode` on the
+current sources (a changed source set could otherwise mismatch runner vs
+state), and the crawl-consent preflight is skipped on resume ONLY when the
+stored DISCOVER checkpoint's status is exactly `"done"` — failed, pending, or
+no DISCOVER checkpoint at all still hits it. An unknown `--run-id` (no
+`state.json` on disk) is treated as a fresh run, with a one-line note.
 """
 
 from __future__ import annotations
@@ -22,7 +32,7 @@ from typing import TYPE_CHECKING
 
 import typer
 
-from autotester import providers
+from autotester import cli_crawl, providers
 from autotester.core.ids import run_id as mint_run_id
 from autotester.core.paths import ProjectPaths, RepoDocs
 from autotester.schema.run_state import RunState, StageName
@@ -32,6 +42,7 @@ from autotester.stages.orchestrate_runners import (
     make_ingest_runner,
     make_model_runner,
 )
+from autotester.store.filestore import read_json
 from autotester.store.project_store import ProjectStore
 
 if TYPE_CHECKING:
@@ -41,28 +52,38 @@ if TYPE_CHECKING:
     from autotester.schema.screen_graph import ScreenNode
 
 
-def _entry_source(sources: list[Source]) -> Source:
-    """The Source INGEST watches. `choose_mode` already established at least
-    one teaching Source exists whenever it returns `"learn"`; the earliest one
-    (list order = registration order) keeps a re-run deterministic."""
-    return next(s for s in sources if s.kind in TEACHING_KINDS)
+class NoEntrySource(RuntimeError):
+    """`learn` mode needs a teaching Source to (re)run INGEST, and none of the
+    project's current sources qualify — named honestly rather than a raw
+    `StopIteration` from deep inside a generator."""
 
 
-def _require_crawl_consent(proj: Project, store_: ProjectStore, bounds: object) -> None:
-    """D-018 gate 2, checked before anything is created and before a browser
-    would start — the same check `explore` runs as its own preflight
-    (`cli_crawl.py::_preflight_consent`), so DISCOVER never bypasses consent
-    just because it is reached through the orchestrator instead."""
-    from autotester.core.consent import ApprovalRequired
-    from autotester.schema.crawl import SafetyPolicy
-    from autotester.stages import explore_consent
+def _entry_source(sources: list[Source]) -> Source | None:
+    """The Source INGEST watches, or None if the project currently has none
+    (a resume can be asked to retry INGEST after its teaching Source was
+    removed — that is a clean refusal, not a crash). The earliest match (list
+    order = registration order) keeps a re-run deterministic."""
+    return next((s for s in sources if s.kind in TEACHING_KINDS), None)
 
-    try:
-        explore_consent.require_consent(
-            proj, store_, bounds, policy=SafetyPolicy(write_policy=proj.write_policy))
-    except ApprovalRequired as exc:
-        typer.secho(str(exc), fg=typer.colors.YELLOW)
-        raise typer.Exit(2) from None
+
+def _load_state(store_: ProjectStore, run_id: str) -> RunState | None:
+    """The prior `RunState` for this exact run_id, or None for a fresh /
+    unknown one — `state.json` simply not existing yet is not an error."""
+    return read_json(store_.paths.run_dir(run_id) / "state.json", RunState)
+
+
+def _entry_done(prior: RunState | None, mode: str) -> bool:
+    """Whether THIS run's entry stage (INGEST for learn, DISCOVER for
+    explore) is already `done` in the stored state. Only an exact `"done"`
+    counts — `failed`, `pending`, or no checkpoint at all (no prior state, or
+    a state from before that stage existed) all mean the entry stage still
+    has to run, so its wiring (and, for explore, the consent preflight) is
+    still required."""
+    if prior is None:
+        return False
+    stage = StageName.INGEST if mode == "learn" else StageName.DISCOVER
+    checkpoint = prior.checkpoint(stage)
+    return checkpoint is not None and checkpoint.status == "done"
 
 
 def _make_crawl_fn(
@@ -91,27 +112,73 @@ def _make_crawl_fn(
     return _run
 
 
-def _build_runners(
-    mode: str, sources: list[Source], project: str, proj: Project, store_: ProjectStore,
-    paths: ProjectPaths, secrets: SecretStore, provider_id: str, bounds: object,
-    login_case_id: str | None,
+def _learn_runners(
+    sources: list[Source], project: str, provider_id: str, *, entry_done: bool,
 ) -> dict[StageName, Callable]:
-    """The autonomous run wires exactly {INGEST|DISCOVER, MODEL} (STOP point
-    at the review gate, `orchestrate.py`'s own contract) — never EXPAND
-    onward, so this never grows into a second approval mechanism (OR-no-fire)."""
-    if mode == "learn":
-        source = _entry_source(sources)
-        model = providers.get(provider_id)
-        return {
-            StageName.INGEST: make_ingest_runner(source, project, model, RepoDocs()),
-            StageName.MODEL: make_model_runner(source_id=source.id),
-        }
-    _require_crawl_consent(proj, store_, bounds)
+    """INGEST + MODEL — or, on a resume past a `done` INGEST, MODEL alone: a
+    completed INGEST is never re-wired, so a since-removed teaching Source
+    cannot break a resume that will never touch it again."""
+    if entry_done:
+        return {StageName.MODEL: make_model_runner()}
+    source = _entry_source(sources)
+    if source is None:
+        raise NoEntrySource(
+            f"{project}: learn mode needs a teaching Source (video/doc/text/audio/email/drive) "
+            "to run INGEST, and none is registered — `autotester ingest register` one first")
+    model = providers.get(provider_id)
+    return {
+        StageName.INGEST: make_ingest_runner(source, project, model, RepoDocs()),
+        StageName.MODEL: make_model_runner(source_id=source.id),
+    }
+
+
+def _explore_runners(
+    proj: Project, store_: ProjectStore, paths: ProjectPaths, secrets: SecretStore,
+    bounds: object, login_case_id: str | None, *, entry_done: bool,
+) -> dict[StageName, Callable]:
+    """DISCOVER + MODEL — or, on a resume past a `done` DISCOVER, MODEL alone.
+    The D-018 consent preflight (`cli_crawl._preflight_consent`, the same
+    check `explore` runs) is skipped ONLY in that resumed case: no browser
+    will open, so an approval that has since expired must not block a resume
+    that never needed it."""
+    if entry_done:
+        return {StageName.MODEL: make_model_runner()}
+    cli_crawl._preflight_consent(proj, store_, bounds)
     crawl_fn = _make_crawl_fn(proj, store_, paths, secrets, bounds, login_case_id)
     return {
         StageName.DISCOVER: make_discover_runner(proj, crawl_fn),
         StageName.MODEL: make_model_runner(),
     }
+
+
+def _resolve_run(
+    store_: ProjectStore, sources: list[Source], run_id: str | None,
+) -> tuple[str, str, bool]:
+    """This invocation's run_id, mode, and whether its entry stage is already
+    `done` — the one place that reads (or fails to find) prior `RunState` and
+    decides mode from IT rather than from `choose_mode` on a resume, printing
+    a one-line note for an explicitly-named but unknown run_id."""
+    this_run = run_id or mint_run_id("run")
+    prior = _load_state(store_, this_run) if run_id else None
+    if run_id and prior is None:
+        typer.secho(f"no existing run '{run_id}' for {store_.paths.slug} — starting fresh",
+                    fg=typer.colors.YELLOW)
+    mode = prior.mode if prior is not None else choose_mode(sources)[0]
+    return this_run, mode, _entry_done(prior, mode)
+
+
+def _build_runners(
+    mode: str, sources: list[Source], project: str, proj: Project, store_: ProjectStore,
+    paths: ProjectPaths, secrets: SecretStore, provider_id: str, bounds: object,
+    login_case_id: str | None, *, entry_done: bool,
+) -> dict[StageName, Callable]:
+    """The autonomous run wires exactly {INGEST|DISCOVER, MODEL} (STOP point
+    at the review gate, `orchestrate.py`'s own contract) — never EXPAND
+    onward, so this never grows into a second approval mechanism (OR-no-fire)."""
+    if mode == "learn":
+        return _learn_runners(sources, project, provider_id, entry_done=entry_done)
+    return _explore_runners(proj, store_, paths, secrets, bounds, login_case_id,
+                            entry_done=entry_done)
 
 
 def _echo_state(project: str, state: RunState) -> bool:
@@ -147,7 +214,7 @@ def orchestrate_cmd(
     run_id: str = typer.Option(
         None, "--run-id",
         help="resume this run (pass the id a previous invocation printed); "
-             "default mints a fresh one"),
+             "default mints a fresh one; an id with no state on disk starts fresh too"),
     provider: str = typer.Option("gemini", "--provider", help="ingest provider (learn path only)"),
     max_screens: int = typer.Option(30, "--max-screens", help="explore path only"),
     max_actions: int = typer.Option(200, "--max-actions", help="explore path only"),
@@ -170,16 +237,21 @@ def orchestrate_cmd(
         raise typer.Exit(1)
 
     sources = store_.list_sources()
-    mode = choose_mode(sources)[0]
     paths = ProjectPaths(project)
     secrets = SecretStore.load(proj, paths.env_file, strict=False)
     bounds = CrawlBounds(max_screens=max_screens, max_actions=max_actions,
                          wall_clock_s=wall_clock, max_depth=max_depth)
 
-    runners = _build_runners(mode, sources, project, proj, store_, paths, secrets, provider,
-                             bounds, login_case)
-    ctx = StageContext(store=store_, run_id=run_id or mint_run_id("run"), runners=runners,
-                       secrets=secrets)
+    this_run, mode, entry_done = _resolve_run(store_, sources, run_id)
+
+    try:
+        runners = _build_runners(mode, sources, project, proj, store_, paths, secrets, provider,
+                                 bounds, login_case, entry_done=entry_done)
+    except NoEntrySource as exc:
+        typer.secho(str(exc), fg=typer.colors.RED)
+        raise typer.Exit(1) from None
+
+    ctx = StageContext(store=store_, run_id=this_run, runners=runners, secrets=secrets)
     state = run_or_resume(proj, ctx)
     ok = _echo_state(project, state)
     if not ok:

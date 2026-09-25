@@ -8,18 +8,21 @@ never through anything an operator types. These tests drive the real CLI
 `test_crawl_real_cli.py` do for their own commands, against a temp
 `AUTOTESTER_ROOT` — never the real `.env` or `projects/`.
 
+Fix-cycle-2 resume/consent/mode tests live in `test_cli_orchestrate_resume.py`
+(split at the 300-line cap, C2).
+
 Contract: qa/contracts/orchestrator.md OR1-OR6.
 """
 
 from __future__ import annotations
 
-from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
 from typer.testing import CliRunner
 
 from autotester import providers
+from autotester.cli import app
 from autotester.providers.mock import MockProvider
 from autotester.schema.enums import ReviewStatus, SourceKind
 from autotester.schema.observation import ObservedScreen, VideoObservation
@@ -30,7 +33,6 @@ from autotester.store.project_store import ProjectStore
 
 runner = CliRunner()
 BASE_URL = "https://demo.test"
-TOMORROW = (date.today() + timedelta(days=1)).isoformat()
 
 
 @pytest.fixture
@@ -53,14 +55,9 @@ def _a_video(root: Path) -> Path:
 
 
 def _register(root: Path, path: Path) -> str:
-    result = runner.invoke(cli_from_app(), ["ingest", "register", "demo", str(path)])
+    result = runner.invoke(app, ["ingest", "register", "demo", str(path)])
     assert result.exit_code == 0, result.output
     return ProjectStore("demo", root).list_sources()[-1].id
-
-
-def cli_from_app():
-    from autotester.cli import app
-    return app
 
 
 def _mock_ingest_provider(monkeypatch: pytest.MonkeyPatch) -> MockProvider:
@@ -85,7 +82,7 @@ def test_fresh_learn_run_checkpoints_ingest_and_model_through_the_cli(
     _mock_ingest_provider(monkeypatch)
     source_id = _register(root, _a_video(root))
 
-    result = runner.invoke(cli_from_app(), [
+    result = runner.invoke(app, [
         "orchestrate", "demo", "--provider", "mock", "--run-id", "run_fresh"])
 
     assert result.exit_code == 0, result.output
@@ -133,7 +130,7 @@ def test_resume_after_interruption_never_redoes_the_done_stage(
     monkeypatch.setattr(runners_mod, "ingest_video", _counting_ingest)
     monkeypatch.setattr(runners_mod, "merge_flowspec", _flaky_merge)
 
-    first = runner.invoke(cli_from_app(), [
+    first = runner.invoke(app, [
         "orchestrate", "demo", "--provider", "mock", "--run-id", "run_resume"])
     assert first.exit_code == 1, first.output  # a failed checkpoint is an honest non-zero exit
     state1 = _state(root, "run_resume")
@@ -143,7 +140,7 @@ def test_resume_after_interruption_never_redoes_the_done_stage(
     ingest_ref_after_first = state1.checkpoint(StageName.INGEST).artifact_ref
     assert len(ingest_calls) == 1
 
-    second = runner.invoke(cli_from_app(), [
+    second = runner.invoke(app, [
         "orchestrate", "demo", "--provider", "mock", "--run-id", "run_resume"])
     assert second.exit_code == 0, second.output
 
@@ -170,7 +167,7 @@ def test_secrets_reach_stagecontext_so_the_trace_gate_never_falls_back(
     _mock_ingest_provider(monkeypatch)
     _register(root, _a_video(root))
 
-    result = runner.invoke(cli_from_app(), [
+    result = runner.invoke(app, [
         "orchestrate", "demo", "--provider", "mock", "--run-id", "run_secrets"])
 
     assert result.exit_code == 0, result.output
@@ -189,7 +186,7 @@ def test_explore_mode_without_an_approval_refuses_before_the_crawl_starts(
     store = _seed_project(root)
     store.add_source(Source(project="demo", kind=SourceKind.URL, url=BASE_URL))
 
-    result = runner.invoke(cli_from_app(), ["orchestrate", "demo"])
+    result = runner.invoke(app, ["orchestrate", "demo"])
 
     assert result.exit_code == 2, result.output
     assert "approv" in result.output.lower()
