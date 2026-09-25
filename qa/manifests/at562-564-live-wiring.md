@@ -4,12 +4,12 @@
 qa/contracts/core-invariants.md
 **Goal tasks:** T-172, T-173
 **Date:** 2026-09-25
-**Fix cycle:** 2 of 3
+**Fix cycle:** 3 of 3
 **Dual check:** no
 **Issues addressed:** AT-562, AT-564, AT-565 (cycle 1), AT-568, AT-569 (cycle 2, checker cycle-1
-FAIL). AT-570 (medium, case runs have no `RunApproval` gate) is explicitly NOT addressed — the
-checker's own verdict confirms it pre-existing and out of this unit's scope (see cycle-1 design
-decision 3 below).
+FAIL), AT-572, AT-573 (cycle 3, checker cycle-2 FAIL). AT-570 (medium, case runs have no
+`RunApproval` gate) is explicitly NOT addressed — the checker's own verdict confirms it
+pre-existing and out of this unit's scope (see cycle-1 design decision 3 below).
 **Executor:** claude-sonnet-subagent
 
 ## Fix cycle 2 (checker cycle-1 FAIL, qa/verdicts/at562-564-live-wiring.md)
@@ -97,6 +97,105 @@ defect. Not fixed here because (a) it is out of the two-issue scope this cycle w
 and (b) fixing it would mean editing `qa/issues.jsonl` (a ledger edit) or `ledger/checks.py` (a
 shared, unrelated regex), both explicitly off-limits this cycle. Flagging for the checker/a human to
 fix or file forward.
+
+## Fix cycle 3 (checker cycle-2 FAIL, qa/verdicts/at562-564-live-wiring.md)
+
+**First: merged current master into this branch.** Master had moved on with, among other things, the
+AT-571 doctor fix (`ledger/checks.py` reads ledger rows as JSON instead of a field-order-sensitive
+regex) — confirmed after the merge that the 6 `ledger-row-lost` false positives disclosed in Fix
+cycle 2 above are gone (`uv run autotester doctor` → `doctor: clean`, see Actual outputs).
+
+**Failure 1, quoted verbatim (checker):**
+> `[PR2 / live path] sev: high · the parallel route's sessions (stages/parallel_run.py::
+> default_session_factory) all write evidence into the SAME run_dir and each restarts browser/
+> session.py's screenshot counter at 01, so sibling cases overwrite each other's screenshots
+> (01-step01-navigate.png) and a case's judge can grade a sibling's screenshot -> silent wrong
+> verdict. Reproduced live (Mode D run: 2 cases reference one file; 4 PNGs for 6 steps) and
+> deterministically (real BrowserSession probe, cases run one after the other: two different pages
+> -> one path). · fix: a per-case evidence namespace in the parallel factory (run_dir/<case_id>/ or
+> a case-id prefix) that the grader + run view resolve; a test driving two cases with different
+> first pages through default_session_factory asserting distinct paths with different bytes; a
+> capability row. · issue: AT-572`
+
+**Fix (AT-572):** `browser/session.py`'s `SessionState` gains `evidence_prefix: str = ""` (empty by
+default — the serial path never sets it, so its behaviour is byte-for-byte unchanged: confirmed by
+`test_serial_path_is_unaffected_evidence_path_stays_a_bare_filename`). `screenshot()` now builds
+`rel = f"{prefix}/{name}"` when a prefix is set, else the bare `name` exactly as before, creates the
+parent dir (`full.parent.mkdir(parents=True, exist_ok=True)`), and stores `rel` (not the bare name)
+as the `Evidence.path`. `stages/parallel_run.py::default_session_factory`'s inner `_factory` sets
+`state.evidence_prefix = case.id` right after building each case's session — so two cases sharing one
+`run_dir` now write to `run_dir/<case_id_1>/01-....png` and `run_dir/<case_id_2>/01-....png` instead
+of colliding on `run_dir/01-....png` twice. **No reader needed a change**: `run_dir / ev.path` (a
+`pathlib.Path` division) resolves a case-id-prefixed relative path exactly like a bare filename, and
+`report_export.py::png_base64`'s `candidate.is_relative_to(resolved_safe_root)` security check
+already handles nested subdirectories — confirmed by reading `grade.py::_screenshot_paths`,
+`routes_report.py`, and `report_export.py` end to end and by the fact that no test outside
+`browser/`/`parallel_run.py` needed touching. `getattr(session, "state", None)` guards the factory's
+new line defensively, so the pre-existing `FakeBrowserSession` test double (no `.state` attribute) in
+`test_parallel_run.py` keeps passing unmodified.
+
+**Failure 2, quoted verbatim (checker):**
+> `[PR6 reporting / AT-568 fallback] sev: medium · a grader/provider exception after run_case
+> COMPLETED makes run_cases replace the real RawResult with outcome=errored; grade_errored_result
+> then records "not judged: execution errored" and the run view shows "no screenshots captured" --
+> the real outcome and step evidence are discarded and the failure is misattributed to execution. ·
+> fix: in _run_and_grade, run the case and capture its RawResult first, then grade; on a grader
+> error keep the real RawResult and save an INCONCLUSIVE verdict naming the grader failure. · issue:
+> AT-573`
+
+**Fix (AT-573):** new `stages/run_case_pipeline.py::run_and_grade_case_resilient(case, session,
+judge, run_id, store)` — calls `run_case` first (unconditionally, exactly like `run_and_grade_case`),
+then wraps only the rubric-resolution + `grade()` call in `try/except Exception`. On success it
+behaves identically to `run_and_grade_case`. On a grader/provider exception, `result` (the real,
+already-produced `RawResult`, with its real evidence) is still returned, paired with a
+`Verdict(result=Result.INCONCLUSIVE, grader_provider="rule", scoreboard="not judged: the grader
+failed after execution completed", note=f"{type(exc).__name__}: {exc}")` naming the failure — never
+propagating up into `run_cases`'s own exception handling, which is exactly the path that used to
+manufacture a synthetic `ERRORED` `RawResult` with no evidence (T-173's `_run_one`). `ui/
+routes_runs.py::_run_cases_in_parallel`'s `_run_and_grade` closure now calls
+`run_and_grade_case_resilient` instead of `run_and_grade_case` — the ONLY call site changed; the
+serial route (`_run_cases_serially`, `_run_entry_case`) still calls the plain `run_and_grade_case`
+directly, unchanged, since a grader failure there was never routed through `run_cases`'s
+result-discarding exception path to begin with.
+
+**TDD, both shown red first on the actual code:**
+- `tests/test_parallel_run_evidence_namespace.py` (new; split from `test_parallel_run.py` at the
+  300-line cap) — two cases with different first pages driven through the real
+  `default_session_factory` one after another (mirroring how `run_cases` actually drives them);
+  shown red on pre-fix code via `git stash` (`assert '01-step01-navigate.png' !=
+  '01-step01-navigate.png'`, the exact live-run collision), green after. A second test pins the
+  serial path's bare-filename behaviour as unaffected.
+- `tests/test_run_case_pipeline_resilient.py` (new; split from `test_run_case_pipeline.py` at the
+  300-line cap) — a `MockProvider(responses={})` (its `.judge()` raises `ProviderError` exactly like
+  a real provider failure) drives `run_and_grade_case_resilient` directly: shown red pre-fix via
+  `git stash` (`ImportError: cannot import name 'run_and_grade_case_resilient'` — the function did
+  not exist at all before this cycle), green after, asserting `result.outcome is COMPLETED`,
+  `result.evidence` is non-empty, and the verdict is `INCONCLUSIVE`/`"rule"` naming the
+  `ProviderError`. A second test pins the happy-path (grading succeeds) as behaviourally identical to
+  `run_and_grade_case`.
+- Three pre-existing tests that monkeypatched the old `run_and_grade_case` module-level name inside
+  the PARALLEL route (`_run_cases_in_parallel` no longer calls it — only `run_and_grade_case_resilient`
+  does) were updated to monkeypatch the new name:
+  `test_ui_runs_parallel_trace.py::test_with_max_parallel_2_two_cases_run_concurrently`,
+  `test_ui_runs_parallel_crash_recovery.py::test_a_session_factory_crash_for_one_case_still_saves_
+  every_case_and_the_run`, and that same file's second test — **repurposed**, not just renamed: its
+  original scenario ("`run_and_grade_case` itself raises for one case, e.g. a grader/provider
+  error") is factually superseded by the AT-573 fix (that exact shape no longer reaches this
+  fallback at all — it is now caught INSIDE `run_and_grade_case_resilient` and produces
+  COMPLETED+INCONCLUSIVE, not ERRORED). Renamed to
+  `test_run_and_grade_case_resilient_itself_raising_still_saves_every_case_and_the_run` — a genuine
+  AT-568-defense-in-depth case (the wrapper itself raising unexpectedly, a bug in it rather than a
+  grader error inside it) — and its module docstring updated to point at
+  `test_run_case_pipeline_resilient.py`/`test_ui_runs_parallel_trace.py` for the actual AT-573
+  behaviour. The three serial-path tests in `test_ui_runs_parallel_trace.py` that use
+  `max_parallel=1` (default) were NOT touched — the serial route never called
+  `run_and_grade_case_resilient` and still doesn't.
+
+**Capability rows for both in Capability coverage below.**
+
+**Doctor finding from Fix cycle 2 (`ledger-row-lost` x6): resolved by the master merge, not by this
+cycle's own diff** — AT-571 landed on master before this merge and fixed `ledger/checks.py`'s
+field-order-sensitive regex; `uv run autotester doctor` is clean this cycle (see Actual outputs).
 
 ## What the two goal-coverage gaps were
 
@@ -227,6 +326,43 @@ pre-unit state.
   - `tests/test_run_case_pipeline.py` gains `test_grade_errored_result_never_calls_the_judge` and
     `test_grade_errored_result_builds_and_persists_the_same_default_rubric` (in place, +38 lines).
 
+### Cycle 3 additions (AT-572, AT-573)
+
+- **`src/autotester/browser/session.py`** (300 lines, was 293 — exactly at the C2 cap; the
+  `settle()`/`assert_expected()` docstrings were compressed to reclaim lines without dropping any
+  fact they recorded, AT-045/AT-046/E5/D-032/AT-540/C7 all still named)
+  - `SessionState` gains `evidence_prefix: str = ""` (new field, docstring explains AT-572).
+  - `screenshot()` (:266-287): computes `rel` as a prefix-joined path when `evidence_prefix` is set,
+    else the unchanged bare `name`; `full.parent.mkdir(parents=True, exist_ok=True)` added so the
+    per-case subdirectory always exists before the write; `_record(..., rel, ...)` replaces the old
+    `_record(..., name, ...)`.
+- **`src/autotester/stages/parallel_run.py`** (258 lines)
+  - `default_session_factory`'s inner `_factory` (AT-572): `state.evidence_prefix = case.id` set on
+    the session's `SessionState` right after `build(...)`, guarded by `getattr(session, "state",
+    None)` so a test double without `.state` never breaks. Docstring updated.
+- **`src/autotester/stages/run_case_pipeline.py`** (166 lines, was 134)
+  - New `run_and_grade_case_resilient(case, session, judge, run_id, store)` (:117-146, AT-573) — see
+    Fix cycle 3 above. `run_and_grade_case` itself is untouched.
+  - `from autotester.schema.enums import Result` import added (already had `Outcome`/`Result` via
+    other imports in this file's siblings; this file specifically needed `Result.INCONCLUSIVE`).
+- **`src/autotester/ui/routes_runs.py`** (259 lines, was 250)
+  - Import line: `run_and_grade_case_resilient` added alongside `grade_errored_result`,
+    `run_and_grade_case`.
+  - `_run_cases_in_parallel`'s `_run_and_grade` closure (:149-156): now calls
+    `run_and_grade_case_resilient` instead of `run_and_grade_case` — the only call-site change.
+- **Tests, new files (cycle 3 split, same convention as cycles 1-2):**
+  - `tests/test_parallel_run_evidence_namespace.py` — two tests: distinct-namespace-per-case (AT-572)
+    and serial-path-unaffected.
+  - `tests/test_run_case_pipeline_resilient.py` — two tests: grader-raises-after-COMPLETED keeps the
+    real result (AT-573) and the happy path matches `run_and_grade_case`.
+  - `tests/test_ui_runs_parallel_crash_recovery.py` — test 1 renamed fake/monkeypatch target to
+    `run_and_grade_case_resilient` (behaviour unchanged); test 2 repurposed as described in Fix cycle
+    3 above (module docstring updated to match).
+  - `tests/test_ui_runs_parallel_trace.py` — `test_with_max_parallel_2_two_cases_run_concurrently`'s
+    fake/monkeypatch target renamed to `run_and_grade_case_resilient` (behaviour unchanged; this test
+    exercises `max_parallel=2` so it goes through the parallel route). The three `max_parallel=1`
+    tests in this file were not touched.
+
 ## Design decisions and why (for the checker)
 
 1. **`plan.n <= 1` is NOT routed through `run_cases`.** `run_cases`'s own contract (via `_run_one`)
@@ -253,13 +389,12 @@ pre-unit state.
 
 ## How to verify (commands + expected)
 
-- `uv run pytest tests/test_ui_runs.py tests/test_ui_runs_parallel_trace.py tests/test_ui_runs_parallel_crash_recovery.py tests/test_parallel_run.py tests/test_parallel_run_session_crash.py tests/test_provider_record_concurrency.py tests/test_run_case_pipeline.py tests/test_run_trace.py tests/test_orchestrate.py tests/test_orchestrate_runners.py tests/test_execute.py tests/test_execute_assertions.py tests/test_execute_new_actions.py tests/test_consent.py tests/test_approval_signing.py` → exit 0
+- `uv run pytest tests/test_ui_runs.py tests/test_ui_runs_parallel_trace.py tests/test_ui_runs_parallel_crash_recovery.py tests/test_run_case_pipeline.py tests/test_run_case_pipeline_resilient.py tests/test_parallel_run.py tests/test_parallel_run_session_crash.py tests/test_parallel_run_evidence_namespace.py tests/test_provider_record_concurrency.py` → exit 0 (cycle-3 targeted set)
 - `uv run ruff check src tests scripts` → exit 0
-- `uv run autotester doctor` → exit 0 in principle; 6 pre-existing, unrelated `ledger-row-lost`
-  violations disclosed above (checker's own tooling bug, not this unit's diff — 3 against the
-  checker's own verdict file, 3 against this manifest naming the same issue ids as required)
-- Full non-browser suite (`uv run pytest` with the 16 browser-launching files `--ignore`d) once
-  RAM/exclusivity allowed — see below.
+- `uv run autotester doctor` → `doctor: clean` (the 6 cycle-2 `ledger-row-lost` false positives are
+  gone post-merge — AT-571 fixed the root cause on master)
+- Full non-browser suite (`uv run pytest` with the browser-launching files `--ignore`d) and the Mode
+  D own smoke, both once RAM/exclusivity allowed — see below.
 
 ## Actual outputs (from maker's own run)
 
@@ -327,7 +462,30 @@ no existing function's signature or call sites outside `_run_cases_in_parallel`/
 own imports changed). The checker's own Mode A re-run (`qa/adapter.json` slot 1) is the actual gate
 this needs to clear; flagging the gap honestly rather than asserting a result never observed.
 
-## Capability coverage (each new claim -> its isolating falsification)
+### Cycle 3 actual outputs (AT-572, AT-573)
+
+```
+$ uv run pytest tests/test_ui_runs.py tests/test_ui_runs_parallel_trace.py tests/test_ui_runs_parallel_crash_recovery.py tests/test_run_case_pipeline.py tests/test_run_case_pipeline_resilient.py tests/test_parallel_run.py tests/test_parallel_run_session_crash.py tests/test_parallel_run_evidence_namespace.py tests/test_provider_record_concurrency.py
+40 passed, 1 warning in 4.19s
+(the one warning is the pre-existing starlette/anyio BlockingPortal DeprecationWarning, unrelated)
+
+$ uv run ruff check src tests scripts
+All checks passed!
+
+$ uv run autotester doctor
+doctor: clean
+```
+
+**TDD red-first, confirmed on the actual code (not asserted):**
+- `tests/test_parallel_run_evidence_namespace.py::test_default_session_factory_gives_each_case_its_own_evidence_namespace`
+  — `git stash` (reverting `browser/session.py` + `stages/parallel_run.py`), red:
+  `AssertionError: assert '01-step01-navigate.png' != '01-step01-navigate.png'`; `git stash pop`,
+  green (2 passed).
+- `tests/test_run_case_pipeline_resilient.py` (both tests) — `git stash` (reverting
+  `stages/run_case_pipeline.py` + `routes_runs.py`), red: `ImportError: cannot import name
+  'run_and_grade_case_resilient' from 'autotester.stages.run_case_pipeline'` (the function is new
+  this cycle — there is no earlier version of it to regress to, so a hard collection error is the
+  correct red); `git stash pop`, green (2 passed).
 
 All 5 falsifications reproduced in throwaway copies outside the worktree
 (`%TEMP%\claude\...\scratchpad\mutation-copy-565\` for AT-565's own fix,
@@ -375,6 +533,20 @@ trials per full-file run, brought it to 15/15 — the manifest's own claim is ab
 shipped, which is what `qa/adapter.json`'s slot-1 (`uv run pytest`, no per-file selection) actually
 runs.
 
+### Cycle 3 rows (AT-572, AT-573)
+
+Reproduced in fresh throwaway copies (`src`+`tests`+`scripts`, never `.venv` — the shared venv's
+python was invoked with `PYTHONPATH` pointed at the copy's `src`, so only the `autotester` package
+itself resolved to the mutated copy) at `%TEMP%\claude\...\scratchpad\mutation-at572\` and
+`\mutation-at573\` — never against the bound worktree. Baseline asserted green before every edit;
+each edit reverted immediately after its red run, the mutated file re-confirmed byte-identical to
+the worktree (`diff` exit 0) after every revert.
+
+| # | Claim | Falsifying edit | Baseline | Result |
+|---|---|---|---|---|
+| 10 | AT-572/PR2: `default_session_factory` gives each parallel case's session its own evidence namespace, so two cases never collide on the same screenshot filename | `browser/session.py::screenshot()`: `rel = f"{self.state.evidence_prefix}/{name}" if self.state.evidence_prefix else name` → `rel = name` (ignore the prefix unconditionally) | `2 passed` (`test_parallel_run_evidence_namespace.py`) | RED — `assert '01-step01-navigate.png' != '01-step01-navigate.png'`, the exact live-run collision the checker's Mode D run hit → reverted → `2 passed`, `diff` clean |
+| 11 | AT-573: `run_and_grade_case_resilient` keeps the real COMPLETED result (and its evidence) when only the grader fails after execution, downgrading just the verdict to INCONCLUSIVE | `run_case_pipeline.py::run_and_grade_case_resilient`: delete the `try/except Exception` wrapper around the rubric+grade call (grading now propagates uncaught, exactly like the pre-AT-573 shape `run_cases` used to catch and discard) | `2 passed` (`test_run_case_pipeline_resilient.py`) | RED — `autotester.providers.base.ProviderError: mock provider has no queued response for role=judge` propagates uncaught out of the function instead of becoming an INCONCLUSIVE verdict → reverted → `2 passed`, `diff` clean |
+
 ## Live browser evidence
 
 **Cycle 1: SKIPPED** (free RAM 2.09-2.55 GB at the time, not polled to a cap).
@@ -410,14 +582,32 @@ directory was created this cycle, since no browser was ever actually launched �
 synthetic `report.json` would misrepresent a smoke that did not happen. The checker's own verdict
 already says it "will do its own Mode D regardless," which is the backstop this SKIP defers to.
 
+**Cycle 3: attempted, but declared SKIP — the host went RAM-unstable mid-attempt, not a controlled
+pass.** A background poller cleared the ≥3.5 GB floor twice (4.33 GB, then 3.81 GB) and the own-smoke
+script ran for real against a locally-served fixture site with an in-process mock judge (real
+Chromium, real `uvicorn`, the actual `/projects/{slug}/run` route) — the first real run did show
+`AT-572` holding (two distinct screenshot paths, `01-step01-navigate.png` and
+`case_a944c0957ada/01-step01-navigate.png`, disjoint), but the attempt's own AT-573 assertions had a
+bug (comparing `Result.INCONCLUSIVE`/`Result.PASS` against the wrong-case string literals
+`"inconclusive"`/`"pass"` instead of `"INCONCLUSIVE"`/`"PASS"`), so a clean run was never actually
+banked before free RAM fell to 0.67 GB on a re-run (a second attempt also hit an unrelated
+`playwright`-in-asyncio-loop error on the entry-case path, and `plan_parallel_run`'s own real
+measurement dropped the plan to serial `n=1` once RAM was low, which is not the shape AT-572/AT-573
+need to see exercised). Per the coordinator's direction, this is disclosed as a SKIP rather than
+asserting a clean result that was never actually observed — the checker's own Mode D is the real
+gate. No lingering process from this attempt was left running (confirmed: no `python.exe` matching
+`mode_d_smoke`/`uvicorn`/`scratchpad` after the fact); the elevated Chrome count on the host is the
+user's own browser, not touched.
+
 ## Gaps (disclosed, not fixed here)
 
-1. **No live-browser smoke of `routes_runs.py`'s changed code paths, across two cycles** (RAM-gated
-   both times — cycle 2 polled properly for the full 45-minute mandatory cap and still never
-   reached 3.5 GB free, see Live browser evidence above). All verification here is through
-   `TestClient` + mocked `BrowserSession`/`run_and_grade_case`. The route's control flow (case
-   lookup, plan computation, trace/secret wiring, persistence, redirect) is exercised for real; the
-   actual Chromium launch is not.
+1. **No CONTROLLED, clean live-browser smoke of `routes_runs.py`'s changed code paths, across all
+   three cycles** — cycles 1-2 were RAM-gated the full cap with no attempt possible; cycle 3's own
+   attempt DID launch a real browser twice (see Live browser evidence above) and its first run showed
+   AT-572 genuinely holding live, but the host went RAM-unstable (0.67 GB free) before a clean
+   PASS/FAIL could be banked, so this is disclosed as SKIP rather than an asserted result. All
+   verification here is otherwise through `TestClient` + mocked `BrowserSession`/`run_and_grade_case`
+   (or `run_and_grade_case_resilient`). The checker's own Mode D is the real gate for this route.
 2. **The EXECUTE stage span is coarse** (design decision 4 above) — one span for the whole
    run+grade batch, not a separate span per case or per execute/grade sub-phase. If a future unit
    wants per-case or execute-vs-grade trace granularity through this route, `run_and_grade_case`
@@ -438,23 +628,35 @@ already says it "will do its own Mode D regardless," which is the backstop this 
    header as NOT addressed this cycle, on the checker's own instruction (only AT-568/AT-569 were
    dispatched). `RunBudget(None)` stays unbounded for an opted-in `max_parallel > 1` fan-out until
    T-122 lands.
-6. **The doctor `ledger-row-lost` false positive** (Fix cycle 2 above) is disclosed, not fixed —
-   fixing it means editing `qa/issues.jsonl` or `ledger/checks.py`, both off-limits this cycle.
-7. **The full non-browser `uv run pytest` suite did not run this cycle** — the 60-minute RAM gate
-   elapsed without ever sustaining ≥3.5 GB free (see Actual outputs above; came within 4 MB of the
-   threshold once, one poll cycle too late). The 15-file targeted run (110 passed) and cycle 1's
-   full run (1552 passed, 5 skipped) stand in its place; the checker's own re-run is the real gate.
+6. ~~The doctor `ledger-row-lost` false positive~~ (Fix cycle 2 above) is disclosed, not fixed — fixing
+   it means editing `qa/issues.jsonl` or `ledger/checks.py`, both off-limits this cycle. **Resolved
+   this cycle by the master merge, not by this unit's diff:** AT-571 landed on master and fixed
+   `ledger/checks.py`'s regex; `doctor: clean` post-merge (Cycle 3 actual outputs). Struck through
+   rather than deleted so the history stays visible.
+7. **AT-572, AT-573 (cycle 3): fixed and TDD-verified, see Fix cycle 3 above.** No new gap opened by
+   either fix — no reader needed a change for AT-572 (confirmed by reading `grade.py`,
+   `routes_report.py`, `report_export.py`), and AT-573's only call-site change is the parallel
+   route's `_run_and_grade` closure.
+8. **The full non-browser `uv run pytest` suite did not run this cycle either.** A background poller
+   ran the whole cycle, RAM never sustained ≥3.5 GB long enough before the cap elapsed (dipping as low
+   as 0.67-1.14 GB while the Mode D attempt above was in flight). The 8-file targeted run (40 passed,
+   Cycle 3 actual outputs), `ruff`/`doctor` clean, and cycle 1's own full-suite run (1552 passed, 5
+   skipped) stand in its place; the checker's own re-run is the real gate.
 
 ## What changed (files touched)
 
-- `src/autotester/ui/routes_runs.py`
-- `src/autotester/stages/parallel_run.py`
-- `src/autotester/stages/run_case_pipeline.py` (cycle 2)
+- `src/autotester/ui/routes_runs.py` (cycle 3: `_run_and_grade` calls `run_and_grade_case_resilient`)
+- `src/autotester/stages/parallel_run.py` (cycle 3: `default_session_factory` sets `evidence_prefix`)
+- `src/autotester/stages/run_case_pipeline.py` (cycle 2; cycle 3: `run_and_grade_case_resilient`)
+- `src/autotester/browser/session.py` (new this cycle: `SessionState.evidence_prefix`, `screenshot()`)
 - `src/autotester/providers/base.py` (cycle 2)
-- `tests/test_ui_runs_parallel_trace.py` (new, cycle 1)
+- `tests/test_ui_runs_parallel_trace.py` (new, cycle 1; cycle 3: one monkeypatch target renamed)
 - `tests/test_parallel_run_session_crash.py` (new, cycle 1)
-- `tests/test_ui_runs_parallel_crash_recovery.py` (new, cycle 2)
+- `tests/test_ui_runs_parallel_crash_recovery.py` (new, cycle 2; cycle 3: test 1 monkeypatch target
+  renamed, test 2 repurposed, module docstring updated)
 - `tests/test_provider_record_concurrency.py` (new, cycle 2)
 - `tests/test_run_case_pipeline.py` (cycle 2, +2 tests)
+- `tests/test_parallel_run_evidence_namespace.py` (new, cycle 3)
+- `tests/test_run_case_pipeline_resilient.py` (new, cycle 3)
 
 ## Status: ready-for-check
