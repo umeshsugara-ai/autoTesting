@@ -209,7 +209,7 @@ fixture-proven only. The ERP trust number is the first time AutoTester is measur
 2. Both intake modes work on a real target and beat-or-match a human tester (T-169).
 3. Every finding is evidence-backed and correctly classified; coverage shows untested branches.
 
-## Progress (from `.goal/goal.json`, 2026-09-25): 40 / 67 done (60% — the roadmap grew by 12 tasks via D-040/D-041/D-042, not a regression). Status 2026-09-25: AT-110 ✅ merged 48aba2f (cycle 2); AT-560 ✅; AT-086/087 ✅ merged 6e5c806; T-173 ✅ merged 626fa03 (wiring AT-562); with the checker: T-175; T-172 cycle 2 (AT-561 redaction wiring); building: AT-335, T-125; next: T-165 (after AT-335), T-174 + T-178 (after T-125); the Deep Agents layer (T-179..T-181) after Wave 1.
+## Progress (from `.goal/goal.json`, 2026-09-25): 41 / 67 done (61% — the roadmap grew by 12 tasks via D-040/D-041/D-042, not a regression). Status 2026-09-25: AT-110 ✅ merged 48aba2f (cycle 2); AT-560 ✅; AT-086/087 ✅ merged 6e5c806; T-173 ✅ merged 626fa03 (wiring AT-562); with the checker: T-175; T-172 cycle 2 (AT-561 redaction wiring); building: AT-335, T-125; next: T-165 (after AT-335), T-174 + T-178 (after T-125); the Deep Agents layer (T-179..T-181) after Wave 1.
 _Machine backlog + done-checks: `.goal/goal.json`. Whole-project screen: `docs/SNAPSHOT.md`._
 _Note: rewriting `.goal/goal.json`'s north star or adding DISCOVER/MODEL to `docs/ARCHITECTURE.md`
 is a state change that needs an authorizing `docs/DECISIONS.md` entry first (Lab Protocol) — this
