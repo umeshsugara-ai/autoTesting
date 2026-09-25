@@ -34,4 +34,4 @@ Note: the first attempt (forcing `ParallelPlan.n = 1` in stages/parallel_run.py)
 ## Live browser evidence
 Not UI-touching — only tests/test_ui_runs_parallel_trace.py changed (no src/ file).
 
-## Status: ready-for-check
+## Status: checked-PASS (qa/verdicts/at579-barrier-overlap.md, Cycle checked: 1, 092d5ef)
