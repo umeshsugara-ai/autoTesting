@@ -134,4 +134,4 @@ the full 16-test file green again before the next mutation.
 `**/components/**`) and none feed a page's rendered data (these prompts drive model calls that
 land in artifacts on disk, not a live UI route). `qa/ui-surfaces.json` unchanged.
 
-## Status: ready-for-check
+## Status: checked-PASS (qa/verdicts/t175-prompt-skills.md, Cycle checked: 1, supervising acceptance dc56cf7)
