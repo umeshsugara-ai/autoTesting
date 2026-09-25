@@ -13,11 +13,13 @@ stop at the existing review gate (contract orchestrator.md OR1-OR6, D-036).
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
+from autotester.browser.secrets import SecretStore
 from autotester.core.trace import TraceWriter
 from autotester.schema.base import utc_now
 from autotester.schema.enums import SourceKind
@@ -70,10 +72,31 @@ class StageContext:
     """The run's redacted trace (D-041 phase 1). Built automatically from
     `store.paths.run_trace(run_id)` when not given, so every run is traced by
     default and a caller never has to remember to wire it (RT1)."""
+    secrets: SecretStore | None = None
+    """The project's credential boundary (`browser/secrets.py`), threaded into
+    the auto-built `trace`'s redactor exactly like `stages/execute.py:101` /
+    `stages/explore.py:230` thread it into their own evidence. AT-561: without
+    this, the default `trace` above fell back to an unredacted `Redactor({})`
+    and the RT6/C5 gate could never fire on a real run."""
 
     def __post_init__(self) -> None:
         if self.trace is None:
-            self.trace = TraceWriter(self.store.paths.run_trace(self.run_id), self.run_id)
+            if self.secrets is not None:
+                redactor = self.secrets.redactor()
+            else:
+                redactor = None
+                warnings.warn(
+                    "StageContext for run "
+                    f"{self.run_id!r} was built with no `secrets=` (SecretStore) -- its "
+                    "auto-built TraceWriter falls back to an unredacted Redactor({}), so "
+                    "a real secret value fed into a span here would NOT be masked (AT-561, "
+                    "D-041 RT6/C5). Pass `secrets=<project's SecretStore>` for any run that "
+                    "might carry real credentials; this is expected only for a fixture/test "
+                    "context that genuinely declares none.",
+                    RuntimeWarning, stacklevel=2,
+                )
+            self.trace = TraceWriter(self.store.paths.run_trace(self.run_id), self.run_id,
+                                     redactor)
 
 
 def choose_mode(sources: list[Source]) -> tuple[str, str]:

@@ -12,11 +12,12 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+from autotester.browser.secrets import SecretStore
 from autotester.core.redact import Redactor
 from autotester.core.trace import TraceWriter, read_spans
 from autotester.providers.mock import MockProvider
 from autotester.schema.enums import SourceKind
-from autotester.schema.project import Project, Source
+from autotester.schema.project import Project, SecretRef, Source
 from autotester.schema.run_state import RunState, StageCheckpoint, StageName
 from autotester.schema.trace import LLMSpan, StageSpan
 from autotester.stages.orchestrate import StageContext, run_or_resume
@@ -206,6 +207,36 @@ def test_redactor_assert_clean_raises_on_a_surviving_secret() -> None:
         pass
     else:
         raise AssertionError("assert_clean did not raise on a raw secret")
+
+
+def test_the_real_stagecontext_wiring_never_leaks_a_declared_secret(tmp_path: Path) -> None:
+    """RT6 through the REAL production wiring (AT-561, checker cycle 1 FAIL):
+    a `StageContext` built with a project's `SecretStore` (no `trace=` kwarg,
+    exactly how `orchestrate_runners.make_ingest_runner` is actually driven)
+    must never fall back to an unredacted `Redactor({})`. The prior RT6 tests
+    hand-built a populated `Redactor` and proved only the mechanism; this one
+    drives the mechanism through the wiring a real run would actually use."""
+    store = _store(tmp_path)
+    secret_value = "sk-real-DEADBEEF12345"
+    secrets = SecretStore(
+        Project(slug="demo", name="D", base_url="https://demo.test",
+               secrets=[SecretRef(key="FAKE_API_KEY")]),
+        {"FAKE_API_KEY": secret_value},
+    )
+    provider = MockProvider(model="mock", responses={"agent": [{"steps": []}]})
+
+    def ingest_runner(ctx: StageContext, prev_ref: str | None) -> str:
+        provider.trace = ctx.trace  # exactly orchestrate_runners.make_ingest_runner's own line
+        provider.act(f"do something with {secret_value}", object,
+                     prompt_file="p.md", fed_id=f"case-{secret_value}")
+        return "ok"
+
+    ctx = StageContext(store=store, run_id="run_real_wiring", secrets=secrets,
+                       runners={StageName.INGEST: ingest_runner})
+    run_or_resume(Project(slug="demo", name="D", base_url="https://demo.test"), ctx)
+
+    raw = store.paths.run_trace("run_real_wiring").read_text(encoding="utf-8")
+    assert secret_value not in raw
 
 
 # -- RT7 -----------------------------------------------------------------
