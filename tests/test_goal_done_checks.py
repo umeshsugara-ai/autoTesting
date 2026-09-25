@@ -103,15 +103,32 @@ def _is_task_specific(segment: str) -> bool:
 def is_capable_of_failing(command: str) -> bool:
     """Can this `done_check` distinguish done from not-started?
 
-    `||` disqualifies the whole command; so does an ALWAYS_TRUE segment
-    ANYWHERE (AT-161) — `;`/`&&` both let a trailing no-op decide the exit
-    code, invisible to a plain `any()` over segments."""
+    `||` disqualifies the whole command anywhere. Past that, `;` and `&&`
+    have different real-shell exit-code semantics and must be scored
+    differently (AT-359): a `;`-joined sequence's exit status is its LAST
+    segment's alone -- earlier segments run but their exit codes are
+    discarded -- so only the final `;`-group has to be capable of failing.
+    A `&&`-joined chain short-circuits on the first failure and propagates
+    THAT segment's exit code, so any segment in the group being
+    task-specific is enough: whatever follows it (even a literal
+    ALWAYS_TRUE `true`/`:`/`exit 0`) never overrides a failure that already
+    happened before the chain reached it.
+
+    AT-161's fix flattened both separators into one split and scored with a
+    single any(), which is why it could only catch the three literal
+    ALWAYS_TRUE tokens and not a `;`-terminated no-op like `echo`/`ls`
+    (AT-359), and why it also over-rejected a task-specific command merely
+    because `&& true` followed it, even though that trailing segment can
+    never mask a failure under real `&&` semantics."""
     if "||" in command:
         return False
-    segments = [s.strip() for s in command.replace("&&", ";").split(";") if s.strip()]
-    if not segments or any(seg in ALWAYS_TRUE for seg in segments):
+    groups = [g.strip() for g in command.split(";") if g.strip()]
+    if not groups:
         return False
-    return any(_is_task_specific(seg) for seg in segments)
+    last_group_segments = [s.strip() for s in groups[-1].split("&&") if s.strip()]
+    if not last_group_segments:
+        return False
+    return any(_is_task_specific(seg) for seg in last_group_segments)
 
 
 def waiver_of(task: dict) -> str:
