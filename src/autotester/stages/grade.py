@@ -15,12 +15,12 @@ from pathlib import Path
 
 from autotester.browser.secrets import SecretStore
 from autotester.core.paths import RepoDocs
-from autotester.providers.base import Provider
+from autotester.providers.base import Provider, load_skill_prompt
 from autotester.schema.enums import EvidenceKind, Outcome, Result
 from autotester.schema.run import RawResult
 from autotester.schema.verdict import Failure, Judgment, Rubric, Verdict
 
-PROMPT_NAME = "grade_v1.md"
+SKILL_NAME = "grade"  # src/autotester/skills/grade/SKILL.md (T-175, was grade_v1.md)
 
 
 def _render_evidence(result: RawResult) -> str:
@@ -41,7 +41,7 @@ def _render_rubric(rubric: Rubric) -> str:
 
 
 def build_grade_prompt(rubric: Rubric, result: RawResult, docs: RepoDocs) -> str:
-    template = (docs.prompts_dir / PROMPT_NAME).read_text(encoding="utf-8")
+    template = load_skill_prompt(SKILL_NAME, skills_dir=docs.skills_dir)
     return (
         template.replace("{{RUBRIC}}", _render_rubric(rubric))
         .replace("{{EVIDENCE}}", _render_evidence(result))

@@ -99,6 +99,7 @@
 | `stages/network_capture.py` | First-party network capture as evidence (T-170, NA1/NA2/NA4/NA5/NA6). |
 | `stages/orchestrate.py` | ORCHESTRATE: drive the stage pipeline as a resumable learn-or-explore run. |
 | `stages/orchestrate_runners.py` | The concrete stage runners the orchestrator threads — thin adapters over the |
+| `stages/parallel_run.py` | PARALLEL_RUN: fan N cases out across isolated browser contexts (T-173/D-041). |
 | `stages/portal_persona.py` | PORTAL PERSONA: promote per-crawl knowledge into the durable, cross-run |
 | `stages/portal_persona_view.py` | Render a `PortalPersona` as `knowledge.md` — a human-readable VIEW of the |
 | `stages/product_map.py` | PRODUCT MAP: fold every recording analysis into one navigable screen map. |

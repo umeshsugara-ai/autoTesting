@@ -206,10 +206,12 @@ def work_dir(root: Path | None = None) -> Path:
 class RepoDocs:
     """Repo-level documents: the living map, the ledger, the history, the router."""
 
-    def __init__(self, root: Path | None = None, *, prompts_dir: Path | None = None) -> None:
+    def __init__(self, root: Path | None = None, *, prompts_dir: Path | None = None,
+                 skills_dir: Path | None = None) -> None:
         self.root = root or repo_root()
         self._root_given = root is not None
         self._prompts_dir_override = prompts_dir
+        self._skills_dir_override = skills_dir
 
     @property
     def docs_dir(self) -> Path:
@@ -270,3 +272,16 @@ class RepoDocs:
         if self._root_given:
             return self.root / "src" / "autotester" / "prompts"
         return Path(__file__).resolve().parents[1] / "prompts"
+
+    @property
+    def skills_dir(self) -> Path:
+        """Migrated-prompt `SKILL.md` folders (T-175/D-041) -- same shape as
+        `prompts_dir` above and for the same reason: ships WITH THE CODE, so an
+        explicit override lets a test substitute a stub tree (mirroring
+        AT-137's `prompts_dir=` fix) without a relocated `AUTOTESTER_ROOT`
+        leaking into a path it does not own."""
+        if self._skills_dir_override is not None:
+            return self._skills_dir_override
+        if self._root_given:
+            return self.root / "src" / "autotester" / "skills"
+        return Path(__file__).resolve().parents[1] / "skills"

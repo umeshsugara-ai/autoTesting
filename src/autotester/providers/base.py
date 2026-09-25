@@ -7,6 +7,7 @@ judging without any stage knowing which is which.
 
 from __future__ import annotations
 
+import re
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, TypeVar
@@ -129,3 +130,46 @@ class Provider(ABC):
                 latency_s=latency_s, retries=retries, fallback_hops=fallback_hops,
                 fed_id=fed_id,
             )
+
+
+# -- skill prompt loader (T-175/D-041) --------------------------------------
+# The ONE reader for a migrated `SKILL.md` prompt: a stage builds its prompt
+# text through this before handing it to see_video/act/judge above -- the
+# provider seam these three methods already are (SK2). Not a Provider method
+# because a prompt is built before a provider is chosen (grade()/expand()/
+# ingest_video() all build the string first, then call the role method on
+# whichever provider they were given).
+_FRONTMATTER_RE = re.compile(
+    r"\A---\r?\n(?P<meta>.*?)\r?\n---\r?\n(?:\r?\n)?(?P<body>.*)\Z", re.DOTALL
+)
+"""The `(?:\\r?\\n)?` after the closing delimiter eats exactly one blank
+separator line when the author left one (every migrated SKILL.md does, for
+readability) without requiring it -- a SKILL.md with no blank line before its
+body parses just as well."""
+
+
+def load_skill_prompt(skill: str, *, skills_dir: Path | None = None) -> str:
+    """Read one Agent-Skills `SKILL.md`'s body -- the migrated prompt's text.
+
+    `skill` is the folder name under `skills_dir` (e.g. "grade"). The body
+    returned is everything after the YAML frontmatter's closing `---`,
+    byte-identical (post the same universal-newline read every prompt file
+    already got via `read_text`) to what the old loose `prompts/*.md` file
+    produced (SK3) -- the frontmatter is the only thing added.
+
+    `skills_dir` mirrors `RepoDocs.prompts_dir`'s explicit-override shape
+    (AT-137): a caller/test names the tree directly instead of a relocated
+    `AUTOTESTER_ROOT` leaking into a path it does not own. Defaults to this
+    package's own `skills/` so a caller with no `RepoDocs` at hand still
+    resolves correctly.
+    """
+    base = skills_dir if skills_dir is not None else Path(__file__).resolve().parents[1] / "skills"
+    path = base / skill / "SKILL.md"
+    text = path.read_text(encoding="utf-8")
+    match = _FRONTMATTER_RE.match(text)
+    if match is None:
+        raise ValueError(
+            f"{path} has no YAML frontmatter -- expected a leading '---' ... '---' "
+            f"block (Agent Skills shape, SK1)"
+        )
+    return match.group("body")
