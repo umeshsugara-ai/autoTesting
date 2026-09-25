@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import json
 import threading
-import time
 from pathlib import Path
 
 import pytest
@@ -225,14 +224,23 @@ def test_with_max_parallel_2_two_cases_run_concurrently(
     concurrent = [0]
     peak = [0]
     lock = threading.Lock()
+    # AT-579: a Barrier, not a sleep, proves overlap -- it only releases when both
+    # cases are in flight at once, so a loaded host cannot turn a real fan-out into
+    # a serial-looking run (the 50 ms sleep did), and a serial run cannot pass (the
+    # lone case waits out the timeout, errors, and peak stays 1).
+    both_in_flight = threading.Barrier(2, timeout=10)
 
     def fake_run_and_grade_case_resilient(case_, session, judge_, run_id, store_):
         with lock:
             concurrent[0] += 1
             peak[0] = max(peak[0], concurrent[0])
-        time.sleep(0.05)
-        with lock:
-            concurrent[0] -= 1
+        try:
+            both_in_flight.wait()
+        finally:
+            # always leave, even when the barrier breaks: otherwise a serial run's
+            # timed-out first case never decrements and the second case reads 2.
+            with lock:
+                concurrent[0] -= 1
         result = RawResult(case_id=case_.id, outcome=Outcome.COMPLETED)
         verdict = Verdict(run_id=run_id, case_id=case_.id, result=Result.PASS,
                            grader_provider="mock")
