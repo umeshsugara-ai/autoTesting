@@ -179,20 +179,30 @@ def _run_one(
     case: Case, session_factory: SessionFactory, run_fn: RunFn, budget: RunBudget | None,
 ) -> RawResult:
     """One case, isolated: its own session (PR2), its own try/except so a
-    crash is reported as ITS outcome and never propagates to a sibling (PR6)."""
+    crash is reported as ITS outcome and never propagates to a sibling (PR6).
+
+    AT-565: `session_factory(case)` itself can raise -- a real
+    `BrowserSession.start()` failing under N-way concurrency, not just
+    `run_fn`'s body -- so it must be INSIDE the guarded region too. Before
+    this fix it sat above the `try`, and an unguarded raise there propagated
+    out of `run_cases`' `[f.result() for f in futures]`, discarding every
+    sibling's already-finished result instead of reporting just this case
+    as ERRORED."""
     if budget is not None and not budget.try_consume(actions=action_cost(case)):
         return RawResult(case_id=case.id, outcome=Outcome.ERRORED,
                           error="run budget exhausted before this case could start")
-    session = session_factory(case)
+    session: object | None = None
     try:
+        session = session_factory(case)
         return run_fn(case, session)
     except Exception as exc:  # PR6: reported per case, never aborts the run
         return RawResult(case_id=case.id, outcome=Outcome.ERRORED,
                           error=f"{type(exc).__name__}: {exc}")
     finally:
-        close = getattr(session, "close", None)
-        if callable(close):
-            close()
+        if session is not None:
+            close = getattr(session, "close", None)
+            if callable(close):
+                close()
 
 
 def run_cases(
@@ -222,7 +232,15 @@ def default_session_factory(
     single shared, persistent profile a normal (serial) run reuses for login
     continuity across cases -- that reuse is correct there because nothing
     runs alongside it; here siblings run at the same time, so isolation, not
-    continuity, is the property that must hold."""
+    continuity, is the property that must hold.
+
+    AT-572: every session still shares the same `run_dir` (screenshots stay
+    reachable at the run's own directory, which `grade()`/the run view
+    already resolve) -- but each case's `SessionState.evidence_prefix` is set
+    to its own `case.id` here, so `BrowserSession.screenshot()` nests every
+    file under `run_dir/<case.id>/` instead of restarting the same `01-...`
+    filename directly in the shared `run_dir`, where two siblings used to
+    collide on the identical path."""
     from autotester.browser.session import BrowserSession
     from autotester.core.paths import ProjectPaths
 
@@ -231,6 +249,9 @@ def default_session_factory(
     def _factory(case: Case) -> object:
         paths = ProjectPaths(f"{project.slug}-parallel-{case.id[:12]}")
         session = build(project, secrets, run_dir, paths)
+        state = getattr(session, "state", None)
+        if state is not None:
+            state.evidence_prefix = case.id
         start = getattr(session, "start", None)
         return start() if callable(start) else session
 

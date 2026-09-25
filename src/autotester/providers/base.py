@@ -8,6 +8,7 @@ judging without any stage knowing which is which.
 from __future__ import annotations
 
 import re
+import threading
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, TypeVar
@@ -45,6 +46,14 @@ class Provider(ABC):
         """Attached by a caller (e.g. `stages/orchestrate_runners.py`) when
         this provider is serving a traced run (D-041 phase 1). None by
         default, so untraced use (tests, standalone scripts) costs nothing."""
+        self._usage_lock = threading.Lock()
+        """AT-569: T-173's parallel fan-out (`ui/routes_runs.py::
+        _run_cases_in_parallel`) shares ONE `Provider` (the judge) across N
+        worker threads grading concurrently, so `record()`'s `+=` on a shared
+        `ProviderUsage` row -- and its own not-matched -> append race -- can
+        lose an increment or create a duplicate role row. One lock per
+        provider instance, held for the whole accumulate-and-trace critical
+        section below."""
 
     @property
     def label(self) -> str:
@@ -104,32 +113,37 @@ class Provider(ABC):
         span. This is the ONLY site that appends such a span (D-041 RT5): no
         stage writes one for itself. `prompt_file`/`fed_id`/`latency_s`/
         `retries`/`fallback_hops` are trace metadata only; usage accounting
-        below is unchanged from before this span emission was added."""
-        matched = False
-        for entry in self.usage:
-            if entry.role == role:
-                entry.calls += 1
-                entry.input_tokens += input_tokens
-                entry.output_tokens += output_tokens
-                matched = True
-                break
-        if not matched:
-            self.usage.append(
-                ProviderUsage(
-                    provider=self.id,
-                    role=role,
-                    calls=1,
-                    input_tokens=input_tokens,
-                    output_tokens=output_tokens,
+        below is unchanged from before this span emission was added. AT-569:
+        the whole accumulate-and-trace section is one critical section --
+        two threads racing here must never both take the "not matched"
+        branch for the same role, and the trace line for THIS call must be
+        written from the same usage snapshot it just updated."""
+        with self._usage_lock:
+            matched = False
+            for entry in self.usage:
+                if entry.role == role:
+                    entry.calls += 1
+                    entry.input_tokens += input_tokens
+                    entry.output_tokens += output_tokens
+                    matched = True
+                    break
+            if not matched:
+                self.usage.append(
+                    ProviderUsage(
+                        provider=self.id,
+                        role=role,
+                        calls=1,
+                        input_tokens=input_tokens,
+                        output_tokens=output_tokens,
+                    )
                 )
-            )
-        if self.trace is not None:
-            self.trace.record_llm(
-                provider=self.label, role=role, prompt_file=prompt_file,
-                input_tokens=input_tokens, output_tokens=output_tokens,
-                latency_s=latency_s, retries=retries, fallback_hops=fallback_hops,
-                fed_id=fed_id,
-            )
+            if self.trace is not None:
+                self.trace.record_llm(
+                    provider=self.label, role=role, prompt_file=prompt_file,
+                    input_tokens=input_tokens, output_tokens=output_tokens,
+                    latency_s=latency_s, retries=retries, fallback_hops=fallback_hops,
+                    fed_id=fed_id,
+                )
 
 
 # -- skill prompt loader (T-175/D-041) --------------------------------------
