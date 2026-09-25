@@ -86,7 +86,7 @@ def _run_with_urls(
         def available(self) -> bool:
             return True
 
-    def fake_run_and_grade_case(case_, session, judge, run_id, store_):
+    def fake_run_and_grade_case_resilient(case_, session, judge, run_id, store_):
         result = RawResult(
             case_id=case_.id, outcome=Outcome.COMPLETED,
             evidence=[Evidence(kind=EvidenceKind.URL, path=u) for u in urls],
@@ -96,7 +96,8 @@ def _run_with_urls(
         return result, verdict
 
     monkeypatch.setattr(routes_runs_module, "LangChainFallbackProvider", _AvailableProvider)
-    monkeypatch.setattr(routes_runs_module, "run_and_grade_case", fake_run_and_grade_case)
+    monkeypatch.setattr(routes_runs_module, "run_and_grade_case_resilient",
+                        fake_run_and_grade_case_resilient)
     response = client.post("/projects/demo/run", follow_redirects=False)
     assert response.status_code == 303, response.text
 

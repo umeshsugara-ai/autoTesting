@@ -1,8 +1,9 @@
 """Run trigger. Contract: qa/contracts/ui-run.md RU1-RU4. Split out of
 test_ui.py to match ui/routes_runs.py's own module split and stay under the
 300-line design rule. A real browser is mocked out (BrowserSession.start/close,
-run_and_grade_case) — the route's own control flow (case lookup, provider
-availability, persistence, redirect) is exercised for real.
+run_and_grade_case_resilient — the serial and entry-case seam since AT-574)
+— the route's own control flow (case lookup, provider availability,
+persistence, redirect) is exercised for real.
 """
 
 from __future__ import annotations
@@ -97,7 +98,7 @@ def test_run_executes_every_case_and_redirects_to_the_report(
 
     calls = []
 
-    def fake_run_and_grade_case(case_, session, judge, run_id, store_):
+    def fake_run_and_grade_case_resilient(case_, session, judge, run_id, store_):
         calls.append(case_.id)
         result = RawResult(case_id=case_.id, outcome=Outcome.COMPLETED)
         verdict = Verdict(run_id=run_id, case_id=case_.id, result=Result.PASS,
@@ -107,7 +108,8 @@ def test_run_executes_every_case_and_redirects_to_the_report(
     import autotester.ui.routes_runs as routes_runs_module
 
     monkeypatch.setattr(routes_runs_module, "LangChainFallbackProvider", _AvailableProvider)
-    monkeypatch.setattr(routes_runs_module, "run_and_grade_case", fake_run_and_grade_case)
+    monkeypatch.setattr(routes_runs_module, "run_and_grade_case_resilient",
+                        fake_run_and_grade_case_resilient)
 
     response = client.post("/projects/demo/run", follow_redirects=False)
 
@@ -185,7 +187,7 @@ def test_entry_case_gets_an_isolated_wiped_profile_not_the_shared_one(
 
     profile_dirs: dict[str, object] = {}
 
-    def fake_run_and_grade_case(case_, session, judge, run_id, store_):
+    def fake_run_and_grade_case_resilient(case_, session, judge, run_id, store_):
         profile_dirs[case_.id] = session.paths.profile_dir
         result = RawResult(case_id=case_.id, outcome=Outcome.COMPLETED)
         verdict = Verdict(run_id=run_id, case_id=case_.id, result=Result.PASS,
@@ -195,7 +197,8 @@ def test_entry_case_gets_an_isolated_wiped_profile_not_the_shared_one(
     import autotester.ui.routes_runs as routes_runs_module
 
     monkeypatch.setattr(routes_runs_module, "LangChainFallbackProvider", _AvailableProvider)
-    monkeypatch.setattr(routes_runs_module, "run_and_grade_case", fake_run_and_grade_case)
+    monkeypatch.setattr(routes_runs_module, "run_and_grade_case_resilient",
+                        fake_run_and_grade_case_resilient)
 
     response = client.post("/projects/demo/run", follow_redirects=False)
 

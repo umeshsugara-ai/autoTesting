@@ -72,7 +72,7 @@ def test_a_real_run_writes_a_trace_with_at_least_one_span(
 
     judge = MockProvider(model="mock")
 
-    def fake_run_and_grade_case(case_, session, judge_, run_id, store_):
+    def fake_run_and_grade_case_resilient(case_, session, judge_, run_id, store_):
         judge_.record(role="agent", input_tokens=3, output_tokens=3, fed_id=f"case-{case_.id}")
         result = RawResult(case_id=case_.id, outcome=Outcome.COMPLETED)
         verdict = Verdict(run_id=run_id, case_id=case_.id, result=Result.PASS,
@@ -82,7 +82,8 @@ def test_a_real_run_writes_a_trace_with_at_least_one_span(
     import autotester.ui.routes_runs as routes_runs_module
 
     monkeypatch.setattr(routes_runs_module, "LangChainFallbackProvider", lambda: judge)
-    monkeypatch.setattr(routes_runs_module, "run_and_grade_case", fake_run_and_grade_case)
+    monkeypatch.setattr(routes_runs_module, "run_and_grade_case_resilient",
+                        fake_run_and_grade_case_resilient)
 
     response = client.post("/projects/demo/run", follow_redirects=False)
     assert response.status_code == 303
@@ -129,7 +130,7 @@ def test_a_declared_fake_secret_never_appears_raw_in_the_trace(
 
     judge = MockProvider(model="mock")
 
-    def fake_run_and_grade_case(case_, session, judge_, run_id, store_):
+    def fake_run_and_grade_case_resilient(case_, session, judge_, run_id, store_):
         judge_.record(role="agent", input_tokens=3, output_tokens=3,
                       fed_id=f"leaked-{secret_value}")
         result = RawResult(case_id=case_.id, outcome=Outcome.COMPLETED)
@@ -140,7 +141,8 @@ def test_a_declared_fake_secret_never_appears_raw_in_the_trace(
     import autotester.ui.routes_runs as routes_runs_module
 
     monkeypatch.setattr(routes_runs_module, "LangChainFallbackProvider", lambda: judge)
-    monkeypatch.setattr(routes_runs_module, "run_and_grade_case", fake_run_and_grade_case)
+    monkeypatch.setattr(routes_runs_module, "run_and_grade_case_resilient",
+                        fake_run_and_grade_case_resilient)
 
     response = client.post("/projects/demo/run", follow_redirects=False)
     assert response.status_code == 303
@@ -169,7 +171,7 @@ def test_run_records_parallel_n_and_bound_by_even_when_serial(
         def available(self) -> bool:
             return True
 
-    def fake_run_and_grade_case(case_, session, judge_, run_id, store_):
+    def fake_run_and_grade_case_resilient(case_, session, judge_, run_id, store_):
         result = RawResult(case_id=case_.id, outcome=Outcome.COMPLETED)
         verdict = Verdict(run_id=run_id, case_id=case_.id, result=Result.PASS,
                            grader_provider="mock")
@@ -178,7 +180,8 @@ def test_run_records_parallel_n_and_bound_by_even_when_serial(
     import autotester.ui.routes_runs as routes_runs_module
 
     monkeypatch.setattr(routes_runs_module, "LangChainFallbackProvider", _AvailableProvider)
-    monkeypatch.setattr(routes_runs_module, "run_and_grade_case", fake_run_and_grade_case)
+    monkeypatch.setattr(routes_runs_module, "run_and_grade_case_resilient",
+                        fake_run_and_grade_case_resilient)
 
     response = client.post("/projects/demo/run", follow_redirects=False)
     assert response.status_code == 303
