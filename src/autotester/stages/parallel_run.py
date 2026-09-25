@@ -179,20 +179,30 @@ def _run_one(
     case: Case, session_factory: SessionFactory, run_fn: RunFn, budget: RunBudget | None,
 ) -> RawResult:
     """One case, isolated: its own session (PR2), its own try/except so a
-    crash is reported as ITS outcome and never propagates to a sibling (PR6)."""
+    crash is reported as ITS outcome and never propagates to a sibling (PR6).
+
+    AT-565: `session_factory(case)` itself can raise -- a real
+    `BrowserSession.start()` failing under N-way concurrency, not just
+    `run_fn`'s body -- so it must be INSIDE the guarded region too. Before
+    this fix it sat above the `try`, and an unguarded raise there propagated
+    out of `run_cases`' `[f.result() for f in futures]`, discarding every
+    sibling's already-finished result instead of reporting just this case
+    as ERRORED."""
     if budget is not None and not budget.try_consume(actions=action_cost(case)):
         return RawResult(case_id=case.id, outcome=Outcome.ERRORED,
                           error="run budget exhausted before this case could start")
-    session = session_factory(case)
+    session: object | None = None
     try:
+        session = session_factory(case)
         return run_fn(case, session)
     except Exception as exc:  # PR6: reported per case, never aborts the run
         return RawResult(case_id=case.id, outcome=Outcome.ERRORED,
                           error=f"{type(exc).__name__}: {exc}")
     finally:
-        close = getattr(session, "close", None)
-        if callable(close):
-            close()
+        if session is not None:
+            close = getattr(session, "close", None)
+            if callable(close):
+                close()
 
 
 def run_cases(

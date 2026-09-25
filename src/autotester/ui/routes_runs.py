@@ -19,8 +19,16 @@ from autotester.schema.case import Case
 from autotester.schema.enums import Action
 from autotester.schema.project import Project
 from autotester.schema.run import RawResult, Run
+from autotester.schema.run_state import StageCheckpoint, StageName
 from autotester.schema.verdict import Verdict
 from autotester.stages.coverage import diff_coverage, queue_requests
+from autotester.stages.orchestrate import StageContext
+from autotester.stages.parallel_run import (
+    ParallelPlan,
+    default_session_factory,
+    plan_parallel_run,
+    run_cases,
+)
 from autotester.stages.run_case_pipeline import run_and_grade_case
 from autotester.store.project_store import ProjectStore
 from autotester.ui.helpers import _load_project_or_404
@@ -77,28 +85,17 @@ def _require_declared_values(project: Project, secrets: SecretStore, slug: str) 
         ))
 
 
-@router.post("/projects/{slug}/run")
-def trigger_run(slug: str) -> RedirectResponse:
-    """A real, synchronous run: the request waits for the browser to finish
-    every case before redirecting to the report (RU1-RU4 — v1's honest
-    boundary, no background job queue). Calls the exact same
-    `run_and_grade_case` (stages/run_case_pipeline.py) a CLI script would."""
-    store, project = _load_project_or_404(slug)
-    cases = store.list_cases()
-    if not cases:
-        raise HTTPException(400, f"project '{slug}' has no cases to run")
-    judge = LangChainFallbackProvider()
-    if not judge.available():
-        raise HTTPException(
-            400, "no AI provider is configured (set an API key in .env) -- cannot grade a run"
-        )
-    paths = ProjectPaths(slug)
-    secrets = SecretStore.load(project, paths.env_file, strict=False)
-    _require_declared_values(project, secrets, slug)
-    run_id = f"run-{ulid()}"
-    run_dir = paths.run_dir(run_id)
-    entry_flags = [_is_entry_case(c, project) for c in cases]
-
+def _run_cases_serially(
+    cases: list[Case], entry_flags: list[bool], project: Project, secrets: SecretStore,
+    run_dir: Path, paths: ProjectPaths, slug: str, judge: LangChainFallbackProvider,
+    run_id: str, store: ProjectStore,
+) -> None:
+    """`plan.n <= 1` (the default, AT-562/PR1): the pre-existing behaviour,
+    UNCHANGED — one shared session reused across every non-entry case (login
+    continuity across the whole run), one dedicated wiped profile per entry
+    case (AT-044). Not routed through `run_cases`: that module's contract
+    starts and closes one session per case (PR2's isolation), which would
+    tear down this shared session after the first case."""
     session: BrowserSession | None = None
     if not all(entry_flags):
         session = BrowserSession(project, secrets, run_dir, paths)
@@ -117,7 +114,107 @@ def trigger_run(slug: str) -> RedirectResponse:
     finally:
         if session is not None:
             session.close()
-    store.save_run(Run(id=run_id, project=slug, case_ids=[c.id for c in cases]))
+
+
+def _run_cases_in_parallel(
+    cases: list[Case], entry_flags: list[bool], plan: ParallelPlan, project: Project,
+    secrets: SecretStore, run_dir: Path, slug: str, judge: LangChainFallbackProvider,
+    run_id: str, store: ProjectStore,
+) -> None:
+    """`plan.n > 1` (T-173/AT-562): fan the non-entry cases out through the
+    real `stages.parallel_run.run_cases` at the planned width, each in its
+    own isolated browser context (PR2). Entry cases keep their dedicated
+    wiped profile (AT-044) and always run serially, before the fan-out — an
+    entry-screen assertion is about one logged-out state, not something
+    concurrency helps."""
+    entry_cases = [c for c, is_entry in zip(cases, entry_flags, strict=True) if is_entry]
+    normal_cases = [c for c, is_entry in zip(cases, entry_flags, strict=True) if not is_entry]
+
+    for case in entry_cases:
+        result, verdict = _run_entry_case(
+            case, project, secrets, run_dir, slug, judge, run_id, store
+        )
+        store.save_result(run_id, result)
+        store.save_verdict(run_id, verdict)
+
+    if not normal_cases:
+        return
+    verdicts: dict[str, Verdict] = {}
+
+    def _run_and_grade(case: Case, session: object) -> RawResult:
+        result, verdict = run_and_grade_case(case, session, judge, run_id, store)
+        verdicts[case.id] = verdict
+        return result
+
+    session_factory = default_session_factory(project, secrets, run_dir)
+    for result in run_cases(normal_cases, plan, session_factory, _run_and_grade):
+        store.save_result(run_id, result)
+        store.save_verdict(run_id, verdicts[result.case_id])
+
+
+def _execute_with_trace(
+    store: ProjectStore, run_id: str, secrets: SecretStore, project: Project,
+    cases: list[Case], entry_flags: list[bool], run_dir: Path, paths: ProjectPaths,
+    slug: str, judge: LangChainFallbackProvider,
+) -> ParallelPlan:
+    """AT-562/AT-564: build this run's `StageContext` with the project's real
+    `SecretStore` (RT6 — a real, redacted `trace.jsonl`), attach it to the
+    judge so its LLM calls join that trace (RT4/RT5), decide this run's width
+    (PR1), execute the cases at that width, and record one EXECUTE stage span
+    covering the whole batch."""
+    ctx = StageContext(store=store, run_id=run_id, secrets=secrets)
+    judge.trace = ctx.trace
+    plan = plan_parallel_run(project)
+
+    started = ctx.clock()
+    if plan.n > 1:
+        _run_cases_in_parallel(
+            cases, entry_flags, plan, project, secrets, run_dir, slug, judge, run_id, store
+        )
+    else:
+        _run_cases_serially(
+            cases, entry_flags, project, secrets, run_dir, paths, slug, judge, run_id, store
+        )
+    assert ctx.trace is not None
+    ctx.trace.record_stage(StageCheckpoint(
+        stage=StageName.EXECUTE, status="done", started=started, finished=ctx.clock(),
+    ))
+    return plan
+
+
+@router.post("/projects/{slug}/run")
+def trigger_run(slug: str) -> RedirectResponse:
+    """A real, synchronous run: the request waits for the browser to finish
+    every case before redirecting to the report (RU1-RU4 — v1's honest
+    boundary, no background job queue). Calls the exact same
+    `run_and_grade_case` (stages/run_case_pipeline.py) a CLI script would.
+
+    AT-562/AT-564: this is the live entry point wired to the T-172/T-173
+    machinery those goal-coverage gaps named -- see `_execute_with_trace`."""
+    store, project = _load_project_or_404(slug)
+    cases = store.list_cases()
+    if not cases:
+        raise HTTPException(400, f"project '{slug}' has no cases to run")
+    judge = LangChainFallbackProvider()
+    if not judge.available():
+        raise HTTPException(
+            400, "no AI provider is configured (set an API key in .env) -- cannot grade a run"
+        )
+    paths = ProjectPaths(slug)
+    secrets = SecretStore.load(project, paths.env_file, strict=False)
+    _require_declared_values(project, secrets, slug)
+    run_id = f"run-{ulid()}"
+    run_dir = paths.run_dir(run_id)
+    entry_flags = [_is_entry_case(c, project) for c in cases]
+
+    plan = _execute_with_trace(
+        store, run_id, secrets, project, cases, entry_flags, run_dir, paths, slug, judge
+    )
+
+    store.save_run(Run(
+        id=run_id, project=slug, case_ids=[c.id for c in cases],
+        parallel_n=plan.n, parallel_bound_by=plan.bound_by,
+    ))
     _ask_for_what_it_did_not_recognise(store, run_id)
     return RedirectResponse(f"/projects/{slug}/report", status_code=303)
 
