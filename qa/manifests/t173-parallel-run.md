@@ -119,4 +119,4 @@ project.py`, `src/autotester/schema/run.py`, `src/autotester/stages/parallel_run
 trigger) is deliberately untouched in this unit (see "What changed" — Not touched), so nothing a
 browser could observe changed.
 
-## Status: ready-for-check
+## Status: checked-PASS (qa/verdicts/t173-parallel-run.md, Cycle checked: 1, supervising acceptance a5873ba; live wiring = AT-562)
