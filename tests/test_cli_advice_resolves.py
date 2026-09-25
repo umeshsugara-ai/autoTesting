@@ -158,6 +158,7 @@ def test_every_site_is_reported_with_a_line_a_human_can_open() -> None:
 
 EXPECTED_SITES = {
     ("cli.py", "providers"),
+    ("cli_orchestrate.py", "ingest register"),
     ("cli_issues.py", "ingest analyze"),
     ("cli_issues.py", "ingest list"),
     ("cli_issues.py", "issues derive"),
@@ -187,7 +188,7 @@ interpolates it), so this set has ten entries for eleven sites; the count is
 asserted separately. AT-110 added a second `core/consent.py` "approve" site
 (re-grant an unsigned approval), so that command now has two sites as well."""
 
-EXPECTED_SITE_COUNT = 17
+EXPECTED_SITE_COUNT = 18
 
 
 def test_no_advice_site_can_vanish_unnoticed() -> None:

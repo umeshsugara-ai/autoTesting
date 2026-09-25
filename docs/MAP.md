@@ -19,6 +19,7 @@
 | `cli_crawl.py` | Crawl commands — `autotester explore` and `autotester report crawl`. |
 | `cli_issues.py` | `autotester issues` — turn an analysis into the sheet a human tester reads. |
 | `cli_loop.py` | `autotester loop-status` — was the maker-checker loop alive, and if not, on purpose? |
+| `cli_orchestrate.py` | `autotester orchestrate` — the live caller of `stages/orchestrate.py::run_or_resume`. |
 | `cli_video.py` | `autotester ingest` — register a recording and learn a FlowSpec from it. |
 | `core/consent.py` | The consent gate (D-018): nothing outward-facing starts without a human's |
 | `core/env.py` | Load the repo-root `.env` — one definition, used by every entry point. |
