@@ -494,7 +494,7 @@ Code + tests committed: `f30b2ac` (base master `80256c3`). Checker verdict: FAIL
 (`qa/verdicts/at576-577-serial-runs.md`, head `8295b79`). See "Fix cycle 2" section near the top of
 this file for what changed in response, and the final status at the end of this file.
 
-## Status (cycle 2): ready-for-check
+## Status (cycle 2): checked-PASS (qa/verdicts/at576-577-serial-runs.md, Cycle checked: 2, c413326; merged 8e50efc)
 
 Fix cycle 2 of 3. Issues addressed this cycle: AT-577's remaining "keep screenshot names unique"
 clause (checker verdict FAIL), plus AT-578 folded in per the checker's own offer. Both fixes are
