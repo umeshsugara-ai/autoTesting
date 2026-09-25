@@ -161,12 +161,12 @@ fixture-proven only. The ERP trust number is the first time AutoTester is measur
 ## THE PRODUCT VISION (reusable platform) — 🎯 target, mostly unbuilt
 
 ### M8 · Systematic exploration upgrades
-- [x] T-163 resumable learn-or-explore orchestrator + durable per-stage checkpoints (F-045, dual PASS) — ⚠️ no live caller yet: CLI/UI runs do not go through it until AT-564 (at562-564-live-wiring)
+- [x] T-163 resumable learn-or-explore orchestrator + durable per-stage checkpoints (F-045, dual PASS) — ⚠️ no live caller yet: the UI run route builds its own StageContext (trace works) but never calls run_or_resume, so real runs get no checkpoints/resume — AT-575
 - [x] T-170 first-party API/network assertions (D-040 split from T-165) — F-047, checker PASS, merged 1fc7276
 - [ ] T-165 hybrid BFS→bounded-DFS traversal + frontier completeness + form-input replay + persona-seeded
       incremental crawl + change tracking (D-040; contract `crawl-traversal.md` DRAFT; CRITICAL dual-check)
 - [ ] T-171 permission-surface coverage — every reachable control exercised or blocked-with-reason (D-040)
-- [~] T-173 parallel case execution — merged 626fa03, REOPENED: AT-565 (a failed browser launch crashes the whole parallel call) being fixed in at562-564-live-wiring together with live wiring AT-562
+- [x] T-173 parallel case execution — ✅ merged 626fa03 + live UI wiring ef1b043 (at562-564: per-case evidence, crash isolation; checker PASS c3 + Mode D). Open: AT-574 serial-path resilience, AT-570 RunApproval (T-122)
 
 ### M9 · Durable product model
 - [x] T-164 durable **Portal Persona** JSON + knowledge page + change history (F-046, 3ceb7b9)
@@ -209,7 +209,7 @@ fixture-proven only. The ERP trust number is the first time AutoTester is measur
 2. Both intake modes work on a real target and beat-or-match a human tester (T-169).
 3. Every finding is evidence-backed and correctly classified; coverage shows untested branches.
 
-## Progress (from `.goal/goal.json`, 2026-09-25): 43 / 67 done (64% — the roadmap grew by 12 tasks via D-040/D-041/D-042, not a regression). Status 2026-09-25: AT-110 ✅ merged 48aba2f (cycle 2); AT-560 ✅; AT-086/087 ✅ merged 6e5c806; T-173 ✅ merged 626fa03 (wiring AT-562); T-175 ✅ merged 9b3fd5e; T-172 ✅ merged 7975c81 (live caller AT-564); building: AT-335, T-125; next: T-165 (after AT-335), T-174 + T-178 (after T-125); the Deep Agents layer (T-179..T-181) after Wave 1.
+## Progress (from `.goal/goal.json`, 2026-09-25): 44 / 67 done (66% — the roadmap grew by 12 tasks via D-040/D-041/D-042, not a regression). Status 2026-09-25: merged today — AT-110, AT-560, AT-086/087, T-173, T-175, T-172, AT-571, at562-564 live wiring (ef1b043). Open follow-ups: AT-574 serial-path resilience, AT-575 orchestrator live caller, AT-567 file splits, AT-570 RunApproval (T-122). Waiting on Umesh: AT-335 + T-125 builders were stopped. Next: T-179 Deep Agents lead tester (deps done) when RAM allows.
 _Machine backlog + done-checks: `.goal/goal.json`. Whole-project screen: `docs/SNAPSHOT.md`._
 _Note: rewriting `.goal/goal.json`'s north star or adding DISCOVER/MODEL to `docs/ARCHITECTURE.md`
 is a state change that needs an authorizing `docs/DECISIONS.md` entry first (Lab Protocol) — this
