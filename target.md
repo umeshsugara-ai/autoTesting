@@ -149,7 +149,7 @@ comes only after that — "not only erp". T-122/T-145/T-136 get re-scoped to "se
 - [!] T-136 score recordings vs a trainer truth sheet → real recall/FP/time — **needs the truth sheet**
 - [x] T-123 medium credential-safety batch — AT-085 `/healthz` + AT-065 rubric stamp ✅ (18ff2a9); AT-086/087 ✅ merged 6e5c806 (checker FINAL PASS + Mode D; gate answered: both a)
 - [ ] T-125 test catalog (runnable/blocked + cheap→expensive) — D-039 ✅, contract `catalog.md` DRAFT
-- [~] T-126 governance debt sweep — maker side ✅ (allowlist + FEATURES backfill, checker PASS, merged); AT-560 follow-up ✅ merged f94c5c2; goal close = checker
+- [x] T-126 governance debt sweep — maker side ✅ (allowlist + FEATURES backfill, checker PASS, merged); AT-560 follow-up ✅ merged f94c5c2; closed by checker sweep 2026-09-25
 - [x] AT-110 tamper-proof consent approvals (HMAC keyed from `.env`) — ✅ checker PASS cycle 2 + live Mode D, merged 48aba2f
 - [x] AT-483 orphaned-crawl liveness — re-landed onto master (2d58215) after its 09-18 PASS never merged
 
@@ -161,12 +161,12 @@ fixture-proven only. The ERP trust number is the first time AutoTester is measur
 ## THE PRODUCT VISION (reusable platform) — 🎯 target, mostly unbuilt
 
 ### M8 · Systematic exploration upgrades
-- [x] T-163 resumable learn-or-explore orchestrator + durable per-stage checkpoints (F-045, dual PASS)
+- [x] T-163 resumable learn-or-explore orchestrator + durable per-stage checkpoints (F-045, dual PASS) — ⚠️ no live caller yet: CLI/UI runs do not go through it until AT-564 (at562-564-live-wiring)
 - [x] T-170 first-party API/network assertions (D-040 split from T-165) — F-047, checker PASS, merged 1fc7276
 - [ ] T-165 hybrid BFS→bounded-DFS traversal + frontier completeness + form-input replay + persona-seeded
       incremental crawl + change tracking (D-040; contract `crawl-traversal.md` DRAFT; CRITICAL dual-check)
 - [ ] T-171 permission-surface coverage — every reachable control exercised or blocked-with-reason (D-040)
-- [x] T-173 parallel case execution — N isolated browsers, RAM/CPU-bounded (D-041) — ✅ checker PASS, merged 626fa03; live-path wiring = AT-562 (after T-172 + T-175 merge)
+- [~] T-173 parallel case execution — merged 626fa03, REOPENED: AT-565 (a failed browser launch crashes the whole parallel call) being fixed in at562-564-live-wiring together with live wiring AT-562
 
 ### M9 · Durable product model
 - [x] T-164 durable **Portal Persona** JSON + knowledge page + change history (F-046, 3ceb7b9)
@@ -209,7 +209,7 @@ fixture-proven only. The ERP trust number is the first time AutoTester is measur
 2. Both intake modes work on a real target and beat-or-match a human tester (T-169).
 3. Every finding is evidence-backed and correctly classified; coverage shows untested branches.
 
-## Progress (from `.goal/goal.json`, 2026-09-25): 42 / 67 done (63% — the roadmap grew by 12 tasks via D-040/D-041/D-042, not a regression). Status 2026-09-25: AT-110 ✅ merged 48aba2f (cycle 2); AT-560 ✅; AT-086/087 ✅ merged 6e5c806; T-173 ✅ merged 626fa03 (wiring AT-562); T-175 ✅ merged 9b3fd5e; T-172 ✅ merged 7975c81 (live caller AT-564); building: AT-335, T-125; next: T-165 (after AT-335), T-174 + T-178 (after T-125); the Deep Agents layer (T-179..T-181) after Wave 1.
+## Progress (from `.goal/goal.json`, 2026-09-25): 43 / 67 done (64% — the roadmap grew by 12 tasks via D-040/D-041/D-042, not a regression). Status 2026-09-25: AT-110 ✅ merged 48aba2f (cycle 2); AT-560 ✅; AT-086/087 ✅ merged 6e5c806; T-173 ✅ merged 626fa03 (wiring AT-562); T-175 ✅ merged 9b3fd5e; T-172 ✅ merged 7975c81 (live caller AT-564); building: AT-335, T-125; next: T-165 (after AT-335), T-174 + T-178 (after T-125); the Deep Agents layer (T-179..T-181) after Wave 1.
 _Machine backlog + done-checks: `.goal/goal.json`. Whole-project screen: `docs/SNAPSHOT.md`._
 _Note: rewriting `.goal/goal.json`'s north star or adding DISCOVER/MODEL to `docs/ARCHITECTURE.md`
 is a state change that needs an authorizing `docs/DECISIONS.md` entry first (Lab Protocol) — this
