@@ -14,7 +14,22 @@ from autotester.schema.crawl import DialogEvent
 from autotester.schema.screen_graph import ElementRef, PageObservation
 
 _ENUMERATE_JS = (Path(__file__).with_name("enumerate.js")).read_text(encoding="utf-8")
-_VISUAL_ORDER_JS = (Path(__file__).with_name("visual_order.js")).read_text(encoding="utf-8")
+_REACH_MARKER = "// AUTOTESTER:REACH_MODULE"
+_REACH_PATH = Path(__file__).with_name("visual_order_reach.js")
+_VISUAL_ORDER_REACH_JS = _REACH_PATH.read_text(encoding="utf-8")
+_VISUAL_ORDER_JS_RAW = (Path(__file__).with_name("visual_order.js")).read_text(encoding="utf-8")
+if _REACH_MARKER not in _VISUAL_ORDER_JS_RAW:
+    # AT-408/AT-416: reachOf/isReachable moved to their own file to stay under
+    # doctor's 300-line cap (C2). They are spliced back in HERE, as TEXT, so
+    # `page.evaluate()` still receives the single `(() => {...})();` script
+    # shape it always has -- never two top-level scripts sent separately,
+    # which risks Playwright parsing the string differently than today. A
+    # missing marker means the split silently stopped happening; fail loudly
+    # rather than ship a `reachOf`/`isReachable` ReferenceError from the page.
+    raise RuntimeError(
+        "visual_order.js is missing the AUTOTESTER:REACH_MODULE splice marker "
+        "-- visual_order_reach.js would never run")
+_VISUAL_ORDER_JS = _VISUAL_ORDER_JS_RAW.replace(_REACH_MARKER, _VISUAL_ORDER_REACH_JS)
 
 DialogAction = Callable[[str], str]  # dialog_type -> "accept" | "dismiss"
 
