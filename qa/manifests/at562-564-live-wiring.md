@@ -659,4 +659,4 @@ user's own browser, not touched.
 - `tests/test_parallel_run_evidence_namespace.py` (new, cycle 3)
 - `tests/test_run_case_pipeline_resilient.py` (new, cycle 3)
 
-## Status: ready-for-check
+## Status: checked-PASS (qa/verdicts/at562-564-live-wiring.md, Cycle checked: 3, f4451ee)
