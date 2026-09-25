@@ -189,4 +189,4 @@ console errors, and `document.body.innerHTML.includes(<secret>) === false`. That
 RT7 was never a reason for the FAIL. Nothing new to add here for cycle 2 — the AT-561 fix touched
 `orchestrate.py`/providers, not the UI panel.
 
-## Status: ready-for-check
+## Status: checked-PASS (qa/verdicts/t172-run-trace.md, Cycle checked: 2)
