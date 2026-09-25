@@ -83,6 +83,20 @@ def is_stale_default(rubric: Rubric, case: Case) -> bool:
     return rubric.criteria == untouched.criteria and rubric.no_fire == untouched.no_fire
 
 
+def _rubric_for(case: Case, store: ProjectStore) -> Rubric:
+    """Load `case`'s persisted rubric, or build+persist the lazy default the
+    first time one doesn't exist (or the persisted one is a stale default,
+    AT-059) — the single rubric-resolution seam both `run_and_grade_case` and
+    `grade_errored_result` (AT-568) go through, so there is one place, not
+    two, that decides what a case is graded against."""
+    rubric_id = case.rubric_ref or f"rub_{case.id}"
+    rubric = store.load_rubric(rubric_id)
+    if rubric is None or is_stale_default(rubric, case):
+        rubric = default_rubric(case, rubric_id)
+        store.save_rubric(rubric)
+    return rubric
+
+
 def run_and_grade_case(
     case: Case, session: BrowserSession, judge: Provider, run_id: str,
     store: ProjectStore | None = None,
@@ -93,11 +107,28 @@ def run_and_grade_case(
     so a UI button and a CLI script call exactly the same path."""
     store = store or ProjectStore(case.project)
     result = run_case(case, session)
-    rubric_id = case.rubric_ref or f"rub_{case.id}"
-    rubric = store.load_rubric(rubric_id)
-    if rubric is None or is_stale_default(rubric, case):
-        rubric = default_rubric(case, rubric_id)
-        store.save_rubric(rubric)
+    rubric = _rubric_for(case, store)
     verdict = grade(rubric, result, run_id, judge, run_dir=store.paths.run_dir(run_id),
                     secrets=session.secrets)
     return result, verdict
+
+
+def grade_errored_result(
+    case: Case, result: RawResult, judge: Provider, run_id: str, store: ProjectStore,
+) -> Verdict:
+    """A `Verdict` for a `RawResult` that never reached a `run_and_grade_case`
+    call at all (AT-568). T-173's parallel fan-out (`stages/parallel_run.py::
+    run_cases`) reports a `session_factory` crash, or any exception raised
+    before a caller captured its own verdict, as its own ERRORED `RawResult`
+    — with no matching verdict, since `run_and_grade_case` (and the `grade()`
+    call inside it) was never reached for that case.
+
+    Always safe to call here: `result.outcome` is `Outcome.ERRORED` in every
+    caller of this function, and `grade()`'s own `_outcome_verdict` shortcuts
+    ERRORED/BLOCKED_HITL deterministically — before ever building a prompt or
+    calling `judge` — so this never risks a second crash grading the first
+    one. Goes through the exact same rubric seam (`_rubric_for`) as a normal
+    run, so an ERRORED case is still gradeable against its real rubric, not a
+    placeholder."""
+    rubric = _rubric_for(case, store)
+    return grade(rubric, result, run_id, judge, run_dir=store.paths.run_dir(run_id))
