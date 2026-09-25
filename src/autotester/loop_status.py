@@ -176,11 +176,24 @@ def report_lines(report: LoopStatus) -> list[tuple[str, str]]:
 
     The rendering lives here rather than in `cli.py` so the wording is testable
     without a terminal — the disclosure line below is the substance of what this
-    unit promises, and a string only a CLI can produce is a string no test reads."""
-    if report.last_tick is None:
+    unit promises, and a string only a CLI can produce is a string no test reads.
+
+    AT-424: the early return used to key off `last_tick is None`, which is also
+    true when every stamp is future-dated and `credible` is empty -- so an
+    all-future log rendered identically to a truly empty one, and the CORRUPT
+    row below was never reached. The early return now keys off `ticks == 0`,
+    the actual "nothing was parsed" case; a non-zero `ticks` with no credible
+    survivor falls through and gets its anomaly rows."""
+    if report.ticks == 0:
         return [("loop-status: no ticks recorded", "warn")]
 
-    rows = [(f"ticks: {report.ticks} · last: {report.last_tick.isoformat()}", "plain")]
+    if report.last_tick is not None:
+        rows = [(f"ticks: {report.ticks} · last: {report.last_tick.isoformat()}", "plain")]
+    else:
+        rows = [(
+            f"ticks: {report.ticks} · last: none credible — every stamp is dated after now",
+            "bad",
+        )]
     if report.anomalies.future:
         rows.append((
             f"  CORRUPT: {report.anomalies.future} tick stamp(s) dated after now — excluded from "
@@ -197,7 +210,7 @@ def report_lines(report: LoopStatus) -> list[tuple[str, str]]:
         rows.append((
             "note: a finished pause deletes qa/.paused, so a CLOSED gap can never be proven "
             "deliberate — historical gaps read as SLEEP either way (AT-368).", "warn"))
-    if not report.gaps:
+    if not report.gaps and report.last_tick is not None:
         rows.append(("loop-status: no gaps", "ok"))
     return rows
 
