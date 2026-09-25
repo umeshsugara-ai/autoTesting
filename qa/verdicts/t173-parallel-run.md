@@ -113,3 +113,21 @@ recorded as an observation per the maker's question (b), not charged against the
 ## PROPOSED FINDINGS
 
 none
+
+---
+
+## SUPERVISING CHECKER — PASS accepted · 2026-09-25
+
+Meets the checker bar: every non-browser test file green (1497 passed, 5 skipped, 0 failed), 7/7
+capability rows reproduced by the checker in a throwaway copy, PR5 timing reliable in both
+directions (5/5 green unmodified, 5/5 red sabotaged), no UI path changed. The wiring ruling is
+confirmed against the contract text: every PR criterion's falsifiable clause is fixture-level and
+"How a unit is verified" names only the test file + ruff + doctor + the capability table, so the
+unit does not have to be wired into the live run path to PASS.
+
+**Goal-level gap, filed separately (AT-562):** the contract's "What it is" says N and its bounding
+term are "recorded in the run's state so a human reading the run afterward knows why it ran at
+that width". No live path (`stages/execute.py`, `stages/orchestrate.py`, `ui/routes_runs.py`)
+calls `run_cases`, so no real run can use or record parallel execution yet. The unit PASSes; the
+user-visible feature is not delivered until a follow-up wires it in. T-173 is closed in
+`.goal/goal.json` only after this merges, with AT-562 carrying the wiring.
