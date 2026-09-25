@@ -32,4 +32,4 @@
 ## Live browser evidence
 Not UI-touching — changed paths are src/autotester/ledger/checks.py and tests/test_ledger_checks.py only.
 
-## Status: ready-for-check
+## Status: checked-PASS (qa/verdicts/at571-ledger-json-parse.md, Cycle checked: 1, 37f9956)
