@@ -41,3 +41,5 @@
 2026-09-25T14:56:07Z WAITING · at575 c3 doorbelled, no c3 verdict yet · RAM 0.54GB → 0 slots · at335/t125 await Umesh
 2026-09-25T15:04:36Z ADVANCED · at575 PASS c3, merged ec98b33, pushed (doctor-gated, 141 tests) · next: F-053 caveat drop after checker flips AT-575
 2026-09-25T15:05:18Z ADVANCED · AT-575 flipped by checker; F-056 caveat drop + target M8 committed with snapshot
+2026-09-25T15:11:21Z ADVANCED · F-056 pushed · at579-barrier-overlap built inline, ready-for-check 1318a61, doorbelled; SSE review running · RAM 3.0GB · SERIAL: t179 on RAM; at335/t125 await Umesh
+2026-09-25T15:22:23Z ADVANCED · at579 PASS merged 15c6eb3 locally; push held by doctor gate until checker flips AT-579
