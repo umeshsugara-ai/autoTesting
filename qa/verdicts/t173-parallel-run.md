@@ -131,3 +131,9 @@ that width". No live path (`stages/execute.py`, `stages/orchestrate.py`, `ui/rou
 calls `run_cases`, so no real run can use or record parallel execution yet. The unit PASSes; the
 user-visible feature is not delivered until a follow-up wires it in. T-173 is closed in
 `.goal/goal.json` only after this merges, with AT-562 carrying the wiring.
+
+---
+
+## REOPENED by Mode B sweep · 2026-09-25
+
+The PASS above is not fully backed for PR6. stages/parallel_run.py::_run_one calls session_factory(case) outside its try, so a context-launch failure for one case raises out of run_cases and discards every sibling's result -- PR6 requires that crash be reported as that case's own ERRORED outcome. The cycle-1 PR6 capability row only mutated the run_fn except-clause, so the factory path was never falsified (a checker miss, owned). Filed AT-565 (high); T-173 goal task reopened; the fix is folded into at562-564-live-wiring (Issues addressed: AT-562, AT-564, AT-565). The next T-173 check must include a PR6 test in which the FACTORY raises.

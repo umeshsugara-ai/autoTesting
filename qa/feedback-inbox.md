@@ -889,4 +889,4 @@ at086-at087-credential-exemption-scope, at365-data-class-declaration, at110-appr
 > AskUserQuestion: "Haan, Umesh approve (Recommended)" · "Wave 1 ke baad (Recommended)"
 PATTERN: agents plan, deterministic tools act -- every AutoTester stage becomes a tool whose safety/credential/consent logic stays in code; the LLM layer only chooses what to do next · EVIDENCE: D-042 design · APPLIES NEXT: T-179..T-181, T-177
 PATTERN: prompts are skills, not tools -- know-how ships as SKILL.md loaded on demand; tools are actions · EVIDENCE: user asked "prompts as tool"; corrected in chat · APPLIES NEXT: T-175, T-179
-**Status:** unfolded (decision recorded as D-042; gate qa/gates/d042-deep-agents.md)
+**Status:** folded 2026-09-25 by /checker Mode B sweep -> qa/contracts/agent-layer.md AL2/AL3 (deterministic guards run inside tools, in code; the agent layer only chooses what to do next) and AL4 (skills loaded via skills=, never inline prompt strings). Both patterns were already drafted into the T-179 criteria group (2026-09-24 init, grounded in D-042); no new criterion required. (Decision D-042; gate qa/gates/d042-deep-agents.md.)

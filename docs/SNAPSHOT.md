@@ -35,7 +35,7 @@ AutoTester wins on bugs found, false positives, and time (`schema/bench.py` comp
 - T-136 [high] Track A acceptance: erp1/2/3 scored vs ERP_Issues_Trainers.xlsx with recall/FP numbers in the manifest
 - T-145 [high] Live bounded READ_ONLY crawl of vidysea.com/erp with the test account
 - T-125 [high] Test catalog: which case classes apply, which are runnable, which are blocked and why (+ cheap->expensive ordering)
-- T-126 [normal] Governance debt sweep: adapter allowlist (D-018), QUEUE/SNAPSHOT drift, ledger backfill
+- T-150 [normal] Track C governance: register C tasks, file ai-target.md and adversarial.md criteria for the checker
 ## Last decisions (computed status)
 - D-039 2026-09-24 decision ACTIVE
 - D-040 2026-09-24 decision ACTIVE
