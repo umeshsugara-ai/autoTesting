@@ -10,6 +10,7 @@
 |---|---|
 | `browser/assertions.py` | Deterministic assertion evaluation (D-032/AT-540) — split from |
 | `browser/db.py` | Read-only backend assertions against MongoDB. Contract: qa/contracts/db-assert.md. |
+| `browser/evidence.py` | Screenshot capture and evidence-recording for `BrowserSession`. |
 | `browser/launch.py` | Playwright launch options for one project's persistent browser context. |
 | `browser/observe.py` | Passive observation: enumerate a page's controls, capture console/network |
 | `browser/secrets.py` | The credential boundary. Secret values live here and nowhere else. |
@@ -117,6 +118,7 @@
 | `ui/app.py` | Thin FastAPI viewer/editor over project files. Design principle 8: never a |
 | `ui/case_form.py` | Rendering the add-a-case form. Contract: qa/contracts/ui.md. |
 | `ui/crawl_view.py` | HTML fragments for the crawl pages — split from `routes_crawls.py` to keep |
+| `ui/credential_guard.py` | Credential-guard helpers: refuse a real secret typed into any UI text field. |
 | `ui/env_editor.py` | The one legitimate WRITE path to the repo-root `.env` (every other module |
 | `ui/helpers.py` | Shared request-validation and lookup helpers used by every UI route module. |
 | `ui/project_view.py` | The project page's action card — the operator's control panel for one product. |
@@ -135,6 +137,7 @@
 | `ui/routes_runs.py` | Trigger a real run. Contract: qa/contracts/ui-run.md RU1-RU4. Run-history |
 | `ui/routes_settings.py` | Global AI/API provider keys. Contract: qa/contracts/ui-settings.md US1-US4. |
 | `ui/routes_sources.py` | The operator-facing recording registry. |
+| `ui/run_execution.py` | Serial and parallel case-execution helpers for a triggered run. |
 | `ui/theme.py` | Shared visual system for every UI route. Contract: qa/contracts/docker.md D5. |
 | `ui/theme_style.py` | The raw CSS/font-link template for every page. Split out of `theme.py` |
 <!-- /generated:map -->
