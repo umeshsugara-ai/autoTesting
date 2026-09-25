@@ -67,3 +67,32 @@ EXPLANATION: The code is right: the one shared consent gate is called, the resum
 - **Every non-browser test file** (copy, 1h34m under ~0.5 GB free RAM): `2 failed, 1574 passed, 5 skipped`. One is the `.git`-only test; the other is the FAILURE above.
 
 ## Status: FAIL (cycle 2) — maker fix cycle 3 (last).
+
+---
+
+# Cycle 3 — /checker verdict
+
+**Date:** 2026-09-25 · **Head checked:** d8f202c (fix 6b66de5) · **Cycle checked: 3** (manifest Fix cycle: 3 of 3)
+
+```
+VERDICT: PASS
+SCOREBOARD: AT-575 expected clause met (a live CLI entry point drives run_or_resume, tested through it; secrets reach StageContext; resume proven through the entry point; one shared D-018 consent gate; consent skipped only past an exactly-done entry stage; stored mode on resume; unknown --run-id starts fresh); C3 holds; the suite is green apart from one known pre-existing flaky test and the copy-only .git test
+FAILURES: none
+CAPABILITY-COVERAGE: cycle-3 row = the AT-210 guard itself (red on 08e0eb6 in the checker's own cycle-2 reproduction, green now); cycle-1/2 rows reproduced earlier in own-venv copies, and src is unchanged since a81dee1
+LIVE-BROWSER: not-applicable (changed paths: src/autotester/cli.py, src/autotester/cli_orchestrate.py, tests; no UI route or template)
+ISSUES-WRITTEN: none
+EXECUTOR: claude-sonnet-subagent (checker: claude-opus-session, checker seat)
+EXPLANATION: The cycle-3 change is exactly the registration the cycle-2 verdict asked for, and it greens the AT-210 guard. The code is unchanged since the cycle-2 checks that proved every other claim.
+```
+
+## What I re-ran (cycle 3)
+
+- Scope: 6b66de5..d8f202c is manifest only; 08e0eb6..6b66de5 is only `tests/test_cli_advice_resolves.py` (+`("cli_orchestrate.py", "ingest register")`, `EXPECTED_SITE_COUNT` 17->18); `git diff a81dee1..d8f202c -- src/` is empty. Tree clean.
+- `test_cli_advice_resolves.py` + `test_cli_orchestrate.py` + `test_cli_orchestrate_resume.py` (worktree) -> `35 passed`.
+- **Every non-browser test file** (copy of 6b66de5, own .venv): `2 failed, 1574 passed, 5 skipped`.
+  - `test_uploaded_recordings_are_gitignored` needs `.git`, which copies lack; passes in the worktree.
+  - `test_flake_probe_real_process::…kills_a_real_hung_process…` is flaky: in the worktree it went 1 failed then 3 passed on consecutive runs. It's already on the ledger as **AT-518** (open, low, "failed once in a whole-suite run"), and the unit touches no flake_probe file.
+  - Net: green for this unit.
+- Advice text still resolves: `autotester ingest register --help` prints its usage.
+
+## Status: PASS (cycle 3)
