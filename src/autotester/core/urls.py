@@ -46,15 +46,37 @@ def absolute_url(url: str) -> str:
     one row after both producers were switched to `keep_host=False` — the flags
     agreed, the inputs did not.
 
-    This is NOT the host-shape guessing AT-287's first fix tried and failed at
-    (`settings.json` and `example.com` are indistinguishable by shape). The
-    caller here KNOWS the string is an absolute url, because it came out of an
-    address bar; only the scheme is missing. Callers holding a genuine relative
-    path must not use this.
+    Callers holding a genuine relative path must not use this. In practice they
+    sometimes do anyway -- an ingest observation is a model's transcription, not
+    a validated address bar -- and AT-299b is what that costs: prepending
+    `https://` unconditionally makes `urlsplit` read the FIRST segment as the
+    host no matter what it is, so `keep_host=False` silently deletes it even
+    when it was real path (`erp/trainers` -> `https://erp/trainers` -> `/trainers`,
+    losing "erp"; `students/1` -> `/{id}`, losing "students").
+
+    The guard: only treat the first segment as a host when it carries a signal
+    an address bar's host actually has -- a domain dot (`vidysea.com`) or a port
+    colon (`localhost:3000`). This is narrower than the host-shape guessing
+    AT-287's first fix tried and failed at, which asked "is this WHOLE bare
+    string a host or a filename" (`settings.json` vs `example.com` -- genuinely
+    indistinguishable). Here the question is only "does the first segment of an
+    already-multi-part string look like the host part of an address bar", and a
+    bare relative path built from real path segments (`erp/trainers`,
+    `students/1`) carries neither signal. Residual gap, accepted rather than
+    guessed around further: a bare hostname with no dot and no port
+    (`localhost/students`) or a first path segment that happens to contain a dot
+    (`v1.2/foo`, `settings.json/edit`) still reads as a host. Nothing here
+    infers host-ness from a single bare segment's shape, so AT-287 does not
+    regress.
     """
     if not url or "//" in url.split("?", 1)[0][:8]:
         return url
-    return url if url.startswith("/") else f"https://{url}"
+    if url.startswith("/"):
+        return url
+    first_segment = url.split("/", 1)[0].split("?", 1)[0]
+    if "." not in first_segment and ":" not in first_segment:
+        return url
+    return f"https://{url}"
 
 
 def url_template(url: str, *, keep_host: bool = True) -> str:
