@@ -286,4 +286,4 @@ this — confirmed after: `git status --short` empty and `diff` against the thro
 
 **Live browser:** Not UI-touching this cycle (tests/test_cli_advice_resolves.py only).
 
-## Status: ready-for-check
+## Status: checked-PASS (qa/verdicts/at575-orchestrator-caller.md, Cycle checked: 3, 0ac4105)
