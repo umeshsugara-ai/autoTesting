@@ -1,13 +1,169 @@
 # Manifest — at576-577-serial-runs
 
-**Contract:** qa/contracts/execute.md E4 + qa/contracts/ui-run.md RU1-RU4 + qa/contracts/core-invariants.md C7
-**Issues addressed:** AT-576, AT-577
+**Contract:** qa/contracts/execute.md E4 + qa/contracts/ui-run.md RU1-RU4 + qa/contracts/network-assertions.md NA3 + qa/contracts/core-invariants.md C7
+**Issues addressed:** AT-576, AT-577, AT-578
 **Date:** 2026-09-25
-**Fix cycle:** 1 of 3
+**Fix cycle:** 2 of 3
 **Dual check:** no
 **Executor:** claude-sonnet-subagent (maker build subagent)
 **Branch/worktree:** `wave/at576-577-serial-runs`, `D:/autoTesting/.worktrees/at576-577-serial-runs`
-**Base:** master `80256c3`
+**Base:** master `80256c3` · cycle 2 additionally merges master `ee98f64` (AT-578's ledger row) via `c4c6b81`
+
+## Fix cycle 2
+
+**Cycle 1 checker verdict:** `qa/verdicts/at576-577-serial-runs.md` (checked head `8295b79`) — VERDICT FAIL.
+AT-576 confirmed fixed live (real 303 with an entry case + 2 ordinary cases). AT-577's RawResult
+scoping confirmed fixed. One FAILURE quoted below, plus AT-578 (found and filed by the checker from
+this unit's own cycle-1 disclosed gap, `qa/feedback-inbox.md` item b) folded in as instructed.
+
+### Failure 1 (quoted from the verdict) — entry-case screenshot collision
+
+> `[AT-577 / evidence integrity] sev: high · on the serial path an entry case's screenshots are
+> overwritten by the first ordinary case: `_run_entry_case` gives each entry case a fresh
+> `BrowserSession` in the SAME `run_dir` with its screenshot counter at 0, and now that entry cases
+> run first, the shared session also starts at 0, so both write `01-step01-navigate.png`. Live
+> (run-01M3BNKR295JN0DPMR3HM888BZ): 'Homepage loads' (index.html) records `01-step01-navigate.png`
+> but that file's sha1 f3a69799 is the login page; 5 PNGs on disk for 6 steps; the run view and HTML
+> report show the login page under 'Homepage loads'. · fix: give every entry-case session its own
+> namespace (the AT-572 mechanism: `SessionState.evidence_prefix = case.id` in `_run_entry_case`),
+> or carry one run-wide counter; a test running an entry case + an ordinary case whose first steps
+> both screenshot, asserting distinct paths with different bytes; capability row.`
+
+**Fix:** `src/autotester/ui/routes_runs.py::_run_entry_case` (~line 78) — one new line,
+`session.state.evidence_prefix = case.id`, set right after constructing the entry case's dedicated
+`BrowserSession` and before `session.start()`. This is exactly the mechanism the checker named:
+`BrowserSession.screenshot()` (session.py) already nests under `evidence_prefix` when it is set
+(the AT-572 code path T-173's parallel fan-out uses for the same reason — sibling sessions sharing
+one `run_dir`). The entry case's screenshots now live under `run_dir/<entry_case.id>/`, so the
+shared session's `01-...`, `02-...` numbering in the bare `run_dir` can never collide with them,
+regardless of which starts first or how many entry cases exist (each gets its own `case.id`
+sub-path). No change to the shared session, `_run_cases_in_parallel`, or `default_session_factory`
+— the parallel path already did this correctly (that's where the mechanism was borrowed from).
+
+### Failure 2 (AT-578, folded in per the maker's own request) — network assertion cross-case leak
+
+> `browser/assertions.py::_network_met` scans ALL NETWORK evidence on the session, not just this
+> case's: on the serial path (one session shared across cases) a network expectation declared by a
+> later case is satisfied by a response an EARLIER case observed, so a regression where the expected
+> request no longer happens passes silently (false 'met'). The assertion-side twin of AT-577. ·
+> expected: Scope `_network_met` to the current case's evidence (pass `evidence_start` through
+> `assert_expected`, or record it on `SessionState` at `run_case` start); a test with two cases on
+> one session where case 1 observes the pattern and case 2 does not -> case 2 unmet.`
+
+**Fix, three files, one mechanism (the second option the ledger row offered — record it on
+`SessionState`, not threaded through every call signature):**
+- `src/autotester/browser/session.py::SessionState` (~line 64) — new field `evidence_start: int = 0`,
+  same shape and same reasoning as `evidence_prefix` above it: per-case state a shared session
+  carries, defaulting to 0 (correct for a fresh per-case session on the parallel path, unaffected).
+- `src/autotester/stages/execute.py::run_case` (~line 117) — right after computing the local
+  `evidence_start = len(session.state.evidence)` (AT-577's own value, unchanged), one new line also
+  writes it onto `session.state.evidence_start = evidence_start`. One index, two consumers: the
+  `RawResult` slice (AT-577, local variable) and now `_network_met` (AT-578, session-level field) —
+  no duplicate bookkeeping, no drift between them possible.
+- `src/autotester/browser/assertions.py::_network_met` (~line 104) — reads
+  `session.state.evidence[session.state.evidence_start:]` instead of the whole list, mirroring
+  `_result`'s own slice. `met()` (used by `assert_expected`'s polling loop) and `assert_expected`'s
+  own final network check both call `_network_met`, so both are covered by this one change — no
+  second call site needed threading.
+- Chose session-state over parameter-threading because `Action.ASSERT`'s dispatch-table lambda
+  (`execute.py`'s `_ACTIONS` dict) has the fixed `(session, step)` signature every other handler
+  shares; threading `evidence_start` through it would touch the dispatch table's shape for one
+  handler alone. Storing it on `SessionState` needed no signature change anywhere, and it is the
+  exact pattern `evidence_prefix` (AT-572) already established for "per-case state on a
+  possibly-shared session."
+
+### What changed (files touched, cycle 2)
+
+- `src/autotester/ui/routes_runs.py` — `_run_entry_case` gets `evidence_prefix` (Failure 1)
+- `src/autotester/browser/session.py` — `SessionState.evidence_start` field (Failure 2)
+- `src/autotester/stages/execute.py` — `run_case` writes `evidence_start` onto session state (Failure 2)
+- `src/autotester/browser/assertions.py` — `_network_met` scoped to `evidence_start` (Failure 2)
+- `tests/test_ui_runs_serial_entry_screenshot_namespace.py` — **new**, 1 test (Failure 1, real
+  `run_case`/`BrowserSession.screenshot()` against a fake page that writes real distinguishable bytes)
+- `tests/test_network_assertions_serial_scope.py` — **new**, 2 tests (Failure 2: unmet when only an
+  earlier case observed the pattern; met when the current case observes it itself, guarding against
+  over-tightening)
+- `tests/test_ui_runs_serial_entry_mix_live.py` — extended (not replaced): the live test now also
+  asserts PNG count == total step count across all 3 cases, no path shared across cases, and every
+  recorded screenshot file actually exists on disk
+
+No file from cycle 1 was reverted or weakened; every cycle-1 test still passes unchanged (see
+Verify below).
+
+### Red on unfixed code (both new test files, each temporarily reverted on the real worktree file
+and restored — not `git stash` this time, an anchored single-hunk revert/restore verified
+byte-identical after, same discipline as the capability-coverage mutations below)
+
+Failure 1 (`test_ui_runs_serial_entry_screenshot_namespace.py`, `evidence_prefix` line removed):
+```
+AssertionError: entry and ordinary case screenshots must never share a path: '01-step01-navigate.png'
+assert '01-step01-navigate.png' != '01-step01-navigate.png'
+1 failed in 11.83s
+```
+Green after restoring the fix: `1 passed in 1.78s`.
+
+Failure 2 (`test_network_assertions_serial_scope.py`, `_network_met` reverted to the whole-session scan):
+```
+AssertionError: case 2 must not be satisfied by case 1's earlier network capture
+assert <Outcome.COMPLETED: 'completed'> is <Outcome.ASSERTION_FAILED: 'assertion_failed'>
+1 failed, 1 passed in 0.51s
+```
+(The sibling test — case 2 observing its own matching request — stayed green throughout, proving the
+fix does not over-tighten.) Green after restoring the fix: `2 passed in 0.50s`.
+
+### Verify — targeted (cycle 2, real worktree)
+
+```
+$ uv run pytest tests/test_execute.py tests/test_execute_assertions.py tests/test_execute_new_actions.py \
+    tests/test_execute_serial_evidence_scope.py tests/test_ui_runs.py tests/test_ui_runs_serial_resilience.py \
+    tests/test_ui_runs_serial_entry_order.py tests/test_ui_runs_serial_entry_screenshot_namespace.py \
+    tests/test_ui_runs_serial_entry_mix_live.py tests/test_ui_runs_parallel_trace.py \
+    tests/test_ui_runs_parallel_crash_recovery.py tests/test_coverage_wiring.py tests/test_run_case_pipeline.py \
+    tests/test_run_case_pipeline_resilient.py tests/test_grade.py tests/test_grade_evidence.py \
+    tests/test_agent_loop.py tests/test_network_assertions.py tests/test_network_assertions_serial_scope.py \
+    tests/test_report_export.py tests/test_ui_report.py tests/test_ui_report_no_runs.py \
+    tests/test_parallel_run_evidence_namespace.py tests/test_run_trace.py
+137 passed, 1 skipped, 6 warnings in 10.06s
+
+$ uv run ruff check src tests scripts
+All checks passed!
+
+$ uv run autotester doctor
+doctor: clean
+```
+(1 skip = the live test, still RAM-gated this cycle too — see the updated Live browser evidence
+section below. 6 warnings are the same pre-existing, unrelated `test_run_trace.py` advisory as
+cycle 1. One flake was observed and NOT counted here:
+`test_ui_runs_parallel_trace.py::test_with_max_parallel_2_two_cases_run_concurrently` failed once in
+the full targeted run — `peak[0] == 1` instead of `2`, a timing-sensitive thread-overlap assertion
+with only a 0.05s sleep — and passed cleanly in isolation immediately after (`1 passed`). Not this
+unit's code: neither fix touches `stages/parallel_run.py`, the thread pool, or `_run_cases_in_
+parallel`'s concurrency; consistent with the same host memory pressure documented in the Live
+browser evidence section.)
+
+### Capability coverage (mutation, cycle 2, C7)
+
+Same discipline as cycle 1: a fresh throwaway copy (`at576-577-capability-copy-c2`, `uv sync
+--frozen`'d independently, deleted after use), baseline asserted green first.
+
+```
+$ uv run pytest tests/test_ui_runs_serial_entry_screenshot_namespace.py tests/test_network_assertions_serial_scope.py \
+    tests/test_network_assertions.py tests/test_execute.py tests/test_execute_serial_evidence_scope.py \
+    tests/test_ui_runs_serial_entry_order.py tests/test_ui_runs_serial_resilience.py tests/test_ui_runs.py \
+    tests/test_ui_runs_parallel_trace.py tests/test_ui_runs_parallel_crash_recovery.py tests/test_coverage_wiring.py
+50 passed in 7.53s
+```
+
+| # | Mutation (file, single-hunk) | Reverted behaviour | Kills (named, re-run confirmed) | Survives |
+|---|---|---|---|---|
+| C | `routes_runs.py`: `_run_entry_case`'s `session.state.evidence_prefix = case.id` line removed | Failure 1 exactly — entry and shared session both number from 01 in the same `run_dir` | `test_entry_and_ordinary_case_screenshots_never_collide_on_disk` (real pytest run, `1 failed`, asserts the exact colliding path `'01-step01-navigate.png'`) | All 49 other tests in the baseline set — `49 passed` alongside the 1 failure |
+| D | `assertions.py`: `_network_met` reverted to scanning the whole `session.state.evidence`, ignoring `evidence_start` | AT-578 exactly — a later case's `network` assertion can be satisfied by an earlier case's capture | `test_case_2_network_assertion_is_unmet_when_only_case_1_observed_the_pattern` (real pytest run, `1 failed`, `Outcome.COMPLETED` where `ASSERTION_FAILED` was expected) | `test_case_2_network_assertion_is_met_when_case_2_itself_observes_the_pattern` and all 48 other tests in the baseline set — confirms the mutation breaks only cross-case scoping, not a genuinely-met assertion |
+
+Both mutations applied via the same anchored `text.count(old) == 1` script as cycle 1, re-run,
+reverted by the exact inverse replace, re-run green, and each reverted file diffed byte-identical
+against the real worktree's fixed file (`diff -u` → no output, `IDENTICAL`). Run independently (C
+applied+reverted+confirmed identical before D was applied), so each kill is attributable to its own
+named test with nothing else mutated at the same time.
 
 ## The bugs
 
@@ -218,7 +374,7 @@ Both mutations run independently (A applied+reverted, confirmed identical, befor
 never combined in one pass, so each kill is attributable to its own named test with nothing else
 mutated at the same time.
 
-## Live browser evidence — UNVERIFIED (RAM-gated)
+## Live browser evidence — cycle 1 — UNVERIFIED (RAM-gated)
 
 `tests/test_ui_runs_serial_entry_mix_live.py` is written, committed, and self-gates on free RAM
 (`stages.parallel_run._free_ram_mb()` vs the 3.5 GB floor) rather than ever faking `BrowserSession`
@@ -259,10 +415,48 @@ happens" is unverified this cycle. The checker's own Mode D recipe (real Chromiu
 swapped in-process, isolated `AUTOTESTER_ROOT`) is the standing gate for this, same as
 `at574-serial-resilience`.
 
+## Live browser evidence — cycle 2 — still UNVERIFIED (RAM-gated, same shared host)
+
+`tests/test_ui_runs_serial_entry_mix_live.py` was extended this cycle (PNG-count == step-count,
+no shared path across cases, every recorded file exists on disk — see "Fix cycle 2" above) but
+still never fakes `BrowserSession`, and the same RAM gate applies.
+
+**Measured, bounded poll**, run in the background again this cycle (stopped after ~10 of its ≤30
+minutes once the pattern reconfirmed):
+
+```
+12:43:02 free_mb=2622.1
+12:48:06 free_mb=1545.1
+```
+
+Peak this cycle (2622 MB) is closer to the floor than cycle 1's peak (3090 MB) but still 962 MB
+short of 3584 MB. **Root cause reconfirmed, not merely repeated:** `Get-CimInstance Win32_Process`
+this cycle found a DIFFERENT concurrent session this time — an independent Claude session actively
+running falsification/mutation `pytest` invocations against `D:\counsellor_validation_judge` (PIDs
+46036/36892/45788, `python -m pytest tests/test_output_alignment.py -q -p no:cacheprovider -k
+"ignores_unparseable"` against a scratch copy under its own `.../scratchpad/chk-top10-primary`),
+confirming this is a genuinely shared host under variable, unpredictable load from OTHER sessions'
+legitimate work — not a fluke of cycle 1, and not something this unit's own tests, background tasks,
+or the RAM gate's threshold can control. The full non-browser `uv run pytest` suite was also
+attempted again this cycle and again produced zero output after several minutes before being
+stopped (see Gap 1 below).
+
+**No Chromium was launched this cycle either.** Confirmed after stopping this cycle's background
+tasks: `Get-CimInstance Win32_Process | Where CommandLine -match at576-577-serial-runs` shows only
+this session's own shell/PowerShell inspection commands — no `python`/`pytest`/`chrome` process tied
+to this unit's worktree path or run command was left running.
+
+**Disposition: still UNVERIFIED.** Both fixes (entry-case `evidence_prefix` for the screenshot
+collision, `_network_met` scoping for AT-578) are proven by fast, deterministic tests exercising the
+real `run_case`/`BrowserSession.screenshot()`/`assert_expected` code paths against fakes that write
+real, distinguishable bytes to disk — not weakened, deterministic evidence. What remains unverified
+is only the end-to-end real-Chromium claim (303 + correct file layout under a real browser), same as
+cycle 1. The checker's own Mode D recipe is the standing gate.
+
 ## Gaps (disclosed, not fixed here)
 
-1. **The full non-browser `uv run pytest` suite (slot-1's actual verify command) did not complete
-   this cycle.** Launched under the same RAM pressure described above; after 10+ minutes it had
+1. **Cycle 1: the full non-browser `uv run pytest` suite (slot-1's actual verify command) did not
+   complete.** Launched under the same RAM pressure described above; after 10+ minutes it had
    produced zero output (pytest itself starting is near-instant on this repo normally), consistent
    with the host thrashing under concurrent load rather than this unit's tests hanging — the
    134-test targeted subset (every touched file, every evidence reader, both new fake-session
@@ -272,24 +466,47 @@ swapped in-process, isolated `AUTOTESTER_ROOT`) is the standing gate for this, s
    (`TaskStop`), confirmed no orphaned process. The checker's own re-run is the real gate for the
    full suite, same convention `at574-serial-resilience` recorded.
 
-2. **`browser/assertions.py::_network_met` scans the WHOLE `session.state.evidence` for a matching
-   NETWORK item**, not scoped to the current case — on a reused serial session, a later case's
-   `network` deterministic assertion (D-032/T-170) could in principle read as `met` against a
-   PRIOR case's captured network traffic, the same class of cross-case contamination AT-577 fixed
-   for the RawResult's own evidence list, but this one lives inside a single `run_case` call's live
-   assertion evaluation, not in what gets returned. Not in scope here — the dispatch prompt named
-   `grade`, `report_export`, `routes_report` and `agent_loop` as the readers to check, all of which
-   read `result.evidence` (fixed); `assertions.py` reads live `session.state.evidence` for a
-   different purpose (a same-request deterministic check, not a report). Flagged to
-   `qa/feedback-inbox.md` for the checker to judge whether it is real and in-scope for a follow-up
-   unit — no case in either new test exercises a `network`-kind expected state, so this manifest
-   makes no claim either way about whether it is reachable in practice.
+1b. **Cycle 2: repeated, same outcome, different cause on the same host.** Attempted again this
+   cycle; again zero output after several minutes; stopped cleanly (`TaskStop`), confirmed no
+   orphaned process. Root-caused this time to a DIFFERENT concurrent Claude session running
+   falsification `pytest` against `D:\counsellor_validation_judge` (see Live browser evidence —
+   cycle 2 above) — not this unit's tests, and not the same cause as cycle 1, which strengthens
+   rather than weakens the "shared, busy host" explanation. The 137-test targeted subset this
+   cycle (`137 passed, 1 skipped`, includes everything from cycle 1 plus both new AT-577/AT-578
+   test files) plus the cycle-2 mutation-coverage run (`50 passed` baseline, both new mutations
+   behaving exactly as predicted, clean revert) stand in its place again. The checker's own re-run
+   remains the real gate for the full suite.
+
+2. **RESOLVED in cycle 2 (AT-578).** `browser/assertions.py::_network_met` scanned the WHOLE
+   `session.state.evidence` for a matching NETWORK item, not scoped to the current case — filed by
+   the cycle-1 checker as AT-578 and fixed in the "Fix cycle 2" section above
+   (`SessionState.evidence_start`, set by `run_case`, read by `_network_met`). Left here as the
+   original disclosure for the record; superseded, not still open.
 3. **`qa/contracts/execute.md` E4's wording** ("every `Evidence` the session recorded") predates
    this fix and is now imprecise — it should read "every `Evidence` the session recorded for this
    case." Not editable by the maker (contracts are checker-owned); noted in
-   `qa/feedback-inbox.md` for the checker to amend.
+   `qa/feedback-inbox.md` for the checker to amend. Still open as of cycle 2 (cycle-1 checker's
+   answer #2a: "will be folded when this unit passes").
 
-## Status: ready-for-check
+## Status (cycle 1, superseded by cycle 2 below)
 
-Code + tests committed: `f30b2ac` (base master `80256c3`). This manifest and the
-`qa/feedback-inbox.md` entry commit separately, after this line.
+Code + tests committed: `f30b2ac` (base master `80256c3`). Checker verdict: FAIL, cycle 1
+(`qa/verdicts/at576-577-serial-runs.md`, head `8295b79`). See "Fix cycle 2" section near the top of
+this file for what changed in response, and the final status at the end of this file.
+
+## Status (cycle 2): ready-for-check
+
+Fix cycle 2 of 3. Issues addressed this cycle: AT-577's remaining "keep screenshot names unique"
+clause (checker verdict FAIL), plus AT-578 folded in per the checker's own offer. Both fixes are
+route/module-level, one line + one field each, proven by fast deterministic tests that exercise the
+real code paths (`run_case`, `BrowserSession.screenshot()`, `assert_expected`) against fakes that
+write real, distinguishable bytes or real evidence items — never a weakened or faked assertion.
+Mutation-tested in a fresh throwaway copy (both new mutations killed by exactly their own named
+test, nothing else). Live-browser proof remains UNVERIFIED both cycles, for the same class of
+reason both times (a genuinely shared, busy host — corroborated by process inspection each cycle,
+not merely asserted) — the checker's own Mode D recipe is the standing gate for it, unchanged from
+cycle 1's disposition. Merged current master (`ee98f64`, AT-578's own ledger row) before starting.
+No checker dispatch, merge, push, contract/ledger/`.goal` edit, or real `.env` read this cycle.
+
+Code + tests committed this cycle: `77346cb` (on top of the cycle-1 code `f30b2ac` and the
+master-merge `c4c6b81`). This manifest commits separately, after this line.
