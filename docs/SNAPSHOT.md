@@ -37,8 +37,8 @@ AutoTester wins on bugs found, false positives, and time (`schema/bench.py` comp
 - T-125 [high] Test catalog: which case classes apply, which are runnable, which are blocked and why (+ cheap->expensive ordering)
 - T-126 [normal] Governance debt sweep: adapter allowlist (D-018), QUEUE/SNAPSHOT drift, ledger backfill
 ## Last decisions (computed status)
-- D-038 2026-09-23 decision ACTIVE
 - D-039 2026-09-24 decision ACTIVE
 - D-040 2026-09-24 decision ACTIVE
 - D-041 2026-09-24 decision SUPERSEDED (by D-042)
 - D-042 2026-09-24 decision ACTIVE
+- D-043 2026-09-25 decision ACTIVE

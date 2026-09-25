@@ -132,7 +132,10 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
 
 ### C8 — Provider-agnostic
 - All model calls go through `providers.base.Provider`. No stage imports a vendor SDK directly.
-- Prompts live in `src/autotester/prompts/*.md` as versioned files, never inline string literals.
+- Prompts live as versioned files, never inline string literals: `src/autotester/prompts/*.md`, or
+  `src/autotester/skills/<name>/SKILL.md` for the prompts migrated by T-175 under D-041 (grade,
+  expand-case, ingest-video, video-issues), loaded through `providers.base.load_skill_prompt`, which
+  raises on a missing or malformed skill rather than returning an empty prompt (D-043).
 - **Verify:** `grep -rE "^(import|from) (anthropic|google)" src/autotester/stages/` returns nothing.
 
 ### C9 — A declared control value is honoured or rejected, never silently ignored
@@ -439,3 +442,8 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   records why the MC-003 signal is expected to stay red here and routes future sweeps to the No-fire
   list entry below instead of re-filing AT-365 fresh each time. Folded from
   `qa/feedback-inbox.md` 2026-09-24T16:33 entry (PATTERN 2). Sweep: `qa/verdicts/sweep-2026-09-24b.md`.
+- 2026-09-25 · routine (D-043) · C8: the prompt-location line now names both versioned-file locations,
+  `prompts/*.md` and `skills/<name>/SKILL.md` (the four prompts T-175 migrated under D-041) · why: D-041
+  decided prompts become SKILL.md but did not authorize editing this file, so C8 described a location
+  the migrated prompts no longer use; D-043 records that consequence. Substance unchanged: every prompt
+  is a versioned file, never an inline string, and the skill loader fails loudly (t175 verdict).
