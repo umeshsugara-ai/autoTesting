@@ -170,7 +170,7 @@ def grade(rubric: Rubric, result: RawResult, run_id: str, judge: Provider,
     counts = {"images_requested": len(requested), "images_seen": len(seen)}
 
     judgment = judge.judge(prompt, Judgment, images=seen,
-                           prompt_file=PROMPT_NAME, fed_id=result.case_id)
+                           prompt_file=SKILL_NAME, fed_id=result.case_id)
     problem = _inconsistency(rubric, judgment)
     if problem is not None:
         return _verdict(run_id, result, rubric, verdict_result=Result.INCONCLUSIVE,
