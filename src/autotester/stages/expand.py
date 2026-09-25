@@ -122,7 +122,8 @@ def expand_flow(
         if case_class is CaseClass.HAPPY:
             continue
         prompt = build_expand_prompt(flow, case_class, docs)
-        expanded = provider.act(prompt, ExpandedSteps)
+        expanded = provider.act(prompt, ExpandedSteps,
+                                prompt_file=SKILL_NAME, fed_id=flow.id)
         case = _expanded_case(flow, project, case_class, expanded)
         if case is not None:
             cases.append(case)

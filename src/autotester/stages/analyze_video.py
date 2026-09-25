@@ -119,7 +119,8 @@ def observe_chunk(store: ProjectStore, source: Source, provider: Provider,
             return cached
 
     try:
-        answer = provider.see_video(Path(chunk.path), prompt, VideoObservation, options)
+        answer = provider.see_video(Path(chunk.path), prompt, VideoObservation, options,
+                                    prompt_file=prompt_name, fed_id=source.id)
     except ProviderError:
         return None
 

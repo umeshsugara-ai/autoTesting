@@ -258,7 +258,8 @@ def ingest_video(
     verify_source_bytes(source)
     docs = docs or RepoDocs()
     prompt = build_ingest_prompt(source, docs, transcript)
-    observation = provider.see_video(Path(source.path), prompt, VideoObservation, options)
+    observation = provider.see_video(Path(source.path), prompt, VideoObservation, options,
+                                      prompt_file=SKILL_NAME, fed_id=source.id)
 
     screen_ids: dict[str, str] = {}
     screens: list[Screen] = []

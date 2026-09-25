@@ -110,6 +110,11 @@ class ProjectPaths:
     def run_dir(self, run_id: str) -> Path:
         return self.runs_dir / run_id
 
+    def run_trace(self, run_id: str) -> Path:
+        """The redacted per-run trace (D-041 phase 1, RT1) -- `trace_id`
+        equals `run_id`, never re-minted (RT2)."""
+        return self.run_dir(run_id) / "trace.jsonl"
+
     # -- Track A: video learning (D-014) ---------------------------------------
     def source_dir(self, source_id: str) -> Path:
         return self.dir / "sources" / source_id
