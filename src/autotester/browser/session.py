@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from autotester.browser import assertions
+from autotester.browser.evidence import MASK_ATTR, MASK_CSS, EvidenceMixin
 from autotester.browser.launch import launch_options
 from autotester.browser.secrets import SecretStore, host_of
 from autotester.core.paths import ProjectPaths
@@ -24,16 +25,8 @@ from autotester.schema.flowspec import ExpectedState
 from autotester.schema.project import Project
 from autotester.schema.run import Evidence
 
-__all__ = ["BrowserSession", "HitlRequest", "NavigationRefused", "SessionState",
-           "check_destination", "launch_options"]
-
-# CSS applied to secret inputs right before capture. Text becomes unreadable
-# without changing layout, so the screenshot still shows *where* the field is.
-MASK_CSS = (
-    "[data-autotester-secret] { -webkit-text-security: disc !important; "
-    "color: transparent !important; text-shadow: 0 0 8px rgba(0,0,0,.6) !important; }"
-)
-MASK_ATTR = "data-autotester-secret"
+__all__ = ["MASK_ATTR", "MASK_CSS", "BrowserSession", "HitlRequest", "NavigationRefused",
+           "SessionState", "check_destination", "launch_options"]
 
 
 class NavigationRefused(RuntimeError):
@@ -79,7 +72,7 @@ def check_destination(project: Project, url: str) -> str:
     return host
 
 
-class BrowserSession:
+class BrowserSession(EvidenceMixin):
     """Drive one project's browser. Construct, `start()`, act, `close()`.
 
     Every method that touches the page is small on purpose: the executor stage
@@ -212,10 +205,12 @@ class BrowserSession:
         return self._record(EvidenceKind.DOM, f"uploaded to {locator}", step_order=step_order)
 
     def settle(self, expected: ExpectedState | None = None, timeout_ms: int = 8000) -> None:
-        """Best-effort wait for an async page transition (AT-045). Polls the
+        """Best-effort wait for an async page transition (AT-045: the grader
+        used to see a click's evidence but never what it caused). Polls the
         step's own declared signal (`expected.url`/`visible_text`) when
-        present (AT-046: an inline error needs no request); falls back to
-        network-idle+grace otherwise. Purely observation, bounded, never raises."""
+        present instead of generic network-idle (AT-046: an inline error
+        needs no request); falls back to network-idle+grace otherwise. E5
+        holds either way -- purely observation, bounded, never raises."""
         if expected and (expected.url or expected.visible_text):
             self._poll_for_expected(expected, timeout_ms)
             return
@@ -249,7 +244,8 @@ class BrowserSession:
         result -- deterministic fields only (`url`/`visible_text`/
         `absent_text`/`dom_asserts`/`network`, T-170; `visual_signal` stays
         the judge's). Polls to `timeout_ms`, records one `assert <field>:
-        met|unmet` evidence item per field, raises nothing. Delegates to
+        met|unmet` evidence item per field, raises nothing (C7: facts
+        recorded, the grader still owns the verdict). Delegates to
         `browser/assertions.py` (the line-cap split)."""
         return assertions.assert_expected(self, expected, timeout_ms=timeout_ms,
                                           step_order=step_order)
@@ -265,36 +261,10 @@ class BrowserSession:
             label = f"waited {timeout_ms}ms"
         return self._record(EvidenceKind.DOM, label, step_order=step_order)
 
-    def screenshot(self, label: str, *, step_order: int | None = None) -> Evidence:
-        """Capture with every secret input masked first (B7). AT-036: a
-        transient CDP race under Xvfb gets one retry, a second failure
-        propagates. AT-572/AT-577: nests under `evidence_prefix` when set,
-        so sibling cases sharing `run_dir` never collide."""
-        self.page.add_style_tag(content=MASK_CSS)
-        self.state.screenshots += 1
-        name = f"{self.state.screenshots:02d}-{label}.png"
-        rel = f"{self.state.evidence_prefix}/{name}" if self.state.evidence_prefix else name
-        full = self.state.run_dir / rel
-        full.parent.mkdir(parents=True, exist_ok=True)
-        path = str(full)
-        try:
-            self.page.screenshot(path=path, full_page=False)
-        except Exception as exc:
-            if "captureScreenshot" not in str(exc):
-                raise
-            self.page.wait_for_timeout(250)
-            self.page.screenshot(path=path, full_page=False)
-        return self._record(EvidenceKind.SCREENSHOT, rel, step_order=step_order, label=label)
-
     def request_human(self, prompt: str) -> HitlRequest:
         """Pause for OTP/2FA (B8). The executor turns this into `blocked_hitl`."""
         self.state.hitl = HitlRequest(prompt=prompt)
         return self.state.hitl
 
-    # -- evidence ---------------------------------------------------------------
-    def _record(self, kind: EvidenceKind, path: str, *, step_order: int | None = None,
-                label: str | None = None) -> Evidence:
-        scrubbed = self.secrets.redactor().scrub(path)
-        item = Evidence(kind=kind, path=scrubbed, step_order=step_order, label=label, masked=True)
-        self.state.evidence.append(item)
-        return item
+    # `screenshot()` and `_record()` are defined on `EvidenceMixin`
+    # (browser/evidence.py, AT-567) and inherited here unchanged.

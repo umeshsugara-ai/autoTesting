@@ -80,9 +80,10 @@ def test_a_real_run_writes_a_trace_with_at_least_one_span(
         return result, verdict
 
     import autotester.ui.routes_runs as routes_runs_module
+    import autotester.ui.run_execution as run_execution_module
 
     monkeypatch.setattr(routes_runs_module, "LangChainFallbackProvider", lambda: judge)
-    monkeypatch.setattr(routes_runs_module, "run_and_grade_case_resilient",
+    monkeypatch.setattr(run_execution_module, "run_and_grade_case_resilient",
                         fake_run_and_grade_case_resilient)
 
     response = client.post("/projects/demo/run", follow_redirects=False)
@@ -139,9 +140,10 @@ def test_a_declared_fake_secret_never_appears_raw_in_the_trace(
         return result, verdict
 
     import autotester.ui.routes_runs as routes_runs_module
+    import autotester.ui.run_execution as run_execution_module
 
     monkeypatch.setattr(routes_runs_module, "LangChainFallbackProvider", lambda: judge)
-    monkeypatch.setattr(routes_runs_module, "run_and_grade_case_resilient",
+    monkeypatch.setattr(run_execution_module, "run_and_grade_case_resilient",
                         fake_run_and_grade_case_resilient)
 
     response = client.post("/projects/demo/run", follow_redirects=False)
@@ -178,9 +180,10 @@ def test_run_records_parallel_n_and_bound_by_even_when_serial(
         return result, verdict
 
     import autotester.ui.routes_runs as routes_runs_module
+    import autotester.ui.run_execution as run_execution_module
 
     monkeypatch.setattr(routes_runs_module, "LangChainFallbackProvider", _AvailableProvider)
-    monkeypatch.setattr(routes_runs_module, "run_and_grade_case_resilient",
+    monkeypatch.setattr(run_execution_module, "run_and_grade_case_resilient",
                         fake_run_and_grade_case_resilient)
 
     response = client.post("/projects/demo/run", follow_redirects=False)
@@ -236,6 +239,7 @@ def test_with_max_parallel_2_two_cases_run_concurrently(
         return result, verdict
 
     import autotester.ui.routes_runs as routes_runs_module
+    import autotester.ui.run_execution as run_execution_module
 
     # plan_parallel_run's OWN measurement (real RAM/CPU) is exercised by
     # test_parallel_run.py; this fakes only the PLAN so the wiring test is
@@ -244,7 +248,7 @@ def test_with_max_parallel_2_two_cases_run_concurrently(
     fake_plan = ParallelPlan(config_ceiling=2, measured_budget=2, n=2, bound_by="config",
                              free_ram_mb=99999.0, cpu_count=8)
     monkeypatch.setattr(routes_runs_module, "LangChainFallbackProvider", _AvailableProvider)
-    monkeypatch.setattr(routes_runs_module, "run_and_grade_case_resilient",
+    monkeypatch.setattr(run_execution_module, "run_and_grade_case_resilient",
                         fake_run_and_grade_case_resilient)
     monkeypatch.setattr(routes_runs_module, "plan_parallel_run", lambda project_: fake_plan)
 

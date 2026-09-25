@@ -1,8 +1,9 @@
 """Run trigger. Contract: qa/contracts/ui-run.md RU1-RU4. Split out of
 test_ui.py to match ui/routes_runs.py's own module split and stay under the
 300-line design rule. A real browser is mocked out (BrowserSession.start/close,
-run_and_grade_case_resilient — the serial and entry-case seam since AT-574)
-— the route's own control flow (case lookup, provider availability,
+run_and_grade_case_resilient — the serial and entry-case seam since AT-574,
+patched on `ui/run_execution.py` since AT-567's module split moved that seam
+there) — the route's own control flow (case lookup, provider availability,
 persistence, redirect) is exercised for real.
 """
 
@@ -106,9 +107,10 @@ def test_run_executes_every_case_and_redirects_to_the_report(
         return result, verdict
 
     import autotester.ui.routes_runs as routes_runs_module
+    import autotester.ui.run_execution as run_execution_module
 
     monkeypatch.setattr(routes_runs_module, "LangChainFallbackProvider", _AvailableProvider)
-    monkeypatch.setattr(routes_runs_module, "run_and_grade_case_resilient",
+    monkeypatch.setattr(run_execution_module, "run_and_grade_case_resilient",
                         fake_run_and_grade_case_resilient)
 
     response = client.post("/projects/demo/run", follow_redirects=False)
@@ -195,9 +197,10 @@ def test_entry_case_gets_an_isolated_wiped_profile_not_the_shared_one(
         return result, verdict
 
     import autotester.ui.routes_runs as routes_runs_module
+    import autotester.ui.run_execution as run_execution_module
 
     monkeypatch.setattr(routes_runs_module, "LangChainFallbackProvider", _AvailableProvider)
-    monkeypatch.setattr(routes_runs_module, "run_and_grade_case_resilient",
+    monkeypatch.setattr(run_execution_module, "run_and_grade_case_resilient",
                         fake_run_and_grade_case_resilient)
 
     response = client.post("/projects/demo/run", follow_redirects=False)

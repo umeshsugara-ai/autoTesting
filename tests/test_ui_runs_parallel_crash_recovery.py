@@ -54,6 +54,7 @@ def _onboard_with_parallel_cases(client, scratch_root, n: int, max_parallel: int
 
 def _patch_common(monkeypatch, fake_plan: ParallelPlan):
     import autotester.ui.routes_runs as routes_runs_module
+    import autotester.ui.run_execution as run_execution_module
     from autotester.browser.session import BrowserSession
 
     monkeypatch.setattr(BrowserSession, "start", lambda self: self)
@@ -65,7 +66,13 @@ def _patch_common(monkeypatch, fake_plan: ParallelPlan):
 
     monkeypatch.setattr(routes_runs_module, "LangChainFallbackProvider", _AvailableProvider)
     monkeypatch.setattr(routes_runs_module, "plan_parallel_run", lambda project_: fake_plan)
-    return routes_runs_module
+    # AT-567: _run_cases_in_parallel/_run_and_grade_resilient now live in
+    # ui/run_execution.py, so `default_session_factory`/`run_and_grade_case_
+    # resilient` must be patched there -- that is where those names are
+    # actually looked up at call time. Callers patch those two on the
+    # returned module; `routes_runs_module` is returned for the two names
+    # above, which stay in `routes_runs.py` unmoved.
+    return run_execution_module
 
 
 def test_a_session_factory_crash_for_one_case_still_saves_every_case_and_the_run(
@@ -80,7 +87,7 @@ def test_a_session_factory_crash_for_one_case_still_saves_every_case_and_the_run
     crash_id = cases[1].id
     fake_plan = ParallelPlan(config_ceiling=2, measured_budget=2, n=2, bound_by="config",
                              free_ram_mb=99999.0, cpu_count=8)
-    routes_runs_module = _patch_common(monkeypatch, fake_plan)
+    run_execution_module = _patch_common(monkeypatch, fake_plan)
 
     def fake_default_session_factory(project_, secrets_, run_dir_):
         def factory(case):
@@ -95,9 +102,9 @@ def test_a_session_factory_crash_for_one_case_still_saves_every_case_and_the_run
                            grader_provider="mock")
         return result, verdict
 
-    monkeypatch.setattr(routes_runs_module, "default_session_factory",
+    monkeypatch.setattr(run_execution_module, "default_session_factory",
                         fake_default_session_factory)
-    monkeypatch.setattr(routes_runs_module, "run_and_grade_case_resilient",
+    monkeypatch.setattr(run_execution_module, "run_and_grade_case_resilient",
                         fake_run_and_grade_case_resilient)
 
     response = client.post("/projects/demo/run", follow_redirects=False)
@@ -138,7 +145,7 @@ def test_run_and_grade_case_resilient_itself_raising_still_saves_every_case_and_
     crash_id = cases[2].id
     fake_plan = ParallelPlan(config_ceiling=2, measured_budget=2, n=2, bound_by="config",
                              free_ram_mb=99999.0, cpu_count=8)
-    routes_runs_module = _patch_common(monkeypatch, fake_plan)
+    run_execution_module = _patch_common(monkeypatch, fake_plan)
 
     def fake_run_and_grade_case_resilient(case_, session, judge_, run_id, store_):
         if case_.id == crash_id:
@@ -148,7 +155,7 @@ def test_run_and_grade_case_resilient_itself_raising_still_saves_every_case_and_
                            grader_provider="mock")
         return result, verdict
 
-    monkeypatch.setattr(routes_runs_module, "run_and_grade_case_resilient",
+    monkeypatch.setattr(run_execution_module, "run_and_grade_case_resilient",
                         fake_run_and_grade_case_resilient)
 
     response = client.post("/projects/demo/run", follow_redirects=False)
