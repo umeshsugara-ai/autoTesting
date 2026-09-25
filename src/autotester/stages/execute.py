@@ -112,9 +112,12 @@ def run_case(case: Case, session: BrowserSession) -> RawResult:
     hold, never a grade. AT-577: `session` may already carry earlier cases'
     evidence (the serial route reuses one session across a run) --
     `evidence_start` pins where THIS case begins, so its `RawResult` never
-    carries a sibling's screenshots."""
+    carries a sibling's screenshots. AT-578: also written onto `session.
+    state.evidence_start`, so `assert_expected`'s `network` check reads only
+    this case's own captured traffic, not an earlier case's."""
     start = time.monotonic()
     evidence_start = len(session.state.evidence)
+    session.state.evidence_start = evidence_start
     assertion_failed = False
     for step in sorted(case.steps, key=lambda s: s.order):
         try:

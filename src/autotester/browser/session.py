@@ -61,6 +61,11 @@ class SessionState:
     """AT-572: a per-case subdirectory name under `run_dir`, set by T-173's
     parallel fan-out so sibling sessions sharing one `run_dir` never collide
     on the same step number; empty (default) leaves the serial path unchanged."""
+    evidence_start: int = 0
+    """AT-578: index into `evidence` where the CURRENT case begins (set by
+    `run_case`, same index AT-577's `RawResult` slice uses); `assertions.py
+    ::_network_met` reads it so a reused session's `network` check is never
+    satisfied by an earlier case's traffic."""
 
 
 def check_destination(project: Project, url: str) -> str:
@@ -207,12 +212,10 @@ class BrowserSession:
         return self._record(EvidenceKind.DOM, f"uploaded to {locator}", step_order=step_order)
 
     def settle(self, expected: ExpectedState | None = None, timeout_ms: int = 8000) -> None:
-        """Best-effort wait for an async page transition (AT-045: the grader
-        used to see a click's evidence but never what it caused). Polls the
+        """Best-effort wait for an async page transition (AT-045). Polls the
         step's own declared signal (`expected.url`/`visible_text`) when
-        present instead of generic network-idle (AT-046: an inline error
-        needs no request); falls back to network-idle+grace otherwise. E5
-        holds either way -- purely observation, bounded, never raises."""
+        present (AT-046: an inline error needs no request); falls back to
+        network-idle+grace otherwise. Purely observation, bounded, never raises."""
         if expected and (expected.url or expected.visible_text):
             self._poll_for_expected(expected, timeout_ms)
             return
@@ -246,8 +249,7 @@ class BrowserSession:
         result -- deterministic fields only (`url`/`visible_text`/
         `absent_text`/`dom_asserts`/`network`, T-170; `visual_signal` stays
         the judge's). Polls to `timeout_ms`, records one `assert <field>:
-        met|unmet` evidence item per field, raises nothing (C7: facts
-        recorded, the grader still owns the verdict). Delegates to
+        met|unmet` evidence item per field, raises nothing. Delegates to
         `browser/assertions.py` (the line-cap split)."""
         return assertions.assert_expected(self, expected, timeout_ms=timeout_ms,
                                           step_order=step_order)
@@ -264,12 +266,10 @@ class BrowserSession:
         return self._record(EvidenceKind.DOM, label, step_order=step_order)
 
     def screenshot(self, label: str, *, step_order: int | None = None) -> Evidence:
-        """Capture with every secret input masked first (B7). AT-036: under
-        Xvfb, `Page.screenshot` intermittently raises a transient CDP
-        compositor race right after a DOM update — one retry after a short
-        wait resolves it; a second consecutive failure is real and
-        propagates (full history: execute.md's amendment log). AT-572: nests
-        under `evidence_prefix` when set, so parallel siblings never collide."""
+        """Capture with every secret input masked first (B7). AT-036: a
+        transient CDP race under Xvfb gets one retry, a second failure
+        propagates. AT-572/AT-577: nests under `evidence_prefix` when set,
+        so sibling cases sharing `run_dir` never collide."""
         self.page.add_style_tag(content=MASK_CSS)
         self.state.screenshots += 1
         name = f"{self.state.screenshots:02d}-{label}.png"

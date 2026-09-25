@@ -118,3 +118,22 @@ def test_a_serial_run_mixing_an_entry_case_with_ordinary_cases_does_not_500(
     results = {r.case_id: r for r in store.load_results(run_id)}
     assert set(results) == {entry_case.id, login_case.id, home_again_case.id}
     assert len(results) == 3
+
+    # AT-577 cycle 2 (checker verdict 9b0ccb8): the entry case's dedicated
+    # session and the shared session used to write screenshots into the SAME
+    # run_dir, both numbering from 01 -- the shared session's first write
+    # silently overwrote the entry case's. With evidence_prefix set on the
+    # entry session, every case's screenshots live under their own path, so
+    # no two cases ever collide and none is silently lost.
+    total_steps = len(entry_case.steps) + len(login_case.steps) + len(home_again_case.steps)
+    png_paths = [e.path for r in results.values() for e in r.evidence if e.path.endswith(".png")]
+    assert len(png_paths) == total_steps, (
+        f"one screenshot per step, none overwritten: {len(png_paths)} PNGs for "
+        f"{total_steps} steps -- {png_paths}"
+    )
+    assert len(set(png_paths)) == len(png_paths), (
+        f"no screenshot path may be shared across cases: {png_paths}"
+    )
+    run_dir = store.paths.run_dir(run_id)
+    for path in png_paths:
+        assert (run_dir / path).exists(), f"{run_dir / path} must exist on disk"
