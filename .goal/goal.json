@@ -4,15 +4,15 @@
   "north_star": "A reusable AI testing platform where an operator submits any project URL, domain-scoped test-account credential references, and optional evals, conditions, use cases, video, audio, documents, text, email or Google Drive sources. AutoTester learns from supplied evidence or logs in and performs bounded breadth-first exploration, preserves a durable Portal Persona, compiles traceable best/worst/edge evals, reruns them after developer releases in a real visible browser, and reports workflow/API regressions through clear HTML, Excel, text and screenshots. First acceptance targets: Vidysea ERP and Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-25T05:23:16",
+  "updated": "2026-09-25T05:32:01",
   "progress": {
     "total": 67,
-    "done": 40,
+    "done": 41,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 27,
+    "pending": 26,
     "current": "T-122",
-    "percent": 60
+    "percent": 61
   },
   "tasks": [
     {
@@ -1172,7 +1172,7 @@
     {
       "id": "T-173",
       "title": "Parallel case execution: N isolated browser contexts bounded by measured RAM/CPU and project.max_parallel; write-policy cases serial (D-041)",
-      "status": "pending",
+      "status": "done",
       "deps": [
         "T-163"
       ],
@@ -1186,7 +1186,8 @@
       "note": "D-041; must prove parallel verdicts == serial verdicts on a fixture.",
       "attempts": 0,
       "created": "2026-09-24T17:37:32",
-      "user_value": "high"
+      "user_value": "high",
+      "completed": "2026-09-25T05:31:50"
     },
     {
       "id": "T-174",
@@ -1590,9 +1591,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 1.69,
-    "eta_days": 16.6
+    "velocity_per_day": 1.78,
+    "eta_days": 14.6
   },
-  "last_deterministic_tick": "2026-09-25T05:22:02",
+  "last_deterministic_tick": "2026-09-25T05:32:01",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }
