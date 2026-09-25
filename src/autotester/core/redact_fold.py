@@ -1,0 +1,277 @@
+"""Credential folding: normalise a string so a case, punctuation, homoglyph,
+combining-mark, or encoded/reversed spelling of a secret compares equal to
+the plain one.
+
+Split out of `core/redact.py` (which was about to cross the C2 300-line cap
+implementing AT-347/AT-352/AT-356) because folding is one self-contained
+concern -- widening a comparison, never touching stored bytes -- distinct
+from `redact.py`'s masking/gating logic. `redact.py` re-exports every name
+here that anything outside this pair imports, so no other module's import
+line changes.
+"""
+
+from __future__ import annotations
+
+import base64
+import contextlib
+import html
+import re
+import unicodedata
+from collections.abc import Sequence
+from urllib.parse import unquote_plus
+
+_FOLD_STRIP = re.compile(r"[\s\-_.+~/:|,;!?*=^'\"`()\[\]{}<>\\]+")
+r"""The punctuation a human actually substitutes for a separator. Widened from
+`[\s-_.]` by AT-345, where `+`, `~`, `/` and `:` each carried a live credential
+into a git-tracked file."""
+
+ASCII_CONFUSABLES = str.maketrans({
+    "\u0131": "i",  # Turkish dotless i -- NFKC leaves it, casefold leaves it
+    "\u0130": "i",  # Turkish dotted capital I
+    "\u0430": "a", "\u0435": "e", "\u043e": "o", "\u0440": "p",  # Cyrillic a e o r
+    "\u0441": "c", "\u0445": "x", "\u0443": "y", "\u0456": "i",  # Cyrillic s h u i
+    "\u0458": "j", "\u04bb": "h", "\u0432": "b",
+    "\u03bf": "o", "\u03b1": "a", "\u03bd": "v", "\u03c1": "p",  # Greek o a n r
+    "\u2044": "/", "\u2010": "-", "\u2011": "-", "\u2012": "-",  # dash-likes
+    "\u2013": "-", "\u2014": "-", "\u2212": "-",
+})
+"""Characters that LOOK like ASCII letters a credential is made of.
+
+Deliberately partial, and said plainly rather than implied: this is a curated
+list, NOT an implementation of UTS #39 confusables. It covers the homoglyph
+families that actually appear in Latin-script credentials -- Cyrillic, Greek,
+the Turkish dotless i a checker used to walk a live value past the guard -- and
+it will not catch an exotic script nobody has tried yet. AT-349 tracks the
+completeness gap so this bound is visible instead of assumed."""
+
+_DEFAULT_IGNORABLE = (
+    (0x00AD, 0x00AD), (0x034F, 0x034F), (0x061C, 0x061C), (0x115F, 0x1160),
+    (0x17B4, 0x17B5), (0x180B, 0x180F), (0x200B, 0x200F), (0x202A, 0x202E),
+    (0x2060, 0x206F), (0x3164, 0x3164), (0xFE00, 0xFE0F), (0xFEFF, 0xFEFF),
+    (0xFFA0, 0xFFA0), (0xFFF0, 0xFFF8), (0x1BCA0, 0x1BCA3), (0x1D173, 0x1D17A),
+    (0xE0000, 0xE0FFF),
+)
+"""Unicode's `Default_Ignorable_Code_Point` ranges — the code points a
+conforming renderer draws as nothing.
+
+These ranges are only PART of what `_is_ignorable` strips; the `Cf` and `Cc`
+categories carry the rest.
+
+AT-351: the first version of this fold stripped `unicodedata.category(c) ==
+"Cf"`, which covers U+200B and the bidi controls but NOT U+034F (combining
+grapheme joiner) or U+FE00 to U+FE0F (variation selectors). Those are category
+`Mn`, they survived the strip and NFKC, and a checker measured them rendering
+at 192.5px against a 192.5px plain-credential control — pixel-identical — then
+read the credential off the home index in a real browser. Same defect as
+AT-345, one code point sideways, on the line AT-345 had just rewritten.
+
+The test has to be INVISIBILITY, not a category -- and the reason is a LEAK,
+not the text corruption first claimed here. `fold_credential` only ever
+compares; it never rewrites stored text. What stripping all of `Mn` does is
+fold the two sides ASYMMETRICALLY, because a stored value tends to carry a
+precomposed character while a hostile input carries a decomposed one:
+
+    stored `CAFE_QUILT_APIKEY_31` with a precomposed U+00C9, versus the same
+    value spelled `E` + U+200B + combining acute --
+      keying on invisibility: both fold to `cafequiltapikey31` (e-acute), MATCH
+      stripping all `Mn`:      the spelled form loses its accent,          MISS
+
+which reopens the very class of bypass this fold exists to close. Arabic
+shadda U+0651, Devanagari vowel signs and combining acute U+0301 are all `Mn`
+and all visible. Python exposes no `Default_Ignorable_Code_Point` predicate, so
+the ranges are listed."""
+
+
+def _is_ignorable(ch: str) -> bool:
+    """True when `ch` cannot be part of the credential a human reads off the
+    page, so it must not change whether text matches one.
+
+    AT-353, and the name is deliberately no longer `_is_invisible`. That name
+    was a promise the code did not keep and, worse, a promise that was not even
+    the right one: U+0001 and U+007F render as a visible BOX in Chromium
+    (measured 348px and 356.9px against a 192.5px control), so "renders as
+    nothing" was never the real rule. Three times this guard failed at this
+    line, and twice the reason was that the implementation was chasing a
+    mis-stated rule.
+
+    The rule that actually holds: none of these characters can carry meaning a
+    reader takes off the screen, and all of them can be inserted between the
+    characters of a credential. U+0000 is the sharpest case — it needs no
+    decoding by the reader at all, because the HTML parser DELETES it, so the
+    page renders the credential in plain type."""
+    if unicodedata.category(ch) in ("Cf", "Cc"):
+        return True
+    code = ord(ch)
+    return any(low <= code <= high for low, high in _DEFAULT_IGNORABLE)
+
+
+BIDI_OVERRIDES = ("‭", "‮")
+"""LEFT-TO-RIGHT and RIGHT-TO-LEFT OVERRIDE: the two characters that force
+rendering direction per character regardless of content.
+
+AT-355. These are the one family the fold cannot handle by subtraction, and
+subtracting them is what let the leak through: `_is_ignorable` removes them as
+category `Cf`, deleting the character that CAUSES the reordering, and then
+compares a string that is not the credential --
+
+    fold("ZEBRA_QUILT_APIKEY_31")  -> zebraquiltapikey31
+    fold(RLO + its reverse)        -> 13yekipatliuqarbez
+
+while a reader sees the credential in plain type, in the correct order. Every
+other fix in this family worked by subtracting more; here that makes it
+strictly worse, so `ui/helpers.py` REFUSES text containing one instead.
+
+Deliberately just the overrides. U+200E/U+200F (LRM/RLM) and the isolates are
+ordinary punctuation in Hebrew and Arabic and do not reverse a pure-ASCII run;
+refusing them would cost real input for no gain, and false-positive rate is a
+term in this product's north star."""
+
+MIN_FOLDED_LEN = 8
+"""Folded matching needs a floor, because folding is a HEURISTIC widening: it
+deliberately matches strings that are not byte-equal to any secret, so a very
+short folded value would start refusing ordinary text that merely contains its
+letters (`A-B` folds to `ab`, which appears in half the English language).
+Exact and variant matching stay floorless, so AT-002 -- "a three-character
+password is a bad password, but leaking it is still a leak" -- is untouched:
+the real value is still refused at any length, by `is_clean`."""
+
+
+def fold_credential(text: str) -> str:
+    r"""Normalise away the forms of a credential that anyone can reverse in
+    their head, so they compare equal.
+
+    Order is load-bearing. Format characters go FIRST: a zero-width space
+    between every letter would otherwise sit inside each pair NFKD and the
+    confusable map are trying to see. Then NFKD (full-width Latin, the Kelvin
+    sign, other compatibility forms -- decomposed, not recomposed, see AT-356
+    below), then the confusable map, then dropping combining marks, then
+    separators, then case.
+
+    AT-339: a checker put slug `zebra-quilt-apikey-31` past the guard for the
+    live value `ZEBRA_QUILT_APIKEY_31`; it became the on-disk directory name,
+    every page URL, and text on the home index. `is_clean` is a plain substring
+    test, and `_credential_variants` had learned encoding (AT-074) and
+    whitespace (AT-071) but never CASE -- because every test in the suite used
+    a value that was already lowercase-with-hyphens, the one casing where a
+    substring test happens to work.
+
+    AT-345: the first version of this fold covered only `[\s-_.]` and a plain
+    `casefold`, and a checker walked four more forms of the same live value
+    into git-tracked files. The worst was a ZERO-WIDTH space between every
+    character: U+200B has no width, so the project name rendered as the exact
+    credential on the home index -- a human reading the page saw the secret.
+
+    AT-351: and then the same leak reopened through U+034F and the variation
+    selectors, because the strip keyed on the `Cf` category rather than on
+    whether the character renders. `_is_ignorable` is the corrected test.
+
+    AT-356: `_is_ignorable` deliberately does NOT strip a VISIBLE combining
+    mark (U+0301 combining acute, U+0335 combining short stroke overlay) --
+    that is the point of AT-351's fix, not a gap in it: stripping every `Mn`
+    character BEFORE composition made a decomposed hostile spelling
+    (`E` + combining acute) lose its accent while a precomposed stored value
+    (`É`) kept its, an ASYMMETRY that MISSED the match. The fix here is not
+    "strip more, earlier" but "strip AFTER decomposition, everywhere,
+    uniformly": normalise with NFKD (decomposition only, no recomposition) so
+    a precomposed stored value and a decomposed hostile spelling both end up
+    as bare-letter-plus-mark, THEN drop every remaining `Mn` character. Both
+    sides lose the accent together -- no asymmetry -- and a mark that has no
+    legitimate base at all (`Z` + U+0335, which no font composes into
+    anything) is dropped the same way. A checker's own probe interleaved
+    U+034F/U+FE00/U+FE0F (already caught, see AT-351 above) and, separately,
+    U+0301/U+0335 between every character of the credential; both render as
+    the plain credential and both now fold to it.
+    """
+    stripped = "".join(c for c in text if not _is_ignorable(c))
+    decomposed = unicodedata.normalize("NFKD", stripped).translate(ASCII_CONFUSABLES)
+    unmarked = "".join(c for c in decomposed if unicodedata.category(c) != "Mn")
+    return _FOLD_STRIP.sub("", unmarked).casefold()
+
+
+_B64_TOKEN_RE = re.compile(r"[A-Za-z0-9+/_-]{8,}={0,2}")
+_B32_TOKEN_RE = re.compile(r"[A-Za-z2-7]{8,}={0,6}")
+_HEX_TOKEN_RE = re.compile(r"[0-9A-Fa-f]{16,}")
+
+
+def _decode_block(token: str) -> list[str]:
+    """Every byte-decoding this module knows (base64, URL-safe base64,
+    base32, hex) attempted on one self-contained token, each independent and
+    best-effort -- see `_obfuscated_spellings`, which calls this once for the
+    whole text and once per matched token."""
+    out: list[str] = []
+    padded4 = token + "=" * (-len(token) % 4)
+    with contextlib.suppress(ValueError, UnicodeDecodeError):
+        out.append(base64.b64decode(padded4, validate=False).decode("utf-8"))
+    with contextlib.suppress(ValueError, UnicodeDecodeError):
+        out.append(base64.urlsafe_b64decode(padded4).decode("utf-8"))
+    padded8 = token + "=" * (-len(token) % 8)
+    with contextlib.suppress(ValueError, UnicodeDecodeError):
+        out.append(base64.b32decode(padded8, casefold=True).decode("utf-8"))
+    with contextlib.suppress(ValueError, UnicodeDecodeError):
+        out.append(bytes.fromhex(token).decode("utf-8"))
+    return out
+
+
+def _obfuscated_spellings(text: str) -> list[str]:
+    r"""Best-effort decodings of `text` worth folding and comparing against a
+    secret, beyond the text itself: reversed, HTML entity-unescaped, up to
+    four passes of percent-decoding (so a doubly percent-encoded value decodes
+    too), and whatever bytes base64/base32/hex decoding produces as UTF-8.
+
+    AT-352: `contains_folded` and `assert_no_raw_secrets` used to fold and
+    compare only the literal text, so a credential spelled in base64, base32,
+    hex, HTML numeric/hex entities, double percent-encoding, or plain reversal
+    passed both the UI intake guard and the model-prompt gate unremarked --
+    each is a spelling a person reverses with one lookup or a browser console,
+    not a defence against a determined attacker.
+
+    Reversal, HTML-unescape and percent-decoding are all substring-safe: they
+    decode a match wherever it sits in a larger string and leave the rest
+    alone, so running them once over the whole `text` is correct even when
+    the caller (`assert_no_raw_secrets`, given a full model prompt, not a bare
+    field) passes a credential embedded in a sentence. Base64/base32/hex are
+    NOT substring-safe -- surrounding prose breaks whole-text decoding, since
+    the decoder needs the ENTIRE input to be valid alphabet -- so those three
+    are also tried against every base64/base32/hex-SHAPED run `_decode_block`
+    can find inside `text`, not just the whole string. A run of 8+ plain
+    letters matches the base64/base32 token shape too (their alphabets are
+    almost all of A-Za-z0-9); that is deliberate over-triggering on ordinary
+    words, not a defect -- every failed decode contributes nothing, and a
+    lucky garbage decode still has to survive `fold_credential` and the
+    `MIN_FOLDED_LEN`-gated substring check before it means anything.
+    """
+    forms = [text[::-1], html.unescape(text)]
+
+    decoded = text
+    for _ in range(4):  # a few passes catches double/triple percent-encoding
+        next_decoded = unquote_plus(decoded)
+        if next_decoded == decoded:
+            break
+        forms.append(next_decoded)
+        decoded = next_decoded
+
+    forms.extend(_decode_block(text))
+    for token_re in (_B64_TOKEN_RE, _B32_TOKEN_RE, _HEX_TOKEN_RE):
+        for match in token_re.finditer(text):
+            forms.extend(_decode_block(match.group()))
+
+    return forms
+
+
+def _contains_folded_secret(text: str, folded_secrets: Sequence[str]) -> bool:
+    """True when a folded secret from `folded_secrets` (each already
+    `fold_credential`-ed and at least `MIN_FOLDED_LEN` long) is a substring of
+    `text` or of any of `text`'s `_obfuscated_spellings`, each independently
+    folded.
+
+    Shared by `Redactor.contains_folded` and `assert_no_raw_secrets` (AT-347)
+    so the UI intake door and the model-prompt gate see the same widened
+    match instead of drifting apart the way the two doors did before AT-346 --
+    one place that composes Unicode folding with encoding/reversal folding,
+    not two copies that each cover half.
+    """
+    if not folded_secrets:
+        return False
+    candidates = {fold_credential(text)}
+    candidates.update(fold_credential(form) for form in _obfuscated_spellings(text))
+    return any(secret in candidate for candidate in candidates for secret in folded_secrets)
