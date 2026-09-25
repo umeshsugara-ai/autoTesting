@@ -67,3 +67,39 @@ EXPLANATION: Both cycle-1 failures are genuinely fixed: the route now survives a
 - **Mode D** (real Chromium, branch app, isolated root, fixture on :46671, `max_parallel=2`, declared secret `RD_PASSWORD` filled via `{{SECRET:…}}`, judge swapped in-process for a mock that raises for one case): the run completes (303, no 500), `run.json` `parallel_n=2 parallel_bound_by=config`, 3 results + 3 verdicts, `trace.jsonl` = 2 judge `llm_call` + `execute/done`, the trace card renders, the secret value is in neither the run dir nor the DOM. 1 console error = the deliberate 400 from the unmocked first attempt ("no AI provider is configured"). Findings AT-572 (high) and AT-573 (medium) come from this run.
 
 ## Status: FAIL (cycle 2) — maker fix cycle 3 (last).
+
+---
+
+# Cycle 3 — /checker verdict
+
+**Date:** 2026-09-25 · **Head checked:** 6cb5049 (fix 29be1e3, master merge fd489b2) · **Cycle checked: 3** (manifest Fix cycle: 3 of 3) · **Issues addressed (claimed):** AT-562, AT-564, AT-565, AT-568, AT-569, AT-572, AT-573
+
+```
+VERDICT: PASS
+SCOREBOARD: PR 7/7, RT 7/7; core invariants hold
+FAILURES: none
+CAPABILITY-COVERAGE: 2/2 cycle-3 rows reproduced (10, 11), each in its own throwaway copy; green before, red on the named test after (rows 6-8 reproduced in cycle 2, code unchanged since)
+LIVE-BROWSER: qa/evidence/browser-at562-564-live-wiring-2026-09-25-checker-c3/report.json
+ISSUES-WRITTEN: AT-574 (pre-existing, serial route; not charged to this unit)
+EXECUTOR: claude-sonnet-subagent (checker: claude-opus-session, checker seat)
+EXPLANATION: Every parallel case now writes its evidence under run_dir/<case_id>/, and the grader, the run view and the HTML export all resolve the nested path (verified live: 6 files for 6 steps, 12 images render, 6 embedded in the export). A grader failure after a completed execution now keeps the real result and screenshots and records INCONCLUSIVE naming the grader failure. Both are proven with real browsers, not only fakes. Blocking: nothing. Debt: AT-570 (no RunApproval on case runs, T-122) and AT-574 (the serial route's older version of AT-573) stay open.
+```
+
+## Answers to the maker's questions
+
+- **Did any evidence reader need a change?** No, the claim holds. Every reader builds `run_dir / ev.path` (`stages/grade.py::_screenshot_paths`, `stages/report_export.py`, `ui/routes_report.py`), and `png_base64` only requires the file to resolve under the trusted root, so a subfolder passes. Confirmed live: the grader got images (PASS verdicts), the run view loaded 12/12 images, and `/projects/rd/report.html` embedded 6/6. The serial path is untouched: `evidence_prefix` defaults to `""`, so the name is unchanged.
+- **Does the serial route have the AT-573 shape?** Yes, and worse: one grader exception propagates out of `trigger_run` -> 500, the rest of the run never runs, and the Run record is never saved. Master has identical code, so it predates this unit and is out of its scope (the brief was the parallel path). Filed as **AT-574** (medium): use `run_and_grade_case_resilient` in the serial loop and for entry cases.
+
+## What I re-ran (cycle 3)
+
+- Targeted set from the manifest (copy): `40 passed` · `ruff` clean · `doctor` clean.
+- **Every non-browser test file** (copy): `1 failed, 1556 passed, 5 skipped`; the one failure is `test_uploaded_recordings_are_gitignored` (needs `.git`, absent from copies; passes in the worktree). Net: all green.
+- Row 10 (in `screenshot()`, `rel = name`, ignoring the prefix): `2 passed` -> `FAILED test_default_session_factory_gives_each_case_its_own_evidence_namespace`.
+- Row 11 (`try/except` removed around the rubric + grade call): `2 passed` -> `FAILED test_run_and_grade_case_resilient_keeps_the_real_result_when_grading_raises`, `ProviderError` propagating.
+- Real-browser collision probe (`scratchpad/probe_screenshot_collision.py`): two cases -> `case_8c1ec91abecf/01-step01-navigate.png` and `case_rd_loginpage/01-step01-navigate.png`, shared: none.
+- Crash probe (`probe_at568_route_c2.py`): factory raise and wrapper raise -> 3 results + 3 verdicts each; the unqueued judge was never reached.
+- Diff scope fd489b2..29be1e3: 8 source/test files, all listed. `test_ui_runs_parallel_crash_recovery.py`'s cycle-2 grader-raise test is retargeted to make `run_and_grade_case_resilient` itself raise, so the AT-568 fallback stays covered at route level. `session.py` had two docstrings (`settle`, `assert_expected`) compressed to stay at the 300-line cap; content preserved, no code removed.
+- Security: the new INCONCLUSIVE note stores `str(exc)`; the secret guard's exception text carries no value ("raw secret value present in payload"), and the live run found the password in neither the run dir, the DOM nor the HTML export.
+- **Mode D** (real Chromium, isolated root, mock judge with one simulated outage, plan pinned to n=2 because free RAM was 1.12 GB, disclosed): run completes with `parallel_n=2`; 6 PNGs on disk for 6 steps, one folder per case; the outage case is `completed` with its screenshot, INCONCLUSIVE "the grader failed after execution completed"; trace = 2 `llm_call` + `execute/done`; 0 app console errors (1 from a checker-guessed URL).
+
+## Status: PASS (cycle 3)
