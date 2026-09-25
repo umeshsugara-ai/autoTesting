@@ -1,11 +1,12 @@
 # Manifest — at575-orchestrator-caller
 
 **Status:** ready-for-check
-**Fix cycle:** 1 of 3
+**Fix cycle:** 2 of 3
 **Dual check:** no
 **Issues addressed:** AT-575
 **Branch:** `wave/at575-orchestrator-caller` (from master `76dfbde`)
-**Commit:** `26d7d93` feat(orchestrate): live CLI caller for run_or_resume (AT-575)
+**Commits:** `26d7d93` (cycle 1 feature) · `9bfcd8e` (cycle 1 manifest) · `a6efb6c` (checker FAIL,
+cycle 1) · `e65b8f0` (cycle 2 fix) — HEAD is `e65b8f0`
 **Contract:** `qa/contracts/orchestrator.md` (OR1-OR6, D-036)
 
 ## The gap this closes
@@ -17,7 +18,10 @@ wired the UI Run route to build its own `StageContext` directly (trace + secrets
 not through `run_or_resume`, so learn/explore resume-after-interruption stayed reachable only from
 pytest. `docs/FEATURES.jsonl` F-053 carries a caveat naming exactly this gap.
 
-## What changed
+## What changed (cycle 1 — historical)
+
+Line numbers below are as of commit `26d7d93`; the file has since changed — see "Fix cycle 2" below
+for the current state and line numbers.
 
 - **`src/autotester/cli_orchestrate.py`** (new, 186 lines) — `orchestrate_cmd` (line 145), a new
   `autotester orchestrate <project>` command. It:
@@ -96,7 +100,13 @@ state = run_or_resume(proj, ctx)
 
 Run: `uv run pytest tests/test_cli_orchestrate.py -q` → `4 passed`.
 
-## Capability-coverage table
+## Capability-coverage table (cycle 1 — historical record)
+
+**Flagged by the checker (cycle 1 verdict, "the maker's flags" §a) and by the coordinator: doing
+this in-place in the committed worktree, even with a clean `git checkout --` revert, is the wrong
+method — the third such case on this repo. Not repeated. Cycle 2's rows below are all done in a
+throwaway copy outside the worktree instead**, per the coordinator's hard rule this cycle. This
+section is left as-is (unedited) for the historical record of what cycle 1 actually did.
 
 Each row: committed code is green; a single-hunk falsifying edit (via `git checkout -- <file>`
 revert afterward, never left in the worktree) reproduces red **for the named reason**; reverted →
@@ -118,25 +128,26 @@ directory on disk, exit 1) rather than AT-111's "a refused run leaves no trace" 
 written). The preflight is load-bearing for that invariant even though the deeper gate cannot
 actually be bypassed.
 
-## Verify
+## Verify (cycle 2, current)
 
 ```
-uv run pytest tests/test_cli_orchestrate.py tests/test_orchestrate.py tests/test_orchestrate_runners.py \
+uv run pytest tests/test_cli_orchestrate.py tests/test_cli_orchestrate_resume.py \
+  tests/test_orchestrate.py tests/test_orchestrate_runners.py \
   tests/test_cli_surface.py tests/test_expand_cli.py tests/test_ingest_real_cli.py \
-  tests/test_crawl_real_cli.py tests/test_approve_cli.py -q
-  -> all green (no `-q` stacking beyond pyproject's own addopts, AT-503)
+  tests/test_crawl_real_cli.py tests/test_approve_cli.py
+  -> 103 passed (no CLI -q -- pyproject's own addopts already sets -q; stacking a
+     second -q makes it -qq, which drops the summary line entirely, AT-503)
 uv run ruff check src tests scripts   -> All checks passed!
-uv run autotester doctor              -> doctor: clean (after `uv run autotester map` regenerated docs/MAP.md)
+uv run autotester map                 -> docs/MAP.md unchanged (no diff — the split module's
+                                          exported concepts are the same)
+uv run autotester doctor              -> doctor: clean
 ```
 
-**Full non-browser suite:** gated per the RAM rule — free RAM measured 2.94-2.95 GB across the
-build (below the 3.5 GB floor) with 7 `python.exe` processes already present on the machine.
-Polled every 5 minutes for 20 minutes via a background monitor; if it clears the floor before this
-manifest is checked, its result supersedes this note — otherwise this is a **gap**: the full suite
-was not run this cycle, and the targeted modules above (85+ tests spanning orchestrate, orchestrate
-runners, ingest, crawl, expand, approve, and the CLI surface) stand in as the closest available
-substitute. No `d:/autoTesting` pytest process was independently confirmed idle beyond the
-`python.exe` count above.
+**Full non-browser suite:** RAM-gated again this cycle — free RAM measured as low as 1.78 GB
+(down from 2.94-2.95 GB during cycle 1) with the trend consistently downward across polls; no
+background monitor was launched this time (per the coordinator's explicit note that the checker
+runs the full suite itself, and the hard requirement to leave no monitor running at handback). This
+is a **gap**: the targeted modules above stand in as the closest available substitute.
 
 **Pre-existing state:** `docs/DECISIONS.md` / Lab Protocol are not active in this repo (no
 `docs/DECISIONS.md` at the root — `qa/` maker-checker discipline applies instead, per
@@ -144,15 +155,104 @@ substitute. No `d:/autoTesting` pytest process was independently confirmed idle 
 
 ## Browser / Mode D
 
-**Not UI-touching.** Changed files: `src/autotester/cli_orchestrate.py` (new CLI command),
-`src/autotester/cli.py` (2-line mount + import), `tests/test_cli_orchestrate.py` (new test file),
-`docs/MAP.md` (regenerated). No file under `src/autotester/ui/` was read or modified, and no
-route was added or changed. Mode D: **SKIP**.
+**Not UI-touching.** Cycle 1 + cycle 2 changed files, all told: `src/autotester/cli_orchestrate.py`,
+`src/autotester/cli.py` (2-line mount + import), `tests/test_cli_orchestrate.py`,
+`tests/test_cli_orchestrate_resume.py` (new this cycle), `docs/MAP.md` (regenerated, cycle 1; no
+diff on cycle 2's regen). No file under `src/autotester/ui/` was read or modified, and no route was
+added or changed. Mode D: **SKIP**.
+
+## Fix cycle 2 (checker FAIL, verdict `qa/verdicts/at575-orchestrator-caller.md`, commit `a6efb6c`)
+
+### The failure, quoted
+
+> **[C3 / design rule "a class or function defined in two modules is a bug"]** sev: medium ·
+> `cli_orchestrate.py::_require_crawl_consent` is a statement-for-statement copy of
+> `cli_crawl.py::_preflight_consent` (checker AST comparison: statement bodies identical, same
+> parameters; only the name and docstring differ). It's the D-018 consent gate, a security check,
+> now in two copies that will drift the first time one is tightened. The module docstring also
+> claims the existing primitives are "reused as-is", which isn't true of this one. doctor misses it
+> because its duplicate rule matches public names only and these are private and differently named.
+> · fix: delete `_require_crawl_consent` and call `cli_crawl._preflight_consent` (import it, or move
+> it to a shared spot both commands import); keep test 4 as is, it will still pin exit 2 with no
+> trace. · issue: AT-575 (stays open)
+
+### Coordinator decisions (both: "fix it")
+
+> **1. Resume in explore mode re-runs the consent preflight** even when DISCOVER is already done and
+> only MODEL remains. `require_consent` doesn't use up the approval, so it costs nothing while the
+> approval is valid, but an expired approval would block a resume that will never open a browser.
+
+> **2. Mode is recomputed on resume.** `choose_mode(sources)` builds the runner dict from the current
+> sources, while `run_or_resume` resumes from the stored state's mode. If a teaching source is added
+> or removed between two invocations with the same `--run-id`, the runners can mismatch the stored
+> stages. Worth a guard: build runners from the stored state's mode when resuming.
+
+Plus three binding amendments the coordinator relayed mid-cycle: (1) **no `git stash`** — the stash
+stack is shared across every worktree/session on this repo; (2) the consent skip must key on
+DISCOVER's stored status being **exactly** `"done"` — failed/pending/missing still hits the
+preflight, with a test proving no new trace span on that refusal; (3) an **unknown `--run-id`** must
+behave like a fresh run with a clear message, not crash — with a test.
+
+### What changed this cycle
+
+- **`src/autotester/cli_orchestrate.py`**: deleted `_require_crawl_consent` (the copy) entirely.
+  `_explore_runners` (was `_build_runners`'s explore branch) now calls `cli_crawl._preflight_consent`
+  directly — `from autotester import cli_crawl` at module level (`cli_orchestrate.py:35`), call site
+  `cli_orchestrate.py:146`. Module docstring corrected (no longer claims a false "reused as-is" for a
+  function that was, in fact, copied).
+- New `_resolve_run(store_, sources, run_id)` (`cli_orchestrate.py:154-167`) is the one place that:
+  loads prior `RunState` for an explicitly-passed `--run-id` (`_load_state`, line 69-72; `None` for a
+  fresh/unknown one — never an error); reads `mode` from `prior.mode` when a prior state exists,
+  falling back to `choose_mode(sources)` only for a truly fresh run (fixes decision 2); prints a
+  one-line `"no existing run '<id>' for <project> — starting fresh"` note when an explicit `--run-id`
+  has no state on disk (amendment 3).
+- New `_entry_done(prior, mode)` (`cli_orchestrate.py:75-86`) returns `True` only when the stored
+  checkpoint for this run's entry stage (INGEST for learn, DISCOVER for explore) has status **exactly**
+  `"done"` — `None`/`"failed"`/`"pending"` all return `False` (amendment 2). `_learn_runners` /
+  `_explore_runners` (split out of the old `_build_runners`, line 115-151) each skip wiring their
+  entry stage (and, for explore, skip the consent preflight) only when `entry_done` is `True` — fixes
+  decision 1 (a resume past a `done` DISCOVER never re-checks consent) while still hitting the gate
+  for a failed/pending one.
+- `_entry_source` now returns `Source | None` instead of raising `StopIteration` when no teaching
+  Source exists; a new `NoEntrySource` (line 55-58) is raised with a clear message only when a
+  **not-yet-done** INGEST genuinely has nothing to watch, caught in `orchestrate_cmd` (line 250-252)
+  as a clean exit 1 — never a raw traceback.
+- `orchestrate_cmd` (line 212-258) shrank back under the 50-line function cap by delegating to
+  `_resolve_run`.
+- **Tests:** `tests/test_cli_orchestrate.py` trimmed back to its 4 cycle-1 tests (helper functions
+  simplified, `cli_from_app()` indirection dropped for a plain `from autotester.cli import app`, same
+  convention as sibling CLI test files). Four new tests split into
+  **`tests/test_cli_orchestrate_resume.py`** (300-line cap, C2):
+  1. `test_resume_past_a_done_discover_skips_consent_even_if_the_approval_lapsed` — decision 1.
+  2. `test_resume_past_a_failed_discover_still_hits_consent` — amendment 2, plus asserts
+     `trace.jsonl` byte-identical before/after the refused second invocation (amendment 2's "no new
+     trace" requirement).
+  3. `test_resume_keeps_the_stored_mode_even_if_current_sources_would_flip_it` — decision 2.
+  4. `test_unknown_run_id_starts_fresh_with_a_clear_message_not_a_crash` — amendment 3.
+
+### Capability-coverage table (cycle 2) — throwaway copy ONLY, never in the worktree
+
+Per the coordinator's hard rule this cycle: no `git checkout --`/in-place revert dance, no
+`git stash` (shared stash stack risk). All four rows were reproduced in a full throwaway copy at
+`C:/Users/Lenovo/AppData/Local/Temp/claude/d--autoTesting/dd410a44-7522-428c-9b91-fda96de822cd/
+scratchpad/at575-falsify/` (`src/`, `tests/`, `scripts/`, `pyproject.toml`, `uv.lock` copied out;
+`.venv` reused via an NTFS junction to skip a slow reinstall). The real worktree was never edited for
+this — confirmed after: `git status --short` empty and `diff` against the throwaway copy's
+`cli_orchestrate.py` empty, both re-checked once all four rows were done.
+
+| # | Capability | Falsifying edit (in the copy) | Red — named reason | Revert | Result |
+|---|---|---|---|---|---|
+| 1 | The explore path truly depends on the SHARED `cli_crawl._preflight_consent` (C3 fix is load-bearing, not a dead import) | Commented out the `cli_crawl._preflight_consent(...)` call in `_explore_runners` | `test_explore_mode_without_an_approval_refuses_before_the_crawl_starts` fails: exit code drops 2→1, `run_crawl`'s own deeper gate catches it instead as a failed checkpoint, no clean "no trace" refusal | restored the call | green (copy: 8/8) |
+| 2 | Consent-skip precision — only an exact `"done"` DISCOVER skips the preflight | `_entry_done`: `== "done"` → `!= "pending"` (treats `failed` as done too) | `test_resume_past_a_failed_discover_still_hits_consent` fails: exit 2→1 — a failed DISCOVER is wrongly treated as "won't run again", so the run silently breaks at the failed checkpoint instead of re-hitting consent | restored `== "done"` | green |
+| 3 | Mode is read from stored `RunState`, never recomputed via `choose_mode` on resume | `_resolve_run`: `mode = prior.mode if prior is not None else choose_mode(sources)[0]` → unconditional `choose_mode(sources)[0]` | `test_resume_keeps_the_stored_mode_even_if_current_sources_would_flip_it` fails: exit 0→2, `"refusing to start a crawl … no approval exists"` — reproduces the checker's exact described bug | restored the `prior.mode` branch | green |
+| 4 | An unknown `--run-id` starts fresh, never crashes | `_resolve_run`: `mode = prior.mode if prior is not None else …` → unconditional `mode = prior.mode` | `test_unknown_run_id_starts_fresh_with_a_clear_message_not_a_crash` fails: exit 0→1, `AttributeError("'NoneType' object has no attribute 'mode'")` — a real crash, not a refusal | restored the guarded line | green |
 
 ## Gaps / follow-ups for the checker
 
-1. Full non-browser suite RAM-gated this cycle (see Verify section) — worth a re-run when the
-   machine is quieter.
+1. Full non-browser suite RAM-gated again this cycle (see Verify section) — free RAM measured as low
+   as 1.78 GB during this cycle's work (down from 2.94-2.95 GB in cycle 1), so no attempt was made to
+   poll for it this time; the coordinator separately confirmed the checker runs the full suite
+   itself.
 2. This unit deliberately stops at MODEL (the review gate) per `orchestrate.py`'s own contract — it
    does **not** wire EXPAND/EXECUTE/GRADE/REPORT into the orchestrator; those stay reached through
    their existing standalone commands (`expand`, etc.) exactly as today. If F-053's caveat should
@@ -162,3 +262,6 @@ route was added or changed. Mode D: **SKIP**.
 3. `--run-id` is a new, minimal convention (no prior "latest run" helper existed anywhere in the
    codebase to build on) — an operator must copy the printed run id to resume. A future unit could
    add a `--resume-latest` convenience; out of scope here (no issue currently open for it).
+4. `_learn_runners`' `NoEntrySource` path (a not-yet-done INGEST whose teaching Source was removed)
+   is implemented and raises cleanly but has no dedicated test this cycle — not part of the checker's
+   three required items, flagged rather than silently added scope.
