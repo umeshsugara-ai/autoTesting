@@ -149,7 +149,7 @@ comes only after that — "not only erp". T-122/T-145/T-136 get re-scoped to "se
 - [!] T-136 score recordings vs a trainer truth sheet → real recall/FP/time — **needs the truth sheet**
 - [x] T-123 medium credential-safety batch — AT-085 `/healthz` + AT-065 rubric stamp ✅ (18ff2a9); AT-086/087 ✅ merged 6e5c806 (checker FINAL PASS + Mode D; gate answered: both a)
 - [ ] T-125 test catalog (runnable/blocked + cheap→expensive) — D-039 ✅, contract `catalog.md` DRAFT
-- [~] T-126 governance debt sweep — maker side ✅ (allowlist + FEATURES backfill, checker PASS, merged); AT-560 follow-up ✅ merged f94c5c2; goal close = checker
+- [x] T-126 governance debt sweep — maker side ✅ (allowlist + FEATURES backfill, checker PASS, merged); AT-560 follow-up ✅ merged f94c5c2; closed by checker sweep 2026-09-25
 - [x] AT-110 tamper-proof consent approvals (HMAC keyed from `.env`) — ✅ checker PASS cycle 2 + live Mode D, merged 48aba2f
 - [x] AT-483 orphaned-crawl liveness — re-landed onto master (2d58215) after its 09-18 PASS never merged
 
@@ -161,7 +161,7 @@ fixture-proven only. The ERP trust number is the first time AutoTester is measur
 ## THE PRODUCT VISION (reusable platform) — 🎯 target, mostly unbuilt
 
 ### M8 · Systematic exploration upgrades
-- [x] T-163 resumable learn-or-explore orchestrator + durable per-stage checkpoints (F-045, dual PASS)
+- [x] T-163 resumable learn-or-explore orchestrator + durable per-stage checkpoints (F-045, dual PASS) — ⚠️ no live caller yet: CLI/UI runs do not go through it until AT-564 (at562-564-live-wiring)
 - [x] T-170 first-party API/network assertions (D-040 split from T-165) — F-047, checker PASS, merged 1fc7276
 - [ ] T-165 hybrid BFS→bounded-DFS traversal + frontier completeness + form-input replay + persona-seeded
       incremental crawl + change tracking (D-040; contract `crawl-traversal.md` DRAFT; CRITICAL dual-check)
