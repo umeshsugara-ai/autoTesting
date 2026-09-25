@@ -46,8 +46,9 @@ exception (selector not found, navigation refused, timeout, …) is `ERRORED` wi
 the exception type and message — never an unhandled traceback out of `run_case`.
 
 ### E4 — RawResult is complete and persisted
-The returned `RawResult` carries `case_id`, `outcome`, `duration_s`, and every `Evidence` the
-session recorded (already redacted/masked per B4/B7 — `run_case` does not re-implement masking).
+The returned `RawResult` carries `case_id`, `outcome`, `duration_s`, and every `Evidence`
+recorded during this case — never evidence from an earlier case that reused the same session
+(D-044, AT-577) — already redacted/masked per B4/B7 (`run_case` does not re-implement masking).
 `ProjectStore.save_result(run_id, result)` writes it to
 `projects/<slug>/runs/<run_id>/<case_id>.json`; `ProjectStore.save_run(run)` writes the `Run`
 envelope to `.../runs/<run_id>/run.json`. Both round-trip through `read_json`/`write_json` (C6 —
@@ -106,3 +107,9 @@ has no way to add or remove actions from what the case already specifies.
   Note: AT-540's cycle-1 check (`qa/verdicts/at540-assertion-layer.md`) is FAIL on
   capability-coverage rows (dom_asserts / ERRORED-precedence / C7-for-assertions unisolated)
   plus three deleted E3 tests — the behaviour is in and verified; the checks lag the claims.
+- 2026-09-25 · amendment (authorized by D-044) · **E4 scoped to the case**: "every `Evidence` the
+  session recorded" → "every `Evidence` recorded during this case". The serial route reuses one
+  session across cases; `run_case` returns only the evidence recorded from its own start index,
+  and `browser/assertions.py::_network_met` reads the same scope (AT-577, AT-578). Proven live in a
+  real browser by `qa/verdicts/at576-577-serial-runs.md` cycle 2 PASS (merged 8e50efc). Reported
+  stale by the builder via qa/feedback-inbox.md (at576-577 cycle 1 entry).

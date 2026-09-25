@@ -1001,3 +1001,26 @@ the two versioned-file locations, plus one amendment-log row. No src/ or test ch
 row, by the checker). No enforcement path.
 
 **Links:** D-041; T-175; qa/verdicts/t175-prompt-skills.md; AT-563.
+
+## D-044 | 2026-09-25 | type: decision | status: ACTIVE
+
+**What:** Scope execute.md E4's evidence clause to the case being run. E4 said the returned
+`RawResult` carries "every `Evidence` the session recorded". Since at576-577 merged (8e50efc), the
+serial route reuses one `BrowserSession` across several cases, and `run_case` returns only the
+evidence recorded from its own start index (`evidence_start`, AT-577). The network assertion reads
+the same scope (AT-578). E4 now reads "every `Evidence` recorded during this case".
+
+**Why:** The old wording, read literally, requires exactly the defect AT-577 fixed: case 2's result
+carrying case 1's screenshots, so a judge grades on another case's pages. The at576-577 builder
+reported the stale wording through qa/feedback-inbox.md, and the checker PASSed the unit (cycle 2)
+with the per-case scope proven in a real browser. Under the Lab Protocol a contract edit needs an
+authorizing entry. This entry records the consequence of that fix and gives no new direction. It
+tightens the criterion: a result that carries evidence from outside its own case now violates E4.
+
+**Result:** qa/contracts/execute.md E4 evidence clause reworded, plus one amendment-log row. No src/
+or test change. doctor clean.
+
+**Changes-authorized:** qa/contracts/execute.md (E4 evidence clause + one amendment-log row, by the
+checker). No enforcement path.
+
+**Links:** AT-577; AT-578; qa/verdicts/at576-577-serial-runs.md (cycle 2 PASS); merge 8e50efc.

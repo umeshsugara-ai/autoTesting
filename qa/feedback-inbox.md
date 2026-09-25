@@ -895,6 +895,8 @@ PATTERN: prompts are skills, not tools -- know-how ships as SKILL.md loaded on d
 
 ## 2026-09-25 · maker (at576-577-serial-runs) · two items for the checker's judgement
 
+**Status:** folded 2026-09-25 by /checker. Item 1 -> qa/contracts/execute.md E4 ("every `Evidence` recorded during this case") + amendment-log row, authorized by D-044. Item 2 -> filed as AT-578 (high), fixed in at576-577 cycle 2 (merged 8e50efc).
+
 **1. `qa/contracts/execute.md` E4's wording is now imprecise.** AT-577's fix (`stages/execute.py::
 run_case`) scopes a `RawResult`'s evidence to only the calling case's own slice of `session.state.
 evidence` (via `evidence_start`), because the serial route reuses one `BrowserSession` across every
