@@ -186,7 +186,7 @@ fixture-proven only. The ERP trust number is the first time AutoTester is measur
 |---|---|---|
 | Workflow graph | LangGraph 1.x, from T-167 (stages migrate only when touched) | T-167 |
 | Agents | LangChain Deep Agents lead tester + subagents (explorer, designer, runner, independent grader, reporter), after Wave 1 — T-179..T-181 (D-042, supersedes D-041's no-multi-agent) | T-179 · T-180 · T-181 |
-| Skills | prompts as `SKILL.md` | T-175 (contract `skills.md` DRAFT) |
+| Skills | prompts as `SKILL.md` | T-175 ✅ merged 9b3fd5e (checker PASS) |
 | Tools / MCP | Playwright (deterministic) · browser-use fallback · AutoTester as MCP server + CLI contract | T-177 · T-174 |
 | Observability | local redacted `trace.jsonl` → Langfuse self-hosted on a server | T-172 (contract `run-trace.md` DRAFT) |
 - Prompts ship as `SKILL.md` skills (T-175) while crawl / run_case / get_persona / get_catalog / capture_network / grade_case / report stay plain tools with deterministic guards (safety, credentials, write-policy) inside them, not left to the model (D-042).
@@ -209,7 +209,7 @@ fixture-proven only. The ERP trust number is the first time AutoTester is measur
 2. Both intake modes work on a real target and beat-or-match a human tester (T-169).
 3. Every finding is evidence-backed and correctly classified; coverage shows untested branches.
 
-## Progress (from `.goal/goal.json`, 2026-09-25): 41 / 67 done (61% — the roadmap grew by 12 tasks via D-040/D-041/D-042, not a regression). Status 2026-09-25: AT-110 ✅ merged 48aba2f (cycle 2); AT-560 ✅; AT-086/087 ✅ merged 6e5c806; T-173 ✅ merged 626fa03 (wiring AT-562); with the checker: T-175; T-172 cycle 2 (AT-561 redaction wiring); building: AT-335, T-125; next: T-165 (after AT-335), T-174 + T-178 (after T-125); the Deep Agents layer (T-179..T-181) after Wave 1.
+## Progress (from `.goal/goal.json`, 2026-09-25): 41 / 67 done (61% — the roadmap grew by 12 tasks via D-040/D-041/D-042, not a regression). Status 2026-09-25: AT-110 ✅ merged 48aba2f (cycle 2); AT-560 ✅; AT-086/087 ✅ merged 6e5c806; T-173 ✅ merged 626fa03 (wiring AT-562); T-175 ✅ merged 9b3fd5e; T-172 cycle 2 (AT-561 redaction wiring); building: AT-335, T-125; next: T-165 (after AT-335), T-174 + T-178 (after T-125); the Deep Agents layer (T-179..T-181) after Wave 1.
 _Machine backlog + done-checks: `.goal/goal.json`. Whole-project screen: `docs/SNAPSHOT.md`._
 _Note: rewriting `.goal/goal.json`'s north star or adding DISCOVER/MODEL to `docs/ARCHITECTURE.md`
 is a state change that needs an authorizing `docs/DECISIONS.md` entry first (Lab Protocol) — this
