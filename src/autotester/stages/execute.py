@@ -109,8 +109,12 @@ def run_case(case: Case, session: BrowserSession) -> RawResult:
     dom_asserts/network — T-170), the expectation is evaluated and recorded
     as DOM/NETWORK evidence; an unmet one makes the run's outcome
     ASSERTION_FAILED — an observation that a declared expectation did not
-    hold, never a grade."""
+    hold, never a grade. AT-577: `session` may already carry earlier cases'
+    evidence (the serial route reuses one session across a run) --
+    `evidence_start` pins where THIS case begins, so its `RawResult` never
+    carries a sibling's screenshots."""
     start = time.monotonic()
+    evidence_start = len(session.state.evidence)
     assertion_failed = False
     for step in sorted(case.steps, key=lambda s: s.order):
         try:
@@ -123,31 +127,26 @@ def run_case(case: Case, session: BrowserSession) -> RawResult:
                 pre = None
             handler(session, step)
             if step.action in (Action.CLICK, Action.NAVIGATE, Action.BACK):
-                # AT-045/AT-053: a click or a fresh navigation both trigger an
-                # async transition (a form-submit redirect, or the target page
-                # itself still rendering) -- settle before the evidence
-                # screenshot, or the grader only ever sees the action itself,
-                # never what it caused (AT-053: a real live run against a
-                # brand-new production URL captured a blank NAVIGATE
-                # screenshot and false-FAILed on it).
+                # AT-045/AT-053: settle before the screenshot, so the grader
+                # sees what the action caused, never a mid-transition frame.
                 session.settle(step.expected)
             _drain_network_evidence(session)  # T-170/NA1: before this step's own assert_expected
             if pre is not None:
                 if step.action is not Action.ASSERT:
-                    # the step's own declared expectation, evaluated after settle
                     session.assert_expected(step.expected, step_order=step.order)
                 if _assertions_unmet(session, pre):
                     assertion_failed = True
             session.screenshot(f"step{step.order:02d}-{step.action}", step_order=step.order)
         except MissingSecret as exc:
-            return _result(case, session, start, Outcome.BLOCKED_HITL, hitl_prompt=str(exc))
+            return _result(case, session, start, Outcome.BLOCKED_HITL,
+                           evidence_start=evidence_start, hitl_prompt=str(exc))
         except Exception as exc:  # the executor reports, it never crashes the run
-            return _result(
-                case, session, start, Outcome.ERRORED, error=f"{type(exc).__name__}: {exc}"
-            )
+            return _result(case, session, start, Outcome.ERRORED, evidence_start=evidence_start,
+                           error=f"{type(exc).__name__}: {exc}")
     if assertion_failed:
-        return _result(case, session, start, Outcome.ASSERTION_FAILED)
-    return _result(case, session, start, Outcome.COMPLETED)
+        return _result(case, session, start, Outcome.ASSERTION_FAILED,
+                       evidence_start=evidence_start)
+    return _result(case, session, start, Outcome.COMPLETED, evidence_start=evidence_start)
 
 
 def _declares_expectation(expected: object) -> bool:
@@ -165,6 +164,7 @@ def _result(
     start: float,
     outcome: Outcome,
     *,
+    evidence_start: int = 0,
     error: str | None = None,
     hitl_prompt: str | None = None,
 ) -> RawResult:
@@ -177,5 +177,6 @@ def _result(
         duration_s=round(time.monotonic() - start, 3),
         error=session.secrets.scrub_optional(error),
         hitl_prompt=session.secrets.scrub_optional(hitl_prompt),
-        evidence=list(session.state.evidence),
+        # AT-577: only THIS case's own slice, never the shared session's full history.
+        evidence=list(session.state.evidence[evidence_start:]),
     )

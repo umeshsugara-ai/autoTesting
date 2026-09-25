@@ -127,25 +127,36 @@ def _run_cases_serially(
     fix, a grader/provider exception, or a `run_case` crash, propagated
     straight out of this loop, 500ing `trigger_run` before the remaining
     cases ran or the `Run` record was saved. Now a crash is reported as that
-    case's own result+verdict and the loop, and the run, continue."""
-    session: BrowserSession | None = None
-    if not all(entry_flags):
-        session = BrowserSession(project, secrets, run_dir, paths)
-        session.start()
+    case's own result+verdict and the loop, and the run, continue.
+
+    AT-576: every entry case runs to completion first -- its own dedicated
+    session, started and closed by `_run_entry_case` -- BEFORE the shared
+    session below ever starts (same order `_run_cases_in_parallel` uses).
+    Starting the shared session first and only THEN hitting an entry case
+    used to start a SECOND sync Playwright driver on this thread while the
+    shared one was still live -- Playwright raises "Sync API inside the
+    asyncio loop" the moment that happens, 500ing the whole run. Entry
+    cases first, one shared session started once, never nests two."""
+    for case, is_entry in zip(cases, entry_flags, strict=True):
+        if not is_entry:
+            continue
+        result, verdict = _run_entry_case(case, project, secrets, run_dir, slug, judge, run_id,
+                                          store)
+        store.save_result(run_id, result)
+        store.save_verdict(run_id, verdict)
+
+    normal_cases = [c for c, is_entry in zip(cases, entry_flags, strict=True) if not is_entry]
+    if not normal_cases:
+        return
+    session = BrowserSession(project, secrets, run_dir, paths)
+    session.start()
     try:
-        for case, is_entry in zip(cases, entry_flags, strict=True):
-            if is_entry:
-                result, verdict = _run_entry_case(
-                    case, project, secrets, run_dir, slug, judge, run_id, store
-                )
-            else:
-                assert session is not None
-                result, verdict = _run_and_grade_resilient(case, session, judge, run_id, store)
+        for case in normal_cases:
+            result, verdict = _run_and_grade_resilient(case, session, judge, run_id, store)
             store.save_result(run_id, result)
             store.save_verdict(run_id, verdict)
     finally:
-        if session is not None:
-            session.close()
+        session.close()
 
 
 def _run_cases_in_parallel(
