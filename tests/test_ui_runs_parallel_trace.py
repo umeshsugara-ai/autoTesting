@@ -220,7 +220,7 @@ def test_with_max_parallel_2_two_cases_run_concurrently(
     peak = [0]
     lock = threading.Lock()
 
-    def fake_run_and_grade_case(case_, session, judge_, run_id, store_):
+    def fake_run_and_grade_case_resilient(case_, session, judge_, run_id, store_):
         with lock:
             concurrent[0] += 1
             peak[0] = max(peak[0], concurrent[0])
@@ -241,7 +241,8 @@ def test_with_max_parallel_2_two_cases_run_concurrently(
     fake_plan = ParallelPlan(config_ceiling=2, measured_budget=2, n=2, bound_by="config",
                              free_ram_mb=99999.0, cpu_count=8)
     monkeypatch.setattr(routes_runs_module, "LangChainFallbackProvider", _AvailableProvider)
-    monkeypatch.setattr(routes_runs_module, "run_and_grade_case", fake_run_and_grade_case)
+    monkeypatch.setattr(routes_runs_module, "run_and_grade_case_resilient",
+                        fake_run_and_grade_case_resilient)
     monkeypatch.setattr(routes_runs_module, "plan_parallel_run", lambda project_: fake_plan)
 
     response = client.post("/projects/demo/run", follow_redirects=False)

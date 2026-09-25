@@ -29,7 +29,11 @@ from autotester.stages.parallel_run import (
     plan_parallel_run,
     run_cases,
 )
-from autotester.stages.run_case_pipeline import grade_errored_result, run_and_grade_case
+from autotester.stages.run_case_pipeline import (
+    grade_errored_result,
+    run_and_grade_case,
+    run_and_grade_case_resilient,
+)
 from autotester.store.project_store import ProjectStore
 from autotester.ui.helpers import _load_project_or_404
 
@@ -143,18 +147,23 @@ def _run_cases_in_parallel(
     verdicts: dict[str, Verdict] = {}
 
     def _run_and_grade(case: Case, session: object) -> RawResult:
-        result, verdict = run_and_grade_case(case, session, judge, run_id, store)
+        # AT-573: run_and_grade_case_resilient captures the real RawResult
+        # BEFORE grading, so a grader/provider exception (caught inside it)
+        # never discards a COMPLETED run's evidence -- it only downgrades
+        # the verdict to INCONCLUSIVE, naming the grader failure.
+        result, verdict = run_and_grade_case_resilient(case, session, judge, run_id, store)
         verdicts[case.id] = verdict
         return result
 
     session_factory = default_session_factory(project, secrets, run_dir)
     for result in run_cases(normal_cases, plan, session_factory, _run_and_grade):
-        # AT-568/PR6: a session_factory crash, or any exception inside
-        # run_and_grade_case, means `_run_and_grade` above never ran to
-        # completion for this case, so `verdicts` has no entry for it —
-        # `run_cases` still reports the case as its own ERRORED RawResult
-        # (PR6), and that ERRORED outcome is always safe to grade directly
-        # (grade_errored_result never calls the judge for it).
+        # AT-568/PR6: a session_factory crash, or any exception BEFORE
+        # run_and_grade_case_resilient captures its own result, means
+        # `_run_and_grade` above never ran to completion for this case, so
+        # `verdicts` has no entry for it — `run_cases` still reports the
+        # case as its own ERRORED RawResult (PR6), and that ERRORED outcome
+        # is always safe to grade directly (grade_errored_result never
+        # calls the judge for it).
         verdict = verdicts.get(result.case_id)
         if verdict is None:
             verdict = grade_errored_result(

@@ -232,7 +232,15 @@ def default_session_factory(
     single shared, persistent profile a normal (serial) run reuses for login
     continuity across cases -- that reuse is correct there because nothing
     runs alongside it; here siblings run at the same time, so isolation, not
-    continuity, is the property that must hold."""
+    continuity, is the property that must hold.
+
+    AT-572: every session still shares the same `run_dir` (screenshots stay
+    reachable at the run's own directory, which `grade()`/the run view
+    already resolve) -- but each case's `SessionState.evidence_prefix` is set
+    to its own `case.id` here, so `BrowserSession.screenshot()` nests every
+    file under `run_dir/<case.id>/` instead of restarting the same `01-...`
+    filename directly in the shared `run_dir`, where two siblings used to
+    collide on the identical path."""
     from autotester.browser.session import BrowserSession
     from autotester.core.paths import ProjectPaths
 
@@ -241,6 +249,9 @@ def default_session_factory(
     def _factory(case: Case) -> object:
         paths = ProjectPaths(f"{project.slug}-parallel-{case.id[:12]}")
         session = build(project, secrets, run_dir, paths)
+        state = getattr(session, "state", None)
+        if state is not None:
+            state.evidence_prefix = case.id
         start = getattr(session, "start", None)
         return start() if callable(start) else session
 

@@ -16,6 +16,7 @@ from autotester.browser.session import BrowserSession
 from autotester.providers.base import Provider
 from autotester.schema.base import Provenance
 from autotester.schema.case import Case
+from autotester.schema.enums import Result
 from autotester.schema.run import RawResult
 from autotester.schema.verdict import Criterion, Rubric, Verdict
 from autotester.stages.execute import run_case
@@ -110,6 +111,38 @@ def run_and_grade_case(
     rubric = _rubric_for(case, store)
     verdict = grade(rubric, result, run_id, judge, run_dir=store.paths.run_dir(run_id),
                     secrets=session.secrets)
+    return result, verdict
+
+
+def run_and_grade_case_resilient(
+    case: Case, session: BrowserSession, judge: Provider, run_id: str, store: ProjectStore,
+) -> tuple[RawResult, Verdict]:
+    """Like `run_and_grade_case`, but a grader/provider exception that happens
+    AFTER `run_case` already produced a real result never discards that
+    result (AT-573). Used only by the parallel route (`ui/routes_runs.py::
+    _run_cases_in_parallel`); the serial route still calls `run_and_grade_case`
+    directly, unchanged.
+
+    Without this, T-173's parallel fan-out (`stages/parallel_run.py::
+    run_cases`) catches the propagating exception at `_run_one` and replaces
+    the case's outcome with a synthetic `ERRORED` `RawResult` that carries
+    NONE of the real result's evidence — a COMPLETED run with real
+    screenshots reported as "execution errored", when execution had in fact
+    finished; only grading failed. Here, `result` is captured first and
+    always returned; any exception raised while resolving the rubric or
+    grading is caught, and it produces an `INCONCLUSIVE` verdict naming the
+    grader failure instead of propagating."""
+    result = run_case(case, session)
+    try:
+        rubric = _rubric_for(case, store)
+        verdict = grade(rubric, result, run_id, judge, run_dir=store.paths.run_dir(run_id),
+                        secrets=session.secrets)
+    except Exception as exc:  # the grader failed; execution did not (C7: still not a guess)
+        verdict = Verdict(
+            run_id=run_id, case_id=result.case_id, result=Result.INCONCLUSIVE,
+            scoreboard="not judged: the grader failed after execution completed",
+            grader_provider="rule", note=f"{type(exc).__name__}: {exc}",
+        )
     return result, verdict
 
 

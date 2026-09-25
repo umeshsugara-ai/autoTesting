@@ -57,6 +57,10 @@ class SessionState:
     secret_locators: list[str] = field(default_factory=list)
     hitl: HitlRequest | None = None
     screenshots: int = 0
+    evidence_prefix: str = ""
+    """AT-572: a per-case subdirectory name under `run_dir`, set by T-173's
+    parallel fan-out so sibling sessions sharing one `run_dir` never collide
+    on the same step number; empty (default) leaves the serial path unchanged."""
 
 
 def check_destination(project: Project, url: str) -> str:
@@ -203,16 +207,12 @@ class BrowserSession:
         return self._record(EvidenceKind.DOM, f"uploaded to {locator}", step_order=step_order)
 
     def settle(self, expected: ExpectedState | None = None, timeout_ms: int = 8000) -> None:
-        """Best-effort wait for an async page transition to finish before
-        evidence is captured. Bounded, never raises (AT-045: the grader used
-        to see evidence of a click but never of what it caused; history in
-        execute.md's amendment log). When the step declares what it expects
-        (`expected.url`/`visible_text` — `schema/flowspec.py::ExpectedState`),
-        poll for that literal signal instead of the generic network-idle
-        proxy (AT-046: an inline "Invalid credentials" message needs no
-        request). Returns the instant the condition is met; falls back to
-        network-idle+grace when nothing is declared (E5 holds either way:
-        purely observation)."""
+        """Best-effort wait for an async page transition (AT-045: the grader
+        used to see a click's evidence but never what it caused). Polls the
+        step's own declared signal (`expected.url`/`visible_text`) when
+        present instead of generic network-idle (AT-046: an inline error
+        needs no request); falls back to network-idle+grace otherwise. E5
+        holds either way -- purely observation, bounded, never raises."""
         if expected and (expected.url or expected.visible_text):
             self._poll_for_expected(expected, timeout_ms)
             return
@@ -242,16 +242,13 @@ class BrowserSession:
 
     def assert_expected(self, expected: ExpectedState, *,
                         timeout_ms: int = 8000, step_order: int | None = None) -> list:
-        """D-032/AT-540: evaluate a declared expectation and RECORD the result.
-
-        Deterministic fields only (`url`/`visible_text`/`absent_text`/
-        `dom_asserts`/`network`, T-170); `visual_signal` remains the judge's
-        (execute.md E1's no-fire line). Polls to `timeout_ms`,
-        records one `assert <field>: met|unmet` DOM/NETWORK evidence item per
-        evaluated field, raises nothing — the caller decides the
-        observation-level consequence. C7 holds: facts recorded, the grader
-        still owns the verdict. Implementation: `browser/assertions.py` (the
-        line-cap split); this is the session's door to it."""
+        """D-032/AT-540: evaluate a declared expectation and RECORD the
+        result -- deterministic fields only (`url`/`visible_text`/
+        `absent_text`/`dom_asserts`/`network`, T-170; `visual_signal` stays
+        the judge's). Polls to `timeout_ms`, records one `assert <field>:
+        met|unmet` evidence item per field, raises nothing (C7: facts
+        recorded, the grader still owns the verdict). Delegates to
+        `browser/assertions.py` (the line-cap split)."""
         return assertions.assert_expected(self, expected, timeout_ms=timeout_ms,
                                           step_order=step_order)
 
@@ -271,11 +268,15 @@ class BrowserSession:
         Xvfb, `Page.screenshot` intermittently raises a transient CDP
         compositor race right after a DOM update — one retry after a short
         wait resolves it; a second consecutive failure is real and
-        propagates (full history: execute.md's amendment log)."""
+        propagates (full history: execute.md's amendment log). AT-572: nests
+        under `evidence_prefix` when set, so parallel siblings never collide."""
         self.page.add_style_tag(content=MASK_CSS)
         self.state.screenshots += 1
         name = f"{self.state.screenshots:02d}-{label}.png"
-        path = str(self.state.run_dir / name)
+        rel = f"{self.state.evidence_prefix}/{name}" if self.state.evidence_prefix else name
+        full = self.state.run_dir / rel
+        full.parent.mkdir(parents=True, exist_ok=True)
+        path = str(full)
         try:
             self.page.screenshot(path=path, full_page=False)
         except Exception as exc:
@@ -283,7 +284,7 @@ class BrowserSession:
                 raise
             self.page.wait_for_timeout(250)
             self.page.screenshot(path=path, full_page=False)
-        return self._record(EvidenceKind.SCREENSHOT, name, step_order=step_order, label=label)
+        return self._record(EvidenceKind.SCREENSHOT, rel, step_order=step_order, label=label)
 
     def request_human(self, prompt: str) -> HitlRequest:
         """Pause for OTP/2FA (B8). The executor turns this into `blocked_hitl`."""

@@ -5,15 +5,22 @@ AT-564's happy-path wiring) to keep each file under doctor's 300-line cap.
 
 `_run_cases_in_parallel` used to index its verdict-capture dict blindly
 (`verdicts[result.case_id]`), but a verdict is only ever captured when
-`run_and_grade_case` runs to completion inside `_run_and_grade`. Two things
-can stop that from happening for one case out of N without stopping the
-others (PR6's whole point): the case's own `session_factory` call can raise
-(the AT-565 shape, now caught INSIDE `run_cases`), or `run_and_grade_case`
-itself can raise (e.g. a grader/provider error — it catches nothing). Either
-way, `run_cases` still reports that case as its own ERRORED `RawResult`
-(PR6), but the route's blind dict index then raised `KeyError`, which lost
-every later case's save and the `Run` itself, and 500'd the whole request.
-Contract: qa/contracts/parallel-run.md PR6.
+`run_and_grade_case_resilient` (AT-573's own resilient wrapper, cycle 3;
+was `run_and_grade_case` in cycle 2) runs to completion inside
+`_run_and_grade`. Two things can stop that from happening for one case out
+of N without stopping the others (PR6's whole point): the case's own
+`session_factory` call can raise (the AT-565 shape, now caught INSIDE
+`run_cases`), or `run_and_grade_case_resilient` itself can raise
+unexpectedly. Either way, `run_cases` still reports that case as its own
+ERRORED `RawResult` (PR6), but the route's blind dict index then raised
+`KeyError`, which lost every later case's save and the `Run` itself, and
+500'd the whole request. A genuine grader/provider failure AFTER a
+COMPLETED execution is `run_and_grade_case_resilient`'s own concern
+(AT-573, tested in `test_run_case_pipeline.py` and
+`test_ui_runs_parallel_grader_failure.py`) — it no longer reaches this
+fallback at all, since it is caught and turned into an INCONCLUSIVE verdict
+before this file's `_run_and_grade` ever returns. Contract:
+qa/contracts/parallel-run.md PR6.
 """
 
 from __future__ import annotations
@@ -82,7 +89,7 @@ def test_a_session_factory_crash_for_one_case_still_saves_every_case_and_the_run
             return object()
         return factory
 
-    def fake_run_and_grade_case(case_, session, judge_, run_id, store_):
+    def fake_run_and_grade_case_resilient(case_, session, judge_, run_id, store_):
         result = RawResult(case_id=case_.id, outcome=Outcome.COMPLETED)
         verdict = Verdict(run_id=run_id, case_id=case_.id, result=Result.PASS,
                            grader_provider="mock")
@@ -90,7 +97,8 @@ def test_a_session_factory_crash_for_one_case_still_saves_every_case_and_the_run
 
     monkeypatch.setattr(routes_runs_module, "default_session_factory",
                         fake_default_session_factory)
-    monkeypatch.setattr(routes_runs_module, "run_and_grade_case", fake_run_and_grade_case)
+    monkeypatch.setattr(routes_runs_module, "run_and_grade_case_resilient",
+                        fake_run_and_grade_case_resilient)
 
     response = client.post("/projects/demo/run", follow_redirects=False)
 
@@ -115,27 +123,33 @@ def test_a_session_factory_crash_for_one_case_still_saves_every_case_and_the_run
             assert verdicts[case.id].result is Result.PASS
 
 
-def test_run_and_grade_case_raising_for_one_case_still_saves_every_case_and_the_run(
+def test_run_and_grade_case_resilient_itself_raising_still_saves_every_case_and_the_run(
     client, scratch_root, monkeypatch,
 ) -> None:
-    """A different crash site: `run_and_grade_case` itself raises for one
-    case (e.g. a grader/provider error) -- never a `session_factory` crash.
-    Same requirement: every case saved, the Run saved, no 500."""
+    """Defense in depth for the AT-568 fallback: even if the resilient
+    wrapper itself raises unexpectedly for one case (a bug in it, not the
+    grader-after-COMPLETED shape AT-573 already handles inside it) -- never
+    a `session_factory` crash -- every case must still be saved, the Run
+    must be saved, no 500. AT-573's own "grader fails, real result kept"
+    behavior is tested directly in `test_run_case_pipeline.py`
+    (`run_and_grade_case_resilient` unit tests) and
+    `test_ui_runs_parallel_grader_failure.py` (route level)."""
     store, cases = _onboard_with_parallel_cases(client, scratch_root, n=3, max_parallel=2)
     crash_id = cases[2].id
     fake_plan = ParallelPlan(config_ceiling=2, measured_budget=2, n=2, bound_by="config",
                              free_ram_mb=99999.0, cpu_count=8)
     routes_runs_module = _patch_common(monkeypatch, fake_plan)
 
-    def fake_run_and_grade_case(case_, session, judge_, run_id, store_):
+    def fake_run_and_grade_case_resilient(case_, session, judge_, run_id, store_):
         if case_.id == crash_id:
-            raise RuntimeError("boom while grading")
+            raise RuntimeError("boom inside the resilient wrapper itself")
         result = RawResult(case_id=case_.id, outcome=Outcome.COMPLETED)
         verdict = Verdict(run_id=run_id, case_id=case_.id, result=Result.PASS,
                            grader_provider="mock")
         return result, verdict
 
-    monkeypatch.setattr(routes_runs_module, "run_and_grade_case", fake_run_and_grade_case)
+    monkeypatch.setattr(routes_runs_module, "run_and_grade_case_resilient",
+                        fake_run_and_grade_case_resilient)
 
     response = client.post("/projects/demo/run", follow_redirects=False)
 
@@ -153,7 +167,7 @@ def test_run_and_grade_case_raising_for_one_case_still_saves_every_case_and_the_
     assert set(verdicts) == {c.id for c in cases}
 
     assert results[crash_id].outcome is Outcome.ERRORED
-    assert "boom while grading" in (results[crash_id].error or "")
+    assert "boom inside the resilient wrapper itself" in (results[crash_id].error or "")
     # the synthetic grade_errored_result path never calls the judge, so this
     # is graded deterministically -- INCONCLUSIVE, not a guess at PASS/FAIL
     assert verdicts[crash_id].result is Result.INCONCLUSIVE
