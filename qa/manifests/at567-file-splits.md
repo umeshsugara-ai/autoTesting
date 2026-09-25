@@ -197,4 +197,4 @@ the four instructed docstring restorations).
 comparison table above (pre-refactor master `8d75434` vs. this branch), and the 73-file/579-test
 pytest run, both pasted in full above.
 
-Status: ready-for-check
+Status: checked-PASS (qa/verdicts/at567-file-splits.md, Cycle checked: 1, f438243)
