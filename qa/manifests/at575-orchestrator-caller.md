@@ -1,7 +1,7 @@
 # Manifest — at575-orchestrator-caller
 
-**Status:** ready-for-check
-**Fix cycle:** 2 of 3
+**Status:** in-progress (cycle 3 — see the Fix cycle 3 section at the end)
+**Fix cycle:** 3 of 3
 **Dual check:** no
 **Issues addressed:** AT-575
 **Branch:** `wave/at575-orchestrator-caller` (from master `76dfbde`)
@@ -265,3 +265,25 @@ this — confirmed after: `git status --short` empty and `diff` against the thro
 4. `_learn_runners`' `NoEntrySource` path (a not-yet-done INGEST whose teaching Source was removed)
    is implemented and raises cleanly but has no dedicated test this cycle — not part of the checker's
    three required items, flagged rather than silently added scope.
+
+
+## Fix cycle 3 (checker cycle-2 FAIL, qa/verdicts/at575-orchestrator-caller.md @ 08e0eb6)
+
+**Failure quoted:** "tests/test_cli_advice_resolves.py::test_no_advice_site_can_vanish_unnoticed -- `new: [('cli_orchestrate.py', 'ingest register')]`. Your NoEntrySource message '`autotester ingest register` one first' is a new advice site; the AT-210 guard requires registering it in EXPECTED_SITES."
+
+**Fix (6b66de5, maker orchestrator inline — a two-line test-registry change):**
+- tests/test_cli_advice_resolves.py — `("cli_orchestrate.py", "ingest register")` added to EXPECTED_SITES; EXPECTED_SITE_COUNT 17 -> 18. No source file changed this cycle. The advice itself resolves (the parametrized resolve test re-checks every collected site).
+
+**Verify (cycle 3):**
+- `uv run pytest tests/test_cli_advice_resolves.py` -> `27 passed in 9.95s`
+- Full non-browser suite (per the checker's cycle-2 ask), ignoring only the Chromium-launching files (test_browser.py, test_browser_scroll_invariance.py, test_crawl_inventory_live.py, test_explore_live.py, test_explore_login_spa_live.py, test_explore_modal.py, test_explore_typing.py, test_ui_crawl_login.py, test_ui_runs_serial_entry_mix_live.py, test_mutation_check.py, test_mutation_check_judgement.py), run at 0.62 GB free RAM:
+  `1 failed, 1600 passed, 5 skipped, 15 warnings in 158.21s` — the one failure is
+  `tests/test_flake_probe_real_process.py::test_run_once_kills_a_real_hung_process_and_its_real_grandchild` (AT-518, real-process timing).
+  Proven flaky, not this unit: this branch does not touch any flake_probe file (`git diff --name-only 76dfbde HEAD | grep -i flake` -> empty); on master it passed (`2 passed`); on THIS branch, same code, consecutive re-runs gave `1 failed, 1 passed` then `2 passed` at 0.36 GB free.
+- test_cli_advice_resolves.py is now included in the suite above and passes.
+
+**Capability row (cycle 3):** the AT-210 guard itself is the check. Falsifying edit = remove the new EXPECTED_SITES entry -> the cycle-2 run on a81dee1 IS that state: `new: [('cli_orchestrate.py', 'ingest register')]`, `1 failed, 26 passed` (checker-reproduced). With the entry: `27 passed`.
+
+**Live browser:** Not UI-touching this cycle (tests/test_cli_advice_resolves.py only).
+
+## Status: ready-for-check
