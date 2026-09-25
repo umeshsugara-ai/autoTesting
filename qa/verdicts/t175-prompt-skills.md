@@ -184,3 +184,30 @@ referencing them by path.
   cycle if this recurs.
 - **PROPOSED CONTRACT AMENDMENT** (see C8/D-041 JUDGEMENT above) — scope C8's "prompts live in
   `prompts/*.md`" line to name the D-041/T-175 exception for the four migrated prompts. Routine gate.
+
+---
+
+## SUPERVISING CHECKER — PASS accepted · 2026-09-25
+
+Meets the checker bar: all 136 non-browser test files green (1503 passed, 5 skipped, 0 failed),
+SK1–SK4 reproduced 4/4 in a throwaway copy, all four prompts byte-identical to their pre-move
+prompts/*.md at the merge-base (re-derived through `load_skill_prompt`), the loader fails loudly
+(FileNotFoundError / ValueError, no empty-prompt fallback), no UI path changed.
+
+**C8 amendment — deferred, not applied here.** D-041 authorizes the migration itself (point 6:
+"T-175 | prompts become SKILL.md"), but its `Changes-authorized` does not name
+`qa/contracts/core-invariants.md`. Under this repo's Lab Protocol a contract edit needs an
+authorizing DECISIONS entry, so the checker will scope C8's path line via a small routine D-entry
+citing D-041, after this unit merges (master must not describe skills that are not there yet).
+C8's intent — versioned prompt files, never inline strings — is satisfied by the SKILL.md files.
+
+**MERGE HAZARD with t172 (for the merge step, not charged to this unit):** this unit renames
+`PROMPT_NAME` -> `SKILL_NAME` at stages/grade.py:23, expand.py:17, ingest.py:31, while t172 adds
+new `prompt_file=PROMPT_NAME` uses at grade.py:173, expand.py:126, ingest.py:262. Resolving the
+definition conflict by taking this unit's side leaves t172's call sites referencing an undefined
+name -> NameError on every grade/expand/ingest model call. Whichever merges second must convert
+those call sites (and decide that `prompt_file` records the skill id), and its merged-tree verify
+must include the grade/expand/ingest and trace test files.
+
+Finding filed: AT-563 (low) — the manifest's pasted "81 passed" for the pre-existing suites
+reproduces as 65 passed (pasted-output accuracy).
