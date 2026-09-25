@@ -27,4 +27,4 @@
 ## Live browser evidence
 Not UI-touching — only tests/test_score_cli.py changed.
 
-## Status: ready-for-check
+## Status: checked-PASS (qa/verdicts/at580-score-cli-diagnosable.md, Cycle checked: 1, c9ebe24)
