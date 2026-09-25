@@ -37,3 +37,33 @@ EXPLANATION: Everything AT-575 asks for works and is proven through the real CLI
 - Diff scope 76dfbde..26d7d93: 4 files + MAP regeneration, all listed; the only removed line is cli.py's import line (widened).
 
 ## Status: FAIL (cycle 1) — maker fix cycle 2.
+
+---
+
+# Cycle 2 — /checker verdict
+
+**Date:** 2026-09-25 · **Head checked:** a81dee1 (fix e65b8f0, base master 76dfbde) · **Cycle checked: 2** (manifest Fix cycle: 2 of 3)
+
+```
+VERDICT: FAIL
+SCOREBOARD: all cycle-1 findings fixed (C3 duplicate gone; consent skip on exactly "done"; mode from stored RunState; unknown --run-id starts fresh); the full non-browser suite is red on one test this cycle introduced
+FAILURES:
+- [suite / AT-210 advice-site guard] sev: medium · tests/test_cli_advice_resolves.py::test_no_advice_site_can_vanish_unnoticed fails: "advice sites changed. gone: [] new: [('cli_orchestrate.py', 'ingest register')]". Cycle 2's NoEntrySource message ("`autotester ingest register` one first") is a new advice site, and the guard requires every new site to be registered deliberately in EXPECTED_SITES. Reproduced in the bound worktree (1 failed, 26 passed); master 76dfbde is green, so the unit introduced it, and a merge would turn master's suite red. The advice itself is valid: `autotester ingest register` resolves, and the other 26 advice tests, including the resolver checks, pass. · fix: add ('cli_orchestrate.py', 'ingest register') to EXPECTED_SITES in tests/test_cli_advice_resolves.py (the deliberate act the guard asks for), then re-run that file plus every non-browser test file; the targeted 103-test set didn't include this repo-wide guard (the same miss as AT-110 cycle 1). · issue: AT-575 (stays open)
+CAPABILITY-COVERAGE: 3/3 cycle-2 rows reproduced (1, 2, 3), each in its own copy with its OWN uv-synced .venv (the copy imports its own src: verified via autotester.cli_orchestrate.__file__), so the maker's junction concern doesn't apply to these reds; green before, red on the named tests after
+LIVE-BROWSER: not-applicable (changed paths: src/autotester/cli_orchestrate.py and tests; no UI route or template)
+ISSUES-WRITTEN: none
+EXECUTOR: claude-sonnet-subagent (checker: claude-opus-session, checker seat)
+EXPLANATION: The code is right: the one shared consent gate is called, the resume logic keys on the stored state exactly, and the rows prove each piece. The only blocker is the unregistered advice site, a one-line test-data addition. Cycle 3 is the last: register the site and run the whole non-browser suite before the doorbell.
+```
+
+## What I re-ran (cycle 2)
+
+- Duplicate check (AST): no function in cli_orchestrate.py has `_preflight_consent`'s body; it's called via `cli_crawl._preflight_consent`.
+- `ruff` clean · `doctor` clean · `test_cli_orchestrate.py` + `test_cli_orchestrate_resume.py` -> `8 passed` in each copy before mutation.
+- Row 1 (shared preflight call removed): `2 failed` (the fresh explore-refusal test and the failed-DISCOVER resume test, `assert 1 == 2`).
+- Row 2 (`== "done"` -> `!= "pending"`): `test_resume_past_a_failed_discover_still_hits_consent` fails `assert 1 == 2`.
+- Row 3 (mode always from choose_mode): `test_resume_keeps_the_stored_mode…` fails `assert 2 == 0`.
+- Resume MODEL without `source_id`: equivalent. `merge_flowspec` falls back to `incoming.source_ids[0]`, and INGEST's proposal carries `source_ids=[source.id]` (ingest.py:274), used only to attribute conflicts.
+- **Every non-browser test file** (copy, 1h34m under ~0.5 GB free RAM): `2 failed, 1574 passed, 5 skipped`. One is the `.git`-only test; the other is the FAILURE above.
+
+## Status: FAIL (cycle 2) — maker fix cycle 3 (last).
