@@ -195,4 +195,4 @@ poll loop, given the magnitude and persistence of the shortfall.
    directly by design (RU1-RU4's "a CLI script that wants the un-guarded, self-grading path still
    calls `run_and_grade_case` directly" — unaffected by this fix).
 
-## Status: ready-for-check
+## Status: checked-PASS (qa/verdicts/at574-serial-resilience.md, Cycle checked: 1, 3b20159)
