@@ -59,13 +59,11 @@ def _run_and_grade_resilient(
     """Never let one case take the whole run down (AT-574). `run_and_grade_
     case_resilient` already keeps a real COMPLETED result when only grading
     fails after execution (AT-573); this adds the outer guard for an
-    exception in `run_case` itself, or anything else the resilient wrapper
-    doesn't catch -- the same shape `stages/parallel_run.py::_run_one`
-    already applies on the parallel path, expressed here for callers that
-    run one case at a time (the serial loop and the shared dedicated-profile
-    entry-case session) so every case still gets a saved result+verdict
-    through the exact `grade_errored_result` path AT-568 built, and the
-    caller never sees an exception to propagate into a 500."""
+    exception in `run_case` itself -- the same shape `stages/parallel_run.py
+    ::_run_one` already applies on the parallel path, expressed here for
+    callers that run one case at a time, so every case still gets a saved
+    result+verdict through `grade_errored_result` (AT-568), never a bare
+    exception."""
     try:
         return run_and_grade_case_resilient(case, session, judge, run_id, store)
     except Exception as exc:  # AT-574: reported as this case's own ERRORED result
@@ -80,12 +78,16 @@ def _run_entry_case(
     judge: LangChainFallbackProvider, run_id: str, store: ProjectStore,
 ) -> tuple[RawResult, Verdict]:
     """A dedicated, wiped-before-every-run profile so an entry-screen case is
-    always exercised from a genuinely logged-out state -- order-independent
-    (no "run this kind last" ordering hack needed) and cross-run-independent
-    (no stale login survives from a previous run)."""
+    always exercised from a genuinely logged-out state -- order- and
+    cross-run-independent.
+
+    AT-577 cycle 2: shares `run_dir` with the shared session; unprefixed,
+    both number screenshots from 01 and collide. `evidence_prefix = case.id`
+    (AT-572's mechanism) nests this case's files under `run_dir/<case.id>/`."""
     entry_paths = ProjectPaths(f"{slug}-entry-test")
     shutil.rmtree(entry_paths.profile_dir, ignore_errors=True)
     session = BrowserSession(project, secrets, run_dir, entry_paths)
+    session.state.evidence_prefix = case.id
     session.start()
     try:
         return _run_and_grade_resilient(case, session, judge, run_id, store)
@@ -127,25 +129,35 @@ def _run_cases_serially(
     fix, a grader/provider exception, or a `run_case` crash, propagated
     straight out of this loop, 500ing `trigger_run` before the remaining
     cases ran or the `Run` record was saved. Now a crash is reported as that
-    case's own result+verdict and the loop, and the run, continue."""
-    session: BrowserSession | None = None
-    if not all(entry_flags):
-        session = BrowserSession(project, secrets, run_dir, paths)
-        session.start()
+    case's own result+verdict and the loop, and the run, continue.
+
+    AT-576: every entry case runs to completion first -- own dedicated
+    session, started+closed by `_run_entry_case` -- BEFORE the shared
+    session below ever starts (same order `_run_cases_in_parallel` uses).
+    Starting the shared session first and only THEN hitting an entry case
+    used to start a SECOND sync Playwright driver on this thread while the
+    shared one was still live -- 500. Entry cases first, one shared session
+    started once, never nests two."""
+    for case, is_entry in zip(cases, entry_flags, strict=True):
+        if not is_entry:
+            continue
+        result, verdict = _run_entry_case(case, project, secrets, run_dir, slug, judge, run_id,
+                                          store)
+        store.save_result(run_id, result)
+        store.save_verdict(run_id, verdict)
+
+    normal_cases = [c for c, is_entry in zip(cases, entry_flags, strict=True) if not is_entry]
+    if not normal_cases:
+        return
+    session = BrowserSession(project, secrets, run_dir, paths)
+    session.start()
     try:
-        for case, is_entry in zip(cases, entry_flags, strict=True):
-            if is_entry:
-                result, verdict = _run_entry_case(
-                    case, project, secrets, run_dir, slug, judge, run_id, store
-                )
-            else:
-                assert session is not None
-                result, verdict = _run_and_grade_resilient(case, session, judge, run_id, store)
+        for case in normal_cases:
+            result, verdict = _run_and_grade_resilient(case, session, judge, run_id, store)
             store.save_result(run_id, result)
             store.save_verdict(run_id, verdict)
     finally:
-        if session is not None:
-            session.close()
+        session.close()
 
 
 def _run_cases_in_parallel(
@@ -163,9 +175,8 @@ def _run_cases_in_parallel(
     normal_cases = [c for c, is_entry in zip(cases, entry_flags, strict=True) if not is_entry]
 
     for case in entry_cases:
-        result, verdict = _run_entry_case(
-            case, project, secrets, run_dir, slug, judge, run_id, store
-        )
+        result, verdict = _run_entry_case(case, project, secrets, run_dir, slug, judge, run_id,
+                                          store)
         store.save_result(run_id, result)
         store.save_verdict(run_id, verdict)
 
