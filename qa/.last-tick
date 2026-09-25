@@ -43,3 +43,5 @@
 2026-09-25T15:05:18Z ADVANCED · AT-575 flipped by checker; F-056 caveat drop + target M8 committed with snapshot
 2026-09-25T15:11:21Z ADVANCED · F-056 pushed · at579-barrier-overlap built inline, ready-for-check 1318a61, doorbelled; SSE review running · RAM 3.0GB · SERIAL: t179 on RAM; at335/t125 await Umesh
 2026-09-25T15:22:23Z ADVANCED · at579 PASS merged 15c6eb3 locally; push held by doctor gate until checker flips AT-579
+2026-09-25T15:27:32Z ADVANCED · at579 flip pushed · at580-score-cli-diagnosable built inline, ready-for-check 1cd0ba9, doorbelled; SSE review running
+2026-09-25T15:37:11Z ADVANCED · at580 PASS merged 886ecb4 + checker flip 627a1ea
