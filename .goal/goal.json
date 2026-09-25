@@ -4,15 +4,15 @@
   "north_star": "A reusable AI testing platform where an operator submits any project URL, domain-scoped test-account credential references, and optional evals, conditions, use cases, video, audio, documents, text, email or Google Drive sources. AutoTester learns from supplied evidence or logs in and performs bounded breadth-first exploration, preserves a durable Portal Persona, compiles traceable best/worst/edge evals, reruns them after developer releases in a real visible browser, and reports workflow/API regressions through clear HTML, Excel, text and screenshots. First acceptance targets: Vidysea ERP and Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-25T05:47:01",
+  "updated": "2026-09-25T06:02:01",
   "progress": {
     "total": 67,
-    "done": 42,
+    "done": 43,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 25,
+    "pending": 24,
     "current": "T-122",
-    "percent": 63
+    "percent": 64
   },
   "tasks": [
     {
@@ -1153,7 +1153,7 @@
     {
       "id": "T-172",
       "title": "Run trace: redacted trace.jsonl per run (stage + LLM spans: model, tokens, latency, cost, fallback hops, verdict fed) + UI panel (D-041)",
-      "status": "pending",
+      "status": "done",
       "deps": [
         "T-163"
       ],
@@ -1167,7 +1167,8 @@
       "note": "D-041 phase 1; phase 2 = Langfuse self-hosted export when on a server.",
       "attempts": 0,
       "created": "2026-09-24T17:37:32",
-      "user_value": "high"
+      "user_value": "high",
+      "completed": "2026-09-25T06:01:45"
     },
     {
       "id": "T-173",
@@ -1592,9 +1593,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 1.83,
-    "eta_days": 13.7
+    "velocity_per_day": 1.87,
+    "eta_days": 12.8
   },
-  "last_deterministic_tick": "2026-09-25T05:47:01",
+  "last_deterministic_tick": "2026-09-25T06:02:01",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }
