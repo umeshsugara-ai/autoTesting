@@ -161,7 +161,7 @@ fixture-proven only. The ERP trust number is the first time AutoTester is measur
 ## THE PRODUCT VISION (reusable platform) — 🎯 target, mostly unbuilt
 
 ### M8 · Systematic exploration upgrades
-- [x] T-163 resumable learn-or-explore orchestrator + durable per-stage checkpoints (F-045, dual PASS) — ⚠️ no live caller yet: the UI run route builds its own StageContext (trace works) but never calls run_or_resume, so real runs get no checkpoints/resume — AT-575
+- [x] T-163 resumable learn-or-explore orchestrator + durable per-stage checkpoints (F-045, dual PASS) — ✅ live caller `autotester orchestrate` (AT-575, merged ec98b33)
 - [x] T-170 first-party API/network assertions (D-040 split from T-165) — F-047, checker PASS, merged 1fc7276
 - [ ] T-165 hybrid BFS→bounded-DFS traversal + frontier completeness + form-input replay + persona-seeded
       incremental crawl + change tracking (D-040; contract `crawl-traversal.md` DRAFT; CRITICAL dual-check)

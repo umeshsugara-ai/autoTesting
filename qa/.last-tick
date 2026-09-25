@@ -31,3 +31,13 @@
 2026-09-25T07:41:00Z ADVANCED · at576-577 PASS c2 merged 8e50efc + close-out 8d75434 pushed · dispatched at567-file-splits (helpers/session/routes_runs; explore_node deferred with at335) at RAM 1.28GB — refactor-only override · SERIAL: at575 waits on at567 (routes_runs); at579 barrier fix low; t179 on RAM; at335/t125 await Umesh
 2026-09-25T08:19:32Z ADVANCED · at567-file-splits ready-for-check 689b93a, doorbelled (579 passed on 73 files; monkeypatch retarget to judge)
 2026-09-25T12:17:18Z RESUME · session restart (autotesting-74); checker 9f gone → at567 re-doorbelled to autotesting-62 · RAM 2.81GB · at335/t125 still await Umesh
+2026-09-25T12:21:49Z ADVANCED · at567 PASS merged b0ef27a pushed (doctor-gated, 81 tests) · SERIAL: at575 waits on RAM (3.38GB < 3.5 ceiling, medium — no override); t179 on RAM; at335/t125 await Umesh
+2026-09-25T12:23:02Z ADVANCED · RAM 3.51GB → 1 slot → dispatched at575-orchestrator-caller (checker bar forwarded) · SERIAL: t179 on RAM; at335/t125 await Umesh
+2026-09-25T12:38:01Z ADVANCED · at575 ready-for-check 9bfcd8e, doorbelled (flags: in-place capability rows again; suite pending via builder monitor)
+2026-09-25T12:47:53Z FAIL(c1) · at575: duplicated D-018 consent gate (C3) → c2 with resume-consent-scope + stored-mode fixes; in-place falsification now a hard rule in briefs
+2026-09-25T13:08:28Z ADVANCED · at575 c2 ready-for-check a81dee1, doorbelled (throwaway-copy rows; venv junction to verify)
+2026-09-25T14:43:04Z WAITING · at575 c2 with checker (autotesting-62 busy) · RAM 0.51GB → 0 slots · at335/t125 await Umesh
+2026-09-25T14:55:21Z ADVANCED · at575 c3 (final) ready-for-check d8f202c, doorbelled (full non-browser suite run: 1600 passed, 1 flaky AT-518 proven on same code)
+2026-09-25T14:56:07Z WAITING · at575 c3 doorbelled, no c3 verdict yet · RAM 0.54GB → 0 slots · at335/t125 await Umesh
+2026-09-25T15:04:36Z ADVANCED · at575 PASS c3, merged ec98b33, pushed (doctor-gated, 141 tests) · next: F-053 caveat drop after checker flips AT-575
+2026-09-25T15:05:18Z ADVANCED · AT-575 flipped by checker; F-056 caveat drop + target M8 committed with snapshot
