@@ -33,3 +33,37 @@ EXPLANATION: The wiring itself is right — the serial path is preserved exactly
 - Read master's trigger_run, Project.max_parallel (default 1), plan_parallel_run (ALLOW_WRITES -> 1), Provider.record (no lock), run_and_grade_case (no exception handling), cli_video.py `run` (video ingest).
 
 ## Status: FAIL (cycle 1) — maker fix cycle 2.
+
+---
+
+# Cycle 2 — /checker verdict
+
+**Date:** 2026-09-25 · **Head checked:** dd442eb (fix 64fdf58, master merge 1bb436a) · **Cycle checked: 2** (manifest Fix cycle: 2 of 3) · **Issues addressed (claimed):** AT-562, AT-564, AT-565, AT-568, AT-569
+
+```
+VERDICT: FAIL
+SCOREBOARD: PR 6/7 (PR2 evidence isolation broken on the live path), RT 7/7; core invariants hold
+FAILURES:
+- [PR2 / live path] sev: high · the parallel route's sessions (stages/parallel_run.py::default_session_factory) all write evidence into the SAME run_dir and each restarts browser/session.py's screenshot counter at 01, so sibling cases overwrite each other's screenshots (01-step01-navigate.png) and a case's judge can grade a sibling's screenshot -> silent wrong verdict. Reproduced live (Mode D run: 2 cases reference one file; 4 PNGs for 6 steps) and deterministically (real BrowserSession probe, cases run one after the other: two different pages -> one path). · fix: a per-case evidence namespace in the parallel factory (run_dir/<case_id>/ or a case-id prefix) that the grader + run view resolve; a test driving two cases with different first pages through default_session_factory asserting distinct paths with different bytes; a capability row. · issue: AT-572
+- [PR6 reporting / AT-568 fallback] sev: medium · a grader/provider exception after run_case COMPLETED makes run_cases replace the real RawResult with outcome=errored; grade_errored_result then records "not judged: execution errored" and the run view shows "no screenshots captured" -- the real outcome and step evidence are discarded and the failure is misattributed to execution. · fix: in _run_and_grade, run the case and capture its RawResult first, then grade; on a grader error keep the real RawResult and save an INCONCLUSIVE verdict naming the grader failure. · issue: AT-573
+CAPABILITY-COVERAGE: 3/3 cycle-2 rows reproduced (6, 7, 8), each in its own throwaway copy; green before, red on the named assertion after
+LIVE-BROWSER: qa/evidence/browser-at562-564-live-wiring-2026-09-25-checker/report.json
+ISSUES-WRITTEN: AT-572, AT-573
+EXECUTOR: claude-sonnet-subagent (checker: claude-opus-session, checker seat)
+EXPLANATION: Both cycle-1 failures are genuinely fixed: the route now survives a factory crash and a grader raise (3 results + 3 verdicts + the Run, judge never reached for the ERRORED case), and Provider.record is locked. But the first real parallel run in a browser shows the live path mixes up evidence between concurrent cases -- the same class of gap as AT-565/AT-568 (T-173 code proven only through fakes, broken once wired live). No run should grade on a sibling's screenshot, so this cannot merge.
+```
+
+## What I re-ran (cycle 2)
+
+- **Crash probe, real objects** (`scratchpad/probe_at568_route_c2.py`: real `Case`s, real `ProjectStore` in a temp root, a `MockProvider` judge with NO queued response): factory raises for case 1 -> `results=3 verdicts=3`, bad case `errored` "browser context failed to launch", verdict INCONCLUSIVE by `rule`; `run_and_grade_case` raises for case 1 -> same, "judge provider exploded". The unqueued judge was never reached. (The cycle-1 probe's thin `SimpleNamespace` cases now fail only on `rubric_ref`, a probe artifact, since the fallback goes through the real rubric seam.)
+- **Every non-browser test file** in a throwaway copy of dd442eb with master's fixed ledger overlaid: `1 failed, 1553 passed, 5 skipped`. The one failure, `test_ui_sources.py::test_uploaded_recordings_are_gitignored`, runs `git check-ignore` and the copy has no `.git`; it passes in the worktree (`1 passed`). Net: all green.
+- `ruff check src tests scripts` -> All checks passed · `autotester doctor` (post-merge ledger) -> clean.
+- **Capability rows** (each its own copy, `scratchpad/c2-row{6,7,8}`):
+  - Row 6 (blind index back): `2 passed` -> `2 failed`, `KeyError: 'case_…'` at `routes_runs.py:158`.
+  - Row 7 (lock replaced by `if True:`): `2 passed` -> red 3/3 runs (`assert 50 == 1` / `49 == 1`). Note: only the duplicate-row test fires; the lost-increment test stays green unlocked (GIL) -- the file is still reliably red.
+  - Row 8 (ERRORED forced to COMPLETED before `grade`): `11 passed` -> `2 failed`, `ProviderError: mock provider has no queued response for role=judge`.
+  - Row 9 not re-run (it's covered by pre-existing tests sharing the seam).
+- **Diff scope** 1bb436a..dd442eb: 7 files, all listed in "What changed"; the only removed line in tests is a widened import. No deletions of functions, tests or routes.
+- **Mode D** (real Chromium, branch app, isolated root, fixture on :46671, `max_parallel=2`, declared secret `RD_PASSWORD` filled via `{{SECRET:…}}`, judge swapped in-process for a mock that raises for one case): the run completes (303, no 500), `run.json` `parallel_n=2 parallel_bound_by=config`, 3 results + 3 verdicts, `trace.jsonl` = 2 judge `llm_call` + `execute/done`, the trace card renders, the secret value is in neither the run dir nor the DOM. 1 console error = the deliberate 400 from the unmocked first attempt ("no AI provider is configured"). Findings AT-572 (high) and AT-573 (medium) come from this run.
+
+## Status: FAIL (cycle 2) — maker fix cycle 3 (last).
