@@ -72,3 +72,46 @@ can share them without the layering inversion. Question for the maker, not a fai
 
 Full suite not re-run this cycle: at347's full suite held the RAM (1.2 GB free), and the reproduced FAIL stands
 independently of it. Cycle 3 gets a full run.
+
+---
+
+# Verdict — at597-pin-issue-caller, cycle 3 (last under the cap)
+
+**Date:** 2026-09-26 · **Cycle checked:** 3 · **Checked commit:** bae5d48 (code), 2f5ca34 (manifest) · **Checker:** orchestrator (checker seat), direct re-run
+
+```
+VERDICT: FAIL
+SCOREBOARD: the cycle-2 finding (port colon) is closed for every case it named; cycle 3 introduced one regression in the same function
+FAILURES:
+- [AT-597 / "never a guess"; the documented `action:target[:value[:expect]]` form] sev: medium · The new NAVIGATE branch (`target, value, expect = remainder, None, ""`) swallows a navigate step's EXPECT into its URL. `pin p3 <id> --step navigate:https://x.com/signup::Welcome` exits 0 and stores target 'https://x.com/signup::Welcome' with expected []; `navigate:https://x.com/signup:Welcome` stores 'https://x.com/signup:Welcome'. At cycle 2 (ddb747d) the same input parsed correctly: target 'https://x.com/signup', value None, expect ['Welcome']. A navigate expectation is live behaviour, not an unused field: execute.py:132 settles after NAVIGATE, and E1 evaluates a step's declared expectation post-settle. The help text (cli_issues.py:192) still documents the 4-field form for every action. So the pinned case silently navigates to a wrong path and loses its check. · Parse NAVIGATE's target with the same URL-aware `_take_step_field` (the URL is taken whole, port included), then accept the optional `[:value[:expect]]` tail. Refuse a non-empty value for navigate, and keep the expect. Add tests for `navigate:<ported url>::Welcome` and `navigate:<plain url>::Welcome`, each with a falsification row. · issue: AT-597 (stays open)
+CAPABILITY-COVERAGE: 6/6 cycle-3 rows reproduced via the manifest's 2 edits (own copies, 6/6 green before). Edit A (NAVIGATE -> `remainder.split(":", 1)[0]`) fails rows 1/2/5/6; edit B (drop `(?::\d+)?`) fails rows 3/4.
+LIVE-BROWSER: SKIP (deliberate, not a pass) -- a parser FAIL stands without it, and RAM was 0.36 GB with at596's full suite running. The re-pin 409 page is still owed before any PASS.
+ISSUES-WRITTEN: none (AT-597 stays open)
+EXECUTOR: maker builder (checker: claude-opus session)
+EXPLANATION: The port fix works for every case cycle 2 named: navigate with a port, an https port, a ported fill value, and a ported value plus expect. It holds end to end through the reachable guard. But making NAVIGATE take the whole remainder broke the navigate-with-expect form that cycle 2 handled, and the CLI still exits 0 with a corrupted target. The fix is to reuse the URL-aware field tokenizer for navigate's target.
+```
+
+## Re-run evidence
+
+- Parser probe (worktree, read-only), cycle 3:
+  - `navigate:http://localhost:8069/signup` -> target 'http://localhost:8069/signup' OK.
+  - `navigate:https://app.example.com:8443/login` -> OK.
+  - `fill:#url:https://x.com:8080/a` -> value 'https://x.com:8080/a' OK.
+  - `fill:#url:https://x.com:8080/a:Saved` -> value OK, expect ['Saved'] OK.
+  - `navigate:https://x.com/signup:Welcome` -> target 'https://x.com/signup:Welcome' **(corrupted)**.
+  - `click:#go::Welcome back` -> expect OK.
+- End-to-end CLI probe (scratch AUTOTESTER_ROOT, project allowed_domains ['x.com']):
+  - `navigate:https://x.com/signup::Welcome` -> exit 0; stored ('navigate', 'https://x.com/signup::Welcome', None, []).
+  - `navigate:https://x.com/signup:Welcome` -> exit 0; stored ('navigate', 'https://x.com/signup:Welcome', None, []).
+- Cycle-2 comparison (`git show ddb747d:src/autotester/cli_issues.py`, loaded directly):
+  - `navigate:https://x.com/signup::Welcome` -> target 'https://x.com/signup', value None, expect ['Welcome'].
+- Diff scope (4c): `git diff ddb747d..bae5d48 --stat` touches cli_issues.py (+67/-15) and tests/test_cli_issues.py (+77/-1). The removed source lines are the cycle-2 `_STEP_SPLIT_RE` block and parse lines, which this fix replaces as intended. The one removed test line is the `from autotester.cli_issues import app` import, now widened. `pin_cmd`'s tail moved into `_finish_pin` unchanged, to stay under the 50-line cap.
+- Full suite: not re-run for this cycle (RAM 0.36 GB, at596's full suite in flight). The reproduced FAIL stands without it.
+
+## Non-blocking notes (not failures)
+
+- A bracketed IPv6 host is still split: `fill:#u:http://[::1]:8080/a` -> value 'http://['. `_URL_FIELD_RE`'s host class `[^/:]*` cannot hold `[::1]`. It's a rare input for a repro step, so include it in the fix only if it's cheap.
+- A non-URL value containing `:` still splits, e.g. `fill:#t:10:30 AM` -> value '10', expect ['30 AM']. That is the documented pre-existing behaviour. An escape would make such values expressible.
+- The CLI importing the private `ui.helpers` guards is deferred by the maker's manifest (noted at cycle 2).
+
+**Cycle cap:** this is fix cycle 3 of 3. What happens next (a gated narrow cycle 4, or a HUMAN_GATE) is the maker's protocol decision, as with at347.
