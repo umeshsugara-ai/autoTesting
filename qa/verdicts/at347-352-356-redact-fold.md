@@ -64,3 +64,42 @@ EXPLANATION: Security probes on HEAD 8081c32 (5 secrets × offsets 0-9 × b64/b6
 ```
 
 This is fix cycle 3 of 3. The remaining defect is a one-line test restoration; everything the unit set out to fix now holds. What happens next (a human-approved cycle 4 or a gate) is the maker's protocol decision, per the cycle cap.
+
+---
+
+# Verdict — at347-352-356-redact-fold, cycle 4 (narrow, gate qa/gates/at347-cycle4.md answer A)
+
+**Date:** 2026-09-26 · **Cycle checked:** 4 · **Checked commit:** f7b1eec (code), e99d424 (manifest) · **Checker:** orchestrator (checker seat), direct re-run
+
+```
+VERDICT: PASS
+SCOREBOARD: the single cycle-3 failure is closed; all 3 cycle-2 security findings stay fixed (verified at cycle 3, no src change since)
+FAILURES: none
+CAPABILITY-COVERAGE: 2/2 rows reproduced (own copies, green before, named test red after), plus a cycle-3 control
+LIVE-BROWSER: not-applicable (tests/test_redact_obfuscation.py only)
+ISSUES-WRITTEN: AT-606 (perf, medium), AT-607 (coverage boundary, low) -- both on master b92ff77
+EXECUTOR: maker builder (checker: claude-opus session)
+EXPLANATION: The moved AT-351 test once again compares a real decomposed spelling (`"CAFÉ_QUILT_APIKEY_31"`, an explicit escape that survives NFC-normalising editors) against the precomposed one, and a new `assert decomposed != precomposed` guards against it collapsing again. The diff is 4 added lines and 1 replaced line in one test file, with no source change.
+```
+
+## Re-run evidence
+
+- Bytes checked with `cat -A`: line 55 is the literal backslash escape `́`; line 52 `precomposed` is the UTF-8 `É`.
+- `uv run pytest` (full, no -q): **1768 passed, 6 skipped, 32 xfailed, 0 failed** in 913 s, EXIT 0.
+- `uv run ruff check src tests scripts`: All checks passed.
+- `uv run autotester doctor`: 2 `ledger-row-lost` (AT-598, AT-599), only because this branch's ledger predates master's rows. Both rows exist on master and clear on merge.
+- Diff scope: `git diff a5118c4..e99d424 --stat` touches only the test file (+4 -1) and the manifest. The one replaced line is the vacuous literal itself.
+
+## Capability rows (own copies)
+
+| row | edit | test | before | after |
+|---|---|---|---|---|
+| A | `redact_fold.py:206` `unicodedata.normalize("NFKD", stripped).translate(...)` -> `stripped.translate(...)` | test_fold_credential_keeps_precomposed_and_decomposed_accents_symmetric | 1 passed | FAIL: `assert 'café…quiltapikey31' == 'cafequiltapikey31'` (the fold-equality assert) |
+| A-control | the same edit in a copy of cycle 3 (a5118c4) | same test | 1 passed | **still 1 passed**, proving the cycle-3 test was vacuous and cycle 4 fixes it |
+| B | test line 55 `decomposed = precomposed` | same test | 1 passed | FAIL on the new `assert decomposed != precomposed` |
+
+## Close-out notes
+
+The issues this unit addresses (AT-347, AT-352, AT-356 and the rest named in the manifest) flip to `fixed` only after the
+merge is verified with `git merge-base --is-ancestor`. AT-606 and AT-607 carry the known residuals: the 11.8 s superlinear scan on
+518 KB, and the ≤7-char / 8-char-b32-offset-1 boundary.
