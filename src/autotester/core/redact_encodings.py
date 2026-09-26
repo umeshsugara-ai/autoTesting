@@ -14,7 +14,6 @@ name it needs from here; nothing outside that pair imports this module.
 from __future__ import annotations
 
 import base64
-import functools
 from collections.abc import Callable
 
 
@@ -74,7 +73,6 @@ def _alignment_needles(
     return needles
 
 
-@functools.lru_cache(maxsize=256)
 def declared_secret_encodings(value: str) -> list[str]:
     """Every exact encoded spelling of one declared secret worth searching
     for as a literal substring of raw, unfolded text: base64 (standard and
@@ -110,7 +108,8 @@ def declared_secret_encodings(value: str) -> list[str]:
     spelling gets the SAME adjacency immunity the uppercase one does, not a
     narrower one.
 
-    AT-606: `@lru_cache`d -- pure in `value`; callers only iterate the list.
+    AT-606 cycle 1's `@lru_cache` here was unproven and retained raw secrets
+    in memory, so cycle 2 drops it -- the real speed-up is `_is_ignorable`'s cache.
     """
     raw = value.encode("utf-8")
     needles: list[str] = [

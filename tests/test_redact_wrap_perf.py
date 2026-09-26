@@ -1,11 +1,16 @@
-"""Regression suite for AT-599 (a needle broken across a line) and AT-606
+"""Regression suite for AT-599 (a needle broken by whitespace) and AT-606
 (the folded-secret scan was superlinear) -- both filed against the merged
 at347-352-356-redact-fold work (qa/verdicts/at347-352-356-redact-fold.md).
 
 Split out of test_redact_obfuscation.py, which was already at 290 of its
-300-line C2 cap: these are two new, distinct concerns (line-wrap detection
-and scan performance), not more of that file's obfuscated-spelling coverage.
-Synthetic fake secrets only.
+300-line C2 cap: these are two new, distinct concerns (whitespace-split
+detection and scan performance), not more of that file's obfuscated-spelling
+coverage. Synthetic fake secrets only.
+
+Cycle 2: AT-599's own expected clause names "whitespace inside base64-
+alphabet runs", not only line breaks -- a checker's cycle-1 repro showed a
+space or a newline-plus-indent split both still evaded the line-break-only
+strip. The space/tab/indent tests below close that gap.
 """
 
 from __future__ import annotations
@@ -56,6 +61,48 @@ def test_assert_no_raw_secrets_blocks_mid_token_newline_in_hex() -> None:
         assert_no_raw_secrets(payload, [WRAP_CRED])
 
 
+def test_contains_folded_catches_mid_token_space_in_base64() -> None:
+    # Checker cycle-1 repro: a plain space split still evaded the line-break-
+    # only strip, since a space is neither `\r` nor `\n`.
+    payload = _mid_token_break(base64.b64encode(WRAP_CRED.encode()).decode(), " ")
+    redactor = Redactor({"WRAP": WRAP_CRED})
+    assert redactor.contains_folded(payload)
+
+
+def test_assert_no_raw_secrets_blocks_mid_token_space_in_base64() -> None:
+    payload = _mid_token_break(base64.b64encode(WRAP_CRED.encode()).decode(), " ")
+    with pytest.raises(ValueError, match="raw secret"):
+        assert_no_raw_secrets(payload, [WRAP_CRED])
+
+
+def test_contains_folded_catches_mid_token_tab_in_base64() -> None:
+    payload = _mid_token_break(base64.b64encode(WRAP_CRED.encode()).decode(), "\t")
+    redactor = Redactor({"WRAP": WRAP_CRED})
+    assert redactor.contains_folded(payload)
+
+
+def test_assert_no_raw_secrets_blocks_mid_token_tab_in_base64() -> None:
+    payload = _mid_token_break(base64.b64encode(WRAP_CRED.encode()).decode(), "\t")
+    with pytest.raises(ValueError, match="raw secret"):
+        assert_no_raw_secrets(payload, [WRAP_CRED])
+
+
+def test_contains_folded_catches_newline_plus_indent_in_base64() -> None:
+    # Checker cycle-1 repro: a newline followed by 4-space indentation (an
+    # RFC 5322 folded header, an indented log dump, a YAML/PEM block) still
+    # evaded the line-break-only strip, since the strip removed only the
+    # newline and left the indent spaces splitting the needle in two.
+    payload = _mid_token_break(base64.b64encode(WRAP_CRED.encode()).decode(), "\n    ")
+    redactor = Redactor({"WRAP": WRAP_CRED})
+    assert redactor.contains_folded(payload)
+
+
+def test_assert_no_raw_secrets_blocks_newline_plus_indent_in_base64() -> None:
+    payload = _mid_token_break(base64.b64encode(WRAP_CRED.encode()).decode(), "\n    ")
+    with pytest.raises(ValueError, match="raw secret"):
+        assert_no_raw_secrets(payload, [WRAP_CRED])
+
+
 def test_contains_folded_catches_mime_76_char_wrapped_base64() -> None:
     # `base64.encodebytes` wraps at exactly 76 chars per line with a trailing
     # newline -- real MIME behaviour once the encoded form is longer than one
@@ -90,6 +137,20 @@ def test_line_wrapped_benign_prose_has_no_false_positive() -> None:
     redactor = Redactor({"WRAP": WRAP_CRED})
     assert not redactor.contains_folded(wrapped)
     assert_no_raw_secrets(wrapped, [WRAP_CRED])  # must not raise
+
+
+def test_space_separated_benign_prose_has_no_false_positive() -> None:
+    # The `\s+` widening (cycle 2) collapses every space between ordinary
+    # words too, not only line breaks -- this must not turn plain space-
+    # separated prose into a bypass report.
+    prose = (
+        "Please  double   check the extracted grade level and subject "
+        "before  saving   this record to the student's profile."
+    )
+    assert " " in prose
+    redactor = Redactor({"WRAP": WRAP_CRED})
+    assert not redactor.contains_folded(prose)
+    assert_no_raw_secrets(prose, [WRAP_CRED])  # must not raise
 
 
 def _make_corpus(n: int, seed: int = 4606) -> str:

@@ -31,7 +31,7 @@
 | `core/redact.py` | Secret redaction. Every log line and stored artifact passes through here. |
 | `core/redact_encodings.py` | Exact encoded-spelling search: precompute how a declared secret would look |
 | `core/redact_fold.py` | Credential folding: normalise a string so a case, punctuation, homoglyph, |
-| `core/redact_wrap.py` | Line-wrap normalisation for the exact-encoding needle search. |
+| `core/redact_wrap.py` | Whitespace normalisation for the exact-encoding needle search. |
 | `core/trace.py` | The redacted per-run trace: `TraceWriter` appends one JSON line per stage |
 | `core/urls.py` | URL templating: the identity input a crawled screen shares with the |
 | `doctor.py` | Design enforcement. Runs the rules that keep this repo readable. |
