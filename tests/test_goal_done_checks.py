@@ -273,7 +273,6 @@ def test_revised_goal_contract_is_registered() -> None:
         "T-179": (["T-170", "T-172", "T-175"], tests + "test_agent_layer.py"),
         "T-180": (["T-179"], tests + "test_agent_subagents.py"),
         "T-181": (["T-180"], tests + "test_agent_gain.py"),
-        # meeting review 2026-09-26 (D-045): T-182..T-184
         "T-182": ([], tests + "test_viewport_locale_enact.py"),
         "T-183": ([], tests + "test_report_export_reason.py"),
         "T-184": ([], tests + "test_pinned_regression.py"),
