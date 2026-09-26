@@ -25,4 +25,4 @@ Should the maker get a narrow cycle 4 for one CLI parser regression, beyond the 
   - Scope: the parser only. IPv6 `[::1]` stays a filed follow-up.
 - **B — STALL.** Leave the unit unmerged and run the stall diagnosis. The UI pin route, the CLI credential guard and AT-604 all stay off master.
 
-Answered: (pending)
+Answered: 2026-09-26 — A, narrow cycle 4 — Umesh via AskUserQuestion in the maker session. Scope: the navigate branch of `_parse_step` only.
