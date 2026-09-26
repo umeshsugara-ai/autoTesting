@@ -682,3 +682,34 @@ answered).
 **Terminal state: `FINDINGS: 3`** (AT-565 high, AT-566, AT-567; AT-564 extended; T-173 reopened;
 T-126 closed; 8/8 sampled fixed rows verified; bypass CLEAN; HEAD at stamp `8a97eca`-window, commit
 `89f5b3a` + this correction).
+
+
+## Meeting-input refresh — 2026-09-26 (checker goal-coverage review of the 2026-09-25 counselor-tool meeting)
+
+Source: Umesh shared the transcript of the counselor-tool meeting. It asks for exactly AutoTester's job: a tester agent
+separate from the builder, testing "as a tier-2 counselor", happy AND negative paths on every release, a reviewable
+video, "run the 50 cases", and written checklists so a known bug never comes back. The checker mapped each ask against
+the repo with file:line evidence and filed **AT-581..AT-589**. Contracts were tightened by **D-045**: execute.md E6 and
+report-export.md RE6.
+
+### TOP-3 BUILDABLE NEXT UNITS (meeting refresh)
+
+| # | Unit | Why |
+|---|---|---|
+| **1** | **AT-581** — enact VIEWPORT_MOBILE / LOCALE_I18N (per-case viewport/locale), or report not-run | High. These cases pass today at desktop size in the default locale, a false-pass class the north star counts. Closes execute.md E6. |
+| **2** | **AT-582** — show each failure's reason, fix_hint and repro steps in both exports | Medium and cheap. The judge already writes these; the developer report drops them. Closes report-export.md RE6. |
+| **3** | **AT-585** — known bug -> pinned p0 regression case in every release run | High. Answers "why does this bug keep coming back" (e.g. Google sign-in dropping signup data). |
+
+**Extend existing tasks rather than creating new ones:** T-166 += structured scenario variants (AT-586); T-125 += standard
+packs for OAuth sign-up carry-over, month/year pickers and Excel column-mapping upload (AT-588); T-180 += an explicit
+judge vendor with a warning when judge == agent (AT-589).
+
+### HUMAN_GATE (new, open)
+
+| Gate | Blocks |
+|---|---|
+| `meeting-user-persona-ux-judging.md` | AT-583 user personas, AT-584 advisory UX/comprehension judging |
+| `meeting-run-video-scope.md` | AT-587 run video recording (always vs on-FAIL, retention, secret masking) |
+
+**Out of scope for this repo (noted only):** the seminar-capture agent, audio-first counselor UX, and removing the Gemini
+dependency from VTC belong to other Vidysea projects.
