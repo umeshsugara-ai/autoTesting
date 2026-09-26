@@ -637,4 +637,4 @@ free via `Redactor.contains_folded`, without their own files changing).
   shipped — the false-positive check above found no live case, but the checker's own Mode D/live
   probing is a stronger instrument than this manifest's synthetic prose sample.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 4, qa/verdicts/at347-352-356-redact-fold.md c3a2ce1)
