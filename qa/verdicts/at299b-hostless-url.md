@@ -16,3 +16,22 @@ EXPLANATION: The guard correctly stops a hostless path such as 'erp/trainers' lo
 
 Orchestrator re-run in the worktree (`uv run python`): 'file.html' → '/', 'example.com' → '/', 'www.example.com' → '/', 'Sign in page' → '/Sign in page'. Base absolute_url (merge-base) prepended https:// unconditionally, so 'file.html' → '/' is not new, but it is exactly what AT-299b's expected clause asks this unit to stop.
 Subagent evidence: targeted 8 files 76 passed · ruff clean · doctor clean · diff = urls.py, test_urls.py, manifest only.
+
+---
+
+# Verdict — at299b-hostless-url, cycle 2
+
+**Date:** 2026-09-26 · **Cycle checked:** 2 · **Checker:** claude-sonnet-subagent
+
+```
+VERDICT: PASS
+SCOREBOARD: AT-299b met: screen_url_pattern (core/urls.py:109-148) returns None whenever templating gives '/' and the raw string does not explicitly name the root; all 3 producers are wired to it (ingest.py:137, product_map.py:40/59, explore_status.py:52)
+FAILURES: none
+CAPABILITY-COVERAGE: 3/3 rows reproduced in separate copies: dropping the None guard makes 'file.html' give '/' (row 1 red only); dropping the explicit-root branches makes 'example.com/' give None (row 2 red only); dropping the templated != '/' early return makes 'erp/trainers' give '/' (row 3 red only)
+LIVE-BROWSER: not-applicable (core/urls.py, stages/*, tests/test_urls.py; the product-map card was rendered through ui.routes_product_map._screen_card with a None pattern: it shows the em-dash, never 'None')
+ISSUES-WRITTEN: none
+EXECUTOR: maker (checker: claude-sonnet-subagent)
+EXPLANATION: 20-input table: 'file.html', 'sitemap.xml', 'example.com', 'www.x.io', '127.0.0.1', 'localhost:3000' → None; 'example.com/', 'https://x.y', 'localhost:3000/', '/' → '/'; real paths are unchanged. No false root claim remains, and no explicit root is lost. Bare hosts giving None is the ambiguity AT-299b's clause accepts ("'no pattern' is strictly better than a false claim"). Every url_pattern consumer is None-safe (coverage, crawl_coverage, explore_merge, merge_flowspec, explore_status, portal_persona, 3 UI renderers), and a real build_screen_map → UI render path was driven. 4c: cycle 2 changes absolute_url's docstring only (its code is byte-identical to cycle 1). The one master sentence removed ("This is NOT the host-shape guessing…"), removed in cycle 1, became false once the guard began inspecting dots and ports, so its removal is required.
+```
+
+Evidence: worktree targeted 8 files 80 passed · ruff clean · doctor clean · urls.py 148 lines, screen_url_pattern 40, absolute_url 43 · test_urls.py diff is additive only.
