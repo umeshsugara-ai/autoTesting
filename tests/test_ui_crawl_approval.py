@@ -11,6 +11,7 @@ Contract: qa/contracts/ui.md + explore.md (D-018).
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -171,3 +172,43 @@ def test_explore_survives_an_invalid_flowspec_after_the_crawl_finished(
     assert store.load_crawl(crawl_id) is not None
     page = client.get(response.headers["location"])
     assert page.status_code == 200
+
+
+def test_explore_logs_a_redacted_flowspec_read_failure(
+    client: TestClient, scratch_root: Path, monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """AT-593: `_queue_coverage_gap` used to discard the read failure with no
+    server-side trace at all. A broken flowspec.json can echo an
+    operator-pasted secret via pydantic's own `input_value=...`, so the
+    logged line must both exist and be scrubbed -- and the route's AT-477
+    behaviour (redirect, crawl kept) must not change."""
+    store = make_project(scratch_root)
+    (scratch_root / ".env").write_text("DEMO_PASSWORD=hunter2\n", encoding="utf-8")
+    store.paths.flowspec.write_text('{"project": "demo", "screens": "hunter2"}',
+                                    encoding="utf-8")
+
+    class Session:
+        def __init__(self, *_a: object, **_k: object) -> None: pass
+        def __enter__(self) -> Session: return self
+        def __exit__(self, *_a: object) -> None: pass
+
+    def run(_project: object, _session: object, _store: object, **kwargs: object) -> Crawl:
+        crawl = Crawl(project="demo", id=str(kwargs["crawl_id"]))
+        _store.save_crawl(crawl)
+        return crawl
+
+    monkeypatch.setattr("autotester.browser.session.BrowserSession", Session)
+    monkeypatch.setattr("autotester.stages.explore_consent.require_consent",
+                        lambda *_a, **_k: None)
+    monkeypatch.setattr("autotester.stages.explore.run_crawl", run)
+    with caplog.at_level(logging.WARNING, logger="autotester.ui.routes_crawls"):
+        response = client.post("/projects/demo/explore", data={
+            "max_screens": "7", "max_actions": "11", "wall_clock_s": "13", "max_depth": "3",
+        }, follow_redirects=False)
+    assert response.status_code == 303
+    crawl_id = response.headers["location"].rsplit("/", 1)[-1]
+    assert store.load_crawl(crawl_id) is not None
+    assert "coverage gap not queued" in caplog.text
+    assert "hunter2" not in caplog.text
+    assert "[REDACTED]" in caplog.text
