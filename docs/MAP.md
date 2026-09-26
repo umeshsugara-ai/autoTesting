@@ -9,6 +9,7 @@
 | Module | One job |
 |---|---|
 | `browser/assertions.py` | Deterministic assertion evaluation (D-032/AT-540) — split from |
+| `browser/conditions.py` | Enact a case's execution condition, or say why it cannot be (D-045/AT-581, E6). |
 | `browser/db.py` | Read-only backend assertions against MongoDB. Contract: qa/contracts/db-assert.md. |
 | `browser/evidence.py` | Screenshot capture and evidence-recording for `BrowserSession`. |
 | `browser/launch.py` | Playwright launch options for one project's persistent browser context. |

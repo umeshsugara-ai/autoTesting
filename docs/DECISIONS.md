@@ -1024,3 +1024,42 @@ or test change. doctor clean.
 checker). No enforcement path.
 
 **Links:** AT-577; AT-578; qa/verdicts/at576-577-serial-runs.md (cycle 2 PASS); merge 8e50efc.
+
+## D-045 | 2026-09-26 | type: decision | status: ACTIVE
+
+**What:** Add two tightening criteria from the checker's goal-coverage review of the 2026-09-25 counselor-tool meeting.
+(1) qa/contracts/execute.md E6: a case whose class names an execution condition (VIEWPORT_MOBILE, LOCALE_I18N) must
+run under that condition, or be recorded as not run. It must never produce a PASS from a default-condition run.
+(2) qa/contracts/report-export.md RE6: both exports carry, for every failed or inconclusive verdict, each failure's
+criterion, reason and fix_hint, plus the case's own steps as repro, verbatim from the stored artifacts.
+
+**Why:** Both close gaps where AutoTester currently misleads the people it reports to.
+- **AT-581:** mobile and locale cases are generated but run at a hard-coded 1366x850 desktop viewport in the default
+  locale (browser/launch.py:30), so a PASS on them is a false pass. That is exactly the false-positive the north star
+  counts.
+- **AT-582:** the judge already writes a reason and a fix_hint (schema/verdict.py:54-62), but the developer-facing
+  exports drop them. The meeting asked for exactly this: "tell the development team what broke and how to fix it".
+
+Both only add duties (RE1's "verbatim, never recomputed" still holds for the new fields), and neither weakens an
+existing criterion. So this records a tightening, not a new direction. The direction-changing items from the same
+review (user personas plus advisory UX judging; run video) are HUMAN_GATEs for Umesh, not part of this entry.
+
+**Result:** execute.md gains E6 and report-export.md gains RE6, each with one amendment-log row naming the issue that
+tracks the current gap (AT-581, AT-582). No src/ or test change. doctor clean.
+
+**Changes-authorized:** qa/contracts/execute.md (new E6 + one amendment-log row); qa/contracts/report-export.md (new
+RE6 + one amendment-log row); both by the checker. No enforcement path.
+
+**Links:** AT-581; AT-582; AT-583..AT-589 (same review); plan you-are-the-checker-cozy-stardust.md.
+
+## D-046 | 2026-09-26 | type: decision | status: ACTIVE
+
+**What:** Add core-invariants criterion C11: "Every third-party import is a declared dependency". It is checked by the new `autotester doctor` check `check_dependencies_declared` (src/autotester/doctor.py:142).
+
+**Why:** AT-130 showed that `google-genai` (and later `starlette`) were imported directly but resolved only as transitive dependencies of another package. One upstream change would have broken the provider layer with no warning. The at130-genai-dep unit made the rule machine-checked (checker PASS cycle 1, merged 235fdd5), but no contract named it, so a later edit could remove the check without failing any criterion. This is a tightening: it adds a duty and weakens nothing.
+
+**Result:** qa/contracts/core-invariants.md gains C11 plus one amendment-log row. The doctor check's known over-reach, which flags TYPE_CHECKING-only and try/except-ImportError optional imports as hard dependencies, is tracked as AT-590 and named in C11 as a known false-positive class, not a licence.
+
+**Changes-authorized:** qa/contracts/core-invariants.md (new C11 + one amendment-log row), by the checker. No enforcement path.
+
+**Links:** AT-130; AT-590; qa/verdicts/at130-genai-dep.md; merge 235fdd5.

@@ -17,8 +17,9 @@ from openpyxl import Workbook
 
 from autotester.core.excel import autosize_columns
 from autotester.schema.case import Case
-from autotester.schema.enums import EvidenceKind
+from autotester.schema.enums import EvidenceKind, Result
 from autotester.schema.run import Run
+from autotester.schema.verdict import Verdict
 from autotester.store import ProjectStore
 
 _BADGE_COLOR = {
@@ -61,6 +62,31 @@ def _case_lookup(store: ProjectStore) -> dict[str, Case]:
     return {c.id: c for c in store.list_cases()}
 
 
+def _needs_developer_detail(verdict: Verdict | None) -> bool:
+    """RE6 (D-045): a FAIL or INCONCLUSIVE verdict is what a developer must act
+    on -- a PASS gets no failure/repro detail."""
+    return verdict is not None and verdict.result in (Result.FAIL, Result.INCONCLUSIVE)
+
+
+def _failure_rows(verdict: Verdict | None) -> list[tuple[str, str, str | None]]:
+    """Each failure's (criterion_id, reason, fix_hint), verbatim off the
+    stored Verdict -- RE1: nothing recomputed."""
+    if verdict is None:
+        return []
+    return [(f.criterion_id, f.reason, f.fix_hint) for f in verdict.failures]
+
+
+def _repro_steps(case: Case | None) -> list[str]:
+    """The case's own steps, formatted as a plain-text repro recipe."""
+    if case is None:
+        return []
+    return [
+        f"{step.order}. {step.action.value} {step.target}"
+        + (f" = {step.value}" if step.value else "")
+        for step in case.steps
+    ]
+
+
 def export_excel(
     project_slug: str, run_id: str | None, out_path: Path, root: Path | None = None
 ) -> Path:
@@ -74,10 +100,16 @@ def export_excel(
     ws = wb.active
     ws.title = "Run report"
     ws.append(["Case", "Kind", "Class", "Outcome", "Result", "Criteria met",
-               "Duration (s)", "Grader", "Notes"])
+               "Duration (s)", "Grader", "Notes", "Failures", "Repro steps"])
     for result in store.load_results(run_id):
         case = cases.get(result.case_id)
         verdict = verdicts.get(result.case_id)
+        detail = _needs_developer_detail(verdict)
+        failures_text = "\n".join(
+            f"{criterion_id}: {reason}" + (f" (fix: {fix_hint})" if fix_hint else "")
+            for criterion_id, reason, fix_hint in _failure_rows(verdict)
+        ) if detail else ""
+        steps_text = "\n".join(_repro_steps(case)) if detail else ""
         ws.append([
             case.title if case else result.case_id,
             case.kind.value if case else "",
@@ -88,6 +120,8 @@ def export_excel(
             round(result.duration_s, 2),
             verdict.grader_provider if verdict else "",
             (verdict.scoreboard if verdict else "") or (result.error or ""),
+            failures_text,
+            steps_text,
         ])
     autosize_columns(ws)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -135,13 +169,38 @@ def _case_section(store: ProjectStore, run_id: str, case: Case | None, result, v
     scoreboard = escape(verdict.scoreboard) if verdict and verdict.scoreboard else ""
     error = escape(result.error) if result.error else ""
     no_shots = "<p class='meta'>no screenshots captured</p>"
+    detail = _failure_detail_html(verdict, case)
     return (
         f"<section><h2>{title} "
         f"<span class='badge' style='background:{color}'>{badge_text}</span></h2>"
         f"<p class='meta'>{scoreboard}{error}</p>"
+        f"{detail}"
         f"<div class='shots'>{figures or no_shots}</div>"
         "</section>"
     )
+
+
+def _failure_detail_html(verdict: Verdict | None, case: Case | None) -> str:
+    """RE6 (D-045): for a FAIL/INCONCLUSIVE verdict, each failure's criterion,
+    reason and fix_hint, plus the case's own steps as the repro -- read
+    straight off the stored Verdict/Case (RE1: nothing recomputed)."""
+    if not _needs_developer_detail(verdict):
+        return ""
+    items = "".join(
+        f"<li><code>{escape(criterion_id)}</code> — {escape(reason)}"
+        + (f" <em>fix: {escape(fix_hint)}</em>" if fix_hint else "") + "</li>"
+        for criterion_id, reason, fix_hint in _failure_rows(verdict)
+    )
+    failures_html = f"<h3>Failures</h3><ul>{items}</ul>" if items else ""
+    steps = _repro_steps(case)
+    steps_html = (
+        "<h3>Repro steps</h3><ol>"
+        + "".join(f"<li>{escape(step)}</li>" for step in steps)
+        + "</ol>"
+    ) if steps else ""
+    if not failures_html and not steps_html:
+        return ""
+    return f"<div class='detail'>{failures_html}{steps_html}</div>"
 
 
 def export_html(
@@ -166,6 +225,8 @@ def export_html(
         "section{border:1px solid #e2e5ea;border-radius:10px;padding:1.2rem 1.4rem;"
         "margin-bottom:1.2rem}"
         ".badge{color:#fff;padding:.15rem .6rem;border-radius:999px;font-size:.75rem}"
+        ".detail{margin-top:.6rem}.detail h3{font-size:.85rem;margin:.6rem 0 .2rem}"
+        ".detail li{font-size:.85rem;margin-bottom:.2rem}"
         ".shots{display:flex;flex-wrap:wrap;gap:1rem;margin-top:.8rem}"
         "figure{margin:0;max-width:320px}img{max-width:100%;border:1px solid #e2e5ea;"
         "border-radius:6px}figcaption{font-size:.75rem;color:#667085;margin-top:.3rem}"

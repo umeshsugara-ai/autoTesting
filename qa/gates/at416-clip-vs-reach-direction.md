@@ -94,3 +94,12 @@ Reply with `A`, `B` or `C` (or your own direction). I will append
 `Answered: <ISO date> — <choice> — <where>` to this file before acting on it.
 
 Answered: (pending)
+
+## Update 2026-09-25 (maker): an option-B candidate exists, and it is HELD
+
+The maker dispatched a build that implemented **option B** (`wave/at408-416-scroll-reach`, 553e8fa code, 7bf23dc manifest) **before this gate was answered**. That was a maker error: the brief followed the issue's "expected" text and did not check for this gate.
+
+- **What the candidate does:** `reachOf`/`isReachable` carry an `innerClip` (tested against the glyph's rect) and an `outerClip` (tested against the innermost scroller's box). The code moves to `browser/visual_order_reach.js`.
+- **What is NOT proven:** it has **not** run against real Chromium. RAM stayed below 1.5 GB for the whole build window. Only a static harness (7/7 on the checker's recorded P1/P2/P6/P7 geometries) and the non-browser suite (1591 passed) back it.
+- **Status:** the branch is held. It is not merged and not submitted as PASS-able. It becomes a checkable unit only if Umesh answers **B**. If he answers **A**, it is discarded and option A is built fresh.
+- **Why it can help the decision:** the 50-shape scroll-invariance corpus, run on this branch once RAM allows, would give the "decide on data" measurement this gate asks for.
