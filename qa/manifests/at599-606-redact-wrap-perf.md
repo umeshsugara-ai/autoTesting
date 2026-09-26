@@ -292,4 +292,4 @@ Not UI-touching. Changed paths: `src/autotester/core/redact_wrap.py` (new),
   the cycle-1 verdict's own note ("inherent / not claimed") — inherent to a single-call,
   declared-encoding search and not claimed by either AT-599 or AT-606; out of scope for this unit.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 2, qa/verdicts/at599-606-redact-wrap-perf.md 969de22)
