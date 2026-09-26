@@ -1063,3 +1063,25 @@ RE6 + one amendment-log row); both by the checker. No enforcement path.
 **Changes-authorized:** qa/contracts/core-invariants.md (new C11 + one amendment-log row), by the checker. No enforcement path.
 
 **Links:** AT-130; AT-590; qa/verdicts/at130-genai-dep.md; merge 235fdd5.
+
+## D-047 | 2026-09-26 | type: decision | status: ACTIVE
+
+**What:** The checker authors qa/contracts/loop-status.md. It gives `autotester loop-status` its first contract, codifying four behaviours:
+- LS1: what `--strict` exits non-zero for.
+- LS2: every structured anomaly is rendered.
+- LS3: write-order corruption is report-only.
+- LS4: loop-status stays out of doctor.
+
+LS3 records Umesh's answer to qa/gates/at610-strict-out-of-order.md: "A, keep report-only", 2026-09-26, recorded in 7fce333.
+
+**Why:** Three units (at399, at424, at592) were judged against no contract that names loop-status. The at592 manifest says so and asks the checker to decide whether a contract is warranted. It is, because each of those units pinned an exit-code or rendering rule that a later unit could silently undo.
+
+The at610 answer is the fourth rule. `out_of_order` is counted over file order, but liveness is judged from the sorted credible ticks (loop_status.py:245 vs :251), so write-order corruption never hides an outage. Gating `--strict` on it would add a false alarm, for example two sessions with skewed clocks, and no safety.
+
+LS1, LS2 and LS4 describe behaviour already shipped and tested (tests/test_loop_status_integrity.py), so they add no new duty. LS3 pins a behaviour the code already has; the maker's unit at610-strict-out-of-order-pin adds the test. None of this weakens an existing criterion.
+
+**Result:** New file qa/contracts/loop-status.md, ACTIVE, with an init amendment-log row. No src/ or test change by the checker. AT-610 closes when the pinning unit passes and merges.
+
+**Changes-authorized:** qa/contracts/loop-status.md (new contract, authored by the checker). No enforcement path.
+
+**Links:** AT-610; AT-592; AT-424; AT-399; AT-368; qa/gates/at610-strict-out-of-order.md; 7fce333; unit at610-strict-out-of-order-pin.
