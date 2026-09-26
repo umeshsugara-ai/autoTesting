@@ -105,6 +105,51 @@ def apply_map(docs: RepoDocs) -> str:
     return text
 
 
+# -- optional-import detection ------------------------------------------------
+# Lives here, not in doctor.py, purely for C2's 300-line cap (doctor.py was already
+# at 269/300 -- AT-590's fix would not fit). Consumed by doctor's
+# check_dependencies_declared, the same lazy-import pattern this module already
+# serves for check_generated_fresh/check_architecture_budget/check_docs_routed.
+
+_SOFT_EXCEPT_NAMES = {"ImportError", "ModuleNotFoundError"}
+
+
+def soft_import_ids(tree: ast.AST) -> set[int]:
+    """id() of every Import/ImportFrom nested inside `if TYPE_CHECKING:` /
+    `if typing.TYPE_CHECKING:`, or inside a try whose handlers name ONLY
+    ImportError/ModuleNotFoundError (AT-590 -- `except Exception` or a bare `except:`
+    stays hard, since neither proves the failure was a missing package). Each guard's
+    own body is walked in isolation, so an `if`'s `else` and any statement after the
+    `try` stay hard; anything inside the guard is soft however deeply nested."""
+    def is_type_checking(test: ast.expr) -> bool:
+        return (isinstance(test, ast.Name) and test.id == "TYPE_CHECKING") or (
+            isinstance(test, ast.Attribute) and test.attr == "TYPE_CHECKING")
+
+    def except_names(expr: ast.expr) -> set[str | None]:
+        if isinstance(expr, ast.Tuple):
+            return {n for e in expr.elts for n in except_names(e)}
+        return {expr.id if isinstance(expr, ast.Name) else getattr(expr, "attr", None)}
+
+    def try_is_soft(node: ast.Try) -> bool:
+        return bool(node.handlers) and all(
+            h.type is not None and except_names(h.type) <= _SOFT_EXCEPT_NAMES
+            for h in node.handlers)
+
+    def guarded_body(node: ast.AST) -> list[ast.stmt]:
+        if isinstance(node, ast.If) and is_type_checking(node.test):
+            return node.body
+        if isinstance(node, ast.Try) and try_is_soft(node):
+            return node.body
+        return []
+
+    soft: set[int] = set()
+    for node in ast.walk(tree):
+        for stmt in guarded_body(node):
+            soft.update(id(sub) for sub in ast.walk(stmt)
+                       if isinstance(sub, (ast.Import, ast.ImportFrom)))
+    return soft
+
+
 # -- decisions index --------------------------------------------------------
 
 def decision_index(decisions_path: Path) -> list[tuple[str, str, str, str]]:
