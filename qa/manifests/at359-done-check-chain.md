@@ -64,4 +64,4 @@ Pure predicate logic in a test-support module; no UI, no browser surface.
 - No live `;`-chain, mixed `;`+`&&` shape, or `exit` token exists in `.goal/goal.json` today, so the stricter `;` direction and the cycle-2 exit-truncation direction of this fix are verified only against the shape tests, not against a real on-disk task. If one is ever added, `offenders_in` (already asserted by `test_no_pending_task_has_a_done_check_that_cannot_fail`) will catch a wrongly-accepted one automatically.
 - This heuristic still does not model a *bare* `exit` with no argument (uses the prior command's `$?` in real bash) any differently from `exit N` — both are treated identically as unconditional terminators. Not raised by the checker and no on-disk case exercises it; noted as a known simplification, not a new gap this cycle introduced.
 
-Status: ready-for-check
+Status: checked-PASS (cycle 2, 48f89e8)
