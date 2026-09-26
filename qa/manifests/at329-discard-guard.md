@@ -86,4 +86,4 @@ LIVE-BROWSER: not-applicable — pure-function guard on a `Path`, no UI surface.
   entries and a recorded KILLED result from a prior run (see above), and this unit's
   independent reproduction confirms they still hold at `bb4be39`.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, 8104397)
