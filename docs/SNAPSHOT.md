@@ -37,8 +37,8 @@ AutoTester wins on bugs found, false positives, and time (`schema/bench.py` comp
 - T-125 [high] Test catalog: which case classes apply, which are runnable, which are blocked and why (+ cheap->expensive ordering)
 - T-150 [normal] Track C governance: register C tasks, file ai-target.md and adversarial.md criteria for the checker
 ## Last decisions (computed status)
-- D-042 2026-09-24 decision ACTIVE
 - D-043 2026-09-25 decision ACTIVE
 - D-044 2026-09-25 decision ACTIVE
 - D-045 2026-09-26 decision ACTIVE
 - D-046 2026-09-26 decision ACTIVE
+- D-047 2026-09-26 decision ACTIVE
