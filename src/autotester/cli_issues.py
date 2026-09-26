@@ -137,13 +137,21 @@ def _parse_step(order: int, raw: str) -> Step:
     reproduces the bug, same discipline `pin_issue_as_case` documents for its
     `steps` argument.
 
-    AT-597 cycle 3: NAVIGATE takes the WHOLE remainder as its target with no
-    further split at all -- navigate has no value or expect (T-184's own
-    `Step` shape leaves them unused for it), so there is nothing left for a
-    URL's own colons to be mistaken for. Every other action tokenizes field
-    by field via `_split_step_fields`, which keeps a `scheme://host[:port]/
-    path` field whole no matter which field position it lands in (a fill's
-    value, say).
+    AT-597 cycle 4: every action, NAVIGATE included, tokenizes the remainder
+    the same way, field by field via `_split_step_fields` -- which keeps a
+    `scheme://host[:port]/path` field whole (via `_take_step_field`'s
+    `_URL_FIELD_RE` match) no matter which field position it lands in, so a
+    navigate target's own port survives exactly like a fill's URL value does.
+    Cycle 3 gave NAVIGATE the whole remainder as its target with no split at
+    all, on the reasoning that navigate has no value -- but a navigate DOES
+    have a live `expect` (T-184's `Step.expected`, settled and checked post-
+    navigate by `execute.py`, E1), and that bypass swallowed a trailing
+    `::expect` into the URL instead (cycle 3's checker FAIL, 1133e8b).
+    NAVIGATE now takes the same `[target[:value[:expect]]]` tail as every
+    other action, but refuses a non-empty value -- a navigate step has
+    nowhere to put one -- so `navigate:<url>::<expect>` keeps the expect and
+    `navigate:<url>:<anything>:<expect>` is refused with a clear error
+    instead of silently corrupting the target.
     """
     action_raw, sep, remainder = raw.partition(":")
     if not sep:
@@ -156,13 +164,17 @@ def _parse_step(order: int, raw: str) -> Step:
         known = ", ".join(a.value for a in Action)
         raise ValueError(f"--step '{raw}': '{action_raw}' is not one of {known}") from exc
 
+    fields = _split_step_fields(remainder)
+    target = fields[0] if fields else ""
+    value = (fields[1].strip() or None) if len(fields) > 1 else None
+    expect = fields[2].strip() if len(fields) > 2 else ""
+    if action is Action.NAVIGATE and value:
+        raise ValueError(
+            f"--step '{raw}': navigate has no value field -- write "
+            "'navigate:<url>' or 'navigate:<url>::<expect>' for an expect"
+        )
     if action is Action.NAVIGATE:
-        target, value, expect = remainder, None, ""
-    else:
-        fields = _split_step_fields(remainder)
-        target = fields[0] if fields else ""
-        value = (fields[1].strip() or None) if len(fields) > 1 else None
-        expect = fields[2].strip() if len(fields) > 2 else ""
+        value = None
     expected = ExpectedState(visible_text=[expect]) if expect else ExpectedState()
     return Step(order=order, action=action, target=target.strip(), value=value, expected=expected)
 

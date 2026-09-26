@@ -264,3 +264,36 @@ def test_pin_a_local_dev_server_navigate_target_end_to_end(
     assert result.exit_code == 0, result.output
     case = local_store.list_cases()[0]
     assert case.steps[0].target == "http://localhost:8069/signup"
+
+
+# -- AT-597 cycle 4 (narrow, gate qa/gates/at597-cycle4.md, answer A): cycle
+# 3's NAVIGATE bypass took the whole remainder as the target, which silently
+# swallowed a trailing `::expect` into the URL instead of keeping it as the
+# step's expected text. -----------------------------------------------------
+
+def test_parse_step_keeps_a_navigate_ports_target_and_its_expect() -> None:
+    """`navigate:<ported url>::Welcome` must keep BOTH the port (cycle 3's
+    own fix) and the expect (cycle 2 had this; cycle 3 lost it, 1133e8b)."""
+    step = _parse_step(1, "navigate:http://localhost:8069/signup::Welcome")
+
+    assert step.target == "http://localhost:8069/signup"
+    assert step.value is None
+    assert step.expected.visible_text == ["Welcome"]
+
+
+def test_parse_step_keeps_a_navigates_expect_with_no_port_too() -> None:
+    """Same capability as the ported case above, without a port -- the
+    fix must not be a port-only special case."""
+    step = _parse_step(1, "navigate:https://x.com/signup::Welcome")
+
+    assert step.target == "https://x.com/signup"
+    assert step.value is None
+    assert step.expected.visible_text == ["Welcome"]
+
+
+def test_parse_step_refuses_a_navigate_with_a_value_field() -> None:
+    """Navigate has nowhere to put a value -- a single-colon tail after the
+    target (`:junk:Welcome`) must be refused with a clear error rather than
+    silently folded into the target or dropped, the way cycle 3 did."""
+    with pytest.raises(ValueError, match="navigate has no value field"):
+        _parse_step(1, "navigate:https://x.com/a:junk:Welcome")
