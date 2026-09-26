@@ -2,9 +2,158 @@
 
 **Contract:** qa/contracts/core-invariants.md (I7 — `url_template`/`absolute_url` are the ONLY
 place a URL is normalised into a screen-identity path)
-**Fix cycle:** 1 of 3
+**Fix cycle:** 2 of 3
 **Dual check:** no
 **Issues addressed:** AT-299b
+
+## Cycle 2 — fix for verdict `qa/verdicts/at299b-hostless-url.md` (Cycle checked: 1, FAIL)
+
+**Finding:** `url_template(absolute_url(x), keep_host=False)` — the exact composition all three
+producers used — still turned a schemeless, slash-free, dotted/ported token (`file.html`,
+`sitemap.xml`, `report.pdf`, `robots.txt`, `a.b`, `example.com`) into `"/"`: a false claim that the
+site ROOT is covered. `absolute_url`'s cycle-1 fix correctly stopped hostless multi-segment paths
+from losing their first segment, but a bare dotted/ported token with NO path at all is genuinely
+ambiguous by shape (`file.html` vs `example.com` — AT-287's own "indistinguishable" example) and
+that ambiguity was never resolved; it just happened to not affect the cycle-1 test set, which only
+covered dot-free prose (`"Sign in page"`).
+
+**What changed** — added `core/urls.py::screen_url_pattern(raw)` (new, `urls.py:108-149`) as the
+ONE shared boundary between an observed url and a stored `url_pattern`. It still calls
+`url_template(absolute_url(raw), keep_host=False)` internally (so every cycle-1 fix is preserved
+unchanged), but when that result is exactly `"/"`, it now asks whether the raw string actually
+asked for a root:
+
+```python
+    if not raw:
+        return None
+    templated = url_template(absolute_url(raw), keep_host=False)
+    if templated != "/":
+        return templated
+    before_query = raw.split("?", 1)[0]
+    if raw.startswith("/") or "//" in before_query[:8]:
+        return "/"  # already-absolute path, or a genuine scheme/scheme-relative input
+    if "/" in before_query:
+        return "/"  # e.g. "example.com/" -- an explicit trailing slash after the host
+    return None  # a bare token ("file.html", "example.com") -- ambiguous, AT-287/AT-299b
+```
+
+`absolute_url` itself is UNCHANGED — it must keep promoting a bare dotted/ported token to a host
+(stopping that would misfile a real bare host like `example.com` as a path segment,
+`/example.com`, which the checker explicitly warned against). The fix is entirely in what
+`screen_url_pattern` does with a `"/"` result: `None` (I7's already-honest "no pattern is
+knowable" outcome) unless the raw string itself was unambiguous about wanting the root — `raw ==
+"/"`, a real scheme/scheme-relative input (`absolute_url` left those untouched precisely because
+they already had one), or an explicit trailing slash after the promoted host (`"example.com/"`).
+
+**Wired all three producers onto the one function**, replacing each one's own
+`url_template(absolute_url(x), keep_host=False)` composition:
+
+- `src/autotester/stages/ingest.py:137` — `Screen.url_pattern=screen_url_pattern(observed.url)`
+- `src/autotester/stages/product_map.py:40` (`_new_screen`) and `:59` (`_fold_screen`) —
+  `MappedScreen.url_pattern` via the same function, both call sites
+- `src/autotester/stages/explore_status.py:52` (`login_template`) — `return
+  screen_url_pattern(step.target)`
+
+**Checked that a None `url_pattern` is already safe downstream** (grep across `stages/`): every
+consumer already guards on truthiness before using `url_pattern` —
+`stages/coverage.py:34,93,125` (`if s.url_pattern`), `stages/explore_merge.py:83,142,150` (`or
+incoming.id`, `if s.url_pattern`), `stages/merge_flowspec.py:62,66,83,96,170` (`if not
+screen.url_pattern`, `if s.url_pattern`). `login_template`'s own caller
+(`explore_status.py::never_left_login:113`) already had `if template is None or not reached:
+return None` before this change (the same `"/"` ambiguity previously bit AT-462 there too, per its
+own docstring). No caller needed an additional change beyond the swap above.
+
+**Docstring correction** (checker's low-severity note): `urls.py`'s `absolute_url` docstring
+claimed `localhost/students` "still reads as a host" as part of the residual-gap list. That was
+wrong — `localhost` alone has neither a dot nor a colon, so the guard leaves the whole string as a
+path (`/localhost/students`), never promoting it. Corrected; the genuine residual gap
+(`v1.2/foo`, `settings.json/edit` — a first segment that ITSELF contains a dot) is unchanged and
+still documented. The same wrong claim also appeared in this manifest's cycle-1 Gaps section
+below and has been left as written there for history — see the note prepended to that bullet.
+
+### Cycle 2 TDD — red first, in a scratch copy
+
+Same rule as cycle 1: the tracked worktree file was never edited to fake red. Copied the
+cycle-1-committed `urls.py` (`git show 5073fe4:src/autotester/core/urls.py`) into the scratch dir
+and ran the checker's exact failing shapes against the literal caller composition:
+
+```
+$ python3 red_check_cycle2.py
+FAIL  'bare filename': caller composition on 'file.html' -> '/' (expected None)
+FAIL  'bare filename 2': caller composition on 'sitemap.xml' -> '/' (expected None)
+FAIL  'bare filename 3': caller composition on 'report.pdf' -> '/' (expected None)
+FAIL  'bare filename 4': caller composition on 'robots.txt' -> '/' (expected None)
+FAIL  'bare short token': caller composition on 'a.b' -> '/' (expected None)
+FAIL  'bare dotted host, no slash': caller composition on 'example.com' -> '/' (expected None)
+PASS  'explicit trailing slash on host': caller composition on 'example.com/' -> '/' (expected '/')
+PASS  'already-absolute root path': caller composition on '/' -> '/' (expected '/')
+PASS  'real scheme, no path': caller composition on 'https://app.test' -> '/' (expected '/')
+
+6 failing / 9 total
+```
+
+Matches the checker's finding exactly (6 false-root cases red, the 3 genuine-root cases already
+correct). After implementing `screen_url_pattern` in the real worktree file, all 18 of the cases
+above plus the cycle-1 shapes pass (verified directly against `src/autotester/core/urls.py`).
+
+### Cycle 2 capability coverage table
+
+| Claim | Falsifying single-hunk edit (scratch-dir mutant only) | Check that goes red |
+|---|---|---|
+| A bare ambiguous token (`file.html`, `example.com`, …) reports `None`, not a false root | Remove the whole ambiguity guard — `screen_url_pattern` just returns the raw `url_template(absolute_url(raw), ...)` composition (`mutant_no_none_guard.py`) | `test_screen_url_pattern_reports_none_for_a_bare_ambiguous_token` |
+| A genuine root (`raw == "/"`, a real scheme, or an explicit trailing slash) still reports `"/"` | Remove both explicit-root branches, so any `"/"` result becomes `None` unconditionally (`mutant_overzealous_none.py`) | `test_screen_url_pattern_keeps_root_when_the_raw_string_actually_said_so` |
+| A real, non-root templated path is untouched by the guard | Drop the `templated != "/"` early return, so every input is re-decided by the ambiguity branches (`mutant_always_ambiguity.py`) | `test_screen_url_pattern_is_unaffected_when_a_real_path_survives` |
+
+```
+$ python3 capability_check_cycle2.py
+Claim: bare ambiguous token -> None (not a false root claim)
+  fixed module -> PASS (expected)
+  mutant mutant_no_none_guard     -> FAIL/red (expected)
+Claim: genuine root (explicit slash / real scheme / absolute path) still kept
+  fixed module -> PASS (expected)
+  mutant mutant_overzealous_none  -> FAIL/red (expected)
+Claim: a real templated path is untouched by the None guard
+  fixed module -> PASS (expected)
+  mutant mutant_always_ambiguity  -> FAIL/red (expected)
+
+ALL CYCLE-2 CAPABILITY ROWS OK
+```
+
+### Cycle 2 verify run (this worktree)
+
+```
+$ uv run pytest tests/test_urls.py tests/test_ingest_persist.py tests/test_product_map.py tests/test_ui_product_map.py tests/test_explore_login_wall.py tests/test_explore_login_wall_bounds.py tests/test_crawl_liveness.py tests/test_crawl_status_surfaces.py
+........................................................................ [ 90%]
+........                                                                 [100%]
+80 passed, 1 warning in 6.45s
+
+$ uv run ruff check src tests scripts
+All checks passed!
+
+$ uv run autotester doctor
+doctor: clean
+```
+
+(`uv run autotester doctor` briefly flagged `function-too-long: absolute_url is 51 lines > 50`
+after the first docstring edit; trimmed the docstring — re-run above is clean.)
+
+Free RAM re-measured before this cycle's run: ~1.32 GB (`FreePhysicalMemory` 1321448 KB) — still
+under the 3.5 GB floor, so the same targeted set as cycle 1 was used, not the full suite.
+
+### Cycle 2 gaps
+
+- Full `uv run pytest` still not run (RAM below 3.5 GB floor both times measured this unit).
+- The `v1.2/foo` / `settings.json/edit` residual gap from cycle 1 is unchanged by this cycle (it
+  isn't a `"/"`-shaped result, so `screen_url_pattern`'s new guard doesn't touch it) — still
+  documented, still not asserted against, still not exercised by any caller per grep.
+- A bare token that is ALSO ambiguous but has no dot/colon at all (pure prose, e.g. `"Sign in
+  page"`) is unaffected by this cycle: it never templates to `"/"` in the first place (it becomes
+  `"/Sign in page"`, a real non-root path), so it was already outside this cycle's fix surface and
+  outside cycle 1's — still the harmless-junk pre-AT-294 behaviour, not a regression target here.
+
+---
+
+## Cycle 1
 
 ## The bug
 
@@ -149,12 +298,15 @@ LIVE-BROWSER: not-applicable (no browser/network code touched — pure string te
   `explore_status` via its login-wall/crawl-status consumers) — 76 tests, all green. Not run:
   test files with no textual reference to these symbols (unlikely to exercise this path, but not
   independently confirmed).
-- **Residual host/path ambiguity**, documented in the new docstring and above: a bare hostname
-  with no dot/port, or a path segment that itself contains a dot, is still misread as a host. No
-  caller currently exercises this shape through `absolute_url` (confirmed by grep across
-  `tests/`), so it is a known limitation rather than a regression, and not asserted against.
+- **Residual host/path ambiguity** — CORRECTED in cycle 2 (see above): this originally also
+  claimed `localhost/students` is misread as a host. It is not — `localhost` alone has no dot or
+  colon, so the guard leaves it as a path. The genuine residual gap is a first segment that itself
+  contains a dot (`v1.2/foo`, `settings.json/edit`), still not exercised by any caller per grep.
 - "Optionally reject an observed url containing whitespace" (issue's suggested extra guard) was
-  NOT implemented — out of scope for the segment-eating bug this unit targets; the prose case is
+  NOT implemented — out of scope for the segment-eating bug this cycle targeted; the prose case is
   already improved (no longer claims root) without it.
+- **What cycle 1 missed, found by the checker**: a bare, slash-free, dotted/ported token
+  (`file.html`, `example.com`) still collapsed to `"/"` through the same caller composition — see
+  the Cycle 2 section above for the fix.
 
 Status: ready-for-check
