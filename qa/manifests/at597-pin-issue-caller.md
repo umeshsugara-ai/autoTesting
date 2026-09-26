@@ -1,9 +1,12 @@
 # Manifest — at597-pin-issue-caller
 
 **Unit:** a human-facing path to pin a confirmed issue as a regression case (AT-597).
-**Fix cycle:** 4 of 3 (narrow, gate-approved)
-**Gate:** `qa/gates/at597-cycle4.md`, answered A (Umesh, 2026-09-26) — a narrow
-cycle 4 scoped to `_parse_step`'s NAVIGATE branch only, beyond the 3-cycle cap.
+**Fix cycle:** 5 of 3 (narrow, gate-approved)
+**Gates:**
+- `qa/gates/at597-cycle4.md`, answered A (Umesh, 2026-09-26) — a narrow
+  cycle 4 scoped to `_parse_step`'s NAVIGATE branch only, beyond the 3-cycle cap.
+- `qa/gates/at597-cycle5.md`, answered A (Umesh, 2026-09-26) — a narrow
+  cycle 5 scoped to one `EXPECTED_SITES` registry line, no src change.
 **Dual check:** no
 **Issues addressed:** AT-597, AT-604
 
@@ -621,5 +624,77 @@ afterward. The worktree itself was never touched by any falsifying edit.
   `fastapi.HTTPException`/private `ui.helpers` guard imports, no browser-
   based Mode D run, full suite not run for RAM reasons in cycles 2-3,
   `qa/issues.jsonl` missing an AT-604 row) all still apply unchanged.
+
+## Fix cycle 5 — register the unlisted advice site (qa/gates/at597-cycle5.md, answer A)
+
+Checker's cycle-4 verdict (`qa/verdicts/at597-pin-issue-caller.md`, commit
+`2e57296`): every claimed behaviour passed, including a live Mode D browser
+run on master (pin -> 303 with the expect stored, delete-a-pinned-case ->
+409, identical re-pin -> 400, different-steps re-pin -> 409, CLI exits 0/2
+correctly) — but the full suite (only cycles 1-3 ran it; cycles 1-4 of this
+unit ran the targeted set) turned up one red:
+`tests/test_cli_advice_resolves.py::test_no_advice_site_can_vanish_
+unnoticed` -> `new: [('cli_issues.py', 'issues list')]`. The advice at
+`cli_issues.py:223` ("no issue '{issue_id}' -- try `autotester issues list
+{project}`.") was added in cycle 1 (`0323329`) but never registered in the
+AT-210 guard's `EXPECTED_SITES`. This is a second narrow, gate-approved
+cycle (`qa/gates/at597-cycle5.md`, answer A): one `EXPECTED_SITES` line, no
+src change, following the exact pattern at575 used in `6b66de5`.
+
+### What changed
+
+- `tests/test_cli_advice_resolves.py`: added `("cli_issues.py", "issues
+  list")` to `EXPECTED_SITES` (:159) and bumped `EXPECTED_SITE_COUNT` (:191)
+  from 18 to 19 — the same two-line pattern at575's `6b66de5` used for its
+  own newly-added advice site. No source file touched this cycle.
+
+### Explicitly NOT built (cycle 5)
+
+- No change to `src/` — the gate's scope is the test registry only; the
+  advice string itself was already correct and already resolves to a real
+  command (`test_every_command_the_code_names_is_one_the_cli_exposes`
+  already covered it and passed every prior cycle).
+
+### How to verify (commands + expected)
+
+```
+uv run pytest tests/test_cli_advice_resolves.py
+uv run pytest tests/test_ui_issues.py tests/test_cli_issues.py tests/test_pinned_regression.py tests/test_ui_case_management.py tests/test_ui_cases.py tests/test_issues.py tests/test_expand.py tests/test_expand_cli.py tests/test_run_case_pipeline.py tests/test_cli_surface.py tests/test_cli_advice_resolves.py
+uv run ruff check src tests scripts
+uv run autotester doctor
+```
+
+### Actual outputs (cycle 5, in the worktree)
+
+```
+$ uv run pytest tests/test_cli_advice_resolves.py
+............................                                             [100%]
+28 passed in 7.08s
+
+$ uv run pytest tests/test_ui_issues.py tests/test_cli_issues.py tests/test_pinned_regression.py tests/test_ui_case_management.py tests/test_ui_cases.py tests/test_issues.py tests/test_expand.py tests/test_expand_cli.py tests/test_run_case_pipeline.py tests/test_cli_surface.py tests/test_cli_advice_resolves.py
+..........................................                               [100%]
+185 passed, 1 skipped, 1 warning in 10.30s
+
+$ uv run ruff check src tests scripts
+All checks passed!
+
+$ uv run autotester doctor
+ledger-row-lost: qa/manifests/at597-pin-issue-caller.md -- AT-604 is named here but has no row in qa/issues.jsonl
+ledger-row-lost: qa/verdicts/at597-pin-issue-caller.md -- AT-604 is named here but has no row in qa/issues.jsonl
+2 violation(s)
+```
+
+**Both doctor violations are the same pre-existing AT-604 gap** flagged
+since cycle 2 — unchanged, checker-owned, not introduced by this cycle.
+No falsification row is required this cycle: the change is a test-registry
+line with no behaviour of its own to falsify (the fix's own effect is
+already fully demonstrated by the before/after test result: 1 failed, 27
+passed at cycle 4's full-suite run -> 28 passed here).
+
+### Known limits (cycle 5)
+
+No new limits. Cycle 4's known limit (IPv6 bracketed hosts `[::1]` still
+split on their own colons, explicitly out of scope per the cycle-4 gate)
+and every earlier cycle's known limits still apply unchanged.
 
 ## Status: ready-for-check
