@@ -107,6 +107,9 @@ def declared_secret_encodings(value: str) -> list[str]:
     ones (`encoder=lambda b: base64.b32encode(b).lower()`) so a lowercase
     spelling gets the SAME adjacency immunity the uppercase one does, not a
     narrower one.
+
+    AT-606 cycle 1's `@lru_cache` here was unproven and retained raw secrets
+    in memory, so cycle 2 drops it -- the real speed-up is `_is_ignorable`'s cache.
     """
     raw = value.encode("utf-8")
     needles: list[str] = [

@@ -32,7 +32,7 @@ from autotester.schema.enums import CaseClass, CaseKind, IssueOrigin
 from autotester.schema.flowspec import Step
 from autotester.schema.issue import Issue
 from autotester.schema.project import Source
-from autotester.store.project_store import ProjectStore
+from autotester.store.project_store import PinnedCaseError, ProjectStore
 
 ISSUE_COLUMNS = [
     "ID", "Date", "Severity", "Type", "Title", "What is wrong", "How we know",
@@ -143,6 +143,30 @@ def pin_issue_as_case(
         pinned=True,
         pinned_issue_id=issue.id,
     )
+
+
+def refuse_if_issue_already_pinned(store: ProjectStore, issue_id: str, new_case_id: str) -> None:
+    """AT-604: `Case.id` is content-addressed on its steps, so pinning the same
+    issue a second time with DIFFERENT steps would not collide with the first
+    pinned case's id — it would silently create a SECOND protected case for the
+    same finding. Both the UI pin route and `cli issues pin` call this,
+    straight after building the candidate `Case`, so neither surface can do
+    what the other refuses.
+
+    Left to the ordinary duplicate-case guard (`ui/routes_cases.py::
+    _refuse_duplicate`, and the CLI's own `has_case` check) is the case where
+    `new_case_id` already equals the one on file — an identical resubmission,
+    which is a different mistake with its own existing message.
+    """
+    existing = next(
+        (c for c in store.list_cases() if c.pinned_issue_id == issue_id), None
+    )
+    if existing is not None and existing.id != new_case_id:
+        raise PinnedCaseError(
+            f"issue '{issue_id}' is already pinned as case '{existing.id}'. Unpin it "
+            "first if it must be re-pinned with different steps -- pinning again would "
+            "leave two protected cases for the same finding."
+        )
 
 
 def sync_source_issues(
