@@ -1051,3 +1051,15 @@ tracks the current gap (AT-581, AT-582). No src/ or test change. doctor clean.
 RE6 + one amendment-log row); both by the checker. No enforcement path.
 
 **Links:** AT-581; AT-582; AT-583..AT-589 (same review); plan you-are-the-checker-cozy-stardust.md.
+
+## D-046 | 2026-09-26 | type: decision | status: ACTIVE
+
+**What:** Add core-invariants criterion C11: "Every third-party import is a declared dependency". It is checked by the new `autotester doctor` check `check_dependencies_declared` (src/autotester/doctor.py:142).
+
+**Why:** AT-130 showed that `google-genai` (and later `starlette`) were imported directly but resolved only as transitive dependencies of another package. One upstream change would have broken the provider layer with no warning. The at130-genai-dep unit made the rule machine-checked (checker PASS cycle 1, merged 235fdd5), but no contract named it, so a later edit could remove the check without failing any criterion. This is a tightening: it adds a duty and weakens nothing.
+
+**Result:** qa/contracts/core-invariants.md gains C11 plus one amendment-log row. The doctor check's known over-reach, which flags TYPE_CHECKING-only and try/except-ImportError optional imports as hard dependencies, is tracked as AT-590 and named in C11 as a known false-positive class, not a licence.
+
+**Changes-authorized:** qa/contracts/core-invariants.md (new C11 + one amendment-log row), by the checker. No enforcement path.
+
+**Links:** AT-130; AT-590; qa/verdicts/at130-genai-dep.md; merge 235fdd5.
