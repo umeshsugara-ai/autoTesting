@@ -39,6 +39,11 @@ the grader already redacted. This contract adds no new secret-handling path — 
 existing guarantee, and `scripts/check_no_secrets.py` must pass clean on both exported files
 against a project touching real credentials.
 
+
+### RE6 — A failure is actionable for the developer (D-045)
+For every FAIL or INCONCLUSIVE verdict, both exports show each failure's criterion, `reason` and `fix_hint`
+(`schema/verdict.py` Failure), plus the case's own steps as the repro, verbatim from the stored artifacts (RE1
+unchanged: nothing recomputed). (Current gap tracked by AT-582: `stages/report_export.py` shows neither field.)
 ## No-fire list
 
 - Any new run-triggering, grading, or execution logic — this is read-only export over data that
@@ -52,3 +57,6 @@ against a project touching real credentials.
 ## Amendment log (append-only; git history is the version)
 
 - 2026-09-04 · init · contract created for the report-export unit.
+- 2026-09-26 · amendment (authorized by D-045) · **RE6 added** — each failure's reason, fix_hint and repro steps
+  appear in both exports. Tightening only. The current code violates it (AT-582, medium). Source: the checker's review of
+  the 2026-09-25 counselor-tool meeting ("tell the dev team what broke and how to fix it").
