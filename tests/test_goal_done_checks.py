@@ -20,6 +20,7 @@ healthy.
 from __future__ import annotations
 
 import json
+import re
 import shlex
 from pathlib import Path
 
@@ -100,28 +101,41 @@ def _is_task_specific(segment: str) -> bool:
     return False
 
 
+def _is_bare_exit(segment: str) -> bool:
+    """`exit`/`exit N` terminates the shell immediately -- nothing after it,
+    across ANY separator, ever runs (AT-359 cycle 2)."""
+    try:
+        parts = shlex.split(segment)
+    except ValueError:
+        return False
+    return len(parts) in (1, 2) and parts[0] == "exit"
+
+
+def _truncate_after_first_exit(command: str) -> str:
+    """Scan segments left to right across `;`/`&&` and cut after the first
+    bare `exit`: `exit 0 && X` / `exit 0; X` both exit 0 without X ever
+    running -- AT-100's shape wearing `exit` (checker FAIL, cycle 1). A
+    trailing `exit` (e.g. `pytest x.py && exit 0`) is untouched."""
+    parts = re.split(r"(;|&&)", command)
+    for i in range(0, len(parts), 2):
+        if _is_bare_exit(parts[i].strip()):
+            return "".join(parts[:i + 1])
+    return command
+
+
 def is_capable_of_failing(command: str) -> bool:
     """Can this `done_check` distinguish done from not-started?
 
-    `||` disqualifies the whole command anywhere. Past that, `;` and `&&`
-    have different real-shell exit-code semantics and must be scored
-    differently (AT-359): a `;`-joined sequence's exit status is its LAST
-    segment's alone -- earlier segments run but their exit codes are
-    discarded -- so only the final `;`-group has to be capable of failing.
-    A `&&`-joined chain short-circuits on the first failure and propagates
-    THAT segment's exit code, so any segment in the group being
-    task-specific is enough: whatever follows it (even a literal
-    ALWAYS_TRUE `true`/`:`/`exit 0`) never overrides a failure that already
-    happened before the chain reached it.
-
-    AT-161's fix flattened both separators into one split and scored with a
-    single any(), which is why it could only catch the three literal
-    ALWAYS_TRUE tokens and not a `;`-terminated no-op like `echo`/`ls`
-    (AT-359), and why it also over-rejected a task-specific command merely
-    because `&& true` followed it, even though that trailing segment can
-    never mask a failure under real `&&` semantics."""
+    `||` disqualifies the command anywhere; a leading/mid-chain bare `exit`
+    hides everything after it (`_truncate_after_first_exit`). Otherwise `;`
+    and `&&` score differently (AT-359): a `;`-sequence's exit status is its
+    LAST group's alone; a `&&`-chain propagates the FIRST failure, so any
+    task-specific segment in the group is enough regardless of what
+    follows. AT-161's flatten-and-any() missed a `;`-terminated `echo`/`ls`
+    and over-rejected `&& true` chains."""
     if "||" in command:
         return False
+    command = _truncate_after_first_exit(command)
     groups = [g.strip() for g in command.split(";") if g.strip()]
     if not groups:
         return False

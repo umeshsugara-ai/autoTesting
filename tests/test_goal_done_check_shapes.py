@@ -50,6 +50,13 @@ def test_the_guard_recognises_the_shapes_it_exists_to_catch() -> None:
         # equally masks the real segment's exit code.
         "uv run pytest tests/test_x.py; echo done",
         "uv run pytest tests/test_x.py; ls",
+        # AT-359 cycle 2 (checker FAIL) -- `exit` terminates the shell
+        # immediately; a LEADING `exit 0` hides a task-specific segment
+        # behind it just as effectively as `|| true` does, across both
+        # separators. A TRAILING `exit 0` (below, in `accepted`) is fine --
+        # nothing follows it to hide.
+        "exit 0 && uv run pytest tests/test_x.py",
+        "exit 0; uv run pytest tests/test_x.py",
     ]
     for command in rejected:
         assert not is_capable_of_failing(command), f"accepted an unfailable check: {command!r}"
