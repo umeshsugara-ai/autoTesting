@@ -22,3 +22,5 @@ tick exists.
 ## Answer
 
 Append `Answered: <ISO date> — <A|B> — <where>` below BEFORE any unit acts on it.
+
+Answered: 2026-09-26 — A, keep report-only — Umesh via AskUserQuestion in the maker session. Scope: a test pins that --strict exits 0 when out_of_order > 0 and a credible recent tick exists; the checker adds the contract sentence.
