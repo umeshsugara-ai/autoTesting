@@ -131,6 +131,21 @@ def assert_no_raw_secrets(text: str, secrets: Iterable[str]) -> None:
     secret's FOLDED form does not start refusing ordinary text that merely
     contains its letters, while its exact base64/base32/hex encodings still
     get searched for down to a shorter raw-length floor.
+
+    Known encoding-coverage boundary (AT-607, disclosed rather than fixed --
+    tests/test_redact_encoding_coverage.py pins both): a declared secret of
+    7 or fewer raw characters gets NO base64/base32/hex protection at all --
+    `MIN_FOLDED_LEN` (redact_fold.py) gates the exact-encoding search on the
+    RAW value's length, by design (AT-352 cycle 3), not a bug in this gate.
+    Separately, an EXACTLY-8-character secret still misses one specific
+    spelling: base32 at byte-alignment offset 1 (mod 5). At that offset,
+    `redact_encodings._alignment_needles`' padded byte stream splits into
+    exactly two 5-byte groups, and its group-drop is coarse by design (an
+    entire group is discarded once ANY of its bytes are unknown, even though
+    only 1-2 of its 8 characters are actually affected) -- for an 8-byte
+    secret both groups are edges, so both are dropped and no needle survives.
+    Secrets of 9+ raw characters have no known misses (checker probe,
+    qa/verdicts/at347-352-356-redact-fold.md cycle 3, AT-607).
     """
     values = [v for v in secrets if v]
     for value in values:
