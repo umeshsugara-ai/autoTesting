@@ -141,4 +141,4 @@ provider config only).
 `7b42a60` -- fix(gemini): honour temperature on 3.x models, validate
 thinking_level (AT-367, AT-370)
 
-Status: ready-for-check
+Status: checked-PASS (cycle 1, 3be547b)
