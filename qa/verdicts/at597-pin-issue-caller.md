@@ -115,3 +115,66 @@ EXPLANATION: The port fix works for every case cycle 2 named: navigate with a po
 - The CLI importing the private `ui.helpers` guards is deferred by the maker's manifest (noted at cycle 2).
 
 **Cycle cap:** this is fix cycle 3 of 3. What happens next (a gated narrow cycle 4, or a HUMAN_GATE) is the maker's protocol decision, as with at347.
+
+---
+
+# Verdict — at597-pin-issue-caller, cycle 4 (gated extra cycle, qa/gates/at597-cycle4.md answer A)
+
+**Date:** 2026-09-26 · **Cycle checked:** 4 · **Checked commit:** 5cdabc1 (code), 71146ac (manifest) · **Checker:** /checker session (claude-opus), own browser
+
+```
+VERDICT: FAIL
+SCOREBOARD: the cycle-3 navigate-expect regression is closed, and every parser, CLI and UI behaviour holds live; one verify command is red
+FAILURES:
+- [verify: `uv run pytest`] sev: medium · The full suite fails deterministically in the unit's own tree: `tests/test_cli_advice_resolves.py::test_no_advice_site_can_vanish_unnoticed` -> "advice sites changed. gone: [] new: [('cli_issues.py', 'issues list')]" (1 failed, 1793 passed; reproduced alone: 1 failed, 27 passed). The new advice at cli_issues.py:223 ("try `autotester issues list {project}`"), introduced in cycle 1 (0323329), was never registered in the AT-210 guard's EXPECTED_SITES. Cycles 1-3 never ran the full suite, so it went unseen. The sibling test that the advice resolves to a real command passes, so the advice itself is fine. · Add `("cli_issues.py", "issues list")` to EXPECTED_SITES in tests/test_cli_advice_resolves.py, plus any count assertion that goes with it, as at575 did in 6b66de5. List the test file under "What changed". · issue: AT-597 (stays open)
+CAPABILITY-COVERAGE: 2/2 cycle-4 edits reproduced (own copies, 3/3 green before each). Edit A (reinstate the cycle-3 NAVIGATE bypass) turns all 3 new tests red with the named assertions. Edit B (disable only the value guard) turns only `test_parse_step_refuses_a_navigate_with_a_value_field` red ("DID NOT RAISE").
+LIVE-BROWSER: qa/evidence/browser-at597-pin-issue-caller-2026-09-26-checker-c4/ (on master) -- PASS on every step
+ISSUES-WRITTEN: none
+EXECUTOR: maker builder (checker: claude-opus session)
+EXPLANATION: The cycle-4 code is right. Navigate keeps its ported target and its `::expect`, refuses a value, and the live pin/409/400 behaviour holds in a real browser and through the CLI. The FAIL is the unit's own unregistered advice site tripping an existing guard. It is a one-line test-registry fix, but a red suite cannot PASS. Whether it gets another cycle is the maker's gate call, since this was the gated extra cycle.
+```
+
+## What I re-ran
+
+- `uv run pytest` (full, no -q): **1 failed, 1793 passed, 5 skipped, 32 xfailed** in 669 s, exit 1 (failure above). The known flake AT-518 did not fire.
+- `uv run ruff check src tests scripts`: All checks passed.
+- `uv run autotester doctor`: 2 violations, both `ledger-row-lost` for AT-604, because the branch predates master's row; they clear on merge.
+
+## Parser probe (worktree, read-only)
+
+| input | target | value | expect |
+|---|---|---|---|
+| `navigate:https://x.com/signup::Welcome` | https://x.com/signup | None | ['Welcome'] |
+| `navigate:http://localhost:8069/signup::Welcome` | http://localhost:8069/signup | None | ['Welcome'] |
+| `navigate:https://x.com/signup` / `...:` / `...::` | https://x.com/signup | None | [] |
+| `navigate:https://x.com/signup:v:W` | ValueError "navigate has no value field" | | |
+| `fill:#url:https://x.com:8080/a:Saved` | #url | https://x.com:8080/a | ['Saved'] |
+| `click:#go::Welcome back` | #go | None | ['Welcome back'] |
+
+Non-blocking, pre-existing for every action (not charged):
+- `navigate:<url>::a:b` keeps expect 'a' and silently drops ':b' (the literal colon in expect, the known limit).
+- A bare `navigate:` parses to an empty target.
+
+## Diff scope (4c)
+
+`1133e8b..5cdabc1` touches cli_issues.py (+25/-13) and tests/test_cli_issues.py (+33). The only removed code is the cycle-3 NAVIGATE bypass (`target, value, expect = remainder, None, ""` and its else-branch), which the fix replaces. No test was removed.
+
+## Mode D (real visible Chromium, worktree on 127.0.0.1:8094, scratch AUTOTESTER_ROOT, project `demo`)
+
+The manifest's recipe steps 3-7, driven by my own Playwright script (report.json + 6 screenshots):
+
+1. The issues page shows 1 "Pin as regression case" link for the un-pinned issue.
+2. Pin form with navigate `https://demo.test/signup` and expected "Welcome" -> 303 to `/projects/demo/cases`, showing a "pinned regression — ..." title. Stored step: `('navigate','https://demo.test/signup',None,['Welcome'])`.
+3. Issues page afterwards: the pin link is gone and a "pinned" pill shows.
+4. Delete on the pinned case -> **409** "case ... is pinned ... and cannot be pruned"; the case is still listed.
+5. Re-pin with identical steps -> **400** (duplicate case).
+6. Re-pin with different steps (POST) -> **409** "issue ... is already pinned as case ...".
+
+Error bodies render as raw JSON because this branch forked before at596's themed handler merged (55deae4). This is not charged here; it resolves on merge.
+
+Console: exactly 2 Chromium network lines (the 409 and the 400 documents); no page-script errors.
+
+CLI end to end (`.venv/Scripts/autotester.exe issues pin demo <issue_b> ...`), in cli-and-409-probes.txt:
+- `navigate:https://demo.test:443/signup::Welcome` + `click:#yes::Saved` -> exit 0, both stored with their expects.
+- Re-pin -> exit 2 "already pinned".
+- `navigate:<url>:v:X` -> exit 2 "navigate has no value field".
