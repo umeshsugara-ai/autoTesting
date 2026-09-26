@@ -17,7 +17,9 @@ from pathlib import Path
 
 import typer
 
-from autotester.stages.issues import derive_issues, export_issues_excel
+from autotester.schema.enums import Action
+from autotester.schema.flowspec import ExpectedState, Step
+from autotester.stages.issues import derive_issues, export_issues_excel, pin_issue_as_case
 from autotester.store.project_store import ProjectStore
 
 app = typer.Typer(help="Issues derived from a recording — the tester's sheet.")
@@ -71,6 +73,70 @@ def list_issues_cmd(project: str = typer.Argument(..., help="project slug")) -> 
         minutes, seconds = divmod(round(issue.at_s), 60)
         typer.echo(f"  {issue.severity.value}  {minutes:02d}:{seconds:02d}  "
                    f"{issue.recording_label[:28]:28s}  {issue.title[:70]}")
+
+
+def _parse_step(order: int, raw: str) -> Step:
+    """`action:target[:value[:expect]]` — the CLI's compact form of one confirmed
+    repro step. Never a guess: the caller types exactly what they just verified
+    reproduces the bug, same discipline `pin_issue_as_case` documents for its
+    `steps` argument."""
+    parts = raw.split(":", 3)
+    if len(parts) < 2:
+        raise ValueError(
+            f"--step '{raw}' must look like 'action:target[:value[:expect]]'"
+        )
+    action_raw, target, *rest = parts
+    try:
+        action = Action(action_raw)
+    except ValueError as exc:
+        known = ", ".join(a.value for a in Action)
+        raise ValueError(f"--step '{raw}': '{action_raw}' is not one of {known}") from exc
+    value = rest[0].strip() or None if rest else None
+    expect = rest[1].strip() if len(rest) > 1 else ""
+    expected = ExpectedState(visible_text=[expect]) if expect else ExpectedState()
+    return Step(order=order, action=action, target=target.strip(), value=value, expected=expected)
+
+
+@app.command("pin")
+def pin_cmd(
+    project: str = typer.Argument(..., help="project slug"),
+    issue_id: str = typer.Argument(..., help="issue id (see `issues list`)"),
+    step: list[str] = typer.Option(
+        None, "--step",
+        help="one confirmed repro step, 'action:target[:value[:expect]]'. Repeat "
+             "in order -- e.g. --step navigate:/signup --step click:#submit",
+    ),
+) -> None:
+    """AT-597: pin a confirmed issue as a regression case (T-184/AT-585) — the
+    CLI's entry point to `stages/issues.py::pin_issue_as_case`, alongside the
+    issues page's 'Pin as regression case' action. Steps are never guessed:
+    pass exactly the reproduction steps you confirmed yourself."""
+    store = ProjectStore(project)
+    issue = next((i for i in store.list_issues() if i.id == issue_id), None)
+    if issue is None:
+        typer.secho(f"{project}: no issue '{issue_id}' -- try `autotester issues list {project}`.",
+                    fg=typer.colors.RED)
+        raise typer.Exit(2)
+    if not step:
+        typer.secho(
+            f"{project}: pinning needs at least one confirmed --step "
+            "('action:target[:value[:expect]]') -- steps are never guessed.",
+            fg=typer.colors.RED)
+        raise typer.Exit(2)
+    try:
+        steps = [_parse_step(i + 1, raw) for i, raw in enumerate(step)]
+    except ValueError as exc:
+        typer.secho(f"{project}: {exc}", fg=typer.colors.RED)
+        raise typer.Exit(2) from exc
+
+    case = pin_issue_as_case(issue, flow_id="manual", steps=steps, project=project)
+    if store.has_case(case.id):
+        typer.secho(f"{project}: already pinned as case {case.id} -- nothing to do.",
+                    fg=typer.colors.YELLOW)
+        raise typer.Exit(0)
+    store.add_case(case)
+    typer.secho(f"{project}: pinned '{issue.title}' as regression case {case.id}",
+                fg=typer.colors.GREEN)
 
 
 @app.command("export")
