@@ -24,4 +24,4 @@ Should the maker get a second gated cycle (cycle 5) to register one CLI advice s
   - Scope: one test-registry line. No src change, so no Mode D repeat is needed.
 - **B — STALL.** Leave the unit unmerged. The UI pin, the CLI guard, the parser and AT-604 all stay off master.
 
-Answered: (pending)
+Answered: 2026-09-26 — A, cycle 5 — Umesh via AskUserQuestion in the maker session. Scope: one EXPECTED_SITES registry line, no src change.
