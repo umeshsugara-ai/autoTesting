@@ -4,7 +4,7 @@ ingest (`Screen.url_pattern`) and Track B's screen identity (`ScreenNode`).
 
 from __future__ import annotations
 
-from autotester.core.urls import url_template
+from autotester.core.urls import absolute_url, screen_url_pattern, url_template
 
 
 def test_numeric_segment_is_templated() -> None:
@@ -101,3 +101,90 @@ def test_no_path_segment_is_ever_swallowed() -> None:
     assert url_template("sitemap.xml", keep_host=False) == "/sitemap.xml"
     assert url_template("v1.2/foo", keep_host=False) == "/v1.2/foo"
     assert url_template("reports/new", keep_host=False) == "/reports/new"
+
+
+# -- AT-299b: absolute_url must not eat the first segment of a hostless input --
+
+def test_absolute_url_leaves_a_genuine_hostless_relative_path_alone() -> None:
+    """Regression: `absolute_url` used to prepend `https://` unconditionally,
+    so `urlsplit` read the first segment as a host and `keep_host=False`
+    silently deleted it -- "erp/trainers" collapsed to "/trainers", losing
+    "erp" entirely (cycle-2 code, without `absolute_url`, produced the correct
+    "/erp/trainers"). Neither "erp" nor "students" carries a domain dot or a
+    port colon, so nothing here should be read as a host."""
+    assert absolute_url("erp/trainers") == "erp/trainers"
+    assert url_template(absolute_url("erp/trainers"), keep_host=False) == "/erp/trainers"
+
+    assert absolute_url("students/1") == "students/1"
+    assert url_template(absolute_url("students/1"), keep_host=False) == "/students/{id}"
+
+
+def test_absolute_url_still_restores_scheme_for_a_dotted_or_ported_host() -> None:
+    """The address-bar shapes AT-294 actually fixed must keep working: a
+    domain-dotted or port-colon'd first segment is still the host, and
+    `keep_host=False` still drops it."""
+    assert absolute_url("vidysea.com/erp/trainers") == "https://vidysea.com/erp/trainers"
+    assert url_template(
+        absolute_url("vidysea.com/erp/trainers"), keep_host=False
+    ) == "/erp/trainers"
+
+    assert absolute_url("localhost:3000/students/1") == "https://localhost:3000/students/1"
+    assert url_template(
+        absolute_url("localhost:3000/students/1"), keep_host=False
+    ) == "/students/{id}"
+
+
+def test_absolute_url_passes_through_scheme_ful_and_absolute_path_input() -> None:
+    """Unaffected shapes: a real scheme, a scheme-relative `//host/...`, and an
+    already-absolute path are all returned unchanged by `absolute_url` itself."""
+    assert absolute_url("https://vidysea.com/erp/trainers") == "https://vidysea.com/erp/trainers"
+    assert absolute_url("//host/x") == "//host/x"
+    assert absolute_url("/erp/trainers") == "/erp/trainers"
+
+
+def test_a_non_url_transcription_no_longer_falsely_claims_the_site_root() -> None:
+    """AT-299b: prose the model returns (e.g. "Sign in page") used to collapse
+    to "/", a false claim that the site ROOT is covered. It must not become a
+    host either, so it now reduces to the same harmless single path segment
+    `url_template` alone already produced pre-AT-294 -- junk, but not a false
+    positive on the root."""
+    result = url_template(absolute_url("Sign in page"), keep_host=False)
+    assert result != "/"
+    assert result == "/Sign in page"
+
+
+# -- AT-299b cycle 2: the caller boundary must not claim a false root either --
+
+def test_screen_url_pattern_reports_none_for_a_bare_ambiguous_token() -> None:
+    """The checker's FAIL: `url_template(absolute_url(x), keep_host=False)`, which
+    every one of the three callers uses, still turned a schemeless, slash-free,
+    dotted token into "/" -- indistinguishable BY SHAPE from a real bare host's
+    root (AT-287's own "settings.json vs example.com" ambiguity). `None` is the
+    honest "no pattern is knowable" outcome (I7), not a false claim on the root."""
+    for bare in ("file.html", "sitemap.xml", "report.pdf", "robots.txt", "a.b", "example.com"):
+        assert screen_url_pattern(bare) is None, bare
+
+
+def test_screen_url_pattern_keeps_root_when_the_raw_string_actually_said_so() -> None:
+    """Never suppresses a GENUINE root: an explicit trailing slash after a
+    promoted host, an already-absolute path, and a real scheme all keep "/"."""
+    assert screen_url_pattern("example.com/") == "/"
+    assert screen_url_pattern("/") == "/"
+    assert screen_url_pattern("https://app.test") == "/"
+    assert screen_url_pattern("https://app.test/") == "/"
+
+
+def test_screen_url_pattern_is_unaffected_when_a_real_path_survives() -> None:
+    """Every AT-299b cycle-1 shape (a real path templates to something other
+    than "/") is untouched by the None guard -- it only fires when the
+    templated result IS "/"."""
+    assert screen_url_pattern("erp/trainers") == "/erp/trainers"
+    assert screen_url_pattern("students/1") == "/students/{id}"
+    assert screen_url_pattern("vidysea.com/erp/trainers") == "/erp/trainers"
+    assert screen_url_pattern("localhost:3000/students/1") == "/students/{id}"
+    assert screen_url_pattern("Sign in page") == "/Sign in page"
+
+
+def test_screen_url_pattern_is_none_for_no_input() -> None:
+    assert screen_url_pattern(None) is None
+    assert screen_url_pattern("") is None

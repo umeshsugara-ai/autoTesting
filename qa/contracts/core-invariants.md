@@ -164,6 +164,15 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   changed" plus that unit's `qa/evidence/<slug>*`, `qa/manifests/<slug>.md`, `qa/verdicts/<slug>*`,
   `qa/issues.jsonl`, `qa/.last-tick`, `qa/feedback-inbox.md`.
 
+### C11 — Every third-party import is a declared dependency (D-046)
+- A module under `src/` that imports a third-party package names that package in `pyproject.toml`
+  `[project].dependencies` (or an optional-dependency group). Resolving only as a transitive dependency
+  of another package does not count: one upstream release can remove it (AT-130: `google-genai`,
+  `starlette`).
+- **Verify:** `uv run autotester doctor` → `check_dependencies_declared` (src/autotester/doctor.py) reports
+  no undeclared import. Known false-positive class: `TYPE_CHECKING`-only and `try/except ImportError`
+  optional imports (AT-590). That is a check defect to fix, not a licence to skip declaring a real import.
+
 ## No-fire list (do not raise these as findings)
 
 - Style/formatting preferences already satisfied by `ruff`.
@@ -447,3 +456,6 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   decided prompts become SKILL.md but did not authorize editing this file, so C8 described a location
   the migrated prompts no longer use; D-043 records that consequence. Substance unchanged: every prompt
   is a versioned file, never an inline string, and the skill loader fails loudly (t175 verdict).
+- 2026-09-26 · amendment (authorized by D-046) · **C11 added**: every third-party import is a declared
+  dependency, machine-checked by doctor's `check_dependencies_declared` (at130-genai-dep, checker PASS c1,
+  merged 235fdd5). Tightening only. AT-590 tracks the check's optional-import false positives.
