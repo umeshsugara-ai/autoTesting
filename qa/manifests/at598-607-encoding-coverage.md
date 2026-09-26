@@ -175,4 +175,4 @@ Not UI-touching. Changed paths: `src/autotester/core/redact_encodings.py`,
 - Full unfiltered `uv run pytest` was not run this cycle (RAM constraint per the dispatch brief);
   `tests/ -k redact` (113 passed) and the new file (25 passed) are the evidence presented.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, qa/verdicts/at598-607-encoding-coverage.md 31545ca)
