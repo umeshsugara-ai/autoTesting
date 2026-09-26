@@ -9,10 +9,16 @@ the stamps, and a repaired log reads exactly like a healthy one.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+import pytest
+from typer.testing import CliRunner
+
+from autotester.cli import app
 from autotester.loop_status import Anomalies, read_ticks, report_lines, status
+
+runner = CliRunner()
 
 
 def _at(day: int, hour: int = 0, offset: str = "+00:00") -> str:
@@ -164,3 +170,81 @@ def test_an_all_future_log_does_not_also_claim_no_gaps(tmp_path: Path) -> None:
 
     assert not any("no gaps" in line for line in rendered), (
         "a corrupt, credible-tick-free log is not a clean loop")
+
+
+# -- AT-592: --strict must fail on a log with no credible tick at all ----------
+
+def test_strict_unhealthy_is_true_when_every_stamp_is_future(tmp_path: Path) -> None:
+    """The defect itself: `asleep_now` only fires off an OPEN GAP, and
+    `find_gaps` over an empty `credible` list returns `((), None)` -- no gap to
+    key off, so an all-future log (CORRUPT, `last_tick is None`, `ticks == 1`)
+    read as healthy. `strict_unhealthy` must catch what `asleep_now` cannot."""
+    root = _tick_log(tmp_path, [f"{_at(16, 23)} ADVANCED a stamp typed 8h ahead"])
+    report = status(root, now=datetime(2026, 9, 16, 15, tzinfo=UTC))
+
+    assert report.last_tick is None
+    assert report.asleep_now is False, "the old, insufficient signal"
+    assert report.strict_unhealthy is True, "the new one must see it anyway"
+
+
+def test_strict_unhealthy_is_false_on_a_healthy_log(tmp_path: Path) -> None:
+    """The new signal must not turn into an alarm that is always on."""
+    root = _tick_log(tmp_path, [
+        f"{_at(16, 5)} ADVANCED one",
+        f"{_at(16, 6)} ADVANCED two",
+    ])
+    report = status(root, now=datetime(2026, 9, 16, 7, tzinfo=UTC))
+
+    assert report.strict_unhealthy is False
+
+
+def _cli_tick_log(tmp_path: Path, lines: list[str]) -> None:
+    qa = tmp_path / "qa"
+    qa.mkdir(parents=True, exist_ok=True)
+    (qa / ".last-tick").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+@pytest.fixture
+def cli_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    monkeypatch.setenv("AUTOTESTER_ROOT", str(tmp_path))
+    return tmp_path
+
+
+def test_cli_strict_exits_nonzero_on_an_all_future_tick_log(cli_root: Path) -> None:
+    """The exact bug report, driven through the real CLI: `--strict` must exit
+    non-zero on a log every stamp of which is dated after now, even though there
+    is no open gap for the old `asleep_now`-only check to find."""
+    future = (datetime.now(UTC) + timedelta(days=1)).isoformat()
+    _cli_tick_log(cli_root, [f"{future} ADVANCED a stamp typed a day ahead"])
+
+    result = runner.invoke(app, ["loop-status", "--strict"])
+
+    assert result.exit_code != 0, result.output
+    assert "CORRUPT" in result.output
+
+
+def test_cli_strict_exits_zero_on_a_healthy_tick_log(cli_root: Path) -> None:
+    """`--strict` must still come back clean on a loop with nothing wrong with
+    it, or it is an alarm nobody can trust."""
+    now = datetime.now(UTC)
+    _cli_tick_log(cli_root, [
+        (now - timedelta(minutes=2)).isoformat() + " ADVANCED one",
+        (now - timedelta(minutes=1)).isoformat() + " ADVANCED two",
+    ])
+
+    result = runner.invoke(app, ["loop-status", "--strict"])
+
+    assert result.exit_code == 0, result.output
+
+
+def test_cli_non_strict_exit_code_on_the_corrupt_log_is_unchanged(cli_root: Path) -> None:
+    """Non-strict behaviour must not move: `loop-status` without `--strict` has
+    always exited 0 regardless of what it prints, and this fix only changes what
+    `--strict` checks."""
+    future = (datetime.now(UTC) + timedelta(days=1)).isoformat()
+    _cli_tick_log(cli_root, [f"{future} ADVANCED a stamp typed a day ahead"])
+
+    result = runner.invoke(app, ["loop-status"])
+
+    assert result.exit_code == 0, result.output
+    assert "CORRUPT" in result.output
