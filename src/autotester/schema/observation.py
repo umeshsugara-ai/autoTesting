@@ -10,6 +10,8 @@ never calls a provider.
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from autotester.schema.base import Artifact
@@ -90,7 +92,14 @@ class VisionOptions(BaseModel):
     seed: int = 7
     max_output_tokens: int = 65536
     media_resolution: str = "high"
-    thinking_level: str = "high"
+    thinking_level: Literal["minimal", "low", "medium", "high"] = Field(
+        default="high",
+        description="AT-370: constrained to the values google-genai's "
+        "`types.ThinkingLevel` actually accepts (minus the UNSPECIFIED sentinel) "
+        "-- an unconstrained str let a typo reach the SDK as a silently-accepted "
+        "nonsense enum member with only a stderr UserWarning, never an exception "
+        "this codebase's own error path would surface.",
+    )
     temperature: float | None = None
     system_instruction: str | None = None
 
