@@ -458,4 +458,4 @@ limits" rather than silently left for the checker to discover.
   "Actual outputs") — recorded as direct evidence of how constrained RAM was, not hidden as a
   non-event.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 2, qa/verdicts/at596-http-error-page.md 67989ea)
