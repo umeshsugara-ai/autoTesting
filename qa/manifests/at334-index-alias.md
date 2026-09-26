@@ -8,10 +8,10 @@ different `(url_template, signature)` node ids.
 identity) and `qa/contracts/ingest.md`'s "url_template is the ONE place a URL is normalised"
 invariant. Flagged for the checker to decide whether a dedicated criterion is warranted.
 **Date:** 2026-09-26
-**Fix cycle:** 1 of 3
+**Fix cycle:** 2 of 3
 **Dual check:** no
 **Persona walk:** skip (pure identity-normalisation fix, no persona/UI surface touched)
-**Issues addressed:** AT-334
+**Issues addressed:** AT-334, AT-618
 **Executor:** claude-opus-subagent
 
 ## The gap (AT-334, as filed)
@@ -193,4 +193,151 @@ No other live-browser test was run. See "RAM-gated deviation" above.
 - No `qa/contracts/` file names this exact criterion; flagged above for the checker to decide
   whether X15 should gain an explicit index-alias clause or a new criterion is warranted.
 
-## Status: ready-for-check
+## Cycle 2 (AT-618, checker FAIL cycle 1)
+
+**The FAIL:** cycle 1 folded `index.html` only at node identity
+(`screen_identity.node_from`, `urls.screen_url_pattern`). Three seams that also
+produce or compare a screen identity still called `url_template` unfolded —
+`stages/coverage.py::_path_of` (`:26`, the coverage-diff comparison
+coverage.md V1 governs), `stages/explore_merge.py::screen_from` (`:73`, where
+a crawled `ScreenNode` becomes a stored `Screen.url_pattern`), and
+`stages/merge_flowspec.py::_answered_gap_ids` (`:172`, the seam that closes a
+`VideoRequest`). The checker reproduced it directly: an index-first crawl
+persisted `Screen.url_pattern == '/index.html'`, and a run visiting `/` was
+reported as a false `CoverageGap` even though master (pre-AT-334) correctly
+saw both as one known screen.
+
+### What changed
+
+- `src/autotester/stages/coverage.py::_path_of` (`:25-36`) — now calls
+  `url_template(url, keep_host=False, fold_index=True)`. This is the function
+  both `diff_coverage`/`diff_crawl`'s `_known_paths`/`_crawled_paths` and
+  `unreached_screens` route through, so every coverage-diff comparison folds
+  consistently on both sides (coverage.md V1).
+- `src/autotester/stages/explore_merge.py::screen_from` (`:73-78`) — now
+  passes `fold_index=True` when deriving `Screen.url_pattern` from
+  `node.url_example`. This matters beyond the coverage-diff path:
+  `merge_screens`'s own rediscovery/conflict dedupe (`by_pattern`, `:142`) is a
+  literal dict lookup on the STORED `url_pattern` string, never routed through
+  `coverage._path_of` — so even after the `coverage.py` fix alone, a screen
+  first crawled at `/` and rediscovered at `/index.html` would still have
+  filed as a brand-new Screen instead of the AT-102 rediscovery it actually
+  is. Folding at the point of storage (not just at the point of comparison)
+  closes that gap too.
+- `src/autotester/stages/merge_flowspec.py::_answered_gap_ids` (`:164-178`) —
+  now folds when computing the path a stored `Screen.url_pattern` answers.
+  This is the seam that CLOSES a `VideoRequest`; `coverage.py::_path_of` is
+  the seam that OPENS one. They are independent functions (no shared helper),
+  so both had to fold or a gap raised against `/` and answered by a screen
+  whose stored pattern is the unfolded `/index.html` form would never resolve
+  — the ask stays open forever even after the recording lands.
+- `scripts/migrate_url_patterns.py::repair` (`:101`) — untouched, as cycle 1
+  disclosed and the checker's fix direction confirmed: it sits behind its own
+  unanswered gate (`qa/gates/t135-url-pattern-data-migration.md`) and pins
+  `/index.html` as an unchanged remainder in its own tests. `grep -rn
+  "url_template(" src/ scripts/` now shows exactly one caller without
+  `fold_index=True` — this disclosed exception, and none of the other four.
+- Tests added (all pure, no browser):
+  - `tests/test_coverage.py` — `test_diff_crawl_folds_an_index_html_node_against_a_slash_pattern`
+    (the `coverage.py` seam in isolation, via a hand-built `ScreenNode`, no
+    `node_from` involved) plus the full-pipeline reproduction in **both
+    orders** the checker asked for:
+    `test_index_first_crawl_then_a_slash_visit_is_not_a_gap` and
+    `test_slash_first_crawl_then_an_index_html_visit_is_not_a_gap` (real
+    `node_from` -> real `screen_from` -> `diff_coverage`).
+  - `tests/test_explore_merge.py` —
+    `test_an_index_html_rediscovery_merges_with_a_slash_screen_instead_of_duplicating`,
+    which isolates the `by_pattern` dedupe seam specifically (proven below to
+    be independent of the `coverage.py` fix).
+  - `tests/test_merge_flowspec_requests.py` —
+    `test_a_stored_index_html_pattern_answers_a_slash_gap`, isolating the
+    request-closing seam.
+
+### How to verify (commands + actual outputs)
+
+```
+$ uv run pytest tests/test_urls.py tests/test_coverage.py tests/test_coverage_wiring.py \
+    tests/test_explore_merge.py tests/test_merge_flowspec.py tests/test_merge_flowspec_requests.py \
+    tests/test_merge_flowspec_cli.py tests/test_screen_identity.py tests/test_crawl_coverage.py \
+    tests/test_crawl_coverage_bounds.py tests/test_store_crawl.py tests/test_migrate_url_patterns.py \
+    tests/test_ingest_persist.py
+........................................................................ [ 41%]
+........................................................................ [ 82%]
+...............................                                          [100%]
+175 passed in 5.23s
+
+$ uv run ruff check src tests scripts
+All checks passed!
+
+$ uv run autotester doctor
+doctor: clean
+```
+
+Same RAM-gated deviation as cycle 1 applies: the full `-k "url or explore or
+crawl"` sweep and live-browser `test_explore_modal.py` are not re-run here
+(no browser-touching code changed this cycle); the checker's own cycle-1
+verdict already deferred the full suite and Mode D to cycle 2's checker pass.
+
+### Capability coverage (each seam -> its own test + isolating falsification)
+
+| seam | file:line | test | falsification (throwaway copy, see below) |
+|---|---|---|---|
+| coverage diff | `coverage.py::_path_of` :36 | `test_diff_crawl_folds_an_index_html_node_against_a_slash_pattern` | row 1 |
+| stored Screen identity / rediscovery dedupe | `explore_merge.py::screen_from` :78 | `test_an_index_html_rediscovery_merges_with_a_slash_screen_instead_of_duplicating` | row 2 |
+| request closing | `merge_flowspec.py::_answered_gap_ids` :175 | `test_a_stored_index_html_pattern_answers_a_slash_gap` | row 3 |
+| full pipeline, index-first | node_from -> screen_from -> diff_coverage | `test_index_first_crawl_then_a_slash_visit_is_not_a_gap` | (covered by rows 1+2 combined) |
+| full pipeline, slash-first | node_from -> screen_from -> diff_coverage | `test_slash_first_crawl_then_an_index_html_visit_is_not_a_gap` | (covered by rows 1+2 combined) |
+
+Falsified in a throwaway copy OUTSIDE the tracked worktree (C7):
+`C:/Users/Lenovo/AppData/Local/Temp/claude/d--autoTesting/dd410a44-7522-428c-9b91-fda96de822cd/scratchpad/at334-c2-falsify/`
+(full `src/` + `tests/` + `scripts/regression_proof.py` copied in, run against
+the worktree's own venv via `PYTHONPATH` pointed at the copy so no second
+`uv sync` was needed). Each row: baseline (fixed copy) confirmed GREEN on the
+named test **first**, then the one guard line was reverted to its cycle-1
+(unfolded) form, the named test went RED, then the line was restored before
+moving to the next row — never all three reverted at once, so each row proves
+its OWN seam is load-bearing rather than being masked by another seam's fix.
+
+| row | mutation | named test | baseline | mutated |
+|---|---|---|---|---|
+| 1 | `coverage.py::_path_of` — dropped `fold_index=True` | `test_diff_crawl_folds_an_index_html_node_against_a_slash_pattern` | PASS | RED: `diff_crawl` returned a `CoverageGap` for `'/index.html'` against a spec pinned at `'/'` |
+| 2 | `explore_merge.py::screen_from` — dropped `fold_index=True` | `test_an_index_html_rediscovery_merges_with_a_slash_screen_instead_of_duplicating` | PASS | RED: `assert 2 == 1` — the index-crawled node filed as a second Screen instead of merging with `scr_old` |
+| 3 | `merge_flowspec.py::_answered_gap_ids` — dropped `fold_index=True` | `test_a_stored_index_html_pattern_answers_a_slash_gap` | PASS | RED: `open_requests(store)` still held the request after the answering merge — `assert [...] == []` failed |
+
+Row 2 specifically disproves a plausible alternative theory (that fixing
+`coverage.py` alone would have been sufficient): with only `coverage.py`
+folding and `explore_merge.py` still unfolded, `test_index_first_crawl_then_a_slash_visit_is_not_a_gap`
+still PASSES (coverage's own fold re-normalises both sides at compare time),
+but `merge_screens`'s `by_pattern` dedupe — a separate, un-normalised
+dict-key lookup — still breaks, which is exactly what row 2 catches and the
+coverage-only test would have missed.
+
+Tracked worktree `git status --porcelain` immediately after all three rows,
+confirming the falsification never touched it (only the 6 files this cycle
+intended to change):
+```
+ M src/autotester/stages/coverage.py
+ M src/autotester/stages/explore_merge.py
+ M src/autotester/stages/merge_flowspec.py
+ M tests/test_coverage.py
+ M tests/test_explore_merge.py
+ M tests/test_merge_flowspec_requests.py
+```
+Never used `git stash`.
+
+### Gaps (disclosed, not claimed)
+
+- Live-browser confirmation (`tests/test_explore_modal.py` against
+  `tests/fixtures/modal_site`) is still not run in this sandboxed environment
+  — same RAM/timeout constraint as cycle 1. Left to the checker's Mode D, as
+  cycle 1's verdict already deferred it here.
+- The full `-k "url or explore or crawl"` sweep (~380 tests, 7 live-browser
+  files) was not re-attempted this cycle for the same RAM reason; the targeted
+  175-test run above covers every non-browser file touched by this fix plus
+  the four other seams the checker named.
+- The persisted-id consequence disclosed in cycle 1 (a stored `crawl.json`
+  node id changes if its `url_template` ends in `/index.html`) is unaffected
+  by this cycle's change — cycle 2 only extends WHERE the same fold is
+  applied, not what it does at any one seam.
+
+## Status: in-progress (cycle 2)
