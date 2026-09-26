@@ -146,4 +146,4 @@ container).
   workbook-facing wording are two different call sites with no shared constant today; flagged
   here in case the checker wants them unified into one string.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, ad31a72)
