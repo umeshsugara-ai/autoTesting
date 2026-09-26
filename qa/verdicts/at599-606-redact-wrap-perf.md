@@ -54,3 +54,38 @@ Note: CJK-heavy text still costs ~8.4 s/MB because the 4096-entry `_is_ignorable
 ## Diff scope (4c)
 
 Merge-base fc3e07f. The unit touches docs/MAP.md (+1 row), the 3 core files, the new test file, the manifest and the evidence log; all are in "What changed". The only removed line is the `redact_fold.py` docstring's closing line, re-added without its closing quotes so the AT-606 note can follow (lines 107-110). No function, test or key removed. Trivial: redact_wrap.py is LF while its siblings are CRLF.
+
+---
+
+# Verdict — at599-606-redact-wrap-perf, cycle 2
+
+**Date:** 2026-09-26 · **Cycle checked:** 2 · **Checked commit:** 6cd6416 (code), 54cfd7f (manifest) · **Checker:** /checker session (claude-opus)
+
+```
+VERDICT: PASS
+SCOREBOARD: both cycle-1 failure lines closed; AT-599 (all whitespace splits) and AT-606 (linear-time scan) met
+FAILURES: none
+CAPABILITY-COVERAGE: The new row reproduced in my own copy (18/18 green before). Setting `_WHITESPACE_RE` back to `r"\r\n|\r|\n"` fails exactly the 6 new split tests (space, tab and newline+indent, each via contains_folded and assert_no_raw_secrets); the benign space-prose test stays green. The cycle-1 rows still stand (wrap branch -> 8 AT-599 tests; `_is_ignorable` cache -> bound test). The encodings cache is removed, so FAIL line 2 no longer applies.
+LIVE-BROWSER: not-applicable (changed paths: core/redact_encodings.py, core/redact_wrap.py, tests, docs/MAP.md; no UI surface)
+ISSUES-WRITTEN: none (AT-611, CJK perf, stays a separate low follow-up)
+EXECUTOR: maker builder (checker: claude-opus session)
+EXPLANATION: redact_wrap.py now strips `\s+` from the searched copy only. My own probe (fake 21-char secret; base64, base32 and hex; separators space, tab, `\n    ` and `\r\n  ` at every offset) finds 0 misses. The declared_secret_encodings lru_cache and its functools import are gone, removing the in-memory retention of secret values with no timing change (builder: 0.63 s vs 0.62 s). The perf tests pass 3/3 on my runs.
+```
+
+## What I re-ran
+
+- Whitespace probe (worktree, read-only): b64 0 misses, b32 0 misses, hex 0 misses, across 5 separator forms at every split offset.
+- Row reproduction in scratch copy `at599c2-row1`: 18 passed before -> 6 failed / 12 passed after the edit, each failure being a new split test.
+  - My first attempt used an unquoted heredoc, which mangled the regex in the COPY. That was my error, not the unit's. I discarded it and redid the row with a quoted heredoc. The worktree was never touched.
+- `tests/test_redact_wrap_perf.py` 3 consecutive runs: 18 passed each (2.2-2.4 s).
+- `uv run pytest` (full, no -q): **1869 passed, 5 skipped, 32 xfailed, 0 failed** in 697 s, exit 0. Ruff: All checks passed. Doctor: clean.
+
+## False-positive surface
+
+Stripping all whitespace can join adjacent words, but the needle is still an exact, case-significant substring of a declared secret's own computed encoding. Cycle 1's what-if on the same `\s+` strip found 0 false positives across 9.3 MB of benign corpora (a wrapped base64 image, JSON logs, HTML, stack traces, sha256 and hex lines), and the new benign space-prose test pins the common case.
+
+## Diff scope (4c)
+
+`6ec5702..6cd6416` changes docs/MAP.md (the redact_wrap row text), redact_encodings.py (removes `import functools`, `@functools.lru_cache(maxsize=256)` and its docstring line, as FAIL line 2 required), redact_wrap.py (the regex rename and widening; docstrings rewritten are this unit's own cycle-1 text), tests/test_redact_wrap_perf.py (+7 tests, none removed) and the manifest. All are listed in "What changed". redact_fold.py is untouched (300/300).
+
+AT-599 and AT-606 flip to fixed only after the merge is verified on master.
