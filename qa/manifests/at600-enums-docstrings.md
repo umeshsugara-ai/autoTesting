@@ -173,4 +173,4 @@ This unit is a pure schema/docstring/module-layout change with zero behavioral o
 no page, route, or rendered output reads `IssueKind`'s or `Outcome.ASSERTION_FAILED`'s docstring
 text or module location. No live browser evidence applies.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, qa/verdicts/at600-enums-docstrings.md 3228a6b)
