@@ -169,4 +169,4 @@ rendering, JS, or a real page).
   this needs a new `qa/contracts/pinned-regression.md` or an amendment to an existing one (my brief
   said do not edit `qa/contracts/`).
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, 3830ba1)
