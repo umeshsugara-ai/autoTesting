@@ -15,6 +15,7 @@ used from inside `_contains_folded_secret`.
 
 from __future__ import annotations
 
+import functools
 import html
 import re
 import unicodedata
@@ -22,6 +23,7 @@ from collections.abc import Sequence
 from urllib.parse import unquote_plus
 
 from autotester.core.redact_encodings import declared_secret_encodings
+from autotester.core.redact_wrap import contains_wrapped_encoding
 
 _FOLD_STRIP = re.compile(r"[\s\-_.+~/:|,;!?*=^'\"`()\[\]{}<>\\]+")
 r"""The punctuation a human actually substitutes for a separator. Widened from
@@ -85,6 +87,7 @@ and all visible. Python exposes no `Default_Ignorable_Code_Point` predicate, so
 the ranges are listed."""
 
 
+@functools.lru_cache(maxsize=4096)
 def _is_ignorable(ch: str) -> bool:
     """True when `ch` cannot be part of the credential a human reads off the
     page, so it must not change whether text matches one.
@@ -101,7 +104,10 @@ def _is_ignorable(ch: str) -> bool:
     reader takes off the screen, and all of them can be inserted between the
     characters of a credential. U+0000 is the sharpest case — it needs no
     decoding by the reader at all, because the HTML parser DELETES it, so the
-    page renders the credential in plain type."""
+    page renders the credential in plain type.
+
+    AT-606: `@lru_cache`d -- pure per-character function, called once per char
+    of every string folded (measured superlinear: 11.8 s at 518 KB)."""
     if unicodedata.category(ch) in ("Cf", "Cc"):
         return True
     code = ord(ch)
@@ -285,6 +291,8 @@ def _contains_folded_secret(text: str, widened_secrets: Sequence[tuple[str, str]
         if len(raw_value) >= MIN_FOLDED_LEN
         for needle in declared_secret_encodings(raw_value)
     ):
+        return True
+    if contains_wrapped_encoding(text, widened_secrets, MIN_FOLDED_LEN):  # AT-599
         return True
     candidates = {fold_credential(text)}
     candidates.update(fold_credential(form) for form in _obfuscated_spellings(text))
