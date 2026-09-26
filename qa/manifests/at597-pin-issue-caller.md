@@ -1,7 +1,9 @@
 # Manifest — at597-pin-issue-caller
 
 **Unit:** a human-facing path to pin a confirmed issue as a regression case (AT-597).
-**Fix cycle:** 3 of 3
+**Fix cycle:** 4 of 3 (narrow, gate-approved)
+**Gate:** `qa/gates/at597-cycle4.md`, answered A (Umesh, 2026-09-26) — a narrow
+cycle 4 scoped to `_parse_step`'s NAVIGATE branch only, beyond the 3-cycle cap.
 **Dual check:** no
 **Issues addressed:** AT-597, AT-604
 
@@ -501,5 +503,123 @@ hunk that would falsify every row sharing that code path.
   run, full suite not run for RAM reasons, `qa/issues.jsonl` missing an
   AT-604 row) all still apply unchanged — see the Fix cycle 2 section
   above.
+
+## Fix cycle 4 — narrow, gate-approved (qa/gates/at597-cycle4.md, answer A)
+
+Checker's cycle-3 verdict (`qa/verdicts/at597-pin-issue-caller.md`, commit
+`1133e8b`): cycle 3's port fix held for every case it named, but its
+NAVIGATE branch (`target, value, expect = remainder, None, ""`) took the
+whole remainder as the target with no further split, on the reasoning that
+navigate has no value. It does have a live **expect**, though — `execute.py`
+:132 settles the page after NAVIGATE and E1 evaluates a step's declared
+`expected` post-settle — so a trailing `::Welcome` was silently swallowed
+into the target instead of becoming the expect: `navigate:https://x.com/
+signup::Welcome` stored target `'https://x.com/signup::Welcome'`, expected
+`[]`. Cycle 2 parsed the same input correctly. This is a narrow, gate-
+approved cycle 4 (3-cycle cap already spent at cycle 3; Umesh answered
+option A on `qa/gates/at597-cycle4.md`, scope: the NAVIGATE branch of
+`_parse_step` only).
+
+### What changed
+
+- `src/autotester/cli_issues.py::_parse_step` (:134): the NAVIGATE-only
+  bypass is removed. Every action now tokenizes the remainder through the
+  same `_split_step_fields(remainder)` call, so NAVIGATE's target still gets
+  the URL-aware, port-safe `_take_step_field` treatment cycle 3 built,
+  exactly like every other action's target/value/expect fields. After the
+  generic split, `if action is Action.NAVIGATE and value: raise ValueError`
+  refuses a non-empty value field — navigate has nowhere to put one — with
+  a message naming both valid forms (`'navigate:<url>'` and
+  `'navigate:<url>::<expect>'`); the (already-empty) `value` is then forced
+  to `None` for NAVIGATE so it's never confused with the general case's
+  `""` vs `None` handling.
+  - `navigate:<url>::<expect>` (empty value field, non-empty expect field)
+    now parses to target=url, value=None, expect=the expect text — kept.
+  - `navigate:<url>:<value>:<expect>` (non-empty value field) is refused
+    with a clear error instead of corrupting the target (cycle 3's bug) or
+    silently dropping data.
+- Docstring on `_parse_step` rewritten (not trimmed) to describe the
+  unified tokenization and explain why cycle 3's bypass was wrong (navigate
+  has a live expect, not "no value or expect" as cycle 3's docstring
+  claimed).
+- `tests/test_cli_issues.py`: 3 new tests under a new "AT-597 cycle 4"
+  section — see capability coverage below. All 6 cycle-3 tests (port
+  preservation for navigate and fill values, no-port regression, full CLI
+  round-trip) re-run unchanged and stay green.
+
+### Explicitly NOT built (cycle 4)
+
+- IPv6 bracketed hosts (`[::1]`) still split on their own colons — flagged
+  as a non-blocking note in the cycle-3 verdict and confirmed out of scope
+  by the gate answer; left as a Known limit below.
+- The `fastapi.HTTPException` / private `ui.helpers` guard imports are
+  unchanged — still deferred, unrelated to this cycle's scope (the NAVIGATE
+  branch of `_parse_step` only).
+- No change to `pin_cmd`'s `--step` help text — it already documents the
+  generic `action:target[:value[:expect]]` form without claiming navigate
+  accepts a value, so nothing there was inaccurate.
+
+### How to verify (commands + expected)
+
+```
+uv run pytest tests/test_ui_issues.py tests/test_cli_issues.py tests/test_pinned_regression.py tests/test_ui_case_management.py tests/test_ui_cases.py tests/test_issues.py tests/test_expand.py tests/test_expand_cli.py tests/test_run_case_pipeline.py tests/test_cli_surface.py
+uv run ruff check src tests scripts
+uv run autotester doctor
+```
+
+### Actual outputs (cycle 4, in the worktree)
+
+```
+$ uv run pytest tests/test_ui_issues.py tests/test_cli_issues.py tests/test_pinned_regression.py tests/test_ui_case_management.py tests/test_ui_cases.py tests/test_issues.py tests/test_expand.py tests/test_expand_cli.py tests/test_run_case_pipeline.py tests/test_cli_surface.py
+...........................................................s............ [ 45%]
+........................................................................ [ 91%]
+..............                                                           [100%]
+157 passed, 1 skipped, 1 warning in 4.16s
+
+$ uv run ruff check src tests scripts
+All checks passed!
+
+$ uv run autotester doctor
+ledger-row-lost: qa/manifests/at597-pin-issue-caller.md -- AT-604 is named here but has no row in qa/issues.jsonl
+ledger-row-lost: qa/verdicts/at597-pin-issue-caller.md -- AT-604 is named here but has no row in qa/issues.jsonl
+2 violation(s)
+```
+
+**Both doctor violations are the same pre-existing AT-604 gap** flagged in
+cycles 2 and 3 — unchanged, checker-owned, not introduced by this cycle.
+
+### Capability coverage (falsified in a throwaway copy, never the worktree)
+
+| # | Capability | Test | Falsifying edit | Result |
+|---|---|---|---|---|
+| 1 | A navigate target's port AND its expect both survive | `test_parse_step_keeps_a_navigate_ports_target_and_its_expect` | NAVIGATE branch reverted to cycle 3's bypass (`target, value, expect = remainder, None, ""`) | RED: `assert 'http://localhost:8069/signup::Welcome' == 'http://localhost:8069/signup'` -> reverted -> GREEN |
+| 2 | A plain (no-port) navigate target keeps its expect too | `test_parse_step_keeps_a_navigates_expect_with_no_port_too` | same edit as #1 (same bypass) | RED: `assert 'https://x.com/signup::Welcome' == 'https://x.com/signup'` -> reverted -> GREEN |
+| 3 | A navigate step with a value field is refused | `test_parse_step_refuses_a_navigate_with_a_value_field` | same edit as #1 (bypass never reaches the refuse check) | RED: "DID NOT RAISE ValueError" -> reverted -> GREEN |
+| 3b | (independent isolation) the refuse-on-value guard alone | same test as #3 | narrower edit: kept the unified split, dropped only the `if ... and value: raise` block (`value = None` unconditionally) | RED: only this test failed ("DID NOT RAISE ValueError"), rows #1/#2 stayed GREEN -> reverted -> all GREEN |
+
+Row 3b is not a required row on its own but was run to confirm the
+refuse-on-value guard is independently falsifiable from the target/expect
+fix (edit #1 falsifies all three at once because it removes the whole
+unified code path; edit #3b isolates just the guard). Each edit was applied
+to a throwaway copy outside the worktree (`uv sync --frozen`, confirmed
+19/19 green before falsifying), confirmed red with the exact assertion
+shown, then reverted; a final `diff` against the worktree's `cli_issues.py`
+after the last revert showed no difference, and the copy was deleted
+afterward. The worktree itself was never touched by any falsifying edit.
+
+### Known limits (cycle 4)
+
+- **IPv6 bracketed hosts (`[::1]`) still split on their own colons** —
+  `fill:#u:http://[::1]:8080/a` still gives a corrupted value (`_URL_FIELD_
+  RE`'s host class `[^/:]*` cannot hold `[::1]`). Confirmed out of scope by
+  the gate answer (option A's scope line: "IPv6 `[::1]` stays a filed
+  follow-up"). Same limitation applies to a NAVIGATE target with an IPv6
+  host, unchanged by this cycle's fix (the unified tokenizer shares
+  `_URL_FIELD_RE` with the general case).
+- Cycle 2 and cycle 3's known limits (no unpin action, pre-existing
+  literal-colon splitting inside a non-URL value/expect field,
+  `fastapi.HTTPException`/private `ui.helpers` guard imports, no browser-
+  based Mode D run, full suite not run for RAM reasons in cycles 2-3,
+  `qa/issues.jsonl` missing an AT-604 row) all still apply unchanged.
 
 ## Status: ready-for-check
