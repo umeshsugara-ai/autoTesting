@@ -159,4 +159,4 @@ uv run uvicorn autotester.ui.app:app --port 8765
   multi-failure test (only single-failure cases were seeded). Worth a follow-up test if the
   checker wants that path pinned.
 
-Status: ready-for-check
+Status: checked-PASS (cycle 1, 17fe44f)
