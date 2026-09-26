@@ -3,10 +3,170 @@
 qa/contracts/browser-and-secrets.md B2 ("any string headed for a provider passes
 `core.redact.assert_no_raw_secrets` first")
 **Goal task:** none (security-hardening fix against open checker findings)
-**Date:** 2026-09-25
-**Fix cycle:** 1 of 3
+**Date:** 2026-09-25 (cycle 1) / 2026-09-26 (cycle 2)
+**Fix cycle:** 2 of 3
 **Dual check:** no
 **Issues addressed:** AT-347 (medium, open), AT-352 (medium, open), AT-356 (medium, open)
+
+## Cycle 2 — both cycle-1 verdicts were FAIL
+
+`qa/verdicts/at347-352-356-redact-fold.md` (primary, commit 010c2e2) and
+`qa/verdicts/at347-352-356-redact-fold.b.md` (independent blind second, commit e956664) both FAILed
+cycle 1 on the same root cause, found independently by two different routes. This section answers
+every finding of both verdicts, one row per finding, before the rest of this manifest (which is
+cycle 1's original text, kept as history rather than rewritten) is read.
+
+| Verdict finding | Where | Answer |
+|---|---|---|
+| Primary: `_B64_TOKEN_RE = r"[A-Za-z0-9+/_-]{8,}={0,2}"` swallows adjacent `_`, `-` and alphanumerics into one greedy span; whole-span decode fails; bypasses both doors. Repro: `filename_<b64>.png`, `prefix_<b64>_suffix`, `prefix-<b64>-suffix`, `prefixXX<b64>YYsuffix`; hex has a narrower form (`abc<hex>def`). | `src/autotester/core/redact_fold.py` (cycle 1) | **Fixed.** Removed `_B64_TOKEN_RE`/`_B32_TOKEN_RE`/`_HEX_TOKEN_RE`/`_decode_block` entirely — the decode-the-text-then-compare direction is gone for these three encodings. Replaced with `redact_encodings.declared_secret_encodings(value)`: precompute the DECLARED secret's own base64 (std + URL-safe, 3 byte-alignment offsets, padding-free — `_base64_alignment_needles`), base32, and hex (upper+lower) encodings, and search for each as an exact literal substring of the raw text. Substring search doesn't care what sits next to the match, so adjacency can't break it. |
+| Blind second (independent route): same family — `tok_<b64>_end`, `prefix<b64>suffix`, `SECRET<b32>CODE`, `cafe<hex>beef` all MISS in the orchestrator's own reproduction (`Sup3rS3cretValue!42`). | same | **Fixed**, same change — re-verified with the checker's own secret value and exact failing shapes (see Cycle 2 verification below); all 8 named repro strings from both verdicts now caught by both doors. |
+| Blind second, "Also noted": `ASCII_CONFUSABLES` was public on pre-split `core/redact.py`; `from autotester.core.redact import ASCII_CONFUSABLES` now raises `ImportError`. No current caller, but the manifest claimed every prior import still resolved. | `src/autotester/core/redact.py` | **Fixed.** `ASCII_CONFUSABLES` added to `redact.py`'s import-from-`redact_fold` block and `__all__`. Pinned by `tests/test_core.py::test_ascii_confusables_still_importable_from_redact`. |
+| Both verdicts: capability coverage (8/8 rows), no false positives (50-53 KB corpora), diff scope, and raise-not-warn (B2) all held — no change requested there. | — | Unchanged from cycle 1; re-verified this cycle (see below), nothing regressed. |
+
+### What changed in cycle 2
+
+- `src/autotester/core/redact_fold.py` — `_B64_TOKEN_RE`, `_B32_TOKEN_RE`, `_HEX_TOKEN_RE`,
+  `_decode_block` removed; `_obfuscated_spellings` now only produces reversed / HTML-unescaped /
+  percent-decoded candidates (all substring-safe, unchanged behaviour, per the brief: "keep
+  reversed, HTML and percent-encoded handling as it is"). `_contains_folded_secret`'s signature
+  changed from `(text, folded_secrets: Sequence[str])` to
+  `(text, widened_secrets: Sequence[tuple[str, str]])` — `(raw_value, folded_value)` pairs, because
+  the new exact-encoding search needs the RAW secret bytes (folding would destroy base64's
+  case-significant output), checked first, before falling through to the existing fold-based check.
+- `src/autotester/core/redact_encodings.py` (new file) — `_base64_alignment_needles` (the
+  YARA-style 3-offset technique: pad the secret with 0/1/2 leading zero bytes standing in for
+  "however many unknown bytes precede it", pad the tail to a multiple of 3 so no `=` appears, drop
+  the leading/trailing 4-character group whenever it mixes in an unknown byte — correctness over a
+  couple of characters of needle length) and `declared_secret_encodings` (base64 std+urlsafe via
+  the above, plus base32 and hex upper/lower).
+- `src/autotester/core/redact.py` — `Redactor.__init__` now builds `self._widened: list[tuple[str,
+  str]]` (was `self._folded: list[str]`) so both the raw value and its fold travel together;
+  `contains_folded` and `assert_no_raw_secrets` pass `_widened`/`widened` through unchanged
+  otherwise. `ASCII_CONFUSABLES` re-exported (see table above).
+- `tests/test_core.py` — added `test_ascii_confusables_still_importable_from_redact`, and two new
+  parametrized tests covering the exact 8 failing inputs named across both verdicts
+  (`test_contains_folded_catches_encoded_secret_next_to_its_own_alphabet` and
+  `test_assert_no_raw_secrets_blocks_encoded_secret_next_to_its_own_alphabet`, one door each).
+- `docs/MAP.md` — regenerated; new row for `core/redact_encodings.py`.
+
+### Cycle 2 verification
+
+Reproduced the checker's own secret (`Sup3rS3cretValue!42`) and all 8 named failing inputs plus the
+3 isolated (non-adjacent) forms, through both doors, in a throwaway scratch copy before touching the
+tracked worktree:
+
+```
+OK   filename_<b64>.png       ui=True  gate=True
+OK   prefix_<b64>_suffix      ui=True  gate=True
+OK   prefix-<b64>-suffix      ui=True  gate=True
+OK   prefixXX<b64>YYsuffix    ui=True  gate=True
+OK   tok_<b64>_end            ui=True  gate=True
+OK   SECRET<b32>CODE          ui=True  gate=True
+OK   cafe<hex>beef            ui=True  gate=True
+OK   abc<hex>def              ui=True  gate=True
+OK   isolated b64             ui=True  gate=True
+OK   isolated b32             ui=True  gate=True
+OK   isolated hex             ui=True  gate=True
+
+ALL CAUGHT: True
+```
+
+Re-ran every cycle-1 vector (`CRED = "ZEBRA_QUILT_APIKEY_31"`) to confirm no regression — still all
+9 CAUGHT (base64/base32/hex isolated, html dec/hex entities, double-percent, plain-reversed,
+combining-acute, combining-short-stroke) — and the ~12-15 KB false-positive prose check (this time
+including filename/token-shaped decoys like `filename_abcxyz123.png`, `cafefeedbeefdeadf00dbabe1234`
+to specifically probe the new needle search for over-triggering) still raised nothing, ~0.07 s.
+
+```
+$ uv run pytest tests/test_core.py
+46 passed in 0.24s
+
+$ uv run pytest tests/test_core.py tests/test_secrets.py tests/test_ui_secrets_declaration.py tests/test_check_no_secrets.py tests/test_db.py tests/test_network_assertions.py tests/test_portal_persona.py tests/test_run_trace.py tests/test_source_adapters_drive.py tests/test_prompt_skills.py
+149 passed, 1 skipped, 6 warnings in 4.19s
+
+$ uv run ruff check src tests scripts
+All checks passed!
+
+$ uv run autotester doctor
+doctor: clean
+```
+
+(The 1 skip and 6 warnings are the same pre-existing/unrelated `test_run_trace.py` AT-561 items
+noted in cycle 1 — not caused by this change.)
+
+**Full non-browser suite: still NOT RUN.** RAM measured 0.7-1.7 GB free at various points this
+session (`Get-CimInstance Win32_OperatingSystem`), never reaching the 3.5 GB ceiling. Same declared
+gap as cycle 1.
+
+### Cycle 2 capability coverage (mutation-tested, scratch copy only)
+
+Same method as cycle 1 (throwaway mini-package under scratch, `sys.path`-imported, never pytest
+against a mutated copy — see cycle 1's note on why). Baseline asserted green first:
+
+```
+BASELINE: {'combining-marks': True, 'html-entities': True, 'double-percent': True, 'reversed': True,
+           'base64-isolated': True, 'base32-isolated': True, 'hex-isolated': True,
+           'base64-adjacent': True, 'base64-adjacent-filename': True, 'base32-adjacent': True,
+           'hex-adjacent': True} -- all caught, asserted green
+```
+
+| capability | falsifying edit (single-hunk, scratch copy only) | targeted rows go red | others stay green |
+|---|---|---|---|
+| combining marks (AT-356, re-verified) | `redact_fold.py`: strip-`Mn` line → no-op | `combining-marks` | yes |
+| HTML entities (re-verified) | `forms = [text[::-1], html.unescape(text)]` → drop `html.unescape` | `html-entities` | yes |
+| double/triple percent-decoding (re-verified) | `range(4)` → `range(1)` | `double-percent` | yes |
+| plain reversal (re-verified) | drop `text[::-1]` from `forms` | `reversed` | yes |
+| base64 needle search (std+urlsafe, all offsets) — **new** | `redact_encodings.py`: `needles: list[str] = [...]` → `needles: list[str] = []` | `base64-isolated`, `base64-adjacent`, `base64-adjacent-filename` (all 3, one hunk) | yes |
+| base32 needle search — **new** | `redact_encodings.py`: drop the `b32 = ...` / `needles.extend((b32, ...))` lines | `base32-isolated`, `base32-adjacent` | yes |
+| hex needle search — **new** | `redact_encodings.py`: drop the `hexed = ...` / `needles.extend((hexed, ...))` lines | `hex-isolated`, `hex-adjacent` | yes |
+| AT-347 gate itself (re-verified against the new `_widened`-pair signature) | `redact.py`: `assert_no_raw_secrets` body reverted to exact-match-only | every family (UI door alone still catches — the AND collapses every row) | n/a |
+| `ASCII_CONFUSABLES` re-export — **new** | `redact.py`: drop `ASCII_CONFUSABLES,` from the `redact_fold` import block | mutant import raises `ImportError`; fixed copy imports cleanly | n/a |
+
+Full runner output (`mutation_runner_cycle2.py`, scratch dir):
+
+```
+combining-marks                                          targeted_red=True  others_green=True
+html-entities                                            targeted_red=True  others_green=True
+double-percent                                           targeted_red=True  others_green=True
+reversed                                                 targeted_red=True  others_green=True
+base64-isolated+base64-adjacent+base64-adjacent-filename targeted_red=True  others_green=True
+base32-isolated+base32-adjacent                          targeted_red=True  others_green=True
+hex-isolated+hex-adjacent                                targeted_red=True  others_green=True
+AT-347-gate-itself                                       targeted_red=True  (every family red)
+ASCII_CONFUSABLES-reexport                               fixed_copy_imports=True  mutant_import_broke=True
+
+ALL FAMILIES PROPERLY DEFENDED: True
+```
+
+One false start recorded rather than hidden (same C7 spirit as cycle 1): the ASCII_CONFUSABLES
+mutation test's first version only re-imported the whole `autotester.core.redact` *module* (which
+succeeds regardless of whether `ASCII_CONFUSABLES` is bound in it) instead of the specific `from
+autotester.core.redact import ASCII_CONFUSABLES` a real caller would write, so it read
+`mutant_import_broke=False` on a mutation that should have broken it. Fixed by asserting the actual
+`from ... import ASCII_CONFUSABLES` form; re-ran and it correctly flipped to `True`.
+
+### Cycle 2 gaps
+
+- Same full-non-browser-suite and standalone-mutation-runner-vs-pytest gaps as cycle 1, for the same
+  reasons (RAM ceiling; editable-install path) — not repeated in full here.
+- The 3-alignment-offset base64 technique is coarse (drops a whole 4-character group where only 1-2
+  characters are actually affected by an unknown neighbouring byte), so the needle is a few
+  characters shorter than the theoretical maximum in the offset-1/offset-2 cases. Not scoped as a
+  risk: exact substring matching on even a shortened needle (still many characters for any
+  realistic secret) carries no meaningful false-positive exposure, and correctness (never including
+  an unstable character) was prioritized over needle length.
+- This fix only searches for a secret encoded ALONE next to arbitrary surrounding text (the shape
+  every reproduced failing input used). A secret byte-concatenated with OTHER real secret material
+  before the whole blob is base64-encoded (e.g. `base64(nonce + secret + suffix)` as one encode
+  call) is exactly what the 3-alignment-offset technique is built to catch too, and was not
+  separately re-tested with a non-zero, non-secret neighbour — the mutation/verification above uses
+  zero-byte neighbours (per the technique's own construction) and plain-text neighbours (per the
+  reproduced attack shape), not a THIRD real-secret-byte neighbour. Flagged for a checker who wants
+  to push on it specifically.
+
+---
+
+## Cycle 1 (original, kept as history)
 
 ## Issues addressed
 
