@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from autotester.cli_issues import app
+from autotester.cli_issues import _parse_step, app
 from autotester.schema.enums import IssueCategory
 from autotester.schema.issue import Issue
 from autotester.schema.project import Project, SecretRef
@@ -189,3 +189,78 @@ def test_pin_refuses_a_second_pin_of_the_same_issue_with_different_steps(
     assert result.exit_code != 0
     assert "already pinned as case" in result.output
     assert len(store.list_cases()) == 1
+
+
+# -- AT-597 cycle 3: cycle 2's fix protected the SCHEME colon, not the PORT --
+
+def test_parse_step_preserves_a_navigate_targets_port() -> None:
+    """`navigate:http://localhost:8069/signup` used to become
+    target='http://localhost', value='8069/signup' -- the port's own ':'
+    looked exactly like the scheme colon cycle 2 already protected."""
+    step = _parse_step(1, "navigate:http://localhost:8069/signup")
+
+    assert step.target == "http://localhost:8069/signup"
+    assert step.value is None
+
+
+def test_parse_step_preserves_an_https_hosts_port() -> None:
+    step = _parse_step(1, "navigate:https://app.example.com:8443/login")
+
+    assert step.target == "https://app.example.com:8443/login"
+    assert step.value is None
+
+
+def test_parse_step_keeps_a_ported_url_whole_as_a_fill_value() -> None:
+    """A URL need not be the navigate target -- it can just as well be a
+    fill value, and its port must survive there too."""
+    step = _parse_step(1, "fill:#url:https://x.com:8080/a")
+
+    assert step.target == "#url"
+    assert step.value == "https://x.com:8080/a"
+    assert step.expected.visible_text == []
+
+
+def test_parse_step_keeps_a_ported_url_value_and_its_own_expect() -> None:
+    """The field AFTER a ported URL value must still parse -- the URL's own
+    colons must not swallow the expect field that follows it."""
+    step = _parse_step(1, "fill:#url:https://x.com:8080/a:expected")
+
+    assert step.value == "https://x.com:8080/a"
+    assert step.expected.visible_text == ["expected"]
+
+
+def test_parse_step_still_parses_a_plain_url_with_no_port() -> None:
+    """Regression check: a URL with no port (cycles 1 and 2's own fix) must
+    still parse correctly now that the tokenizer is scheme-aware."""
+    step = _parse_step(1, "navigate:https://example.com/login")
+
+    assert step.target == "https://example.com/login"
+    assert step.value is None
+
+
+def test_pin_a_local_dev_server_navigate_target_end_to_end(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A mis-parsed target with its port stripped would make the reachable-
+    navigate guard check the WRONG host -- `http://localhost` (no port) still
+    happens to resolve to the same allowed host here, so only a full
+    end-to-end run, asserting the STORED target, catches a silent truncation
+    that a guard's pass/fail alone would miss."""
+    monkeypatch.setenv("AUTOTESTER_ROOT", str(tmp_path))
+    local_store = ProjectStore("local", tmp_path)
+    local_store.save_project(Project(
+        slug="local", name="Local", base_url="http://localhost:8069",
+        allowed_domains=["localhost"],
+    ))
+    issue = _an_issue()
+    local_store.add_issue(issue)
+
+    result = runner.invoke(app, [
+        "pin", "local", issue.id,
+        "--step", "navigate:http://localhost:8069/signup",
+        "--step", "click:#go",
+    ])
+
+    assert result.exit_code == 0, result.output
+    case = local_store.list_cases()[0]
+    assert case.steps[0].target == "http://localhost:8069/signup"

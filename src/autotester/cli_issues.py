@@ -21,8 +21,10 @@ from fastapi import HTTPException
 
 from autotester.browser.secrets import SecretStore
 from autotester.core.paths import ProjectPaths
+from autotester.schema.case import Case
 from autotester.schema.enums import Action
 from autotester.schema.flowspec import ExpectedState, Step
+from autotester.schema.issue import Issue
 from autotester.schema.project import Project
 from autotester.stages.issues import (
     derive_issues,
@@ -86,34 +88,81 @@ def list_issues_cmd(project: str = typer.Argument(..., help="project slug")) -> 
                    f"{issue.recording_label[:28]:28s}  {issue.title[:70]}")
 
 
-_STEP_SPLIT_RE = re.compile(r":(?!//)")
-"""Splits `_parse_step`'s raw `--step` string everywhere EXCEPT right before
-`//` (AT-597 cycle 2). A plain `str.split(":", 3)` cut
-"navigate:https://example.com/login" into target='https',
-value='//example.com/login' — the URL scheme's own colon looked exactly like
-a field separator. A colon inside a value or expect box that is not part of a
-scheme's `://` still splits fields as it always did; only a `scheme://`
-survives intact."""
+_URL_FIELD_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://[^/:]*(?::\d+)?[^:]*")
+"""Matches a whole `scheme://host[:port]/path` field: the scheme, `://`, a
+host with no `:` or `/` in it, an OPTIONAL `:port`, then a path that runs up
+to whatever `:` comes next. AT-597 cycle 2's `(?!//)` lookahead protected
+only the scheme's own colon -- "navigate:http://localhost:8069/signup" still
+split at the PORT colon, into target='http://localhost', value='8069/signup'
+(cycle 2's checker FAIL, one character further along than cycle 1's). This
+regex consumes the port colon as part of the same field, so nothing after
+`_take_step_field` ever sees it as a separator."""
+
+
+def _take_step_field(remainder: str) -> tuple[str, str | None]:
+    """One field of `_parse_step`'s raw `--step` string, plus whatever still
+    follows its separating `:` (`None` once nothing does). A field matching
+    `_URL_FIELD_RE` -- a URL, scheme onward -- is taken whole, port and all;
+    every other field still splits at its first remaining `:`, exactly like
+    the original `str.split(":", 1)` always did."""
+    match = _URL_FIELD_RE.match(remainder)
+    if match:
+        field = match.group(0)
+        rest = remainder[len(field):]
+        return field, (rest[1:] if rest.startswith(":") else None)
+    if ":" in remainder:
+        field, rest = remainder.split(":", 1)
+        return field, rest
+    return remainder, None
+
+
+def _split_step_fields(remainder: str) -> list[str]:
+    """Up to 3 `:`-delimited fields (target, value, expect) out of
+    `_parse_step`'s raw string, via `_take_step_field` -- so a URL field's own
+    colons (scheme, port) never count as a field separator, wherever in the
+    step that URL sits."""
+    fields: list[str] = []
+    rest: str | None = remainder
+    for _ in range(3):
+        if rest is None:
+            break
+        field, rest = _take_step_field(rest)
+        fields.append(field)
+    return fields
 
 
 def _parse_step(order: int, raw: str) -> Step:
     """`action:target[:value[:expect]]` — the CLI's compact form of one confirmed
     repro step. Never a guess: the caller types exactly what they just verified
     reproduces the bug, same discipline `pin_issue_as_case` documents for its
-    `steps` argument."""
-    parts = _STEP_SPLIT_RE.split(raw, maxsplit=3)
-    if len(parts) < 2:
+    `steps` argument.
+
+    AT-597 cycle 3: NAVIGATE takes the WHOLE remainder as its target with no
+    further split at all -- navigate has no value or expect (T-184's own
+    `Step` shape leaves them unused for it), so there is nothing left for a
+    URL's own colons to be mistaken for. Every other action tokenizes field
+    by field via `_split_step_fields`, which keeps a `scheme://host[:port]/
+    path` field whole no matter which field position it lands in (a fill's
+    value, say).
+    """
+    action_raw, sep, remainder = raw.partition(":")
+    if not sep:
         raise ValueError(
             f"--step '{raw}' must look like 'action:target[:value[:expect]]'"
         )
-    action_raw, target, *rest = parts
     try:
         action = Action(action_raw)
     except ValueError as exc:
         known = ", ".join(a.value for a in Action)
         raise ValueError(f"--step '{raw}': '{action_raw}' is not one of {known}") from exc
-    value = rest[0].strip() or None if rest else None
-    expect = rest[1].strip() if len(rest) > 1 else ""
+
+    if action is Action.NAVIGATE:
+        target, value, expect = remainder, None, ""
+    else:
+        fields = _split_step_fields(remainder)
+        target = fields[0] if fields else ""
+        value = (fields[1].strip() or None) if len(fields) > 1 else None
+        expect = fields[2].strip() if len(fields) > 2 else ""
     expected = ExpectedState(visible_text=[expect]) if expect else ExpectedState()
     return Step(order=order, action=action, target=target.strip(), value=value, expected=expected)
 
@@ -178,7 +227,12 @@ def pin_cmd(
         message = exc.detail if isinstance(exc, HTTPException) else str(exc)
         typer.secho(f"{project}: {message}", fg=typer.colors.RED)
         raise typer.Exit(2) from exc
+    _finish_pin(store, project, issue, case)
 
+
+def _finish_pin(store: ProjectStore, project: str, issue: Issue, case: Case) -> None:
+    """Idempotent tail of `pin_cmd`: a case identical to one already on file
+    is a no-op success (`add_case`'s own idempotence), never a second write."""
     if store.has_case(case.id):
         typer.secho(f"{project}: already pinned as case {case.id} -- nothing to do.",
                     fg=typer.colors.YELLOW)
