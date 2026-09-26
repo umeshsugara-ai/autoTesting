@@ -2,7 +2,10 @@
 
 `render_map` fills the generated sections of ARCHITECTURE.md (directory map from
 module docstrings, schema summary from the models). `render_snapshot` writes the
-lean session-start digest. `doctor` regenerates both and fails on any diff.
+lean session-start digest. `doctor` regenerates both and fails on any diff. Also
+holds `soft_import_ids`, the AST classifier doctor's dependency check uses to tell
+a genuinely optional import from a required one dressed up as one (AT-590/AT-619;
+see the "optional-import detection" section below for why it lives in this file).
 """
 
 from __future__ import annotations
@@ -112,15 +115,51 @@ def apply_map(docs: RepoDocs) -> str:
 # serves for check_generated_fresh/check_architecture_budget/check_docs_routed.
 
 _SOFT_EXCEPT_NAMES = {"ImportError", "ModuleNotFoundError"}
+_EXIT_CALL_NAMES = {"exit", "quit"}
+
+
+def _is_exit_call(call: ast.Call) -> bool:
+    """`exit(...)`/`quit(...)`/`sys.exit(...)` -- AT-619's non-raise exit shape."""
+    func = call.func
+    if isinstance(func, ast.Name):
+        return func.id in _EXIT_CALL_NAMES
+    return (isinstance(func, ast.Attribute) and func.attr == "exit"
+            and isinstance(func.value, ast.Name) and func.value.id == "sys")
+
+
+def _handler_exits(body: list[ast.stmt]) -> bool:
+    """True if a raise or exit call is reachable on any path through `body`, without
+    descending into a nested def/class (AT-619: a handler that re-raises or exits is
+    a required-dependency guard, not a graceful degrade)."""
+    for stmt in body:
+        if isinstance(stmt, ast.Raise):
+            return True
+        if isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Call) \
+                and _is_exit_call(stmt.value):
+            return True
+        if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            continue
+        if isinstance(stmt, ast.Try) and (
+                any(_handler_exits(h.body) for h in stmt.handlers)
+                or _handler_exits(stmt.finalbody)):
+            return True
+        for field in ("body", "orelse", "finalbody"):
+            nested = getattr(stmt, field, None)
+            if isinstance(nested, list) and _handler_exits(nested):
+                return True
+    return False
 
 
 def soft_import_ids(tree: ast.AST) -> set[int]:
     """id() of every Import/ImportFrom nested inside `if TYPE_CHECKING:` /
     `if typing.TYPE_CHECKING:`, or inside a try whose handlers name ONLY
-    ImportError/ModuleNotFoundError (AT-590 -- `except Exception` or a bare `except:`
-    stays hard, since neither proves the failure was a missing package). Each guard's
-    own body is walked in isolation, so an `if`'s `else` and any statement after the
-    `try` stay hard; anything inside the guard is soft however deeply nested."""
+    ImportError/ModuleNotFoundError AND whose bodies degrade gracefully (AT-590 --
+    `except Exception` or a bare `except:` stays hard, since neither proves the
+    failure was a missing package; AT-619 -- a handler that re-raises or exits,
+    e.g. `except ImportError: raise` or `sys.exit(...)`, stays hard too, since that
+    is a required-dependency guard, not an optional one). Each guard's own body is
+    walked in isolation, so an `if`'s `else` and any statement after the `try` stay
+    hard; anything inside the guard is soft however deeply nested."""
     def is_type_checking(test: ast.expr) -> bool:
         return (isinstance(test, ast.Name) and test.id == "TYPE_CHECKING") or (
             isinstance(test, ast.Attribute) and test.attr == "TYPE_CHECKING")
@@ -133,6 +172,7 @@ def soft_import_ids(tree: ast.AST) -> set[int]:
     def try_is_soft(node: ast.Try) -> bool:
         return bool(node.handlers) and all(
             h.type is not None and except_names(h.type) <= _SOFT_EXCEPT_NAMES
+            and not _handler_exits(h.body)
             for h in node.handlers)
 
     def guarded_body(node: ast.AST) -> list[ast.stmt]:

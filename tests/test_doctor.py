@@ -247,6 +247,13 @@ _LOOKS_LIKE_A_GUARD_BUT_IS_HARD = [
                  "    pytest = None\n", id="except_exception_too_broad"),
     pytest.param("try:\n    import pytest\nexcept:\n"
                  "    pytest = None\n", id="bare_except_too_broad"),
+    pytest.param("try:\n    import pytest\nexcept ImportError:\n    raise\n",
+                 id="reraise"),
+    pytest.param("try:\n    import pytest\nexcept ImportError as e:\n"
+                 "    raise RuntimeError('pip install pytest') from e\n",
+                 id="raise_from"),
+    pytest.param("import sys\n\ntry:\n    import pytest\nexcept ImportError:\n"
+                 "    sys.exit('need pytest')\n", id="sys_exit"),
 ]
 
 
@@ -254,7 +261,9 @@ _LOOKS_LIKE_A_GUARD_BUT_IS_HARD = [
 def test_shapes_that_look_like_a_guard_but_are_not_stay_hard(tmp_path: Path, body: str) -> None:
     """AT-590's required behaviour: an else/after-try import, or a handler broader
     than ImportError/ModuleNotFoundError, does not prove the failure was a missing
-    package -- neither qualifies as soft, so both stay flagged."""
+    package -- neither qualifies as soft. AT-619: nor does a handler that re-raises,
+    raises a new error, or exits -- that is a required-dependency guard, not a
+    graceful degrade -- so all stay flagged, end to end through doctor.run."""
     root = make_repo(tmp_path)
     write_pyproject(root, [])
     write_module(root, "opt.py", body)
