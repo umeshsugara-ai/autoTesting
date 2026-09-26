@@ -26,4 +26,4 @@ disk and RAM on a host that is already RAM-starved, so scope and retention are p
 
 Add `Answered: YYYY-MM-DD — A | B | C (+ retention N)` below, or tell the checker or maker session.
 
-Answered: pending
+Answered: 2026-09-26T22:34:22+05:30 — A, retention 20 — Umesh via AskUserQuestion in the checker session. Record run video only on FAIL or inconclusive; keep the most recent 20; secret inputs masked in video exactly as in screenshots (CLAUDE.md credentials boundary). Maker: goal task for AT-587; checker: contract criterion.

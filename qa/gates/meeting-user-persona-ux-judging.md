@@ -32,4 +32,4 @@ north star's false-positive metric. So the checker will not decide this by amend
 Add a line `Answered: YYYY-MM-DD — A | B | C (+ any constraints)` below, or tell the checker or maker session. Once
 answered, the maker turns it into a goal task and the checker folds a contract criterion for it.
 
-Answered: pending
+Answered: 2026-09-26T22:34:22+05:30 — A — Umesh via AskUserQuestion in the checker session. Advisory UX track: a UserPersona (role, tech comfort, locale, device) and a separate, severity-scored UX/comprehension findings list per screen that NEVER changes the functional PASS/FAIL (schema/verdict.py rule untouched); a persona is never a way to soften a criterion. Maker: goal task(s) for AT-583/AT-584; checker: contract criterion.

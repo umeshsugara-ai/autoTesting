@@ -1085,3 +1085,50 @@ LS1, LS2 and LS4 describe behaviour already shipped and tested (tests/test_loop_
 **Changes-authorized:** qa/contracts/loop-status.md (new contract, authored by the checker). No enforcement path.
 
 **Links:** AT-610; AT-592; AT-424; AT-399; AT-368; qa/gates/at610-strict-out-of-order.md; 7fce333; unit at610-strict-out-of-order-pin.
+
+## D-048 | 2026-09-26 | type: decision | status: ACTIVE
+
+**What:** Umesh answered 12 open HUMAN_GATEs in one sitting on 2026-09-26, through AskUserQuestion in the checker session. The checker raised them at his request ("jo jo chaiyee mujhe properly raise krkee maang lee"). Each answer is recorded verbatim in its gate file. This entry authorizes the changes they imply.
+
+**Tests and detectors**
+- **at438 = a+b+c.** U14(b) is judged against the pre-unit detector. The checker re-scores cycle 3 on that baseline. AT-453 becomes its own unit, capped at 2 cycles. AT-454 is a documented known limitation.
+- **at416 = B.** The held both-directions candidate (wave/at408-416-scroll-reach) becomes a checkable unit. It needs real-Chromium Mode D plus the 50-shape scroll-invariance corpus. This is not the checker's recommendation (A); Umesh chose B.
+
+**ERP**
+- **erp-credentials = provide.** Umesh enters a TEST account himself in the UI. The keys are verified by name only, never by value.
+- **t135 = B.** One Analyze re-run on erp, approved for that single vision call.
+
+**Product direction**
+- **meeting-user-persona-ux-judging = A.** An advisory UX track that never changes PASS/FAIL.
+- **meeting-run-video-scope = A.** Record video on FAIL or inconclusive only, keep the last 20, and mask secrets as in screenshots.
+
+**Process**
+- **at383 = C.** Session-start hook now; the shared sweep routine later.
+- **at147 = C.** An expiry date means the end of that day, for new approvals only.
+- **at218 = 2.** Every new guard ships with a recorded falsification proof.
+- **commit-before-verdict = C.** Unit branch before check; merge to master only after a PASS.
+- **at520 = 3.** scripts/ stays outside the numeric caps and the duplicate-definition check.
+- **at516 = (c).** A stale evidence spec stays byte-intact and gets a "stale on purpose" tag.
+
+**Why:** These are product-direction and process choices that only the Approver can make. Several had waited since 2026-09-09. Writing all twelve down in one entry lets the maker build from them and the checker fold contract criteria against a single authorizing record, instead of from chat memory.
+
+**Result:**
+- All 12 gate files carry a dated Answered line.
+- The maker turns them into goal tasks: at416-B check, AT-453 unit, at147-C, at383-A hook, at516-c tagging, a persona/UX track, run video, the t135 Analyze re-run, and T-122 once the keys are present.
+- The checker folds the matching contract criteria. Criteria for units not yet built are folded when each unit's contract is written.
+
+**Changes-authorized:**
+- qa/hooks/mc-sessionstart.ps1: call `autotester loop-status --strict` at session start and print its report (at383 part A). This is an enforcement path.
+- qa/contracts/core-invariants.md, by the checker:
+  - C2: an explicit sentence that scripts/ is deliberately outside the caps (at520).
+  - C7: new guards carry a recorded falsification proof (at218).
+  - C10: unit branch before check, merge only after a PASS (commit-before-verdict).
+- qa/contracts/loop-status.md: an LS5 for the session-start consumer, once it is built.
+- qa/contracts/consent.md: the at147 end-of-day expiry for new approvals.
+- New or existing contracts for the persona/UX track and run video, written by the checker when their goal tasks exist.
+- The at516 tagging rule, in the contract that owns evidence specs.
+- The src/ and test changes each of those units needs, through the normal maker-checker handshake.
+
+**Approved-by:** Umesh (AskUserQuestion answers, checker session, 2026-09-26; the at383 option he chose names the session-start hook explicitly)
+
+**Links:** qa/gates/{at438-u14b-baseline, at416-clip-vs-reach-direction, erp-credentials, meeting-user-persona-ux-judging, meeting-run-video-scope, at383-loop-status-consumer, at147-expiry-end-of-day, at218-vacuous-guard-class, commit-before-verdict, at520-scripts-line-cap, at516-evidence-spec-splitting-policy, t135-url-pattern-data-migration}.md; AT-438; AT-453; AT-454; AT-416; AT-379; AT-583; AT-584; AT-587; AT-383; AT-368; AT-147; AT-150; AT-218; AT-520; AT-488; AT-516; T-122; T-145; T-135; D-047
