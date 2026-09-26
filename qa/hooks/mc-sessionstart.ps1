@@ -38,6 +38,44 @@ if (Test-Path 'qa/.paused') {
   Write-Output ("AUTO-CONTINUE REQUIRED: pending maker-checker state found. Run /maker continue " + [char]34 + $ROOT + [char]34 + " BEFORE anything else this session (it reconciles close-outs, dispatches pending checks and the due sweep, then pulls the next unit and self-continues via ScheduleWakeup). Do not wait to be asked.")
 }
 
+# AT-383 part A (D-048, Approved-by Umesh, gate at383 answer C): surface
+# `autotester loop-status --strict` at session start so a silent loop
+# (AT-368) announces itself at the first moment anyone could act, instead of
+# waiting for a human to type the command. Read-only (LS4), bounded by a
+# timeout, and MUST NOT change this hook's own exit code either way -- a
+# liveness check that can hang or fail the session start would be worse than
+# the silence it replaces (same reasoning as loop_status.py's own doctor
+# exclusion). `--project $ROOT` pins uv to this project regardless of the
+# hook's cwd; AUTOTESTER_ROOT (if the caller set it, e.g. tests) still governs
+# which qa/.last-tick loop-status actually reads.
+$lsTimeoutMs = 15000
+try {
+  $lsPsi = New-Object System.Diagnostics.ProcessStartInfo
+  $lsPsi.FileName = "uv"
+  $lsPsi.Arguments = "run --project `"$ROOT`" autotester loop-status --strict"
+  $lsPsi.WorkingDirectory = $ROOT
+  $lsPsi.UseShellExecute = $false
+  $lsPsi.RedirectStandardOutput = $true
+  $lsPsi.RedirectStandardError = $true
+  $lsProc = New-Object System.Diagnostics.Process
+  $lsProc.StartInfo = $lsPsi
+  [void]$lsProc.Start()
+  $lsStdout = $lsProc.StandardOutput.ReadToEndAsync()
+  $lsStderr = $lsProc.StandardError.ReadToEndAsync()
+  $lsExited = $lsProc.WaitForExit($lsTimeoutMs)
+  if (-not $lsExited) {
+    try { $lsProc.Kill() } catch {}
+    Write-Output ("loop-status: skipped (timed out after " + ($lsTimeoutMs / 1000) + "s)")
+  } else {
+    $lsStdout.Result -split "`r?`n" | Where-Object { $_ -ne "" } | ForEach-Object { Write-Output ("  " + $_) }
+    if ($lsProc.ExitCode -ne 0) {
+      Write-Output ("LOOP UNHEALTHY (loop-status --strict exit " + $lsProc.ExitCode + ")")
+    }
+  }
+} catch {
+  Write-Output "loop-status: skipped (uv/autotester unavailable)"
+}
+
 # Living map (L5): regenerate + inject the snapshot so reading it is not optional.
 if (Test-Path 'docs/SNAPSHOT.md') {
   try { & uv run autotester snapshot 2>$null | Out-Null } catch {}
