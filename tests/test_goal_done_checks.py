@@ -273,6 +273,10 @@ def test_revised_goal_contract_is_registered() -> None:
         "T-179": (["T-170", "T-172", "T-175"], tests + "test_agent_layer.py"),
         "T-180": (["T-179"], tests + "test_agent_subagents.py"),
         "T-181": (["T-180"], tests + "test_agent_gain.py"),
+        # meeting review 2026-09-26 (D-045): T-182..T-184
+        "T-182": ([], tests + "test_viewport_locale_enact.py"),
+        "T-183": ([], tests + "test_report_export_reason.py"),
+        "T-184": ([], tests + "test_pinned_regression.py"),
     }
     # No CLI `-q`: pyproject.toml's addopts already sets it, and stacking a second one makes
     # pytest -qq, which prints no summary line at all (AT-503/AT-522, measured 2026-09-18).
@@ -280,8 +284,8 @@ def test_revised_goal_contract_is_registered() -> None:
     actual = {key: (by_id[key]["deps"], by_id[key]["done_check"]["cmd"]) for key in expected}
     assert actual == expected
     progress = data["progress"]
-    # D-040: T-170, T-171; D-041: T-172..T-178; D-042: T-179..T-181
-    assert progress["total"] == len(data["tasks"]) == 67
+    # D-040: T-170, T-171; D-041: T-172..T-178; D-042: T-179..T-181; D-045: T-182..T-184
+    assert progress["total"] == len(data["tasks"]) == 70
     for key in ("done", "in_progress", "pending", "blocked"):
         assert progress[key] == sum(task["status"] == key for task in data["tasks"])
     assert progress["percent"] == round(100 * progress["done"] / progress["total"])

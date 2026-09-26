@@ -136,3 +136,38 @@ def test_one_bounds_object_reaches_preflight_and_run(
     bounds = seen[0]
     assert (bounds.max_screens, bounds.max_actions, bounds.wall_clock_s, bounds.max_depth) == (  # type: ignore[attr-defined]
         7, 11, 13.0, 3)
+
+
+def test_explore_survives_an_invalid_flowspec_after_the_crawl_finished(
+    client: TestClient, scratch_root: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AT-477: routes_crawls.py:251 called store.load_flowspec() unguarded
+    after the crawl already finished and saved -- a broken flowspec.json
+    turned a completed crawl into a 500 that hid its own result. The route
+    must redirect to the crawl page (which itself must not 500 either --
+    covered by test_ui_crawls.py's crawl-page test)."""
+    store = make_project(scratch_root)
+    store.paths.flowspec.write_text("{ this is not a flowspec", encoding="utf-8")
+
+    class Session:
+        def __init__(self, *_a: object, **_k: object) -> None: pass
+        def __enter__(self) -> Session: return self
+        def __exit__(self, *_a: object) -> None: pass
+
+    def run(_project: object, _session: object, _store: object, **kwargs: object) -> Crawl:
+        crawl = Crawl(project="demo", id=str(kwargs["crawl_id"]))
+        _store.save_crawl(crawl)
+        return crawl
+
+    monkeypatch.setattr("autotester.browser.session.BrowserSession", Session)
+    monkeypatch.setattr("autotester.stages.explore_consent.require_consent",
+                        lambda *_a, **_k: None)
+    monkeypatch.setattr("autotester.stages.explore.run_crawl", run)
+    response = client.post("/projects/demo/explore", data={
+        "max_screens": "7", "max_actions": "11", "wall_clock_s": "13", "max_depth": "3",
+    }, follow_redirects=False)
+    assert response.status_code == 303
+    crawl_id = response.headers["location"].rsplit("/", 1)[-1]
+    assert store.load_crawl(crawl_id) is not None
+    page = client.get(response.headers["location"])
+    assert page.status_code == 200
