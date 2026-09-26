@@ -24,6 +24,7 @@ pre-check caught this before Fix cycle 1 closed.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from html import escape
 from http import HTTPStatus
 
@@ -81,10 +82,19 @@ def _status_title(status_code: int) -> str:
         return str(status_code)
 
 
-def _error_page(status_code: int, detail: str) -> HTMLResponse:
+def _error_page(
+    status_code: int, detail: str, headers: Mapping[str, str] | None = None
+) -> HTMLResponse:
     """The themed page. `detail` is redacted before it is escaped -- redact
     first, since scrubbing an already-escaped string would need to match
-    against escaped secret values instead of the real ones."""
+    against escaped secret values instead of the real ones.
+
+    AT-605: `headers` carries whatever the raised `HTTPException` set --
+    a 405's `Allow` (RFC 9110 SS15.5.6 says a 405 response MUST generate one),
+    a 401's `WWW-Authenticate`, or nothing (`None`, the common case) -- and is
+    passed straight to `HTMLResponse` the same way FastAPI's own default JSON
+    handler already forwards it, so the HTML branch drops nothing a JSON
+    caller still gets."""
     title = _status_title(status_code)
     safe_detail = escape(_repo_redactor().scrub(detail))
     body = theme.card(
@@ -92,7 +102,7 @@ def _error_page(status_code: int, detail: str) -> HTMLResponse:
         "<p style='margin-top:14px'><a class='btn' href='/'>&larr; Back to projects</a></p>",
         title=title,
     )
-    return HTMLResponse(theme.page(title, body), status_code=status_code)
+    return HTMLResponse(theme.page(title, body), status_code=status_code, headers=headers)
 
 
 async def http_exception_handler(request: Request, exc: HTTPException) -> Response:
@@ -106,7 +116,7 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> Respon
     if not is_body_allowed_for_status_code(exc.status_code):
         return Response(status_code=exc.status_code, headers=exc.headers)
     detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
-    return _error_page(exc.status_code, detail)
+    return _error_page(exc.status_code, detail, exc.headers)
 
 
 def register_exception_handler(app: FastAPI) -> None:

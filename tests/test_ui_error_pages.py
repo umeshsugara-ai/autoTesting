@@ -13,6 +13,10 @@ the escaping and secret-redaction claims, which need control over the detail
 text and the `.env` `_repo_redactor()` reads that the shared `app` fixture in
 other files must not have (it would leak into every other UI test's
 redaction).
+
+AT-605 (a 405's `Allow` header surviving the HTML branch) is a separate
+concern with its own fixtures -- split into `test_ui_error_page_headers.py`
+once this file passed doctor's 300-line cap.
 """
 
 from __future__ import annotations
