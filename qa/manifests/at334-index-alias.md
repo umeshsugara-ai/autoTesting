@@ -340,4 +340,4 @@ Never used `git stash`.
   by this cycle's change — cycle 2 only extends WHERE the same fold is
   applied, not what it does at any one seam.
 
-## Status: in-progress (cycle 2)
+## Status: ready-for-check
