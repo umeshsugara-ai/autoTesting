@@ -136,7 +136,24 @@ short folded value would start refusing ordinary text that merely contains its
 letters (`A-B` folds to `ab`, which appears in half the English language).
 Exact and variant matching stay floorless, so AT-002 -- "a three-character
 password is a bad password, but leaking it is still a leak" -- is untouched:
-the real value is still refused at any length, by `is_clean`."""
+the real value is still refused at any length, by `is_clean`.
+
+AT-352 cycle 3: this same constant also floors `_contains_folded_secret`'s
+exact-encoding search (`declared_secret_encodings`), but against the RAW
+secret's length, not its folded length -- a different floor on a different
+value, reusing the number rather than the meaning. That search is an EXACT
+substring match of a computed encoding, not a heuristic widening: a checker
+found it pre-filtered by the FOLDED-length floor above (inherited from
+`widened_secrets` before either half of `_contains_folded_secret` ran), so a
+declared secret whose fold happened to fall under 8 -- one punctuation mark
+is enough, `"Zq7!kP2x"` is 8 raw characters but folds to 7 -- got no encoding
+protection at all, not even fully isolated. The false-positive argument this
+docstring makes for the FOLDED floor does not carry over to the raw-length
+one: an exact substring of a computed base64/base32/hex encoding is not
+"ordinary text that merely contains a secret's letters" the way a folded
+string is, so gating it at all is a deliberate, narrower choice (avoid a
+1-2 byte secret's tiny, near-universal encoded fragment), not the same
+argument restated."""
 
 
 def fold_credential(text: str) -> str:
@@ -232,13 +249,26 @@ def _obfuscated_spellings(text: str) -> list[str]:
 
 
 def _contains_folded_secret(text: str, widened_secrets: Sequence[tuple[str, str]]) -> bool:
-    """True when a widened secret from `widened_secrets` -- each an
-    `(raw_value, folded_value)` pair already filtered to `folded_value` at
-    least `MIN_FOLDED_LEN` long -- is found in `text` either as one of
+    """True when a widened secret from `widened_secrets` -- each a
+    `(raw_value, folded_value)` pair -- is found in `text` either as one of
     `raw_value`'s exact `redact_encodings.declared_secret_encodings` (a
     literal substring of the RAW text, unfolded -- AT-352 cycle 2's base64/
     base32/hex fix) or as a substring of `text`'s `fold_credential` or any of
     `text`'s `_obfuscated_spellings`, each independently folded.
+
+    AT-352 cycle 3: the two halves are gated by DIFFERENT floors, applied
+    HERE rather than by the caller, because a checker found `Redactor.__init__`
+    and `assert_no_raw_secrets` pre-filtering `widened_secrets` to
+    `folded_value` at least `MIN_FOLDED_LEN` long BEFORE either half ever ran
+    -- so a declared secret whose folded form fell under the floor (one
+    punctuation mark is enough: `"Zq7!kP2x"` is 8 raw characters but folds to
+    7) got no encoding-search protection at all, not even fully isolated,
+    even though the encoding search is an EXACT substring match, not the
+    heuristic widening the floor exists to bound (AT-002's floorless-exact
+    principle). The encoding search is now gated on `len(raw_value)`, not
+    `len(folded_value)`; the heuristic fold search below keeps the original
+    `folded_value` floor, because THAT half really is the heuristic widening
+    the floor's own docstring describes.
 
     Shared by `Redactor.contains_folded` and `assert_no_raw_secrets` (AT-347)
     so the UI intake door and the model-prompt gate see the same widened
@@ -252,10 +282,11 @@ def _contains_folded_secret(text: str, widened_secrets: Sequence[tuple[str, str]
     if any(
         needle in text
         for raw_value, _folded in widened_secrets
+        if len(raw_value) >= MIN_FOLDED_LEN
         for needle in declared_secret_encodings(raw_value)
     ):
         return True
     candidates = {fold_credential(text)}
     candidates.update(fold_credential(form) for form in _obfuscated_spellings(text))
-    folded_secrets = [folded for _raw, folded in widened_secrets]
+    folded_secrets = [folded for _raw, folded in widened_secrets if len(folded) >= MIN_FOLDED_LEN]
     return any(secret in candidate for candidate in candidates for secret in folded_secrets)

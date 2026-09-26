@@ -59,10 +59,12 @@ class Redactor:
         # can search for the RAW value's exact encodings (AT-352 cycle 2 --
         # base64/hex output is case/punctuation-significant and must not be
         # folded) as well as its folded form, without recomputing either.
-        self._widened = [
-            (value, folded) for value, folded in ((v, fold_credential(v)) for v in self._values)
-            if len(folded) >= MIN_FOLDED_LEN
-        ]
+        # AT-352 cycle 3: NOT pre-filtered by MIN_FOLDED_LEN here any more --
+        # a checker found this filter starved the exact-encoding search of
+        # every secret whose FOLDED form fell under the floor, even though
+        # that search is exact, not heuristic. `_contains_folded_secret`
+        # applies the right floor to each half itself (see its docstring).
+        self._widened = [(v, fold_credential(v)) for v in self._values]
 
     def scrub(self, text: str) -> str:
         """Return `text` with every known secret value masked."""
@@ -123,18 +125,18 @@ def assert_no_raw_secrets(text: str, secrets: Iterable[str]) -> None:
     door already folds via `Redactor.contains_folded`, this door did not.
 
     The exact check is floorless: any non-empty declared value counts,
-    regardless of length (AT-002). The widened check applies `MIN_FOLDED_LEN`
-    the same way `Redactor` does, so a short secret does not start refusing
-    ordinary text that merely contains its letters.
+    regardless of length (AT-002). The widened check (fold-based AND
+    exact-encoding) applies its floors the same way `Redactor` does --
+    inside `_contains_folded_secret`, not here (AT-352 cycle 3) -- so a short
+    secret's FOLDED form does not start refusing ordinary text that merely
+    contains its letters, while its exact base64/base32/hex encodings still
+    get searched for down to a shorter raw-length floor.
     """
     values = [v for v in secrets if v]
     for value in values:
         if value in text:
             raise ValueError("refusing to proceed: raw secret value present in payload")
-    widened = [
-        (value, folded) for value, folded in ((v, fold_credential(v)) for v in values)
-        if len(folded) >= MIN_FOLDED_LEN
-    ]
+    widened = [(v, fold_credential(v)) for v in values]
     if _contains_folded_secret(text, widened):
         raise ValueError(
             "refusing to proceed: raw secret value present in payload "
