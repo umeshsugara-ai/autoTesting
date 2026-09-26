@@ -124,6 +124,7 @@
 | `ui/crawl_view.py` | HTML fragments for the crawl pages — split from `routes_crawls.py` to keep |
 | `ui/credential_guard.py` | Credential-guard helpers: refuse a real secret typed into any UI text field. |
 | `ui/env_editor.py` | The one legitimate WRITE path to the repo-root `.env` (every other module |
+| `ui/error_pages.py` | App-wide `HTTPException` -> HTML page, split out of `ui/app.py` to keep that |
 | `ui/helpers.py` | Shared request-validation and lookup helpers used by every UI route module. |
 | `ui/project_view.py` | The project page's action card — the operator's control panel for one product. |
 | `ui/routes_cases.py` | Create, list, rename and delete a project's test cases from the UI. |
