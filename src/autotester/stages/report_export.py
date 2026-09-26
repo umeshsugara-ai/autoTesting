@@ -135,8 +135,13 @@ def export_excel(
             for criterion_id, reason, fix_hint in _failure_rows(verdict)
         ) if detail else ""
         steps_text = "\n".join(_repro_steps(case, redactor)) if detail else ""
+        # AT-609: `Case.title` is operator-authored free text, not a step
+        # value -- nothing upstream guarantees it never carries a pasted raw
+        # secret, so it gets the same last-stop scrub every other exported
+        # field gets.
+        case_title = redactor.scrub(case.title) if case else result.case_id
         ws.append([
-            case.title if case else result.case_id,
+            case_title,
             case.kind.value if case else "",
             case.case_class.value if case else "",
             result.outcome.value,
@@ -183,13 +188,17 @@ def _case_section(
     store: ProjectStore, run_id: str, case: Case | None, result, verdict, redactor: Redactor
 ) -> str:
     run_dir = store.paths.run_dir(run_id)
-    title = escape(case.title if case else result.case_id)
+    # AT-609: `Case.title` (the <h2>) and `Evidence.label` (the <figcaption>)
+    # are both operator-authored free text with no upstream guarantee against
+    # a pasted raw secret -- scrubbed here, the same last-stop rule the repro
+    # steps already get, before `escape` ever sees them.
+    title = escape(redactor.scrub(case.title) if case else result.case_id)
     color = _BADGE_COLOR.get(verdict.result.value if verdict else "", "#6b7280")
     badge_text = escape(verdict.result.value) if verdict else escape(result.outcome.value)
     shots = [e for e in result.evidence if e.kind is EvidenceKind.SCREENSHOT]
     figures = "".join(
         f"<figure><img src='data:image/png;base64,{data}'>"
-        f"<figcaption>{escape(shot.label or shot.path)}</figcaption></figure>"
+        f"<figcaption>{escape(redactor.scrub(shot.label or shot.path))}</figcaption></figure>"
         for shot in shots
         for data in [png_base64(run_dir / shot.path, run_dir, store.paths.dir)] if data is not None
     )

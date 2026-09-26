@@ -73,6 +73,68 @@ def _alignment_needles(
     return needles
 
 
+def _isolated_variant_needles(raw: bytes) -> list[str]:
+    """Isolated base32 (upper/lower, padded and `=`-stripped) and hex
+    (upper/lower) encodings of `raw` alone, with no byte-alignment handling
+    -- hex needs none (see `_utf16_hex_needles` below for why), and these
+    isolated spellings cover the "the entire payload IS this one blob, with
+    real `=` padding" case the alignment needles never emit (they always pad
+    to a multiple of `group_bytes` with zero filler instead).
+
+    Split out of `declared_secret_encodings` (AT-598) purely to free lines
+    under its 50-line C2 cap for the two new needle families below -- what
+    it returns for base32/hex is unchanged.
+    """
+    b32_upper = base64.b32encode(raw).decode("ascii")
+    b32_lower = b32_upper.lower()
+    hexed = raw.hex()
+    return [
+        b32_upper, b32_upper.rstrip("="), b32_lower, b32_lower.rstrip("="),
+        hexed, hexed.upper(),
+    ]
+
+
+def _double_b64_needles(raw: bytes) -> list[str]:
+    """AT-598: base64-of-base64 -- `raw` base64-encoded once (the isolated
+    inner layer; a log-scrubbing double-encode operates on the secret alone,
+    not on a byte run sharing neighbours before the FIRST pass), then
+    base64-encoded AGAIN, standard and URL-safe, at the OUTER layer's 3
+    byte-alignment offsets via the same `_alignment_needles` technique a
+    single level already uses -- so a double-encoded blob sitting inside a
+    longer base64 stream is still caught, the same adjacency immunity a
+    single level has. The isolated whole-blob spelling of each outer
+    encoding (real `=` padding) is included too, for when the double-encoded
+    text IS the entire payload.
+
+    Evidence this closes: at347 cycle-2 probe, 5/5 secret lengths missed
+    (qa/verdicts/at347-352-356-redact-fold.md) -- `declared_secret_encodings`
+    never looked past one level of UTF-8 encoding.
+    """
+    inner = base64.b64encode(raw)
+    return [
+        base64.b64encode(inner).decode("ascii"),
+        base64.urlsafe_b64encode(inner).decode("ascii"),
+        *_alignment_needles(inner, base64.b64encode, 3, 4),
+        *_alignment_needles(inner, base64.urlsafe_b64encode, 3, 4),
+    ]
+
+
+def _utf16_hex_needles(value: str) -> list[str]:
+    """AT-598: hex of `value` encoded as UTF-16-LE and UTF-16-BE bytes --
+    realistic in Windows/PowerShell logs, which are UTF-16 internally, and
+    missed entirely before this: `declared_secret_encodings` only ever
+    encoded the UTF-8 bytes. No alignment needed, same reason plain hex
+    needs none: hex is a 1-byte group, so it has no cross-byte adjacency to
+    lose the way base64/base32's multi-byte groups do.
+
+    Evidence this closes: at347 cycle-2 probe, 10/10 misses across the
+    lengths tried (qa/verdicts/at347-352-356-redact-fold.md).
+    """
+    le_hex = value.encode("utf-16-le").hex()
+    be_hex = value.encode("utf-16-be").hex()
+    return [le_hex, le_hex.upper(), be_hex, be_hex.upper()]
+
+
 def declared_secret_encodings(value: str) -> list[str]:
     """Every exact encoded spelling of one declared secret worth searching
     for as a literal substring of raw, unfolded text: base64 (standard and
@@ -118,9 +180,7 @@ def declared_secret_encodings(value: str) -> list[str]:
         *_alignment_needles(raw, base64.b32encode, 5, 8),
         *_alignment_needles(raw, lambda b: base64.b32encode(b).lower(), 5, 8),
     ]
-    b32_upper = base64.b32encode(raw).decode("ascii")
-    b32_lower = b32_upper.lower()
-    needles.extend((b32_upper, b32_upper.rstrip("="), b32_lower, b32_lower.rstrip("=")))
-    hexed = raw.hex()
-    needles.extend((hexed, hexed.upper()))
+    needles.extend(_isolated_variant_needles(raw))
+    needles.extend(_double_b64_needles(raw))
+    needles.extend(_utf16_hex_needles(value))
     return [needle for needle in needles if needle]
