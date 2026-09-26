@@ -713,3 +713,28 @@ judge vendor with a warning when judge == agent (AT-589).
 
 **Out of scope for this repo (noted only):** the seminar-capture agent, audio-first counselor UX, and removing the Gemini
 dependency from VTC belong to other Vidysea projects.
+
+## Sweep 2026-09-26
+
+Mode B, sharded (3 shards + consolidation), window `a49c3b8..HEAD`. Full report:
+`qa/verdicts/sweep-2026-09-26.md`. 4 new rows filed (AT-613..AT-616), 0 fixed→verified flips, 1
+instrument gap (shard 1 returned empty — checks 1/2/3/1c did not run this cycle).
+
+### TOP-3 NEXT UNITS (this sweep)
+
+| # | Unit | Why |
+|---|---|---|
+| **1** | **AT-616** — reproduce the AT-608/AT-609 regression-check red/green split cleanly, then flip both `fixed -> verified` | Blocks closing out two already-fixed secret-leak rows; the discrepancy itself (real-path pytest run stays green with the fix reverted) is worth a second pair of eyes before it's dismissed as tooling noise. |
+| **2** | **AT-614** — split `src/autotester/core/redact_fold.py` off the 300-line cap | Same remedy AT-567 already proved out for helpers.py/session.py/routes_runs.py; do it before the next redact fix has to work in a file with zero headroom. |
+| **3** | **AT-613** — re-run the real `autotester snapshot` generator over `docs/SNAPSHOT.md` | The file every SessionStart hook injects is currently missing F-057/058/059 and T-182/183/184; cheap, high-leverage fix. |
+
+### GRILL: (carried, unchanged by this sweep)
+
+- AT-218, AT-281, AT-402 — untouched this window, out of scope for shards 2/3 (check 6 owns them,
+  ran but did not re-verify; still open, not re-litigated here).
+
+### Proposed folds for the standing checker (not applied by this sweep)
+
+- **AT-582**: stale — its named fix shipped via T-183 (checker-PASSed) and is confirmed live in
+  `stages/report_export.py`. Flip to `fixed`/`fixed_by: T-183`, or narrow the title to the
+  still-open must-fix/suggestion split noted in `docs/FEATURES.jsonl` F-057.

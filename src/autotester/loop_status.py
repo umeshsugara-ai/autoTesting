@@ -134,7 +134,13 @@ class LoopStatus:
         True when the loop is silently asleep right now (`asleep_now`), or when
         there are ticks but every one of them was excluded as not credible
         (`ticks > 0` and `last_tick is None`) -- the CORRUPT state `report_lines`
-        already names but `asleep_now` alone cannot see."""
+        already names but `asleep_now` alone cannot see.
+
+        AT-610 (qa/gates/at610-strict-out-of-order.md, answered A): deliberately
+        does NOT also fire on `anomalies.out_of_order` -- liveness is judged on
+        the sorted credible ticks, so write-order corruption never hides an
+        outage, and gating on it would widen this property beyond "is the loop
+        asleep" for a smell that report_lines already renders as CORRUPT."""
         return self.asleep_now or (self.ticks > 0 and self.last_tick is None)
 
 

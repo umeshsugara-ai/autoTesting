@@ -93,7 +93,7 @@ first if you would rather decide on data than on my recommendation.
 Reply with `A`, `B` or `C` (or your own direction). I will append
 `Answered: <ISO date> — <choice> — <where>` to this file before acting on it.
 
-Answered: (pending)
+Answered: 2026-09-26T22:34:22+05:30 — B — Umesh via AskUserQuestion in the checker session. Build the both-directions fix: the held candidate on wave/at408-416-scroll-reach becomes a checkable unit. It cannot PASS without real-Chromium Mode D and the 50-shape scroll-invariance corpus run on the branch (the static harness alone is not evidence).
 
 ## Update 2026-09-25 (maker): an option-B candidate exists, and it is HELD
 
