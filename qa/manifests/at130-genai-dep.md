@@ -46,4 +46,4 @@ Not applicable — no UI/browser code touched. Changed paths: `src/autotester/do
 - `check_dependencies_declared` resolves distributions via the **currently installed** environment (`importlib.metadata.packages_distributions()`), not a static parse of `uv.lock`. If a dependency is declared in pyproject but the venv is stale (not `uv sync`'d), the check could pass or fail incorrectly for reasons unrelated to the real declaration state. This matches the existing pattern of every other AST-based doctor check (all read the live tree, not a lockfile), so it is consistent with the codebase's existing tradeoffs rather than a new one.
 - This check does not (and by design should not) flag `dependency-groups.dev` tools imported under `tests/` or `scripts/` — scope is `src/` only, per the brief ("every third-party top-level import under src/").
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, 42b918c)
