@@ -151,4 +151,4 @@ schema/provider config only).
 `64ebf6d` -- fix(gemini): validate media_resolution against the SDK enum
 (AT-591)
 
-Status: ready-for-check
+Status: checked-PASS (cycle 1, 79c7667)
