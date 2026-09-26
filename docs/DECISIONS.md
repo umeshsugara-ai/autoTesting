@@ -1132,3 +1132,33 @@ LS1, LS2 and LS4 describe behaviour already shipped and tested (tests/test_loop_
 **Approved-by:** Umesh (AskUserQuestion answers, checker session, 2026-09-26; the at383 option he chose names the session-start hook explicitly)
 
 **Links:** qa/gates/{at438-u14b-baseline, at416-clip-vs-reach-direction, erp-credentials, meeting-user-persona-ux-judging, meeting-run-video-scope, at383-loop-status-consumer, at147-expiry-end-of-day, at218-vacuous-guard-class, commit-before-verdict, at520-scripts-line-cap, at516-evidence-spec-splitting-policy, t135-url-pattern-data-migration}.md; AT-438; AT-453; AT-454; AT-416; AT-379; AT-583; AT-584; AT-587; AT-383; AT-368; AT-147; AT-150; AT-218; AT-520; AT-488; AT-516; T-122; T-145; T-135; D-047
+
+## D-049 | 2026-09-26 | type: decision | status: ACTIVE
+
+**What:** The checker amends qa/contracts/ui.md U14 to carry out Umesh's at438 gate answer, a+b+c (D-048):
+- U14(b): "pre-change detector" now means the detector at the unit's branch point, the parent commit before its first cycle. It never means a failed or committed earlier cycle of the same unit.
+- U14(c): the disclosed blind set gains AT-454, a display:contents child slotted through a mode:"closed" shadow root that is reported although it does not paint. It is filed, never charged.
+
+Under this baseline, at438-display-contents cycle 3 (9fc937d) is re-ruled PASS. AT-453 is split out as its own unit, capped at 2 cycles (gate option b), and stays open and charged. It is not added to the blind set.
+
+**Why:** Cycles 2 and 3 were charged under U14(b) against the cycle-1 probe c687b73. That probe itself FAILED (AT-442, high) and could never ship. The gate asked which baseline U14(b) means, and Umesh answered (a), the pre-unit detector.
+
+The checker re-measured in real headed Chromium (qa/evidence/browser-at438-rerule-2026-09-26-checker/): 70 layouts, run against 3 detector versions pulled from git.
+- Against c687b73^, cycle 3 and master drop zero texts the old detector reported.
+- False negatives: OLD 26, C3 2, MASTER 2. The remaining 2 are AT-453's A3/A4, which OLD also misses.
+- visual_order.js on master is byte-identical to 9fc937d.
+- An adversarial skeptic tried 16+ more shapes and could not refute this.
+
+This narrows what U14(b) charges. A later cycle may now lose ground an earlier rejected cycle of the same unit had gained, provided it never falls behind pre-unit master. That narrowing is named here deliberately, because it is exactly what gate option (a) chose. AT-453 is not lost: option (b) keeps it as its own charged unit.
+
+**Result:**
+- qa/contracts/ui.md: U14(b) and U14(c) are amended, with an amendment-log row.
+- qa/verdicts/at438-display-contents.md: gains a cycle-3 re-ruling section.
+- Ledger:
+  - AT-438, AT-449 and AT-450 flip to fixed, since 9fc937d is an ancestor of master.
+  - AT-454 becomes wontfix, a documented limitation that needs CDP-level shadow inspection.
+  - AT-453 stays open for its own unit.
+
+**Changes-authorized:** qa/contracts/ui.md U14(b) and U14(c) wording plus the amendment log (checker). No enforcement path.
+
+**Links:** D-048; qa/gates/at438-u14b-baseline.md; AT-438; AT-442; AT-449; AT-450; AT-453; AT-454; 9fc937d; c687b73; qa/evidence/browser-at438-rerule-2026-09-26-checker/
