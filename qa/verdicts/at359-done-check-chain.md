@@ -35,3 +35,22 @@ EXPLANATION: The `;` fix is right, and moving `&& true` / `&& exit 0` to accepte
 Also noted (low, not scored): no code runs a `done_check.cmd`; an agent runs it by hand in whichever shell tool it picks. The PowerShell 5.1 tool parses `&&` and `||` as errors (fails loud, not a silent pass). State the POSIX-shell assumption in the goal skill's "typed done_check" section.
 
 ## Status: FAIL (cycle 1)
+
+---
+
+# Verdict — at359-done-check-chain, cycle 2
+
+**Date:** 2026-09-26 · **Cycle checked:** 2 · **Checker:** claude-sonnet-subagent
+
+```
+VERDICT: PASS
+SCOREBOARD: the cycle-1 finding is fixed: a bare `exit` / `exit N` before the task, across `;` or `&&`, is rejected; the AT-359-authorized trailing `&& true` / `&& exit 0` are still accepted; no AT-161 regression
+FAILURES: none
+CAPABILITY-COVERAGE: 3/3 rows reproduced in separate copies (c359b-2/3/4): revert to AT-161's flatten-and-any shape → false accepts `…; echo done`; last-segment-only &&-scoring → false-rejects the real T-126/T-150 `check_deliverable.py … && uv run autotester doctor` shape; drop the _truncate_after_first_exit call → false accepts `exit 0 && uv run pytest` and `exit 0; uv run pytest` again
+LIVE-BROWSER: not-applicable (tests/test_goal_done_checks.py, tests/test_goal_done_check_shapes.py)
+ISSUES-WRITTEN: AT-595 (a newline-separated trailing `exit 0` is accepted; pre-existing, outside AT-359's scope)
+EXECUTOR: maker (checker: claude-sonnet-subagent)
+EXPLANATION: 15 probe strings were compared against `bash -c` ground truth. All the must-reject strings reject, `(exit 0) && task` is rightly accepted (a subshell exit does not end the outer shell), and `exit 0 || task` rejects. The one disagreement, "task\nexit 0" accepted, comes from the splitter never modelling newline; it predates AT-161, and no live done_check contains a newline (0/67), so it is filed separately. Combined state with master: `git merge-tree` is clean, and the merged tree gives 9 passed with the registry at 70 tasks.
+```
+
+Evidence: c359b-1 (own venv): the 2 goal test files 9 passed · ruff clean · doctor clean · the file is 297 lines, is_capable_of_failing 20 lines · the cycle1→cycle2 diff removes only the cycle-1-authored docstring; no base line was altered.
