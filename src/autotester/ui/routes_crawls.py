@@ -9,6 +9,7 @@ qa/contracts/ui.md.
 
 from __future__ import annotations
 
+import logging
 from html import escape
 from math import isfinite
 
@@ -18,6 +19,7 @@ from starlette.background import BackgroundTask
 
 from autotester.core.ids import run_id
 from autotester.core.paths import ProjectPaths
+from autotester.core.redact import Redactor
 from autotester.schema.crawl import Crawl, CrawlBounds
 from autotester.schema.enums import IssueKind
 from autotester.schema.flowspec import FlowSpec
@@ -29,14 +31,11 @@ from autotester.stages.explore_status import displayed_status, is_success
 from autotester.stages.merge_flowspec import resolve_requests
 from autotester.store.project_store import ProjectStore
 from autotester.ui import crawl_view, theme
-from autotester.ui.helpers import (
-    _load_project_or_404,
-    _require_safe_id,
-    _reserved_temp_path,
-)
+from autotester.ui.helpers import _load_project_or_404, _require_safe_id, _reserved_temp_path
 from autotester.ui.routes_crawl_login import login_card
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 _XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
@@ -98,11 +97,14 @@ def _load_flowspec_safe(store: ProjectStore) -> tuple[FlowSpec | None, str | Non
         return None, f"the FlowSpec could not be read -- {type(exc).__name__}: {exc}"
 
 
-def _queue_coverage_gap(store: ProjectStore, crawl: Crawl) -> None:
+def _queue_coverage_gap(store: ProjectStore, crawl: Crawl, redactor: Redactor) -> None:
     """AT-240: fold a finished crawl's screen gap into an open request. AT-477:
     the crawl already ran and saved by the time this runs, so a broken
-    flowspec.json must not turn that into a 500 that hides the crawl's result."""
-    spec, _spec_error = _load_flowspec_safe(store)
+    flowspec.json must not turn that into a 500 that hides the crawl's result.
+    AT-593: log the read failure (scrubbed via redactor) instead of discarding it silently."""
+    spec, spec_error = _load_flowspec_safe(store)
+    if spec_error is not None:
+        logger.warning("coverage gap not queued for %s: %s", crawl.id, redactor.scrub(spec_error))
     if spec is not None:
         queue_requests(store, diff_crawl(spec, store.list_nodes(crawl.id)))
 
@@ -275,7 +277,7 @@ def start_crawl(
                                             bounds=bounds, login_case=case, crawl_id=crawl_id)
     except ApprovalRequired as exc:
         return _crawl_error(slug, 403, "Crawl approval required", str(exc))
-    _queue_coverage_gap(store, crawl)
+    _queue_coverage_gap(store, crawl, secrets.redactor())
     return RedirectResponse(f"/projects/{slug}/crawls/{crawl.id}", status_code=303)
 
 
