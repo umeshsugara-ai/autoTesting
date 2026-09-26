@@ -1,9 +1,14 @@
 # Manifest — at597-pin-issue-caller
 
 **Unit:** a human-facing path to pin a confirmed issue as a regression case (AT-597).
-**Fix cycle:** 1 of 3
+**Fix cycle:** 2 of 3
 **Dual check:** no
-**Issues addressed:** AT-597
+**Issues addressed:** AT-597, AT-604
+
+Cycle 1's own sections below (gap, what changed, capability coverage, live
+evidence) are left as-is -- they describe the UI route, which cycle 1's
+checker PASSed outright. Cycle 2's own gap/fix/coverage is in its own
+section at the end, per the checker's cycle-1 FAIL below.
 
 ## The gap (AT-597, as filed)
 
@@ -215,5 +220,165 @@ POST /projects/liveproj/cases/{new_case_id}/delete    -> 409 (T-184's guard hold
 - **No bulk-pin, no issue browse/search beyond the existing table** — out of
   scope per AT-597's own "a 'Pin as regression case' action ... or a CLI
   command" ask.
+
+## Fix cycle 2 — the CLI path, plus AT-604
+
+Checker's cycle-1 verdict (`qa/verdicts/at597-pin-issue-caller.md`, commit
+`7e67ce4`): the UI pin route was sound, but `cli_issues.py::pin_cmd` FAILed
+C5 (no credential guard) and AT-597's own "human-confirmed steps" purpose
+(URL targets were mangled). The checker also filed AT-604 (re-pinning an
+issue with different steps silently creates a second pinned case) and asked
+for it to be folded in as cheap.
+
+### What changed
+
+- `src/autotester/cli_issues.py`:
+  - `_STEP_SPLIT_RE = re.compile(r":(?!//)")` (:89) replaces `_parse_step`'s
+    (:99) `raw.split(":", 3)`. The old split cut a URL's own scheme colon as
+    a field separator — `"navigate:https://example.com/login"` became
+    `target='https', value='//example.com/login'`. Splitting on every `:`
+    except one immediately followed by `//` lets `scheme://host/path` survive
+    as one field while every other `:`-separated field still splits exactly
+    as before (verified against the existing `click:#google-sign-in::signup
+    form still has my email` double-colon case, still green).
+  - `_guard_pin_steps` (:121, new) runs the same two guards the UI pin route
+    already ran on its form submission, reused rather than duplicated: `ui.
+    helpers._refuse_unsafe_submission` (C5 — every parsed step's target,
+    value, and each line of `expected.visible_text`, labelled `step N
+    target/value/expect` so a refusal names the field) then `ui.helpers.
+    _require_reachable_navigate_steps` (AT-058/AT-432 — a navigate step
+    outside the project's allowed domains is refused at pin time, same as
+    creation-time case-adding). Both are already in `ui/helpers.py`'s
+    `__all__` — a shared module, not private to `routes_issues.py` — so this
+    is an import, not a duplication or a move.
+  - `pin_cmd` (:137) now: loads the project via `store.load_project()`
+    (needed for the guards above; refuses cleanly if the project does not
+    exist yet — a gap the CLI never had a reason to hit before this cycle),
+    loads `SecretStore.load(proj, ProjectPaths(project).env_file,
+    strict=False)`, and folds `_guard_pin_steps` plus the new
+    `refuse_if_issue_already_pinned` (AT-604, below) into the same
+    `try/except (ValueError, HTTPException, PinnedCaseError)` that already
+    caught `_parse_step`'s `ValueError` — one place translates a guard's own
+    exception into a CLI message and a non-zero exit, whichever guard raised
+    it.
+- `src/autotester/stages/issues.py::refuse_if_issue_already_pinned` (:99,
+  new) — the stage-level, shared guard AT-604 asked for: looks up whether
+  `store.list_cases()` already has a case whose `pinned_issue_id` matches
+  this issue, and raises `PinnedCaseError` (T-184/AT-585's own class, reused
+  rather than inventing a second "protected case" exception) only when that
+  existing case's id **differs** from the one about to be created. An
+  identical resubmission (same steps, same id) is deliberately left alone
+  here — that is the pre-existing duplicate-case guard's job
+  (`ui/routes_cases.py::_refuse_duplicate` on the UI side, the CLI's own
+  `has_case` check below it), which already has its own message; this guard
+  only fires for a genuinely different set of steps.
+  - `ui/routes_issues.py::pin_issue` (:159) calls it right after building the
+    candidate `Case`, catching `PinnedCaseError` into `HTTPException(409,
+    ...)` — the same 409 pattern `routes_cases.py::delete_case` already uses
+    for a pinned case (AT-585).
+  - `cli_issues.py::pin_cmd` calls the same function; a `PinnedCaseError`
+    there is a non-zero exit with the guard's own message (via the shared
+    except block above).
+
+### Explicitly NOT built (cycle 2)
+
+- No "unpin" action — `refuse_if_issue_already_pinned`'s message says to
+  unpin first, but there is still no route or command that does it (T-184's
+  own scope, unchanged; a pinned case can only be created, never edited or
+  unpinned, in this codebase today).
+- No change to the exact wording of cycle 1's UI-side duplicate message
+  (`_refuse_duplicate`) — AT-604 is a distinct failure mode (different
+  steps, not identical ones) and gets its own message.
+
+### How to verify (commands + expected)
+
+```
+uv run pytest tests/test_ui_issues.py tests/test_cli_issues.py tests/test_pinned_regression.py tests/test_ui_case_management.py tests/test_ui_cases.py tests/test_issues.py tests/test_expand.py tests/test_expand_cli.py tests/test_run_case_pipeline.py tests/test_cli_surface.py
+uv run ruff check src tests scripts
+uv run autotester doctor
+```
+
+### Actual outputs (cycle 2, in the worktree)
+
+```
+$ uv run pytest tests/test_ui_issues.py tests/test_cli_issues.py tests/test_pinned_regression.py tests/test_ui_case_management.py tests/test_ui_cases.py tests/test_issues.py tests/test_expand.py tests/test_expand_cli.py tests/test_run_case_pipeline.py tests/test_cli_surface.py
+............................................................................. [ 51%]
+........................................................................ [100%]
+148 passed, 1 skipped, 1 warning in 6-9s (RAM-varying, 3 runs during this cycle)
+
+$ uv run ruff check src tests scripts
+All checks passed!
+
+$ uv run autotester doctor
+ledger-row-lost: qa/verdicts/at597-pin-issue-caller.md -- AT-604 is named here but has no row in qa/issues.jsonl
+1 violation(s)
+```
+
+**The doctor violation above is pre-existing, not introduced by cycle 2** —
+it fires because the checker's own cycle-1 verdict (already committed at
+`7e67ce4`, before any cycle-2 edit) names AT-604 with no matching row yet in
+`qa/issues.jsonl`. Confirmed via `grep -c AT-604 qa/issues.jsonl` -> 0 hits,
+unchanged by this cycle. `qa/issues.jsonl` is checker-owned (this project's
+maker-checker contract: "maker never edits it"; feedback goes to
+`qa/feedback-inbox.md`) and outside cycle 2's HARD RULES (no editing
+`qa/issues.jsonl`) — left for the checker to fold in on its own pass.
+
+144 -> 148 tests: 143 pre-existing (1 skip) + 5 new (`test_cli_issues.py`
+gains 4: URL-scheme preservation, out-of-scope-navigate refusal, raw-secret
+refusal, AT-604 re-pin refusal; `test_ui_issues.py` gains 1: the AT-604 409).
+The `test_cli_issues.py` fixture also now saves a `Project` (previously it
+saved none) — required for the new guards, which need `allowed_domains` and
+`secrets` to check against; two pre-existing tests
+(`test_pin_creates_a_protected_case_from_confirmed_steps`,
+`test_pinning_the_same_issue_and_steps_twice_is_idempotent`) had their
+`navigate:/signup`-style relative targets changed to
+`navigate:https://demo.test/signup` full URLs, because a relative navigate
+target now correctly fails the same reachable-navigate check the UI's own
+case-creation form has always enforced (a relative target was never a
+capability this unit claimed — cycle 1's own tests just hadn't exercised the
+reachable check yet, since the CLI didn't run it).
+
+### Capability coverage (cycle 2 fixes, each with an isolating falsification)
+
+Throwaway copy built OUTSIDE the worktree
+(`scratchpad/falsify-at597`, same recipe as cycle 1): `src/` (whole tree,
+needed for package imports), `tests/{conftest.py,
+tests_mutation_fixtures.py, test_ui_issues.py, test_cli_issues.py,
+test_pinned_regression.py, fixtures/}`, `scripts/{regression_proof.py,
+explore_proof.py}`, `pyproject.toml`, `uv.lock`, `.python-version`,
+`README.md`. `uv sync --frozen` in its own venv (cache-hit, no network);
+confirmed green (30/30 relevant tests) before any falsification. Every
+falsifying edit is a single hunk, applied, the one named test run, then
+reverted and the same test re-confirmed green before the next row — the
+tracked worktree was never touched.
+
+| capability | check | falsifying edit (single hunk) | observed |
+|---|---|---|---|
+| a raw declared secret in a `--step` value is refused, nothing written | `test_pin_refuses_a_raw_secret_value` | `cli_issues.py` `_guard_pin_steps`: `_refuse_unsafe_submission(texts, project, secrets)` -> `pass` | PASS before (exit != 0). FAIL after: `assert 0 != 0` (the CLI exited 0 and would have pinned the raw secret) |
+| a `navigate:` target keeps its `scheme://` intact | `test_pin_preserves_a_url_scheme_in_the_navigate_target` | `cli_issues.py` `_parse_step`: `_STEP_SPLIT_RE.split(raw, maxsplit=3)` -> `raw.split(":", 3)` | PASS before. FAIL after: target became `'https'`, so the (still-active) reachable-navigate guard refused it with "needs a full URL" — the mangled parse surfaces immediately, not silently |
+| an out-of-scope/unreachable `navigate:` step is refused (CLI) | `test_pin_refuses_an_out_of_scope_navigate_step` | `cli_issues.py` `_guard_pin_steps`: `_require_reachable_navigate_steps(steps, project)` -> `pass` | PASS before. FAIL after: `assert 0 != 0` (exited 0, would have pinned an unreachable step) |
+| re-pinning an issue with different steps is refused (CLI, AT-604) | `test_pin_refuses_a_second_pin_of_the_same_issue_with_different_steps` | `cli_issues.py` `pin_cmd`: `refuse_if_issue_already_pinned(store, issue.id, case.id)` -> `pass` | PASS before. FAIL after: `assert 0 != 0` (a second pinned case would have been silently created) |
+| re-pinning an issue with different steps is refused 409 (UI, AT-604) | `test_repinning_an_issue_with_different_steps_is_refused_409` | `routes_issues.py` `pin_issue`: `refuse_if_issue_already_pinned(store, issue_id, case.id)` -> `pass` | PASS before. FAIL after: `assert 200 == 409` (the resubmission redirected through to `/cases` and pinned a second case instead of being refused) |
+
+### Known limits / gaps (cycle 2, disclosed)
+
+- **No real-browser (Chromium) Mode D run this cycle either** — playwright
+  MCP was unavailable in this session too (same `CONNECT_TIMEOUT` cycle 1
+  hit). Cycle 1's live-evidence recipe above still applies to the UI route;
+  the CLI path has no browser surface to demonstrate (it never opens one).
+- **Full suite not run** — RAM-gated, same constraint as cycle 1; the
+  targeted set above covers every module this cycle touched
+  (`cli_issues.py`, `stages/issues.py`, `ui/routes_issues.py`) plus every
+  consumer of `Case`/`ProjectStore.list_cases` in the run list.
+- **`qa/issues.jsonl` has no AT-604 row** — confirmed pre-existing (see
+  Actual outputs above), left for the checker; this cycle only fixed the
+  code AT-604 described.
+- **No `--target/--value/--expect`-per-flag alternative CLI syntax** — the
+  fix kept the existing compact `action:target[:value[:expect]]` form per
+  the dispatch brief's "or add another clean approach that keeps the
+  existing CLI syntax working"; the compact form still has the pre-existing,
+  out-of-scope limitation that a literal `:` inside a value or expect box
+  (not part of a `scheme://`) still splits fields, same as before this
+  cycle.
 
 ## Status: ready-for-check
