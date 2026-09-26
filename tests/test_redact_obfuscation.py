@@ -50,7 +50,10 @@ def test_fold_credential_keeps_precomposed_and_decomposed_accents_symmetric() ->
     # STRONGER than AT-351's original "both fold to the accented letter"
     # resolution, but the equality -- the property AT-351 needed -- holds).
     precomposed = "CAFÉ_QUILT_APIKEY_31"  # accented E precomposed
-    decomposed = "CAFÉ_QUILT_APIKEY_31"  # E + combining acute
+    # E + combining acute, as an explicit \u0301 escape -- a raw combining
+    # char here gets NFC-normalised back to precomposed on save (AT-347 cycle 4).
+    decomposed = "CAFE\u0301_QUILT_APIKEY_31"
+    assert decomposed != precomposed  # never again silently compare a string with itself
     assert fold_credential(precomposed) == fold_credential(decomposed)
 
 
