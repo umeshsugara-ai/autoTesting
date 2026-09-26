@@ -17,6 +17,7 @@ from fastapi import APIRouter, Form
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from starlette.background import BackgroundTask
 
+from autotester.browser.secrets import SecretStore
 from autotester.core.ids import run_id
 from autotester.core.paths import ProjectPaths
 from autotester.core.redact import Redactor
@@ -38,26 +39,6 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 _XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-
-
-def _bounds_form(slug: str, label: str) -> str:
-    """The exact four operator-controlled bounds used by crawl preflight/run."""
-    safe = escape(slug)
-    fields = (
-        ("max_screens", "Maximum screens", "30", "1"),
-        ("max_actions", "Maximum actions", "200", "1"),
-        ("wall_clock_s", "Wall clock (seconds)", "600", "any"),
-        ("max_depth", "Maximum depth", "6", "1"),
-    )
-    inputs = "".join(
-        f"<div class='field'><label>{title}</label><input type='number' name='{name}' "
-        f"min='1' step='{step}' value='{value}' required></div>"
-        for name, title, value, step in fields
-    )
-    return (
-        f"<form method='post' action='/projects/{safe}/explore'>"
-        f"{inputs}<button type='submit'>{label}</button></form>"
-    )
 
 
 def _crawl_error(slug: str, status: int, title: str, detail: str) -> HTMLResponse:
@@ -109,13 +90,20 @@ def _queue_coverage_gap(store: ProjectStore, crawl: Crawl, redactor: Redactor) -
         queue_requests(store, diff_crawl(spec, store.list_nodes(crawl.id)))
 
 
-def _coverage_card(store: ProjectStore, safe: str, safe_id: str, nodes: list[ScreenNode]) -> str:
+def _coverage_card(
+    store: ProjectStore, safe: str, safe_id: str, nodes: list[ScreenNode], redactor: Redactor,
+) -> str:
     """AT-477: a broken flowspec.json must render as a stated read failure,
-    not a 500 -- same trade-off AT-472 made for the crawl record."""
+    not a 500 -- same trade-off AT-472 made for the crawl record. AT-608:
+    pydantic echoes `input_value=...` in its own error text, so a declared
+    secret pasted into flowspec.json reaches this rendered card unless it is
+    scrubbed first -- the same `Redactor.scrub` call `_queue_coverage_gap`
+    already makes for the log line covering this identical read failure."""
     spec, spec_error = _load_flowspec_safe(store)
     if spec_error is not None:
         return theme.card(
-            f"<p class='meta'>{escape(spec_error)}</p>", title="Against the FlowSpec",
+            f"<p class='meta'>{escape(redactor.scrub(spec_error))}</p>",
+            title="Against the FlowSpec",
         )
     if spec is not None:
         return theme.card(
@@ -154,7 +142,7 @@ def crawls(slug: str) -> str:
     if not crawl_ids:
         body = _crumbs(slug) + "<h1>Crawls</h1>" + login + theme.empty_state(
             "🕸", "No crawls yet — explore this project to map its screens on its own.",
-            _bounds_form(slug, "Explore now"),
+            crawl_view.bounds_form(slug, "Explore now"),
         )
         return theme.page("Crawls", body, active_slug=slug)
     rows = []
@@ -179,7 +167,7 @@ def crawls(slug: str) -> str:
     )
     body = (
         _crumbs(slug) + "<h1>Crawls</h1>" + login
-        + theme.card(_bounds_form(slug, "Explore again"), title="New bounded crawl")
+        + theme.card(crawl_view.bounds_form(slug, "Explore again"), title="New bounded crawl")
         + theme.card(table)
     )
     return theme.page("Crawls", body, active_slug=slug)
@@ -187,7 +175,7 @@ def crawls(slug: str) -> str:
 
 @router.get("/projects/{slug}/crawls/{crawl_id}", response_class=HTMLResponse)
 def crawl_page(slug: str, crawl_id: str) -> str:
-    store, _project = _load_project_or_404(slug)
+    store, project = _load_project_or_404(slug)
     _require_safe_id(crawl_id, "crawl_id")
     crawl = store.load_crawl(crawl_id)
     safe, safe_id = escape(slug), escape(crawl_id)
@@ -200,7 +188,8 @@ def crawl_page(slug: str, crawl_id: str) -> str:
     edges = store.list_edges(crawl_id)
     issues = store.list_crawl_issues(crawl_id)
     names = {n.id: (n.name or n.title or n.url_template) for n in nodes}
-    coverage = _coverage_card(store, safe, safe_id, nodes)
+    redactor = SecretStore.load(project, store.paths.env_file, strict=False).redactor()
+    coverage = _coverage_card(store, safe, safe_id, nodes, redactor)
     body = (
         _crumbs(slug, ("Crawl", None))
         + f"<h1>Crawl <code>{safe_id}</code></h1>"
@@ -241,7 +230,6 @@ def start_crawl(
     already makes (no background job queue), so the page returns when the crawl
     is genuinely finished rather than promising one that never ran."""
     from autotester.browser.observe import PageObserver
-    from autotester.browser.secrets import SecretStore
     from autotester.browser.session import BrowserSession
     from autotester.core.consent import ApprovalRequired
     from autotester.schema.crawl import SafetyPolicy

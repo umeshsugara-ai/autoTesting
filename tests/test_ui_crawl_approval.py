@@ -212,3 +212,25 @@ def test_explore_logs_a_redacted_flowspec_read_failure(
     assert "coverage gap not queued" in caplog.text
     assert "hunter2" not in caplog.text
     assert "[REDACTED]" in caplog.text
+
+
+def test_crawl_page_scrubs_a_secret_from_a_broken_flowspecs_read_error(
+    client: TestClient, scratch_root: Path,
+) -> None:
+    """AT-608: `_coverage_card` renders `_load_flowspec_safe`'s read-failure
+    text straight into the crawl page with `escape()` only -- pydantic's own
+    error text echoes `input_value=...`, so a declared secret pasted into a
+    broken flowspec.json reached the browser raw. The card must render the
+    same stated read failure (AT-477's contract is unchanged) but scrubbed."""
+    store = make_project(scratch_root)
+    (scratch_root / ".env").write_text("DEMO_PASSWORD=hunter2\n", encoding="utf-8")
+    store.paths.flowspec.write_text('{"project": "demo", "screens": "hunter2"}',
+                                    encoding="utf-8")
+    store.save_crawl(Crawl(project="demo", id="crawl_demo"))
+
+    response = client.get("/projects/demo/crawls/crawl_demo")
+
+    assert response.status_code == 200
+    assert "hunter2" not in response.text
+    assert "[REDACTED]" in response.text
+    assert "the FlowSpec could not be read" in response.text

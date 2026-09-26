@@ -15,15 +15,16 @@ specifically:
 
 from __future__ import annotations
 
+import base64
 from pathlib import Path
 
 from openpyxl import load_workbook
 
 from autotester.schema.case import Case
-from autotester.schema.enums import Action, CaseClass, CaseKind, Outcome, Result
+from autotester.schema.enums import Action, CaseClass, CaseKind, EvidenceKind, Outcome, Result
 from autotester.schema.flowspec import Step
 from autotester.schema.project import Project, SecretRef
-from autotester.schema.run import RawResult, Run
+from autotester.schema.run import Evidence, RawResult, Run
 from autotester.schema.verdict import Verdict
 from autotester.stages import report_export
 from autotester.store import ProjectStore
@@ -31,6 +32,9 @@ from autotester.store import ProjectStore
 RUN_ID = "run-secret123"
 SECRET_KEY = "DEMO_LOGIN_PASSWORD"
 SECRET_VALUE = "hunter2-super-secret"  # a fake test value, never a real credential
+PNG_BYTES = base64.b64decode(  # a real, tiny, valid 1x1 PNG
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+)
 
 
 def _seed(tmp_path: Path, *, fill_value: str) -> ProjectStore:
@@ -131,3 +135,62 @@ def test_export_excel_redacted_value_never_reaches_any_cell_in_the_workbook(
     )
 
     assert SECRET_VALUE not in all_text
+
+
+def _seed_title_and_label(tmp_path: Path) -> ProjectStore:
+    """AT-609: a `Case.title` and an `Evidence.label` are both operator-
+    authored free text -- neither is a `Step.value` that `_repro_steps`
+    already scrubs. Both carry the raw declared secret here."""
+    store = ProjectStore("demo", tmp_path)
+    store.save_project(
+        Project(
+            slug="demo", name="Demo", base_url="https://demo.test",
+            allowed_domains=["demo.test"],
+            secrets=[SecretRef(key=SECRET_KEY, domains=["demo.test"])],
+        )
+    )
+    (tmp_path / ".env").write_text(f"{SECRET_KEY}={SECRET_VALUE}\n", encoding="utf-8")
+    case = Case(
+        project="demo", flow_id="flow-login", kind=CaseKind.BEST, case_class=CaseClass.HAPPY,
+        title=f"Login works {SECRET_VALUE}",
+        steps=[Step(order=1, action=Action.NAVIGATE, target="/login")],
+    )
+    store.add_case(case)
+    store.save_run(Run(id=RUN_ID, project="demo", case_ids=[case.id]))
+    run_dir = store.paths.run_dir(RUN_ID)
+    (run_dir / "01-shot.png").write_bytes(PNG_BYTES)
+    store.save_result(RUN_ID, RawResult(
+        case_id=case.id, outcome=Outcome.COMPLETED, duration_s=1.0,
+        evidence=[Evidence(kind=EvidenceKind.SCREENSHOT, path="01-shot.png",
+                           step_order=1, label=f"before {SECRET_VALUE}")],
+    ))
+    store.save_verdict(RUN_ID, Verdict(
+        run_id=RUN_ID, case_id=case.id, result=Result.PASS, criteria_met=1, criteria_total=1,
+        scoreboard="Criteria 1/1 met.", grader_provider="gemini",
+    ))
+    return store
+
+
+def test_export_excel_redacts_a_raw_secret_value_in_the_case_title(tmp_path: Path) -> None:
+    _seed_title_and_label(tmp_path)
+
+    out = report_export.export_excel("demo", RUN_ID, tmp_path / "out.xlsx", tmp_path)
+    wb = load_workbook(out)
+    rows = list(wb.active.iter_rows(values_only=True))
+    header = rows[0]
+    row = dict(zip(header, rows[1], strict=True))
+
+    assert SECRET_VALUE not in (row["Case"] or "")
+    assert f"[REDACTED]:{SECRET_KEY}" in row["Case"]
+
+
+def test_export_html_redacts_a_raw_secret_value_in_the_case_title_and_evidence_label(
+    tmp_path: Path,
+) -> None:
+    _seed_title_and_label(tmp_path)
+
+    out = report_export.export_html("demo", RUN_ID, tmp_path / "out.html", tmp_path)
+
+    html = out.read_text(encoding="utf-8")
+    assert SECRET_VALUE not in html
+    assert html.count(f"[REDACTED]:{SECRET_KEY}") >= 2  # once in <h2>, once in <figcaption>
