@@ -57,4 +57,4 @@ LIVE-BROWSER: not-applicable — pure data-transformation unit (`model_json_sche
 - `providers/gemini.py` deliberately untouched (owned in parallel by at367-370); its wiring test (`test_the_PROVIDER_actually_sends_the_sanitised_schema`) still passes unchanged against the new sanitiser output shape.
 - No live Gemini API call was made (per instruction) — the fix is verified against the installed SDK's local type introspection (`google.genai.types.Schema.model_fields`) and constructed schema probes, not a real `response_schema` round-trip. `qa/contracts/ingest.md` I13/I15 (pinning the wire + response validation) are unaffected by this unit and were not re-verified here beyond the existing passing test.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, e14e0af)
