@@ -163,4 +163,4 @@ Not UI-touching — CLI-only fix. Changed paths: `src/autotester/cli_loop.py`,
   surviving credible tick was not in scope and is not covered by these tests. Flagged for the
   checker to decide whether that is a separate gap.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, qa/verdicts/at592-loop-status-strict.md c51dce5)
