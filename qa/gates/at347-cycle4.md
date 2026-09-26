@@ -26,4 +26,4 @@ Should the maker get a narrow cycle 4, scoped to a single test literal, beyond t
   - Checker's estimate: a re-check within minutes.
 - **B — STALL.** Leave the unit unmerged and run the stall diagnosis. The three security fixes stay off master.
 
-Answered: (pending)
+Answered: A — narrow cycle 4 (Umesh, 2026-09-26, via AskUserQuestion in the maker session). Scope: that one test literal plus `assert decomposed != precomposed`; no source change.
