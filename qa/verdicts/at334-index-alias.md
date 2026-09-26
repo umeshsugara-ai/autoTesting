@@ -39,3 +39,5 @@ at334   nodes: 1 screen patterns: ['/index.html'] | run visits '/': gap = True
 - Edge cases: `/index.html?x=1`, `#frag`, `/INDEX.HTML` (not folded, case-sensitive), `/docs/index.htm`, `/index.html/`, `/a/index.html.bak` and `/myindex.html` all follow the documented rule.
 - 4c: only urls.py, screen_identity.py, two test files and the manifest changed, with no deletions and the caps held.
 - The full suite was started on the tip. Its result is appended below when it lands; it cannot change this FAIL.
+
+- **Addendum:** the full-suite run was stopped by the checker after the FAIL was established, to free RAM for the next unit in the queue. Cycle 2 re-runs the full suite and Mode D.
