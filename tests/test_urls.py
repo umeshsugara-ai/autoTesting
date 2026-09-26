@@ -4,7 +4,7 @@ ingest (`Screen.url_pattern`) and Track B's screen identity (`ScreenNode`).
 
 from __future__ import annotations
 
-from autotester.core.urls import absolute_url, url_template
+from autotester.core.urls import absolute_url, screen_url_pattern, url_template
 
 
 def test_numeric_segment_is_templated() -> None:
@@ -151,3 +151,40 @@ def test_a_non_url_transcription_no_longer_falsely_claims_the_site_root() -> Non
     result = url_template(absolute_url("Sign in page"), keep_host=False)
     assert result != "/"
     assert result == "/Sign in page"
+
+
+# -- AT-299b cycle 2: the caller boundary must not claim a false root either --
+
+def test_screen_url_pattern_reports_none_for_a_bare_ambiguous_token() -> None:
+    """The checker's FAIL: `url_template(absolute_url(x), keep_host=False)`, which
+    every one of the three callers uses, still turned a schemeless, slash-free,
+    dotted token into "/" -- indistinguishable BY SHAPE from a real bare host's
+    root (AT-287's own "settings.json vs example.com" ambiguity). `None` is the
+    honest "no pattern is knowable" outcome (I7), not a false claim on the root."""
+    for bare in ("file.html", "sitemap.xml", "report.pdf", "robots.txt", "a.b", "example.com"):
+        assert screen_url_pattern(bare) is None, bare
+
+
+def test_screen_url_pattern_keeps_root_when_the_raw_string_actually_said_so() -> None:
+    """Never suppresses a GENUINE root: an explicit trailing slash after a
+    promoted host, an already-absolute path, and a real scheme all keep "/"."""
+    assert screen_url_pattern("example.com/") == "/"
+    assert screen_url_pattern("/") == "/"
+    assert screen_url_pattern("https://app.test") == "/"
+    assert screen_url_pattern("https://app.test/") == "/"
+
+
+def test_screen_url_pattern_is_unaffected_when_a_real_path_survives() -> None:
+    """Every AT-299b cycle-1 shape (a real path templates to something other
+    than "/") is untouched by the None guard -- it only fires when the
+    templated result IS "/"."""
+    assert screen_url_pattern("erp/trainers") == "/erp/trainers"
+    assert screen_url_pattern("students/1") == "/students/{id}"
+    assert screen_url_pattern("vidysea.com/erp/trainers") == "/erp/trainers"
+    assert screen_url_pattern("localhost:3000/students/1") == "/students/{id}"
+    assert screen_url_pattern("Sign in page") == "/Sign in page"
+
+
+def test_screen_url_pattern_is_none_for_no_input() -> None:
+    assert screen_url_pattern(None) is None
+    assert screen_url_pattern("") is None
