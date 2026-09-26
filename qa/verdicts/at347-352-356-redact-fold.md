@@ -44,3 +44,23 @@ ISSUES-WRITTEN: AT-598 (double b64 and UTF-16 hex not covered), AT-599 (a needle
 EXECUTOR: maker (checker: claude-sonnet-subagent)
 EXPLANATION: The precomputed-needle design is sound and fixes cycle 1's adjacency class (b64 alignment and the Basic-auth shape hold). But the fold floor was left in front of it, and b32 got neither case variants nor alignment offsets. False positives: 0 on a 121 KB corpus with secrets on both sides of the floor. Perf: about 0.24 s per call at 50 KB, roughly linear, dominated by the pre-existing _is_ignorable scan. Diff scope is clean: the token regexes and _decode_block are fully removed, every core.redact importer resolves, and files are 142/261/86 lines. The dual check's mixed-case-hex claim did not reproduce (the orchestrator's interleaved-case hex was caught).
 ```
+
+---
+
+# Verdict — at347-352-356-redact-fold, cycle 3 (final)
+
+**Date:** 2026-09-26 · **Cycle checked:** 3 · **Checker:** orchestrator (checker seat), direct re-run (RAM 0.27 GB ruled out a second subagent)
+
+```
+VERDICT: FAIL
+SCOREBOARD: all 3 cycle-2 security findings are FIXED and verified; one 4c defect in the test split: a moved AT-351 regression test was made vacuous
+FAILURES:
+- [4c / AT-351 regression] sev: medium · The split moved test_fold_credential_keeps_precomposed_and_decomposed_accents_symmetric into tests/test_redact_obfuscation.py, but its `decomposed` literal lost its combining acute: it was "CAFE\u0301_QUILT_APIKEY_31" (E + U+0301) at 4ca4721 and is now "CAF\xc9_QUILT_APIKEY_31", byte-identical to `precomposed`. The test now asserts fold(x) == fold(x) and cannot fail. The old test_core.py had 5 combining characters; the three new files together have 4. It is the only moved test whose AST changed (all 18 moved names are present; AST-compared). · Fix: restore the decomposed spelling, written as an escape ("CAFE\u0301_QUILT_APIKEY_31") so no editor or tool can NFC-normalise it again, and assert `decomposed != precomposed` as a guard line. · issue: AT-351 (regression guard), AT-352
+CAPABILITY-COVERAGE: not re-run this cycle (FAIL on 4c); the security behaviour was verified directly by the probes below
+LIVE-BROWSER: not-applicable (core/redact*.py, tests)
+ISSUES-WRITTEN: none new (the perf note is below, for the ledger at close-out)
+EXECUTOR: maker (checker: orchestrator direct)
+EXPLANATION: Security probes on HEAD 8081c32 (5 secrets × offsets 0-9 × b64/b64url/b32/b32-lower × 5 contexts, plus hex, HEX and b64("user:"+secret), both doors). The fold floor no longer starves the exact search: every isolated encoding of "Zq7!kP2x" is caught. b32 alignment and lowercase are fixed. Coverage boundary, stated so it is known: a raw secret of 7 or fewer characters gets no encoding protection by design (it stays exact-match-only, floorless per AT-002); an 8-character secret misses b32 only at alignment offset 1 (mod 5), where no pure 5-byte group exists (inherent to the prescribed technique, not an implementation defect); 9 or more characters has no misses. False positives: 0 on a 518 KB corpus (prose, UUIDs, sha256, base64 image data, random b32). Perf note: 518 KB with 5 secrets took 11.8 s for assert plus contains_folded, more than linear from the 0.27 s/50 KB claim; worth an issue at close-out. 4c otherwise clean: all 18 moved test names are kept (+7 new), and the redact_fold.py docstring change removes "already filtered to folded_value at least MIN_FOLDED_LEN" because this fix made it false, with the replacement text explaining why. Verify: 65 passed (the 3 test files), ruff clean, doctor has only the 2 known ledger-row-lost rows (the branch predates master 2d1858b). Files 144/123/292 lines.
+```
+
+This is fix cycle 3 of 3. The remaining defect is a one-line test restoration; everything the unit set out to fix now holds. What happens next (a human-approved cycle 4 or a gate) is the maker's protocol decision, per the cycle cap.
