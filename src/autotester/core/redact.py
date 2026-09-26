@@ -16,6 +16,7 @@ from collections.abc import Iterable
 from typing import Any
 
 from autotester.core.redact_fold import (
+    ASCII_CONFUSABLES,
     BIDI_OVERRIDES,
     MIN_FOLDED_LEN,
     _contains_folded_secret,
@@ -23,6 +24,7 @@ from autotester.core.redact_fold import (
 )
 
 __all__ = [
+    "ASCII_CONFUSABLES",
     "BIDI_OVERRIDES",
     "MASK",
     "MIN_FOLDED_LEN",
@@ -53,8 +55,12 @@ class Redactor:
         # Longest first, so a value that contains another is masked whole.
         self._values = sorted((v for v in secrets.values() if v), key=len, reverse=True)
         self._keys_by_value = {v: k for k, v in secrets.items()}
-        self._folded = [
-            folded for folded in (fold_credential(v) for v in self._values)
+        # (raw_value, folded_value) pairs, kept together so the widened check
+        # can search for the RAW value's exact encodings (AT-352 cycle 2 --
+        # base64/hex output is case/punctuation-significant and must not be
+        # folded) as well as its folded form, without recomputing either.
+        self._widened = [
+            (value, folded) for value, folded in ((v, fold_credential(v)) for v in self._values)
             if len(folded) >= MIN_FOLDED_LEN
         ]
 
@@ -90,7 +96,7 @@ class Redactor:
         answers the guard's question -- "could a reader recover a credential
         from what we are about to store?" -- which is a different question
         from redaction's."""
-        return _contains_folded_secret(text, self._folded)
+        return _contains_folded_secret(text, self._widened)
 
     def assert_clean(self, text: str) -> None:
         """Hard gate: raise if a known secret value survives in `text` even
@@ -125,11 +131,11 @@ def assert_no_raw_secrets(text: str, secrets: Iterable[str]) -> None:
     for value in values:
         if value in text:
             raise ValueError("refusing to proceed: raw secret value present in payload")
-    folded_secrets = [
-        folded for folded in (fold_credential(v) for v in values)
+    widened = [
+        (value, folded) for value, folded in ((v, fold_credential(v)) for v in values)
         if len(folded) >= MIN_FOLDED_LEN
     ]
-    if _contains_folded_secret(text, folded_secrets):
+    if _contains_folded_secret(text, widened):
         raise ValueError(
             "refusing to proceed: raw secret value present in payload "
             "(folded/encoded/reversed match)"

@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
 import time
 
 import pytest
 
 from autotester.core.ids import content_hash, content_id, run_id, ulid
 from autotester.core.redact import (
+    ASCII_CONFUSABLES,
     MASK,
     Redactor,
     assert_no_raw_secrets,
@@ -115,9 +118,9 @@ def test_fold_credential_keeps_precomposed_and_decomposed_accents_symmetric() ->
 @pytest.mark.parametrize(
     "label,payload",
     [
-        ("base64", __import__("base64").b64encode(CRED.encode()).decode()),
-        ("base32", __import__("base64").b32encode(CRED.encode()).decode()),
-        ("hex", __import__("binascii").hexlify(CRED.encode()).decode()),
+        ("base64", base64.b64encode(CRED.encode()).decode()),
+        ("base32", base64.b32encode(CRED.encode()).decode()),
+        ("hex", binascii.hexlify(CRED.encode()).decode()),
         ("html-dec-entities", "".join(f"&#{ord(c)};" for c in CRED)),
         ("html-hex-entities", "".join(f"&#x{ord(c):X};" for c in CRED)),
         ("double-percent", "".join(f"%25{ord(c):02X}" for c in CRED)),
@@ -134,9 +137,9 @@ def test_contains_folded_catches_encoded_and_reversed_spellings(label: str, payl
 @pytest.mark.parametrize(
     "label,payload",
     [
-        ("base64", __import__("base64").b64encode(CRED.encode()).decode()),
-        ("base32", __import__("base64").b32encode(CRED.encode()).decode()),
-        ("hex", __import__("binascii").hexlify(CRED.encode()).decode()),
+        ("base64", base64.b64encode(CRED.encode()).decode()),
+        ("base32", base64.b32encode(CRED.encode()).decode()),
+        ("hex", binascii.hexlify(CRED.encode()).decode()),
         ("html-dec-entities", "".join(f"&#{ord(c)};" for c in CRED)),
         ("html-hex-entities", "".join(f"&#x{ord(c):X};" for c in CRED)),
         ("double-percent", "".join(f"%25{ord(c):02X}" for c in CRED)),
@@ -156,6 +159,66 @@ def test_assert_no_raw_secrets_blocks_obfuscated_spelling_in_prompt_text(
     text = f"Here is some context: {payload} -- please proceed."
     with pytest.raises(ValueError, match="raw secret"):
         assert_no_raw_secrets(text, [CRED])
+
+
+@pytest.mark.parametrize(
+    "label,text",
+    [
+        ("filename_b64.png", f"filename_{base64.b64encode(CRED.encode()).decode()}.png"),
+        ("prefix_b64_suffix", f"prefix_{base64.b64encode(CRED.encode()).decode()}_suffix"),
+        ("prefix-b64-suffix", f"prefix-{base64.b64encode(CRED.encode()).decode()}-suffix"),
+        ("prefixXXb64YYsuffix", f"prefixXX{base64.b64encode(CRED.encode()).decode()}YYsuffix"),
+        ("tok_b64_end", f"tok_{base64.b64encode(CRED.encode()).decode()}_end"),
+        ("SECRETb32CODE", f"SECRET{base64.b32encode(CRED.encode()).decode()}CODE"),
+        ("cafe_hex_beef", f"cafe{CRED.encode().hex()}beef"),
+        ("abc_hex_def", f"abc{CRED.encode().hex()}def"),
+    ],
+)
+def test_contains_folded_catches_encoded_secret_next_to_its_own_alphabet(
+    label: str, text: str,
+) -> None:
+    # AT-352 cycle 2 (checker cycle-1 FAIL, both verdicts): the cycle-1 fix
+    # scanned `text` for base64/base32/hex-SHAPED runs and tried to decode
+    # them, but the greedy token regex swallowed adjacent alphanumeric
+    # characters (a filename's `_`/`-`, a variable-name-style prefix/suffix)
+    # into one oversized run that never decoded, so the credential inside it
+    # was never recovered. Fixed by searching for the SECRET's own
+    # precomputed encodings as an exact substring instead -- immune to
+    # whatever sits next to it.
+    redactor = Redactor({"DEMO_PASSWORD": CRED})
+    assert redactor.contains_folded(text), f"{label} bypassed contains_folded"
+
+
+@pytest.mark.parametrize(
+    "label,text",
+    [
+        ("filename_b64.png", f"filename_{base64.b64encode(CRED.encode()).decode()}.png"),
+        ("prefix_b64_suffix", f"prefix_{base64.b64encode(CRED.encode()).decode()}_suffix"),
+        ("prefix-b64-suffix", f"prefix-{base64.b64encode(CRED.encode()).decode()}-suffix"),
+        ("prefixXXb64YYsuffix", f"prefixXX{base64.b64encode(CRED.encode()).decode()}YYsuffix"),
+        ("tok_b64_end", f"tok_{base64.b64encode(CRED.encode()).decode()}_end"),
+        ("SECRETb32CODE", f"SECRET{base64.b32encode(CRED.encode()).decode()}CODE"),
+        ("cafe_hex_beef", f"cafe{CRED.encode().hex()}beef"),
+        ("abc_hex_def", f"abc{CRED.encode().hex()}def"),
+    ],
+)
+def test_assert_no_raw_secrets_blocks_encoded_secret_next_to_its_own_alphabet(
+    label: str, text: str,
+) -> None:
+    # Same 8 adjacency cases, through the model-prompt gate this time --
+    # both doors share `_contains_folded_secret`, but each has its own test
+    # so a regression in either caller's wiring is caught directly.
+    with pytest.raises(ValueError, match="raw secret"):
+        assert_no_raw_secrets(text, [CRED])
+
+
+def test_ascii_confusables_still_importable_from_redact() -> None:
+    # A checker (verdict .b, "Also noted") caught this live: splitting the
+    # fold internals into core.redact_fold in cycle 1 dropped ASCII_CONFUSABLES
+    # from core.redact's public surface, breaking `from autotester.core.redact
+    # import ASCII_CONFUSABLES` even though no in-tree caller used it at the
+    # time. Re-exported now; this pins it so the next split doesn't repeat it.
+    assert ASCII_CONFUSABLES[ord("\u0430")] == "a"  # Cyrillic a -> Latin a, spot check
 
 
 def test_assert_no_raw_secrets_does_not_false_positive_on_ordinary_prose() -> None:

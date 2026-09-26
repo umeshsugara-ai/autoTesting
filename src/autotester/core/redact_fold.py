@@ -7,18 +7,21 @@ implementing AT-347/AT-352/AT-356) because folding is one self-contained
 concern -- widening a comparison, never touching stored bytes -- distinct
 from `redact.py`'s masking/gating logic. `redact.py` re-exports every name
 here that anything outside this pair imports, so no other module's import
-line changes.
+line changes. `core/redact_encodings.py` holds the exact base64/base32/hex
+needle search (AT-352 cycle 2) -- split out again for the same C2 reason,
+and imported here rather than by `redact.py` directly, since it is only ever
+used from inside `_contains_folded_secret`.
 """
 
 from __future__ import annotations
 
-import base64
-import contextlib
 import html
 import re
 import unicodedata
 from collections.abc import Sequence
 from urllib.parse import unquote_plus
+
+from autotester.core.redact_encodings import declared_secret_encodings
 
 _FOLD_STRIP = re.compile(r"[\s\-_.+~/:|,;!?*=^'\"`()\[\]{}<>\\]+")
 r"""The punctuation a human actually substitutes for a separator. Widened from
@@ -188,57 +191,32 @@ def fold_credential(text: str) -> str:
     return _FOLD_STRIP.sub("", unmarked).casefold()
 
 
-_B64_TOKEN_RE = re.compile(r"[A-Za-z0-9+/_-]{8,}={0,2}")
-_B32_TOKEN_RE = re.compile(r"[A-Za-z2-7]{8,}={0,6}")
-_HEX_TOKEN_RE = re.compile(r"[0-9A-Fa-f]{16,}")
-
-
-def _decode_block(token: str) -> list[str]:
-    """Every byte-decoding this module knows (base64, URL-safe base64,
-    base32, hex) attempted on one self-contained token, each independent and
-    best-effort -- see `_obfuscated_spellings`, which calls this once for the
-    whole text and once per matched token."""
-    out: list[str] = []
-    padded4 = token + "=" * (-len(token) % 4)
-    with contextlib.suppress(ValueError, UnicodeDecodeError):
-        out.append(base64.b64decode(padded4, validate=False).decode("utf-8"))
-    with contextlib.suppress(ValueError, UnicodeDecodeError):
-        out.append(base64.urlsafe_b64decode(padded4).decode("utf-8"))
-    padded8 = token + "=" * (-len(token) % 8)
-    with contextlib.suppress(ValueError, UnicodeDecodeError):
-        out.append(base64.b32decode(padded8, casefold=True).decode("utf-8"))
-    with contextlib.suppress(ValueError, UnicodeDecodeError):
-        out.append(bytes.fromhex(token).decode("utf-8"))
-    return out
-
-
 def _obfuscated_spellings(text: str) -> list[str]:
     r"""Best-effort decodings of `text` worth folding and comparing against a
-    secret, beyond the text itself: reversed, HTML entity-unescaped, up to
+    secret, beyond the text itself: reversed, HTML entity-unescaped, and up to
     four passes of percent-decoding (so a doubly percent-encoded value decodes
-    too), and whatever bytes base64/base32/hex decoding produces as UTF-8.
+    too).
 
-    AT-352: `contains_folded` and `assert_no_raw_secrets` used to fold and
-    compare only the literal text, so a credential spelled in base64, base32,
-    hex, HTML numeric/hex entities, double percent-encoding, or plain reversal
-    passed both the UI intake guard and the model-prompt gate unremarked --
-    each is a spelling a person reverses with one lookup or a browser console,
-    not a defence against a determined attacker.
+    AT-352 cycle 1: `contains_folded` and `assert_no_raw_secrets` used to fold
+    and compare only the literal text, so a credential spelled in HTML numeric/
+    hex entities, double percent-encoding, or plain reversal passed both the
+    UI intake guard and the model-prompt gate unremarked. All three are
+    substring-safe: they decode a match wherever it sits in a larger string
+    and leave the rest alone, so running them once over the whole `text` is
+    correct even when the caller (`assert_no_raw_secrets`, given a full model
+    prompt, not a bare field) passes a credential embedded in a sentence.
 
-    Reversal, HTML-unescape and percent-decoding are all substring-safe: they
-    decode a match wherever it sits in a larger string and leave the rest
-    alone, so running them once over the whole `text` is correct even when
-    the caller (`assert_no_raw_secrets`, given a full model prompt, not a bare
-    field) passes a credential embedded in a sentence. Base64/base32/hex are
-    NOT substring-safe -- surrounding prose breaks whole-text decoding, since
-    the decoder needs the ENTIRE input to be valid alphabet -- so those three
-    are also tried against every base64/base32/hex-SHAPED run `_decode_block`
-    can find inside `text`, not just the whole string. A run of 8+ plain
-    letters matches the base64/base32 token shape too (their alphabets are
-    almost all of A-Za-z0-9); that is deliberate over-triggering on ordinary
-    words, not a defect -- every failed decode contributes nothing, and a
-    lucky garbage decode still has to survive `fold_credential` and the
-    `MIN_FOLDED_LEN`-gated substring check before it means anything.
+    Base64/base32/hex used to be handled here too, by scanning `text` for
+    runs SHAPED like those alphabets and decoding each. AT-352 cycle 2
+    (checker cycle-1 FAIL, both verdicts): that scan is not substring-safe --
+    a decoder needs the ENTIRE run to be valid alphabet, and the regex greedily
+    swallowed adjacent alphanumeric characters (a filename's `_`/`-`, a token
+    prefix/suffix) into one oversized run that decoded as nothing, so the
+    credential inside it was never recovered (`tok_<b64>_end`,
+    `SECRET<b32>CODE`, `cafe<hex>beef` all bypassed). base64/base32/hex are
+    handled the opposite direction now -- see `_declared_secret_encodings`,
+    called with the SECRET, not the text -- because searching for a known
+    exact substring is immune to whatever sits next to it.
     """
     forms = [text[::-1], html.unescape(text)]
 
@@ -250,28 +228,34 @@ def _obfuscated_spellings(text: str) -> list[str]:
         forms.append(next_decoded)
         decoded = next_decoded
 
-    forms.extend(_decode_block(text))
-    for token_re in (_B64_TOKEN_RE, _B32_TOKEN_RE, _HEX_TOKEN_RE):
-        for match in token_re.finditer(text):
-            forms.extend(_decode_block(match.group()))
-
     return forms
 
 
-def _contains_folded_secret(text: str, folded_secrets: Sequence[str]) -> bool:
-    """True when a folded secret from `folded_secrets` (each already
-    `fold_credential`-ed and at least `MIN_FOLDED_LEN` long) is a substring of
-    `text` or of any of `text`'s `_obfuscated_spellings`, each independently
-    folded.
+def _contains_folded_secret(text: str, widened_secrets: Sequence[tuple[str, str]]) -> bool:
+    """True when a widened secret from `widened_secrets` -- each an
+    `(raw_value, folded_value)` pair already filtered to `folded_value` at
+    least `MIN_FOLDED_LEN` long -- is found in `text` either as one of
+    `raw_value`'s exact `redact_encodings.declared_secret_encodings` (a
+    literal substring of the RAW text, unfolded -- AT-352 cycle 2's base64/
+    base32/hex fix) or as a substring of `text`'s `fold_credential` or any of
+    `text`'s `_obfuscated_spellings`, each independently folded.
 
     Shared by `Redactor.contains_folded` and `assert_no_raw_secrets` (AT-347)
     so the UI intake door and the model-prompt gate see the same widened
     match instead of drifting apart the way the two doors did before AT-346 --
-    one place that composes Unicode folding with encoding/reversal folding,
-    not two copies that each cover half.
+    one place that composes Unicode folding, encoding/reversal folding, and
+    exact-encoding substring matching, not separate copies that each cover
+    part of it.
     """
-    if not folded_secrets:
+    if not widened_secrets:
         return False
+    if any(
+        needle in text
+        for raw_value, _folded in widened_secrets
+        for needle in declared_secret_encodings(raw_value)
+    ):
+        return True
     candidates = {fold_credential(text)}
     candidates.update(fold_credential(form) for form in _obfuscated_spellings(text))
+    folded_secrets = [folded for _raw, folded in widened_secrets]
     return any(secret in candidate for candidate in candidates for secret in folded_secrets)

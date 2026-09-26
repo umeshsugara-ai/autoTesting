@@ -28,6 +28,7 @@
 | `core/paths.py` | Filesystem layout. The ONLY place project paths are constructed. |
 | `core/pricing.py` | Per-token cost estimates for LLM-call trace spans (D-041 phase 1, RT4). |
 | `core/redact.py` | Secret redaction. Every log line and stored artifact passes through here. |
+| `core/redact_encodings.py` | Exact encoded-spelling search: precompute how a declared secret would look |
 | `core/redact_fold.py` | Credential folding: normalise a string so a case, punctuation, homoglyph, |
 | `core/trace.py` | The redacted per-run trace: `TraceWriter` appends one JSON line per stage |
 | `core/urls.py` | URL templating: the identity input a crawled screen shares with the |
