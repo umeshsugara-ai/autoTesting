@@ -4,13 +4,19 @@
 for a browser, and the exact JSON body FastAPI's default handler already produced for everyone
 else — status codes unchanged.
 **Contract:** `qa/contracts/ui.md` U5 (escaping discipline) — no criterion yet names this app-wide
-handler by number; flagged for the checker to decide whether a new U-item is warranted (U10's
-amendment log already tracks the sibling gap on `approve`/`request-edit` as AT-259, deliberately
-not claimed here either).
+handler by number; flagged for the checker to decide whether a new U-item is warranted. Also
+`browser-and-secrets.md` C5 ("one concept, one place") for the secret-loader revision below.
 **Date:** 2026-09-26
 **Fix cycle:** 1 of 3
 **Dual check:** no
 **Issues addressed:** AT-596
+
+**Revision history within this manifest:** a checker pre-check (before dispatching a full check)
+read the cycle-1 diff and sent back two findings, addressed below without opening a new fix cycle:
+(1) the handler was registered on `fastapi.HTTPException` rather than its Starlette base class, so
+Starlette's own unmatched-route 404 fell through uncovered; (2) `_repo_redactor()` hand-rolled a
+second `.env` read-and-parse instead of calling the same `SecretStore` loader every other consumer
+in this codebase uses (C5). Both are fixed in commit `6b52c12`, described under "What changed."
 
 ## The gap (AT-596, as filed)
 
@@ -23,24 +29,21 @@ cycle, `qa/evidence/browser-t184-pinned-regression-2026-09-26-checker/02-after-p
 
 ## What changed
 
-- `src/autotester/ui/error_pages.py` (new, 86 lines) — the whole fix, split out of `app.py` rather
-  than added inline because `app.py` was already at 295/300 lines (the design cap) before this
-  unit; adding the handler in place would have pushed it to ~305.
+**Commit `d9a4182` (original cycle-1 fix):**
+
+- `src/autotester/ui/error_pages.py` (new) — split out of `app.py` rather than added inline because
+  `app.py` was already at 295/300 lines (the design cap) before this unit; adding the handler in
+  place would have pushed it to ~305.
   - `_wants_html(request)` — `"text/html" in request.headers.get("accept", "")`. A real browser
     sends `Accept: text/html,application/xhtml+xml,...`; httpx's `TestClient` sends `Accept: */*`
     when a test sets no header at all (confirmed live, see "Actual outputs"), so every pre-existing
     test in this suite that never sets `Accept` keeps seeing JSON, unchanged.
-  - `_repo_redactor()` — builds a `core.redact.Redactor` from `parse_env(repo_root() / ENV_FILE)`,
-    the same repo-root `.env` file `ProjectPaths(<any slug>).env_file` always resolves to ("one
-    credential file for the whole repo," `core/paths.py`) and the same shared-`.env` matching U9
-    already requires of the credential guard. Used instead of a project-scoped `SecretStore`
-    because an app-wide error page has no single project in scope to load one from.
-  - `_error_page(status_code, detail)` — redacts `detail` via `_repo_redactor().scrub(...)`, THEN
-    `html.escape`s it (redact-then-escape, not the other way round, or a scrubbed value would need
-    to match against already-escaped secret bytes), and renders it inside `theme.card(...)` /
-    `theme.page(...)` — the same wrap/card primitives every other themed page in this app already
-    uses (`ui/routes_learn.py::_refusal` is the closest existing precedent for "a themed refusal
-    with a way onward").
+  - `_error_page(status_code, detail)` — redacts `detail`, THEN `html.escape`s it (redact-then-
+    escape, not the other way round, or a scrubbed value would need to match against already-
+    escaped secret bytes), and renders it inside `theme.card(...)` / `theme.page(...)` — the same
+    wrap/card primitives every other themed page in this app already uses
+    (`ui/routes_learn.py::_refusal` is the closest existing precedent for "a themed refusal with a
+    way onward").
   - `http_exception_handler(request, exc)` — the registered handler: JSON/no-`Accept` callers are
     handed straight to FastAPI's own `fastapi.exception_handlers.http_exception_handler` (so the
     204/304-body-suppression edge case and the JSON shape are exactly FastAPI's, not reimplemented);
@@ -56,15 +59,57 @@ cycle, `qa/evidence/browser-t184-pinned-regression-2026-09-26-checker/02-after-p
 - `tests/test_ui_error_pages.py` (new, 9 tests) — see "Actual outputs" and "Capability coverage."
 - `docs/MAP.md` — regenerated (`uv run autotester map`) to list the new module; no hand edits.
 
+**Commit `6b52c12` (this pre-check revision, same Fix cycle 1):**
+
+- `src/autotester/ui/error_pages.py:34` — `from fastapi import ... HTTPException` replaced by
+  `from starlette.exceptions import HTTPException` (FastAPI's own base class). Starlette's
+  exception middleware looks a handler up by walking `type(exc).__mro__`
+  (`starlette/exceptions.py::ExceptionMiddleware._lookup_exception_handler`), so registering on the
+  base class still matches every route's `fastapi.HTTPException` (a subclass, unchanged) **and**
+  now also Starlette's own bare `HTTPException(404, "Not Found")` for a URL matching no route at
+  all — confirmed live via a throwaway `TestClient` probe before writing the fix (see "Actual
+  outputs"). `register_exception_handler` (`error_pages.py:109`, unchanged signature) now registers
+  against this wider type. `http_exception_handler`'s own `exc` annotation follows the same import.
+- `src/autotester/ui/error_pages.py:42-67` — `_repo_redactor()` rewritten. **Before:** `Redactor(
+  parse_env(path.read_text(encoding="utf-8")))` against `repo_root() / ENV_FILE` — a second,
+  independent read-and-parse of `.env`, alongside the one every other secret consumer in this
+  codebase already goes through. **After:** `SecretStore.load(_NO_PROJECT_SCOPE, env_path,
+  strict=False).redactor()` — the identical two calls every one of the 15 other `SecretStore.load`
+  call sites in this codebase makes (`grep -rn "SecretStore\.load(" src/autotester` — e.g.
+  `ui/routes_cases.py:164,274`, `ui/routes_runs.py:115`, `cli_orchestrate.py:241`), landing on
+  `.redactor()` (`browser/secrets.py:223-235`), the same method `ui/credential_guard.py:109,154`,
+  `browser/evidence.py:58` and `stages/orchestrate.py:85` all call to turn a `SecretStore` into a
+  `Redactor`. `SecretStore.load` itself is `browser/secrets.py:117-131`. `env_path` is
+  `ProjectPaths(_NO_PROJECT_SCOPE.slug).env_file` (`core/paths.py:44-50`) — the exact same
+  `ProjectPaths(...).env_file` property every route already calls, which always resolves to the
+  repo-root `.env` regardless of slug ("one credential file for the whole repo").
+  `_NO_PROJECT_SCOPE` (`error_pages.py:42`) is a minimal, non-onboarded `Project(slug="error-pages",
+  name="error-pages", base_url="")` — a pure data carrier: `SecretStore.load` reads only
+  `project.secrets` off it (empty, so every `.env` key lands in the "shadow"/undeclared bucket
+  rather than "declared"), and `.redactor()` remerges declared and undeclared values into one mask
+  list regardless of that split (AT-004's "masks every secret value" rule) — so the `Redactor` this
+  produces is **provably identical** to the old direct-`parse_env` implementation's, not merely
+  assumed so (see "Capability coverage" — the redaction falsification was re-run against this new
+  code path and still isolates the same test).
+- `tests/test_ui_error_pages.py` — 3 tests added (12 total): `test_unmatched_route_with_html_accept
+  _renders_a_themed_page`, `test_unmatched_route_with_json_accept_is_unchanged`, and
+  `test_approve_flowspec_unknown_slug_renders_a_themed_page` (the confirmed AT-259 path — see
+  "Known limits" for what AT-259 does and does not cover). The two secret/escaping tests'
+  `throwaway_app` fixture was changed to depend on the file's existing `scratch_root` fixture
+  (`AUTOTESTER_ROOT` env-var isolation, the same mechanism every other test in this suite already
+  uses) instead of `monkeypatch.setattr(error_pages, "repo_root", ...)`, which no longer exists as
+  an attribute on the module now that `repo_root` isn't imported there at all.
+
 ## How to verify (commands + expected)
 
-- `uv run pytest tests/test_ui_error_pages.py` -> all pass
-- `uv run pytest tests/test_ui_error_pages.py tests/test_ui.py tests/test_ui_case_management.py tests/test_ui_cases.py tests/test_ui_project_name.py tests/test_ui_case_navigate_reachability.py tests/test_ui_learn.py tests/test_pinned_regression.py` -> all pass (the shared `app` fixture + every route this unit's handler now sits in front of, plus the pinned-case 409 this bug was filed against)
+- `uv run pytest tests/test_ui_error_pages.py` -> all pass (12 tests as of the pre-check revision)
+- `uv run pytest tests/test_ui_error_pages.py tests/test_ui.py tests/test_ui_case_management.py tests/test_ui_cases.py tests/test_ui_project_name.py tests/test_ui_case_navigate_reachability.py tests/test_ui_learn.py tests/test_pinned_regression.py` -> all pass (the shared `app` fixture + every route this unit's handler now sits in front of, plus the pinned-case 409 this bug was filed against) — **not re-run in full this revision**, see the RAM note below
 - `uv run ruff check src tests scripts` -> `All checks passed!`
 - `uv run autotester doctor` -> `doctor: clean`
 
 ## Actual outputs (from maker's own run)
 
+**Original cycle-1 run** (commit `d9a4182`, RAM ~0.9GB free at the time):
 ```
 $ uv run pytest tests/test_ui_error_pages.py
 .........
@@ -102,29 +147,92 @@ The whole module failed to collect — `ui/error_pages.py` did not exist, which 
 duplicate-concept: src\autotester\ui\error_pages.py:85 — 'register' also defined in src\autotester\providers\__init__.py
 ```
 Fixed by renaming `register` -> `register_exception_handler` (both the definition and its two call
-sites, in `app.py` and this unit's own test file); re-ran clean (see "Actual outputs" above).
+sites, in `app.py` and this unit's own test file); re-ran clean (see run above).
+
+**Pre-check revision run** (commit `6b52c12`; RAM critical, ~0.12GB free confirmed via
+`Get-CimInstance Win32_OperatingSystem` — the checker was running a browser concurrently). Per the
+coordinator's explicit instruction, no uvicorn or browser was started this round, and only the
+targeted set below was run, in the tracked worktree's own already-synced venv (no new `uv sync`):
+```
+$ uv run pytest tests/test_ui_error_pages.py -v
+............
+12 passed, 1 warning in 2.14s
+
+$ uv run pytest tests/test_ui_case_management.py tests/test_ui_project_name.py
+..................
+18 passed, 1 warning in 4.10s
+
+$ uv run ruff check src tests scripts
+All checks passed!
+
+$ uv run autotester doctor
+doctor: clean
+```
+
+**Red before this revision.** With RAM this tight, a second full `uv sync` (a new venv) was judged
+too risky — `uv run pytest` inside such a checkout had already thrown a transient `MemoryError`
+importing `openpyxl` mid-collection on the first attempt (retried once, succeeded the second time;
+noted here rather than hidden, since it is itself evidence of how little headroom there was).
+Instead, red-first and every falsification below reused the **already-synced worktree venv**,
+pointed at a throwaway `git archive HEAD` checkout via `PYTHONPATH=<throwaway>/src` on the venv's
+own `python.exe` (no `uv run`, no new dependency resolution, no second venv) — still a throwaway
+copy outside the worktree per the hard rule, just a cheaper way to run it under critical memory
+pressure. Against the checkout taken **before** this revision's two fixes:
+```
+$ PYTHONPATH=<throwaway>/src <worktree>/.venv/Scripts/python.exe -m pytest tests/test_ui_error_pages.py -v
+tests\test_ui_error_pages.py .........F..                                [100%]
+FAILED tests/test_ui_error_pages.py::test_unmatched_route_with_html_accept_renders_a_themed_page
+AssertionError: assert False
+ +  where False = <built-in method startswith...>('text/html')
+ +    where ... = 'application/json'.startswith
+1 failed, 11 passed, 1 warning in 5.72s
+```
+Exactly the one new test tied to the base-class registration failed (still JSON for an unmatched
+route); `test_approve_flowspec_unknown_slug_renders_a_themed_page` **already passed** at this point
+— see "Known limits" for why (it was already covered by cycle 1's narrower registration, since
+`fastapi.HTTPException` is what that route actually raises).
 
 ## Capability coverage (each claim -> its isolating falsification)
 
-Throwaway copy built OUTSIDE the worktree from the **fixed** commit (`d9a4182`): `git archive
-d9a4182 -- src tests scripts pyproject.toml uv.lock` extracted to the session scratchpad
-(`scratchpad/at596-falsify`), own `uv sync`'d venv, confirmed green (9/9) before any falsification.
-Every falsifying edit below is a single hunk in `error_pages.py`, applied, run, then reverted —
-confirmed byte-identical to the tracked worktree's copy (`diff` empty) and green again before the
-next row. The tracked worktree itself was never edited for this purpose.
+**Cycle-1 rows** (re-verified this revision against the current code — see the new rows below for
+what's specific to the pre-check fixes): throwaway copy built OUTSIDE the worktree from the fixed
+commit, own `uv sync`'d venv, confirmed green before any falsification. Every falsifying edit is a
+single hunk in `error_pages.py`, applied, run, then reverted — confirmed byte-identical to the
+tracked worktree's copy (`diff` empty) and green again before the next row. The tracked worktree
+itself was never edited for this purpose.
 
 | claim | falsifying edit (single hunk) | check | observed |
 |---|---|---|---|
-| a browser (`Accept: text/html`) gets the themed HTML page | `_wants_html`: `return "text/html" in request.headers.get("accept", "")` -> `return False` | `test_{400,404,409}_with_html_accept_renders_a_themed_page`, `test_html_error_page_escapes_the_detail`, `test_html_error_page_redacts_a_known_secret_from_the_repo_env` | PASS before (9/9). FAIL after: all 5 fail — every HTML-accepting request instead gets the raw JSON body |
+| a browser (`Accept: text/html`) gets the themed HTML page | `_wants_html`: `return "text/html" in request.headers.get("accept", "")` -> `return False` | `test_{400,404,409}_with_html_accept_renders_a_themed_page`, `test_html_error_page_escapes_the_detail`, `test_html_error_page_redacts_a_known_secret_from_the_repo_env` | PASS before. FAIL after: all 5 fail — every HTML-accepting request instead gets the raw JSON body |
 | a JSON/no-`Accept` client's response is byte-for-byte what FastAPI's default handler already produced | `_wants_html`: same function -> `return True` (unconditional) | `test_{400,404,409}_with_json_accept_is_unchanged`, `test_400_with_no_accept_header_stays_json` | PASS before. FAIL after: all 4 fail — `response.json()` raises `JSONDecodeError` on the HTML body it now gets instead |
 | the detail is HTML-escaped before it reaches the page | `_error_page`: `safe_detail = escape(_repo_redactor().scrub(detail))` -> `safe_detail = _repo_redactor().scrub(detail)` (drop `escape`) | `test_html_error_page_escapes_the_detail` | PASS before. FAIL after: `assert '<script>alert(1)</script>' not in response.text` fails — the raw tag is on the page |
 | a known secret in the detail is redacted before it reaches the page | `_error_page`: same line -> `safe_detail = escape(detail)` (drop `.scrub()`, keep `escape`) | `test_html_error_page_redacts_a_known_secret_from_the_repo_env` | PASS before. FAIL after: `assert 'sk-supersecretvalue123' not in response.text` fails — the raw secret is on the page |
 | the exception's original status code reaches the response unchanged | `_error_page`: `return HTMLResponse(theme.page(title, body), status_code=status_code)` -> `status_code=200` | `test_{400,404,409}_with_html_accept_renders_a_themed_page`, `test_html_error_page_escapes_the_detail`, `test_html_error_page_redacts_a_known_secret_from_the_repo_env` | PASS before. FAIL after: all 5 fail — every themed page comes back `200` instead of its real status |
 
-Five distinct behaviors, five distinct single-hunk falsifications, each isolating exactly the test
-rows that claim it and leaving the rest green (e.g. the escaping-drop edit only fails the one
-escaping test, not the redaction test or the negotiation tests) — confirming the tests are actually
-pinned to the claims they name, not incidentally passing.
+**Pre-check-revision rows** (falsified against commit `6b52c12`, using the lightweight
+`PYTHONPATH`-on-the-existing-venv method described under "Actual outputs" — RAM was too tight for a
+second `uv sync`'d scratch venv this round). Each edit applied, run, reverted, and confirmed
+byte-identical to the tracked file before the next row:
+
+| claim | falsifying edit (single hunk) | check | observed |
+|---|---|---|---|
+| registering on `starlette.exceptions.HTTPException` covers Starlette's own unmatched-route 404, not just `fastapi.HTTPException` | `from starlette.exceptions import HTTPException` -> `from fastapi import HTTPException` | `test_unmatched_route_with_html_accept_renders_a_themed_page` | PASS before (12/12). FAIL after: exactly this one test fails (`content-type` is `application/json`, not `text/html`) — the other 11, including the AT-259 test, stay green |
+| the new `SecretStore`-routed redaction still masks a known secret (re-derived against the new loader, not assumed carried over) | `_error_page`: `safe_detail = escape(_repo_redactor().scrub(detail))` -> `safe_detail = escape(detail)` | `test_html_error_page_redacts_a_known_secret_from_the_repo_env` | PASS before. FAIL after: exactly this one test fails, same as the cycle-1 row — confirms the loader swap didn't quietly change (or lose) the masking behavior |
+
+**Not falsifiable by a test, verified by citation instead:** "the redaction goes through the SAME
+loader every other consumer uses, not a second one" is a code-structure claim, not a behavioral one
+— `SecretStore.load(_NO_PROJECT_SCOPE, ...).redactor()` and the old `Redactor(parse_env(...))`
+produce a **byte-identical** `Redactor` for this call site (reasoned and confirmed above: `.redactor()`
+remerges declared/undeclared regardless of which `Project.secrets` was passed in), so no test can
+ever distinguish "calls the shared loader" from "duplicates its logic locally" — reverting to the
+old implementation would still pass every test in this file. This claim is instead verified by
+direct citation (see "What changed"): `error_pages.py:67` calls `browser/secrets.py:117`
+(`SecretStore.load`) then `browser/secrets.py:223` (`.redactor()`), and `grep -rn "parse_env"
+src/autotester/ui/error_pages.py` returns no call site, only the prose explaining what was removed.
+
+Seven distinct behaviors across the two rounds, each isolated by its own single-hunk falsification
+and leaving every other test green — confirming the tests are pinned to the claims they name, not
+incidentally passing.
 
 ## Live browser evidence
 
@@ -150,6 +258,13 @@ checker's own Mode D recipe is below for an independent run. Server was killed a
 (`taskkill /F` on the uvicorn PID; confirmed via `netstat` that port 8069 has no `LISTENING` entry
 left, only expiring `TIME_WAIT` remnants from already-closed connections) — no monitor left running.
 
+**This live run predates the pre-check revision.** It exercised the 404/409 project-route paths,
+not the two things `6b52c12` added (Starlette's own unmatched-route 404, and the AT-259 approve
+path) — those are `TestClient`-verified only (see "Actual outputs" and "Capability coverage"). No
+new uvicorn/browser run was made this revision, per the coordinator's explicit instruction (RAM
+critical, ~0.12GB free, the checker itself running a browser concurrently). Flagged under "Known
+limits" rather than silently left for the checker to discover.
+
 ### Checker Mode D recipe
 
 1. `uv run uvicorn autotester.ui.app:app --host 127.0.0.1 --port 8069` against a scratch
@@ -170,23 +285,43 @@ left, only expiring `TIME_WAIT` remnants from already-closed connections) — no
 
 ## Known limits / gaps (disclosed, not claimed)
 
-- **Full suite not run** (RAM ~0.9GB free per the dispatch brief) — targeted UI tests covering every
-  route this handler now sits in front of, plus ruff and doctor, were run and are green; see "Actual
-  outputs."
-- **Only `fastapi.HTTPException` is handled**, exactly as scoped ("registers no HTTPException
-  handler" in the filed issue, and every route in this app raises exactly that class). A framework-
-  level 404 for a URL matching no route at all raises Starlette's own `HTTPException` and is
-  **not** covered — the MRO-based handler lookup only matches `fastapi.HTTPException` and its
-  subclasses, not its Starlette superclass. Not claimed here; flagged in case the checker considers
-  it in-scope for "every 4xx."
-- **U10's `approve`/`request-edit` raw-JSON refusals (AT-259) are untouched.** Those routes return
-  `HTMLResponse`/raw JSON directly rather than raising `HTTPException`, so this handler never sees
-  them — a pre-existing, separately tracked gap this unit does not claim to close.
+- **Full suite not re-run this revision** (RAM critical, ~0.12GB free while the checker ran a
+  browser) — only `tests/test_ui_error_pages.py` (12/12), `tests/test_ui_case_management.py` +
+  `tests/test_ui_project_name.py` (18/18), ruff and doctor were run this round, per the
+  coordinator's explicit instruction. The original cycle-1 76-test broader run (see "Actual
+  outputs") predates the two pre-check fixes; it was not re-run against `6b52c12`.
+- **No new live-browser run this revision** (same RAM constraint; no uvicorn/browser started, per
+  instruction). The Starlette-base-class fix and the AT-259 test are `TestClient`-verified only —
+  see the note under "Live browser evidence." The checker's own Mode D run should specifically
+  confirm the unmatched-route case and the approve-unknown-slug case live, not just the
+  already-covered 400/404/409 project-route paths from cycle 1.
+- **AT-259, precisely scoped now (was previously mis-stated as fully untouched).** On
+  `routes_learn.py`'s `approve_flowspec`/`request_edit_flowspec`: the unknown-slug 404
+  (`_signed` -> `_load_project_or_404`) raises a plain `fastapi.HTTPException` that nothing there
+  catches, so it **is** covered by this handler — and was already covered by cycle 1's narrower
+  registration too, since the exception's actual runtime type is `fastapi.HTTPException`, a
+  `starlette.exceptions.HTTPException` subclass either way (test added, see "Capability coverage").
+  The route's **other** refusals — unsigned (`by.strip()` empty), the credential-guard 400
+  (`_refuse_unsafe_submission`, caught inside `_signed`), and "nothing to approve"/"nothing to send
+  back" — all return a hand-built `HTMLResponse` via `_refusal()` directly and never raise
+  `HTTPException` at all, so they never reach this handler and are unaffected by either revision.
+  Whether the wider historical AT-259 filing (U10 amendment log: "4 of ~6 refusal paths ... are
+  raw") named other, different raw-JSON paths elsewhere in this codebase was not re-investigated
+  beyond these two routes — out of scope for this narrow pre-check revision.
 - **No new `qa/contracts/ui.md` criterion added** — flagged above under "Contract" for the checker
   to decide (my brief said do not edit `qa/contracts/`).
-- **The repo-root `.env` redactor is rebuilt (file read + parsed) on every themed error render.**
-  Cheap for a local single-operator tool serving error pages, not a hot path; not cached, since
-  caching a credential file's contents in memory across requests felt like the wrong tradeoff to
-  make silently in a fix-cycle-1 unit — flagged rather than assumed fine.
+- **The "one loader" claim is verified by citation, not by a failing test** — see "Capability
+  coverage": `SecretStore.load(...).redactor()` and the old direct-`parse_env` implementation
+  produce byte-identical output for this call site, so no test can distinguish "reuses the shared
+  loader" from "duplicates it" — that distinction only exists in the source, and is cited by
+  file:line instead.
+- **The redactor is rebuilt (SecretStore loaded fresh) on every themed error render.** Cheap for a
+  local single-operator tool serving error pages, not a hot path; not cached, since caching a
+  credential file's contents in memory across requests felt like the wrong tradeoff to make
+  silently in a fix-cycle-1 unit — flagged rather than assumed fine.
+- **One transient `MemoryError`** was hit and resolved by retrying once, importing `openpyxl`
+  mid-`pytest`-collection in a throwaway checkout, during this revision's red-first step (see
+  "Actual outputs") — recorded as direct evidence of how constrained RAM was, not hidden as a
+  non-event.
 
 ## Status: ready-for-check
