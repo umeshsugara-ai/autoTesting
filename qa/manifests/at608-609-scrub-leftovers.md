@@ -211,4 +211,4 @@ not asserted from memory.
   avoids a second conditional; not exercised by a dedicated test since no existing test asserts on
   an unlabelled screenshot's figcaption content.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, qa/verdicts/at608-609-scrub-leftovers.md 928b37a)
