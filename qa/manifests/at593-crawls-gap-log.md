@@ -138,4 +138,4 @@ Both falsifying edits were reverted; the scratch copy was re-run green (`7 passe
 - No new `qa/contracts/` criterion added or changed (out of scope per the brief; this is an
   observability fix, not a new behavior for any U-item to pin).
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, qa/verdicts/at593-crawls-gap-log.md 119fd0a)
