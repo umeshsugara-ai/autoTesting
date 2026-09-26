@@ -114,4 +114,4 @@ This unit is a pure rendering-logic fix in `loop_status.py`; no browser, no live
   (which is scoped to the false "no ticks recorded" render), but is a related residual worth the
   checker's judgment on whether it warrants its own follow-up issue.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, 729ecc5)
