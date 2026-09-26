@@ -26,6 +26,11 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
 - No file in `src/` or `tests/` exceeds 300 lines; no function exceeds 50 lines.
 - Every module has a docstring stating its one job.
 - `docs/ARCHITECTURE.md` stays ≤ 150 lines and its concept→file table matches reality.
+- **`scripts/` is deliberately outside the two numeric caps above and C3's duplicate-definition
+  check** (at520 answered option 3, D-048). Its files are standalone CLI tools, and each one
+  legitimately defines its own `main()`. They stay visible through `docs/MAP.md`, which lists every
+  script. This records a scope that was already true. It relaxes nothing for `src/` or `tests/`.
+  Bringing `scripts/` under the caps later is a new decision, not a fix.
 - **Verify:** `uv run autotester doctor` exits 0.
 
 ### C3 — One concept, one place (anti-drift)
@@ -124,6 +129,20 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   A rule that is violated by *not being read* is repaired by making it cost something mechanical, not
   by writing it more firmly. The duty converts a belief into an artifact a checker can judge, and a
   claim submitted without one is treated as an unproven property, not as a justification.
+- **Every guard a unit introduces lands with its own failing-first sabotage, recorded in the same
+  manifest** (at218 answered option 2, D-048).
+  - A guard means any mechanism whose job is to make an invalid state impossible, or to detect it.
+    The list is not exhaustive. It includes a test, an assertion, a schema or model validator (a
+    Pydantic field constraint or `model_validator`), a doctor rule, a hook check, and a runtime
+    refusal.
+  - The manifest row names the guard and the single-hunk edit that reintroduces the defect it
+    guards against. It pastes the run showing the guard fire on its own named assertion, from a
+    throwaway copy with a green asserted baseline.
+  - Reading the code and concluding that the guard would fire is not the proof. That habit is how
+    all 23 measured vacuous guards (AT-218) reached a checker instead of being caught at build.
+  - A guard with no such row is an unenumerated claim. It fails the unit on its own, even when
+    every test is green.
+  - This extends the test-mutation duty above from tests to every kind of guard.
 - **Verify:** `uv run pytest` exits 0 and the manifest pastes real output, not a summary; a
   sabotage claim in a manifest is re-run by the checker in its own harness, never read; a unit
   adding or rewriting a test pastes its mutation run, with a green asserted baseline and a named
@@ -157,6 +176,20 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   commit — a bare `git commit` commits the whole index, including what the other loop staged.
 - Every maker and checker commit therefore names its paths: `git commit --only <paths>` (or `-o`),
   never a bare `git commit` after `git add`, never `git add -A`.
+- **A unit is committed on its own branch before check. It reaches master only by merging the exact
+  commit the checker's PASS verdict reviewed, with a `Cycle checked` that matches the manifest's
+  `Fix cycle`** (commit-before-verdict answered C, D-048).
+  - A commit added to the branch after the reviewed SHA is unreviewed. It needs a new cycle, meaning
+    a new `Fix cycle` and a new verdict, before the merge. The only exception is a `Merge branch
+    'master'` sync commit that brings in nothing but master's own history.
+  - This adopts the `wave/<slug>` worktree practice used since 2026-09-17 in place of the older
+    commit-on-the-shared-tree practice (option A in the gate). Units merged before 2026-09-26 are
+    grandfathered.
+  - Master never carries a unit's un-PASSed code. A failed cycle stays on its branch, so a later
+    cycle is never judged against an earlier failed one that happens to sit on master: the at438
+    lesson, see ui.md U14(b).
+  - The checker's own handshake writes on master are not unit code, and this rule does not cover
+    them: evidence directories, ledger flips, gate answers and contract amendments.
 - A commit found carrying another unit's paths is repaired by un-sweeping it (`git reset --soft`
   + `git commit --only`) and leaving the other loop's staging exactly as found — never by
   `git rm --cached`, which deletes the other loop's file from HEAD.
@@ -459,3 +492,13 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
 - 2026-09-26 · amendment (authorized by D-046) · **C11 added**: every third-party import is a declared
   dependency, machine-checked by doctor's `check_dependencies_declared` (at130-genai-dep, checker PASS c1,
   merged 235fdd5). Tightening only. AT-590 tracks the check's optional-import false positives.
+- 2026-09-26 · amendment (authorized by D-048, Umesh's 2026-09-26 gate answers) · three changes:
+  - **C2** records that `scripts/` is outside the numeric caps and the duplicate check (at520 = 3).
+    This is scope already true, not a relaxation for `src/` or `tests/`.
+  - **C7** extends the failing-first sabotage duty from tests to every guard a unit introduces
+    (at218 = 2). Tightening.
+  - **C10** adds unit branch before check, merge to master only after a matching-cycle PASS
+    (commit-before-verdict = C). The merge is pinned to the exact reviewed SHA. Tightening; it
+  replaces the gate's option-A practice for units opened from 2026-09-26.
+  - Revised the same day, before commit, on a two-lens review: C10 pinned to the SHA, and C7's
+    guard list made non-exhaustive to name schema validators.
