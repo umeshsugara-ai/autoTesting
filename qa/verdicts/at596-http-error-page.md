@@ -71,3 +71,49 @@ the document itself. There were no page-script errors, so this is expected.
 The builder asked whether this handler needs a new U-criterion. **No new criterion yet.** U5 already covers the
 escaping, and the header gap is tracked as AT-605. If cycle 2 lands the header fix with a test, the behaviour is
 pinned by tests and no contract change is needed.
+
+---
+
+# Verdict — at596-http-error-page, cycle 2
+
+**Date:** 2026-09-26 · **Cycle checked:** 2 · **Checked commit:** fef6c3b (code), manifest 8755b99 · **Checker:** /checker session (claude-opus), own browser
+
+```
+VERDICT: PASS
+SCOREBOARD: 6/6 unit claims met; the cycle-1 regression (AT-605, missing Allow on HTML 405) is closed
+FAILURES: none
+CAPABILITY-COVERAGE: 2/2 cycle-2 rows reproduced (own copies, 15/15 green before each edit)
+LIVE-BROWSER: qa/evidence/browser-at596-http-error-page-2026-09-26-checker-c2/ (on master)
+ISSUES-WRITTEN: none
+EXECUTOR: maker builder (checker: claude-opus session)
+EXPLANATION: `_error_page` now takes `headers` and the handler threads `exc.headers` through, so an HTML-negotiated 405 keeps `Allow: POST` and a 401 keeps `WWW-Authenticate`. JSON callers are unchanged. Each half of the fix is isolated by its own red test, and the live browser confirms the header on the themed page.
+```
+
+## What I re-ran
+
+- `uv run pytest` (full suite, no -q) in the worktree: **1779 passed, 5 skipped, 32 xfailed, 0 failed** in 708.93 s, exit 0. The known flake AT-518 did not fire this run.
+- `uv run ruff check src tests scripts`: All checks passed.
+- `uv run autotester doctor`: 2 violations, both `ledger-row-lost` for AT-605 (manifest and verdict name it). The row was filed on master (f9d9e7b) after this branch forked, so it clears on merge. This is the same pattern as cycle 1, not a unit defect.
+
+## Capability coverage (checker's own copies)
+
+| row | single-hunk edit | red after |
+|---|---|---|
+| 1 response carries headers | error_pages.py `HTMLResponse(..., headers=headers)` -> drop `headers=headers` | HTML-405 Allow test + 401 WWW-Authenticate test fail; the JSON-405 test stays green |
+| 2 handler forwards them | handler `_error_page(exc.status_code, detail, exc.headers)` -> drop `exc.headers` | the same two tests fail; JSON stays green |
+
+Both copies were 15/15 green before the edit (tests/test_ui_error_pages.py + tests/test_ui_error_page_headers.py).
+
+## Diff scope (4c)
+
+`6b52c12..fef6c3b` touches error_pages.py (signature + one call), the new tests/test_ui_error_page_headers.py (3 tests), a 4-line docstring note in tests/test_ui_error_pages.py, and the manifest. **No existing function, test or route removed.** Every file is listed in "What changed".
+
+## Mode D (own browser, port 8093, scratch root)
+
+- HTML GET on a POST-only route: 405, `text/html`, header `allow: POST`, themed h2 "405 Method Not Allowed" (405.png).
+- Unmatched route: themed 404 (404-unmatched.png). The Back link lands on `/` with 200.
+- JSON Accept on the same 405: `allow: POST`, `{"detail":"Method Not Allowed"}`.
+- Console: only Chromium's own "Failed to load resource ... NNN" line per non-2xx document; no page-script errors.
+- First attempt hit port 8072, which belongs to another project's mock server. It was discarded and re-run on 8093, and those screenshots replaced the bad ones.
+
+AT-596 and AT-605 flip to fixed only after the merge is verified on master (`git merge-base --is-ancestor`).
