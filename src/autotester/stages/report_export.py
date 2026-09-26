@@ -15,7 +15,9 @@ from pathlib import Path
 
 from openpyxl import Workbook
 
+from autotester.browser.secrets import SecretStore
 from autotester.core.excel import autosize_columns
+from autotester.core.redact import Redactor
 from autotester.schema.case import Case
 from autotester.schema.enums import EvidenceKind, Result
 from autotester.schema.run import Run
@@ -62,6 +64,20 @@ def _case_lookup(store: ProjectStore) -> dict[str, Case]:
     return {c.id: c for c in store.list_cases()}
 
 
+def _load_redactor(store: ProjectStore) -> Redactor:
+    """The same Redactor/SecretStore path every other stage uses (C5) -- not a
+    new redaction mechanism. A stored `Case.steps` value should already be a
+    `{{SECRET:KEY}}` placeholder (never a raw value), but export is the last
+    stop before a human-shared file, so a repro step is scrubbed here too
+    (AT-594) in case a raw secret ever reached a stored case despite that
+    design. A project with no `.env` (or none declared) yields an empty,
+    harmless `Redactor`."""
+    project = store.load_project()
+    if project is None:
+        return Redactor({})
+    return SecretStore.load(project, store.paths.env_file, strict=False).redactor()
+
+
 def _needs_developer_detail(verdict: Verdict | None) -> bool:
     """RE6 (D-045): a FAIL or INCONCLUSIVE verdict is what a developer must act
     on -- a PASS gets no failure/repro detail."""
@@ -76,13 +92,21 @@ def _failure_rows(verdict: Verdict | None) -> list[tuple[str, str, str | None]]:
     return [(f.criterion_id, f.reason, f.fix_hint) for f in verdict.failures]
 
 
-def _repro_steps(case: Case | None) -> list[str]:
-    """The case's own steps, formatted as a plain-text repro recipe."""
+def _repro_steps(case: Case | None, redactor: Redactor) -> list[str]:
+    """The case's own steps, formatted as a plain-text repro recipe.
+
+    `redactor.scrub` runs over the formatted line before it reaches either
+    export (AT-594): a `{{SECRET:KEY}}` placeholder is not a known secret
+    VALUE, so it passes through untouched and exports as the placeholder,
+    never a resolved value; a step that somehow held a raw declared secret is
+    masked here, the same last-stop guarantee every other artifact gets."""
     if case is None:
         return []
     return [
-        f"{step.order}. {step.action.value} {step.target}"
-        + (f" = {step.value}" if step.value else "")
+        redactor.scrub(
+            f"{step.order}. {step.action.value} {step.target}"
+            + (f" = {step.value}" if step.value else "")
+        )
         for step in case.steps
     ]
 
@@ -95,6 +119,7 @@ def export_excel(
     run_id = run_id or _latest_run_id(store)
     cases = _case_lookup(store)
     verdicts = {v.case_id: v for v in store.load_verdicts(run_id)}
+    redactor = _load_redactor(store)
 
     wb = Workbook()
     ws = wb.active
@@ -109,7 +134,7 @@ def export_excel(
             f"{criterion_id}: {reason}" + (f" (fix: {fix_hint})" if fix_hint else "")
             for criterion_id, reason, fix_hint in _failure_rows(verdict)
         ) if detail else ""
-        steps_text = "\n".join(_repro_steps(case)) if detail else ""
+        steps_text = "\n".join(_repro_steps(case, redactor)) if detail else ""
         ws.append([
             case.title if case else result.case_id,
             case.kind.value if case else "",
@@ -154,7 +179,9 @@ def png_base64(path: Path, allowed_root: Path, trusted_root: Path) -> str | None
     return base64.b64encode(candidate.read_bytes()).decode("ascii")
 
 
-def _case_section(store: ProjectStore, run_id: str, case: Case | None, result, verdict) -> str:
+def _case_section(
+    store: ProjectStore, run_id: str, case: Case | None, result, verdict, redactor: Redactor
+) -> str:
     run_dir = store.paths.run_dir(run_id)
     title = escape(case.title if case else result.case_id)
     color = _BADGE_COLOR.get(verdict.result.value if verdict else "", "#6b7280")
@@ -169,7 +196,7 @@ def _case_section(store: ProjectStore, run_id: str, case: Case | None, result, v
     scoreboard = escape(verdict.scoreboard) if verdict and verdict.scoreboard else ""
     error = escape(result.error) if result.error else ""
     no_shots = "<p class='meta'>no screenshots captured</p>"
-    detail = _failure_detail_html(verdict, case)
+    detail = _failure_detail_html(verdict, case, redactor)
     return (
         f"<section><h2>{title} "
         f"<span class='badge' style='background:{color}'>{badge_text}</span></h2>"
@@ -180,7 +207,7 @@ def _case_section(store: ProjectStore, run_id: str, case: Case | None, result, v
     )
 
 
-def _failure_detail_html(verdict: Verdict | None, case: Case | None) -> str:
+def _failure_detail_html(verdict: Verdict | None, case: Case | None, redactor: Redactor) -> str:
     """RE6 (D-045): for a FAIL/INCONCLUSIVE verdict, each failure's criterion,
     reason and fix_hint, plus the case's own steps as the repro -- read
     straight off the stored Verdict/Case (RE1: nothing recomputed)."""
@@ -192,7 +219,7 @@ def _failure_detail_html(verdict: Verdict | None, case: Case | None) -> str:
         for criterion_id, reason, fix_hint in _failure_rows(verdict)
     )
     failures_html = f"<h3>Failures</h3><ul>{items}</ul>" if items else ""
-    steps = _repro_steps(case)
+    steps = _repro_steps(case, redactor)
     steps_html = (
         "<h3>Repro steps</h3><ol>"
         + "".join(f"<li>{escape(step)}</li>" for step in steps)
@@ -213,9 +240,10 @@ def export_html(
     cases = _case_lookup(store)
     verdicts = {v.case_id: v for v in store.load_verdicts(run_id)}
     results = store.load_results(run_id)
+    redactor = _load_redactor(store)
 
     sections = "".join(
-        _case_section(store, run_id, cases.get(r.case_id), r, verdicts.get(r.case_id))
+        _case_section(store, run_id, cases.get(r.case_id), r, verdicts.get(r.case_id), redactor)
         for r in results
     )
     style = (
