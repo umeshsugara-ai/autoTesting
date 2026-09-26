@@ -46,15 +46,37 @@ def absolute_url(url: str) -> str:
     one row after both producers were switched to `keep_host=False` — the flags
     agreed, the inputs did not.
 
-    This is NOT the host-shape guessing AT-287's first fix tried and failed at
-    (`settings.json` and `example.com` are indistinguishable by shape). The
-    caller here KNOWS the string is an absolute url, because it came out of an
-    address bar; only the scheme is missing. Callers holding a genuine relative
-    path must not use this.
+    Callers holding a genuine relative path must not use this. In practice they
+    sometimes do anyway -- an ingest observation is a model's transcription, not
+    a validated address bar -- and AT-299b is what that costs: prepending
+    `https://` unconditionally makes `urlsplit` read the FIRST segment as the
+    host no matter what it is, so `keep_host=False` silently deletes it even
+    when it was real path (`erp/trainers` -> `https://erp/trainers` -> `/trainers`,
+    losing "erp"; `students/1` -> `/{id}`, losing "students").
+
+    The guard: only treat the first segment as a host when it carries a signal
+    an address bar's host actually has -- a domain dot (`vidysea.com`) or a port
+    colon (`localhost:3000`). Narrower than the whole-string host-shape guessing
+    AT-287's first fix tried and failed at (`settings.json` vs `example.com` --
+    genuinely indistinguishable): this only asks whether the first segment of an
+    already-multi-part string looks host-like, so a relative path built from
+    real segments (`erp/trainers`, `students/1`) carries neither signal and is
+    left alone. `localhost/students` is likewise left as a path -- `localhost`
+    alone has no dot or colon. Residual, accepted gap: a first segment that
+    itself contains a dot (`v1.2/foo`, `settings.json/edit`) still reads as a
+    host. A related, separate ambiguity -- a bare dotted/ported token with NO
+    path at all (`file.html`, `example.com`) still promotes here and then
+    templates to `/`, indistinguishable by shape from a real host's root -- is
+    resolved by `screen_url_pattern` below, not here (AT-299b cycle 2).
     """
     if not url or "//" in url.split("?", 1)[0][:8]:
         return url
-    return url if url.startswith("/") else f"https://{url}"
+    if url.startswith("/"):
+        return url
+    first_segment = url.split("/", 1)[0].split("?", 1)[0]
+    if "." not in first_segment and ":" not in first_segment:
+        return url
+    return f"https://{url}"
 
 
 def url_template(url: str, *, keep_host: bool = True) -> str:
@@ -82,3 +104,45 @@ def url_template(url: str, *, keep_host: bool = True) -> str:
     if keep_host and parts.netloc:
         return f"{parts.netloc}{path}"
     return path
+
+
+def screen_url_pattern(raw: str | None) -> str | None:
+    """The ONE boundary where an observed url becomes a stored `url_pattern` —
+    `Screen.url_pattern` (`stages/ingest.py`), `MappedScreen.url_pattern`
+    (`stages/product_map.py`, both call sites), and the login case's own
+    target (`stages/explore_status.py::login_template`) all call this instead
+    of each composing `url_template(absolute_url(x), keep_host=False)` and
+    re-deciding the None-vs-"/" question for themselves.
+
+    AT-299b cycle 2: that composition alone still turns a schemeless,
+    slash-free, dotted/ported token — `file.html`, `example.com`, `report.pdf`,
+    `sitemap.xml` — into `/`, a false claim that the site ROOT is covered.
+    `absolute_url` promotes such a token to a host (needed so a REAL bare host
+    like `example.com` still normalises correctly), and once promoted, a token
+    with no path at all is indistinguishable BY SHAPE from a real host's root —
+    the same "settings.json vs example.com" ambiguity `url_template`'s own
+    docstring already names for AT-287. `absolute_url` must keep promoting
+    (turning off promotion would misfile a genuine bare host as a path segment:
+    `example.com` -> `/example.com`); the fix is not to stop the guess, but to
+    not report `/` when nothing in the raw string actually asked for a root. I7
+    already makes `None` the honest, normal outcome for "no pattern is
+    knowable" — so this reports None instead, exactly for that one ambiguous
+    shape.
+
+    A root is still reported whenever the raw string is not ambiguous:
+    `raw == "/"`, a real scheme or scheme-relative input (`absolute_url` left
+    it untouched precisely because it already had one), or an explicit
+    trailing slash after a promoted host (`example.com/`). Only a bare,
+    slash-free promoted token collapses to None instead of `/`.
+    """
+    if not raw:
+        return None
+    templated = url_template(absolute_url(raw), keep_host=False)
+    if templated != "/":
+        return templated
+    before_query = raw.split("?", 1)[0]
+    if raw.startswith("/") or "//" in before_query[:8]:
+        return "/"  # already-absolute path, or a genuine scheme/scheme-relative input
+    if "/" in before_query:
+        return "/"  # e.g. "example.com/" -- an explicit trailing slash after the host
+    return None  # a bare token ("file.html", "example.com") -- ambiguous, AT-287/AT-299b
