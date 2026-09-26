@@ -136,4 +136,4 @@ Not UI-touching — CLI/test-only pin. Changed paths: `src/autotester/loop_statu
 - The CLI-level tests for (a) and (c) use real wall-clock `datetime.now(UTC)`, matching the file's
   existing `test_cli_strict_exits_*` pattern, since `loop_status_cmd` takes no injectable `now=`.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, qa/verdicts/at610-strict-out-of-order-pin.md 11f1d4e)
