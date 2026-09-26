@@ -3,10 +3,103 @@
 qa/contracts/browser-and-secrets.md B2 ("any string headed for a provider passes
 `core.redact.assert_no_raw_secrets` first")
 **Goal task:** none (security-hardening fix against open checker findings)
-**Date:** 2026-09-25 (cycle 1) / 2026-09-26 (cycles 2 and 3)
-**Fix cycle:** 3 of 3 (last cycle)
+**Date:** 2026-09-25 (cycle 1) / 2026-09-26 (cycles 2, 3, and 4)
+**Fix cycle:** 4 — narrow, gated beyond the 3-cycle cap by `qa/gates/at347-cycle4.md` (Umesh,
+answer A, 2026-09-26)
 **Dual check:** no
 **Issues addressed:** AT-347 (medium, open), AT-352 (medium, open), AT-356 (medium, open)
+
+## Cycle 4 — narrow, test-integrity-only fix under `qa/gates/at347-cycle4.md` (answer A)
+
+Cycle 3's actual security fixes PASSed both checker verdicts (fold-floor gating, base32 alignment,
+base32 lowercase, 0 false positives on 518 KB — nothing here reopens any of that). The one
+remaining FAIL (`qa/verdicts/at347-352-356-redact-fold.md` cycle 3, commit a5118c4) was not a
+security gap: cycle 3's file split moved
+`test_fold_credential_keeps_precomposed_and_decomposed_accents_symmetric` into
+`tests/test_redact_obfuscation.py`, and its `decomposed` literal — written as a raw combining
+U+0301 character — was silently NFC-normalised back to the precomposed form by the editor on save.
+The test then compared `"CAFÉ_QUILT_APIKEY_31"` to itself and could never go red. This stalled the
+unit at 3 of 3 cycles; `qa/gates/at347-cycle4.md` records Umesh's decision (option A over option B
+"STALL"): one narrow cycle 4, scoped to exactly this test, no source change.
+
+| # | Finding | Answer |
+|---|---|---|
+| 1 | `decomposed`'s literal was byte-identical to `precomposed` (both U+00C9, precomposed É — confirmed via a hex dump of the on-disk bytes before the fix). | **Fixed.** Rewritten as an explicit `́` escape — six literal ASCII characters in the source (backslash, `u`, `0`, `3`, `0`, `1`) — which Python's tokenizer expands to the real combining acute at parse time. This is immune to an editor's NFC normalisation because the escape itself is plain ASCII on disk, never a live combining character. |
+| 2 | Nothing in the test would have caught a future regression back to this exact defect (comparing a string with itself). | **Fixed.** Added `assert decomposed != precomposed` before the fold-equality assertion, so an accidental re-normalisation fails loudly instead of silently passing. |
+
+### What changed in cycle 4
+
+- `tests/test_redact_obfuscation.py:46-58` (`test_fold_credential_keeps_precomposed_and_decomposed_accents_symmetric`
+  only) — `decomposed`'s literal changed from a raw (silently re-normalised) combining character to
+  an explicit `"CAFÉ_QUILT_APIKEY_31"` escape; added
+  `assert decomposed != precomposed`. No other line in the file changed. **No source file touched**
+  this cycle (`core/redact.py`, `core/redact_fold.py`, `core/redact_encodings.py` all unchanged) —
+  per the gate's scope.
+
+### Red-first (throwaway copy outside the worktree, never the tracked file)
+
+Copied `redact.py`/`redact_fold.py`/`redact_encodings.py` into a scratch directory outside the
+worktree. Two mutations, both run against the fixed literals:
+
+- **Mutation A — reintroduce the exact cycle-3 defect** (set `decomposed` to the same bytes as
+  `precomposed`, simulating the silent re-normalisation): `assert decomposed != precomposed` goes
+  **red**, as it must. Separately confirmed that *without* that new assert, the old test body
+  (`fold_credential(precomposed) == fold_credential(decomposed)` alone) evaluates to `True` and
+  would have silently PASSED on this exact mutant — reproducing precisely why cycle 3's checker
+  called the test vacuous. This is what proves the new assert, not the fold-equality assert, is
+  what now holds the test honest (a self-comparison always trivially folds equal, so the
+  fold-equality assert alone is blind to this specific defect).
+- **Mutation B — break the real capability under test** (a naive fold stand-in doing plain
+  `.casefold()` with no NFKD/mark-stripping): `fold_credential(precomposed)` (`'caf\xe9_...'`) no
+  longer equals `fold_credential(decomposed)` (`'café_...'`) under the mutant, so the
+  pre-existing fold-equality assert still goes **red** against a real regression — the new assert
+  did not displace or weaken that check.
+- Green baseline (real `fold_credential`, fixed literals): both `decomposed != precomposed` and
+  `fold_credential(precomposed) == fold_credential(decomposed)` hold (`'cafequiltapikey31'` on both
+  sides).
+
+### Verification
+
+- On-disk confirmation the escape survived: `grep -n 'u0301' tests/test_redact_obfuscation.py` →
+  ```
+  53:    # E + combining acute, as an explicit ́ escape -- a raw combining
+  55:    decomposed = "CAFÉ_QUILT_APIKEY_31"
+  ```
+  Confirmed at the character level in the scratch copy: the parsed literal is
+  `C A F E U+0301 _ Q U I L T ...` (a real combining mark following a plain `E`), not a
+  re-normalised precomposed `É`.
+- `uv run pytest tests/test_redact_obfuscation.py tests/test_core.py tests/test_ids.py` — summary
+  line read directly, never a piped exit code:
+  ```
+  65 passed in 0.59s
+  ```
+- `uv run ruff check src tests scripts` → `All checks passed!`
+- `uv run autotester doctor` → clean except the two pre-existing `ledger-row-lost` rows for
+  AT-598/AT-599 (out of scope for this unit, carried forward unchanged from cycle 3 — see Gaps);
+  no new violations from this cycle.
+
+### Capability coverage (cycle 4 addition)
+
+| Claim | Falsifying edit | Check that goes red |
+|---|---|---|
+| The symmetric-fold test can never again silently compare a string with itself | Set `decomposed`'s literal to the same bytes as `precomposed` (Mutation A) | `assert decomposed != precomposed` |
+| The symmetric-fold test still exercises real fold behaviour, not just the new guard | Replace `fold_credential` with a naive `.casefold()`-only stand-in (Mutation B) | `assert fold_credential(precomposed) == fold_credential(decomposed)` |
+
+## LIVE-BROWSER: not-applicable (cycle 4)
+
+No UI/route/browser surface touched. This cycle changed one test literal and added one assert; no
+source file.
+
+## Gaps (cycle 4)
+
+- Carried forward unchanged from cycle 3: AT-598/AT-599 (split needles) are filed separately and
+  intentionally out of scope; the full non-browser `pytest` suite was not run this cycle either
+  (targeted set only, same standing RAM-ceiling gap already declared in cycle 3 — not re-raised as
+  new).
+- No new gaps introduced by cycle 4: the change is exactly one test literal plus one assert, per
+  the gate's scope.
+
+## Cycle 3 (kept as history, superseded by Cycle 4 above where they overlap)
 
 ## Cycle 3 — both cycle-2 verdicts were FAIL; last cycle
 
