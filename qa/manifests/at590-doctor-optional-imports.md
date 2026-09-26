@@ -11,10 +11,10 @@ imports. That is a check defect to fix, not a licence to skip declaring a real
 import." This unit is exactly that fix. C2 (300-line file cap, `uv run autotester
 doctor`) governs the implementation's placement.
 **Date:** 2026-09-26
-**Fix cycle:** 1
+**Fix cycle:** 2
 **Dual check:** no
 **Persona walk:** skip (dev tooling, no UI)
-**Issues addressed:** AT-590
+**Issues addressed:** AT-590, AT-619
 
 ## Chosen behaviour (as the issue asked me to pick one)
 
@@ -209,6 +209,142 @@ rather than one-function-per-case (the file's existing style, e.g.
 `test_undeclared_third_party_import_is_flagged` and its siblings, is one function
 per case — I deviated from that local convention specifically to fit the cap, not
 out of a general preference).
+
+## Fix cycle 2 (AT-619 -- cycle 1 FAIL)
+
+**Findings from `qa/verdicts/at590-doctor-optional-imports.md` (cycle 1):**
+
+1. [C11] medium -- `try_is_soft` judged only the handler's exception TYPE, never its
+   body, so `try: import x / except ImportError: raise` (and the
+   `raise RuntimeError(...) from e` / `sys.exit(...)` variants) classified as SOFT,
+   silently un-flagging an undeclared REQUIRED dependency.
+2. [module one-job] low -- `render.py`'s module docstring did not name the AST
+   import-classifier job the file had picked up.
+
+**What changed**
+
+- `src/autotester/ledger/render.py`
+  - Module docstring: appended one sentence naming `soft_import_ids` and pointing at
+    the "optional-import detection" section (AT-590/AT-619) -- no existing text
+    trimmed or reflowed.
+  - New `_EXIT_CALL_NAMES = {"exit", "quit"}` constant.
+  - New `_is_exit_call(call: ast.Call) -> bool` -- true for `exit(...)`, `quit(...)`,
+    or `sys.exit(...)`.
+  - New `_handler_exits(body: list[ast.stmt]) -> bool` -- true if a `raise` (bare
+    re-raise, `raise X`, `raise X from e`, `raise SystemExit(...)`) or an exit call is
+    reachable on any control-flow path through `body` (recurses into `if`/`for`/
+    `while`/`with`/`try` bodies, orelse and finally blocks, and nested try handlers;
+    does NOT descend into a nested `def`/`class` the handler merely defines, since
+    code there does not run as part of handling the exception).
+  - `try_is_soft` now also requires `not _handler_exits(h.body)` for every handler --
+    a handler that names only ImportError/ModuleNotFoundError AND re-raises or exits
+    no longer counts as soft.
+  - Net: **300 lines** (cap 300, exactly at it; was 260 before this cycle).
+- `tests/test_doctor.py`
+  - `_LOOKS_LIKE_A_GUARD_BUT_IS_HARD` gained 3 params: `reraise`
+    (`except ImportError: raise`), `raise_from`
+    (`except ImportError as e: raise RuntimeError(...) from e`), and `sys_exit`
+    (`except ImportError: sys.exit('need pytest')`) -- each exercised by the existing
+    `test_shapes_that_look_like_a_guard_but_are_not_stay_hard`, which already asserts
+    an end-to-end `doctor.run(root)` violation, so no separate end-to-end test was
+    needed: these three params ARE that end-to-end proof for the try/except-raise
+    shape the verdict asked for.
+  - That test's docstring updated to name the AT-619 shapes explicitly.
+  - Net: **294 lines** (cap 300; was 285 before this cycle).
+- No change to `src/autotester/doctor.py` this cycle (277 lines, unchanged).
+
+**Not implemented:** `raise SystemExit(...)` as a distinct test id -- it is caught by
+the same `isinstance(stmt, ast.Raise)` branch as `reraise`/`raise_from` (a `raise
+SystemExit(...)` statement IS an `ast.Raise` node; there is nothing about it that
+`_handler_exits` treats differently), so a fourth param would not isolate any new
+code path. `exit(...)`/`quit(...)` are covered by `_is_exit_call` but likewise not
+given a dedicated test id, for the same reason `sys_exit` already exercises the
+`_is_exit_call` branch end-to-end; a bare `exit(...)` differs from `sys.exit(...)`
+only in `_is_exit_call`'s `isinstance(func, ast.Name)` vs `ast.Attribute` branch,
+which mutation E below isolates directly instead.
+
+## How to verify (cycle 2; commands + actual outputs)
+
+```
+$ uv run pytest tests/test_doctor.py
+...................................                                      [100%]
+35 passed in 5.99s
+
+$ uv run pytest tests/ -k doctor
+...........................................                              [100%]
+43 passed, 1950 deselected, 1 warning in 9.87s
+
+$ uv run pytest tests/test_cli_advice_resolves.py
+............................                                             [100%]
+28 passed in 5.90s
+
+$ uv run ruff check src tests scripts
+All checks passed!
+
+$ uv run autotester doctor
+doctor: clean
+```
+
+`uv run autotester map` not run: no module added or removed (the change lands inside
+the existing `render.py`), and `doctor: clean` already confirms `check_generated_fresh`
+sees no drift against `docs/MAP.md`.
+
+The full unfiltered suite (`uv run pytest`, no target) was not run this cycle, per the
+standing RAM-low instruction -- same scoping as cycle 1.
+
+## Capability coverage, cycle 2 (each claim -> its isolating falsification)
+
+Falsified in a throwaway copy OUTSIDE the tracked worktree, made via `robocopy` (not
+`cp -r`, which timed out copying `.venv`) excluding `.venv`/`.git`/`__pycache__`/
+`.worktrees`/`.goal`, then a Junction pointing the copy's `.venv` at the tracked
+worktree's real one (dependencies unchanged this cycle, so reusing the built venv is
+safe) -- baseline confirmed green (`35 passed`) before any mutation.
+
+| # | claim | falsifying edit (single hunk, in the throwaway copy) | before | after |
+|---|---|---|---|---|
+| E | `_handler_exits` is what makes a re-raising/raising/exiting handler HARD (not a no-op) | `render.py`: `_handler_exits` body -> `return False` immediately after its docstring | 35 passed | **3 failed**: `test_shapes_that_look_like_a_guard_but_are_not_stay_hard[reraise]`, `[raise_from]`, `[sys_exit]` |
+
+Mutation applied via a Python script asserting the anchor (the function's docstring
+close) matched exactly once before inserting the sabotage line, and reverted the same
+way (asserting the sabotage-line marker matched exactly once) before re-verifying.
+Reproduction:
+
+```
+$ uv run pytest tests/test_doctor.py -v
+...
+FAILED tests/test_doctor.py::test_shapes_that_look_like_a_guard_but_are_not_stay_hard[reraise]
+FAILED tests/test_doctor.py::test_shapes_that_look_like_a_guard_but_are_not_stay_hard[raise_from]
+FAILED tests/test_doctor.py::test_shapes_that_look_like_a_guard_but_are_not_stay_hard[sys_exit]
+3 failed, 32 passed in 4.97s
+```
+
+Post-revert, both changed files diffed byte-identical against the tracked worktree:
+
+```
+$ diff <(cat src/autotester/ledger/render.py) <(cat <worktree>/src/autotester/ledger/render.py) && echo "render.py identical"
+render.py identical
+$ diff <(cat tests/test_doctor.py) <(cat <worktree>/tests/test_doctor.py) && echo "test_doctor.py identical"
+test_doctor.py identical
+$ git -C <worktree> status --short
+ M src/autotester/ledger/render.py
+ M tests/test_doctor.py
+```
+
+**Not separately falsified:** `_is_exit_call`'s two branches (`exit`/`quit` by-name
+vs. `sys.exit` by-attribute) are both exercised by the `sys_exit` param in mutation
+E's failing set (it fails when `_handler_exits` is neutered, proving the exit path is
+load-bearing); a dedicated mutation on `_is_exit_call` itself would show the same
+three tests fail (any handler-exit detection failing makes those three params soft
+again), so it would not isolate anything E does not already show. The graceful shapes
+(`pass`/binds-fallback, from cycle 1's rows A-D) are unaffected by this cycle's change
+-- `try_is_soft`'s new clause is `and not _handler_exits(...)`, additive to the
+existing checks cycle 1 already falsified, and cycle 1's rows A-D still pass
+unmodified in the full 35-test run above.
+
+## Live browser evidence, cycle 2
+
+Not applicable -- same dev-tooling fix, no UI surface. Changed paths this cycle:
+`src/autotester/ledger/render.py`, `tests/test_doctor.py`.
 
 ## Known limits / gaps (disclosed, not claimed)
 
