@@ -3,10 +3,188 @@
 qa/contracts/browser-and-secrets.md B2 ("any string headed for a provider passes
 `core.redact.assert_no_raw_secrets` first")
 **Goal task:** none (security-hardening fix against open checker findings)
-**Date:** 2026-09-25 (cycle 1) / 2026-09-26 (cycle 2)
-**Fix cycle:** 2 of 3
+**Date:** 2026-09-25 (cycle 1) / 2026-09-26 (cycles 2 and 3)
+**Fix cycle:** 3 of 3 (last cycle)
 **Dual check:** no
 **Issues addressed:** AT-347 (medium, open), AT-352 (medium, open), AT-356 (medium, open)
+
+## Cycle 3 — both cycle-2 verdicts were FAIL; last cycle
+
+`qa/verdicts/at347-352-356-redact-fold.md` (primary, commit 4ca4721) and
+`qa/verdicts/at347-352-356-redact-fold.b.md` cycle-2 entry (commit ab60d4e) both FAILed cycle 2 on
+three gaps in the SAME exact-encoding-search mechanism cycle 2 introduced. Both verdicts confirmed
+the cycle-2 adjacency fix itself holds (base64 alignment including `"user:"+secret`, hex isolated,
+ASCII_CONFUSABLES) — nothing here reopens that. This section answers every finding, narrowly, in
+only `core/redact.py`, `core/redact_encodings.py`, and tests, per the dispatch brief.
+
+| # | Verdict finding | Severity | Answer |
+|---|---|---|---|
+| 1 | Primary + blind second: `Redactor.__init__` (redact.py:62-65) and `assert_no_raw_secrets` (redact.py:134-137) pre-filtered every secret into `widened_secrets` by its FOLDED length (>= `MIN_FOLDED_LEN`) before the exact-encoding search ever ran. `"Zq7!kP2x"` (8 raw chars, folds to 7) got no encoding protection at all, not even isolated. Primary reproduced 70/70 misses across 7 encodings x 10 contexts. | high | **Fixed.** The two floors are now applied separately, INSIDE `_contains_folded_secret` (not by either caller): the heuristic fold-based search keeps the original folded-length floor; the exact-encoding search is now gated on `len(raw_value) >= MIN_FOLDED_LEN` instead — an exact substring match is not the heuristic widening the floor's docstring argues against (AT-002's floorless-exact principle), so it needed its own, narrower floor, not the same one reused for the wrong reason. `Redactor.__init__`/`assert_no_raw_secrets` no longer filter at all — they build `widened` unconditionally and let `_contains_folded_secret` decide. |
+| 2 | Blind second: base32 has zero alignment-offset handling — `declared_secret_encodings` computed only the isolated `base64.b32encode(secret_bytes)`. base32 groups 5 bytes into 8 characters (one more offset than base64's 3), so `b32encode(prefix + secret)` misses at prefix lengths 1-4 mod 5. Deterministically reproduced: offsets 0 and 5 caught, offsets 1-4 all MISS. | high | **Fixed.** `_base64_alignment_needles` generalised into `_alignment_needles(secret_bytes, encoder, group_bytes, group_chars)`; base32 now gets `range(5)` offsets with 8-character groups, the same technique base64 already had with `range(3)`/4. Per the brief: tests re-encode `prefix + secret` as ONE `base64.b32encode` call for `k in 0..4`, not a literal-text wrap around an isolated encoding (the brief's own diagnosis of why cycle 2's `SECRETb32CODE`-style tests never exercised alignment). |
+| 3 | Primary: base32 needles were uppercase only (`redact_encodings.py:82-83`); lowercase base32 of any secret misses both doors in every context (40/40). | medium-high | **Fixed.** Lowercase base32 needles added, generated through the SAME alignment machinery as uppercase (`encoder=lambda b: base64.b32encode(b).lower()`), so lowercase gets the identical adjacency immunity, not a narrower one — plus the plain isolated encoding of each case with and without `=` padding stripped, as explicit belt-and-suspenders pairs alongside the alignment needles (mirroring how hex already has upper+lower). |
+| — | Both verdicts, explicitly: hex is fine; AT-598/AT-599 (split needles) are separate issues. | — | **Left alone**, per the brief. `test_hex_needles_unchanged_no_mixed_case_variant_added` pins the two existing hex needles so a future cycle working on base32 doesn't accidentally touch hex. AT-598/AT-599 not addressed — see Gaps. |
+| — | Both verdicts: keep what holds — b64 alignment incl. `"user:"+secret`, 0 false positives on 121 KB, ~0.24s at 50KB. Re-run false-positive + timing since shorter needles at more offsets raise both risks. | — | **Re-verified below** (regression run + fresh false-positive/timing numbers). |
+
+### What changed in cycle 3
+
+- `src/autotester/core/redact_fold.py` — `_contains_folded_secret` now applies `len(raw_value) >=
+  MIN_FOLDED_LEN` to gate the exact-encoding half and `len(folded) >= MIN_FOLDED_LEN` to gate the
+  fold-based half, instead of a single pre-filter the caller applied to both. `MIN_FOLDED_LEN`'s
+  docstring extended (not trimmed) to explain the second, narrower use of the same constant.
+- `src/autotester/core/redact.py` — `Redactor.__init__`'s `self._widened` and
+  `assert_no_raw_secrets`'s `widened` no longer filter by folded length; both now build the full
+  `(raw, folded)` list unconditionally.
+- `src/autotester/core/redact_encodings.py` — `_base64_alignment_needles` → `_alignment_needles`
+  (generalised, `group_bytes`/`group_chars` parameters; its historical rationale moved to a
+  preceding comment block, not trimmed, to stay under the 50-line function cap — see Gaps for why
+  that was needed). `declared_secret_encodings` now computes base32 through the alignment
+  machinery (uppercase and lowercase) plus the isolated padded/unpadded pair of each case. hex
+  untouched.
+- `tests/test_core.py` crossed the C2 300-line cap growing this suite across three cycles (348
+  lines before this split). Split by responsibility: `tests/test_ids.py` (core.ids tests, an
+  unrelated concept) and `tests/test_redact_obfuscation.py` (the full AT-347/352/356 regression
+  suite, all cycles) — `tests/test_core.py` now holds only the Redactor/placeholder basics. New
+  tests added to `test_redact_obfuscation.py`: `test_contains_folded_catches_short_fold_secret_isolated_encoding`
+  / `test_assert_no_raw_secrets_blocks_short_fold_secret_isolated_encoding` (finding 1, 3 encodings x
+  2 doors), `test_contains_folded_catches_base32_at_every_byte_alignment_offset` /
+  `test_assert_no_raw_secrets_blocks_base32_at_every_byte_alignment_offset` (finding 2, 5 offsets x 2
+  doors, re-encoding `prefix+secret` as one call per the brief), `test_contains_folded_catches_lowercase_base32_isolated`
+  / `test_assert_no_raw_secrets_blocks_lowercase_base32_isolated` (finding 3), and
+  `test_hex_needles_unchanged_no_mixed_case_variant_added` (pins the "leave hex alone" decision).
+
+### Red-first (throwaway copy, cycle-2 code at 01f8867, before this cycle's edit)
+
+Reproduced all three findings against the EXACT cycle-2 commit (01f8867), copied to a scratch
+mini-package, never the tracked worktree:
+
+```
+== Finding 1: short-fold secret gets no encoding protection ==
+short-b64-isolated               ui=False gate=False
+short-b32-isolated               ui=False gate=False
+short-hex-isolated               ui=False gate=False
+
+== Finding 2: b32 alignment (prefix + secret encoded as ONE call) ==
+b32-coencoded-prefix0            ui=True  gate=True
+b32-coencoded-prefix1            ui=False gate=False
+b32-coencoded-prefix2            ui=False gate=False
+b32-coencoded-prefix3            ui=False gate=False
+b32-coencoded-prefix4            ui=False gate=False
+
+== Finding 3: b32 lowercase, isolated ==
+b32-lowercase-isolated           ui=False gate=False
+
+BYPASSED (expected all 3 findings to bypass): [... all 8 red cases above ...]
+```
+
+Prefix-offset pattern (0 caught, 1-4 miss) matches the blind-second verdict's own reproduction
+exactly. Re-ran the identical probe against the fixed code — all 9 checks flip to `ui=True gate=True`.
+
+### Cycle 3 verification
+
+```
+$ uv run pytest tests/test_core.py tests/test_ids.py tests/test_redact_obfuscation.py
+65 passed in 0.68s
+
+$ uv run pytest tests/test_core.py tests/test_ids.py tests/test_redact_obfuscation.py tests/test_secrets.py tests/test_ui_secrets_declaration.py tests/test_check_no_secrets.py tests/test_db.py tests/test_network_assertions.py tests/test_portal_persona.py tests/test_run_trace.py tests/test_source_adapters_drive.py tests/test_prompt_skills.py
+168 passed, 1 skipped, 6 warnings in 10.20s
+
+$ uv run ruff check src tests scripts
+All checks passed!
+
+$ uv run autotester doctor
+ledger-row-lost: qa/verdicts/at347-352-356-redact-fold.md — AT-598 is named here but has no row in qa/issues.jsonl
+ledger-row-lost: qa/verdicts/at347-352-356-redact-fold.md — AT-599 is named here but has no row in qa/issues.jsonl
+2 violation(s)
+```
+
+The 2 remaining `doctor` violations are the checker's own ledger bookkeeping (AT-598/AT-599 named in
+a verdict with no `qa/issues.jsonl` row yet) — maker never edits `qa/issues.jsonl`, and the brief
+explicitly says not to take on AT-598/AT-599 this cycle. Not a code or test defect; flagged, not
+fixed. `file-too-long`/`function-too-long` (present before this section's edits — `test_core.py` at
+348 lines, `_alignment_needles` at 53 lines) are both resolved (see What changed).
+
+Regression check — every prior cycle's caught case, re-verified against the fixed code (9 cycle-1
+vectors + 9 cycle-2 adjacency/isolated vectors including `"user:"+secret` Basic-auth shape):
+
+```
+ALL REGRESSION CASES STILL CAUGHT: True   (18/18)
+```
+
+**False-positive and timing re-check** (explicitly requested — shorter needles at more offsets
+raise both risks):
+
+```
+corpus size: 127.3 KB (realistic prose + filename/token/hex/b32/b64 decoys + random alnum blobs)
+assert_no_raw_secrets: no raise (clean)
+elapsed=0.753s
+
+corpus size: 33.6 KB (same shape)
+assert_no_raw_secrets: no raise (clean)   elapsed=0.255s
+contains_folded: False                     elapsed=0.248s
+
+50 KB slice: elapsed=0.270s
+```
+
+Cycle 2's own number was ~0.24s at 50KB; this cycle's 50KB slice measures 0.270s — a mild, expected
+increase (more offsets, one more secret in the declared set for this specific test), still roughly
+linear with corpus size and in the same order of magnitude. No false positive at either scale, on a
+corpus deliberately salted with filename/token/hex/base32/base64-shaped decoys designed to stress
+the exact-encoding search's over-triggering risk.
+
+**Full non-browser suite: still NOT RUN.** RAM measured 728 MB-1.7 GB free across cycles 2 and 3
+sessions, never reaching the 3.5 GB ceiling. Same declared gap as cycles 1 and 2.
+
+### Cycle 3 capability coverage (mutation-tested, scratch copy only)
+
+Baseline (11 checks: 3 finding-1 isolated encodings, 5 finding-2 alignment offsets, 1 finding-3
+lowercase, 2 cycle-2 regression spot-checks) asserted green first:
+
+```
+BASELINE: {'short-b64-isolated': True, 'short-b32-isolated': True, 'short-hex-isolated': True,
+           'b32-coencoded-prefix0': True, 'b32-coencoded-prefix1': True, 'b32-coencoded-prefix2': True,
+           'b32-coencoded-prefix3': True, 'b32-coencoded-prefix4': True,
+           'b32-lowercase-isolated': True, 'cycle2-tok_b64_end': True, 'cycle2-cafe_hex_beef': True}
+-- all caught, asserted green
+```
+
+| capability | falsifying edit (single-hunk, scratch copy only) | targeted rows go red | others stay green |
+|---|---|---|---|
+| Finding 1 — exact-encoding search gated on raw length, not fold length | `redact_fold.py`: revert the `if len(raw_value) >= MIN_FOLDED_LEN` guard back to `if len(_folded) >= MIN_FOLDED_LEN` | `short-b64-isolated`, `short-b32-isolated`, `short-hex-isolated` (all 3) | yes |
+| Finding 2 — base32 alignment (5 offsets) | `redact_encodings.py`: drop the two `_alignment_needles(raw, base64.b32encode, 5, 8)` / lowercase-b32 alignment lines | `b32-coencoded-prefix1..4` (offset 0 stays green by construction — it equals the isolated case) | yes |
+| Finding 3 — base32 lowercase | `redact_encodings.py`: drop the lowercase-alignment call AND the `b32_lower` isolated-needle lines (one hunk) | `b32-lowercase-isolated` | yes |
+
+Full runner output (`mutation_runner_cycle3.py`, scratch dir):
+
+```
+finding1-fold-floor-gate      targeted_red=True  others_green=True
+finding2-b32-alignment        targeted_red=True  others_green=True
+finding3-b32-lowercase        targeted_red=True  others_green=True
+
+ALL CYCLE-3 FINDINGS PROPERLY DEFENDED: True
+```
+
+### Cycle 3 gaps
+
+- **AT-598/AT-599 (split needles) not addressed** — explicitly out of scope per the brief ("keep
+  this cycle narrow"). `doctor`'s `ledger-row-lost` violation for both is a pre-existing checker-side
+  ledger gap (verdict named them, `qa/issues.jsonl` has no row yet), not something this cycle's code
+  or tests can fix — maker never edits `qa/issues.jsonl`.
+- Hex deliberately unchanged, per the brief's explicit instruction (the mixed-case-hex claim from
+  one of the two cycle-2 verdicts did not reproduce under the coordinator's own re-check). If a
+  future check reproduces it independently, that is new evidence for a new cycle, not something
+  silently folded in here.
+- Same standalone-mutation-runner-vs-pytest method note as cycles 1-2 (editable-install path); a
+  checker wanting a literal pytest-attributed kill can apply the same one-hunk edits to the tracked
+  file in its own throwaway copy.
+- The belt-and-suspenders isolated base32 needles (padded/unpadded, both cases) are technically
+  redundant with the alignment needles' offset-0 case for a secret whose length happens to make the
+  natural encoding needle-safe, per `_alignment_needles`'s own construction — kept anyway per the
+  brief's explicit "plus the unpadded variant of each case" instruction, and as a simpler, more
+  obviously-correct fallback independent of the generalised alignment machinery.
+
+---
+
+## Cycle 2 (kept as history, superseded by Cycle 3 above where they overlap)
 
 ## Cycle 2 — both cycle-1 verdicts were FAIL
 
