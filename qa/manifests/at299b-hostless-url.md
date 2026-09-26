@@ -309,4 +309,4 @@ LIVE-BROWSER: not-applicable (no browser/network code touched — pure string te
   (`file.html`, `example.com`) still collapsed to `"/"` through the same caller composition — see
   the Cycle 2 section above for the fix.
 
-Status: ready-for-check
+Status: checked-PASS (cycle 2, 094609b)
