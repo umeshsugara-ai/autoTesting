@@ -118,3 +118,49 @@ def test_the_corruption_is_printed_not_only_counted(tmp_path: Path) -> None:
     assert "CORRUPT" in rendered
     assert "dated after now" in rendered
     assert "alive indefinitely" in rendered, "the consequence, not just the count"
+
+
+# -- AT-424: an all-future log is CORRUPT, not empty ---------------------------
+
+def test_an_all_future_log_is_not_reported_as_no_ticks_recorded(tmp_path: Path) -> None:
+    """The exact shape of AT-424: every stamp in the log is future-dated, so
+    `credible` is empty and `last_tick` is None -- but `ticks` is 1, not 0. The
+    old code returned early on `last_tick is None`, before the CORRUPT row for
+    the future stamp was ever appended, so this rendered as the same line an
+    untouched project gets. A log with one corrupt stamp in it is not the same
+    fact as a log with nothing in it, and must not render as the same line."""
+    root = _tick_log(tmp_path, [f"{_at(16, 23)} ADVANCED a stamp typed 8h ahead"])
+    report = status(root, now=datetime(2026, 9, 16, 15, tzinfo=UTC))
+    assert report.last_tick is None, "no credible tick survives -- the AT-424 precondition"
+    assert report.anomalies.any is True
+
+    rendered = [text for text, _ in report_lines(report)]
+
+    assert rendered != ["loop-status: no ticks recorded"], (
+        "an all-future log must never render as an empty one")
+    assert any("CORRUPT" in line for line in rendered)
+    assert any("dated after now" in line for line in rendered)
+
+
+def test_a_truly_empty_log_still_reports_no_ticks_recorded(tmp_path: Path) -> None:
+    """The fix must not overcorrect: zero parseable ticks is still exactly the
+    'no ticks recorded' case AT-424's own `expected` carves out."""
+    (tmp_path / "qa").mkdir()
+    rendered = [text for text, _ in report_lines(
+        status(tmp_path, now=datetime(2026, 9, 16, 7, tzinfo=UTC)))]
+
+    assert rendered == ["loop-status: no ticks recorded"]
+
+
+def test_an_all_future_log_does_not_also_claim_no_gaps(tmp_path: Path) -> None:
+    """With no credible tick, `find_gaps` sees an empty ticks list and reports no
+    gaps -- correct for the gap arithmetic, but printing the healthy-loop 'no
+    gaps' line right under a CORRUPT row would tell the reader two contradictory
+    things in the same breath. The 'ok' all-clear belongs only to a log that has
+    at least one credible tick to be clear about."""
+    root = _tick_log(tmp_path, [f"{_at(16, 23)} ADVANCED a stamp typed 8h ahead"])
+    rendered = [text for text, _ in report_lines(
+        status(root, now=datetime(2026, 9, 16, 15, tzinfo=UTC)))]
+
+    assert not any("no gaps" in line for line in rendered), (
+        "a corrupt, credible-tick-free log is not a clean loop")
