@@ -697,4 +697,4 @@ No new limits. Cycle 4's known limit (IPv6 bracketed hosts `[::1]` still
 split on their own colons, explicitly out of scope per the cycle-4 gate)
 and every earlier cycle's known limits still apply unchanged.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 5, qa/verdicts/at597-pin-issue-caller.md 8b7599f)
