@@ -20,6 +20,7 @@ _UUID = re.compile(
 _ULID = re.compile(r"^[0-9A-HJKMNP-TV-Z]{26}$")  # Crockford base32, no I/L/O/U
 _HEX = re.compile(r"^[0-9a-f]{16,}$", re.IGNORECASE)
 _DATE = re.compile(r"^\d{4}-\d{2}(-\d{2})?$")
+_INDEX_SEGMENTS = {"index.html", "index.htm"}
 
 
 def _template_segment(segment: str) -> str:
@@ -79,7 +80,7 @@ def absolute_url(url: str) -> str:
     return f"https://{url}"
 
 
-def url_template(url: str, *, keep_host: bool = True) -> str:
+def url_template(url: str, *, keep_host: bool = True, fold_index: bool = False) -> str:
     """Normalise `url` to a screen-identity path: strip query/fragment,
     collapse repeated slashes, template id/date-shaped segments, and drop a
     trailing slash (the root `/` is kept as-is).
@@ -96,9 +97,30 @@ def url_template(url: str, *, keep_host: bool = True) -> str:
     re-templated it to compare, and the screen became invisible. Inferring
     host-ness back out of a schemeless string is impossible in principle —
     `settings.json` and `example.com` are the same shape — so the fix is one
-    canonical stored shape, not a smarter parser."""
+    canonical stored shape, not a smarter parser.
+
+    AT-334: pass `fold_index=True` to fold a trailing `index.html`/`index.htm`
+    PATH SEGMENT away before templating, so a directory index reached by its
+    bare directory URL and by its served filename collapse to one identity:
+    `/index.html` -> `/`, `/docs/index.html` -> `/docs` — matching whatever
+    the directory form ALREADY normalises to under the trailing-slash rule
+    above, never a new third shape (`/docs/` -> `/docs` already; folding to
+    `/docs/` instead would break that idempotence). Exact, case-SENSITIVE
+    match only — `myindex.html`, `index.html.bak`, `index.php` and
+    `/Index.html` are untouched; guessing case-insensitively is the kind of
+    shape-based inference AT-287/AT-299b already paid for getting wrong.
+
+    **Default OFF.** `scripts/migrate_url_patterns.py::repair` calls this
+    directly and its own tests pin `/index.html` as an unchanged remainder
+    once a real declared host is stripped — that script sits behind its own
+    unanswered gate (`qa/gates/t135-url-pattern-data-migration.md`) and
+    AT-334 does not authorize touching it. Opt-in keeps `repair` unchanged;
+    only `stages/screen_identity.py::node_from` and `screen_url_pattern`
+    below pass `fold_index=True`."""
     parts = urlsplit(url)
     segments = [seg for seg in parts.path.split("/") if seg != ""]
+    if fold_index and segments and segments[-1] in _INDEX_SEGMENTS:
+        segments = segments[:-1]
     templated = "/".join(_template_segment(seg) for seg in segments)
     path = f"/{templated}" if segments else "/"
     if keep_host and parts.netloc:
@@ -134,10 +156,18 @@ def screen_url_pattern(raw: str | None) -> str | None:
     it untouched precisely because it already had one), or an explicit
     trailing slash after a promoted host (`example.com/`). Only a bare,
     slash-free promoted token collapses to None instead of `/`.
+
+    AT-334: `fold_index=True` here, so a stored `Screen.url_pattern` folds a
+    trailing `index.html`/`index.htm` exactly like `ScreenNode.url_template`
+    does (`stages/screen_identity.py::node_from`) — the two boundaries X15
+    already requires to reduce to the same identity for coverage to compare
+    them at all. This is the one direct caller of `url_template` that opts in
+    alongside `node_from`; `scripts/migrate_url_patterns.py::repair` calls
+    `url_template` on its own and deliberately does not.
     """
     if not raw:
         return None
-    templated = url_template(absolute_url(raw), keep_host=False)
+    templated = url_template(absolute_url(raw), keep_host=False, fold_index=True)
     if templated != "/":
         return templated
     before_query = raw.split("?", 1)[0]
