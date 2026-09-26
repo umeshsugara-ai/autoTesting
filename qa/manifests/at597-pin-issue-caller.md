@@ -1,7 +1,7 @@
 # Manifest — at597-pin-issue-caller
 
 **Unit:** a human-facing path to pin a confirmed issue as a regression case (AT-597).
-**Fix cycle:** 2 of 3
+**Fix cycle:** 3 of 3
 **Dual check:** no
 **Issues addressed:** AT-597, AT-604
 
@@ -380,5 +380,126 @@ tracked worktree was never touched.
   out-of-scope limitation that a literal `:` inside a value or expect box
   (not part of a `scheme://`) still splits fields, same as before this
   cycle.
+
+## Fix cycle 3 — the port colon still split a URL (ddb747d)
+
+Checker's cycle-2 verdict (`qa/verdicts/at597-pin-issue-caller.md`, commit
+`ddb747d`): cycle 2's `_STEP_SPLIT_RE = re.compile(r":(?!//)")` lookahead
+protected only the scheme's own colon. A URL with an explicit port still
+split at the PORT colon — `navigate:http://localhost:8069/signup` became
+`target='http://localhost'`, `value='8069/signup'`; `https://app.example.
+com:8443/login` broke the same way; `fill:#url:https://x.com:8080/a` gave
+`value='https://x.com'` with `'8080/a'` left over as the (wrong) expect
+field. This is cycle 3, the last one under the cap.
+
+### What changed
+
+- `src/autotester/cli_issues.py::_parse_step` (:134): the action is now
+  split off at the FIRST `:` only (`raw.partition(":")`), same as before.
+  What happens to the remainder now differs by action:
+  - **NAVIGATE** takes the whole remainder as its target with no further
+    split at all — navigate has no value or expect field (T-184's `Step`
+    shape leaves them unused for it), so there is nothing left for a URL's
+    own scheme or port colon to be mistaken for a field separator.
+  - **Every other action** tokenizes the remainder field-by-field via the
+    new `_split_step_fields`/`_take_step_field` (:102, :119), which in turn
+    uses a new `_URL_FIELD_RE` (:91): `^[A-Za-z][A-Za-z0-9+.-]*://[^/:]*
+    (?::\d+)?[^:]*` — a field that starts with a scheme consumes the
+    authority (host, no `:` or `/` in it) plus an OPTIONAL `:digits` port,
+    then the path up to whichever `:` comes next. A non-URL field still
+    splits on its first remaining `:`, exactly as cycle 2 already did.
+  - Old `_STEP_SPLIT_RE` (the single scheme-only lookahead) is removed
+    entirely, replaced by the field-at-a-time tokenizer above.
+- `pin_cmd` (:187) grew past the 50-line cap once the parse logic above was
+  wired in; the idempotent tail (already-pinned no-op, success message) was
+  pulled out into a new `_finish_pin` helper (:233) rather than trimming any
+  docstring. `pin_cmd` is 44 lines now; the file is 260 lines total; no
+  function in it is over 50 lines (checked with an ast-based line counter,
+  same method cycle 1/2 used).
+- `tests/test_cli_issues.py`: imports `_parse_step` directly (precedent:
+  `tests/test_cli_orchestrate_resume.py` already imports a private
+  `_persist_proposal` the same way) and adds 6 tests under a new "AT-597
+  cycle 3" section — see capability coverage below.
+
+### Explicitly NOT built (cycle 3)
+
+- The `fastapi.HTTPException` import and the private `ui.helpers` guard
+  imports (`_refuse_unsafe_submission`, `_require_reachable_navigate_steps`)
+  stay in `cli_issues.py` across the CLI/UI layer boundary, per the
+  dispatch's explicit scope: not moved this cycle. Left under Known limits
+  below as a follow-up unit.
+- No change to the pre-existing, out-of-scope limitation (noted in cycle 2)
+  that a literal `:` inside a non-URL value or expect field still splits —
+  only a `scheme://` field is now colon-safe, by design.
+
+### How to verify (commands + expected)
+
+```
+uv run pytest tests/test_ui_issues.py tests/test_cli_issues.py tests/test_pinned_regression.py tests/test_ui_case_management.py tests/test_ui_cases.py tests/test_issues.py tests/test_expand.py tests/test_expand_cli.py tests/test_run_case_pipeline.py tests/test_cli_surface.py
+uv run ruff check src tests scripts
+uv run autotester doctor
+```
+
+### Actual outputs (cycle 3, in the worktree)
+
+```
+$ uv run pytest tests/test_ui_issues.py tests/test_cli_issues.py tests/test_pinned_regression.py tests/test_ui_case_management.py tests/test_ui_cases.py tests/test_issues.py tests/test_expand.py tests/test_expand_cli.py tests/test_run_case_pipeline.py tests/test_cli_surface.py
+........................................................s............... [ 46%]
+........................................................................ [ 92%]
+...........                                                              [100%]
+154 passed, 1 skipped, 1 warning in 5.80s
+
+$ uv run ruff check src tests scripts
+All checks passed!
+
+$ uv run autotester doctor
+ledger-row-lost: qa/manifests/at597-pin-issue-caller.md -- AT-604 is named here but has no row in qa/issues.jsonl
+ledger-row-lost: qa/verdicts/at597-pin-issue-caller.md -- AT-604 is named here but has no row in qa/issues.jsonl
+2 violation(s)
+```
+
+**Both doctor violations are the same pre-existing AT-604 gap cycle 2
+already flagged** — the checker's own verdicts and this manifest name
+AT-604 with no matching row yet in `qa/issues.jsonl`; that ledger row is
+the checker's to add, not this cycle's code fix. Confirmed via `grep -c
+AT-604 qa/issues.jsonl` -> 0 hits, unchanged since cycle 2.
+
+### Capability coverage (falsified in a throwaway copy, never the worktree)
+
+| # | Capability | Test | Falsifying edit | Result |
+|---|---|---|---|---|
+| 1 | A navigate target's port survives | `test_parse_step_preserves_a_navigate_targets_port` | NAVIGATE branch reverted to `remainder.split(":", 1)[0]` | RED: `assert 'http' == 'http://localhost:8069/signup'` -> reverted -> GREEN |
+| 2 | An https host's port survives | `test_parse_step_preserves_an_https_hosts_port` | same edit as #1 (same NAVIGATE-bypass code path) | RED: `assert 'https' == 'https://app.example.com:8443/login'` -> reverted -> GREEN |
+| 3 | A ported URL survives whole as a fill value | `test_parse_step_keeps_a_ported_url_whole_as_a_fill_value` | `_URL_FIELD_RE`'s `(?::\d+)?` port group removed | RED: `assert 'https://x.com' == 'https://x.com:8080/a'` -> reverted -> GREEN |
+| 4 | A ported URL value keeps its own trailing expect | `test_parse_step_keeps_a_ported_url_value_and_its_own_expect` | same edit as #3 (same tokenizer path) | RED: `assert 'https://x.com' == 'https://x.com:8080/a'` -> reverted -> GREEN |
+| 5 | A plain no-port URL still parses (regression) | `test_parse_step_still_parses_a_plain_url_with_no_port` | same edit as #1 (NAVIGATE bypass) | RED: target truncated to `'https'` -> reverted -> GREEN |
+| 6 | Full CLI pin round-trip keeps a ported navigate target | `test_pin_a_local_dev_server_navigate_target_end_to_end` | same edit as #1 (NAVIGATE bypass) | RED: reachable-navigate guard rejected the truncated target ("needs a full URL") -> reverted -> GREEN |
+
+Each row's falsifying edit was applied to a throwaway copy outside the
+worktree (own `uv sync --frozen` venv), confirmed red with the exact
+assertion shown, then reverted and confirmed green again before moving to
+the next row — the worktree itself was never touched by any falsifying
+edit. Two edits cover six rows because rows 1/2/5/6 all exercise the same
+NAVIGATE-bypass branch and rows 3/4 both exercise the same
+`_URL_FIELD_RE`-driven tokenizer branch; each edit is a single, independent
+hunk that would falsify every row sharing that code path.
+
+### Known limits (cycle 3)
+
+- **`cli_issues.py` still imports `fastapi.HTTPException` and private
+  `ui.helpers` guard functions** (`_refuse_unsafe_submission`,
+  `_require_reachable_navigate_steps`) across what would otherwise be a
+  clean CLI/UI layer boundary. Raised as a non-blocking question in the
+  cycle-2 checker verdict; left in place this cycle per the dispatch's
+  explicit scope ("do NOT move them this cycle"). Follow-up: a shared
+  `stages/` or `core/`-level home for these guards (and for
+  `PinnedCaseError`-style exceptions) so neither `cli_issues.py` nor
+  `routes_issues.py` needs to reach into the other layer's private helpers
+  or into `fastapi` from a non-HTTP entry point.
+- Cycle 2's known limits (no unpin action, pre-existing literal-colon
+  splitting inside a non-URL value/expect field, no browser-based Mode D
+  run, full suite not run for RAM reasons, `qa/issues.jsonl` missing an
+  AT-604 row) all still apply unchanged — see the Fix cycle 2 section
+  above.
 
 ## Status: ready-for-check
