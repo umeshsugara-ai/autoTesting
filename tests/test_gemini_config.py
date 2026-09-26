@@ -109,3 +109,19 @@ def test_visionoptions_rejects_an_invalid_thinking_level() -> None:
 @pytest.mark.parametrize("level", ["minimal", "low", "medium", "high"])
 def test_visionoptions_accepts_every_sdk_thinking_level(level: str) -> None:
     assert VisionOptions(thinking_level=level).thinking_level == level
+
+
+# -- AT-591: media_resolution was an unvalidated bare str, same shape --------
+# -- as AT-370's thinking_level ----------------------------------------------
+
+def test_visionoptions_rejects_an_invalid_media_resolution() -> None:
+    """A typo (e.g. 'ultra') used to reach the SDK unvalidated -- gemini.py's
+    f'MEDIA_RESOLUTION_{value.upper()}' would build a nonsense enum name the
+    SDK does not define. It must now fail at construction time instead."""
+    with pytest.raises(ValidationError):
+        VisionOptions(media_resolution="ultra")
+
+
+@pytest.mark.parametrize("resolution", ["low", "medium", "high"])
+def test_visionoptions_accepts_every_sdk_media_resolution(resolution: str) -> None:
+    assert VisionOptions(media_resolution=resolution).media_resolution == resolution
