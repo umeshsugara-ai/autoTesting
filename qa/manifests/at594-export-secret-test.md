@@ -117,4 +117,4 @@ Each red line above is pasted verbatim from the actual throwaway-copy run agains
   new redaction path was needed there; only `Case.steps`, which is stored data never routed through
   a judge, was the actual gap this issue identified.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, qa/verdicts/at594-export-secret-test.md 8ac6ae2)
