@@ -4,15 +4,15 @@
   "north_star": "A reusable AI testing platform where an operator submits any project URL, domain-scoped test-account credential references, and optional evals, conditions, use cases, video, audio, documents, text, email or Google Drive sources. AutoTester learns from supplied evidence or logs in and performs bounded breadth-first exploration, preserves a durable Portal Persona, compiles traceable best/worst/edge evals, reruns them after developer releases in a real visible browser, and reports workflow/API regressions through clear HTML, Excel, text and screenshots. First acceptance targets: Vidysea ERP and Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-26T08:17:28",
+  "updated": "2026-09-26T08:34:30",
   "progress": {
     "total": 70,
-    "done": 46,
+    "done": 47,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 24,
+    "pending": 23,
     "current": "T-122",
-    "percent": 66
+    "percent": 67
   },
   "tasks": [
     {
@@ -1349,7 +1349,7 @@
     {
       "id": "T-182",
       "title": "Enact VIEWPORT_MOBILE / LOCALE_I18N cases (per-case viewport + locale at context creation) or report them not-run, never PASS (AT-581)",
-      "status": "pending",
+      "status": "done",
       "deps": [],
       "base_criticality": "high",
       "criticality": "high",
@@ -1361,7 +1361,8 @@
       "note": "AT-581 (meeting review 2026-09-26, D-045 execute E6): launch.py:30 hard-codes 1366x850 and default locale, so mobile/i18n PASS is false.",
       "attempts": 0,
       "created": "2026-09-26T07:35:49",
-      "user_value": "high"
+      "user_value": "high",
+      "completed": "2026-09-26T08:34:30"
     },
     {
       "id": "T-183",
@@ -1673,6 +1674,6 @@
     "velocity_per_day": 1.91,
     "eta_days": 12.6
   },
-  "last_deterministic_tick": "2026-09-26T08:17:28",
+  "last_deterministic_tick": "2026-09-26T08:32:02",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }

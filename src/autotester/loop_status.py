@@ -120,6 +120,23 @@ class LoopStatus:
         than silently papered over."""
         return any(not gap.explained and gap.end != self.open_end for gap in self.gaps)
 
+    @property
+    def strict_unhealthy(self) -> bool:
+        """What `--strict` exits non-zero for.
+
+        AT-592: `asleep_now` only fires off an OPEN GAP, and `find_gaps` over an
+        empty `credible` list returns `((), None)` -- so a log where every stamp
+        is future-dated has no open gap to report and `asleep_now` reads False,
+        even though `report_lines` renders it with a `CORRUPT` row and `last:
+        none credible`. That is not the healthy case `--strict` was built to let
+        through; it is a log strict has no gap arithmetic to run on at all.
+
+        True when the loop is silently asleep right now (`asleep_now`), or when
+        there are ticks but every one of them was excluded as not credible
+        (`ticks > 0` and `last_tick is None`) -- the CORRUPT state `report_lines`
+        already names but `asleep_now` alone cannot see."""
+        return self.asleep_now or (self.ticks > 0 and self.last_tick is None)
+
 
 def read_ticks(path: Path) -> list[datetime]:
     """Every tick stamp in `qa/.last-tick`, **in file order**, timezone-aware.

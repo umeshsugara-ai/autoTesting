@@ -134,6 +134,12 @@ def _outcome_verdict(result: RawResult, rubric: Rubric, run_id: str) -> Verdict 
         return _verdict(run_id, result, rubric, verdict_result=Result.INCONCLUSIVE,
                          provider_id="rule", scoreboard="not judged: execution errored",
                          note=result.error)
+    if result.outcome is Outcome.NOT_RUN:
+        # D-045/AT-581 (E6): the case's execution condition could not be enacted -- it never
+        # ran, so it never reaches the judge and can never come back PASS.
+        return _verdict(run_id, result, rubric, verdict_result=Result.INCONCLUSIVE,
+                         provider_id="rule", scoreboard="not judged: execution condition "
+                         "could not be enacted", note=result.not_run_reason)
     return None
 
 
