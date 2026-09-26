@@ -1162,3 +1162,32 @@ This narrows what U14(b) charges. A later cycle may now lose ground an earlier r
 **Changes-authorized:** qa/contracts/ui.md U14(b) and U14(c) wording plus the amendment log (checker). No enforcement path.
 
 **Links:** D-048; qa/gates/at438-u14b-baseline.md; AT-438; AT-442; AT-449; AT-450; AT-453; AT-454; 9fc937d; c687b73; qa/evidence/browser-at438-rerule-2026-09-26-checker/
+
+## D-050 | 2026-09-26 | type: decision | status: ACTIVE
+
+**What:** The checker writes two contracts that D-048 authorized:
+- qa/contracts/persona-ux-advisory.md for T-190, criteria PU1-PU9;
+- qa/contracts/run-video.md for T-191, criteria V1-V8.
+
+It also amends qa/contracts/report-export.md RE3 with one named exception. A kept run video (EvidenceKind.VIDEO, T-191) is linked from the exported HTML by a path relative to the run directory, never embedded. The HTML stays self-contained for everything else: screenshots are still base64-embedded, and the page still opens with no server or network.
+
+**Why:**
+- D-048 fixed Umesh's two gate answers:
+  - meeting-user-persona-ux-judging = A: an advisory UX track that never changes PASS/FAIL;
+  - meeting-run-video-scope = A: record on FAIL or INCONCLUSIVE only, keep the last 20, mask secrets as in screenshots.
+- D-048 authorized the checker to write these contracts once the goal tasks existed. T-190 and T-191 now exist.
+- Each contract was drafted against the code and then critiqued by a fresh agent that opened every cited file:line.
+- A 15-20 minute recording cannot sensibly be base64-embedded in a portable HTML report. RE3 predates video evidence and did not anticipate it. Leaving RE3 as written would make T-191's V8 ungradeable.
+
+The exception narrows RE3 for video only. It is named here as a deliberate narrowing, not a silent one. Screenshot embedding and every other RE3 property are unchanged.
+
+**Result:** Two new ACTIVE contracts, each with an init amendment-log row. report-export.md RE3 gains the video-link exception plus an amendment-log row. No src/ or test change by the checker.
+
+**Changes-authorized:**
+- qa/contracts/persona-ux-advisory.md (new);
+- qa/contracts/run-video.md (new);
+- qa/contracts/report-export.md RE3 (the video-link exception) and its amendment log.
+
+No enforcement path.
+
+**Links:** D-048; T-190; T-191; AT-583; AT-584; AT-587; qa/gates/meeting-user-persona-ux-judging.md; qa/gates/meeting-run-video-scope.md
