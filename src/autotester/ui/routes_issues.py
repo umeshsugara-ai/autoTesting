@@ -26,8 +26,9 @@ from autotester.stages.issues import (
     export_issues_excel,
     issue_row,
     pin_issue_as_case,
+    refuse_if_issue_already_pinned,
 )
-from autotester.store.project_store import ProjectStore
+from autotester.store.project_store import PinnedCaseError, ProjectStore
 from autotester.ui import theme
 from autotester.ui.case_form import STEP_ROWS, _credential_datalist, _step_row
 from autotester.ui.helpers import (
@@ -156,6 +157,10 @@ async def pin_issue(slug: str, issue_id: str, request: Request) -> RedirectRespo
         raise HTTPException(400, "confirm at least one reproduction step before pinning")
     _require_reachable_navigate_steps(steps, project)
     case = pin_issue_as_case(issue, flow_id="manual", steps=steps, project=slug)
+    try:
+        refuse_if_issue_already_pinned(store, issue_id, case.id)
+    except PinnedCaseError as exc:
+        raise HTTPException(409, str(exc)) from exc
     _refuse_duplicate(store, case)
     store.add_case(case)
     return RedirectResponse(f"/projects/{slug}/cases", status_code=303)

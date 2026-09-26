@@ -170,3 +170,21 @@ def test_pinning_the_same_issue_and_steps_twice_is_refused_not_silently_swallowe
     assert response.status_code == 400
     assert "already has a case with exactly these steps" in response.text
     assert len(store.list_cases()) == 1
+
+
+def test_repinning_an_issue_with_different_steps_is_refused_409(store: ProjectStore) -> None:
+    """AT-604: `Case.id` is content-addressed on its steps, so a second pin
+    with DIFFERENT steps would not collide with the first pinned case and
+    would silently leave two protected cases for the same finding."""
+    issue = _a_signup_issue()
+    store.add_issue(issue)
+    client = TestClient(app)
+    client.post(f"/projects/demo/issues/{issue.id}/pin", data=_pin_form_data())
+
+    response = client.post(
+        f"/projects/demo/issues/{issue.id}/pin",
+        data=_pin_form_data(target="https://demo.test/other-signup"),
+    )
+
+    assert response.status_code == 409
+    assert len(store.list_cases()) == 1
