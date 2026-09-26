@@ -116,9 +116,11 @@ class Outcome(StrEnum):
     ERRORED = "errored"
     BLOCKED_HITL = "blocked_hitl"
     ASSERTION_FAILED = "assertion_failed"
-    """D-032/AT-540: a step's declared expectation (or an Action.ASSERT
-    step's expected state) deterministically did not hold at settle time.
-    An OBSERVATION, not a grade — the grader still owns the verdict."""
+    """D-032/AT-540: a step's declared expectation (or an Action.ASSERT step's expected
+    state) deterministically did not hold at settle time -- an OBSERVATION, never a grade."""
+
+    NOT_RUN = "not_run"
+    """D-045/AT-581/E6: condition not enacted; case did not run -- must never be judged PASS."""
 
 
 class Result(StrEnum):
@@ -272,16 +274,14 @@ class IssueKind(StrEnum):
     NAVIGATION = "navigation"
     DIALOG = "dialog"
     OVERLAY = "overlay"
-    """A screen whose controls were covered by an in-page overlay (AT-227).
-    A PRODUCT observation, not a tool failure: the screen really was
-    uninteractable in the state the crawl met it, and saying so is the
-    difference between a blocked crawl and a crawl that looks complete."""
+    """A screen whose controls were covered by an in-page overlay (AT-227). A PRODUCT observation,
+    not a tool failure: the screen really was uninteractable in the state the crawl met it, and
+    saying so is the difference between a blocked crawl and a crawl that looks complete."""
 
     EVIDENCE = "evidence"
-    """The crawler itself failed to record something (AT-114). Kept distinct
-    from the four kinds above because those describe the PRODUCT under test and
-    this describes the tool: filing a tool failure as a product bug is exactly
-    the dishonesty X9 forbids for third-party noise."""
+    """The crawler itself failed to record something (AT-114). Kept distinct from the four
+    kinds above because those describe the PRODUCT under test and this describes the tool:
+    filing a tool failure as a product bug is exactly the dishonesty X9 forbids."""
 
 
 class CrawlStatus(StrEnum):
