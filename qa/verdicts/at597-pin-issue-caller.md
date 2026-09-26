@@ -178,3 +178,31 @@ CLI end to end (`.venv/Scripts/autotester.exe issues pin demo <issue_b> ...`), i
 - `navigate:https://demo.test:443/signup::Welcome` + `click:#yes::Saved` -> exit 0, both stored with their expects.
 - Re-pin -> exit 2 "already pinned".
 - `navigate:<url>:v:X` -> exit 2 "navigate has no value field".
+
+---
+
+# Verdict — at597-pin-issue-caller, cycle 5 (gated, qa/gates/at597-cycle5.md answer A)
+
+**Date:** 2026-09-26 · **Cycle checked:** 5 · **Checked commit:** cbaf486 (code), c83dc54 (manifest) · **Checker:** /checker session (claude-opus)
+
+```
+VERDICT: PASS
+SCOREBOARD: the cycle-4 FAIL (unregistered advice site) is closed; every cycle-4 behaviour stands (src unchanged since 5cdabc1)
+FAILURES: none
+CAPABILITY-COVERAGE: 1/1. The registry row: without the line, the guard fails with "new: [('cli_issues.py', 'issues list')]" (observed at cycle 4 on 5cdabc1, 27 passed / 1 failed); with it, 28 passed. Cycle-4 rows 2/2 stand unchanged.
+LIVE-BROWSER: qa/evidence/browser-at597-pin-issue-caller-2026-09-26-checker-c4/ (on master, a9eb1f1). Not re-run: `git diff 2e57296..cbaf486` touches only tests/test_cli_advice_resolves.py, with no src change since that run.
+ISSUES-WRITTEN: none
+EXECUTOR: maker builder (checker: claude-opus session)
+EXPLANATION: Cycle 5 adds exactly `("cli_issues.py", "issues list")` to EXPECTED_SITES and moves EXPECTED_SITE_COUNT from 18 to 19, the at575 pattern. The advice's resolve test already passed at cycle 4, so the hint points at a real command. The full suite is now green. With cycle 4's parser, CLI and live-browser evidence, AT-597 and AT-604 are closed on merge.
+```
+
+## What I re-ran
+
+- `tests/test_cli_advice_resolves.py`: 28 passed.
+- `uv run pytest` (full, no -q): **1793 passed, 6 skipped, 32 xfailed, 0 failed** in 724 s, exit 0.
+- `uv run ruff check src tests scripts`: All checks passed.
+- `uv run autotester doctor`: 2 violations, both `ledger-row-lost` for AT-604. The AT-604 row was filed on master in b7e79be after this branch forked (`git merge-base --is-ancestor b7e79be HEAD` -> not an ancestor), so they clear on merge. This is the same pattern as cycles 1-4, not a unit defect.
+
+## Diff scope (4c)
+
+`2e57296..cbaf486` changes tests/test_cli_advice_resolves.py only (+2/-1): one tuple added, and the count constant changed from 18 to 19. Nothing removed.
