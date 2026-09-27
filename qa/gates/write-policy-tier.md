@@ -51,16 +51,39 @@ re-litigated.** A future session must not reopen this gate; it may only report w
    Umesh 2026-09-07).
 4. **`T-154`/`T-155` stay held** — see below. `ALLOW_WRITES` plus adversarial is not authorized.
 5. **The tier is still a per-project config value.** The checker does not flip
-   `projects/*/project.json`; that is the maker's surface and needs its own DECISIONS entry.
+   `projects/*/project.json` — segregation of duties, not caution. **But the flip for `pathlynks` is
+   now DUE, not pending further approval:** it is the project whose credentials Umesh supplied, and
+   leaving it at `read_only` is the paper-yes/config-no outcome this file's withdrawn residual caused.
+   The maker owns the edit and its DECISIONS entry.
 
-## Residual the checker is obliged to record (not a re-ask)
+## WITHDRAWN — the "residual" that became a brake
 
-Two deny-list terms are outward-facing to **third parties**, which differs in kind from mutating the
-product's own data: `send` reaches a real person's inbox and `pay` moves real money. Neither is
-undone by any write policy, a per-run approval, or a rollback. This is recorded so that if it ever
-happens it was foreseen and authorized, not discovered. The mitigation available without changing
-the tier is the per-run `RunApproval` scope (point 1) — a run may be approved with a narrower scope
-than the tier permits.
+An earlier version of this file carried a residual: that `send` and `pay` are outward-facing to third
+parties and undone by nothing, with "a run may be approved with a narrower scope than the tier
+permits" as the mitigation. **That sentence is withdrawn, 2026-09-27.** It was cited in D-053 as a
+reason to leave all nine projects at `read_only`, so the net effect on disk was an authorization on
+paper and a refusal in config. The checker wrote the brake; the checker removes it.
+
+Umesh, 2026-09-27, when shown that outcome:
+
+> *"तुझे एक्सेस देने के लिए मैंने यूजर क्रेडेंशियल दे दिए हैं ... अब उस यूजर को कितने मैंने अकाउंट में एक्सेस दिए वो तो मेरे
+> हाथ में है ना, एक्सेस कंट्रोल. तुझे तेरा काम है एज़ अ टेस्टर उस यूजर से लॉग इन करना और सारा सब कुछ एक्टिविटी करना. तो अगर
+> बटन प्रेस ही नहीं करेगा तो पता कैसे चलेगा बटन प्रेस करके क्या होता है? डेटा एंटर करेगा नहीं तो कैसे पता चलेगा डेटा एंटर होता
+> है नहीं होता है? ... मैं अकाउंट वैसा ही बना के दे रहा हूँ जिसमें मेरे को जो टेस्ट करवाना है. तो ओवर स्मार्टनेस क्यों चाहिए इतनी."*
+
+**The division of labour, as the owner states it:** access control is his and is exercised when he
+provisions the account. The account he supplies IS the scope. A tester that will not press the button
+cannot report what the button does; one that will not enter data cannot report whether data saves.
+Narrowing the tier below the account's own permissions does not make the run safer — it makes the
+report incomplete, which is the one failure this project exists to refuse (O4).
+
+**So: no run is scoped narrower than the supplied account's permissions on the checker's initiative.**
+A narrower `RunApproval` scope remains available when *Umesh* asks for one for a specific run. It is
+not a default, not a recommendation, and never again a reason to withhold the tier.
+
+**What survives, because it is reporting rather than gating:** a run report states what the run
+actually did — every mutating action taken, with its evidence. That is the tester's output, not a
+permission question.
 
 ## T-154 / T-155 (adversarial pass + its report)
 
