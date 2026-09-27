@@ -68,3 +68,25 @@
   GATED on Umesh, not routed around: CT6-vs-RU3 (qa/gates/t125-ct6-tiered-dispatch-vs-ru3.md) --
   t125 cannot reach 8/8 on any cycle without it, and cycle 3 is the last. Also AT-644, AT-646,
   T-154/T-155 approval, ERP credentials (T-122/T-145), ERP_Issues_Trainers.xlsx (T-136).
+2026-09-27T11:55:00+00:00 ADVANCED wave=12 · T-150 CLOSED (4th unit today)
+  t150-track-c-governance checked-PASS cycle 1 (verdict a3d04cd2, merge 61f33c3c, close-out
+  72513124); PUSHED a0c4af6d..72513124 under D-007. T-150 -> done (53/81, 65%), F-060 live.
+  The checker authored qa/contracts/ai-target.md (AI1-AI8) + adversarial.md (AD1-AD7) -- the only
+  way this unit could close, since its done_check names two checker-owned files.
+  Three checker corrections against me: AI2 fused an authorized claim with my own extension (split);
+  AI3 duplicated catalog.md CT7 as a second ground truth (refiled as cross-reference); AI3's draft
+  asserted a Verify result I had never run (real answer: zero, not one).
+  Best thing the check added: a Landing note per forward-declared criterion, because a grep against
+  a not-yet-existing file exits 2 rather than reporting no match -- AT-218's vacuous-guard trap one
+  level up, inside the fix for AT-638.
+  t125 cycle-3 F identified and exculpated: AT-627, reproduced on master where the diff does not
+  exist; NOT chargeable. Recorded a trap of my own: I chained the 3 verify commands, so the reported
+  exit 0 was doctor's while pytest had failed inside the group -- run pytest as its own command.
+  Process gap of mine: ran `ledger relitigation` AFTER the PASS, not before picking the unit
+  (returned "no gate", so no harm -- but wrong order).
+  NEXT: at638-remainder (T-166/167/168/171 criteria) -- now unblocked, must match the AI/AD prefix
+  and Landing-note conventions the t150 checker set. Needs no test runs.
+  SERIAL: t186/t189/t190/t191/t192/t165/t174/t178/t179 wait on the t125 cycle-3 checker (live).
+  GATED on Umesh: CT6-vs-RU3 (t125 cannot reach 8/8 on any cycle; cycle 3 is the last), AD6/AD7
+  accepted by the checker as narrowing-only and reversible by him, ISS-t150-1, AT-644, AT-646,
+  T-154/T-155 approval, ERP credentials (T-122/T-145), ERP_Issues_Trainers.xlsx (T-136).
