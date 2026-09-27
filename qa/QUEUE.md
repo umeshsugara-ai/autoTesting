@@ -1352,8 +1352,9 @@ never allocates from the shared high-water mark.
 | Range | Owner |
 |---|---|
 | `AT-656` … `AT-669` | **root ledger** (`d:/autoTesting/qa/issues.jsonl`) — the peer checker and any master-side sweep allocate here, sequentially |
-| `AT-670` … `AT-679` | **RETIRED 2026-09-28** — `wave/t191-video-reachable` merged at `8f577aef` with its remap to 670/671/672 already on master, so no further ids come from it. 673+ are free for general allocation; `AT-673` was taken from here and is unique on master. A reserved block is only live while its branch is unmerged |
+| `AT-670` … `AT-679` | **RETIRED 2026-09-28** — `wave/t191-video-reachable` merged at `8f577aef` with its remap to 670/671/672 already on master, so no further ids come from it. **670, 671 and 672 are TAKEN by that remap and are NOT free** (a later allocator read "retired" as "available" and filed a second `AT-670` on 2026-09-28 — the 11th collision, and now subject to `AT-664`'s own finding that a duplicate id makes `_status_by_id` return the wrong *issue*); only 673+ were ever free, and `AT-673` was taken from here and is unique on master. A reserved block is only live while its branch is unmerged. **Retiring a block does not free the ids already spent inside it** — that sentence was missing and is what the collision read past |
 | `AT-680` … `AT-689` | **reserved for the next build branch** (`at570-live-case-approval`) |
+| `AT-690` … `AT-709` | **allocated 2026-09-28 to the peer checker session** (`autotesting-28`) on its request, after it exhausted `AT-656`…`AT-669` and borrowed `AT-670`. Twenty ids, not ten: a sweep that files nine findings in one pass empties a ten-block, and the borrow above is what a too-small block causes. Allocate sequentially; do not reuse `AT-670`…`AT-672` |
 
 **The remap is deferred to merge time on purpose, and not applied now:** the cycle-2 checker is live and
 is actively writing that worktree's `qa/issues.jsonl`. Editing a file a running checker owns would be a
