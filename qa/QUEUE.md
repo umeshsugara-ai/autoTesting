@@ -1130,3 +1130,40 @@ live wave with three agents writing the file would also be the worst possible mo
 is authoritative and why, collapses them, and adds a `doctor` check asserting id-uniqueness so the
 class cannot recur. **Hold until the current wave drains** — `qa/issues.jsonl` has had three
 concurrent writers this session and already produced one merge conflict.
+
+## Correction — the `at438-display-contents` answered-gate finding was mostly wrong
+
+**Corrects:** the `at438-display-contents — an answered gate nobody acted on` row above, filed by
+checker sweep 2026-09-27b and repeated by the maker orchestrator in wave 14 and wave 15.
+**Verified by:** the orchestrator, on master, 2026-09-27, before the `at438-answered-gate-remainder`
+unit handed back — the unit's own reading is what prompted the re-check.
+
+The sweep's row made four claims. **Three are false**, and each was falsifiable with one command:
+
+| Sweep claim | Truth on master | How to see it |
+|---|---|---|
+| "no commit touches it" | `6d2eb0bd qa(checker): re-rule at438 cycle 3 PASS under D-048/D-049; amend U14(b)/(c)` — **on master** | `git branch --contains 6d2eb0bd` |
+| "AT-454 is undocumented" | `AT-454` is **`wontfix`**, filed as a disclosed U14(c) limitation per gate option (c) | one read of `qa/issues.jsonl` |
+| (implied) the gate answer was dropped | `qa/contracts/ui.md` U14(b)/(c) amended, `D-049` appended, AT-438/449/450 → `fixed`, AT-454 → `wontfix`, AT-453 split into `t186-details-content` which **PASSED at cycle 1** and is now `verified`, and the verdict gained a `VERDICT: PASS` re-ruling section at line 415 | `grep -n "VERDICT: PASS" qa/verdicts/at438-display-contents.md` |
+| "AT-438 is still `fixed` rather than closed under the new baseline" | **stands** — and is the only ledger-side remainder | compare with AT-453's `verified` |
+
+**What was actually dropped is one thing, not a gate answer:** `qa/manifests/at438-display-contents.md`
+still read `**Status:** STALLED — cycle 3 FAIL` after the checker re-ruled it PASS. The checker's
+re-ruling commit touched the ledger, the contract, the decisions log and the verdict — but not the
+manifest header, because **flipping a manifest's terminal status is the maker's job, not the
+checker's.** So the handshake worked exactly as designed and then nobody performed the maker's half.
+That is a much narrower defect than "Umesh's decision was spent and lost", which is how both the
+sweep and the orchestrator described it.
+
+**Why this matters more than the bookkeeping it corrects.** The sweep asserted a *checkable* fact —
+"no commit touches it" — without running the check, and the orchestrator repeated it twice without
+running it either. A sweep's authority comes from its claims being mechanically verifiable; an
+unverified negative existence claim ("nothing happened") is the weakest possible form of one, because
+absence is what you see when you do not look. Filed as **`ISS-sweep-unverified-negative`** (low, and
+against the sweep discipline rather than any unit): a sweep row asserting that nothing touched a
+file, issue or gate must paste the command that establishes it.
+
+**The remainder is therefore:** (1) the manifest header flip — which the
+`at438-answered-gate-remainder` unit has done and is the whole of its diff, and (2) the open question
+of whether AT-438 should move `fixed` → `verified` to match AT-453, now that a re-ruled PASS exists
+for it. (2) is for that unit's checker to rule on, not for this row to assert.

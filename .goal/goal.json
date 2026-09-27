@@ -4,15 +4,15 @@
   "north_star": "A reusable AI testing platform where an operator submits any project URL, domain-scoped test-account credential references, and optional evals, conditions, use cases, video, audio, documents, text, email or Google Drive sources. AutoTester learns from supplied evidence or logs in and performs bounded breadth-first exploration, preserves a durable Portal Persona, compiles traceable best/worst/edge evals, reruns them after developer releases in a real visible browser, and reports workflow/API regressions through clear HTML, Excel, text and screenshots. First acceptance targets: Vidysea ERP and Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-27T17:57:02",
+  "updated": "2026-09-27T19:42:02",
   "progress": {
     "total": 81,
-    "done": 55,
+    "done": 56,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 26,
+    "pending": 25,
     "current": "T-122",
-    "percent": 68
+    "percent": 69
   },
   "tasks": [
     {
@@ -1508,7 +1508,7 @@
     {
       "id": "T-191",
       "title": "Run video on FAIL/inconclusive only, keep last 20, secrets masked in video exactly as in screenshots (AT-587)",
-      "status": "pending",
+      "status": "done",
       "deps": [],
       "base_criticality": "high",
       "criticality": "high",
@@ -1912,9 +1912,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 2.09,
-    "eta_days": 12.4
+    "velocity_per_day": 2.08,
+    "eta_days": 12.0
   },
-  "last_deterministic_tick": "2026-09-27T17:57:02",
+  "last_deterministic_tick": "2026-09-27T19:42:02",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }
