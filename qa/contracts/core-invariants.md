@@ -247,6 +247,40 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
 
 ### C12 — Every signal and every measurement this system reports must fail closed
 
+**The principle, stated once (maker, 2026-09-28).** Clauses (a) and (b) are one rule, and the
+variable is **not** how crude or how typed the instrument is. It is whether the instrument has any
+**representation for the thing it must tell apart.** Where it has none, the two states collapse into
+the one that happens to be reachable — and that one is almost always the reassuring one.
+
+The list is measured, every entry found in this repo:
+
+| Instrument | Cannot represent | So it silently reports |
+|---|---|---|
+| `dict[id] = row` (`ledger/checks.py::_status_by_id`) | two rows for one id | the last row's status as the only status (AT-656) |
+| an unanchored substring (`mc-sessionstart.ps1:14`) | a claim vs a **quotation** of a claim | a closed-out manifest as never closed out (AT-673) |
+| `RunBudget(None)` (`stages/parallel_run.py:146-156`) | unapproved vs unlimited | an unapproved run as permitted (AT-570) |
+| `duration_s: float = 0.0` (`schema/bench.py`) | untimed vs instant | an unmeasured trial as infinitely fast (AT-655) |
+| recall with no ordering field (`schema/bench.py`) | independent vs prompted findings | a contaminated recall as a clean one (AT-653) |
+| a truncated `qa/.last-tick` (`loop-status --strict`) | no history vs a clean history | a dead loop as healthy (AT-644) |
+| **two spot samples of a churning quantity** | a **rate** vs noise | a trend that does not exist (below) |
+
+**The last row is the agent measuring, not the code, and it belongs here for that reason.** On
+2026-09-28 the maker read free space on `C:` at 0.37 GB then 0.34 GB, inferred "degrading ~30 MB/hr,
+~11 hours to zero", and **held a build on it.** The checker, asked to act, measured 2.37 GB and
+refused to act on either number, reporting the disagreement instead. Neither instrument was faulty
+and neither reading was wrong: the volume was *rising* — 0.34 → 2.37 → 6.59 → 9.77 GB inside twenty
+minutes — and all three instruments agreed exactly when sampled at the same instant (a transient
+`Win32_LogicalDisk` NULL resolved on its own). The maker withdrew the rate claim unprompted. The
+defect was never in the disk or the tool; **two samples of a quantity that churns GBs per minute
+have no representation for a rate**, so noise was reported as a trend. A lesson that indicts only
+the code and not the agent doing the measuring is the weaker version of it.
+
+What survives, and is the reason the hold was still right: the *dip* was real. Free space genuinely
+was 0.34 GB, below what a full suite needs, and an `ENOSPC` red is indistinguishable from a real
+failure on `uv run pytest` — the one instrument both loops sign verdicts with. **Refusing to run on
+an uncertain number is correct; quoting a runway from two samples is not.** The two are separate
+judgements and only the second was wrong.
+
 **(a) Health signals — the loop watching itself.**
 - A liveness, coverage, or completeness check the loop or its hooks report (session-start injection,
   `loop-status`, a sweep's own terminal state) must be able to tell "nothing is wrong" apart from
@@ -657,3 +691,19 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   clause, instance or verify line was altered — (a) is the prior text unchanged. **Changes-authorized:**
   qa/contracts/core-invariants.md C12 (this entry). No enforcement-path file touched.
   **Links:** AT-570; AT-653; AT-655; AT-644; qa/contracts/bench.md K8 (the contract-local form).
+- 2026-09-28 - routine (clarify) - C12 gained a leading **principle** statement covering clauses
+  (a) and (b) plus a measured instrument table. **Attribution: the framing is the maker's**
+  (autotesting-52, 2026-09-28), arrived at from AT-656 and AT-673 landing in the SAME file with
+  opposite polarity - a crude line-regex that was truthful and a crude substring that was not - which
+  disproves "crude vs typed" as the variable. What decides it is whether the instrument has a
+  representation for the thing it must tell apart. Seven instances tabulated, all measured in this
+  repo; six are code, and the seventh is an AGENT's own measurement: two spot samples of free disk
+  read as a rate, a build held on the inferred runway, and the rate withdrawn once the volume was
+  observed rising 0.34 -> 9.77 GB in twenty minutes with all three instruments agreeing when sampled
+  together. The disk case is included at the maker's explicit request - "a lesson that only indicts
+  the code and not the agent measuring it is the weaker version" - and because C12 is otherwise
+  readable as a rule about code that exempts the loop's own reasoning. No clause, instance or verify
+  line was altered; (a) and (b) stand verbatim and nothing is weakened. **Changes-authorized:**
+  qa/contracts/core-invariants.md C12 principle + Amendment log (this entry). No enforcement-path
+  file touched. **Links:** AT-656; AT-673; AT-657; AT-570; AT-653; AT-655; AT-644; AT-672;
+  qa/contracts/living-ledger.md L8; qa/contracts/bench.md K8.
