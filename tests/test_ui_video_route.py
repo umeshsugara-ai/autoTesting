@@ -118,6 +118,33 @@ def test_serve_run_video_404s_for_an_unknown_run(client: TestClient, scratch_roo
     assert response.status_code == 404
 
 
+def test_serve_run_video_404s_for_a_stray_directory_with_no_real_run_envelope(
+    client: TestClient, scratch_root: Path
+) -> None:
+    """Isolates the run-validity check (mirrors UR5) from `_safe_video_path`'s
+    own `is_dir()` guard: the directory and a real `.webm` file both exist on
+    disk, exactly like a crawl-artifact directory dropped under `runs/`
+    (`test_ui_report.py::test_run_view_returns_404_for_a_directory_without_a_run`)
+    -- there is simply no persisted `Run` whose id is this directory's name.
+    `test_serve_run_video_404s_for_an_unknown_run` above 404s for a
+    completely absent directory too, but that alone could pass even if this
+    route never checked run validity at all, since `_safe_video_path`'s own
+    `trusted_root.is_dir()` check would 404 it independently -- this test
+    is the one that actually isolates the run-existence check."""
+    store = ProjectStore("demo", scratch_root)
+    store.save_project(
+        Project(slug="demo", name="Demo", base_url="https://demo.test",
+                allowed_domains=["demo.test"])
+    )
+    stray = store.paths.runs_dir / "zzz-crawl-artifacts"
+    stray.mkdir(parents=True)
+    (stray / "x.webm").write_bytes(b"must-not-serve")
+
+    response = client.get("/projects/demo/runs/zzz-crawl-artifacts/videos/x.webm")
+
+    assert response.status_code == 404
+
+
 def test_serve_run_video_refuses_percent_encoded_traversal_end_to_end(
     client: TestClient, scratch_root: Path
 ) -> None:
@@ -128,24 +155,32 @@ def test_serve_run_video_refuses_percent_encoded_traversal_end_to_end(
     empirically: it never matched the `{video_path:path}` route at all).
     Percent-encoding (`%2e%2e`) survives that normalization and arrives in
     the handler as a real `..` segment -- the shape a manual HTTP client
-    (curl, Burp, a scripted attacker) would actually send. Six levels is
-    well past this fixture's real nesting depth (4: projects/demo/runs/
-    <run_id>), so it also proves excess `..` past the filesystem root does
-    not error, just fails containment."""
-    _seed_with_video(scratch_root)
-    (scratch_root / "secret.txt").write_text("must-not-leak", encoding="utf-8")
-    dots = "/".join(["%2e%2e"] * 6)
+    (curl, Burp, a scripted attacker) would actually send. The outside file
+    is a real `.webm` at the EXACT depth `run_dir` sits below `scratch_root`
+    -- a wrong depth or a non-`.webm` outside file would make this pass even
+    with the containment check deleted (caught by this unit's own
+    falsification pass: an earlier draft used a `.txt` file and too many
+    `..` segments, and disabling `is_relative_to` alone did not redden it --
+    the suffix check and a missing-file 404 were silently doing the proving
+    instead)."""
+    store = _seed_with_video(scratch_root)
+    depth = len(store.paths.run_dir(RUN_ID).relative_to(scratch_root).parts)
+    (scratch_root / "secret.webm").write_bytes(b"must-not-leak")
+    dots = "/".join(["%2e%2e"] * depth)
 
-    response = client.get(f"/projects/demo/runs/{RUN_ID}/videos/{dots}/secret.txt")
+    response = client.get(f"/projects/demo/runs/{RUN_ID}/videos/{dots}/secret.webm")
 
     assert response.status_code == 404
-    assert "must-not-leak" not in response.text
+    assert response.content != b"must-not-leak"
 
 
 def test_serve_run_video_refuses_an_absolute_path(client: TestClient, scratch_root: Path) -> None:
+    """Same depth/extension care as the traversal test above: the outside
+    file must be a real `.webm` or the suffix check alone (not the
+    containment check under test) would explain a 404."""
     _seed_with_video(scratch_root)
-    outside = scratch_root / "secret.txt"
-    outside.write_text("must-not-leak", encoding="utf-8")
+    outside = scratch_root / "secret.webm"
+    outside.write_bytes(b"must-not-leak")
 
     response = client.get(
         f"/projects/demo/runs/{RUN_ID}/videos/{quote(str(outside), safe='')}"
