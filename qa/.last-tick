@@ -407,3 +407,13 @@ SERIAL: ISS-t191-run-video-2 waits on a slot
 SERIAL: T-171 and T-176 wait on t165-crawl-traversal reaching checked-PASS
 SERIAL: T-174 and T-178 wait on T-125 (catalog) landing
 SERIAL: T-190 waits on the maker PLAN gate (the grill needs Umesh)
+TICK 2026-09-27T15:57:08+00:00 wave=21 state=ADVANCED
+  at438-answered-gate-remainder CLOSED OUT checked-PASS cycle 2, merged 235ac6a5, pushed; close-out 12597de3 pushed.
+  The checker FOUND THE FIFTH inaccurate assertion I told it to assume existed (diff --stat table undercounts by 3 lines; prose written after the table was captured). The prediction came purely from the session's base rate of four. Evidence pasted before the work is finished describes a tree that no longer exists.
+  Rulings collected rather than left dangling: (1) a manifest MAY paste evidence older than the tree it submits when the gap is a C10 sync-merge and the checker re-verifies the merged tree; (2) C7 AMENDED with the zero-code-unit clause cycle 1 had only recommended -- narrowly: the manifest must SHOW, not assert, an outside cause, and it does not excuse self-caused or misdiagnosed failures.
+  live: t165-crawl-traversal cycle 2 (build)
+SERIAL: ISS-at542-lost-correction ready but held -- free RAM 1.33 GB is BELOW the 2 GB floor, ceiling 0. Not a dependency hold; a resource one.
+SERIAL: ISS-t191-run-video-2 held on the same ceiling
+SERIAL: T-171 and T-176 wait on t165-crawl-traversal reaching checked-PASS
+SERIAL: T-174 and T-178 wait on T-125 (catalog) landing
+SERIAL: T-190 waits on the maker PLAN gate (the grill needs Umesh)
