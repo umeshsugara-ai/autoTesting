@@ -73,8 +73,25 @@ class PersonaScreen(BaseModel):
 
     def key(self) -> str:
         """Cross-run identity: the templated URL when known, else the folded name.
-        Two runs naming the same screen must land on one entry (PP2)."""
+        Two runs naming the same screen must land on one entry (PP2).
+
+        Deliberately signature-free, and it must stay so: CR4's `changed` is
+        defined as *the same key with a different signature*, so folding the
+        signature in here would turn every edited screen into a new screen and
+        destroy change tracking. `ident()` is what distinguishes two screens
+        that merely share a URL."""
         return self.url_template or " ".join(self.name.casefold().split())
+
+    def ident(self) -> tuple[str, str | None]:
+        """Distinct-SCREEN identity: the cross-run `key()` plus the structural
+        signature (`ISS-t165-crawl-traversal-2`).
+
+        `key()` alone is `url_template`-only, so two structurally distinct
+        screens sharing a URL — an SPA state toggle, the shape X3/X14 document
+        as real — collided onto one entry and the second was dropped before it
+        was ever stored or classified. Storage dedupes on this; the diff still
+        groups by `key()`, because that is what `changed` compares within."""
+        return (self.key(), self.signature)
 
 
 class PersonaTransition(BaseModel):

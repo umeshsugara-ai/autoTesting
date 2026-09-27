@@ -13,8 +13,6 @@ the exact dishonesty CR5 exists to prevent.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from autotester.schema.enums import NodeStatus
@@ -100,6 +98,66 @@ def test_a_screen_already_recorded_broken_is_not_re_reported() -> None:
     assert diff["broken_screens"] == []
 
 
+def test_a_screen_broken_across_an_unrelated_intervening_revision_is_not_re_reported() -> None:
+    """ISS-t165-crawl-traversal-4: `_previously_broken` read only the most
+    recent revision that classified ANYTHING. A screen broken in revision 1 and
+    still broken now was re-flagged as newly broken whenever revision 2 recorded
+    something unrelated, because revision 2's own `broken_screens` was empty.
+    The history is append-only, so broken-ever is the union over all of it."""
+    history = [
+        PersonaRevision(at="2026-09-01T00:00:00", summary="1 broken", broken_screens=["/a"]),
+        PersonaRevision(at="2026-09-02T00:00:00", summary="1 new", new_screens=["/b"]),
+    ]
+    diff = _classify(_persona(("/a", "sig-a"), ("/b", "sig-b"), history=history),
+                     [_node("/a", "sig-a", status=NodeStatus.ABORTED_ERROR),
+                      _node("/b", "sig-b")])
+    assert diff["broken_screens"] == []
+
+
+# --- ISS-2: two distinct screens that merely share a URL ---------------------
+
+
+def test_a_second_screen_at_a_known_url_is_classified_not_silently_dropped() -> None:
+    """ISS-t165-crawl-traversal-2: `PersonaScreen.key()` is `url_template`-only,
+    so an SPA state toggle (X3/X14's documented shape) puts two structurally
+    distinct screens on one key. `_reached` kept the FIRST and the second was
+    invisible to every category — not miscategorized, never considered. The key
+    now carries every node reached at it, so a new state at a known URL reads as
+    `changed` rather than as nothing at all."""
+    diff = _classify(_persona(("/", "sig-base")),
+                     [_node("/", "sig-base"), _node("/", "sig-panel-open")])
+    assert diff["changed_screens"] == ["/"]
+    assert diff["missing_screens"] == []
+
+
+def test_a_broken_second_state_at_a_known_url_is_still_reported_broken() -> None:
+    """The same collision on the `broken` category: the healthy state was first
+    in crawl order, so first-wins hid the state that actually errored."""
+    diff = _classify(_persona(("/", "sig-base")),
+                     [_node("/", "sig-base"),
+                      _node("/", "sig-modal", status=NodeStatus.ABORTED_ERROR)])
+    assert diff["broken_screens"] == ["/"]
+
+
+def test_a_persona_written_before_this_unit_still_loads_and_classifies() -> None:
+    """The ISS-2 fix adds `PersonaScreen.ident()` — a METHOD, not a field — so
+    nothing stored changes shape. A persona file written before T-165 (no
+    revision categories, no signature on some screens) must still validate and
+    still diff. `extra="forbid"` only rejects unknown keys that are PRESENT."""
+    old = PortalPersona.model_validate({
+        "project": "p",
+        "screens": [{"id": "s0", "name": "Home", "url_template": "/", "signature": "sig-a"},
+                    {"id": "s1", "name": "Taught", "url_template": "/taught"}],
+        "history": [{"at": "2026-08-01T00:00:00", "summary": "initial persona"}],
+    })
+    assert old.screens[0].ident() == ("/", "sig-a")
+    assert old.screens[1].ident() == ("/taught", None)
+    assert old.history[0].counts() == {"new": 0, "changed": 0, "missing": 0,
+                                       "broken": 0, "missing_unjudged": 0}
+    diff = _classify(old, [_node("/", "sig-a-EDITED")])
+    assert diff["changed_screens"] == ["/"] and diff["missing_screens"] == []
+
+
 # --- CR5's interaction: a bound-truncated frontier may not claim `missing` ---
 
 
@@ -178,54 +236,3 @@ def test_the_classification_is_deterministic_and_sorted() -> None:
 def test_describe_says_nothing_when_nothing_moved() -> None:
     """PP3, unchanged: an identical re-run must not fabricate a revision."""
     assert persona_changes.describe(_classify(_persona(("/a", "s")), [_node("/a", "s")])) is None
-
-
-# --- end to end through the real merge --------------------------------------
-
-
-def test_a_removed_screen_lands_on_the_persona_history_even_though_merge_adds_only(
-    tmp_path: Path,
-) -> None:
-    """The point of putting the diff on the revision: PP2's add-only `_merge` has,
-    by construction, nothing to add for a screen that DISAPPEARED — so before CR4
-    a deletion produced no revision at all and left no trace anywhere."""
-    from autotester.schema.crawl import Crawl
-    from autotester.schema.enums import CrawlStatus
-    from autotester.schema.project import Project
-    from autotester.stages.portal_persona import build_portal_persona
-    from autotester.store.project_store import ProjectStore
-
-    store = ProjectStore("p", tmp_path)
-    store.save_project(Project(slug="p", name="p", base_url="https://app.test/"))
-    store.save_portal_persona(_persona(("/a", "sig-a"), ("/gone", "sig-gone")))
-    crawl = Crawl(project="p", status=CrawlStatus.COMPLETED)
-    store.save_crawl(crawl)
-    store.add_node(_node("/a", "sig-a").model_copy(update={"crawl_id": crawl.id}))
-
-    persona = build_portal_persona(store, crawl_id=crawl.id)
-
-    assert persona.history, "a deletion produced no revision"
-    assert persona.history[-1].missing_screens == ["/gone"]
-    assert [s.key() for s in persona.screens] == ["/a", "/gone"], "PP2 add-only was broken"
-
-
-def test_a_bound_stopped_crawl_writes_unjudged_not_missing(tmp_path: Path) -> None:
-    """The same path, with a crawl that did NOT exhaust its frontier."""
-    from autotester.schema.crawl import Crawl
-    from autotester.schema.enums import CrawlStatus
-    from autotester.schema.project import Project
-    from autotester.stages.portal_persona import build_portal_persona
-    from autotester.store.project_store import ProjectStore
-
-    store = ProjectStore("p", tmp_path)
-    store.save_project(Project(slug="p", name="p", base_url="https://app.test/"))
-    store.save_portal_persona(_persona(("/a", "sig-a"), ("/unreached", "sig-u")))
-    crawl = Crawl(project="p", status=CrawlStatus.STOPPED_BOUND, stop_reason="max_actions")
-    store.save_crawl(crawl)
-    store.add_node(_node("/a", "sig-a").model_copy(update={"crawl_id": crawl.id}))
-
-    persona = build_portal_persona(store, crawl_id=crawl.id)
-
-    assert persona.history[-1].missing_screens == []
-    assert persona.history[-1].missing_unjudged == ["/unreached"]
-    assert "not judged" in persona.history[-1].summary

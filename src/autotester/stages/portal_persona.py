@@ -81,13 +81,18 @@ def _screen_from_node(node: ScreenNode) -> PersonaScreen:
 
 
 def _incoming_screens(flowspec: FlowSpec | None, nodes: list[ScreenNode]) -> list[PersonaScreen]:
+    """Every distinct screen this update contributes, deduped on
+    `PersonaScreen.ident()` — key AND signature — not `key()` alone
+    (`ISS-t165-crawl-traversal-2`): two crawled nodes at one `url_template` with
+    different signatures are two screens, and the second used to be dropped here
+    before the merge or the CR4 diff saw it. Add-only either way (PP2)."""
     screens = [_screen_from_flowspec(s) for s in (flowspec.screens if flowspec else [])]
-    seen = {s.key() for s in screens}
+    seen = {s.ident() for s in screens}
     for node in nodes:
         persona_screen = _screen_from_node(node)
-        if persona_screen.key() not in seen:
+        if persona_screen.ident() not in seen:
             screens.append(persona_screen)
-            seen.add(persona_screen.key())
+            seen.add(persona_screen.ident())
     return screens
 
 
@@ -207,7 +212,9 @@ def _merge(existing: PortalPersona | None,
     """Fold `incoming` into `existing`, never rewriting known knowledge (PP2)."""
     if existing is None:
         return incoming, _initial_summary(incoming)
-    screens, s_new = _add_new(existing.screens, incoming.screens, key=lambda s: s.key())
+    # `ident()`, not `key()` (ISS-2): a 2nd distinct screen at a known URL is a
+    # screen, not a duplicate -- see `PersonaScreen.ident`. Still add-only.
+    screens, s_new = _add_new(existing.screens, incoming.screens, key=lambda s: s.ident())
     trans, t_new = _add_new(existing.transitions, incoming.transitions, key=lambda t: t.key())
     flows, f_new = _add_new(existing.taught_flows, incoming.taught_flows, key=lambda f: f.id)
     gotchas, g_new = _add_new(existing.gotchas, incoming.gotchas, key=lambda g: g.key())

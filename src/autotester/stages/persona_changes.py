@@ -17,11 +17,13 @@ FlowSpec or a taught flow; a crawl not reaching it is not evidence it is gone,
 so it is left out of the diff entirely rather than reported as `missing`.
 
 **The honesty rule (CR5).** `missing` is a claim that a screen the product used
-to have is no longer reachable. A crawl that stopped on a bound never reached
-the whole frontier, so it cannot make that claim about anything — those stored
-keys go to `missing_unjudged`, which is a disclosed unknown, not a finding.
-Reporting them as `missing` would turn "we ran out of budget" into "the product
-lost a screen", which is the precise dishonesty this contract exists to stop.
+to have is no longer reachable. A crawl that did not exhaust its frontier never
+saw the whole product, so it cannot make that claim about anything — those
+stored keys go to `missing_unjudged`, which is a disclosed unknown, not a
+finding. Reporting them as `missing` would turn "we never got there" into "the
+product lost a screen", which is the precise dishonesty this contract exists to
+stop. Two things stop a frontier being exhausted for judging purposes: a bound
+firing, and a CR3 skip (`_judged_exhausted` — see it for the live reproduction).
 """
 
 from __future__ import annotations
@@ -43,15 +45,63 @@ CATEGORIES = ("new_screens", "changed_screens", "missing_screens",
 def _previously_broken(existing: PortalPersona | None) -> frozenset[str]:
     """CR4: `broken` means an error status "that the prior stored screen did not
     carry". A `PersonaScreen` carries no status — PP2 forbids rewriting one — so
-    the prior state is read from the append-only revision history instead: the
-    most recent revision that classified anything. A screen still broken since
-    last time is already recorded and is not re-reported as newly broken."""
+    the prior state is read from the append-only revision history instead.
+
+    **Broken-EVER, across the whole history** (`ISS-t165-crawl-traversal-4`).
+    Reading only the most recent revision that classified anything was wrong: a
+    screen broken in revision 1 and still broken in revision 3 was re-reported
+    as newly broken whenever revision 2 happened to record something unrelated
+    (a new screen, say), because revision 2 was "the most recent that classified
+    anything" and its own `broken_screens` was empty. The history is append-only
+    and a screen is never un-recorded, so the union over every revision is the
+    only reading that cannot forget.
+    """
     if existing is None:
         return frozenset()
-    for revision in reversed(existing.history):
-        if any(getattr(revision, name) for name in CATEGORIES):
-            return frozenset(revision.broken_screens)
-    return frozenset()
+    return frozenset(key for revision in existing.history for key in revision.broken_screens)
+
+
+def _stored_signatures(existing: PortalPersona | None) -> dict[str, set[str]]:
+    """Persona key -> EVERY structural signature stored under it.
+
+    `ISS-t165-crawl-traversal-2`: `PersonaScreen.key()` is `url_template`-only,
+    so two structurally distinct screens sharing a URL (an SPA state toggle —
+    the shape X3/X14 document as real) land on one key. Keying the diff by
+    `{key: one screen}` therefore threw the second one away before it could be
+    classified at all. A key now carries a SET of signatures: the second screen
+    is part of its key's evidence instead of vanishing. The key stays
+    `url_template`-only deliberately — folding the signature into `key()` would
+    destroy CR4's `changed`, which is defined as *same key, different signature*.
+
+    A key with an EMPTY set came from a reviewed FlowSpec only (no signature),
+    and is outside the crawl-sourced diff's scope (CR4's own wording).
+    """
+    out: dict[str, set[str]] = {}
+    for screen in existing.screens if existing is not None else []:
+        signatures = out.setdefault(screen.key(), set())
+        if screen.signature is not None:
+            signatures.add(screen.signature)
+    return out
+
+
+def _judged_exhausted(nodes: list[ScreenNode], frontier_exhausted: bool) -> bool:
+    """May this crawl's evidence support a `missing` claim (CR4/CR5)?
+
+    `ISS-t165-crawl-traversal-3`: not when it skipped a screen. A CR3 skip is a
+    decision NOT to look, and `_enqueue` only ever runs inside
+    `explore_node.visit_node`, which a skip short-circuits — so a skipped
+    screen's children are never discovered on THIS crawl. The queue then drains
+    with `frontier_exhausted=True` while most of the portal was never
+    represented at all, and every unreached stored key read as `missing`: an
+    incremental re-crawl of a byte-identical 9-screen site reported 8 deletions
+    that never happened (D-040's own acceptance test (c), live, headed Chromium).
+
+    A skip is evidence of nothing beyond the skipped screen itself, so those
+    keys are `missing_unjudged` — the disclosed unknown this contract already
+    has for a frontier that was not exhausted — never `missing`.
+    """
+    return frontier_exhausted and not any(
+        node.status is NodeStatus.SKIPPED_UNCHANGED for node in nodes)
 
 
 def classify(
@@ -67,38 +117,46 @@ def classify(
     Every returned list is sorted, so two runs over the same evidence produce
     byte-identical output (CR6 determinism).
     """
-    stored = {s.key(): s for s in existing.screens} if existing is not None else {}
-    crawl_sourced = {key for key, s in stored.items() if s.signature is not None}
+    stored = _stored_signatures(existing)
+    crawl_sourced = {key for key, signatures in stored.items() if signatures}
     reached = _reached(nodes)
     was_broken = _previously_broken(existing)
+    judged = _judged_exhausted(nodes, frontier_exhausted)
 
     new = sorted(key for key in reached if key not in stored)
     changed = sorted(
-        key for key, node in reached.items()
-        if key in crawl_sourced and stored[key].signature != node.signature
+        key for key, at_key in reached.items()
+        if key in crawl_sourced
+        and any(node.signature not in stored[key] for node in at_key)
     )
     broken = sorted(
-        key for key, node in reached.items()
-        if key in stored and node.status in BROKEN_STATUSES and key not in was_broken
+        key for key, at_key in reached.items()
+        if key in stored and key not in was_broken
+        and any(node.status in BROKEN_STATUSES for node in at_key)
     )
     absent = sorted(crawl_sourced - set(reached))
     return {
         "new_screens": new, "changed_screens": changed,
-        "missing_screens": absent if frontier_exhausted else [],
+        "missing_screens": absent if judged else [],
         "broken_screens": broken,
-        "missing_unjudged": [] if frontier_exhausted else absent,
+        "missing_unjudged": [] if judged else absent,
     }
 
 
-def _reached(nodes: list[ScreenNode]) -> dict[str, ScreenNode]:
-    """Key -> the node this crawl reached at it. A `QUEUED` node was enqueued and
-    never visited, so it is not evidence about anything and is excluded; the
-    first node wins so the mapping is stable."""
-    reached: dict[str, ScreenNode] = {}
+def _reached(nodes: list[ScreenNode]) -> dict[str, list[ScreenNode]]:
+    """Key -> EVERY node this crawl reached at it, in crawl order.
+
+    A `QUEUED` node was enqueued and never visited, so it is not evidence about
+    anything and is excluded. Every other node is kept: `ISS-t165-crawl-traversal-2`
+    was a `setdefault` here that let the FIRST node at a key silently hide a
+    second, structurally distinct screen sharing that URL — which could then
+    never appear as new, changed, missing or broken.
+    """
+    reached: dict[str, list[ScreenNode]] = {}
     for node in nodes:
         if node.status is NodeStatus.QUEUED:
             continue
-        reached.setdefault(node_key(node), node)
+        reached.setdefault(node_key(node), []).append(node)
     return reached
 
 
@@ -108,7 +166,7 @@ def describe(diff: dict[str, list[str]]) -> str | None:
     this is only what a human reads first."""
     labels = (("new_screens", "new"), ("changed_screens", "changed"),
               ("missing_screens", "missing"), ("broken_screens", "broken"),
-              ("missing_unjudged", "not judged (a bound truncated the frontier)"))
+              ("missing_unjudged", "not judged (the frontier was not exhausted)"))
     parts = [f"{len(diff[field])} {label}" for field, label in labels if diff[field]]
     if not parts:
         return None

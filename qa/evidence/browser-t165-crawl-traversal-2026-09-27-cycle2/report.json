@@ -1,0 +1,66 @@
+{
+  "fixture": "tests/fixtures/deep_site (byte-identical between the two crawls)",
+  "headed": true,
+  "crawl1": {
+    "actions": 20,
+    "screens": 9,
+    "status": "completed",
+    "stop_reason": "frontier empty"
+  },
+  "crawl2": {
+    "actions": 0,
+    "screens": 1,
+    "status": "completed",
+    "stop_reason": "frontier empty -- 1 screen(s) skipped as unchanged since the stored persona, and so NOT explored on this crawl",
+    "skipped_unchanged": 1,
+    "node_statuses": [
+      "skipped_unchanged"
+    ]
+  },
+  "persona_seeded_keys": [
+    "/",
+    "/deep1.html",
+    "/deep2.html",
+    "/deep3.html",
+    "/deep4.html",
+    "/wide1.html",
+    "/wide2.html",
+    "/wide3.html",
+    "/wide4.html"
+  ],
+  "revision": {
+    "summary": "screens 8 not judged (the frontier was not exhausted)",
+    "new": 0,
+    "changed": 0,
+    "missing": 0,
+    "broken": 0,
+    "missing_unjudged": [
+      "/deep1.html",
+      "/deep2.html",
+      "/deep3.html",
+      "/deep4.html",
+      "/wide1.html",
+      "/wide2.html",
+      "/wide3.html",
+      "/wide4.html"
+    ],
+    "missing_screens": []
+  },
+  "classify_direct_on_crawl2_graph_with_exhausted_true": {
+    "new_screens": [],
+    "changed_screens": [],
+    "missing_screens": [],
+    "broken_screens": [],
+    "missing_unjudged": [
+      "/deep1.html",
+      "/deep2.html",
+      "/deep3.html",
+      "/deep4.html",
+      "/wide1.html",
+      "/wide2.html",
+      "/wide3.html",
+      "/wide4.html"
+    ]
+  },
+  "skipped_node_count": 1
+}

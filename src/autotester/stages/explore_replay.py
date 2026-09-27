@@ -25,6 +25,13 @@ it does not trust "it was typed once before": every replay passes through the
 SAME `typing_allowed` / `typing_target_allowed` gate a fresh type passes
 through, re-evaluated against the CURRENT run's policy. A recorded value whose
 gate now refuses is not replayed — it is reported as a refusal.
+
+**And X7 binds it too** (`ISS-t165-crawl-traversal-1`). "The host is re-checked
+after EVERY action" is unamended by this contract, so every action issued here
+is followed by `check_destination`, with an `OFF_DOMAIN_REFUSED` edge and a
+NAVIGATION issue recorded exactly as `explore_node.try_action` and
+`explore_typing._type_one` record theirs. That an action was permitted once is
+no evidence about where its re-render lands the second time.
 """
 
 from __future__ import annotations
@@ -32,7 +39,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from autotester.schema.enums import Action
+from autotester.browser.session import NavigationRefused, check_destination
+from autotester.schema.enums import Action, EdgeOutcome, IssueKind
 from autotester.schema.screen_graph import ElementRef, ScreenEdge
 from autotester.stages.explore_safety import typing_allowed, typing_target_allowed
 
@@ -42,6 +50,7 @@ if TYPE_CHECKING:
 TYPED_ACTIONS = frozenset({Action.FILL, Action.SELECT})
 GATE_REFUSED = ("the recorded value for {target!r} is not replayable under this run's "
                 "policy (the X10-b typing gate refuses it now)")
+OFF_DOMAIN = ("re-performing {target!r} landed off-domain and was refused: {why}")
 
 
 @dataclass(frozen=True)
@@ -80,6 +89,52 @@ def _issue(rt: ExploreRuntime, typed: TypedAction) -> None:
         rt.session.fill(typed.element.selector, typed.value)
 
 
+def _element_for(rt: ExploreRuntime, edge: ScreenEdge) -> ElementRef:
+    """The element `edge` acted on, so a refusal is recorded against the real
+    control. A node dropped from the crawl leaves only what the edge itself
+    carries — a named, selectable stand-in, never a silent omission."""
+    node = rt.nodes.get(edge.from_node)
+    for element in node.elements if node is not None else []:
+        if element.selector == edge.target:
+            return element
+    return ElementRef(role="", selector=edge.target, name=edge.name or "")
+
+
+def _landed_on_domain(rt: ExploreRuntime, node_id: str, element: ElementRef,
+                      action: Action) -> str | None:
+    """X7: the host is re-checked after EVERY action — replays included.
+
+    `ISS-t165-crawl-traversal-1`: this was the one action path in the crawler
+    that did not. `explore_node.try_action` and `explore_typing._type_one` both
+    re-check where the browser landed and record `OFF_DOMAIN_REFUSED`; the
+    replay reported a plain success, so a re-render that redirected somewhere
+    else the second time round was invisible. Replaying an already-approved
+    action says nothing about where it lands THIS time.
+
+    Returns None when the landing is in-domain, else the refusal's reason —
+    having first recorded it exactly as the two existing call sites do.
+    """
+    try:
+        check_destination(rt.project, rt.session.current_url())
+    except NavigationRefused as exc:
+        return _refusal_of(rt, node_id, element, action, exc)
+    return None
+
+
+def _refusal_of(rt: ExploreRuntime, node_id: str, element: ElementRef,
+                action: Action, exc: NavigationRefused) -> str:
+    """Record an off-domain replay the way `try_action` records one — a
+    NAVIGATION issue plus an `OFF_DOMAIN_REFUSED` edge, so X16's surfaces show
+    it — and return the reason `_replay_discovery` reports upward."""
+    from autotester.stages.explore_node import add_issue, record_edge  # cycle: import at use
+
+    add_issue(rt, node_id, IssueKind.NAVIGATION, str(exc))
+    node = rt.nodes.get(node_id)
+    if node is not None:
+        record_edge(rt, node, element, action, EdgeOutcome.OFF_DOMAIN_REFUSED, str(exc))
+    return OFF_DOMAIN.format(target=element.name or element.selector, why=exc)
+
+
 def replay_fills(rt: ExploreRuntime, node_id: str, *, skip: str | None = None) -> str | None:
     """CR2: re-issue every value recorded on `node_id`, in the order typed.
 
@@ -94,9 +149,16 @@ def replay_fills(rt: ExploreRuntime, node_id: str, *, skip: str | None = None) -
             return GATE_REFUSED.format(target=typed.element.selector)
         try:
             _issue(rt, typed)
+        except NavigationRefused as exc:  # X7: the guard refused the fill itself
+            return _refusal_of(rt, node_id, typed.element, typed.action, exc)
         except Exception as exc:
             return (f"re-issuing the recorded value for {typed.element.selector!r} raised "
                     f"{type(exc).__name__}: {exc}")
+        # X7 after EVERY action: a fill whose `onchange` auto-submits can leave
+        # the domain without any click being replayed at all.
+        refused = _landed_on_domain(rt, node_id, typed.element, typed.action)
+        if refused is not None:
+            return refused
     return None
 
 
@@ -125,18 +187,25 @@ def perform(rt: ExploreRuntime, edge: ScreenEdge) -> str | None:
             return GATE_REFUSED.format(target=edge.target)
         try:
             _issue(rt, typed)
+        except NavigationRefused as exc:
+            return _refusal_of(rt, edge.from_node, typed.element, edge.action, exc)
         except Exception as exc:
             return (f"re-issuing {edge.name or edge.target!r} raised "
                     f"{type(exc).__name__}: {exc}")
         rt.session.settle(timeout_ms=rt.bounds.settle_ms)
-        return None
+        return _landed_on_domain(rt, edge.from_node, typed.element, edge.action)
     refused = replay_fills(rt, edge.from_node)
     if refused is not None:
         return refused
+    element = _element_for(rt, edge)
     try:
         rt.session.click(edge.target)
+    except NavigationRefused as exc:
+        return _refusal_of(rt, edge.from_node, element, edge.action, exc)
     except Exception as exc:
         return (f"re-performing {edge.name or edge.target!r} raised "
                 f"{type(exc).__name__}: {exc}")
     rt.session.settle(timeout_ms=rt.bounds.settle_ms)
-    return None
+    # X7, the gap ISS-t165-crawl-traversal-1 filed: a replayed click that lands
+    # off-domain used to return success from here.
+    return _landed_on_domain(rt, edge.from_node, element, edge.action)
