@@ -525,4 +525,57 @@ serving `tests/fixtures/login_site`:
    the methodology (throwaway `git archive` copy, single-hunk edits, revert-and-reconfirm) is fully
    reproducible from this manifest's exact hunks. Nothing in V1-V8 changed this cycle.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 2 of max 3)
+
+Verdict `qa/verdicts/t191-run-video.md`, **Cycle checked: 2** (appended below the cycle-1 FAIL and
+its addendum, both left byte-intact). Merged `2203f644` and pushed to `origin/master`. `T-191` is
+`done`; `ISS-t191-run-video-1` moves open -> **fixed** with
+`regression_check: uv run pytest tests/test_video_parallel_sweep.py` — correctly `fixed` rather than
+`verified`, since `verified` needs a later separate re-check. Ledger row **F-061** appended
+(`user_value: high`). The third cycle was not needed.
+
+**Every one of the five attack points came back confirming the fix, and two went further than the
+maker had.**
+
+- **Per-session scratch id: unique on every construction path, traced not assumed.** The checker
+  walked all three `BrowserSession(...)` sites in `ui/run_execution.py` plus
+  `parallel_run.py::default_session_factory`'s `_factory`, and confirmed no path calls `start()`
+  twice or runs two cases through one session. **One real leak disclosed and correctly not filed:**
+  the *parent* `_video_scratch/` directory is never removed, so an empty zero-byte directory remains
+  per run, scoped to that run's own directory. Cosmetic and bounded.
+- **The V1 orphan-leak stays closed — proven by stubbing, not by re-running the tests.** This was
+  the risk worth checking: a fix that scopes the sweep more narrowly is exactly the shape that could
+  quietly stop sweeping the thing it was built for. Stubbing `_sweep_orphan_videos` to a no-op in a
+  `git archive` copy reddened the no-strays test with the same `page@<hash>.webm` orphan signature
+  cycle 1 saw pre-fix. The narrower sweep still does real work.
+- **A stronger falsification than the manifest attempted.** Beyond reproducing the revert-style
+  sabotage, the checker replaced `uuid4()` with a **constant** scratch id — which also reddened,
+  proving the test depends on genuine per-session *uniqueness* rather than merely on path nesting.
+  That is the mutation that could have exposed a fake fix, and it holds.
+- **The concurrency test is genuinely deterministic: 10/10**, six runs quiet and four more while a
+  real ~19-minute full suite was running. The `threading.Event` ordering does not flake under load,
+  so it will not haunt the suite.
+- **Full suite, the checker's own run:** `3 failed, 2068 passed, 5 skipped, 14 xfailed` in 19m12s —
+  the two `ISS-at638-remainder-2` goal-drift failures plus AT-627, which did fire this run and is
+  pre-authorised as load-sensitive. No fourth.
+
+**Ruling on the disclosed `git stash` violation: no corruption, `ISS-t191-run-video-3` (low,
+`wontfix`), does not block.** The checker compared `f2370b86`'s actual diff against the maker's
+account and found a clean self-consistent append — completed full-suite output replacing a "still
+completing" placeholder, nothing else touched. Recorded in the terms the dispatch set: self-
+disclosure is the behaviour this pair wants and must not be punished as if it were concealment,
+while *"it worked out"* stays distinct from *"it was safe"*. There is nothing to fix, and the
+disclosure is why it could be checked at all rather than discovered later.
+
+**Two corrections against the manifest's own prose**, both trivial but recorded because a manifest
+that misstates itself is a defect even when its code is right: `video.py` is **147** lines, not the
+149 claimed. And `session.py` is at **exactly 300** — `doctor`'s cap with zero headroom, so **the
+next change to that file must split it.**
+
+`ISS-t191-run-video-2` is confirmed still open and correctly untouched: the recorded video is not
+reachable by a human through **any** shipped path — the downloaded report's run-relative link points
+into a temp directory deleted the moment the download completes, and `run_view`'s `_step_flow`
+filters evidence strictly on `SCREENSHOT` so `EvidenceKind.VIDEO` never surfaces live either. V8 is
+satisfied as contracted; the feature is not yet end-to-end useful. That is follow-on scope for
+Umesh when there is room, not a defect in this unit.
+

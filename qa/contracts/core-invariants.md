@@ -175,6 +175,16 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   failing test per mutation; a manifest containing an unreachability claim pastes the attempted
   mutation and its INCONCLUSIVE run alongside it; `uv run autotester doctor` exits 0, which includes
   `check_stale_evidence_specs` finding no unexplained-stale evidence spec.
+- **A failure the manifest correctly names as pre-existing or concurrent, and traces to a cause
+  outside the unit's own diff, does not by itself block that unit's PASS.** The Verify clause above
+  exists to catch drift the unit's own merge introduces or fails to reveal — not to hold a
+  diff-scoped unit (a zero-code bookkeeping/data close-out, or any unit whose `git diff --stat` does
+  not touch the failing test or the code it exercises) hostage to a red it did not cause and cannot
+  repair inside its own path scope (C10). This is not self-certified: the manifest must name the
+  failing test(s) individually (never a summary count), show — not assert — the cause outside its
+  diff, and the checker independently re-runs the suite and re-derives the trace before relying on
+  it. It does not excuse a failure the unit did cause, one it named incorrectly, or one whose cause
+  it did not actually verify.
 
 ### C8 — Provider-agnostic
 - All model calls go through `providers.base.Provider`. No stage imports a vendor SDK directly.
@@ -192,8 +202,10 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   against the reader's actual vocabulary in a test, and files the upstream defect in the ledger.
 - Applies to `.goal/goal.json` control fields (`base_criticality`, `done_check`, `approved`) as
   well as to `projects/<slug>/` artifacts.
-- **Verify:** `uv run pytest tests/test_goal_criticality_vocabulary.py tests/test_goal_done_checks.py`
-  exits 0 — one file per control field pinned so far (`base_criticality`, `done_check`). `approved`
+- **Verify:** `uv run pytest tests/test_goal_criticality_vocabulary.py tests/test_goal_done_checks.py
+  tests/test_goal_contract_registration.py` exits 0 — one file per control field pinned so far
+  (`base_criticality`, `done_check`; the latter split across two files at AT-638, see below).
+  `approved`
   is not yet pinned (AT-156); when it is, its test joins this line.
 
 ### C10 — A unit's commit carries only that unit's paths
@@ -573,3 +585,30 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   **Changes-authorized:** qa/contracts/core-invariants.md C7 (this entry). No enforcement-path file
   touched. **Links:** D-048; AT-516; qa/gates/at516-evidence-spec-splitting-policy.md;
   qa/manifests/t189-stale-evidence-tag.md; qa/verdicts/t189-stale-evidence-tag.md.
+- 2026-09-27 · routine (checker, at638-done-check-repair cycle 1) · **C9's Verify line repaired,
+  drift found while checking the unit, not claimed by it.** AT-638 split
+  `test_revised_goal_contract_is_registered` out of `tests/test_goal_done_checks.py` into a new
+  `tests/test_goal_contract_registration.py` (doctor's 300-line cap). C9's own Verify command —
+  `uv run pytest tests/test_goal_criticality_vocabulary.py tests/test_goal_done_checks.py` — was
+  never updated to name the new file, so running exactly the command this criterion prescribes now
+  silently skips the one test that pins the T-160..T-184 `done_check` registration: the contract's
+  own text stopped matching what it verifies. Added `tests/test_goal_contract_registration.py` to
+  the Verify line. No criterion weakened or added; a stale pointer repaired to what it already
+  meant. **Changes-authorized:** qa/contracts/core-invariants.md C9 (this entry). No
+  enforcement-path file touched. **Links:** AT-638; qa/manifests/at638-done-check-repair.md;
+  qa/verdicts/at638-done-check-repair.md.
+- 2026-09-27 · routine (checker, at438-answered-gate-remainder cycle 2) · **C7 gains the
+  pre-existing/concurrent-failure carve-in, in words.** A suite failure the manifest correctly names
+  and traces to a cause outside the unit's own diff does not by itself block that unit's PASS; the
+  checker still independently re-runs and re-derives the trace before relying on it. Two independent
+  units reasoned this out from first principles before this entry existed —
+  `qa/verdicts/at438-answered-gate-remainder.md` (cycle 1) recommended exactly this wording rather
+  than acting on it (correctly out of its own C10 path scope), and `qa/verdicts/t192-url-pattern-heal.md`
+  made the identical observation independently. Closing the recommendation here rather than leaving
+  a second dangling answered question, per the cycle-1 verdict's own instruction to this unit's
+  cycle-2 checker. Tightening/clarifying only: it makes explicit a reading both units already had to
+  derive by hand, and it does not excuse a failure the unit itself caused, named wrong, or did not
+  actually verify the cause of. **Changes-authorized:** qa/contracts/core-invariants.md C7 (this
+  entry). No enforcement-path file touched. **Links:** AT-438;
+  qa/verdicts/at438-answered-gate-remainder.md; qa/verdicts/t192-url-pattern-heal.md;
+  qa/manifests/at438-answered-gate-remainder.md.

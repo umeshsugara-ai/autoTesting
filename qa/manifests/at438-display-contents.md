@@ -5,9 +5,28 @@
 **Goal task:** none (issue-driven)
 **Date:** 2026-09-16
 **Fix cycle:** 3 of max 3 — **the last one**
-**Status:** STALLED — cycle 3 FAIL (`qa/verdicts/at438-display-contents.md`, AT-453 medium: a closed `<details>` whose `::details-content` is `display:contents`/`inline` paints its body, and the check reads only its `content-visibility`; AT-454 low: closed-mode shadow `assignedSlot` is null). Max cycles reached; diagnosis at `qa/debug/at438-display-contents-cycle3.md`.
+**Status:** checked-PASS **for U14(b) only** — cycle 3 re-ruled PASS under D-048/D-049 (baseline = the
+pre-unit detector, `qa/verdicts/at438-display-contents.md` "Re-ruling of cycle 3"). This does **not**
+blanket-close the unit: AT-453 (U14(b)'s other half) was split out and separately verified via
+`t186-details-content` (`580fd3a7`); AT-454 is `wontfix`, filed as a U14(c) disclosed limitation. See
+below for the full accounting. (Was: STALLED — cycle 3 FAIL, `qa/verdicts/at438-display-contents.md`,
+AT-453 medium: a closed `<details>` whose `::details-content` is `display:contents`/`inline` paints
+its body, and the check reads only its `content-visibility`; AT-454 low: closed-mode shadow
+`assignedSlot` is null. Max cycles reached; diagnosis at `qa/debug/at438-display-contents-cycle3.md`.)
 **Dual check:** no
-**Issues addressed:** AT-438 (open → fixed) · **AT-442** (high, cycle-1 FAIL: the probe restarted author animations) · **AT-443** (medium, cycle-1: author `:empty` hid the probe) · **AT-445** (low, cycle-1: `appendChild` throwing / `remove()` patched), which no longer applies because nothing is inserted · **AT-449** (medium, cycle-2 FAIL: <details> judged by its tag) · **AT-450** (low, cycle-2: four false positives, fixed here too)
+**Issues addressed:** AT-438 (open → fixed, re-ruled PASS under D-048/D-049, scope U14(b)) ·
+**AT-442** (high, cycle-1 FAIL: the probe restarted author animations; fixed — ruled independently of
+D-048/D-049, which never names AT-442/443/445, by the checker's own falsification in
+`qa/verdicts/at438-answered-gate-remainder.md` (`3ae87a54`): the shipped walk-up detector cannot
+insert a probe, per `src/autotester/browser/visual_order.js:60`) · **AT-443** (medium, cycle-1: author
+`:empty` hid the probe; fixed, same `3ae87a54` ruling) · **AT-445** (low, cycle-1: `appendChild`
+throwing / `remove()` patched; fixed, same `3ae87a54` ruling), which no longer applies because nothing
+is inserted · **AT-449** (medium, cycle-2 FAIL: <details> judged by its tag; fixed, D-048/D-049) ·
+**AT-450** (low, cycle-2: four false positives, fixed here too, D-048/D-049) · **AT-453** (medium,
+cycle-3 FAIL: `::details-content`'s `display` not consulted; split into its own capped unit
+`t186-details-content` per D-048 gate option (b), cycle 1 PASS, `verified`) · **AT-454** (low, cycle-3:
+closed-mode shadow `assignedSlot` is null; `wontfix`, documented as a U14(c) disclosed limitation per
+D-048 gate option (c) / D-049)
 
 ## Cycle 3: I swapped one hand-written list for another
 
@@ -389,4 +408,37 @@ Cycle 3 FAILed (`qa/verdicts/at438-display-contents.md`, `Cycle checked: 3`); di
 this manifest — this heading is the machine-readable half and was left at `ready-for-check` when the
 stall was recorded on 2026-09-16 (`76ceb4d`), so the session-start hook has been reporting a pending
 check on a unit that is not waiting on a checker. It is waiting on Umesh.
+
+**Gate answered, re-ruling confirmed — checked-PASS.** Umesh answered
+`qa/gates/at438-u14b-baseline.md` on 2026-09-26T22:34:22+05:30 with `a + b + c`. The checker acted on
+it the same evening in `6d2eb0bd` (D-048/D-049: `qa/contracts/ui.md` U14(b)/(c) amended, `docs/DECISIONS.md`
+gains D-049, `qa/issues.jsonl` AT-438/AT-449/AT-450 → `fixed`, AT-454 → `wontfix`) and appended the
+"Re-ruling of cycle 3" section to `qa/verdicts/at438-display-contents.md`: **VERDICT: PASS**, judged
+against the pre-unit detector `c687b73^` per gate option (a) — cycle 3 (`9fc937d`, an ancestor of
+master) drops 0 texts the pre-unit detector reported over 70 re-measured layouts. AT-453 (gate
+option (b)) was split into its own capped unit, `t186-details-content`, which PASSED at cycle 1
+(`580fd3a7`) and is now `verified` in `qa/issues.jsonl`. AT-454 (gate option (c)) is filed as a
+documented U14(c) limitation, not charged.
+
+This manifest's own header (`**Status:**`) and `**Issues addressed:**` lines were the one piece the
+checker's re-ruling commit did not touch — the ledger, contract and decisions-log side of the answer
+landed, but this manifest kept reading `STALLED — cycle 3 FAIL` until now. Closing that out is this
+unit, `at438-answered-gate-remainder`. No src/ or test change: this is a bookkeeping close-out on an
+already-landed engineering decision, done by the maker per the standing convention that only the
+maker flips a manifest's terminal status.
+
+**Cycle-2 correction (at438-answered-gate-remainder, 2026-09-27):** the checker's verdict on that unit
+(`qa/verdicts/at438-answered-gate-remainder.md`, `3ae87a54`) found this file's original "checked-PASS"
+close-out overstated its own authority — the re-ruling it cites is scoped "for U14(b) only," not a
+blanket close of the whole unit, and this file's AT-442/443/445 "fixed" claims (above) were not
+authorized by D-048/D-049 at all, only by that same checker's independent falsification. Both are
+corrected in the header above: the status now names U14(b) explicitly and points AT-453/AT-454 to
+their own resolutions, and the Issues-addressed line now cites `3ae87a54`, not D-048/D-049, as the
+authority for AT-442/443/445.
+
+**Status: checked-PASS for U14(b)** (re-ruled, cycle 3; see `qa/verdicts/at438-display-contents.md`
+"Re-ruling of cycle 3 (2026-09-26, D-048 gate answer a+b+c, D-049)" for that scope, and this
+manifest's header for the full issues-addressed accounting — AT-453 verified separately via
+`t186-details-content`, AT-454 `wontfix`, AT-442/443/445 fixed under `3ae87a54` independent of
+D-048/D-049).
 
