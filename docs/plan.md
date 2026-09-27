@@ -48,7 +48,7 @@ are **held for a separate approval** — no probe traffic in this push.
 | task | why |
 |---|---|
 | T-154, T-155 | Umesh 2026-09-27: build C1–C3, hold the adversarial pass for a separate approval |
-| T-122, T-145 | no `projects/*/.env` exists; needs TEST-account credentials, then a RunApproval |
+| T-122, T-145 | needs TEST-account **ERP** credentials. Corrected 2026-09-27: a gitignored **repo-root** `.env` does exist and holds `PATHLYNKS_USER_*` / `PATHLYNKS_COUNSELLOR_*` key names, so Pathlynks-targeted live work is credential-capable — but `ERP_EMAIL`/`ERP_PASSWORD` are absent from every store and no `projects/*/.env` exists, which is what T-122's gate (D-048) names as its unblock condition. T-145 additionally needs a fresh D-018 RunApproval per run |
 | T-136 | `ERP_Issues_Trainers.xlsx` truth sheet is not on disk |
 | T-169 | depends on all three above |
 
