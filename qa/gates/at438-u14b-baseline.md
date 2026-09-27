@@ -1,6 +1,9 @@
 # HUMAN_GATE — at438-u14b-baseline: what U14(b)'s "pre-change detector" means when failed cycles land on master
 
-**Opened:** 2026-09-16 · **Status: OPEN** · **Approver:** Umesh
+**Opened:** 2026-09-16 · **Status: ANSWERED -> acted on** (a+b+c all landed: D-049 amends U14(b)/(c)
+and re-rules AT-438/AT-449/AT-450 fixed, AT-454 wontfix; AT-453 split into `t186-details-content`,
+cycle-1 PASS, `580fd3a7`; `at438-display-contents.md` and this file's own header flipped by
+`at438-answered-gate-remainder` cycle 2) · **Approver:** Umesh
 **Blocks:** closing AT-438 (STALLED after 3 cycles) and the AT-453 unit. Related: `qa/gates/commit-before-verdict.md`.
 **Evidence:** `qa/debug/at438-display-contents-cycle3.md` · `qa/verdicts/at438-display-contents.md` (cycle 3).
 

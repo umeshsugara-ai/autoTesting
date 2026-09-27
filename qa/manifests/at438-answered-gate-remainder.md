@@ -5,11 +5,16 @@ c", answered 2026-09-26T22:34:22+05:30) — the part the system dropped after ac
 **Contract:** none (bookkeeping close-out; no `qa/contracts/` change, no `src/`/`tests/` change).
 **Goal task:** none (bookkeeping-driven, `.goal/goal.json` explicitly out of scope for this unit).
 **Date:** 2026-09-27
-**Fix cycle:** 1 of 1 (no code, nothing to cycle on)
+**Fix cycle:** 2 of max 3 (cycle 1 FAILed on three textual-accuracy defects: a self-contradiction on
+AT-442/443/445 between this unit's two own files, an overstated unqualified `checked-PASS`, and a
+false claim about this project's gate-status convention plus a stale gate header — see
+`qa/verdicts/at438-answered-gate-remainder.md`, commit `3ae87a54`)
 **Dual check:** no
-**Issues addressed:** none new. Confirms AT-438, AT-449, AT-450 (`fixed`), AT-453 (`verified`), AT-454
-(`wontfix`) in `qa/issues.jsonl` are already correct and closes the one stale artifact that still
-disagreed with them.
+**Issues addressed:** none new by this unit directly. Confirms AT-438, AT-449, AT-450 (`fixed`), AT-453
+(`verified`), AT-454 (`wontfix`) in `qa/issues.jsonl` are correct — and, as of cycle 2, AT-442, AT-443,
+AT-445 (`fixed`, per the checker's own falsification in `3ae87a54`, applied to the ledger by the
+orchestrator on master in `4bba329b` and now merged into this branch) are also correct. Cycle 2 makes
+this manifest's own prose agree with that ledger state instead of contradicting it.
 
 ## What I found: the gate answer was almost fully landed already
 
@@ -92,26 +97,119 @@ changes; they were already correct.
   qa/issues.jsonl`, `git show 6d2eb0bd`, `git show 580fd3a7 -- qa/issues.jsonl`, and re-read
   `docs/DECISIONS.md` D-048/D-049 against `qa/gates/at438-u14b-baseline.md`'s literal text. I did not
   find a fourth gap; the checker-owned side of a+b+c was already fully landed before I started.
-- **AT-442/AT-443/AT-445 still read `"status": "open"`** in `qa/issues.jsonl`, even though the
-  cycle-2 and cycle-3 verdicts both state they "no longer reproduce" on the committed code. I left
-  them alone deliberately: D-048/D-049's authorized `Result` section names only AT-438/AT-449/AT-450
-  (→ fixed), AT-454 (→ wontfix) and AT-453 (stays open, own unit) — it does not mention AT-442/443/445
-  at all, and the re-ruling's own `ISSUES-WRITTEN` line in the verdict is silent on them too. Flipping
-  a ledger row to `fixed`/`verified` on my own reading, without a checker-run falsification, is
-  exactly the unverified-status-change the project's own sweep convention forbids (`qa/QUEUE.md`'s
-  P2 rule, restated in the AT-648 write-up). If these three should also close, that is a `/checker`
-  call, not mine — worth raising to the checker as a small follow-up, not something I acted on here.
+- **[Cycle-1 claim, superseded by cycle 2 — see below]** AT-442/AT-443/AT-445 still read
+  `"status": "open"` in `qa/issues.jsonl`, even though the cycle-2 and cycle-3 verdicts both state they
+  "no longer reproduce" on the committed code. I left them alone deliberately: D-048/D-049's authorized
+  `Result` section names only AT-438/AT-449/AT-450 (→ fixed), AT-454 (→ wontfix) and AT-453 (stays
+  open, own unit) — it does not mention AT-442/443/445 at all, and the re-ruling's own `ISSUES-WRITTEN`
+  line in the verdict is silent on them too. Flipping a ledger row to `fixed`/`verified` on my own
+  reading, without a checker-run falsification, is exactly the unverified-status-change the project's
+  own sweep convention forbids (`qa/QUEUE.md`'s P2 rule, restated in the AT-648 write-up). If these
+  three should also close, that is a `/checker` call, not mine — worth raising to the checker as a
+  small follow-up, not something I acted on here. **This restraint was the correct call** — but the
+  cycle-1 commit's *other* file (`at438-display-contents.md`) asserted "fixed" for the same three ids
+  in the same commit, which contradicted this exact paragraph. The checker caught it, then did the
+  falsification itself and ruled all three fixed (`3ae87a54`) — see the Cycle 2 section below for how
+  that is now reflected consistently in both files.
 - **`qa/QUEUE.md`'s stale note** (lines ~1009-1017 and ~1063-1078, from sweep `bd69565d`) is left
   unedited. It is a historical sweep log with no established in-place "resolved" annotation
   convention (checked: no other finding in the file is marked resolved after the fact), and it is
   concurrently written by other live sessions. The manifest closeout here is the authoritative
   record; a future sweep reading the manifest will see `checked-PASS` and self-correct.
-- **The gate file itself** (`qa/gates/at438-u14b-baseline.md`) needed no edit: it already carries the
-  `Answered:` line, and this project's gate convention has no separate "Status: closed" header field
-  to flip (checked `at147-expiry-end-of-day.md`, `at520-scripts-line-cap.md`,
-  `commit-before-verdict.md`, `at610-strict-out-of-order.md` — none use one).
+- **[Cycle-1 claim, FALSE, corrected in cycle 2 — see below]** The gate file itself
+  (`qa/gates/at438-u14b-baseline.md`) needed no edit: it already carries the `Answered:` line, and
+  this project's gate convention has no separate "Status: closed" header field to flip (checked
+  `at147-expiry-end-of-day.md`, `at520-scripts-line-cap.md`, `commit-before-verdict.md`,
+  `at610-strict-out-of-order.md` — none use one). **This was a negative-existence claim from a
+  four-gate sample, and it was wrong**: `at106-hook-architecture-path.md`, `at110-approval-forgery.md`
+  and `at355-guard-shape.md` all use `Status: ANSWERED`. Worse, `at438-u14b-baseline.md` itself —
+  the gate this whole unit is named after — still read `**Status: OPEN**` in its own header, over 25
+  hours after being fully answered and acted on. Fixed in cycle 2.
 
-## Verify
+## Fix cycle 2 (2026-09-27)
+
+The checker's verdict (`qa/verdicts/at438-answered-gate-remainder.md`, `3ae87a54`) FAILed cycle 1 on
+three textual-accuracy defects. The premise itself — that the gate answer was fully discharged by
+`6d2eb0bd` + `580fd3a7` and the sweep note calling it unactioned was wrong — was independently
+re-derived by the checker from primary commit content and **stands**; nothing below reopens that.
+
+**1. Self-contradiction on AT-442/443/445 (sev high).** `at438-display-contents.md`'s "Issues
+addressed" line said "fixed" for all three while this manifest's own "Where to attack this" said the
+opposite — that flipping them was "a `/checker` call, not mine." Both were true statements about
+different things (the ledger-flip authority vs. the prose claim), but they read as contradictory sitting
+next to each other in the same commit. **What changed since cycle 1:** the checker did the falsification
+itself in `3ae87a54` — `src/autotester/browser/visual_order.js:60`'s comment "NEVER insert a probe
+(AT-442/443)" means the shipped walk-up detector structurally cannot exhibit any of the three, confirmed
+against a fresh `uv run pytest tests/test_browser_visual_order.py -k display_contents` run — and ruled
+them `fixed`. **The orchestrator has since applied that ruling to `qa/issues.jsonl` on master
+(`4bba329b`)**, which I merged into this branch at the top of this cycle (`git merge master`, one file,
+`qa/issues.jsonl`, 3 insertions/3 deletions — confirmed via `git show --stat` after the merge). I did
+**not** touch `qa/issues.jsonl` myself; C10 and this unit's own scope both restrict me to the three
+manifest/gate paths below, and the ledger edit was never mine to make. What I fixed is the prose: both
+files now cite `qa/verdicts/at438-answered-gate-remainder.md` (`3ae87a54`) as the explicit authority
+for AT-442/443/445's `fixed` status, and neither file overstates D-048/D-049 as covering them (D-049's
+own `Result` section never names AT-442/443/445 — only AT-438/449/450/453/454). See the edits to
+`at438-display-contents.md`'s header and closing status, and the superseded-bullet markers above.
+
+**2. Overstated `checked-PASS` (sev medium).** `at438-display-contents.md`'s status line read a
+blanket `checked-PASS`, but the cited authority (`qa/verdicts/at438-display-contents.md`, "Re-ruling
+of cycle 3") scopes itself "for U14(b) only." Fixed: both the header `**Status:**` line and the closing
+`## Status:` line in `at438-display-contents.md` now read `checked-PASS for U14(b)` / `checked-PASS
+for U14(b) only`, and explicitly name where AT-453 (`t186-details-content`, `580fd3a7`, `verified`)
+and AT-454 (`wontfix`, U14(c) limitation) were actually resolved, rather than folding all four ids into
+one unqualified close.
+
+**3. False convention claim + stale gate (sev medium).** Corrected in place above (see the two
+`[Cycle-1 claim ...]`-tagged bullets in "Where to attack this"): three other gates in this repo
+(`at106-hook-architecture-path.md`, `at110-approval-forgery.md`, `at355-guard-shape.md`) do use
+`Status: ANSWERED`, so the claim that no gate in this project uses a closing status field was false.
+`qa/gates/at438-u14b-baseline.md`'s own header has been flipped from `**Status: OPEN**` to
+`**Status: ANSWERED -> acted on**`, naming D-049, `t186-details-content`, and this unit's own cycle-2
+close-out as what actually happened, following the `at110`-style "ANSWERED -> <what happened>" form
+rather than the bare `at106`/`at355` form, since (unlike those two) there is a concrete downstream chain
+worth naming in the same field.
+
+**The generalisable lesson (in my own words, since the checker asked me to write it, not just note
+it):** I checked four gates, found none using a `Status:` closing field, and concluded from that
+negative sample that the convention did not exist in this project. That is exactly the reasoning error
+my own cycle-1 correctly diagnosed in the sweep note that started this whole unit — the sweep looked at
+one field (`qa/issues.jsonl`'s `"status": "fixed"` string) on one artifact (AT-438's ledger row),
+found what looked like inaction, and concluded nothing had happened, without checking the `fixed_by`
+field that would have shown otherwise. A non-exhaustive negative check is not evidence of absence in
+either direction — not in a ledger row, and not in "does this repo have a convention for X." I found
+the sweep's version of this error and called it out; the checker then found my own copy of it, in the
+same manifest, one section later. Worth remembering: correctly diagnosing an error in someone else's
+work does not make you immune to it in your own — check the actual population (`ls qa/gates/`, or a
+`grep -l "Status:"` across all of them) before asserting a convention doesn't exist, rather than
+sampling four and stopping.
+
+## Verify (cycle 2)
+
+| command | result |
+|---|---|
+| `uv run ruff check src tests scripts` | `All checks passed!` |
+| `uv run autotester doctor` | `stale-generated: docs/SNAPSHOT.md differs from regeneration; run \`autotester snapshot\` — 1 violation` (pre-existing, caused by master's `.goal/goal.json` churn from concurrent T-191 close-out brought in by `git merge master`; this unit's own diff never touches `.goal/` or `docs/SNAPSHOT.md`; the cycle-1 checker verdict independently traced and excused the same finding) |
+
+**`uv run pytest` (bare, no `-q`), fresh run post-merge, full ~19 minutes, run to completion — reporting
+the failure list, not the exit code:** `2 failed, 2068 passed, 6 skipped, 14 xfailed, 15 warnings in
+1134.05s (0:18:54)`.
+
+The 2 failures, named individually:
+1. `tests/test_goal_done_checks.py::test_no_pending_task_has_a_done_check_that_cannot_fail` —
+   `AssertionError: these done_checks pass on a clean repo whether or not their task was started, and
+   carry no waiver: ['T-190']`.
+2. `tests/test_goal_done_checks.py::test_revised_goal_contract_is_registered` —
+   `AssertionError: assert 81 == 70` (goal-task count drift against a hardcoded expectation).
+
+Both are the same `.goal/goal.json`-drift class the cycle-1 verify already named as out of this unit's
+scope (concurrent orchestrator activity growing the task list; this unit's own diff touches only the
+three files under `git diff --stat` above, none of them `.goal/*`). The task-id named in failure 1
+(`T-190`) has moved since cycle 1 — consistent with concurrent live sessions, not with anything this
+unit did. **Notably absent this run:** `tests/test_flake_probe_real_process.py::...grandchild` (AT-627),
+which cycle 1 flagged as a plausible contention casualty and declined to re-run solo to confirm — this
+cycle's full solo run passed it cleanly, supporting that it was contention, not a real regression.
+
+## Verify (cycle 1, for history)
 
 | command | result |
 |---|---|
@@ -135,8 +233,25 @@ changes; they were already correct.
    sessions for the process table — a call for whichever unit next needs a clean read on this test,
    not mine to spend cycles on here.
 
-`git diff --stat` before commit: `qa/manifests/at438-display-contents.md | 26 ++++++++++++++++++++++++--`
+`git diff --stat` before the cycle-1 commit: `qa/manifests/at438-display-contents.md | 26 ++++++++++++++++++++++++--`
 (1 file changed, 24 insertions(+), 2 deletions(-)) — matches the two targeted edits, no
 re-serialization, no other file touched.
+
+**Cycle-2 `git diff --stat` before commit** (post-merge with master):
+
+```
+qa/gates/at438-u14b-baseline.md               |   5 +-
+qa/manifests/at438-answered-gate-remainder.md | 150 ++++++++++++++++++++++----
+qa/manifests/at438-display-contents.md        |  40 ++++++-
+3 files changed, 170 insertions(+), 25 deletions(-)
+```
+
+(Numbers as measured by the final `git diff --stat` run just before commit — the count includes this
+very table's own addition, which is expected for a self-describing manifest.)
+
+Exactly the three paths this unit's brief scoped it to (this manifest, the sibling manifest, the gate
+file). No touch to `qa/issues.jsonl`, `qa/contracts/`, `docs/DECISIONS.md`, `.goal/*`, `src/` or
+`tests/` — the ledger correction for AT-442/443/445 was already applied on master (`4bba329b`) and
+arrived via the `git merge master` at the top of this cycle, not via any edit made here.
 
 ## Status: ready-for-check
