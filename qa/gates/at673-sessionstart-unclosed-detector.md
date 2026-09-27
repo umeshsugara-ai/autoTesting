@@ -74,3 +74,53 @@ stale, and assert it **does**.
 `AT-656` (id-keyed status collapse in `ledger/checks.py::_status_by_id`) is a different instrument and
 a different defect; the two only share the lesson about where an index loses information. Neither is
 on `T-122`'s path.
+
+---
+
+## Addendum, 2026-09-28 — the directive has a SECOND unconditional arm (AT-657, checker)
+
+Filed by the checker and verified against the same file: **fixing AT-673 alone does not restore the
+signal.** Line 38's condition is an OR over five terms, and one of them is `($sweepAge -gt 120)` —
+true on any session opened more than two hours after the last sweep, which is most of them. At the
+session start that prompted this gate, the line read `Last sweep: 416 min ago`, so that term was
+independently true at the same moment `$unclosed` was.
+
+So `AUTO-CONTINUE REQUIRED` has **no OFF state for two unrelated reasons**, and they must be decided
+together. If Umesh approves option A or B for the close-out detector alone, the directive stays
+unconditional and nothing observable changes. **This is one gate decision, not two.**
+
+The checker also withdrew a reading of its own before sending it, and it is recorded because the
+correction matters: it first took `$n -gt 0` (the open-issue count) to be a third unconditional arm.
+It is not — `$n` reaches line 38 only through `$asleep`, which *also* requires a stale tick. The two
+genuinely unconditional arms are `$unclosed` and `$sweepAge`.
+
+## Addendum, 2026-09-28 — withdrawal of this gate's disk-urgency framing
+
+The `qa/.last-tick` line for wave 32 said AT-672 was *"degrading ~30 MB/hr … ~11h to zero"*.
+**That claim is withdrawn by the maker.** It rested on two spot samples (0.37 then 0.34 GB) read as a
+trend. Measured properly on 2026-09-28 with three instruments sampled at the same instants, they
+**agree exactly** — `Get-PSDrive` = `Get-CimInstance Win32_LogicalDisk` = `df -h /c` = 9.6–9.77 GB —
+and C: free space had gone 0.34 → 2.37 → 6.59 → 9.77 GB inside about twenty minutes. It was rising,
+not falling, and the volume churns at GB scale per minute.
+
+The apparent 7x disagreement between the two sessions' figures (0.34 vs 2.373) was therefore **time,
+not instrument**. Both numbers were correct when taken.
+
+**The lesson is the same invariant this gate is about, and it caught the maker rather than the code:
+a spot sample has no representation for a rate.** Two readings of a churning quantity cannot
+distinguish a trend from noise, exactly as `dict[id]` cannot represent two rows and an unanchored
+substring cannot represent the difference between a claim and a quotation of a claim.
+
+**What survives, restated honestly:** the ENOSPC hazard is real but it is not a runway — free space
+*dips*, and it was observed at 0.34 GB, which is below what a full suite needs. So a suite can still
+be poisoned by a transient dip rather than by a march to zero, and an ENOSPC red would be
+indistinguishable from a real one on the instrument both the maker and the checker sign verdicts with.
+The hold was right; the reason given for it was not.
+
+## Addendum — ledger id block 670–679 is RETIRED, not reserved
+
+The checker flagged that `AT-673` was allocated from the block `qa/QUEUE.md` reserves for
+`wave/t191-video-reachable`. Checked: that wave **merged** at `afa7773a` and its remap to 670/671/672
+is already on master, so no further ids are coming from it and 673+ were free. Verified `AT-673` is
+unique on master. The reservation table should now read the block as retired — the checker's caution
+was correct in form, and the block being live is the only thing that made it not a collision.

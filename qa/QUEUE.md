@@ -1352,7 +1352,7 @@ never allocates from the shared high-water mark.
 | Range | Owner |
 |---|---|
 | `AT-656` … `AT-669` | **root ledger** (`d:/autoTesting/qa/issues.jsonl`) — the peer checker and any master-side sweep allocate here, sequentially |
-| `AT-670` … `AT-679` | **reserved for `wave/t191-video-reachable`** — its three rows are remapped into this block at merge time |
+| `AT-670` … `AT-679` | **RETIRED 2026-09-28** — `wave/t191-video-reachable` merged at `afa7773a` with its remap to 670/671/672 already on master, so no further ids come from it. 673+ are free for general allocation; `AT-673` was taken from here and is unique on master. A reserved block is only live while its branch is unmerged |
 | `AT-680` … `AT-689` | **reserved for the next build branch** (`at570-live-case-approval`) |
 
 **The remap is deferred to merge time on purpose, and not applied now:** the cycle-2 checker is live and
