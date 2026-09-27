@@ -4,7 +4,7 @@
   "north_star": "A reusable AI testing platform where an operator submits any project URL, domain-scoped test-account credential references, and optional evals, conditions, use cases, video, audio, documents, text, email or Google Drive sources. AutoTester learns from supplied evidence or logs in and performs bounded breadth-first exploration, preserves a durable Portal Persona, compiles traceable best/worst/edge evals, reruns them after developer releases in a real visible browser, and reports workflow/API regressions through clear HTML, Excel, text and screenshots. First acceptance targets: Vidysea ERP and Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-27T23:22:01",
+  "updated": "2026-09-27T23:52:06",
   "progress": {
     "total": 81,
     "done": 58,
@@ -431,7 +431,7 @@
     },
     {
       "id": "T-122",
-      "title": "Track 0 tail: login case + first logged-in ERP run (HUMAN_GATE: ERP_EMAIL/ERP_PASSWORD values)",
+      "title": "Track 0 tail: login case + first logged-in Pathlynks run (credentials present; ERP is the second product)",
       "status": "pending",
       "base_criticality": "high",
       "deps": [
@@ -442,11 +442,11 @@
         "cmd": "uv run pytest tests/test_execute.py tests/test_run_case_pipeline.py",
         "expect_exit": 0
       },
-      "note": "Blocked until Umesh enters real values on /projects/erp/env. Registers the login bootstrap case B3 reuses. | 2026-09-26: gate erp-credentials answered \"provide\" (D-048): Umesh enters TEST-account ERP_EMAIL/ERP_PASSWORD in the UI; unblocks once both KEYS exist in projects/erp/.env (key names only, never values); each run still needs its own approval. Keys absent as of 22:45 IST.",
+      "note": "UNBLOCKED 2026-09-27. The PATHLYNKS_USER_* pair authenticates against production Pathlynks -- checker probe: POST /api/auth/login -> 200, landed on /dashboard, 'YOUR PROGRESS' marker present. The login case already exists as case_35b17ccece2d in projects/pathlynks/cases.jsonl. CAVEAT, do not drop: the same pair was rejected 401 on 2026-09-21 and the cause was never found, so any unit on this path must FAIL CLOSED naming AT-529 rather than assume authentication succeeds. Credentials live in the repo-root .env (one shared file, per-project key namespacing -- see AT-652); there is no projects/*/.env. Write tier: ALLOW_WRITES is authorized (qa/gates/write-policy-tier.md, D-053); the supplied account's own permissions are the boundary. Each run still needs its own RunApproval. SUPERSEDED: the D-048 erp-credentials gate no longer blocks this task -- it now applies to the second product. | 2026-09-27 RE-SCOPED to Pathlynks (Umesh 2026-09-24 target.md:145 \"prove it on Pathlynks first\", applied 2026-09-27 on his direct instruction after the maker's write was blocked by the harness classifier; D-052, D-053). ERP becomes the second product.",
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
       "user_value": "high",
-      "criticality": "critical"
+      "criticality": "high"
     },
     {
       "id": "T-123",
@@ -591,7 +591,7 @@
     },
     {
       "id": "T-136",
-      "title": "Track A acceptance: erp1/2/3 scored vs ERP_Issues_Trainers.xlsx with recall/FP numbers in the manifest",
+      "title": "Acceptance: AutoTester's Pathlynks report scored against a parallel human tester, with recall/FP/time in the manifest",
       "status": "pending",
       "base_criticality": "high",
       "deps": [
@@ -599,10 +599,10 @@
       ],
       "done_check": {
         "type": "cmd",
-        "cmd": "uv run python scripts/score_video_issues.py --project erp --truth \"C:/Users/Lenovo/Videos/Screen Recordings/ERP_Issues_Trainers.xlsx\" --sheet \"Trainer module\"",
+        "cmd": "uv run python scripts/check_acceptance_comparison.py pathlynks",
         "expect_exit": 0
       },
-      "note": "",
+      "note": "GROUND TRUTH CHANGED 2026-09-27 (Umesh): a human tester working in PARALLEL on the same product, NOT a pre-written truth sheet. ERP_Issues_Trainers.xlsx leaves this task's critical path entirely (it was also absent from disk and from its own former done_check path). The check is the comparison artifact approved on AT-281: both columns filled, every item classified match/miss/false-positive, recall + FP rate + wall-clock computed by schema/bench.py, and Umesh's signed verdict line -- completeness asserted mechanically, PASS/FAIL judgement his. AT-653 IS BINDING HERE: Umesh authors his findings AFTER reading AutoTester's report (\"tu apne side ki reports de dee mai humn side ki bnaa krr de dungaa baad mai\"), so the artifact MUST carry an ordering field and an independent-vs-prompted mark per human item, recall computed from the independent subset only, and MUST emit 'recall: unavailable (ordering not recorded)' rather than a number with absent provenance -- bench.py treats recall as optional, never defaulting to 0.0. done_check names scripts/check_acceptance_comparison.py, which does NOT exist yet: the check fails honestly until the artifact is built. Maker: if you chose another script name, correct this cmd -- goal.json is your surface and this row was written by the checker on Umesh's instruction. | 2026-09-27 RE-SCOPED to Pathlynks (Umesh 2026-09-24 target.md:145 \"prove it on Pathlynks first\", applied 2026-09-27 on his direct instruction after the maker's write was blocked by the harness classifier; D-052, D-053). ERP becomes the second product.",
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
       "user_value": "high",
@@ -712,7 +712,7 @@
     },
     {
       "id": "T-145",
-      "title": "Live bounded READ_ONLY crawl of vidysea.com/erp with the test account",
+      "title": "Live bounded crawl of pathlynks.vidysea.com with the test account (ALLOW_WRITES authorized; per-run RunApproval required)",
       "status": "pending",
       "base_criticality": "critical",
       "deps": [
@@ -721,10 +721,10 @@
       ],
       "done_check": {
         "type": "cmd",
-        "cmd": "uv run python scripts/check_crawl_approval.py erp",
+        "cmd": "uv run python scripts/check_crawl_approval.py pathlynks",
         "expect_exit": 0
       },
-      "note": "No 2FA on test accounts (Umesh 2026-09-07); real user accounts are never used. No staging named -> production, READ_ONLY. [D-018/AT-100: done_check was {'cmd':'true'} -- a check that could not fail on the highest-risk task in the plan. Now asserts a finished crawl on disk AND an intact unexpired RunApproval covering its bounds.] [AT-100 second half, 2026-09-08: raised HIGH->CRITICAL. It was criticality:low while being the highest outward-facing risk in the backlog -- an autonomous crawler against a live production ERP. CRITICAL means a DUAL check (two blind checkers, both must PASS) per maker cycle step 7b.]",
+      "note": "No 2FA on test accounts (Umesh 2026-09-07); real user accounts are never used. Target is production pathlynks.vidysea.com -- no staging; dev-new.vidysea.com is a PREPOD environment (Umesh 2026-09-27) and is NOT modelled as a project yet (AT-651). WRITE TIER: no longer READ_ONLY -- Umesh authorized ALLOW_WRITES on every target including production (qa/gates/write-policy-tier.md, D-053). The supplied account's permissions are the boundary and they are his to set; a run is NOT scoped narrower than them on an agent's initiative -- doing so makes the report incomplete, not the run safe (O4). projects/pathlynks/project.json must be flipped to allow_writes before this runs (maker's surface). [D-018/AT-100: done_check was {'cmd':'true'} -- a check that could not fail on the highest-risk task in the plan. Now asserts a finished crawl on disk AND an intact unexpired RunApproval covering its bounds.] [AT-100 second half: CRITICAL -> DUAL check, two blind checkers, both must PASS, per maker cycle step 7b.] Consent gate 2 existing is not permission to use it (D-052): each run needs its own RunApproval naming target and scope. | 2026-09-27 RE-SCOPED to Pathlynks (Umesh 2026-09-24 target.md:145 \"prove it on Pathlynks first\", applied 2026-09-27 on his direct instruction after the maker's write was blocked by the harness classifier; D-052, D-053). ERP becomes the second product.",
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
       "user_value": "high",
@@ -1906,6 +1906,13 @@
       "message": "T-195 is CRITICAL — human required",
       "task_id": "T-195",
       "acked": false
+    },
+    {
+      "ts": "2026-09-27T23:47:04",
+      "level": "warn",
+      "message": "T-122 needs review (high)",
+      "task_id": "T-122",
+      "acked": false
     }
   ],
   "preferences": {
@@ -1917,6 +1924,6 @@
     "velocity_per_day": 2.07,
     "eta_days": 11.1
   },
-  "last_deterministic_tick": "2026-09-27T23:22:01",
+  "last_deterministic_tick": "2026-09-27T23:52:06",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }

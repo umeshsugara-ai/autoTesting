@@ -31,14 +31,14 @@ AutoTester wins on bugs found, false positives, and time (`schema/bench.py` comp
 - 2026-09-25 updated F-056 Resumable learn-or-explore orchestrator with durable per-stage checkpoints — PREFILLED -- Umesh to confirm or edit. at575-orchestrator-caller checker PASS cycle 3 2026-09-25 (AT-575 fixed, merged ec98b33). Real UI runs still build their own StageContext for case execution (F-054/F-055); the orchestrator drives the learn/explore -> model path.
 - 2026-09-27 updated F-063 Hybrid BFS to bounded-DFS traversal with frontier completeness, form replay and incremental change tracking — Confirmed by Umesh 2026-09-27 against the prefilled reason. It exists because the north star is to explore a product as a graph, not a journey (target.md): a journey-follower cannot tell 'this screen is gone' from 'I did not go there', so it cannot catch a regression across releases. D-040 widened T-165 in place to make the frontier the unit of completeness, so every bound must name what it left unreached rather than silently dropping it.
 ## Next (open goal tasks)
-- T-122 [high] Track 0 tail: login case + first logged-in ERP run (HUMAN_GATE: ERP_EMAIL/ERP_PASSWORD values)
-- T-136 [high] Track A acceptance: erp1/2/3 scored vs ERP_Issues_Trainers.xlsx with recall/FP numbers in the manifest
-- T-145 [high] Live bounded READ_ONLY crawl of vidysea.com/erp with the test account
+- T-122 [high] Track 0 tail: login case + first logged-in Pathlynks run (credentials present; ERP is the second product)
+- T-136 [high] Acceptance: AutoTester's Pathlynks report scored against a parallel human tester, with recall/FP/time in the manifest
+- T-145 [high] Live bounded crawl of pathlynks.vidysea.com with the test account (ALLOW_WRITES authorized; per-run RunApproval required)
 - T-125 [high] Test catalog: which case classes apply, which are runnable, which are blocked and why (+ cheap->expensive ordering)
 - T-151 [high] Track C1: read-only target discovery + deterministic signals + classification (+ context folder as markdown)
 ## Last decisions (computed status)
-- D-046 2026-09-26 decision ACTIVE
-- D-047 2026-09-26 decision ACTIVE
-- D-048 2026-09-26 decision ACTIVE
-- D-049 2026-09-26 decision ACTIVE
-- D-050 2026-09-26 decision ACTIVE
+- D-051 2026-09-27 decision ACTIVE
+- D-052 2026-09-27 decision ACTIVE
+- D-053 2026-09-27 decision ACTIVE
+- D-054 2026-09-27 decision ACTIVE
+- D-055 2026-09-27 decision ACTIVE

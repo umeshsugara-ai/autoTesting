@@ -52,13 +52,31 @@ expensive for agents to hold in context. The rules are cheap now and unaffordabl
 
 ## Credentials (hard boundary)
 
-- Values live only in `projects/<slug>/.env` (gitignored). `SecretRef` holds the **key** and its
+- Values live only in **one gitignored `.env` at the REPO ROOT**, shared by every project
+  (`core/paths.py` `ProjectPaths.env_file`, Umesh 2026-09-03; `core/env.py::load_repo_env` is the
+  shipped loader). There is **no `projects/<slug>/.env`** — do not look for one or write one.
+  Scoping is by **key namespacing**: keys are prefixed per project (`PATHLYNKS_*`) and a project can
+  resolve **only** the keys it declares in its `SecretRef[]`. `SecretRef` holds the **key** and its
   domain scope — never a value.
 - Prompts carry `{{SECRET:KEY}}`; substitution happens at `page.fill()` time only, scoped to the
   project's `allowed_domains`. `core.redact.assert_no_raw_secrets` is the gate before any model call.
+  Note `browser/secrets.py::_host_matches` is a **suffix** match (`host == domain` or
+  `host.endswith("." + domain)`), so declaring `vidysea.com` also admits every subdomain of it.
 - Screenshots mask secret inputs before capture; logs pass `Redactor.scrub`.
-- `write_policy` defaults to `read_only`. Testing against a real product requires a **test account**
-  and explicit per-run approval — never a live user's credentials.
+- Testing against a real product requires a **test account** — never a live user's credentials.
+- `RunApproval` (D-018) is **enforced where the code enforces it, which is not everywhere.** A crawl /
+  explore run checks a signed approval (`stages/explore_consent.py`; HMAC-SHA256 over the bound
+  payload keyed from `AUTOTESTER_APPROVAL_KEY` in the same repo-root `.env`, so a row cannot be forged
+  without the key — AT-110). **UI case runs (`ui/routes_runs.py::trigger_run`) check none today —
+  AT-570, open.** Do not write or repeat "every run needs an approval" as though it were implemented;
+  say which path enforces it.
+- **The boundary is the supplied account's own permissions, and that is Umesh's to set, not an
+  agent's to second-guess** (`qa/gates/write-policy-tier.md`, D-018, D-053). `write_policy` still
+  *defaults* to `read_only` in the schema, but `ALLOW_WRITES` is authorized on every target including
+  production: the account Umesh provisions **is** the scope, so a tester presses the buttons and
+  enters the data that account may. Narrowing a run below the account's rights does not make it
+  safer — it makes the report incomplete, which is the failure this project refuses (O4). Do not
+  re-litigate this gate; report what a run actually did instead.
 
 ## Maker-checker discipline (installed 2026-09-03)
 
