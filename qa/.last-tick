@@ -167,3 +167,36 @@ gates/debug docs only, harmless to those units, recorded rather than assumed har
 
 HELD FROM PUSH: 4 commits (f163328a, ac66b4f5, 6cb01cb6, 81054533). D-007 authorizes push on
 checker-PASS commits only; these are a FAIL, two gates, a diagnosis and a tick stamp.
+
+## tick 2026-09-27T11:45:00+00:00 -- HUMAN_GATE (2 open) + 4 builds live
+State: ADVANCED on evidence (a check completed and was closed out); the UNIT is HUMAN_GATE.
+
+at638-remainder: cycle-1 FAIL -- governance, not quality. The checker judged ALL 17 criteria
+sound and buildable as worded, reproduced every pasted grep exactly, confirmed the diff scope,
+and verified schema/portal_persona.py can carry EC1 knowledge graph. It failed the unit only on
+the unit own finding: no DECISIONS entry authorizes the 4 contract files. Independently
+re-derived from the decision text, not trusted from the manifest paste. 5/5 prior
+checker-authored contracts were named in an Approved-by: Umesh entry first; T-168 is named by no
+decision at all.
+- NO CYCLE 2. A fix cycle is for a maker defect and there is none. Not started rather than
+  burned for appearances.
+- Gate + verdict both on MASTER (1fa582d5) so Umesh can see them without merging a FAILed
+  branch -- the CT6 lesson from this session applied without being re-learned.
+- Manifest closed out on the branch (99c6fd12) as cycle-1 FAIL / HUMAN_GATE.
+- AT-638 stays open; only the Track C half is genuinely closed.
+
+CORRECTION AGAINST MYSELF: my dispatch told the checker PS2 was a freely-arguable [maker]
+addition. It is not -- the unit had correctly tagged it [D-040 verbatim]. The filing was right
+and my summary of it was wrong. Recorded in the gate and the manifest close-out, not just here.
+
+DISCLOSED GAP IN THE CHECK ITSELF: the checker did not complete uv run pytest (the suite outran
+its window) and accepted ruff + doctor + diff-stat because the diff touches zero src/ or tests/
+files. Sound for a contracts-only unit, disclosed rather than claimed green, recorded as a gap.
+Second consecutive contracts-only check to hit this -- if it recurs, the adapter should say
+explicitly that a zero-src diff needs no full suite, instead of each checker re-deriving it.
+
+OPEN HUMAN GATES (3): t125 stall options A-D; CT6 vs RU3; at638 four-contract authorization.
+LIVE (4 builds, all independent): at335-determinism-salvage, t186-details-content (cap 2),
+t189-stale-evidence-tag, t191-run-video.
+SERIAL: T-192 still waits on its single-shot vision-call authorization.
+HELD FROM PUSH: 6 commits. D-007 covers checker-PASS only; this is a FAIL plus gates.
