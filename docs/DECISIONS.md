@@ -1356,3 +1356,75 @@ intent was broader, this entry is the thing to correct.
 T-169 remains the definition of done and remains gated on inputs only Umesh supplies. This entry does
 not move that date; it removes everything *else* from the critical path, so that when the inputs arrive
 the only remaining work is the run itself.
+
+## D-053 | 2026-09-27 | type: decision | status: ACTIVE
+
+**What:** `ALLOW_WRITES` is the authorized write-policy CEILING on every target including production
+(Umesh, `qa/gates/write-policy-tier.md`, commit 88ab7638). **No project is flipped to it by this
+entry.** All nine `projects/*/project.json` stay `write_policy: read_only` (verified 2026-09-27).
+Raising an individual project's tier is a separate act, taken when a unit actually needs it, under its
+own entry and its own per-run `RunApproval`. This entry also corrects a claim the maker made to Umesh
+about the credential boundary, and records `AT-653`'s constraint on T-136's comparison artifact.
+
+**Why:** Three separate things needed recording and none of them is a code change.
+
+1. **The ceiling is Umesh's and is not re-litigable.** D-018 already said *"ALLOW_WRITES is Umesh's
+   switch"*; this is the switch being thrown, consistent with four prior records
+   (`at052-bfs-video-corpus-grill.md:43`, `DECISIONS.md:860`, `at110-approval-forgery.md:38`, and this
+   gate). The checker put the consequences in the question **before** he chose — that at `ALLOW_WRITES`
+   the 19-term deny-list goes off, so on production a crawler-invented click may hit `Delete` on a real
+   record, `Send` a real email to a real person, and `Pay` real money, and that an account having the
+   *right* to an action is not the same as the action being reversible. He chose it with that in front
+   of him. **A future session may report what a run actually did; it may not reopen this gate.**
+2. **A ceiling is not a setting, and this is where the safety actually lives.** The gate itself lists
+   what it does not waive: per-run approval governs every outward-facing run, logout is never clicked
+   at any tier (`DEFAULT_NEVER_CLICK_PATTERNS`, `schema/crawl.py:41`), real user accounts are never
+   used, and `T-154`/`T-155` stay held. The checker's recorded residual is the operative point:
+   **`send` and `pay` are outward-facing to THIRD PARTIES and no policy, approval or rollback undoes
+   them.** So a run should routinely be approved with a **narrower** scope than the tier permits, and
+   when T-171 wires the permission surface it wires against that narrower per-run scope — not against
+   the tier. Flipping nine projects to the ceiling today would convert a considered authorization into
+   a standing default, which is the opposite of what the gate's own limits ask for.
+3. **A correction the maker owes, stated plainly because it was told to Umesh wrong.** The maker
+   reported that `CLAUDE.md`'s credential boundary contradicts the code in a way that weakens domain
+   scoping, and that `core/paths.py:51` exposes a per-project `.env` path the credential flow does not
+   use. **Both halves were wrong.** `ProjectPaths.env_file` returns the **repo root** `.env` by design
+   — its own docstring says *"One credential file for the whole repo, at the root (Umesh,
+   2026-09-03). Keys are namespaced per project (`PATHLYNKS_*`) and declared in each project's
+   `SecretRef[]`; a project can only resolve the keys it declares."* — and it **is** the path the
+   credential flow uses (`ui/routes_credentials.py:124,153,168`). Scoping is real; it is enforced by
+   key namespacing plus declared `SecretRef[]`, not by file location. The actual defect is narrower and
+   purely documentary: `CLAUDE.md` names `projects/<slug>/.env`, **a file that has never existed**
+   (filed `AT-652`, high, by the peer session). Nothing is or was exposed — `.gitignore:2` is
+   `**/.env` and no `.env` appears in the git log across all refs, verified twice independently.
+   **`AT-651` does not reduce to this and must not be folded into it:** its mechanism is
+   `browser/secrets.py:88-90` `_host_matches`, `host == domain or host.endswith(f".{domain}")`, so the
+   suffix match makes `dev-new.vidysea.com` fill-eligible for production `pathlynks` secrets declared
+   against `['vidysea.com']`. Moving a file would change nothing. Raised medium → high.
+
+**Result:** The ceiling is recorded and closed to re-litigation. Every project stays `read_only` until
+a unit needs otherwise. T-171 is built against per-run `RunApproval` scope, not the tier. T-154/T-155
+remain held with Umesh's new condition — *"Pehle proof run ho, phir kholenge"* — which is compatible
+with D-052's build-not-fire split, since C4/C5 are not in that split. T-136's comparison artifact gains
+the ordering requirement below. The maker's credential-boundary claim is corrected on the record.
+
+**Links:** `qa/gates/write-policy-tier.md` (88ab7638) · D-018 · D-052 · `AT-651` · `AT-652` ·
+`AT-653` · T-136 · T-154 · T-155 · T-171 · `schema/crawl.py:41` · `browser/secrets.py:88-90` ·
+`core/paths.py:44-51` · `ui/routes_credentials.py:124,153,168`
+
+**Changes-authorized:** none. No `docs/ARCHITECTURE.md` prose change, no `projects/*/project.json`
+change, no `CLAUDE.md` change (that file is Umesh's surface; `AT-652` carries the fix request).
+
+### AT-653 — the ordering requirement on T-136, recorded before the artifact is built
+
+Umesh will author the human findings **after** reading AutoTester's report (*"mai humn side ki bnaa krr
+de dungaa baad mai"*). A ground-truth list written after seeing the machine's output is anchored to it,
+and **the bugs AutoTester MISSED are exactly the ones such a list is least likely to contain.** So
+**false-positive rate survives that ordering and recall does not** — an unrecorded ordering yields a
+recall number that flatters the machine by construction.
+
+Therefore, whichever fix Umesh picks, T-136's comparison artifact is built with these fields from the
+start: an **ordering** field (did the human author before or after reading the report), and, when he
+reads first, an **independent-vs-prompted** mark per human item, with **recall computed from the
+independent subset only**. This is the same failure shape as the O4 rounding defect — a number whose
+provenance is not carried alongside it — so the fields exist before the number does.

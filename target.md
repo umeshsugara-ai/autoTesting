@@ -173,6 +173,12 @@ comes only after that — "not only erp". T-122/T-145/T-136 get re-scoped to "se
       and never rendered where a reader could take it for the real number. It does **not** tick M7 and
       does not close T-136. Its own proof is falsifiability: it must produce a *wrong* score on a
       known-bad fixture, or it has not been proven.
+      **Ordering requirement (AT-653, D-053):** Umesh authors the human findings *after* reading
+      AutoTester's report, and a list written after seeing the machine's output is anchored to it — the
+      bugs AutoTester **missed** are the ones such a list is least likely to contain. So **FP rate
+      survives that ordering and recall does not.** The comparison artifact therefore carries an
+      `ordering` field and, when he reads first, an independent-vs-prompted mark per human item, with
+      **recall computed from the independent subset only.** The fields exist before the number does.
 - [x] T-123 medium credential-safety batch — AT-085 `/healthz` + AT-065 rubric stamp ✅ (18ff2a9); AT-086/087 ✅ merged 6e5c806 (checker FINAL PASS + Mode D; gate answered: both a)
 - [ ] T-125 test catalog (runnable/blocked + cheap→expensive) — D-039 ✅, contract `catalog.md` DRAFT
 - [x] T-126 governance debt sweep — maker side ✅ (allowlist + FEATURES backfill, checker PASS, merged); AT-560 follow-up ✅ merged f94c5c2; closed by checker sweep 2026-09-25
@@ -224,6 +230,9 @@ fixture-proven only. The ERP trust number is the first time AutoTester is measur
 - Refused: "regenerate tests instead of maintaining them". Deferred to Umesh: differential base-vs-head oracle.
 
 ### M11 · Adversarial / below-the-UI (Track C) — 🎯 unblocked for BUILD only (D-052, 2026-09-27)
+*UPDATE 2026-09-27 (later, `qa/gates/write-policy-tier.md`): T-154/T-155 are **still held**, now with
+a condition — "Pehle proof run ho, phir kholenge" (the proof run first, then we open them). This is
+compatible with the build-not-fire split below, since C4/C5 were never in it.*
 *Umesh 2026-09-27 released T-154/T-155 from their hold. **The machinery is unblocked; firing it is not.**
 No adversarial probe traffic against any real target without a separate per-run approval naming the
 target and the consent scope — consent gate 2 existing is not permission to use it. T-154 is proven
@@ -269,6 +278,14 @@ target and consent scope.
 **Critical path:** T-125 gates four tasks (T-152, T-166, T-174, T-178) and is the single highest-value
 unblock. T-171 and T-176 are newly free behind T-165. T-169 remains the definition of done and remains
 gated on inputs only Umesh supplies.
+
+**Write policy (D-053, 2026-09-27):** `ALLOW_WRITES` is the authorized **ceiling** on every target
+including production (Umesh, `qa/gates/write-policy-tier.md`) — and **no project is set to it.** All
+nine `projects/*/project.json` remain `write_policy: read_only`. Raising one is a separate act under
+its own entry plus a per-run `RunApproval`. The gate's own residual is why: `send` and `pay` are
+outward-facing to **third parties** and no policy, approval or rollback undoes them, so runs are
+approved with a **narrower** scope than the tier permits — and T-171 wires against that narrower
+per-run scope, never against the tier.
 
 **Blocked on a human:** T-122 / T-145 / T-136 (Pathlynks proof, then credentials, then a truth sheet) ·
 T-190 (PLAN gate + grill) · `qa/gates/at638-four-contract-files-authorization.md` (blocks T-166/167/168/171) ·
