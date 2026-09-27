@@ -352,5 +352,27 @@ account of a walk that is already evidenced.
 - `uv run pytest` -> see the block appended below (no CLI `-q`, AT-503; the **last** summary block and
   the explicit exit code are the ones that count, per the double-tally hazard recorded in this repo).
 
+### Full suite, cycle 2 — the last summary block, verbatim
+
+```
+2087 passed, 6 skipped, 14 xfailed, 15 warnings in 1351.31s (0:22:31)
+```
+
+**Zero failures.** Read honestly, with the two hazards this repo has recorded:
+
+- **The double-tally hazard:** only one summary block is present in the captured tail, and it is the
+  last thing before the capture ends. It is the one quoted.
+- **The exit-code hazard:** the capture pipes pytest into `tail`, so the `EXIT=0` it recorded is
+  `tail`'s status, **not pytest's**, and is therefore NOT cited as evidence. The claim rests on the
+  failure LIST being empty and the summary line carrying no `failed` field — both directly observable
+  above.
+- **`AT-627` did not fire this run.** Cycle 1 read `1 failed, 2086 passed` with that pre-authorized
+  load-sensitive flake as the sole failure; this run reads `2087 passed`. 2086 + 1 = 2087, so the
+  count is consistent and the delta is exactly the flaky test passing, not a test appearing or
+  vanishing. **A green run does not retire AT-627** — a load-sensitive flake passing once is not
+  evidence it is fixed, and the row stays open.
+- Cycle 2 added **no** test and removed none; it changed one existing test's fixture and assertion.
+  The identical total across cycles is what that should look like.
+
 ## Status: ready-for-check
 **Fix cycle:** 2 (of max 3)
