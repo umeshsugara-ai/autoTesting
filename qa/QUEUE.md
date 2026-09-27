@@ -1099,3 +1099,34 @@ failures live. But its **"five pending tasks, blocked on an in-flight wave" fram
 T-186, T-189 and T-192 are `done`; T-191 is mid-cycle-2; T-190 is not even named on the row's own
 dependency line. The sweep flagged rather than edited it, which was right. Recorded here so the row
 is not read as a current description of the backlog.
+
+## ISS-ledger-duplicate-ids — qa/issues.jsonl carries 10 duplicated ids
+
+**Found:** 2026-09-27 by the maker orchestrator while resolving an append-only merge conflict on
+`qa/issues.jsonl`. **Pre-existing on `master`, not caused by that merge** — verified by counting ids
+on the merge parents before committing the resolution.
+**Severity:** medium. **Blocks:** nothing. **Owner:** unassigned.
+
+`master`'s `qa/issues.jsonl` has **657 rows but only 647 unique ids**. Ten ids appear twice:
+
+```
+AT-288  AT-289  AT-290  AT-291  AT-547
+AT-548  AT-549  AT-550  AT-551  AT-552
+```
+
+`CLAUDE.md` names this file **canonical** for open issues, and a canonical store with duplicate
+primary keys means any consumer that indexes by id silently sees one row and not the other. Which
+one wins depends on iteration order, so two readers can legitimately disagree about an issue's
+status. Note that four of the duplicates — **AT-548/549/550** plus AT-547 — are the
+*vacuous-guard/unisolated-capability* rows this project cites constantly as precedent; a reader
+resolving them by id could pick up the stale copy of exactly the rows most often used as authority.
+
+**Not fixed here, deliberately.** Deduplicating means choosing which copy is authoritative, and the
+two copies may differ in `status` or `regression_check` — that is a judgement about issue history,
+not a mechanical cleanup, and it is checker territory rather than the maker's. Doing it during a
+live wave with three agents writing the file would also be the worst possible moment.
+
+**Next action:** a small `/checker` unit that, for each of the ten, diffs the two rows, states which
+is authoritative and why, collapses them, and adds a `doctor` check asserting id-uniqueness so the
+class cannot recur. **Hold until the current wave drains** — `qa/issues.jsonl` has had three
+concurrent writers this session and already produced one merge conflict.
