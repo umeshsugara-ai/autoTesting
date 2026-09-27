@@ -1412,3 +1412,51 @@ invariant this check enforces is declared in **no contract at all** — the only
 repository is `doctor.py:196`'s own docstring. So the check has been its own specification, which is
 why widening its meaning needs no contract amendment and also why nothing external could ever have
 caught that its meaning was narrower than its name. Filed to `qa/feedback-inbox.md` for `/checker`.
+
+### AT-697 — build attempted this tick and STOPPED on a measured file-budget collision
+
+Not a blocker on the design; a blocker on where the code goes. Measured at one instant on `f988a48c`:
+
+| candidate host | lines | cap | headroom |
+|---|---|---|---|
+| `src/autotester/doctor.py` | 279 | 300 | **21** |
+| `src/autotester/core/paths.py` | 287 | 300 | 13 |
+| `src/autotester/ledger/render.py` | 300 | 300 | **0** |
+| `tests/test_doctor.py` | 300 | 300 | **0** |
+
+The check is ~25-30 lines (a git-object read that can fail three distinct ways, plus the comparison)
+and its tests need a home of their own, since `tests/test_doctor.py` is exactly at the cap. So it fits
+nowhere as written. **The maker stopped here deliberately** rather than pick one, because both ways
+through are decisions the anti-drift rule reserves: compacting `doctor.py`'s two near-duplicate
+MAP/SNAPSHOT blocks to free the lines (an in-place refactor of a validator, behaviour-preserving but
+not behaviour-obvious — the MAP branch catches `ValueError` while the SNAPSHOT branch catches
+`Exception` and early-returns, and a careless unification silently changes which failures are
+reported), or a new module (banned without an explicit instruction). Recommendation is the refactor,
+and it wants a checker on it precisely because "behaviour-preserving" is the claim that needs
+falsifying rather than asserting. The new test file is a separate and much weaker question — the repo
+already splits test modules for this exact reason (`test_ui_video_route_traversal.py` says so in its
+own docstring), so a second doctor test module follows existing precedent rather than setting one.
+
+**Worth keeping regardless of where the code lands — measured, and it would have shipped a check that
+was wrong 100% of the time.** `core.autocrlf` is `true` in this repo, so the committed blob stores LF
+and the working tree holds CRLF:
+
+    git config --get core.autocrlf                  -> true
+    docs/SNAPSHOT.md on disk                        -> 44 CRLF, 0 bare LF
+    git show HEAD:docs/SNAPSHOT.md                  -> 0 CRLF, 44 bare LF
+    raw bytes equal                                 -> False
+    equal after normalising line endings            -> True
+
+A blob-vs-disk comparison written the obvious way reports **every generated file as uncommitted, on
+every run, on this machine**. That is the same defect class as the bug AT-697 exists to fix: an
+instrument reporting confidently on something other than what its name claims. The normalisation is a
+correctness requirement, not a nicety, and any implementation of this row that does not carry it is
+wrong no matter how clean its tests look.
+
+**Also decided here, so the build does not have to guess it (this was the open design question):** when
+`git rev-parse HEAD` fails — no git binary, or a tree with no commits yet — the check returns **no
+violation**, because doctor must stay usable in a fresh clone, an exported tarball, and a
+pre-first-commit `git init`. But when HEAD exists and the generated path is absent from it, that IS a
+violation (`uncommitted-generated`, "generated file is not in HEAD"): once a repo has history, a
+generated doc missing from that history is a stronger version of the same defect, not an exemption.
+Silently passing both cases would rebuild AT-697's blind spot one level down.
