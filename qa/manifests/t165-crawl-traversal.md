@@ -925,4 +925,151 @@ first-wins map and the missing `settle()` — both deserve filed issues so the l
 they existed) are all in `qa/feedback-inbox.md`, 2026-09-27, verbatim with the reading I took. I did not edit
 `qa/contracts/crawl-traversal.md`; it stays checker-owned and DRAFT.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 2 of max 3)
+
+**Closed out by:** the maker orchestrator, 2026-09-27, on two independent verdicts, not on its own
+reading. `qa/verdicts/t165-crawl-traversal.md` carries **CHECK B — cycle 2** (`2d6edecc`, line 363)
+and **CHECK A — cycle 2** (`f3085ecc`, line 747), each **PASS**, each derived in a fresh context
+without reading the other. Merged to `master` as a `--no-ff` merge; the merge is the orchestrator's
+and neither checker performed it, as both were instructed. `qa/contracts/crawl-traversal.md` went
+**DRAFT → ACTIVE**, flipped by check A after confirming B's section was already on disk — neither
+check flipped it alone.
+
+### What the two cycles actually bought, in order
+
+Cycle 1 failed on four defects. Cycle 2 fixed all four, **then found three more of its own** — two
+self-introduced while fixing the four — because the build dispatched a fresh review of its own diff
+instead of handing back at green. The worst of the three was self-inflicted and would have defeated
+the feature's purpose: only half of ISS-4 had been implemented, so a screen that broke, healed, and
+then genuinely relapsed reported `broken_screens: []` silently and forever. A missed relapse in a
+regression-catching tool is worse than a stale alert. **Finding your own defects is the outcome; the
+cycle that found the most was the best cycle.** Both checkers independently confirmed the fix, and
+check A filed `-a7` against it *even though the defect existed for one commit only* — because the
+coverage table had carried a **green row** for it while the union was half of what the issue asked.
+
+### Rulings that closed the open questions (checker-owned; recorded here, not decided here)
+
+| Q | Ruling | Who, and on what evidence |
+|---|---|---|
+| Q5 — is fixing ISS-3 at the *claim* rather than the traversal compliance or relabelled silence? | **RATIFIED.** `PersonaScreen.url_template` is a *template*, so seeding the frontier means `goto`-ing a destination never observed — X1/X7 forbid exactly that; and `PersonaTransition` holds `from_screen`/`to_screen` as **names**, not ids or signatures, so prior transitions cannot re-materialise a `ScreenNode`. **Both closures the contract previously offered are withdrawn as unimplementable.** | Check A, verifying both reasons rather than accepting the maker's word. Check B recorded the same position independently without voting on another checker's surface. |
+| The all-or-nothing predicate — does it make CR4's `missing` permanently unreachable (the AT-100/Goodhart shape)? | **RATIFIED, and NOT that shape.** Check A tested the premise of its own brief and it did not hold: `missing` *does* fire on a full, non-incremental crawl — the mode in which a deletion claim is honest — and when suppressed the fact is **disclosed, never dropped** (`missing_unjudged`, with the cause in `stop_reason` and `describe()`). **The coarseness costs precision, never honesty.** | Check A, on a constructed crawl that skips one screen *and* fully explores a subtree containing a real deletion. |
+| Q7 — unbounded persona growth | **ACCEPTED**, named in the contract with the measurement (5 crawls → 5 screens, revisions 1..5, which was already true before the change, so "growth, not new noise" is accurate). A state that *alternates* between crawls gives `changed=[]` — no churn. Option (b), one entry per key carrying a signature set, recorded as the preferred PP2-compatible closure. | Check A, closing the direction the maker asserted but did not test. |
+| Q8(a) — CR4's "broken's prior state" clause | **SUPERSEDED.** The clause prescribed *exactly* the implementation ISS-4 was filed against — the same checker wrote both, and **the clause was the error.** The ruling is now the issue's own `expected`: full in-order history replay with `healthy_screens` subtracting. | Check A and check B, concurring separately. |
+| Q8(b) — `healthy_screens` as a sixth *field* rather than a sixth *category* | **RATIFIED as provenance.** Asserted at runtime, not from the docstring: `CATEGORIES` is exactly 5, `counts()` returns exactly those 5 keys, `PROVENANCE` is disjoint, every list field is accounted for by the union with no orphan, and a pre-T-165 raw persona loads with `healthy_screens == []`. | Both checks. |
+
+### The residual Umesh may want to overrule
+
+**Two states at one URL, where one is genuinely deleted, is reported nowhere.** Check A reproduced it
+and found it **worse than the manifest disclosed**: on a full, exhausted, non-incremental crawl every
+category comes back empty *and* `describe()` returns `None`, so `build_portal_persona`'s `if summary:`
+gate never fires and **no `PersonaRevision` is written at all** — nothing reaches `knowledge.md`. It
+generalises to n states. Control: deleting a screen with its own URL still yields
+`missing_screens == ['/other.html']`, so the machinery is otherwise sound.
+
+Passed anyway, as a disclosed residual (`ISS-t165-crawl-traversal-a8`, open), for three reasons worth
+keeping:
+
+1. **Not a regression — strictly narrower than the gap it replaces.** Before this unit, storage
+   deduped on `key()`, so the second state was never stored and was invisible in *every* direction.
+   This unit is what narrowed it.
+2. The maker took the closure **CR4's own gap note offered**. The inadequacy was in the note, which
+   was the checker's to write and is now corrected.
+3. **The naive closure is a trap, and this ruling is what decided it.** "A key whose reached
+   signatures are a strict subset of its stored ones lost a state" fires identically on a state the
+   crawl simply did not reach this run — typing off under X10-b, a toggle not clicked. The stored
+   evidence cannot distinguish that from a removal, so the closure would replace the silence with a
+   **fabricated deletion on every crawl of every two-state screen.** A sound closure needs
+   per-signature *reachability*, not presence. The analysis is written into the contract and the
+   issue's `expected` so a future unit cannot take it blind.
+
+Check A raised no HUMAN_GATE and said plainly why: if Umesh would rather have this loud and imprecise
+than silent and precise, that is a product call that overrides a checker's. **Recorded here as the
+one thing in this unit worth a human's eye.**
+
+### Falsification integrity — the reason cycle 2 is trustworthy
+
+Cycle 2 self-reported that **one of its own ten falsifications was invalid**: M10's stub commented out
+a closing bracket, so the "RED" was a `SyntaxError` in 0.29s against a 57s baseline. It re-ran it
+clean at 57.57s. Both checkers then hunted the same defect in the other rows:
+
+- **Check A reproduced 9 of 10 itself** in a `git archive` throwaway copy outside the worktree, and
+  for each one asserted the mutated file `ast.parse`s, that the RED is an `AssertionError` (not a
+  collection/import/syntax error), and that it re-greens. **All nine valid.** Only one anchor sits
+  inside an open bracket at all — M7 — and it parses and reds correctly.
+- **Check B timed the two expensive rows** where the fast-RED tell could hide again: **RED at 59.20s
+  and 58.34s against a 64.89s green** — real Chromium crawls ran and the *assertion* failed.
+- **Check B found the coverage table UNDERSTATES itself.** It deleted `settle()` at each of the three
+  `explore_replay` call sites independently; all three redden, and the missing-settle defect is not
+  hiding in the click path. The maker claimed less than it had.
+- **One row is weaker than its claim** (check A, observation not defect): stubbing `_reached` to
+  *last-wins* leaves M3's test green. It reddens on the actual ISS-2 defect (first-wins), so the code
+  is right — but the row proves "the last node survives", not "every node does".
+
+**The generalised lesson, now twice-confirmed on this project: a RED that is a syntax, import or
+collection error proves nothing, and the tell is a suspiciously fast RED.** Compare every RED's
+wall-clock against its GREEN baseline. This is the same family as the exit-code-masking trap — both
+are cases of reading a signal that was never measuring what it appeared to measure.
+
+### A new reporting hazard, found by check A and worth the whole project's attention
+
+Check A's captured `uv run pytest` log contains the warnings summary and the final tally **twice**,
+interleaved from two streams — and the *earlier* copy reads `2135 passed, 6 skipped, 14 xfailed` with
+**no failure line at all**. Both describe the same run (2134 + 1 = 2135). **A checker grepping the
+first `passed` line would have reported a clean suite.** Anyone reading a captured pytest log in this
+repo must take the **last** summary block and the explicit exit code. This is the fifth distinct way
+this project has found to mislead itself about a test result.
+
+### Verify (each checker's own runs, not the maker's)
+
+- Check A: `1 failed, 2134 passed, 6 skipped, 14 xfailed in 1534.99s` · ruff clean · doctor clean.
+- Check B: `1 failed, 2134 passed, 6 skipped, 14 xfailed in 1534.99s` · ruff clean · doctor clean.
+- The single red in both is **AT-627**, the known load-sensitive flake, which ran alongside two real
+  Chromium falsification crawls and a Mode D walk. Isolated on the same tree: `2 passed in 11.13s`
+  (check A) and `2 passed in 14.22s` (check B).
+- **The two `test_goal_done_checks.py` reds the cycle-2 manifest reported are gone** — master's fix
+  arrived with the `bdac746a` merge and the maker measured before it. Not a finding; the manifest's
+  own numbers were stale rather than wrong.
+
+### Mode D — check A's own headed walk, reproducing the maker's numbers
+
+crawl 1: `completed`, 20 actions, 9 screens, 0 skipped, `displayed_status completed`. crawl 2:
+`completed`, 0 actions, 1 screen, `skipped_unchanged 1`, `displayed_status blocked_no_actions`.
+Revision: `missing 0`, `missing_unjudged 8`. Forcing `frontier_exhausted=True` on crawl 2's own graph
+*also* gives `missing []` — the skip is read off the nodes, not the caller's flag. PP2 preserved.
+**Cycle 1 gave `missing 8` on this exact pair.** That difference is the unit.
+
+### Carried forward, not silently dropped
+
+- `ISS-t165-crawl-traversal-a8` (open) — the deletion silence above.
+- `AT-650` (medium, open, **not chargeable to T-165**; both files byte-unchanged on this branch) —
+  `typing_target_allowed`'s docstring promises "never a password/credential field", but
+  `enumerate.js::roleOf` maps **every** non-submit/checkbox/radio `<input>` (including
+  `type="password"` and `type="file"`) to role `"textbox"`, and `enumerate.js` **computes `type`
+  without emitting it**, so `ElementRef` has no `type` and the gate structurally cannot see it. Check
+  B probed it: a recorded `#pin`/"PIN" target gets a 4-digit number typed into it. **It also corrects
+  cycle-1 check B's own claim** that the gate excludes password-labelled fields from ever being
+  recorded — true only for names containing the literal string "password". A guard reading labels
+  cannot enforce a promise about types.
+- **`PersonaRevision.counts()` has no caller in `src/` at all** (`grep -rn "\.counts()" src/` empty)
+  — only tests and the future T-168. Not a CR4 violation, but the five-category surface is currently
+  asserted only by tests. `missing_unjudged` likewise has no rendering surface; the only path to a
+  human is `describe()`'s sentence via `portal_persona_view._history_section`. **Worth knowing before
+  T-168 renders either.**
+- **`extra="forbid"` cuts forward too:** a persona written by this build cannot be loaded by a
+  pre-T-165 build. A class-level rollback hazard (already true of `missing_unjudged`), now disclosed
+  in the contract.
+- `ISS-t165-crawl-traversal-1`…`-4` closed as **verified** by check A, byte-preservingly, once both
+  verdicts were on disk. The ten documented `id_collision` rows untouched; ledger re-validated at 671
+  valid JSONL rows. Check A prefixed its four new rows `-a5`…`-a8` specifically so they could not
+  collide with anything check B filed concurrently — the correct reflex on a dual check, and the
+  thing whose absence created the ten collisions already on record.
+- `.gitattributes` still lacks `qa/issues.jsonl merge=union`. Cycle-1 check B predicted the conflict;
+  cycle 2 then paid for it with a hand-resolved merge. **Maker action, queued.**
+- One manifest provenance line cites `displayed_status → BLOCKED_NO_ACTIONS` against a `report.json`
+  that has no such field. Check B established **the claim is true** (`blocked_no_actions`, plus
+  `skip_note`) by re-reading the file rather than trusting the quotation — so the fix is the
+  provenance, not the claim. **Queued.**
+- One-test debt named by check B: no committed test drives `classify → describe → PersonaRevision`
+  end to end for recovery, so if `describe()`'s `"recovered"` label is ever reworded the ISS-4 fix
+  silently regresses to the plain union **with nothing going red**. Check B drove it live through the
+  real store instead of ruling on it, which is why this is debt and not a defect.

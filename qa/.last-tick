@@ -428,3 +428,4 @@ SERIAL: ISS-t191-run-video-2 waits on a slot
 SERIAL: T-171 and T-176 wait on t165-crawl-traversal reaching checked-PASS
 SERIAL: T-174 and T-178 wait on T-125 (catalog) landing
 SERIAL: T-190 waits on the maker PLAN gate (the grill needs Umesh)
+2026-09-27T16:53:09+00:00 wave=23 ADVANCED concurrent-peak=2 ram=3.61GB ceiling=2 | t165 check B PASS (2d6edecc), merge HELD on check A (live) | dispatched t191-video-reachable build | SERIAL: ISS-at542-lost-correction waits on ceiling=2 (both slots occupied)
