@@ -417,3 +417,14 @@ SERIAL: ISS-t191-run-video-2 held on the same ceiling
 SERIAL: T-171 and T-176 wait on t165-crawl-traversal reaching checked-PASS
 SERIAL: T-174 and T-178 wait on T-125 (catalog) landing
 SERIAL: T-190 waits on the maker PLAN gate (the grill needs Umesh)
+TICK 2026-09-27T16:19:20+00:00 wave=22 state=ADVANCED concurrent peak=2 ceiling=3 (free RAM 4.29 GB)
+  dispatched: t165-crawl-traversal cycle-2 DUAL CHECK per D-040 -- A on completeness/CR4 diff semantics/persona shape, B on the write path/back-compat/evidence integrity. Both on opus (critical unit, cross-cutting reasoning). Both told the other exists and NOT to narrow scope; neither may merge on PASS.
+  The cycle-2 build fixed the four checker defects AND dispatched its own fresh senior-software-engineer review, which found three more -- TWO OF THEM INTRODUCED BY THE FIX. Most serious: it had implemented only half of ISS-4, so broke -> healed -> genuinely relapsed reported broken_screens: [] silently and forever. A missed relapse in a regression-catching tool is worse than a stale alert.
+  It also reported ONE OF ITS OWN FALSIFICATIONS WAS INVALID: M10's stub commented out a closing bracket, so the RED was a SyntaxError in 0.29s against a 57s baseline. Re-ran clean at 57.57s. Generalised into both dispatches: a red that is a syntax or collection error proves nothing, and a suspiciously fast RED is the tell. Both checkers told to assume more rows share it.
+  Left DELIBERATELY unresolved for the checkers rather than decided by me: Q5 (is fixing ISS-3 at the claim rather than the traversal D-040 compliance or relabelled silence), Q7 (persona grows unbounded against an unstable signature -- measured 5 crawls -> 5 screens), Q8 (CR4's ratified broken-prior-state clause now literally describes the implementation ISS-4 was filed against), and the sharpest: two states at one URL where ONE is genuinely deleted appears in NO category -- ISS-2 made that shape storable without making it diffable.
+  contract crawl-traversal.md is still DRAFT and goes ACTIVE on this unit's FIRST PASS. Q4-Q9 sit unfolded in qa/feedback-inbox.md; folding them in is checker work.
+SERIAL: ISS-at542-lost-correction waits on a slot (ceiling 3, 2 checkers live; would be the 3rd but writes docs/FEATURES.jsonl and needs a prefilled reason for Umesh under D-004)
+SERIAL: ISS-t191-run-video-2 waits on a slot
+SERIAL: T-171 and T-176 wait on t165-crawl-traversal reaching checked-PASS
+SERIAL: T-174 and T-178 wait on T-125 (catalog) landing
+SERIAL: T-190 waits on the maker PLAN gate (the grill needs Umesh)
