@@ -68,3 +68,48 @@
   GATED on Umesh, not routed around: CT6-vs-RU3 (qa/gates/t125-ct6-tiered-dispatch-vs-ru3.md) --
   t125 cannot reach 8/8 on any cycle without it, and cycle 3 is the last. Also AT-644, AT-646,
   T-154/T-155 approval, ERP credentials (T-122/T-145), ERP_Issues_Trainers.xlsx (T-136).
+2026-09-27T11:55:00+00:00 ADVANCED wave=12 · T-150 CLOSED (4th unit today)
+  t150-track-c-governance checked-PASS cycle 1 (verdict a3d04cd2, merge 61f33c3c, close-out
+  72513124); PUSHED a0c4af6d..72513124 under D-007. T-150 -> done (53/81, 65%), F-060 live.
+  The checker authored qa/contracts/ai-target.md (AI1-AI8) + adversarial.md (AD1-AD7) -- the only
+  way this unit could close, since its done_check names two checker-owned files.
+  Three checker corrections against me: AI2 fused an authorized claim with my own extension (split);
+  AI3 duplicated catalog.md CT7 as a second ground truth (refiled as cross-reference); AI3's draft
+  asserted a Verify result I had never run (real answer: zero, not one).
+  Best thing the check added: a Landing note per forward-declared criterion, because a grep against
+  a not-yet-existing file exits 2 rather than reporting no match -- AT-218's vacuous-guard trap one
+  level up, inside the fix for AT-638.
+  t125 cycle-3 F identified and exculpated: AT-627, reproduced on master where the diff does not
+  exist; NOT chargeable. Recorded a trap of my own: I chained the 3 verify commands, so the reported
+  exit 0 was doctor's while pytest had failed inside the group -- run pytest as its own command.
+  Process gap of mine: ran `ledger relitigation` AFTER the PASS, not before picking the unit
+  (returned "no gate", so no harm -- but wrong order).
+  NEXT: at638-remainder (T-166/167/168/171 criteria) -- now unblocked, must match the AI/AD prefix
+  and Landing-note conventions the t150 checker set. Needs no test runs.
+  SERIAL: t186/t189/t190/t191/t192/t165/t174/t178/t179 wait on the t125 cycle-3 checker (live).
+  GATED on Umesh: CT6-vs-RU3 (t125 cannot reach 8/8 on any cycle; cycle 3 is the last), AD6/AD7
+  accepted by the checker as narrowing-only and reversible by him, ISS-t150-1, AT-644, AT-646,
+  T-154/T-155 approval, ERP credentials (T-122/T-145), ERP_Issues_Trainers.xlsx (T-136).
+2026-09-27T12:20:00+00:00 ADVANCED (a stall recorded is progress) wave=13
+  t125-catalog cycle 3 FAILED 5/8 -- STALLED AT CAP, verdict a27f9794, NOT merged, NOT reverted.
+  ISS-t125-3 genuinely fixed (checker flipped it to verified after its own live walk). But the fix
+  over-corrects: ISS-t125-5 (high, open) -- the gate now needs every declared secret, so a row whose
+  own credential IS set gets blocked by an unrelated flow's unset one. Reproduced twice, incl. live.
+  Cycles 2 and 3 are both my defects. Three cycles, three answers, each breaking something new.
+  CAUSE: qa/contracts/catalog.md never defines WHICH secret belongs to which row -- CT5/CT8 can prove
+  an answer wrong without defining a right one, so every cycle guessed at unwritten ground truth.
+  NO CYCLE 4 STARTED -- cap respected, not quietly exceeded. A fourth guess is not better than the third.
+  GATE OPENED: qa/gates/t125-stalled-at-cycle-cap.md (on master, f163328a) -- 4 costed options:
+  specify-then-build / revert cycles 2-3 to cfc13b0b per the standing regression rule / drop the
+  credential gate / amend CT2's one-row-per-CaseClass shape. Maker is NOT choosing.
+  BLAST RADIUS NONE: stages/catalog.py does not exist on master; both regressions are branch-only.
+  MY OWN PROCESS DEFECT, FIXED: the CT6 gate had lived only in the wave worktree for two ticks -- a
+  decision I kept reporting as "gated on Umesh" was invisible on master, and a revert would have
+  deleted it with the code. A gate the human cannot see is not a gate. Now on master.
+  Independent root-cause review dispatched (senior-software-engineer, read-only) to confirm or refute
+  that the contract is silent, and to say whether ONE coherent relevance rule satisfies all 4 fixtures.
+  Also live: at638-remainder build (T-166/167/168/171 criteria).
+  HELD FROM PUSH: 2 commits (gates + tick) -- D-007 covers checker-PASS commits only, and this is a FAIL.
+  SERIAL: t186/t189/t190/t191/t192/t165/t174/t178/t179 wait on the at638-remainder build + RAM.
+  GATED on Umesh: t125 stall (NEW), CT6-vs-RU3, AD6/AD7 reversibility, ISS-t150-1, AT-644, AT-646,
+  T-154/T-155 approval, ERP credentials (T-122/T-145), ERP_Issues_Trainers.xlsx (T-136).
