@@ -164,6 +164,37 @@ def test_no_pending_task_has_a_done_check_that_cannot_fail() -> None:
         f"started, and carry no waiver: {offenders}")
 
 
+def _referenced_py_files(command: str) -> list[str]:
+    """Every `.py` path this command names, node id stripped (reuses
+    `_is_task_specific`'s own notion of a file reference)."""
+    try:
+        parts = shlex.split(command)
+    except ValueError:
+        return []
+    return [p.split("::", 1)[0] for p in parts if p.endswith(".py") or "::" in p]
+
+
+def test_no_done_task_has_a_done_check_naming_a_file_that_does_not_exist() -> None:
+    """Mirror image of the test above (AT-647): T-185 named
+    `tests/test_scroll_reach.py`, which never existed, so a task whose real
+    work was long finished elsewhere could never close on its own check — it
+    LOOKS task-specific, so nothing else here catches it, and no amount of
+    building makes it pass.
+
+    Scoped to `status == "done"` only: a PENDING task's file legitimately
+    doesn't exist yet (~19 pending tasks name unbuilt test files today, which
+    is normal). Once a task is marked done its check is supposed to have
+    already passed, so the file it names must be real -- `Path.is_file`,
+    no build-status signal needed."""
+    missing = {t["id"]: bad for t in tasks() if t["status"] == "done"
+               for bad in [[f for f in _referenced_py_files(t.get("done_check", {}).get("cmd", ""))
+                            if not (REPO_ROOT / f).is_file()]]
+               if bad}
+    assert missing == {}, (
+        "these DONE tasks' done_checks name a file that does not exist on disk: "
+        f"{missing}")
+
+
 def _waiver_offenders(rows: list[dict]) -> list[str]:
     return [r["id"] for r in rows
             if r.get("done_check", {}).get("waiver") is not None
@@ -177,11 +208,12 @@ def test_no_task_on_disk_carries_an_empty_waiver() -> None:
 
 
 def test_the_waiver_rule_actually_rejects_a_hollow_waiver() -> None:
-    """Sabotaging the waiver length check was INCONCLUSIVE — zero failures,
-    because no task on disk carries a waiver at all, so the rule had no data
-    to bite on (C7's new clause caught exactly that). A guard that is only
-    ever asked about an empty set has not been shown to work, so it is asked
-    here about rows that would break it."""
+    """Sabotaging the waiver length check was INCONCLUSIVE when this was
+    written — zero failures, because no task on disk carried a waiver at all
+    yet (T-190 is now the first, AT-638), so the rule had no data to bite on
+    (C7's new clause caught exactly that). A guard that is only ever asked
+    about an empty set has not been shown to work, so it is asked here about
+    rows built to break it, independent of whatever is on disk today."""
     hollow = [
         {"id": "T-x", "status": "pending", "done_check": {"cmd": "true", "waiver": ""}},
         {"id": "T-y", "status": "pending", "done_check": {"cmd": "true", "waiver": "wip"}},
@@ -239,62 +271,7 @@ def test_check_deliverable_reports_an_unreadable_path_instead_of_crashing() -> N
     assert main([]) == 2, "a check with no assertion must not be able to pass"
 
 
-def test_revised_goal_contract_is_registered() -> None:
-    data = json.loads(GOAL.read_text(encoding="utf-8"))
-    by_id = {task["id"]: task for task in data["tasks"]}
-    tests = "tests/"
-    expected = {
-        "T-160": (["T-134"], tests + "test_goal_done_checks.py::"
-                  "test_revised_goal_contract_is_registered"),
-        "T-161": (["T-100", "T-160"], tests + "test_ui_project_intake.py"),
-        "T-162": (["T-161"], tests + "test_source_adapters.py "
-                  "tests/test_source_adapters_audio.py "
-                  "tests/test_source_adapters_email.py "
-                  "tests/test_source_adapters_drive.py"),
-        "T-163": (["T-135", "T-162"], tests + "test_orchestrate.py "
-                  "tests/test_orchestrate_runners.py"),
-        "T-164": (["T-163"], tests + "test_portal_persona.py"),
-        "T-165": (["T-163", "T-144"], tests + "test_explore_completeness.py "
-                  "tests/test_explore_traversal.py tests/test_persona_changes.py"),
-        "T-166": (["T-125", "T-164", "T-165", "T-170"], tests + "test_eval_compiler.py"),
-        "T-170": (["T-163"], tests + "test_network_assertions.py"),
-        "T-171": (["T-165"], tests + "test_permission_surface.py"),
-        "T-172": (["T-163"], tests + "test_run_trace.py"),
-        "T-173": (["T-163"], tests + "test_parallel_run.py"),
-        "T-174": (["T-125"], tests + "test_cli_mcp.py"),
-        "T-175": ([], tests + "test_prompt_skills.py"),
-        "T-176": (["T-165"], tests + "test_script_replay.py"),
-        "T-177": (["T-176"], tests + "test_agent_fallback.py"),
-        "T-178": (["T-125"], tests + "test_failure_bundle.py"),
-        "T-167": (["T-166", "T-110"], tests + "test_regression_trigger.py"),
-        "T-168": (["T-155", "T-164", "T-165", "T-167"], tests + "test_unified_report.py"),
-        "T-169": (["T-136", "T-145", "T-168"], tests + "test_generic_acceptance.py"),
-        # D-042: T-179..T-181
-        "T-179": (["T-170", "T-172", "T-175"], tests + "test_agent_layer.py"),
-        "T-180": (["T-179"], tests + "test_agent_subagents.py"),
-        "T-181": (["T-180"], tests + "test_agent_gain.py"),
-        "T-182": ([], tests + "test_viewport_locale_enact.py"),
-        "T-183": ([], tests + "test_report_export_reason.py"),
-        "T-184": ([], tests + "test_pinned_regression.py"),
-    }
-    # No CLI `-q`: pyproject.toml's addopts already sets it, and stacking a second one makes
-    # pytest -qq, which prints no summary line at all (AT-503/AT-522, measured 2026-09-18).
-    expected = {key: (deps, f"uv run pytest {spec}") for key, (deps, spec) in expected.items()}
-    actual = {key: (by_id[key]["deps"], by_id[key]["done_check"]["cmd"]) for key in expected}
-    assert actual == expected
-    progress = data["progress"]
-    # D-040: T-170, T-171; D-041: T-172..T-178; D-042: T-179..T-181; D-045: T-182..T-184
-    assert progress["total"] == len(data["tasks"]) == 70
-    for key in ("done", "in_progress", "pending", "blocked"):
-        assert progress[key] == sum(task["status"] == key for task in data["tasks"])
-    assert progress["percent"] == round(100 * progress["done"] / progress["total"])
-    contract = data["north_star"] + (REPO_ROOT / "plan.md").read_text(encoding="utf-8")
-    phrases = ("Google Drive", "breadth-first", "Portal Persona", "API", "HTML",
-               "Excel", "screenshots", "## 9. Revised product layer")
-    assert all(phrase in contract for phrase in phrases)
-    decisions = (REPO_ROOT / "docs" / "DECISIONS.md").read_text(encoding="utf-8")
-    assert "## D-023 | 2026-09-10 | type: decision | status: ACTIVE" in decisions
-    dashboard = (REPO_ROOT / ".goal" / "dashboard.html").read_text(encoding="utf-8")
-    facts = (f'{progress["done"]}/{progress["total"]} tasks',
-             f'{progress["percent"]}%', f'Remaining ({progress["pending"]})', data["north_star"])
-    assert all(value in dashboard for value in facts)
+# test_revised_goal_contract_is_registered moved to test_goal_contract_registration.py
+# (AT-638: doctor's 300-line cap, and it is a different responsibility -- a one-off
+# snapshot of the T-160..T-184 registration, not a goal.json-wide guard like the tests
+# in this file).
