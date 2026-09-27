@@ -321,6 +321,8 @@ script. Three instruments, one question, and two of them were the agents.
 
 **A third, the same day, and it is the strongest of the three because it happened while proving a check COULD fail (the maker's, AT-693).** Repairing the two vacuous `done_check`s, the maker built a throwaway tree of re-corrupted copies to show the new needles were falsifiable. **Both passed.** It nearly concluded its own needles were wrong. Cause: `scripts/check_deliverable.py:25` sets `REPO_ROOT = Path(__file__).resolve().parents[1]`, so every relative path resolves against the **script's** repo and never the working directory — correct for the tool, and it means the copies were never opened. **A falsification run from a copied data tree proves nothing unless the script is copied too.** Redone with the script inside the tree, the same needles went red (re-corrupted screenmap → exit 1, `DECISIONS` minus its 8 `D-016` occurrences → exit 1, healthy control → exit 0), which the checker then re-derived independently in its own copy. This is the AT-548/549/550 unisolated-capability class committed *in the act of testing for it*, and it is the reason SKILL step 4b insists the copy must run GREEN before the falsifying edit: the green line is what proves the copy is real, and a copy that is never read is green for free. One question about one hazard, three instruments — a grep counting table borders, a walker returning zero over a populated file, and a falsification whose subject was never loaded — and all three were ours, none of them in the product.
 
+**And a distinct failure the same day, which the instrument table cannot hold because no instrument was involved (the maker's observation, 2026-09-28).** Twice, the maker's *measurements held* and the **sentence that compressed them for a reader** contradicted itself — both times in text addressed to Umesh, both times caught by the other seat. Once: a gate addendum stating two paragraphs apart that anchoring the hook's patterns "does not touch AT-696 at all" and that "one change answers AT-673, AT-669, AT-696 and AT-643." Once before it: a defect count offered as ten mistakes rather than one missing guard. Neither was a bad number; both were a summary that lost a distinction the measurement had kept. **So the compressing line needs the same re-derivation the numbers get.** The operational form, and it is cheap: before a claim goes to the human, check each clause against the measurement it rests on rather than against the paragraph around it — a summary is a derived artifact, and nothing in this contract exempts a derived artifact from being re-derived. This matters most exactly where it happened, in the text that asks for a decision: "fix the hook" read as one change when it is three at three sites, with a different direction of failure left open by each partial, is an approval the human cannot give correctly because the sentence hid the choice.
+
 **The last row of the table is the agent measuring, not the code, and it belongs here for that reason.** On
 2026-09-28 the maker read free space on `C:` at 0.37 GB then 0.34 GB, inferred "degrading ~30 MB/hr,
 ~11 hours to zero", and **held a build on it.** The checker, asked to act, measured 2.37 GB and
@@ -818,3 +820,17 @@ judgements and only the second was wrong.
   product. Cause: AT-693. Additive; no clause weakened. **Changes-authorized:**
   qa/contracts/core-invariants.md C12 ninth-row paragraphs + Amendment log (this entry). No
   enforcement-path file touched. **Links:** AT-693; AT-692; AT-548; AT-549; AT-550.
+- 2026-09-28 - routine (extend) - C12 gained a paragraph for a failure the instrument table cannot
+  hold, because no instrument was involved: twice today the maker's MEASUREMENTS held while the
+  SENTENCE compressing them for Umesh contradicted itself, and both times the other seat caught it.
+  Instances: a gate addendum asserting both that anchoring "does not touch AT-696" and that one change
+  answers AT-673/669/696/643 (three sites, disjoint row sets); and a count offered as ten mistakes
+  rather than one missing guard. The rule added is that a summary is a derived artifact and gets the
+  same re-derivation a number does - each clause checked against the measurement it rests on, not
+  against the paragraph around it - and that it matters most in text that asks the human for a
+  decision, since "fix the hook" hid a three-way choice whose partials fail in opposite directions.
+  Observation and framing are the maker's; recorded here because core-invariants is the checker's
+  surface and because it is the only failure today that neither seat's instrument discipline would
+  have caught. Additive; no clause weakened. **Changes-authorized:**
+  qa/contracts/core-invariants.md C12 ninth-row paragraphs + Amendment log (this entry). No
+  enforcement-path file touched. **Links:** AT-696; AT-673; AT-669; AT-643; AT-657; AT-676.
