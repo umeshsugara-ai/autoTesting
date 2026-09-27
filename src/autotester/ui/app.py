@@ -40,6 +40,7 @@ from autotester.ui import (
     routes_runs,
     routes_settings,
     routes_sources,
+    routes_video,
     theme,
 )
 from autotester.ui.env_editor import InvalidEnvValue, set_env_values, validate_env_values
@@ -75,6 +76,7 @@ app.include_router(routes_cases.router)
 app.include_router(routes_project_edit.router)
 app.include_router(routes_runs.router)
 app.include_router(routes_report.router)
+app.include_router(routes_video.router)
 app.include_router(routes_flow_diagram.router)
 app.include_router(routes_crawls.router)
 app.include_router(routes_crawl_login.router)

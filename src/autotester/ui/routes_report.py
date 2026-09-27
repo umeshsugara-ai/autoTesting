@@ -1,11 +1,11 @@
 """Run history, per-case screenshots, and portable downloads. Contract:
-qa/contracts/ui-report.md UR1-UR4.
-"""
+qa/contracts/ui-report.md UR1-UR4."""
 
 from __future__ import annotations
 
 from html import escape
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import APIRouter
 from fastapi.responses import FileResponse, HTMLResponse, Response
@@ -96,6 +96,17 @@ def _step_flow(run_dir: Path, evidence: list, case_index: int, trusted_root: Pat
     return f"<div class='flow'>{arrow.join(steps)}</div>{''.join(lightboxes)}"
 
 
+def _video_section(slug: str, run_id: str, evidence: list) -> str:
+    """ISS-t191-run-video-2: `_step_flow` filters SCREENSHOT only -- a kept
+    VIDEO (T-191 V8) was never surfaced. Links, never embeds (RE3/D-050)."""
+    videos = [e for e in evidence if e.kind is EvidenceKind.VIDEO]
+    return "".join(
+        f"<p class='meta'>🎥 <a href='/projects/{escape(slug)}/runs/{escape(run_id)}/videos/"
+        f"{quote(v.path, safe='/')}'>video ({escape(v.path)})</a></p>"
+        for v in videos
+    )
+
+
 def _failure_list(failures: list) -> str:
     if not failures:
         return ""
@@ -176,6 +187,7 @@ def run_view(slug: str, run_id: str) -> Response:
         return (
             f"<div class='case-meta'>{''.join(meta)}</div>{scoreboard}{failures}{error}"
             f"{_step_flow(run_dir, r.evidence, case_index, store.paths.dir)}"
+            f"{_video_section(slug, run_id, r.evidence)}"
         )
 
     sections = "".join(
