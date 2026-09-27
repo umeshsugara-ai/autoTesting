@@ -171,3 +171,183 @@ fast turnaround.
 The C15 sub-investigation is included above in full, including the checker's own initial
 methodology slip and its correction, in the interest of not asserting a finding the checker
 could not stand behind under its own re-check — the manifest's claim on C15 holds.
+
+---
+
+# CYCLE 2
+
+**Date:** 2026-09-28
+**Cycle checked:** 2
+**Unit:** t191-video-reachable (ISS-t191-run-video-2, part of T-191)
+**Bound root:** D:/autoTesting, worktree `.claude/worktrees/agent-a2368e46e4392412e`,
+branch `wave/t191-video-reachable`, HEAD `49dc13bc` at time of check (unmerged/unpushed).
+**Checker:** fresh subagent, no memory of cycle 1's own session, read-only toward the artifact;
+executor independence holds.
+
+## VERDICT: PASS
+
+## SCOREBOARD
+
+- **Diff scope, independently confirmed:** `git diff 9f223736..HEAD --stat` touches exactly
+  `qa/issues.jsonl` (+2/-1), `qa/manifests/t191-video-reachable.md` (+110), and
+  `tests/test_ui_video_route.py` (+15/-3) — nothing else, no `src/` change, matching the
+  manifest's own claim byte-for-byte.
+- **C3, the sole cycle-1 FAIL driver, is fixed and independently confirmed load-bearing.**
+- **The maker's central claim — the verdict's own cycle-1 suggested fix shape was insufficient —
+  is independently reproduced as TRUE**, not merely accepted on the maker's say-so (see below).
+- **Ledger reconciliation (AT-654→AT-656 renumber, AT-655 left alone) independently verified
+  correct** by simulating the real merge and inspecting the root ledger directly.
+- **Full-suite verify command hit a genuine environmental instrument failure** (disk exhaustion
+  on the shared machine's C: drive, `OSError: [Errno 28] No space left on device`), unrelated to
+  this unit's diff. Not charged against the unit; filed as `AT-657`. A scoped re-run of the
+  actually-relevant tests in the bound worktree confirms clean.
+- All 15 other capability rows, and all contract criteria other than C7/C3, are unaffected by
+  this cycle's diff and were already independently confirmed in cycle 1; nothing in this cycle's
+  diff gives reason to revisit them.
+
+## Independent reproduction of the maker's central claim (not accepted on paste)
+
+Built both variants myself in a throwaway `git archive` copy of this branch's HEAD, run with the
+copy as CWD (never the bound worktree, per this repo's documented `PYTHONPATH`-shadowing
+gotcha), never a baseline snapshot:
+
+| Variant | With `_video_section`'s VIDEO filter deleted | My result |
+|---|---|---|
+| GREEN baseline (shipped fix, filter intact) | — | **6 passed in 0.63s** |
+| Cycle-1 verdict's suggested shape (SCREENSHOT row + `.webm`-only assertion) | filter deleted | **6 passed in 0.56s — still vacuous, confirmed** |
+| Shipped fix (SCREENSHOT row + route-prefix assertion) | filter deleted | **1 failed, 5 passed in 0.90s** |
+| Shipped fix, filter **inverted** (`is not EvidenceKind.VIDEO`) instead of deleted | inverted | **2 failed, 4 passed in 1.10s** (both C2's and C3's test correctly redden) |
+
+All REDs are the same order of magnitude as the 0.63s GREEN baseline — genuine assertion
+failures, not collection/import errors masquerading as falsifications (the fast-RED tell). This
+independently confirms the manifest's claim exactly: the obvious repair (seed a non-video row,
+keep the `.webm` assertion) does **not** close the vacuity, because `_video_section` emits a link
+for *any* row that survives its filter, and that link's path (`step-1.png`) simply doesn't
+contain `.webm`. The fixture, not the code, was controlling the asserted substring — exactly as
+cycle 1 diagnosed and cycle 2 restated. The route-prefix assertion is the correct fix shape
+because it is emitted unconditionally by `_video_section`'s link template regardless of which
+evidence kind survives the filter, so it cannot be defeated the same way. Inverting the filter
+(a shape neither the manifest nor cycle 1 tried) also reddens correctly, confirming the fix is
+load-bearing for the right reason and not coincidentally passing.
+
+**On the dropped fixture-liveness guard** (the manifest's own disclosed judgment call, dropping
+`assert "step-1.png" in response.text` because `_step_flow` renders "no screenshots captured"
+for a fixture with no real PNG on disk): the concern that the seeded evidence row might be
+dropped before ever reaching `_video_section` is already answered by the falsification above,
+not left open. `_video_section` receives `r.evidence` from the same `RawResult` the fixture
+saves and the store loads back — if that evidence had been silently lost anywhere upstream
+(schema default, storage round-trip), deleting `_video_section`'s own internal filter could not
+have produced a link, because the function would have received an empty list either way. The RED
+obtained by deleting the filter is itself proof the evidence reached the function intact. No new
+vacuous-test risk from dropping the guard; coupling this test to `_step_flow`'s unrelated
+screenshot-file-rendering behavior would have added nothing.
+
+## Ledger reconciliation — independently verified, not accepted on the manifest's word
+
+- Confirmed root ledger's `AT-654` is a genuinely different, unrelated issue (the D-029
+  dev-only-vs-production-Pathlynks gate, `qa/gates/at654-d029-dev-only-vs-production-pathlynks.md`)
+  by reading it directly in `D:/autoTesting/qa/issues.jsonl:675`.
+- Confirmed `AT-655`/`AT-656`/`AT-657` do not appear anywhere in the root ledger — genuinely free.
+- **Simulated the actual merge** (fresh clone of root `D:/autoTesting`, fetched the worktree's
+  branch, `git merge wave/t191-video-reachable` on top of root's current `master`): merge
+  succeeds cleanly, `Auto-merging qa/issues.jsonl` with **no conflict** — confirms the
+  `.gitattributes` `merge=union` claim empirically rather than by reading the attribute. The
+  attribute itself was added to `master` at `162c3dc7`, *after* this branch's fork point
+  (`12597de3`) — worth noting for the record, though irrelevant to the merge outcome since the
+  merge-driver lookup uses the checkout being merged into (`master`, which already has it).
+- Post-merge ledger has **zero new id collisions**: scripted a duplicate-id scan over the merged
+  `qa/issues.jsonl` and found exactly the same 10 pairs (`AT-288`-`AT-291`, `AT-547`-`AT-552`)
+  that already exist on `master` alone today — none newly introduced by this branch. Agree with
+  the maker's call: renumbering `AT-654`→`AT-656` rather than adding an 11th collision pair was
+  correct, since neither id had been published outside this branch.
+
+## AT-655 (persona walk) — ruling: accept as filed, no further action
+
+The manifest predates nothing here — it's dated after 2026-09-26, so a missing `Persona walk:`
+field is exactly the "newer manifest without the field" case SKILL.md 5bb defines as a
+low-severity finding, which is precisely what `AT-655` already is. The maker's substantive
+argument — that Mode D's cycle-1 walk (real uvicorn, real Playwright, a report reader clicking
+the video link, 200 then 206 partial content) already **is** the honest persona walk for this
+unit, and restating it in a second field adds no new evidence — is accepted. Filing it in a
+structured `Persona walk:` field going forward remains good hygiene (hence `AT-655` stays open,
+non-blocking), but does not need to be manufactured retroactively for this cycle.
+
+## Mode D — SKIPPED, reason stated
+
+Cycle 1 already ran a full Mode D pass (real uvicorn + real Playwright, video link renders,
+click serves 200 then 206 partial content, zero console errors) against this exact route/link
+code. Cycle 2's diff touches zero bytes of `routes_video.py`, `routes_report.py`, or `app.py`
+(confirmed above) — the server code a fresh browser session would exercise is byte-identical to
+what cycle 1 already drove live. A fresh Mode D run would re-render the same production code and
+produce no new evidence. Skipped on that basis, not on convenience.
+
+## Verify commands, independently re-run
+
+- `uv run ruff check src tests scripts` → **All checks passed!**, exit 0. Matches.
+- `uv run autotester doctor` → **doctor: clean**, exit 0. Matches.
+- `uv run pytest tests/test_ui_video_route.py tests/test_ui_video_route_traversal.py` (targeted,
+  in the bound worktree) → **16 passed in 2.41s**. Matches the manifest's targeted-run claim.
+- `uv run pytest` (full suite, no `-q`, AT-503) → **instrument failure, not evidence either way.**
+  My own run: `18 failed, 2056 passed, 6 skipped, 14 xfailed, 17 warnings, 13 errors in 1735.03s`,
+  `EXIT=1`. Every failing/erroring node is in `test_explore_live.py`, `test_explore_modal.py`,
+  `test_explore_typing.py`, `test_explore_typing_guards.py`, `test_explore_login_spa_live.py`,
+  `test_explore_node_recovery.py`, `test_explore_return_determinism.py`,
+  `test_explore_secret_scrubbing.py`, `test_flake_probe_real_process.py` — none in
+  `test_ui_video_route*`, none touching `run-video`. Root cause read directly from the log:
+  `OSError: [Errno 28] No space left on device` (e.g. `src\autotester\store\filestore.py:71`).
+  `df -h C:/` confirmed the shared machine's system drive at **100% capacity, ~300MB free out of
+  475GB**, unchanged before/after removing my own scratch artifacts — this was not caused by my
+  own check and was very likely already present during the manifest's own claimed-clean run
+  minutes earlier (D: has 213GB free; only the default TEMP volume, which pytest's `tmp_path` and
+  `uv`'s venv builds target, is exhausted). Per the same principle Mode D applies to a broken
+  browser instrument, a full-suite run that dies on disk exhaustion **proves nothing about the
+  code** — it is a SKIP on that specific evidence, not a FAIL, and not treated as contradicting
+  the manifest's own full-suite claim. The diff-scope argument (only a test file + ledger +
+  manifest changed) combined with the targeted-suite green and the completely unrelated failure
+  surface makes a causal link to this unit implausible in any case. Filed as `AT-657`
+  (environmental, not charged against this unit).
+
+## CAPABILITY-COVERAGE
+
+16/16 rows now independently confirmed load-bearing: the 15 rows cycle 1 already reproduced are
+unaffected by a diff that changed only one test's fixture and assertions (confirmed via diff
+scope), and C3 is now independently falsified as fixed (table above) — including a stronger
+attack (inverting the filter) than either the manifest or cycle 1 tried.
+
+## LIVE-BROWSER
+
+`not-applicable (SKIP, reasoned)` — see "Mode D — SKIPPED" above. Cycle 1's own Mode D evidence
+(`qa/evidence/browser-t191-video-reachable-*-checker/`, referenced in cycle 1's verdict) still
+stands as the live-browser evidence for this unit's server code, unchanged since.
+
+## ISSUES-WRITTEN
+
+- **`AT-656`** — status flipped `open → fixed` by this unit (renumbered from `AT-654`, confirmed
+  correct above); the C3 vacuous test, now genuinely load-bearing.
+- **`AT-655`** — left `open`, accepted as filed (see ruling above), non-blocking.
+- **`AT-657`** (new, this cycle) — environmental: shared machine's C: drive disk exhaustion,
+  severity high, not charged against this unit. Filed for the record since it can produce false
+  full-suite FAILs on other units too.
+
+## EXECUTOR
+
+Fresh Claude subagent, no prior session context with either this unit's build or cycle 1's own
+check. Structurally read-only toward the bound worktree: all falsifying mutation happened in a
+throwaway `git archive` copy under `%TEMP%`, and the merge simulation happened in a throwaway
+clone, both deleted after use, never the bound tree. No merge of the feature branch performed —
+that is the orchestrator's job on this PASS.
+
+## EXPLANATION
+
+Cycle 2 does exactly what cycle 1 asked and nothing more: it replaces one vacuous fixture with a
+genuinely load-bearing one, touches no other file of substance, and its own manifest is honest
+about a fix shape it tried and rejected (the cycle-1 verdict's own suggestion) — which this check
+independently confirmed really was insufficient, not merely plausible. The ledger reconciliation
+across two independently-diverged forks (this worktree stuck at `AT-649`, root advanced to its
+own unrelated `AT-654`) was handled correctly: renumbering rather than manufacturing an 11th
+undocumented collision, verified here by actually performing the merge rather than trusting the
+`.gitattributes` citation. The one wrinkle this cycle surfaced is entirely outside the unit's
+control: the shared dev machine's system drive is essentially full, which turned a routine
+full-suite verify into an unusable signal. That is reported plainly (`AT-657`) rather than either
+silently accepted as a regression or silently ignored, and the unit's own actually-relevant
+evidence (targeted tests, diff scope, ruff, doctor) is clean and sufficient for PASS on its own.
