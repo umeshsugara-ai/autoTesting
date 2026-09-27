@@ -1,7 +1,15 @@
 # HUMAN_GATE — may the checker author four new contract files, or does a decision entry come first?
 
 **Opened:** 2026-09-27 by the maker, on the `at638-remainder` cycle-1 verdict (**FAIL**, worktree
-commit `a9146761`). **Decider:** Umesh. **Status:** OPEN — asked once, then written here.
+commit `a9146761`). **Decider:** Umesh. **Status:** **ANSWERED 2026-09-27 — option A, all four** (not the three-file
+subset). Recorded as **D-054** with `Approved-by: Umesh`, appended via `scripts/append_decision.ps1`.
+The checker may now author `permission-surface.md` (PS1–PS4), `eval-compiler.md` (EC1–EC4),
+`release-regression.md` (RR1–RR5) and `damage-control-report.md` (DC1–DC4), each DRAFT → ACTIVE on its
+own unit's first PASS. Carried into D-054 for whoever authors them: RR2's CN5/CN6 authority claim is
+overstated against its own stated Verify; PS2 is `[D-040 verbatim]`, not arguable; and this unit's
+check never completed `uv run pytest` (disclosed, sound for a contracts-only diff, recorded as an
+evidence gap). **The T-167 dependency contradiction listed below is separately resolved by D-055:**
+T-167 depends on T-166 and T-110 only, `release-regression.md` encodes no T-179 dependency.
 **Blocks:** T-171, T-166, T-167, T-168 (their contract criteria) and the closure of **AT-638**.
 Nothing else waits on it, and **nothing is broken** — this gate is about authorization, not a defect.
 **Ledger:** `ISS-at638-remainder-1` (high, `approval-required`). **Verdict:** `qa/verdicts/at638-remainder.md`.

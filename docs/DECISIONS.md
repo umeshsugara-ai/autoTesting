@@ -1428,3 +1428,140 @@ start: an **ordering** field (did the human author before or after reading the r
 reads first, an **independent-vs-prompted** mark per human item, with **recall computed from the
 independent subset only**. This is the same failure shape as the O4 rounding defect — a number whose
 provenance is not carried alongside it — so the fields exist before the number does.
+
+## D-054 | 2026-09-27 | type: decision | status: ACTIVE
+
+**What:** Authorize `/checker` to author four new checker-owned DRAFT contract files from the criteria
+filed in `qa/feedback-inbox.md` (2026-09-27, `at638-remainder` unit):
+`qa/contracts/permission-surface.md` (PS1–PS4, T-171, D-040), `qa/contracts/eval-compiler.md`
+(EC1–EC4, T-166, D-041), `qa/contracts/release-regression.md` (RR1–RR5, T-167, D-041),
+`qa/contracts/damage-control-report.md` (DC1–DC4, T-168, previously unauthorized by any decision).
+Each goes DRAFT → ACTIVE on its own unit's first checker PASS, same as every prior batch.
+
+**Why:** `AT-638` (checker sweep, high) found these four capabilities have **zero checkable contract
+criteria**. D-040 and D-041 registered the goal tasks but never named contract files for them, and
+**T-168 was never named by any decision at all** despite existing in `.goal/goal.json` since
+2026-09-10. A unit with no contract has nothing to be judged against, so the maker-checker pair cannot
+build T-166/T-167/T-168/T-171 at all — this one missing authorization gates four tasks.
+
+The governance case is already made and was verified twice. Every checker-authored contract in this
+repo — **5 for 5** — was named in a `Changes-authorized` line of an `Approved-by: Umesh` entry *before*
+the checker wrote it (D-017/D-018 → `ai-target.md`, `adversarial.md`; D-039 → `catalog.md`; D-040 →
+`crawl-traversal.md`, `network-assertions.md`; D-041 → the seven T-172–178 files; D-042 →
+`agent-layer.md`). The four now proposed had no such line, and the checker read D-040's and D-041's
+`Changes-authorized` text directly (`docs/DECISIONS.md:871-874` and `:923-928`) rather than trusting
+the manifest's summary of them. This entry closes that gap the same way D-039/040/041/042 closed it
+everywhere else.
+
+**Worth keeping about how this gate arrived:** the build subagent filed 17 criteria, the checker judged
+**all 17 sound and buildable as worded** — reproducing every pasted grep and confirming
+`schema/portal_persona.py` really can carry the knowledge graph EC1 requires — and the unit still
+FAILED cycle 1, on governance alone. Both the subagent and the checker found the missing authorization
+independently and **neither wrote a decision entry to manufacture it**, which is the correct refusal:
+an authorizing entry needs Umesh's `Approved-by:` and cannot be self-granted. No cycle 2 was spent,
+because a fix cycle is for a maker defect and there was none.
+
+**Result:** `AT-638` closes once the four files exist. T-166/T-167/T-168/T-171 become buildable under
+the pair. `wave/at638-remainder` can merge and its manifest close out. Carried forward for whoever
+authors the files, from the checker's own disclosures rather than found later: **RR2's authority tag is
+overstated** — it claims to extend `consent.md` CN5/CN6 but its stated `Verify` only exercises
+CN1-shaped behaviour, unlike its named precedent AD2 whose Verify tests CN5's exactness and CN6's
+bound-shortfall; so either strengthen RR2's Verify or drop the CN5/CN6 claim. **PS2 is
+`[D-040 verbatim]`, not arguable** (the maker's dispatch wrongly called it a free `[maker]` addition);
+the genuinely arguable ones are PS4, DC3 and RR3, all reviewed and accepted as low-risk. And the
+`at638-remainder` check **did not complete `uv run pytest`** — it ran ruff and doctor live (both clean)
+and accepted the diff-stat on the grounds that zero `src/` or `tests/` files were touched. Sound for a
+contracts-only unit, disclosed rather than claimed green, and recorded here as an evidence gap.
+
+**Approved-by:** Umesh — approved 2026-09-27, option A of
+`qa/gates/at638-four-contract-files-authorization.md` (all four, not the three-file subset).
+
+**Changes-authorized:** the four files named above (new, checker-authored DRAFT). No
+`docs/ARCHITECTURE.md` prose change. No amendment to any existing contract.
+
+**Links:** AT-638 · `ISS-at638-remainder-1` · T-166 · T-167 · T-168 · T-171 · D-040 · D-041 · D-042 ·
+`qa/verdicts/at638-remainder.md` · `qa/gates/at638-four-contract-files-authorization.md` ·
+`qa/feedback-inbox.md` (2026-09-27)
+
+### Not authorized by this entry
+
+T-167's dependency contradiction is **not** settled here. D-042 says T-167 *"runs the lead agent on
+LangGraph checkpoints"* (implying a T-179 dependency) while `.goal/goal.json`'s T-167 `deps` is
+`["T-166","T-110"]` and `docs/plan.md` row 21 omits T-179 — and the contradiction sits *inside T-167's
+own `note` field*, which echoes D-042's sentence next to the deps array that omits it. Umesh's
+instruction on 2026-09-27 was to resolve it properly first rather than choose between the two readings,
+so it is being investigated against the text and the code, and will carry its own entry. Whoever
+authors `release-regression.md` must not encode a dependency stance before that lands.
+
+## D-055 | 2026-09-27 | type: decision | status: ACTIVE
+
+**What:** T-167 (commit/release-triggered visible-browser regression) depends on **T-166 and T-110
+only**. It does **not** depend on T-179/T-180 (the Deep Agents layer). `.goal/goal.json`'s
+`deps: ["T-166","T-110"]` and `docs/plan.md` row 21 are **correct as written and are not changed**.
+D-042's sentence *"T-167 (release regression) runs the lead agent on LangGraph checkpoints"* is
+clarified as a statement of eventual **composition**, not a dependency declaration. T-167 is built on
+LangGraph 1.x — `stages/orchestrate.py` → checkpointer plus `interrupt()` for consent/review — with no
+agent-layer precondition. Whoever authors `qa/contracts/release-regression.md` (authorized by D-054)
+encodes **no** T-179 dependency.
+
+**Why:** Umesh's instruction on 2026-09-27 was *"clear kroo properly phle isko"* — resolve it properly
+rather than choose between two readings. So it was resolved against the text and the code, and the
+evidence runs one way. Five findings, each independently checkable:
+
+1. **D-042 declares dependencies in a column, and T-167 has no row in it.** D-042's "New units" table
+   (`docs/DECISIONS.md:953-957`) carries an explicit **"Depends on"** column — T-179 → T-170/T-172/T-175,
+   T-180 → T-179, T-181 → T-180. **T-167 does not appear in that table at all.** The disputed sentence
+   sits on line 958, *after* the table, paired with *"T-177 (browser-use) becomes one of the runner's
+   tools."* Both sentences describe how pre-existing units will compose with the new layer. Reading a
+   dependency out of a sentence, when the same decision states every dependency it means in a labelled
+   column, inverts the document's own structure.
+2. **D-042's own `Changes-authorized` authorizes a NOTE on T-167, not a deps change** (`:967`):
+   *".goal/goal.json: register T-179 to T-181, and note on T-167 and T-177."* That line enumerates
+   changes precisely enough to name files and fields. Had D-042 intended a new dependency edge, it would
+   have authorized one. So `deps: ["T-166","T-110"]` is not stale and was never overwritten — **it is
+   exactly what D-042 left standing.**
+3. **D-042 supersedes only D-041's point 1, and T-167's LangGraph mandate is a different point.**
+   D-042's `Supersedes` (`:960`) replaces *"Agents: typed Pydantic nodes. No multi-agent framework"* and
+   states explicitly that *"D-041's other points … remain in force unchanged."* D-041's workflow point
+   (`:886`) is separate: *"Workflow: LangGraph 1.x, starting at T-167 (release regression: checkpointer
+   and `interrupt()` for consent/review). Existing stages migrate to LangGraph nodes only when a unit
+   touches them."* **T-167's LangGraph requirement therefore descends from D-041 and carries no agent
+   coupling.** The two decisions are consistent; only the prose at `:958` reads otherwise.
+4. **The decisive argument, and it is about falsifiability rather than bookkeeping.** T-181 exists to
+   test whether the agent layer earns its place: D-042 says *"The layer stays only if it shows a gain"*
+   and *"T-181 must prove a measured gain before the layer is kept."* If T-167 — a release-triggering
+   regression capability, `criticality: critical` — depended on T-179, then a **negative T-181 result
+   would strip a dependency out from under a shipped capability.** The experiment becomes one nobody can
+   act on, because you cannot remove a layer a core capability sits on. So the T-179-dependency reading
+   **contradicts D-042's own falsifiability condition.** Keeping T-167 independent is what makes T-181 a
+   real experiment instead of a formality.
+5. **No implementation fact contradicts any of this, because neither layer is built.** `langgraph` and
+   `deepagents` are both absent from `pyproject.toml` (grep empty), and no file under `src/autotester/`
+   references `deepagents` or `create_deep_agent` (grep empty) — consistent with D-041/D-042, which
+   admit each dependency only inside its own unit. `docs/plan.md` row 21 describes T-167 as
+   `stages/orchestrate.py` → LangGraph 1.x, *"a release trigger runs the approved suite; consent via
+   `interrupt()`; resumes after a crash"* — no agent.
+
+**Result:** The contradiction is closed in favour of the backlog, not the prose. T-167 is buildable as
+soon as T-166 lands, without waiting for the agent layer — which matters, because T-166 is itself gated
+behind T-125 and adding an agent-layer edge would have pushed a critical capability behind an experiment
+that may be removed. `release-regression.md` is authored with no T-179 dependency. When the agent layer
+exists **and** T-181 proves a gain, the lead tester may run **on** T-167's checkpoints; that is a later
+composition implemented inside T-179/T-180 and requires no change to T-167.
+
+**Remaining defect this entry cannot fix, disclosed rather than left implicit:** the misleading sentence
+is echoed **inside T-167's own `note` field** in `.goal/goal.json`, sitting next to the deps array it
+appears to contradict — which is why two readings survived. Correcting that note is a `.goal/goal.json`
+edit, and this maker's writes to that file are currently refused by the harness safety classifier (the
+same block that holds the T-122/T-145/T-136 Pathlynks re-scope). **This entry is now the authority; the
+note is stale prose, not a competing dependency claim.** The note correction is queued with Umesh
+alongside the re-scope.
+
+**Links:** T-110 · T-125 · T-166 · T-167 · T-177 · T-179 · T-180 · T-181 · D-041 (`:886`, `:923-928`) ·
+D-042 (`:936-976`, especially the units table `:953-957`, the composition sentence `:958`, the
+supersedes clause `:960` and `Changes-authorized` `:967`) · D-054 ·
+`qa/gates/at638-four-contract-files-authorization.md` · `docs/plan.md` row 21 · `qa/contracts/consent.md`
+
+**Changes-authorized:** none. No `docs/ARCHITECTURE.md` prose change, no `.goal/goal.json` change (the
+deps array is already correct; the stale note is queued separately), no contract amendment. This entry
+is a clarification of two existing decisions, and it creates no new scope.
