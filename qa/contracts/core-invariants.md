@@ -319,6 +319,8 @@ delimiter. And on the same check the checker's own `adapter.json` walker printed
 over a file that visibly contains three, so the citation above rests on reading the file, not on the
 script. Three instruments, one question, and two of them were the agents.
 
+**A third, the same day, and it is the strongest of the three because it happened while proving a check COULD fail (the maker's, AT-693).** Repairing the two vacuous `done_check`s, the maker built a throwaway tree of re-corrupted copies to show the new needles were falsifiable. **Both passed.** It nearly concluded its own needles were wrong. Cause: `scripts/check_deliverable.py:25` sets `REPO_ROOT = Path(__file__).resolve().parents[1]`, so every relative path resolves against the **script's** repo and never the working directory — correct for the tool, and it means the copies were never opened. **A falsification run from a copied data tree proves nothing unless the script is copied too.** Redone with the script inside the tree, the same needles went red (re-corrupted screenmap → exit 1, `DECISIONS` minus its 8 `D-016` occurrences → exit 1, healthy control → exit 0), which the checker then re-derived independently in its own copy. This is the AT-548/549/550 unisolated-capability class committed *in the act of testing for it*, and it is the reason SKILL step 4b insists the copy must run GREEN before the falsifying edit: the green line is what proves the copy is real, and a copy that is never read is green for free. One question about one hazard, three instruments — a grep counting table borders, a walker returning zero over a populated file, and a falsification whose subject was never loaded — and all three were ours, none of them in the product.
+
 **The last row of the table is the agent measuring, not the code, and it belongs here for that reason.** On
 2026-09-28 the maker read free space on `C:` at 0.37 GB then 0.34 GB, inferred "degrading ~30 MB/hr,
 ~11 hours to zero", and **held a build on it.** The checker, asked to act, measured 2.37 GB and
@@ -801,3 +803,18 @@ judgements and only the second was wrong.
   sits under. Additive; no clause weakened, no signal relaxed. **Changes-authorized:**
   qa/contracts/core-invariants.md C12 principle table + paragraphs + Amendment log (this entry). No
   enforcement-path file touched. **Links:** AT-692; AT-518; AT-503.
+- 2026-09-28 - routine (extend) - C12's ninth row gained a third measured instrument failure, the
+  maker's: a falsification run from a copied DATA tree proved nothing because
+  `scripts/check_deliverable.py:25` resolves `REPO_ROOT` against the SCRIPT's repo, never CWD, so the
+  copies were never read and both needles passed - it nearly concluded its own needles were wrong.
+  Redone with the script inside the tree they went red, and the checker re-derived that independently
+  in its own copy (re-corrupted screenmap -> exit 1, DECISIONS minus all 8 D-016 -> exit 1, healthy
+  control -> exit 0, bound tree confirmed clean after). Added because it is the AT-548/549/550
+  unisolated-capability class committed in the act of testing FOR it, and because it is what SKILL
+  step 4b's green-before-the-edit requirement exists to catch: a copy that is never read is green for
+  free. The paragraph now names all three of the day's instruments on one hazard - a grep counting
+  markdown table borders as pipes, a walker returning zero over a populated file, and a falsification
+  whose subject was never loaded - and states that all three were the agents' and none was in the
+  product. Cause: AT-693. Additive; no clause weakened. **Changes-authorized:**
+  qa/contracts/core-invariants.md C12 ninth-row paragraphs + Amendment log (this entry). No
+  enforcement-path file touched. **Links:** AT-693; AT-692; AT-548; AT-549; AT-550.
