@@ -741,3 +741,402 @@ synthetic value into a real `<input type="password">` whenever the field's name 
 avoid the words "password"/"passwd" — `#pin`, `#otp`, "Passcode". That predates T-165 and is not
 this unit's fault, but it is a live credential-surface gap on a tool you intend to point at real
 products, and the fix is small (emit `type` from `enumerate.js`, refuse `password`/`file`).
+
+---
+
+## CHECK A — cycle 2
+
+**Cycle checked: 2**
+**Verdict: PASS** — T-165 is a D-040 dual check and **both checks have now passed**. I derived
+everything below in a fresh context and wrote it before looking at check B's section; when I went to
+commit, check B's "CHECK B — cycle 2" PASS was already on disk (`2d6edecc`). That satisfies the
+contract's own DRAFT→ACTIVE condition, so I flipped `qa/contracts/crawl-traversal.md` to **ACTIVE**
+and recorded in the Status line that neither check flipped it alone. **I did not merge and did not
+push** — the merge is the orchestrator's — and I did not flip the manifest status.
+**Date:** 2026-09-27
+**Bound root:** worktree `D:/autoTesting/.claude/worktrees/agent-a6b3b2d68e31aeec3`, branch
+`wave/t165-crawl-traversal`, judged at `bdac746a` (the `master` merge on top of `9745d63c`, the
+cycle-2 manifest, on top of `1be188d5` / `48238b4f` / `96bacbbc`).
+**Scope I was dispatched on:** completeness honesty, the CR4 diff, and the persona shape. Check B is
+independent on the write/replay/evidence surface; I neither read nor coordinated with it.
+**Method:** every number below is one I produced. Falsifications and probes ran in a throwaway
+`git archive HEAD` copy **outside** the bound worktree (no `__pycache__` carried); Mode D ran headed
+Chromium against a `127.0.0.1` `http.server` over a copy of `tests/fixtures/deep_site`, under a real
+signed `RunApproval` (`production=False`). No real product, no traffic off the machine, nothing
+written to production. The bound worktree was touched only for `ruff` / `doctor` / `pytest` and for
+this verdict, the ledger and the contract.
+
+### Why PASS, in one paragraph
+
+All four cycle-1 defects are genuinely fixed, and I falsified each fix myself rather than reading the
+maker's table. The decisive one is fixed **live, not in a fixture**: my own headed walk of the
+byte-identical incremental pair reports `missing = 0`, `missing_unjudged = 8`, where cycle 1 reported
+`missing = 8`. The residual the maker flagged as the sharpest thing in its manifest — a genuinely
+deleted second state at a shared URL appearing in no category — is real, I reproduced it, and it is
+**worse than the maker described** (no revision is written at all). It is nonetheless not a blocker,
+for a reason I had to establish rather than assume: it is **strictly narrower than the ISS-2 gap this
+contract already recorded as open-and-not-ratified**, and this unit is what narrowed it. Before the
+ISS-2 fix, storage deduped on `key()`, so the second state was never stored and was invisible in
+*every* direction; now it is visible as `new` / `changed` / `broken` and only its *deletion* is
+invisible. And the naive closure is a trap: I worked it out and it reintroduces a false positive on
+the ordinary SPA-toggle case. Details and the ruling are in §7; the contract now carries the
+residual, the analysis, and the closure condition so a future unit cannot take the naive fix by
+accident.
+
+### 1. Verify commands, re-run by me, reading the failure LIST
+
+`uv run ruff check src tests scripts` → `All checks passed!` (exit 0).
+`uv run autotester doctor` → `doctor: clean` (exit 0).
+
+`uv run pytest` (bare, no CLI `-q`, AT-503), run by me on this tree:
+
+```
+=========================== short test summary info ===========================
+FAILED tests/test_flake_probe_real_process.py::test_run_once_kills_a_real_hung_process_and_its_real_grandchild
+1 failed, 2134 passed, 6 skipped, 14 xfailed, 15 warnings in 1534.99s (0:25:34)
+EXIT=1
+```
+
+**The failure LIST, not the exit code.** One red, and it is **AT-627**, the known
+load-sensitive real-subprocess flake the brief named. Re-run in isolation on this same tree:
+`2 passed in 11.13s`. It ran concurrently with my own two real-Chromium falsification crawls and my
+Mode D walk on the same machine, which is exactly the documented cause. Not chargeable here, and it
+touches nothing this unit changes.
+
+**The two `tests/test_goal_done_checks.py` reds the maker reported are GONE.** The brief said they
+were fixed on master and merged into this branch, and if they still failed here that would be a
+finding. They do not fail: the summary above names exactly one failure. The maker's own pytest block
+(run at `1be188d5`, before the `bdac746a` master merge) lists three; mine lists one. Nothing is
+hidden by that difference — the merge is the explanation and I verified it.
+
+**One reporting hazard worth recording, because it is the exit-code-masking class this project has
+been bitten by four times.** My captured output contains the pytest warnings summary and the final
+tally **twice**, interleaved from the two streams, and the earlier copy reads
+`2135 passed, 6 skipped, 14 xfailed, 15 warnings in 1533.18s` with **no failure line at all**. Both
+copies describe the same run (2134 + 1 = 2135), but a checker that grepped for the first `passed` line
+would have reported a clean suite. I took the last tally and the explicit `EXIT=1`, and I re-ran the
+named failure in isolation. Anyone reading a captured `uv run pytest` log in this repo should take the
+**last** summary block, not the first.
+
+### 2. Falsification re-run — 9 of the 10 rows, independently, and the M10 defect class swept
+
+I did not trust the maker's table. I applied each stub myself in the throwaway copy, and for each one
+I checked three things the maker's own M10 failure proves are necessary: that the mutated file still
+**`ast.parse`s**, that the RED is an **`AssertionError`** and not a collection / import / syntax
+error, and that the baseline was green and re-greens after revert.
+
+| Row | Claim | My stub | GREEN → RED → GREEN | RED reason | Verdict |
+|---|---|---|---|---|---|
+| M1 | ISS-3: a skip may not license `missing` | `_judged_exhausted` → `return True` | `1 passed 61.53s` → `1 failed 59.35s` → `1 passed 61.53s` | AssertionError | **valid** |
+| M2 | ISS-1: X7 after a replayed action | gutted `_landed_on_domain` to `return None` | `2 passed 0.10s` → `2 failed 0.57s` → `2 passed 0.12s` | `AssertionError: None / assert (None is not None)` | **valid** |
+| M3 | ISS-2 diff half | `_reached` → first-wins | `1 passed 0.35s` → `1 failed 0.56s` → `1 passed 0.11s` | AssertionError | **valid** |
+| M4 | ISS-2 storage half | `ident` → `(self.key(), None)` | `1 passed 3.27s` → `1 failed 0.28s` → `1 passed 0.11s` | AssertionError | **valid** |
+| M5 | ISS-4: broken-ever replays the history | restored the cycle-1 nearest-revision reading | `1 passed 0.11s` → `1 failed 0.23s` → `1 passed 0.11s` | AssertionError | **valid** |
+| M6 | review-HIGH: relapse after a heal | dropped `broken.difference_update(...)` | `1 passed 0.07s` → `1 failed 0.22s` → `1 passed 0.08s` | AssertionError | **valid** |
+| M7 | a SKIP is not an observation of health | the `SKIPPED_UNCHANGED` clause → `and True` | `1 passed 0.05s` → `1 failed 0.18s` → `1 passed 0.09s` | AssertionError | **valid** |
+| M8 | `replay_fills` settles before the X7 check | deleted the `settle(...)` line | `1 passed 0.12s` → `1 failed 0.27s` → `1 passed 0.12s` | AssertionError | **valid** |
+| M9 | `PersonaIndex` sees every stored state | `_at_key` → first-wins | `1 passed 0.27s` → `1 failed 0.26s` → `1 passed 0.09s` | AssertionError | **valid** |
+| M10 | the summary may not contradict `stop_reason` | **not re-run by me** — see below | — | — | accepted indirectly |
+
+**On M10.** I did not re-run it. Its test is the same one M1 drives, and M1 independently proves that
+test runs two real Chromium crawls (the fixture server's own access log shows both walks) and reddens
+on an assertion, so the test is real. The maker's own report of M10's first run being a 0.29s
+`SyntaxError` is the correct call, and I accept the corrected 57.57s re-run.
+
+**I swept the other nine for M10's defect class and none of them shares it.** Only one row's anchor
+sits inside an open bracket at all — **M7**, whose `and any(...)` clause is inside a `sorted(...)`
+call — and I applied it myself, confirmed it parses, and confirmed the red is an `AssertionError`.
+Every other anchor is a whole statement or a whole function body. The generalised trap the brief
+named (a red that is a collection or syntax error, proving nothing) does not appear anywhere else in
+this table.
+
+**One row is weaker than its claim, and it is not blocking.** M3's claim is "every node reached at a
+key is classified". I first stubbed `_reached` to **last-wins** rather than first-wins and
+`test_a_second_screen_at_a_known_url_is_classified_not_silently_dropped` stayed **green** (`1 passed
+in 0.08s`). The test is directionally correct — it reddens on the actual ISS-2 defect (first-wins),
+which is what matters — but it proves "the last node at a key survives", not "every node does". A
+second assertion in the `stored={sig-panel}, reached=[sig-base, sig-panel]` direction would close it.
+Recorded as an observation, not a defect: the shipped code is right and the ISS-2 direction is
+covered.
+
+### 3. Mode D — my own headed-Chromium walk, not the maker's report
+
+AT-243 says fixture-only proof does not count here, so I wrote my own driver (a headed `Project`, not
+`tests/crawl_live.py`'s `headed=False`) and ran the pair end to end through the real
+`build_portal_persona`. Verbatim from my run:
+
+```
+crawl 1 : status completed   stop_reason "frontier empty"   actions 20   screens 9   skipped 0
+          displayed_status completed
+          persona keys /, /deep1..4.html, /wide1..4.html   (9 crawl-sourced)
+crawl 2 : status completed   actions 0   screens 1   skipped_unchanged 1
+          stop_reason "frontier empty -- 1 screen(s) skipped as unchanged since the stored
+                       persona, and so NOT explored on this crawl"
+          displayed_status blocked_no_actions      node statuses: ['skipped_unchanged']
+revision: summary "screens 8 not judged (a bound or a skipped-unchanged screen left the crawl
+                   incomplete)"
+          counts {new 0, changed 0, missing 0, broken 0, missing_unjudged 8}
+          missing []   missing_unjudged /deep1..4.html + /wide1..4.html   healthy []
+forced  : classify(persona, crawl-2 graph, frontier_exhausted=True) -> missing_screens []
+          (the skip is read off the NODES, not off the caller's flag -- the cycle-1 shape is dead)
+PP2     : persona screen keys identical before and after -> preserved
+```
+
+**Cycle 1 produced `missing_screens` with those same 8 entries on this exact pair.** The maker's
+numbers are mine. `displayed_status` reads `blocked_no_actions`, not success, so the human-facing
+status does not launder a one-screen crawl either.
+
+### 4. Ruling on Q5, and on `_judged_exhausted` being all-or-nothing — RATIFIED
+
+**Q5 (pruning is intended; the fix belongs at the claim, not the traversal): ratified.** The two
+closures CR4's own gap note offers are both unimplementable from what is on disk, and I verified both
+reasons rather than taking them on the maker's word. `PersonaScreen.url_template` is a *template*, so
+closure (a) means the crawler `goto`-ing a destination it never observed, which is what X1/X7 exist
+to forbid; `PersonaTransition` carries `from_screen` / `to_screen` as **names**
+(`schema/portal_persona.py`), not node ids or signatures, so closure (b) cannot re-materialise a
+`ScreenNode` to enqueue. Both also cost real navigations, which puts D-040's own ≤10% acceptance
+figure out of reach. **D-040 asking for ≤10% is D-040 asking for the subtree to be pruned.** The
+defect was never that the crawl pruned; it was that the pruned crawl then testified.
+
+**The all-or-nothing predicate: ratified, and it is NOT the AT-100 / Goodhart shape.** I tested the
+premise of my own brief rather than accepting it. Two measurements settle it.
+
+- **`missing` is not a category that can never fire.** It fires on a full crawl — the mode in which a
+  deletion claim is honest. My own probe: stored `/a`, `/gone`, `/seen`, a completed crawl reaching
+  `/a` and `/seen` → `missing_screens == ['/gone']`; and the committed
+  `test_a_removed_screen_lands_on_the_persona_history_even_though_merge_adds_only` asserts D-040(c)'s
+  first half on that path. What the predicate suppresses is `missing` **on an incremental crawl that
+  actually skipped something** — which is correct, because such a crawl by construction did not look
+  at the pruned subtrees.
+- **When it is suppressed, the fact is still disclosed, never dropped.** I built the case the brief
+  asked me to construct — a crawl that skips one screen *and* fully explores a subtree containing a
+  genuine deletion — and the deletion lands in `missing_unjudged`, with the cause named in
+  `stop_reason` and in `describe()`'s prose: stored `/keep` (skipped), `/gone` (deleted), `/seen`
+  (reached) → `missing_screens []`, `missing_unjudged ['/gone']`. The coarseness costs **precision**,
+  never **honesty**. That is the right direction for this project, and it is the opposite of a
+  category that fires for the wrong reason.
+
+**A per-subtree predicate is a future criterion, not a cycle-3 patch.** It needs a parent→child map
+at signature granularity. The persona cannot supply one (names, not keys — above). The only source
+that could is a **prior crawl's own edge set** in the store, which is a mechanism this unit does not
+have and D-040 did not scope. Recorded in the contract as the named closure for a future unit.
+
+### 5. Ruling on Q8 — the CR4 clause is SUPERSEDED; `healthy_screens` is RATIFIED as provenance
+
+**(a) The clause moves, not the code.** CR4's "`broken`'s 'prior state' ruling" (routine amendment,
+2026-09-27, cycle 1) says the prior state is "the most recent `PersonaRevision` that classified
+anything, via its own `broken_screens` list". The maker is right that this is *precisely* the
+implementation `ISS-t165-crawl-traversal-4` was filed against — and the checker wrote both. The
+issue's `expected` is the later and more specific ruling, and it is the correct one. The clause is
+**superseded** in the amendment I made to the contract this cycle. A checker reading the contract
+literally would otherwise have found correct code in violation of it; that was a defect in my own
+predecessor's amendment, and the amendment log says so rather than quietly rewriting it.
+
+**(b) `healthy_screens` is provenance, not a sixth category — verified against the runtime, not the
+docstring.** The maker flagged this as the single thing most likely to fail, so I asserted every part
+of it directly:
+
+```
+CATEGORIES            = 5 entries (new / changed / missing / broken / missing_unjudged)
+PROVENANCE            = ('healthy_screens',) ;  CATEGORIES intersect PROVENANCE = empty
+counts() keys         = ['new','changed','missing','broken','missing_unjudged']  (5, no healthy)
+every list field on PersonaRevision is accounted for by CATEGORIES | PROVENANCE  (no orphan field)
+pre-T-165 raw dict through PortalPersona.model_validate -> loads; counts() all zeros;
+    healthy_screens defaults to []  (i.e. "recorded no observation", never "all healthy")
+extra="forbid" rejects an UNKNOWN key that is PRESENT; an old file simply lacks the new ones
+```
+
+So the distinction survives `extra="forbid"` and PP2. PP2 is about not dropping or rewriting stored
+material, and this adds a defaulted field to an append-only revision — my Mode D walk confirms the
+persona's screen keys are identical before and after the second crawl.
+
+**One cost the maker did not name, and it is a note not a defect.** `extra="forbid"` cuts the other
+way: a persona written by *this* build cannot be loaded by a **pre-T-165** build, which rejects
+`healthy_screens`. That is a rollback hazard, not a load bug — and it is class-level, already true of
+`missing_unjudged` and the four CR4 category fields from cycle 1, so this field does not introduce
+it. Recorded in the contract.
+
+**I also closed attack item 12 for the maker.** Its worry was a recovery observed on a crawl that
+writes no revision. `stages/portal_persona.py` gates the revision on `if summary:` where `summary`
+joins the merge summary with `describe(diff)`, and `describe()` emits "N recovered" whenever
+`healthy_screens` is non-empty — so a recovery-only crawl always writes a revision. The plumbing
+holds by construction, not by the maker's single probe.
+
+### 6. Ruling on Q7 — the persona growth is ACCEPTED, named in the contract, with a closure
+
+I reproduced the measurement rather than the claim: five crawls of one URL with a rotating signature
+give stored screens **1, 2, 3, 4, 5** and `changed=['/']` from crawl 2 on. I also checked the half
+the maker asserted without showing: **revisions go 1, 2, 3, 4, 5 too** — but they did before this
+change as well (a rotating signature always differed from the single stored one), so the maker's
+"growth, not new noise" framing is accurate. And I confirmed the good case from the direction the
+maker did **not** test: a state that *alternates* between crawls (stored `{A, B}`, the crawl seeing
+only `A`, then only `B`, then only `A`) produces `changed=[]`, `missing=[]`, `missing_unjudged=[]` on
+every crawl — no churn.
+
+**Accepted.** `screen_identity.structural_signature` already excludes `in_row` elements precisely so
+that list pages do not churn, so an unstable signature is a fingerprinting or product defect, not a
+normal case; and a screen you never learn about is worse than a screen you learn about twice. The
+contract now **names** the cost, with the measurement, and names the maker's option (b) — one entry
+per key carrying a set of signatures — as the preferred closure for a future unit, because it is
+PP2-compatible where capping is not. This is not left to memory.
+
+### 7. The hole: a deleted second state at a shared URL — reproduced, ruled a DISCLOSED residual
+
+**It is real, and it is worse than the manifest says.** Stored persona with two structurally distinct
+states at `/` (`sig-base`, `sig-panel`) plus `/other.html`; a **full, exhausted, non-incremental**
+crawl in which the panel state is genuinely gone and the base state survives:
+
+```
+new [] · changed [] · missing [] · broken [] · missing_unjudged [] · healthy []
+describe(diff) -> None
+```
+
+`describe()` returning `None` means `build_portal_persona`'s `if summary:` gate does not fire, so
+**no `PersonaRevision` is written at all** — the deletion reaches no category, no count, and no line
+in `knowledge.md`'s history section. It generalises: three stored states, one gone, same total
+silence. My control proves the machinery is otherwise sound — delete `/other.html` (its own URL) on
+the same evidence and `missing_screens == ['/other.html']`.
+
+**Ruled: a disclosed residual, not a cycle-3 blocker.** Three findings drove this, and the third is
+the one that decided it.
+
+1. **It is not a regression; it is the narrowed remains of a gap the contract already recorded as
+   open-and-not-ratified.** Before this unit, `_incoming_screens` / `_merge` deduped on `key()`, so
+   the second state was never *stored* — CR4's own ISS-2 gap note says the losing screen was
+   "invisible to this classification entirely". It now appears as `new`, `changed` and `broken`; only
+   its deletion does not. Strictly narrower, and this unit is what narrowed it.
+2. **The maker took the closure the contract itself offered.** CR4's gap note names two remedies and
+   says either closes it; the maker took "change the reachability lookup to keep every
+   same-key-different-signature screen". The remedy as written does not fully close the harm the same
+   note described. That is a defect in the **gap note**, which was the checker's to write and is now
+   the checker's to correct — not grounds to fail an implementation that did what the contract asked.
+3. **The naive closure reintroduces a false positive, and I worked it out rather than assuming it was
+   easy.** The obvious rule — a key whose reached signatures are a strict subset of its stored ones
+   lost a state — fires on exactly the case §6 measures as *correct today*: an SPA panel state the
+   crawl simply did not reach this run (because typing was off under X10-b, or the toggle was not
+   clicked) is indistinguishable, from the stored evidence, from a panel state that was removed. So
+   the naive fix would turn a silence into a **fabricated deletion on every crawl of a two-state
+   screen** — the same trade this unit exists to refuse, and the one the maker correctly refused on
+   ISS-4. A sound closure needs per-signature *reachability* evidence the crawl does not currently
+   record. That is a criterion with its own falsifiable test, not a patch, and attempting it in cycle
+   3 of 3 — on a unit where two of four cycle-2 fixes themselves introduced defects — is how a
+   silence becomes a false alarm.
+
+The contract now carries the residual **with that false-positive analysis**, so the next unit cannot
+take the naive rule by accident. That is the reason I am recording it rather than only failing or
+only passing.
+
+### 8. The required test is real
+
+`test_a_real_incremental_recrawl_of_an_unchanged_site_reports_no_deletion` genuinely runs two
+`live_crawl` Chromium crawls over a copied `deep_site`, seeds the persona from crawl 1 via the real
+`build_portal_persona`, and asserts on the revision crawl 2's own graph produces through `classify()`
+— the join that did not exist in cycle 1. It also guards itself against silently degrading:
+`assert second.skipped_unchanged > 0` ("nothing was skipped — this is not the incremental path") and
+`assert len(known) > 1` ("the deletion claim would be vacuous"). It **would** fail if the fix were
+reverted: my M1 run reddened it in 59.35s with both crawls' HTTP requests in the fixture server's
+log, and it re-greened in 61.53s. A 0.3s red would have been the M10 disease; 59s is two real walks.
+
+### 9. Q4 and Q6 — ratified as filed
+
+**Q4 (a skip goes in `missing_unjudged`, not a sixth category): ratified.** The category's stated
+purpose is "a disclosed unknown, never a finding", and a skip produces exactly that. The contract's
+text and `PersonaRevision.missing_unjudged`'s own field description both said "BOUND-TRUNCATED" and
+are amended to name both causes. `describe()` already names both, and the non-contradiction with
+`stop_reason` is asserted by a real-crawl test (M10) — which matters, because a skip-truncated crawl
+still ends with `stop_reason: frontier empty`.
+
+**Q6 (an incremental crawl cannot see a change below a skipped screen): ratified as a disclosed
+capability limit, named in CR3.** Reproduced: stored `/` and `/deep3.html`, crawl 2 skips `/` →
+`missing_unjudged ['/deep3.html']`, nothing else. Honest (it says it did not look) but not a change
+detector. CR3's own falsifiable test only covers the all-changed and none-changed arms, so the
+contract promised nothing either way; it now says so explicitly and names what a future unit needs
+(a cheap navigation-only re-walk that does not count as exploration).
+
+### 10. Things I checked that nobody asked me to
+
+- **`PersonaRevision.counts()` has no caller in `src/` at all** — `grep -rn "\.counts()" src/` is
+  empty. Its only consumers are tests and the future T-168. That is not a CR4 violation (CR4 asks for
+  a machine-checkable *record*, and the fields are stored), but it means the five-category surface is
+  currently asserted only by tests. Worth knowing before T-168 renders it.
+- **`missing_unjudged` likewise has no rendering surface** — the only path to a human is
+  `describe()`'s sentence via `portal_persona_view._history_section`. CR4's "every consuming surface
+  must treat this as distinct, never folded into `missing`'s count" is satisfied vacuously today, and
+  satisfied in substance because the sentence names it.
+- **CR5's X16 surfaces all carry the skip**, checked by grep rather than trusted: `crawl_coverage` (a
+  named `skipped_unchanged` hole reason), `crawl_report` (workbook), `explore_status.skip_note` (the
+  one place that owns the wording, C3), `ui/crawl_view` (a tile), `ui/routes_crawls` (the table cell),
+  `cli_crawl:116` (the CLI line), and `Crawl.skipped_unchanged` itself in `crawl.json`.
+- **`_previously_broken` is bounded.** Attack item 7 worried about a long history. 200 revisions
+  cycling 7 keys → a 7-element frozenset. It is bounded by distinct keys, not by history length.
+- **FlowSpec-sourced screens are correctly out of scope.** A persona with a signature-less `/taught`
+  and a crawled `/crawled`, on an exhausted crawl reaching neither, reports
+  `missing_screens ['/crawled']` and says nothing about `/taught`. CR4's own scoping sentence holds in
+  code.
+- **`test_a_skipped_screen_is_evidence_of_nothing` still means what it says** (attack item 7's third
+  worry): it asserts an exhaustive dict including `missing_unjudged: []`, which is right — a skipped
+  screen *was* reached, so it is not absent.
+
+### 11. Contract amendments I made this cycle
+
+`qa/contracts/crawl-traversal.md`, in one append-only amendment-log entry plus the criterion edits it
+authorises, plus the `Status:` flip. I wrote the criterion edits while the contract was still
+DRAFT and deliberately left the flip until last, because a dual-check unit has not passed until check
+B agrees; check B's cycle-2 PASS was on disk by then (`2d6edecc`), so the flip to **ACTIVE** is
+warranted rather than pre-emptive, and the Status line says so. Check B made **no** contract edits
+this cycle — I verified that the only deletions in my `git diff` of this file are the superseded
+clauses and closed gap notes I removed myself, so nothing of check B's was clobbered.
+
+1. CR4's "`broken`'s 'prior state' ruling" — **superseded** by the history-replay reading (Q8a).
+2. `healthy_screens` — **ratified as PROVENANCE, not a sixth category** (Q8b), with the runtime
+   assertions above and the `extra="forbid"` rollback note.
+3. CR4 / CR5 `missing_unjudged` — definition widened to name **both** causes, a bound and a CR3 skip
+   (Q4).
+4. CR3 / CR4 — pruning **ratified as intended** (Q5), with why closures (a) and (b) are
+   unimplementable from stored data, and why the all-or-nothing predicate is not a never-firing
+   category.
+5. CR3 — the change-below-a-skip **capability limit named** (Q6), with what a future unit needs.
+6. CR4 — the persona-growth cost **named with the measurement** (Q7), option (b) recorded as the
+   preferred closure.
+7. CR4's ISS-2 gap — **storage / reachability half marked closed**; the **narrowed residual** (a
+   deleted state at a shared URL) recorded as the new open gap, **with the false-positive analysis
+   that rules out the naive closure**.
+8. CR4's ISS-3 gap and CR7's ISS-1 gap — **marked closed**, with the evidence above.
+
+### 12. Ledger
+
+`qa/issues.jsonl`, appended byte-preserving (one line each, nothing re-serialised). Ids carry an `a`
+suffix-prefix (`-a5` … `-a8`) deliberately, so they cannot collide with anything check B files
+concurrently on the same file.
+
+- `ISS-t165-crawl-traversal-a5` — `PersonaIndex.__init__`'s first-wins map (Q9.1), **verified fixed**.
+  Falsified by me as M9.
+- `ISS-t165-crawl-traversal-a6` — `replay_fills`' X7 check with no `settle()` in front of it (Q9.2),
+  **verified fixed**. Falsified by me as M8.
+- `ISS-t165-crawl-traversal-a7` — the plain-union `_previously_broken` silently swallowing a relapse
+  after a heal, introduced in `96bacbbc` and fixed in `48238b4f`, **verified fixed**. Filed because a
+  defect that existed for one commit still existed; falsified by me as M6.
+- `ISS-t165-crawl-traversal-a8` — the deleted-second-state-at-a-shared-URL silence, **open**,
+  disclosed in the contract, deferred to a future unit with the closure condition named.
+
+`ISS-t165-crawl-traversal-1` … `-4` are now **closed as verified** (`fixed_date` /
+`verified_date` 2026-09-27). I had planned to leave that to whoever wrote last with both verdicts in
+hand, precisely because check B was live on this file — and with check B's PASS already committed at
+`2d6edecc`, that party is me. The close-out is a **minimal in-place edit**: only the
+`status` / `fixed_date` / `verified_date` substring on those four lines changed, asserted line-for-line
+against the original bytes before writing, nothing re-serialised. The ten documented `id_collision`
+rows were not touched. Check B's own cycle-2 ledger addition (`AT-650`) is intact.
+
+### For Umesh
+
+**No HUMAN_GATE from check A.** Every ruling this cycle needed was a contract call inside my
+authority, and I made all six. The one judgement worth your eye is §7: a product with two states at
+one URL, one of which is genuinely deleted, is reported **nowhere** — and I passed the unit anyway,
+because the alternative available in one cycle would have replaced that silence with a fabricated
+deletion on every crawl of every SPA toggle. The contract now carries the case, the measurement and
+the reason the obvious fix is wrong, so it cannot be lost. If you would rather the silence be
+reported loudly and imprecisely instead, that is a product call and it overrides mine.
+
+**Both checks have passed; the merge is yours or the orchestrator's.** I did not merge, did not
+push, and did not flip the manifest status. `qa/contracts/crawl-traversal.md` is now **ACTIVE**, with
+one open gap named in it (`ISS-t165-crawl-traversal-a8`, §7).
