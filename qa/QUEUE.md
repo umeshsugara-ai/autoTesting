@@ -1131,6 +1131,42 @@ is authoritative and why, collapses them, and adds a `doctor` check asserting id
 class cannot recur. **Hold until the current wave drains** — `qa/issues.jsonl` has had three
 concurrent writers this session and already produced one merge conflict.
 
+
+### CLOSED as already-ruled — `ISS-ledger-duplicate-ids` was a relitigation, and I filed it
+
+**Closed by:** the maker orchestrator, 2026-09-27, on evidence that pre-dates the row.
+
+The ten ids are real, and `qa/issues.jsonl` does carry 662 rows against 652 unique ids. Everything
+after that in the row above is wrong, and the row should never have been filed:
+
+- **All ten colliding rows already carry an `id_collision` field** explaining the collision and naming
+  the disambiguator (`checker`). Not one of them is an undetected duplicate.
+- **They are not duplicate copies — they are unrelated issues sharing an id**, minted concurrently by
+  two checkers in a dual check. AT-547 is both "three ledger-row fixes landed as bare commits" and
+  "at540 unit deleted three existing tests". That is worse than a duplicate, and it is precisely what
+  the annotations exist to flag.
+- **A checker already ruled on this and a whole unit already reconciled it**:
+  `qa/verdicts/at319-issue-id-collision-reconcile.md`. The ruling is explicit — *"Not renumbered, per
+  the AT-293 ruling (verdicts and manifests cite ids by number); disambiguate by the `checker` field."*
+  Renumbering would silently invalidate every citation in every verdict and manifest that already
+  names those ids. The collision is the lesser harm and was chosen deliberately.
+
+**So the backlog item was a phantom** — work proposed against a question that had been decided, with
+the decision written on the very rows I counted. Removing it is worth more than the row was.
+
+**Why it got filed, which is the part worth keeping.** `docs/FEATURES.jsonl` has 61 rows, 61 unique,
+zero duplicates. The duplicates are in `qa/issues.jsonl`. I filed this row against the wrong file,
+carried that error into two `SERIAL:` hold lines that blocked other work on a non-existent write
+conflict, and never ran `autotester ledger relitigation` — the gate that exists for exactly this and
+that D-004 requires before picking up a unit. Four wrong assertions from me this session, all the same
+shape: **asserting without looking.** See the generalised rule under
+`ISS-sweep-unverified-negative` above; this instance extends it from *negative* existence claims to
+positive ones.
+
+**Standing consequence:** before any future unit is queued against a ledger or an id set, run
+`autotester ledger relitigation "<title>"` first and paste the result into the row. A row that cannot
+show that check is not ready to dispatch.
+
 ## Correction — the `at438-display-contents` answered-gate finding was mostly wrong
 
 **Corrects:** the `at438-display-contents — an answered gate nobody acted on` row above, filed by
