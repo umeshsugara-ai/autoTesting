@@ -1420,7 +1420,7 @@
     {
       "id": "T-186",
       "title": "AT-453: closed <details> judged by ::details-content display as well as content-visibility (own unit, max 2 cycles)",
-      "status": "pending",
+      "status": "done",
       "deps": [],
       "base_criticality": "medium",
       "criticality": "medium",

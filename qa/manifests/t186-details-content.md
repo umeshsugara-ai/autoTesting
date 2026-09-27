@@ -285,4 +285,49 @@ what a real browser's paint says the page is, verified against a real, uncontrol
   unit's `display:contents`/`display:inline` conjunct accepts on the pseudo, and is out of scope
   here.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1 of a 2-cycle cap)
+
+Verdict `qa/verdicts/t186-details-content.md`, **Cycle checked: 1**, merged `336433d1`, pushed to
+`origin/master`. `AT-453` moves open -> verified with a `regression_check` confirmed red-on-revert.
+`T-186` is `done`. The second cycle allowed by D-048 was not needed.
+
+**The headline check came back cleaner than this manifest claimed, and the correction runs against
+the maker, not for it.** I dispatched the byte-level comparison as the single most important item
+because this manifest described the applied expression as "reformatted into an IIFE for house
+style" — which would mean the shipped line was *not* the thing the prior checker validated against
+26 details-shaped pages. The checker ran a programmatic string equality rather than a visual diff
+and found `visual_order.js:77` **byte-identical** to `fixdir3.py`'s `NEWL` candidate (`line == NEWL`
+-> `True`). `fixdir3.py`'s candidate was **already** in the IIFE form; nothing was reformatted and
+there was never any short-circuit or truthiness risk to check. So the manifest overstated its own
+deviation, and my dispatch amplified that into a headline attack point. Recorded because a manifest
+that misdescribes its own change is a defect in the manifest even when the code is right.
+
+**No false positive, which is the direction U14(b) actually protects.** Making the hidden-branch
+stricter reports more text as visible by construction, so the risk was text genuinely hidden by a
+closed `<details>` now leaking through. The checker found none: 68 passed / 14 xfailed on U14's own
+verify line, and it added its own extra case (S12, `<details style="display:contents">` with no
+pseudo override) on top of the ordinary closed-details and `content-visibility:hidden` cases —
+all still correctly report hidden.
+
+**Falsification reproduced independently**, in the checker's own throwaway copy via
+`git archive HEAD` (it noted `git stash create` had nothing to snapshot, the worktree already being
+clean — the right substitution, since HEAD is the post-unit state). GREEN before (`1 passed in
+6.94s`), single-hunk revert applied to the copy only, RED after on the same node id and the same
+`CONTENTS_DETAILSCONTENT_CONTENTS_A3` sentinel. Bound worktree confirmed untouched throughout.
+
+**Its own live run, not a re-read of mine:** headed Chromium 151.0.7922.34, direct `file://`
+navigation, through the shipping `autotester.browser.observe.visual_text()` rather than a
+hand-copied JS string — `qa/evidence/browser-t186-details-content-2026-09-27-checker/report.json`.
+Full suite run by the checker with the exit code captured directly and no pipe: `3 failed, 2033
+passed, 6 skipped, 14 xfailed` — the three known pre-existing failures, no fourth.
+
+**`Persona walk: skip` ruled justified, and tested rather than accepted:** the checker checked the
+stated reason against `git diff 031d1e92^..031d1e92 --stat` and confirmed no path under `ui/`,
+`pages/` or `components/`. No `false-persona-skip` finding.
+
+**The `done_check` ruling stands as the maker stated it:** `uv run pytest tests/ -k details`
+collects exactly one unrelated pre-existing test and is not acceptance. This PASS rests on the
+manifest's own cited commands, every one re-run by the checker. T-186 needs re-registering with a
+node-id-scoped check, and that repair stays with `ISS-at638-remainder-2`, which already names
+T-186 explicitly — correctly not duplicated here.
+
