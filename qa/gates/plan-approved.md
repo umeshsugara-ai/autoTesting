@@ -8,12 +8,26 @@ Backfilled: 2026-09-27T08:17:41Z — 247 manifests — at011-loop-md,at015-at028
 
 ## Approvals (three required before any NEW feature unit builds)
 
-Answered: (pending) — intent — docs/intent.md
-Answered: (pending) — spec — docs/spec.md
-Answered: (pending) — plan — docs/plan.md
+Answered: 2026-09-27T08:43:48Z — intent APPROVED — Umesh, AskUserQuestion in the 2026-09-27 maker session ("Approve all three")
+Answered: 2026-09-27T08:43:48Z — spec APPROVED — same answer, same session
+Answered: 2026-09-27T08:43:48Z — plan APPROVED — same answer, same session; scope decisions recorded in docs/plan.md (max parallel; Track C through C3; T-154/T-155 held)
 
 Drafting note: this is a backfill, not a fresh init. `docs/intent.md` is drafted from what
 already exists (target.md north star, .goal/goal.json, docs/ARCHITECTURE.md, qa/contracts/), and
 Umesh gives ONE approval per artifact — a full 15–25 question grill is not re-run for work that
 is already shipped and checker-verified. A full mini-grill IS still required per new feature
 under docs/features/<slug>/.
+
+## User types (intent.md Q2) — partially answered 2026-09-27T08:43:48Z
+
+Umesh's answer selected BOTH "All five as drafted" AND "dev + tester + lead only". Recorded as
+given rather than resolved by the maker: `dev`, `tester` and `lead` are **confirmed** (they appear
+in both selections); `trainer` and `release-manager` stay in intent.md as **drafted, unconfirmed**
+and do not seed personas yet. T-190 seeds `qa/adapter.json` personas for the three confirmed types
+only. One line from Umesh flips the other two.
+
+## Q1 audience — still open
+
+intent.md records `internal-tool`. Not yet explicitly answered; the cheaper reading was assumed so
+persona walks stay capped at 1-2 user types per unit. If AutoTester is meant to be onboarded by
+other teams (`external-ui`), every UI unit's walk widens and this needs re-answering.

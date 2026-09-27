@@ -47,14 +47,14 @@ than an honest gap.
 run; persona walks stay limited to 1–2 of the user types below per unit (cost gate).
 *Open question Q1 below asks whether this becomes `external-ui`.*
 
-### User types (drafted from how the system is actually used — NOT yet founder-confirmed)
+### User types (`dev`, `tester`, `lead` confirmed by Umesh 2026-09-27; the other two still drafted)
 | id | who | goal | blocks on | patience | mental model | confirmed |
 |---|---|---|---|---|---|---|
-| `dev` | Vidysea developer who just pushed a commit | know within minutes whether the push broke an existing flow | a report that says FAIL without the failing step, the judge's reason or a repro | 2 | CI output, stack traces | — |
-| `tester` | the human tester AutoTester is measured against | onboard a product, review the learned FlowSpec, prune bad cases before they cost tokens | cases generated with no way to tell which are actually runnable | 4 | manual test plans, Excel case sheets | — |
-| `lead` | Umesh / product lead | see the trust number and the damage-control report; decide ship / no-ship | coverage that looks green because the unexplored part is invisible | 2 | dashboards, one-screen summaries | — |
-| `trainer` | domain expert supplying recordings | teach a flow by recording it once; confirm a reported bug is real | being asked for a video with no indication of which screen is missing | 3 | screen recordings, WhatsApp, Excel issue sheets | — |
-| `release-manager` | whoever runs the release | trigger the approved suite against a release and get a pass/fail with consent respected | a run that writes to production, or one that cannot be resumed after a crash | 1 | release checklists, approval gates | — |
+| `dev` | Vidysea developer who just pushed a commit | know within minutes whether the push broke an existing flow | a report that says FAIL without the failing step, the judge's reason or a repro | 2 | CI output, stack traces | Umesh, 2026-09-27 |
+| `tester` | the human tester AutoTester is measured against | onboard a product, review the learned FlowSpec, prune bad cases before they cost tokens | cases generated with no way to tell which are actually runnable | 4 | manual test plans, Excel case sheets | Umesh, 2026-09-27 |
+| `lead` | Umesh / product lead | see the trust number and the damage-control report; decide ship / no-ship | coverage that looks green because the unexplored part is invisible | 2 | dashboards, one-screen summaries | Umesh, 2026-09-27 |
+| `trainer` | domain expert supplying recordings | teach a flow by recording it once; confirm a reported bug is real | being asked for a video with no indication of which screen is missing | 3 | screen recordings, WhatsApp, Excel issue sheets | drafted — not confirmed |
+| `release-manager` | whoever runs the release | trigger the approved suite against a release and get a pass/fail with consent respected | a run that writes to production, or one that cannot be resumed after a crash | 1 | release checklists, approval gates | drafted — not confirmed |
 
 ### Systems
 `src/autotester/` (stages · schema · browser · providers · ui) · Playwright/Chromium · the
@@ -82,8 +82,8 @@ construction**.
 
 - [ ] **Q1** — Does AutoTester stay `internal-tool` (Vidysea team only) or become `external-ui`
       (other teams onboard their own products)? This sets how expensive every persona walk is.
-- [ ] **Q2** — Are the five user types above right, and which are confirmed? (`dev`, `tester`,
-      `lead`, `trainer`, `release-manager`.)
+- [x] **Q2** — ANSWERED 2026-09-27 (partial): `dev`, `tester`, `lead` confirmed. `trainer` and
+      `release-manager` remain drafted and do not seed personas yet — see qa/gates/plan-approved.md.
 - [ ] **Q3 (carried, AT-281)** — The real two-mode acceptance thresholds for O6/T-169: what recall,
       false-positive rate and time actually count as beating the human? Open since 2026-09-11.
 - [ ] **Q4 (carried, AT-218)** — The policy on vacuous guards: what makes a test admissible as
