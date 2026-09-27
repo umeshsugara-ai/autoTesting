@@ -22,12 +22,16 @@ from autotester.stages.coverage import unreached_screens
 from autotester.stages.explore_safety import FORM_SUBMIT_REFUSED, OFF_DOMAIN_LINK_REFUSED
 
 if TYPE_CHECKING:
-    from autotester.stages.explore import ExploreRuntime
+    from autotester.stages.explore_runtime import ExploreRuntime
 
 PERFORMED = frozenset({EdgeOutcome.NAVIGATED, EdgeOutcome.SAME_SCREEN, EdgeOutcome.DIALOG})
 REFUSED_BEFORE_TRYING = frozenset({EdgeOutcome.DENIED_POLICY, EdgeOutcome.SKIPPED_UNNAMED})
-REASONS = ("bound:", "policy:", "unnamed", "off_domain", "error", "login_wall", "not_visited")
-"""The closed set (V7b). `bound:` and `policy:` carry a name; the rest are exact."""
+REASONS = ("bound:", "policy:", "unnamed", "off_domain", "error", "login_wall", "not_visited",
+           "skipped_unchanged")
+"""The closed set (V7b). `bound:` and `policy:` carry a name; the rest are exact.
+`skipped_unchanged` is CR3's incremental skip, added as a NAMED category beside the
+others exactly as CR5 requires -- a skip must stay visible on every surface, never
+disappear into "explored"."""
 
 
 def is_candidate(el: ElementRef) -> bool:
@@ -67,6 +71,8 @@ def _untried_reason(node: ScreenNode, tried: int, bounds: CrawlBounds, bound: st
     while this screen was being visited."""
     if node.status is NodeStatus.QUEUED:
         return "not_visited"
+    if node.status is NodeStatus.SKIPPED_UNCHANGED:
+        return "skipped_unchanged"  # CR3/CR5: taken on trust, not exercised
     if node.status is not NodeStatus.EXPLORED:
         return "error"  # the screen was abandoned (lost, or a dialog storm)
     if tried >= bounds.per_node_action_cap or bound is None:
@@ -139,7 +145,12 @@ def compute_coverage(*, status: CrawlStatus, bound: str | None, bounds: CrawlBou
             holes.append(CoverageHole(node_id=node.id, url_template=node.url_template,
                                       selector=el.selector, name=el.name, reason=reason))
     not_entered = _screens_not_entered(nodes, edges, bounds)
-    whole = status is CrawlStatus.COMPLETED and not not_entered
+    # CR5: a crawl that SKIPPED screens as unchanged did not explore the whole
+    # portal, however cleanly its frontier drained. `whole` is what lets the
+    # headline read 100%, so a skip must clear it -- otherwise an incremental
+    # crawl that looked at one screen would report full coverage of the product.
+    skipped_any = any(n.status is NodeStatus.SKIPPED_UNCHANGED for n in nodes)
+    whole = status is CrawlStatus.COMPLETED and not not_entered and not skipped_any
     percent = 100 if discovered == 0 else exercised * 100 // discovered
     coverage = CrawlCoverage(
         controls_discovered=discovered, controls_exercised=exercised, holes=holes,

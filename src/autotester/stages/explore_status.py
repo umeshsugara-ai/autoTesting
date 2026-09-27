@@ -202,7 +202,15 @@ def displayed_status(crawl: Crawl, *, now: datetime | None = None) -> CrawlStatu
     new `CrawlStatus` member (`schema/enums.py` sits at its own 300-line C2 cap with no
     safe trim). `crawl.json` itself is never rewritten by this check, so a crawl that is
     genuinely still running reverts the instant its next heartbeat lands."""
-    if crawl.status is CrawlStatus.COMPLETED and crawl.actions == 0 and crawl.denied > 0:
+    # CR5 (crawl-traversal.md) extends this display rule to the incremental
+    # crawl's worst case: a persona-seeded crawl that skipped every screen
+    # performed NO action and learned nothing, which is the same shape AT-242
+    # already refuses to show as success -- it merely arrived at it by trusting
+    # a previous crawl rather than by being refused. A crawl that skipped SOME
+    # screens and really explored others is untouched; its incompleteness is
+    # carried by `stop_reason` and by coverage never reading 100%.
+    if crawl.status is CrawlStatus.COMPLETED and crawl.actions == 0 and (
+            crawl.denied > 0 or crawl.skipped_unchanged > 0):
         return CrawlStatus.BLOCKED_NO_ACTIONS
     if crawl.status is CrawlStatus.RUNNING and _heartbeat_stale(crawl, now or datetime.now(UTC)):
         return CrawlStatus.ABORTED

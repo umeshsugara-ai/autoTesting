@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 
 from autotester.core.redact import Redactor
 from autotester.schema.base import utc_now
-from autotester.schema.enums import EdgeOutcome, IssueKind
+from autotester.schema.enums import CrawlStatus, EdgeOutcome, IssueKind
 from autotester.schema.portal_persona import (
     AuthField,
     AuthShape,
@@ -34,6 +34,7 @@ from autotester.schema.portal_persona import (
     PortalPersona,
     TaughtFlow,
 )
+from autotester.stages import persona_changes
 
 if TYPE_CHECKING:  # a stage names the store only in a signature (execute.py's convention)
     from autotester.schema.crawl import CrawlIssue
@@ -251,16 +252,42 @@ def _persist(store: ProjectStore, persona: PortalPersona,
     return persona
 
 
+def _frontier_exhausted(store: ProjectStore, crawl_id: str | None) -> bool:
+    """CR5: may this crawl's evidence support a `missing` claim at all?
+
+    Only a crawl that really drained its frontier can say a stored screen is
+    gone. `COMPLETED` is exactly that judgement, already made by
+    `explore_status.terminal_status` — every other status (a fired bound, a
+    login wall, an abort) means the crawl never saw the whole product, so
+    `persona_changes` records the absences as unjudged instead."""
+    if crawl_id is None:
+        return False
+    crawl = store.load_crawl(crawl_id)
+    return crawl is not None and crawl.status is CrawlStatus.COMPLETED
+
+
 def build_portal_persona(
     store: ProjectStore, *, crawl_id: str | None = None, redactor: Redactor | None = None
 ) -> PortalPersona:
     """Build or update the durable persona from the crawl graph + reviewed
-    FlowSpec, persist it, and regenerate `knowledge.md` (PP1-PP6)."""
+    FlowSpec, persist it, and regenerate `knowledge.md` (PP1-PP6).
+
+    CR4: the merge itself stays PP2 add-only — nothing existing is dropped,
+    blanked or rewritten. What is new is that the dated revision now also
+    carries the machine-checkable new/changed/missing/broken classification, so
+    a screen that DISAPPEARED is recorded even though an add-only merge has, by
+    construction, nothing to add for it."""
     project = store.load_project()
     incoming = _build_incoming(store, project, crawl_id)
     existing = store.load_portal_persona()
     persona, summary = _merge(existing, incoming)
-    if summary is not None:
+    diff = persona_changes.classify(
+        existing, store.list_nodes(crawl_id) if crawl_id else [],
+        frontier_exhausted=_frontier_exhausted(store, crawl_id))
+    note = persona_changes.describe(diff)
+    summary = "; ".join(part for part in (summary, note) if part)
+    if summary:
         persona = persona.model_copy(update={
-            "history": [*persona.history, PersonaRevision(at=_now(), summary=summary)]})
+            "history": [*persona.history,
+                        PersonaRevision(at=_now(), summary=summary, **diff)]})
     return _persist(store, persona, redactor)

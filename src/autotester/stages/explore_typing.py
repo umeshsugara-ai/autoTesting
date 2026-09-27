@@ -18,7 +18,7 @@ from autotester.browser.observe import observe
 from autotester.browser.session import NavigationRefused, check_destination
 from autotester.schema.enums import Action, EdgeOutcome, IssueKind
 from autotester.schema.screen_graph import ScreenEdge, ScreenNode
-from autotester.stages import crawl_coverage
+from autotester.stages import crawl_coverage, explore_replay
 from autotester.stages.explore_node import (
     _enqueue,
     _heartbeat_due,
@@ -32,7 +32,7 @@ from autotester.stages.screen_identity import node_from
 from autotester.stages.synthetic_values import synthetic_value
 
 if TYPE_CHECKING:
-    from autotester.stages.explore import ExploreRuntime
+    from autotester.stages.explore_runtime import ExploreRuntime
 
 
 def _type_one(rt: ExploreRuntime, node: ScreenNode, el: object) -> ScreenEdge:
@@ -53,6 +53,11 @@ def _type_one(rt: ExploreRuntime, node: ScreenNode, el: object) -> ScreenEdge:
         else:
             value = synthetic_value(el.name, el.selector, el.role)  # type: ignore[attr-defined]
             rt.session.fill(el.selector, value)  # type: ignore[attr-defined]
+        # CR2: remember what was really typed, so `explore_return` can re-issue
+        # it when it needs this screen back. Recorded only AFTER the browser
+        # accepted it -- a value that raised was never typed and must never be
+        # replayed as if it had been.
+        explore_replay.record(rt, node.id, el, action, value)  # type: ignore[arg-type]
     except NavigationRefused as exc:
         return record_edge(rt, node, el, action, EdgeOutcome.OFF_DOMAIN_REFUSED, str(exc))
     except Exception as exc:

@@ -131,12 +131,36 @@ class Gotcha(BaseModel):
 
 class PersonaRevision(BaseModel):
     """One dated entry in the persona's history: when it was updated and a
-    non-empty summary naming what changed (PP3)."""
+    non-empty summary naming what changed (PP3).
+
+    CR4 adds the four change-tracking categories as MACHINE-CHECKABLE counts plus
+    the keys behind each, rather than only the prose `summary` PP3 already had: a
+    sentence cannot be diffed, and T-168 needs to read what moved. `missing_unjudged`
+    is the honesty field — a bound-truncated frontier cannot tell a genuinely absent
+    screen from one it simply never reached (CR5), so those are counted here and
+    NEVER as `missing`."""
 
     model_config = ConfigDict(extra="forbid")
 
     at: str = Field(description="ISO-8601 UTC timestamp of the update")
     summary: str = Field(description="what this update changed — never blank (PP3)")
+    new_screens: list[str] = Field(default_factory=list, description="CR4: keys first seen")
+    changed_screens: list[str] = Field(
+        default_factory=list, description="CR4: keys whose live signature differs from the stored")
+    missing_screens: list[str] = Field(
+        default_factory=list, description="CR4: stored keys an EXHAUSTED frontier did not reach")
+    broken_screens: list[str] = Field(
+        default_factory=list, description="CR4: keys reached with an error/off-domain status")
+    missing_unjudged: list[str] = Field(
+        default_factory=list,
+        description="CR5: stored keys not reached by a BOUND-TRUNCATED crawl — unknown, never "
+                    "reported as missing. A non-empty list means this diff is incomplete.")
+
+    def counts(self) -> dict[str, int]:
+        """CR4: the count per named category — what a surface renders and a test asserts."""
+        return {"new": len(self.new_screens), "changed": len(self.changed_screens),
+                "missing": len(self.missing_screens), "broken": len(self.broken_screens),
+                "missing_unjudged": len(self.missing_unjudged)}
 
     @field_validator("summary")
     @classmethod

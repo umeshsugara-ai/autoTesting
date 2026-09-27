@@ -15,10 +15,11 @@ from typing import TYPE_CHECKING
 
 from autotester.browser.observe import observe
 from autotester.schema.screen_graph import ScreenNode
+from autotester.stages import explore_replay
 from autotester.stages.screen_identity import node_from
 
 if TYPE_CHECKING:
-    from autotester.stages.explore import ExploreRuntime
+    from autotester.stages.explore_runtime import ExploreRuntime
 
 
 MAX_REPLAY_DEPTH = 3
@@ -90,12 +91,14 @@ def _replay_discovery(rt: ExploreRuntime, node: ScreenNode, depth: int) -> str |
         return f"the screen it was discovered from ({edge.from_node[-6:]}) is not in this crawl"
     if not return_to(rt, rt.nodes[edge.from_node], depth=depth + 1):
         return f"could not get back to the screen it was discovered from: {why_lost(rt)}"
-    try:
-        rt.session.click(edge.target)
-        rt.session.settle(timeout_ms=rt.bounds.settle_ms)
-    except Exception as exc:
-        return (f"re-performing {edge.name or edge.target!r} raised "
-                f"{type(exc).__name__}: {exc}")
+    # CR2 (crawl-traversal.md): re-performing the edge means re-issuing the
+    # VALUES it was performed with, not only the click. A screen reachable only
+    # behind a filled, submitted form is otherwise unreachable by `return_to`,
+    # and a screen discovered BY a typed action was being "replayed" by clicking
+    # a text input. `explore_replay` owns that and re-checks the X10-b gate.
+    failed = explore_replay.perform(rt, edge)
+    if failed is not None:
+        return failed
     if _fingerprint(rt, node.depth) == node.id:
         return None
     return f"re-performing {edge.name or edge.target!r} landed on a different screen"
