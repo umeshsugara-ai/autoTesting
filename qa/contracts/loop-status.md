@@ -1,6 +1,6 @@
 # Contract — loop-status (is the maker-checker loop alive?)
 
-**Status:** ACTIVE (authored by /checker 2026-09-26 under D-047). LS1, LS2 and LS4 describe behaviour already shipped and tested. LS3's pinning test arrives with unit at610-strict-out-of-order-pin.
+**Status:** ACTIVE (authored by /checker 2026-09-26 under D-047). LS1, LS2 and LS4 describe behaviour already shipped and tested. LS3's pinning test shipped with unit at610-strict-out-of-order-pin (checked-PASS, merged 11f1d4ea/37aaa375).
 **Feature:** `autotester loop-status [--strict] [--hours N]` reads `qa/.last-tick` read-only. It enumerates the gaps, classifies each one (explained by `qa/.paused`, or SLEEP), and reports anomalies in the log.
 **Code:** `src/autotester/loop_status.py` (logic plus `report_lines`) · `src/autotester/cli_loop.py` (the terminal only).
 **Tests:** `tests/test_loop_status.py`, `tests/test_loop_status_integrity.py`.
@@ -64,3 +64,4 @@ A behavioural test drives a real grandchild through the same path and asserts it
 
 - 2026-09-26 · init · contract authored by /checker under D-047. It codifies at399, at424 and at592 (all checked-PASS and merged), and records the at610 gate answer A as LS3. No prior contract named loop-status; the at592 manifest asked for this decision. Nothing amended.
 - 2026-09-27 · tighten · added LS5, which codifies at383 cycle 2 (checked-PASS, verdict df909e05, merged 0f503612): a bounded session-start call, a whole-tree kill on timeout, and a structural try/catch assertion. The out-of-scope bullet "where `--strict` is called from: gate at383" is replaced, because that gate was answered and is now LS5; AT-623 is named as the remaining out-of-scope call. Only tightening, so no DECISIONS entry is needed.
+- 2026-09-27 · tighten (routine, Mode B sweep) · LS3's header changed from present tense ("pinning test arrives with unit at610-strict-out-of-order-pin") to past tense, since at610 has since merged and PASSed (11f1d4ea/37aaa375) — the pinning test is shipped, not pending. No criteria text changed; a status correction, not a new rule.

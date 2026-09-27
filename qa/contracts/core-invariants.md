@@ -206,6 +206,24 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   no undeclared import. Known false-positive class: `TYPE_CHECKING`-only and `try/except ImportError`
   optional imports (AT-590). That is a check defect to fix, not a licence to skip declaring a real import.
 
+### C12 — Every health signal the loop reports must fail closed
+- A liveness, coverage, or completeness check the loop or its hooks report (session-start injection,
+  `loop-status`, a sweep's own terminal state) must be able to tell "nothing is wrong" apart from
+  "my evidence was destroyed, truncated, or never written." A check that reports clean over missing
+  or corrupted evidence is a defect in the check, not a fact about the system it was watching.
+- **Verify:** for each named instance below, the specific defect closes: `qa/.last-tick`'s writer
+  cannot silently truncate the file (AT-644) · a Mode A check that dies mid-run leaves a partial
+  verdict rather than none (AT-641, SKILL step 7's incremental-write remedy) · a sweep or hook
+  enumerates worktrees with unmerged commits instead of only reading manifests (AT-643).
+- **Known instances (measured, not hypothetical):** (1) `qa/.last-tick` was truncated 47→2 lines by
+  a `>` where `>>` was needed, and `uv run autotester loop-status --strict` read the 2-line file as
+  a clean history with `no gaps`, exit 0 — the AT-368 dead-loop detector gave a false all-clear
+  exactly when AT-383 wired it into session-start (AT-644). (2) A Mode A checker died before
+  writing `qa/verdicts/at621-exit-call-aliases.md`; the unit then looked indistinguishable from
+  "never dispatched" rather than "checked and lost" (AT-641). (3) Two worktrees held finished,
+  unjudged commits for two days with their issues still `open` on master, and no sweep or hook
+  check ever enumerated worktrees to surface them (AT-643).
+
 ## No-fire list (do not raise these as findings)
 
 - Style/formatting preferences already satisfied by `ruff`.
@@ -502,3 +520,14 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   replaces the gate's option-A practice for units opened from 2026-09-26.
   - Revised the same day, before commit, on a two-lens review: C10 pinned to the SHA, and C7's
     guard list made non-exhaustive to name schema validators.
+- 2026-09-27 · routine (tighten) · added C12: every health signal the loop reports must fail
+  closed, rather than reporting clean over destroyed, truncated or never-written evidence · why:
+  Mode B sweep 2026-09-27 measured three independent instances of the same failure class in one
+  window (`qa/.last-tick` truncation giving `loop-status --strict` a false all-clear, AT-644; a
+  dead Mode A check leaving a unit indistinguishable from "never dispatched", AT-641; two
+  unmerged worktrees with open issues going unsurfaced for two days, AT-643) — a criterion at the
+  class level, not a merged fix unit, per the maker orchestrator's own framing (three unrelated
+  mechanisms, one `[C*]`). Adds a criterion, softens nothing; not an enforcement-path change
+  itself (`qa/contracts/` is checker-owned), so no `Approved-by` entry is required for this row —
+  the child fix units it names (esp. the `.last-tick` write guard) remain individually gated where
+  they touch `qa/hooks/*`.

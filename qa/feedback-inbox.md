@@ -247,6 +247,11 @@ Confirmed via real verdict evidence: `TimeoutError: waiting for locator("input[n
 — the sign-in form never appeared because the profile was already authenticated. This is a real
 regression in the flagship feature (Run button), not a request — filing and fixing now.
 
+**Status:** folded (2026-09-27, Mode B sweep consolidation, bookkeeping only — the fix predates
+this note by weeks) — `qa/manifests/pathlynks-login-test-fresh-profile.md` cycle 2, checker-PASSed
+(`892932bb`), closed out `eebb6c46` ("redirect race fixed" — the shared-profile/no-cross-run-wipe
+regression this entry describes).
+
 ## 2026-09-04 — Umesh: "go whatever is best" on AT-046, led to a critical finding (AT-049)
 
 While investigating AT-046 (residual grading flakiness) more deeply, discovered the actual root
@@ -259,6 +264,10 @@ Asked Umesh how to proceed (AskUserQuestion): fix now, ship what's built and fil
 explain more first. Chose "fix now." Fixed as AT-049 — providers now genuinely attach real image
 bytes; verified with 5 consecutive real Pathlynks reruns, all PASS every time (was flaky before),
 verdict notes now describing real visual content.
+
+**Status:** folded (2026-09-27, Mode B sweep consolidation, bookkeeping only — the fix predates
+this note by weeks) — ledger rows AT-046 and AT-049 both `status: verified` (`verified_date:
+2026-09-04`); AT-046's own row records "Superseded by AT-049's fix," matching this entry exactly.
 
 ## 2026-09-04 — Umesh: add a project sidebar/TOC (verbatim intent)
 
@@ -397,6 +406,12 @@ an interrupted crawl; parallel tabs; CI triggers; `EvidenceKind.TRACE`; auto-gen
 crawl screens (that is `expand.py` after human review); auth bypass / 2FA automation; a wildcard
 for `allowed_domains`; and crawl→FlowSpec merge + reporting (that is B5/T-144, not this unit).
 
+**Status:** folded (2026-09-27, Mode B sweep consolidation, bookkeeping only — this request's
+X1–X11 were already live in `qa/contracts/explore.md` well before this note; the fold itself is
+documented in that contract's own amendment log, 2026-09-07 row, but this entry never got its
+closing `Status:` line). Verified this sweep: X1–X9 (base criteria) and X10/X10-b present at
+`qa/contracts/explore.md:110-117` and earlier in the same file; X11 present in substance.
+
 ---
 
 ## 2026-09-08 · maker (T-144, Track B5) · PATTERN: a criterion nobody owns is a criterion nobody checks
@@ -436,6 +451,14 @@ screen from the crawl page.
 
 **APPLIES NEXT:** the same "propose, never approve" shape is what Track A's `merge_flowspec.py`
 (T-135) needs, and the same two-direction coverage view is what T-125's catalog page reports.
+
+**Status:** folded (2026-09-27, Mode B sweep consolidation, bookkeeping only — already live before
+this note). Verified this sweep: X13–X16 present at `qa/contracts/explore.md:159-236`, with the
+contract's own amendment log recording "2026-09-08 · routine · X13-X16 added ... by /checker, from
+the criteria the [maker] requested" (`explore.md:406`); `coverage.md` V1 present at
+`coverage.md:18`, amendment log row "V1 amended and V5 added" at `coverage.md:147`. This entry
+never got its own closing `Status:` line even though the contract-side record has existed since
+2026-09-08.
 
 ---
 

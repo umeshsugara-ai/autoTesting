@@ -44,4 +44,11 @@ a small, disclosed doc correction with its own D-entry.
 Every other unit built this session — `AT-231/239/240/242/273/215/232` and their fixes — none of
 them depend on this wiring existing.
 
-**Answered:** _(pending)_
+**Answered:** 2026-09-22 — Option A (wire it in) — recorded off-disk in `docs/DECISIONS.md` D-031:
+"AT-253 answered: wire, not retire — Umesh 2026-09-22." D-031's Result corrected
+`docs/ARCHITECTURE.md`'s Execution-model section to describe today's reality plus an honest "Not
+yet built" sentence naming script-first replay + agent fallback as the queued wiring unit's goal.
+This line was written by /checker (Mode B sweep, 2026-09-27, filed as AT-637
+gate-answered-off-disk) — the answer existed for 5 days before this gate file recorded it. AT-253's
+ledger row stays open: the wiring itself has not shipped; it is now an ordinary buildable unit, no
+longer a standing HUMAN_GATE.

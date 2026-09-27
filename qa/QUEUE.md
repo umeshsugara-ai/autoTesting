@@ -738,3 +738,93 @@ instrument gap (shard 1 returned empty — checks 1/2/3/1c did not run this cycl
 - **AT-582**: stale — its named fix shipped via T-183 (checker-PASSed) and is confirmed live in
   `stages/report_export.py`. Flip to `fixed`/`fixed_by: T-183`, or narrow the title to the
   still-open must-fix/suggestion split noted in `docs/FEATURES.jsonl` F-057.
+
+---
+
+## Sweep 2026-09-27 (Mode B, sharded — 3 read-only shards + consolidation; window `a49c3b8..HEAD` + working tree)
+
+14 new rows (AT-630..AT-631, AT-634, AT-636..AT-644 — AT-632/633/635 were filed then retracted
+mid-sweep, see below), 4 existing rows updated (AT-218 open→fixed, AT-253 checker_note + gate
+answered, AT-567 scope widened, AT-614 open→fixed resolved-by-at611), and one new contract
+invariant (`core-invariants.md` C12). 0 reopens: AT-408/AT-416 already `open`, so reopen-power was
+not applied — stated per the dispatch's own instruction rather than reopened a second time.
+
+**Corrections applied mid-sweep (live orchestrator input, verified before acting on any of it):**
+- **AT-253**'s gate was reported by shard 2 as "18 days stale, no answer" — in fact
+  `docs/DECISIONS.md` D-031 (2026-09-22) already answered it ("wire, not retire — Umesh
+  2026-09-22") off-disk; filed as AT-637 `gate-answered-off-disk`, gate file now carries the
+  `Answered:` line.
+- **`wave/at408-416-scroll-reach` and `wave/t125-catalog`** were reported by shard 1 as abandoned
+  (filed AT-632/AT-633, severity high) — the maker orchestrator confirmed both are actively being
+  built right now. Retracted; replaced by ONE row, AT-643, severity medium, type
+  `unmerged-work-unsurfaced` — the real finding is that nothing surfaced the 2-day-old unmerged
+  state until a human enumerated worktrees, not that the work was abandoned. Neither branch is
+  queued as work here; the maker owns them.
+- **`qa/.last-tick`**'s truncation was reported by shard 2 as an open defect (filed AT-635) —
+  by the time this sweep read the file it was already restored and committed. Retracted; replaced
+  by AT-644, severity high, type `last-tick-unguarded-write`, aimed at the missing guard rather
+  than the (already-fixed) symptom. Verified live this sweep: `uv run autotester loop-status
+  --strict` now correctly reports `SLEEP 34.3h 2026-09-25T15:37:11Z -> 2026-09-27T01:55:02Z`
+  instead of a false all-clear.
+- **`verdict-lost-on-death`** (AT-641) was filed claiming two consecutive losses on
+  `at621-exit-call-aliases` — the second attempt had in fact completed and PASSed (verdict
+  `14f13a22`, ledger flipped, T-195 closed). Corrected to ONE confirmed loss, severity downgraded
+  medium→low, and a second instance of the same failure MODE folded in instead: that checker's own
+  `qa/delegation-ledger.jsonl` append sat uncommitted in the shared tree at consolidation time
+  (confirmed via `git status`/`git diff`).
+- **AT-621/AT-626/AT-627** were NOT touched by this sweep at any point (a concurrent Mode A check
+  owned them and completed independently); re-verified untouched at the end.
+- Bypass window extended to include `c473ceb8..HEAD` per the orchestrator's note — the PLAN-gate
+  backfill commit `f73d9071` (`docs/intent.md`/`spec.md`/`plan.md`/`qa/gates/plan-approved.md`)
+  falls inside it and traces to a real, disclosed backfill, not a bypass.
+
+**New this consolidation, at the orchestrator's request:** `qa/contracts/core-invariants.md` C12
+— "every health signal the loop reports must fail closed" — naming AT-644/AT-641/AT-643 as its
+three measured instances (one criterion for the class; the three fix units below stay separate,
+per C7's own no-vague-multi-file-unit shape).
+
+### GRILL — human decision, not a build row (carried; AT-218 removed — answered and folded this sweep)
+
+- GRILL: real two-mode acceptance thresholds for D-023/T-169 (AT-281). Carried, now also
+  corroborated by AT-638 (goal-coverage-gap: 5 north-star capabilities with zero checkable
+  criteria, T-169 itself among the consequences).
+- GRILL (AT-402): structure-before-code review of `visual_order.js`. Carried, untouched this
+  sweep (out of scope for shards 2/3, not re-verified).
+
+### TOP-3 BUILDABLE NEXT UNITS (2026-09-27 sweep, re-ranked after corrections)
+
+| # | Unit | Why |
+|---|---|---|
+| **1** | **AT-644** — a write guard on `qa/.last-tick` that refuses a truncating write (C12's namesake instance). Needs a `docs/DECISIONS.md` entry with `Approved-by: Umesh` first — it touches an enforcement path. | Highest-severity buildable item this sweep produced; the AT-368 dead-loop detector is worthless if its own input file can be silently truncated, and it already happened once. |
+| **2** | **AT-639** — add `timeout=` (+ a narrow `except subprocess.TimeoutExpired`) to `src/autotester/media/chunks.py::encode_chunks`'s `subprocess.run` call, matching the pattern already proven in `media/frames.py`/`media/transcribe.py`. | High severity, small and mechanical, no gate — copy the sibling pattern. |
+| **3** | **AT-638 / T-150** — register the Track C tasks and file `docs/ai-target.md` + `docs/adversarial.md` criteria (governance-only, per the task's own scope). | Cheapest unblock for the 5-capability goal-coverage gap (T-166/167/168/171/150-155); no gate, no design question. |
+
+**C12's other two child units evaluated, do not outrank the above (per the orchestrator's own
+instruction not to let them displace higher-severity items just for arriving last):** the
+incremental-verdict-write fix behind AT-641 is severity **low** (already being applied by
+convention in the in-flight third at621-class attempts) · the worktree-enumeration fix behind
+AT-643 is severity **medium**, real but not urgent. Both stay queued below top-3.
+
+**Deprioritised (not cancelled):** AT-643's worktree-enumeration remedy (medium) · AT-641's
+incremental-verdict-write remedy (low) · AT-630 (hook regex fix — enforcement path, needs its own
+DECISIONS entry + `Approved-by: Umesh`) · AT-634 (31-row regression_check backfill, medium,
+opportunistic).
+
+### HUMAN_GATE — do not build as ordinary units (re-verified this sweep unless noted)
+
+| Gate | Blocks |
+|---|---|
+| `at218-vacuous-guard-class.md` | **Answered 2026-09-26, folded this sweep** — removed as a gate; the guard-authoring rule is now embodied in Mode A step 4b. |
+| `at253-agent-fallback-wiring.md` | **Answered 2026-09-22 (D-031), gate file corrected this sweep** — no longer a standing gate; AT-253 (wiring itself) is now an ordinary buildable unit. |
+| `at281-...` (no gate file; GRILL only) | Real two-mode acceptance thresholds for T-169 — carried, unanswered. |
+| AT-644's DECISIONS-entry prerequisite | Not a gate FILE, but the write-guard unit cannot build without one — named here so it isn't picked up as an ungated fix. |
+| Everything else in the 2026-09-26b table above | Unchanged, not re-verified individually this sweep (out of scope — this sweep targeted the shards' own findings, not a full gate resweep). |
+
+**Terminal state: `FINDINGS: 11`** (AT-630 medium; AT-631 low; AT-634 medium; AT-636 medium→fixed
+(folded); AT-637 high→fixed (gate corrected); AT-638 high; AT-639 high; AT-640 low; AT-641
+low (corrected, single-loss + uncommitted-ledger instance); AT-642 medium; AT-643 medium
+(supersedes retracted AT-632/AT-633); AT-644 high (supersedes retracted AT-635) — 11 rows stand,
+3 filed-then-retracted (AT-632/633/635) removed cleanly before being seen anywhere else; 4
+existing rows updated (AT-218 fixed, AT-253 noted, AT-567 rescoped, AT-614 fixed); 1 new contract
+invariant (core-invariants.md C12); 0 reopens; token-ledger line appended; AT-621/626/627
+untouched throughout.
