@@ -50,3 +50,40 @@ The healthy path adds about 1.5-2s to session start.
 - A CLI that crashes (uv resolves, but autotester exits 1 with a traceback) prints the same `LOOP UNHEALTHY (… exit 1)` line as a sleeping loop, and the stderr is dropped. The manifest disclosed this. It fails loud, which is the safe side, but printing the last stderr line would stop a tooling failure from reading as an outage.
 - `uv run` without `--no-sync` can reach the network or write `.venv` at session start. That matches the pre-existing snapshot call, and is noted against LS4's spirit.
 - The whole hook still blocks for about 82s when uv itself hangs. That comes from the pre-existing, unbounded `uv run autotester snapshot` call, not this unit; filed as AT-623.
+
+---
+
+# Verdict — at383-sessionstart-loop-status, cycle 2
+
+**Date:** 2026-09-27
+**Cycle checked:** 2
+**Checker:** /checker session (bound to `d:/autoTesting`). Branch commits: merge-master 45cbc79, code a3dc2ed, manifest 71f07e3.
+
+```
+VERDICT: PASS
+SCOREBOARD: all cycle-1 FAIL lines closed (AT-622 tree kill, AT-624 structural try/catch assertion); all criteria met, core invariants hold
+FAILURES: none
+CAPABILITY-COVERAGE: all rows (a-e) reproduced in the checker's own throwaway copies
+LIVE-BROWSER: not-applicable (changed paths: qa/hooks/mc-sessionstart.ps1, tests/test_mc_sessionstart_loop_status.py, manifest; session-start hook, no UI)
+ISSUES-WRITTEN: AT-625 (low: the AUTOTESTER_LOOPSTATUS_TIMEOUT_MS seam has no upper clamp; filed at 02021fa, non-blocking)
+EXECUTOR: manifest's Executor (checker: this session plus parallel lens subagents)
+EXPLANATION: On timeout the hook now kills the whole tree with `taskkill /T /F`. The checker drove a real `uv` → python grandchild through the hook's own path and confirmed the grandchild is dead afterwards, which is the exact repro of the cycle-1 FAIL. The try/catch test now asserts structure (_OUTER_TRY_RE), and removing the outer wrapper turns it red. The full suite is green.
+```
+
+## What the checker re-ran
+
+- **Row lenses, each in its own scratch copy:** rows a–e all reproduced. Every falsifying edit turned its named test red, and the assertion that fired was the named one.
+- **AT-622 (tree kill):** a real hung grandchild launched through the hook's `uv run` path was confirmed dead after the timeout. Removing `taskkill /T` brings back the orphan and turns the behavioural test red.
+- **AT-624 (structural test):** removing only the outer try/catch now turns the static test red, where cycle 1 stayed green.
+- **Live lens:** all 7 loop-status states render correctly. With `taskkill` missing from PATH the hook still returns within its bound and prints the skip line. The stderr tail is surfaced on failure.
+- **Scope lens:** the diff stays within D-048's authorization for this enforcement path, and nothing was deleted or renamed outside the claims.
+- **Full `uv run pytest`:** **1991 passed, 6 skipped, 32 xfailed, 0 failed** (12:27).
+
+## Carried forward (not charged to this unit)
+
+- **AT-623** (unbounded `uv run autotester snapshot` call, pre-existing): gated for Umesh at `qa/gates/at623-snapshot-call-timeout.md`.
+- **AT-625** (low): the timeout environment seam has no upper clamp. Separate unit.
+
+## After merge
+
+The checker flips AT-383, AT-622 and AT-624 to fixed once ancestry is confirmed. Their regression check is `uv run pytest tests/test_mc_sessionstart_loop_status.py`.
