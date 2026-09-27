@@ -14,11 +14,107 @@ routine outside this repo) is explicitly deferred, not built here.
 call `autotester loop-status --strict` at session start and print its report (at383 part A). This
 is an enforcement path." **Approved-by:** Umesh. Confirmed on disk before any edit.
 **Date:** 2026-09-26
-**Fix cycle:** 1
+**Fix cycle:** 2
 **Dual check:** no
 **Persona walk:** skip (dev tooling / session-start hook, not a UI surface)
-**Issues addressed:** AT-383. AT-368 stays open (its full ask — noticing *during* an outage — is
-out of scope for both this unit and gate option A; nothing here runs while the app is closed).
+**Issues addressed:** AT-383, AT-622, AT-624. AT-368 stays open (its full ask — noticing *during*
+an outage — is out of scope for both this unit and gate option A; nothing here runs while the app
+is closed). AT-623 (the pre-existing, unbounded `autotester snapshot` call) is separately gated and
+explicitly out of scope for this unit — see cycle 2 notes below.
+
+## Fix cycle 2 (2026-09-27) — AT-622, AT-624
+
+Cycle 1 verdict: FAIL (`qa/verdicts/at383-sessionstart-loop-status.md`), 1/2 criteria, 3/4
+invariants. Two reproduced findings, both now fixed; scope stayed inside the D-048-authorised
+block (`qa/hooks/mc-sessionstart.ps1` lines ~41-81) — the pre-existing, separately-gated
+`autotester snapshot` call (AT-623) was not touched.
+
+**AT-622 (medium) — timeout killed only `uv`, not its python grandchild.** Windows PowerShell
+5.1/.NET Framework's `Process.Kill()` has no `entireProcessTree` overload; `uv run` always spawns
+python as a child, which survived the old bare `Kill()`. Fixed by killing the whole tree on
+timeout: `try { & taskkill /T /F /PID $lsProc.Id *> $null } catch {}` (same `taskkill /F /T /PID`
+shape as `scripts/mutation_check.py:162`'s `kill_tree`, already precedent in this repo). Failures
+from `taskkill` itself (process already gone, etc.) are swallowed — this path must still reach the
+skip line and must never fail the hook, matching the pre-existing contract.
+
+Added a real-process behavioural test,
+`test_the_timeout_kills_the_real_grandchild_process_not_just_uv` (Windows-only, same
+`@windows_only` skipif as the other 3 behavioural tests): copies a real `python.exe` to `uv.exe` on
+a scratch PATH dir, and — because the hook's fixed `Arguments` string starts with the extensionless
+token `run`, and CPython resolves an extensionless first argument as a script path relative to the
+child's own working directory (which the hook sets to `$ROOT`, itself `tmp_path` in the test) —
+places a script literally named `run` in `tmp_path` that spawns a REAL grandchild recording its own
+pid to a file, then hangs. A new `AUTOTESTER_LOOPSTATUS_TIMEOUT_MS` env-var override (read via
+`[int]::TryParse`, falling back to the real 15000ms default if unset/invalid) lets the test bound
+the hang to 2s instead of waiting out the real timeout. After the hook returns, the test asserts the
+grandchild pid is dead (`_alive`, imported from `test_mutation_check_judgement` rather than
+redefined — C3; same real-grandchild shape as
+`tests/test_flake_probe_real_process.py::test_run_once_kills_a_real_hung_process_and_its_real_grandchild`,
+its direct precedent).
+
+**AT-624 (low) — the try/catch structural test was a whole-file substring check.**
+`test_the_hook_wraps_the_call_so_a_failure_cannot_propagate` used to check `'try {' in code and
+'catch {' in code` over the entire file, which stayed green even with the outer wrapper removed
+because the unrelated `try { ... } catch {}` timeout guard also contains those tokens. Replaced with
+a structural regex (`_OUTER_TRY_RE`) anchored on the specific catch body's own message
+(`"loop-status: skipped (uv/autotester unavailable)"`), asserting the `ProcessStartInfo`/`Start()`
+call and its `WaitForExit` bound sit inside that exact try block's span — not merely that both
+tokens appear somewhere in the file. Kept the "this fails" docstring claim, since it is now true.
+
+**Optional (small, done): stderr tail on a non-zero exit.** When `loop-status --strict` exits
+non-zero for a reason other than a timeout (e.g. the CLI itself crashes), the hook now also prints
+the last non-empty line of its stderr (`  stderr: <line>`), so a tooling crash does not read
+identically to a genuinely sleeping loop. Stayed inside the same block; no new failure path (the
+existing `$lsStderr` `ReadToEndAsync()` task was already being started, just never read before).
+
+### Cycle 2 tests (TDD)
+
+`tests/test_mc_sessionstart_loop_status.py` grew from 173 to 267 lines (8 → 9 tests): one existing
+test's body was replaced with the structural assertion (AT-624), one new Windows-only behavioural
+test was added (AT-622), plus a `from test_mutation_check_judgement import _alive` reuse import and
+one new stdlib import (`time`).
+
+```
+$ uv run pytest tests/test_mc_sessionstart_loop_status.py -v
+...
+tests\test_mc_sessionstart_loop_status.py .........                      [100%]
+9 passed in 16.91s
+
+$ uv run pytest tests/ -k "hook or loop_status"
+................................................                         [100%]
+48 passed, 1981 deselected, 1 warning in 20.91s
+
+$ uv run ruff check src tests scripts
+All checks passed!
+
+$ uv run autotester doctor
+doctor: clean
+```
+
+RAM-gated gap unchanged from cycle 1: full suite not run this cycle, per standing RAM-low
+instruction — only the new/targeted test file, the `hook or loop_status` slice, ruff, and doctor.
+
+### Cycle 2 capability coverage (C7 sabotage rows)
+
+Falsified in a throwaway plain-file copy OUTSIDE the tracked worktree
+(`C:/Users/Lenovo/AppData/Local/Temp/claude/d--autoTesting/dd410a44-7522-428c-9b91-fda96de822cd/scratchpad/at383-c2-falsify/`,
+a targeted file-by-file copy of only `qa/hooks/mc-sessionstart.ps1`, `tests/test_mc_sessionstart_loop_status.py`,
+`tests/test_mutation_check_judgement.py`, `tests/tests_mutation_fixtures.py`,
+`tests/test_flake_probe_runner.py`, `scripts/flake_probe.py`, `scripts/mutation_check.py` — run
+against the tracked worktree's own `.venv` via `uv run pytest <scratch path>`, never `git stash` and
+never an edit inside the tracked worktree). Each row: patch the scratch hook copy via a Python
+script asserting its anchor text matched exactly once before writing, run the targeted test, then
+restore from a saved `.orig` copy.
+
+| claim (cycle 2) | falsifying edit (scratch copy only) | check | observed |
+|---|---|---|---|
+| (d) On timeout the hook kills the whole process tree, not just `uv` | `try { & taskkill /T /F /PID $lsProc.Id *> $null } catch {}` → reverted to `try { $lsProc.Kill() } catch {}` | `test_the_timeout_kills_the_real_grandchild_process_not_just_uv` | PASS before. FAIL after: `AssertionError: the hook's timeout killed uv but left its real grandchild running (AT-622)` — `_alive(42772)` was `True` after the hook returned. The leftover real grandchild process (pid 42772, spawned only by this test run) was killed by hand immediately after observing the failure. |
+| (e) The loop-status invocation is inside the outer try/catch whose catch prints the clean skip line | Removed the outer `try { ... } catch { Write-Output "loop-status: skipped (uv/autotester unavailable)" }` wrapper (same edit as cycle 1's row (c)), leaving only the inner timeout `try{taskkill}catch{}` | `test_the_hook_wraps_the_call_so_a_failure_cannot_propagate` (now structural) | PASS before. FAIL after: `AssertionError: no try { ... } catch { print the clean skip line } wrapper found ... ` — `_OUTER_TRY_RE` found no match once the specific catch body was gone, unlike cycle 1's loose substring check (AT-624), which stayed green under this same mutation. |
+
+Reverted after each row from the saved `.orig`; `diff` against `.orig` confirmed byte-identical
+after both rows. `git status --short` in the tracked worktree throughout cycle 2 showed only the 2
+intended files (`qa/hooks/mc-sessionstart.ps1`, `tests/test_mc_sessionstart_loop_status.py`) — the
+falsification copy was never inside the tracked tree.
 
 ## What changed
 
@@ -114,7 +210,7 @@ doctor: clean
 RAM-gated gap: full suite (`uv run pytest`, no target) not run this cycle, per standing RAM-low
 instruction — only the new test file, the `hook or loop_status` slice, ruff, and doctor.
 
-## Capability coverage (C7 sabotage rows, each claim → its falsification)
+## Cycle 1 capability coverage (C7 sabotage rows, each claim → its falsification)
 
 Falsified in a throwaway plain-file copy OUTSIDE the tracked worktree
 (`C:/Users/Lenovo/AppData/Local/Temp/claude/d--autoTesting/dd410a44-7522-428c-9b91-fda96de822cd/scratchpad/at383-falsify/`,
@@ -175,6 +271,17 @@ Not UI-touching — a PowerShell session-start hook plus its tests. Changed path
   `LOOP UNHEALTHY (loop-status --strict exit <n>)` with whatever stderr/stdout the failing command
   produced, not as a "skipped" line. Only a `Process.Start()`-level failure (the binary truly not
   found) hits the skip path. This reading of "tolerate uv/autotester unavailable" was a judgment
-  call; flagged for the checker.
+  call; flagged for the checker. Cycle 2 partially addresses the crash sub-case: the last non-empty
+  stderr line is now appended to the `LOOP UNHEALTHY` output, so a crash at least carries its own
+  evidence instead of reading as bare silence — it is still not distinguished from a genuinely
+  sleeping loop by exit code or message shape, only by that extra line.
+- **AT-623 (the pre-existing, unbounded `autotester snapshot` call) is intentionally untouched.**
+  It sits in the same hook file but outside the D-048-authorised block (lines 41-81), is separately
+  gated per its own issue, and the cycle-1 brief explicitly named it out of scope. The hook can
+  therefore still block on that call independent of anything fixed here.
+- The new `AUTOTESTER_LOOPSTATUS_TIMEOUT_MS` override is read with `[int]::TryParse`; a malformed or
+  non-positive value silently falls back to the real 15000ms default rather than erroring — this
+  matches the hook's overall "never fail session start on a config problem" posture but means a
+  typo in that env var (nobody sets it outside this one test) fails silently rather than loudly.
 
 ## Status: ready-for-check
