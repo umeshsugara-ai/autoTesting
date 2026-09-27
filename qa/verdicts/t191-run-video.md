@@ -245,3 +245,245 @@ are doing). Add a regression test that actually exercises TWO concurrent session
 uncovered — none of `test_parallel_run.py`/`test_ui_runs_parallel_crash_recovery.py`/
 `test_ui_runs_parallel_trace.py` were extended to test video-plus-concurrency together). Leave
 `ISS-t191-run-video-2` for a separate HUMAN_GATE/follow-on unit as scoped in that issue.
+
+---
+
+# CYCLE 2 — INDEPENDENT RE-CHECK (2026-09-27)
+
+**Cycle checked:** 2
+**Judged commit:** `2dcb4cd3` (the cycle-2 fix + regression test), with `1615a6b8` on top as a
+bring-up merge of master (bystander commit, not judged — the merge resolved one append-only
+`qa/issues.jsonl` conflict by keeping all four rows from both sides, confirmed by inspection, not
+this unit's work).
+**Checker:** fresh Claude Sonnet 5 subagent, Anthropic session, no `ANTHROPIC_BASE_URL` override
+(executor independence holds — checker != executor, cycle 2's build seat).
+**Scope:** this cycle fixed exactly one thing, `ISS-t191-run-video-1` (critical). Cycle 1's V1–V8
+falsification table (8/8 genuine), the masking proof's three legs, and `screenshot()`'s
+non-shared navigation-fragility are **not reopened** — nothing in the cycle-2 diff touches them.
+`ISS-t191-run-video-2` (dead download link) is correctly untouched, per scope.
+
+## VERDICT: PASS
+
+## Scoreboard
+
+8/8 V1–V8 criteria still met (unchanged this cycle, not re-litigated); the one invariant cycle 1
+FAILed on (C7 — "a wrong answer must not be worse than the bug it fixes", violated by the
+sweep-race evidence-loss defect) now holds. `ISS-t191-run-video-1` is independently confirmed
+fixed, not merely reported fixed.
+
+## 1 — Is the fix safe by construction, as claimed? Yes, verified on every path.
+
+Traced every `BrowserSession(...)` construction site in `src/`:
+`ui/run_execution.py:67` (`_run_entry_case`, dedicated wiped profile), `:113`
+(`_run_cases_serially`'s one shared session), and `stages/parallel_run.py::default_session_factory`
+(`:257`, `_factory(case)` — confirmed it calls `build(...)` fresh **per case**, then `.start()`
+once, and returns the started session; `_run_one`/`run_cases` then close it in a `finally` after
+exactly one case). `self._video_scratch_id = uuid.uuid4().hex[:12]` is minted once in
+`BrowserSession.__init__` — since every one of these paths constructs a **new** `BrowserSession`
+instance per session-lifetime (the serial route's one shared session runs multiple cases through
+the *same* instance, which is fine: no sibling shares its `run_dir` in that route), and no path
+calls `.start()` twice on one instance or runs two cases through one `_factory`-produced session,
+the id is genuinely unique across every case that could ever share a `run_dir` with another. This
+is not merely "looks unique" — I falsified it directly (see §3).
+
+**Parent-directory leak check:** `run_dir / VIDEO_DIR_NAME` (the parent of the per-session
+subdirectories) is never swept by anyone once a session closes — each session's
+`_sweep_orphan_videos` only ever `rmtree`s its own `<id>` subdirectory. After every session in a
+run has closed, the parent directory is left behind, empty. This is a real, disclosed behavior
+change from pre-fix (which `rmtree`'d the whole bare `_video_scratch` on any close), but it is
+**not** an unbounded leak: `run_dir` is itself scoped to one run (`core/paths.py::run_dir(run_id)`),
+so the empty leftover directory's lifetime is bounded by however long that run's own directory is
+kept, and it holds zero bytes. Not a finding — noted for the record since the dispatch asked.
+
+## 2 — V1 orphan-leak re-verified independently, under the new nested path, via a stub (not just "tests still pass")
+
+Built a throwaway copy via `git archive HEAD | tar -x` into a scratch dir OUTSIDE the bound
+worktree, `uv sync --frozen`'d its own venv (fast, shared package cache). Confirmed GREEN in the
+copy first (both `tests/test_video_parallel_sweep.py` and
+`test_video_evidence.py::test_video_is_recorded_and_kept_only_for_fail_and_inconclusive_never_pass`),
+proving the copy real, before any falsification.
+
+Stubbed `_sweep_orphan_videos` to an unconditional `return` (no-op) — a stronger, more direct
+falsification than a revert, since it removes the sweep mechanism entirely rather than reverting
+one path expression. Result:
+
+```
+$ uv run pytest tests/test_video_evidence.py -k is_recorded_and_kept -v
+FAILED tests/test_video_evidence.py::test_video_is_recorded_and_kept_only_for_fail_and_inconclusive_never_pass
+E   AssertionError: assert 3 == 2
+E    +  where 3 = len(['case_787e11370038.webm', 'case_d94af0c1df71.webm',
+       'page@b32ab3611df0144251b096ed5a2a63fc.webm'])
+```
+
+Identical failure shape to cycle 1's pre-fix reproduction (`3 == 2`, the same `page@<hash>.webm`
+orphan). This proves the per-session-scoped sweep still does real, load-bearing work against the
+orphan-leak V1 was written for — the narrower scope (own subdirectory only, not the whole bare
+dir) did not quietly stop catching the thing it exists to catch. Reverted the stub, re-confirmed
+GREEN, `diff -q` against the pristine backup confirmed byte-identical restoration.
+
+## 3 — Falsification-duty re-run myself: both a revert AND a stub, per the dispatch's mandate
+
+**(a) Revert-style** (the manifest's own row): `scratch = self.state.run_dir / VIDEO_DIR_NAME /
+self._video_scratch_id` → `scratch = self.state.run_dir / VIDEO_DIR_NAME` in the throwaway copy.
+
+```
+$ uv run pytest tests/test_video_parallel_sweep.py -v
+FAILED ... AssertionError: B's already-finished video must survive A's teardown of a SHARED
+run_dir -- ISS-t191-run-video-1
+assert False
+ +  where False = exists()
+ +    where exists = WindowsPath('.../shared_run/case_b.webm').exists
+```
+RED, for the row's own named reason — confirmed.
+
+**(b) Stub-style** (this checker's addition, per the dispatch's "also try stubbing, not only
+reverting", AT-548/549/550/at335 caution): `self._video_scratch_id = uuid.uuid4().hex[:12]` →
+`self._video_scratch_id = "STUB-not-unique"` (a constant, not a fresh id per session) — a subtler,
+more targeted falsification of the *uniqueness* claim specifically, distinct from the path-nesting
+claim (a) tests.
+
+```
+$ uv run pytest tests/test_video_parallel_sweep.py -v
+FAILED ... AssertionError: B's already-finished video must survive A's teardown of a SHARED
+run_dir -- ISS-t191-run-video-1
+assert False
+ +  where False = exists()
+```
+Also RED, for the same named reason. This is a genuine, distinct falsification the manifest never
+attempted — it proves the test actually depends on `_video_scratch_id` being unique **per
+session**, not merely on the presence of a nested path segment (a stub that kept nesting but
+removed uniqueness could in principle have slipped past a check that only exercises (a)). Reverted,
+re-confirmed GREEN, restored file confirmed byte-identical to the bound worktree's via `diff -q`.
+
+**Bound worktree integrity throughout:** `git status --porcelain` on
+`D:/autoTesting/.claude/worktrees/agent-a8d7c6e7cb6f8905a` confirmed clean before this check
+started, after every falsification round-trip in the throwaway copy, and at the end — no file in
+the bound tree was ever edited by this check, `git stash` was never used.
+
+## 4 — Determinism under real load: held, 10/10
+
+Ran `tests/test_video_parallel_sweep.py` 10 times in the bound worktree: 6 in isolation, then 4
+more while a real `uv run pytest` full-suite run (real-Chromium-heavy, the same one whose results
+are below) was already active in the background on this same memory-constrained box. All 10
+passed. The `threading.Event`-based ordering (never `sleep`) held under genuine concurrent load,
+not just in a quiet environment — the determinism claim stands.
+
+## 5 — `session.py` at exactly 300 lines: confirmed genuinely clean, not clean by luck
+
+`wc -l src/autotester/browser/session.py` → **300**, `uv run autotester doctor` → `doctor: clean`
+(re-run by me, not trusted from the manifest). This is the doctor's file-length cap with **zero**
+headroom — the very next line added to this file, for any reason, breaks the design-rules gate.
+**Flagging per the dispatch's instruction:** the next change to `session.py` must split it (e.g.
+the video-scratch concern could move fully into `video.py`'s `VideoMixin`, or a lifecycle/actions
+split). Not a defect in this unit — a note for whoever touches this file next.
+
+`video.py`: `wc -l` → **147** (not 149 as the manifest states — the manifest's own arithmetic is
+off by 2; the actual diff is a 1-line docstring sentence replaced by a 9-line one, net +8 from
+139). Trivial prose imprecision, well under the 300 cap either way, not a finding.
+
+## 6 — Disclosed `git stash` violation: no corruption, filed as a note not a blocking finding
+
+Compared `f2370b86`'s diff against the maker's own account and against what the cycle-1 verdict
+already says. The commit's diff is a clean, self-consistent append to the "Pre-existing failures"
+section — it replaces the manifest's own "...is still completing at time of writing..." placeholder
+sentence with the actual completed full-suite output (`2 failed, 2067 passed`, the same two
+`.goal/goal.json`-drift tests) and a short closing paragraph. Nothing in the diff is inconsistent
+with, or goes beyond, what the cycle-1 checker's own verdict independently reports having run at
+that point in its own check. No corruption: the addition is exactly what it claims to be, and
+nothing else in the file changed.
+
+**Ruling:** this is a real process violation (the dispatch explicitly forbade `git stash` against
+the bound worktree, and the shared-stash hazard is real — this is the same worktree the
+`checker-temp-at540` entry sits on the stash stack for, one accidental `stash pop` away from
+disaster) — but the maker disclosed it unprompted, in detail, with the exact commit SHA and a
+correct account of what happened and why it was risky, and verified before/after that the
+falsification-duty check itself used the safe `git archive` primitive instead. That is exactly the
+self-disclosure behavior this pair is built to reward, not punish as concealment. **Filing it as a
+low-severity process note, not a blocking finding: `ISS-t191-run-video-3`, severity low, type
+`process-violation`, status `wontfix`** (no code fix applies — it's a one-time process lapse,
+already disclosed, already not repeated in the same manifest's own falsification-duty work) — the
+record exists so a future sweep doesn't have to re-derive this. Does not affect the PASS ruling.
+
+## 7 — Regression test's own credential boundary
+
+Grepped `tests/test_video_parallel_sweep.py`: no `.fill()` call anywhere, no secret-shaped value,
+only `page.goto()` against the local fixture server. Confirmed clean.
+
+## 8 — My own full-suite run (not the maker's pasted output)
+
+Ran `uv run pytest` myself, in the background, to completion (1152.70s / ~19m13s):
+
+```
+FAILED tests/test_flake_probe_real_process.py::test_run_once_kills_a_real_hung_process_and_its_real_grandchild
+FAILED tests/test_goal_done_checks.py::test_no_pending_task_has_a_done_check_that_cannot_fail
+FAILED tests/test_goal_done_checks.py::test_revised_goal_contract_is_registered
+3 failed, 2068 passed, 5 skipped, 14 xfailed, 15 warnings in 1152.70s (0:19:12)
+```
+
+**No fourth failure — exactly the three the dispatch pre-named as non-chargeable:**
+- `test_revised_goal_contract_is_registered` — the disclosed `81 == 70` `.goal/goal.json`-drift
+  (`ISS-at638-remainder-2`), confirmed by reading the actual assertion failure myself.
+- `test_no_pending_task_has_a_done_check_that_cannot_fail` — failed with offenders
+  `['T-190', 'T-191']`. Read the actual assertion: this is a **static property of
+  `.goal/goal.json`'s existing task definitions** for T-190 and T-191 (their `done_check` commands
+  are worded such that they'd pass on this branch's tip regardless of task state, now that the
+  video/persona-advisory features already exist on it) — `.goal/goal.json` is untouched by this
+  unit's diff (confirmed earlier via `git show --stat 2dcb4cd3`), so this is the same
+  pre-existing `ISS-at638-remainder-2` class the dispatch named, with more detail than the
+  manifest bothered to quote, not a new defect. Also correctly not chargeable.
+- `test_run_once_kills_a_real_hung_process_and_its_real_grandchild` (AT-627) — fired this run
+  (`FileNotFoundError` reading a grandchild's pid file that a real spawned subprocess didn't write
+  in time), exactly the "load-sensitive, may fire under load" behavior the dispatch pre-authorized
+  as non-chargeable. Unrelated to anything in `src/autotester/browser/`.
+
+`5 skipped` vs. the manifest's `6` — a one-count environmental difference (not investigated
+further; a skip is not a failure and this unit's diff carries no skip-condition logic).
+
+## Capability coverage (cycle 2)
+
+1/1 new row independently reproduced (§3 above, two ways: revert and stub). The V1–V8 table from
+cycle 1 is unchanged and was not re-run row-by-row this cycle (nothing in the cycle-2 diff touches
+V1–V8's mechanisms; re-litigating all 8 again would be verifying code that did not change).
+
+## Live browser
+
+Real Chromium, real `threading.Thread`s, driven by me in the throwaway copy for both
+falsification legs (§2, §3) and 10x in the bound worktree for determinism (§4). No UI
+route/screen/template is in the cycle-2 diff (`git show --stat 2dcb4cd3`: only `session.py`,
+`video.py`, the new test file, and the manifest) — confirmed against the actual diff, not taken on
+the manifest's word, so the "Persona walk: skip (backend-only)" claim holds and Mode D's
+UI-walkthrough requirement does not apply this cycle. `LIVE-BROWSER:` evidence lives in this
+verdict's inline transcripts above (no separate `qa/evidence/browser-t191-run-video-*-checker/`
+directory was needed since no UI surface changed — nothing to screenshot beyond the pytest
+transcripts already inline here).
+
+## Credential boundary
+
+Confirmed clean (§7). No `.webm` file and nothing under `.work/` in the cycle-2 commit
+(`git show --stat 2dcb4cd3`: only the four expected files) or added by my own check
+(`git status --porcelain` clean throughout and after).
+
+## Executor independence
+
+EXECUTOR: /maker build subagent (manifest's cycle-2 "Executor" line: claude-sonnet-subagent)
+(checker: claude-sonnet-5-subagent, this session, no `ANTHROPIC_BASE_URL` override).
+
+## Issues written / updated
+
+- `ISS-t191-run-video-1` (critical) — flipped `open` → `fixed`, `regression_check: "uv run pytest
+  tests/test_video_parallel_sweep.py"`, per this cycle's independent verification. Stays `fixed`
+  (not `verified`) per the ledger rule — `verified` requires a **later**, separate re-check.
+- `ISS-t191-run-video-2` (high) — confirmed still `open`, untouched, correctly out of scope this
+  cycle.
+- `ISS-t191-run-video-3` (low, new, `wontfix`) — the disclosed `git stash` process violation (§6),
+  filed for the record, not blocking.
+
+## What Umesh should know
+
+Nothing gates this PASS. Two things worth his attention on a future cycle, neither urgent: (1)
+`session.py` is at the doctor's 300-line cap with zero headroom — the next touch to this file must
+split it; (2) `ISS-t191-run-video-2` (the video link is unreachable through any shipped path today)
+remains open and high-severity — it does not block T-191 as scoped, but it means the feature's
+stated purpose ("a 15-20 minute walkthrough a human can watch") is not yet deliverable
+end-to-end; worth a HUMAN_GATE/follow-on unit when there's room for it.
+
