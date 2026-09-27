@@ -10,12 +10,14 @@ here that anything outside this pair imports, so no other module's import
 line changes. `core/redact_encodings.py` holds the exact base64/base32/hex
 needle search (AT-352 cycle 2) -- split out again for the same C2 reason,
 and imported here rather than by `redact.py` directly, since it is only ever
-used from inside `_contains_folded_secret`.
+used from inside `_contains_folded_secret`. `core/redact_wrap.py` also now
+holds `is_ignorable_char` (AT-611, was this module's `_is_ignorable`) and its
+`_DEFAULT_IGNORABLE` table -- moved out, not just imported, since this file
+was already at the 300-line cap and the CJK perf fix needed new lines.
 """
 
 from __future__ import annotations
 
-import functools
 import html
 import re
 import unicodedata
@@ -23,7 +25,7 @@ from collections.abc import Sequence
 from urllib.parse import unquote_plus
 
 from autotester.core.redact_encodings import declared_secret_encodings
-from autotester.core.redact_wrap import contains_wrapped_encoding
+from autotester.core.redact_wrap import contains_wrapped_encoding, is_ignorable_char
 
 _FOLD_STRIP = re.compile(r"[\s\-_.+~/:|,;!?*=^'\"`()\[\]{}<>\\]+")
 r"""The punctuation a human actually substitutes for a separator. Widened from
@@ -48,71 +50,6 @@ families that actually appear in Latin-script credentials -- Cyrillic, Greek,
 the Turkish dotless i a checker used to walk a live value past the guard -- and
 it will not catch an exotic script nobody has tried yet. AT-349 tracks the
 completeness gap so this bound is visible instead of assumed."""
-
-_DEFAULT_IGNORABLE = (
-    (0x00AD, 0x00AD), (0x034F, 0x034F), (0x061C, 0x061C), (0x115F, 0x1160),
-    (0x17B4, 0x17B5), (0x180B, 0x180F), (0x200B, 0x200F), (0x202A, 0x202E),
-    (0x2060, 0x206F), (0x3164, 0x3164), (0xFE00, 0xFE0F), (0xFEFF, 0xFEFF),
-    (0xFFA0, 0xFFA0), (0xFFF0, 0xFFF8), (0x1BCA0, 0x1BCA3), (0x1D173, 0x1D17A),
-    (0xE0000, 0xE0FFF),
-)
-"""Unicode's `Default_Ignorable_Code_Point` ranges — the code points a
-conforming renderer draws as nothing.
-
-These ranges are only PART of what `_is_ignorable` strips; the `Cf` and `Cc`
-categories carry the rest.
-
-AT-351: the first version of this fold stripped `unicodedata.category(c) ==
-"Cf"`, which covers U+200B and the bidi controls but NOT U+034F (combining
-grapheme joiner) or U+FE00 to U+FE0F (variation selectors). Those are category
-`Mn`, they survived the strip and NFKC, and a checker measured them rendering
-at 192.5px against a 192.5px plain-credential control — pixel-identical — then
-read the credential off the home index in a real browser. Same defect as
-AT-345, one code point sideways, on the line AT-345 had just rewritten.
-
-The test has to be INVISIBILITY, not a category -- and the reason is a LEAK,
-not the text corruption first claimed here. `fold_credential` only ever
-compares; it never rewrites stored text. What stripping all of `Mn` does is
-fold the two sides ASYMMETRICALLY, because a stored value tends to carry a
-precomposed character while a hostile input carries a decomposed one:
-
-    stored `CAFE_QUILT_APIKEY_31` with a precomposed U+00C9, versus the same
-    value spelled `E` + U+200B + combining acute --
-      keying on invisibility: both fold to `cafequiltapikey31` (e-acute), MATCH
-      stripping all `Mn`:      the spelled form loses its accent,          MISS
-
-which reopens the very class of bypass this fold exists to close. Arabic
-shadda U+0651, Devanagari vowel signs and combining acute U+0301 are all `Mn`
-and all visible. Python exposes no `Default_Ignorable_Code_Point` predicate, so
-the ranges are listed."""
-
-
-@functools.lru_cache(maxsize=4096)
-def _is_ignorable(ch: str) -> bool:
-    """True when `ch` cannot be part of the credential a human reads off the
-    page, so it must not change whether text matches one.
-
-    AT-353, and the name is deliberately no longer `_is_invisible`. That name
-    was a promise the code did not keep and, worse, a promise that was not even
-    the right one: U+0001 and U+007F render as a visible BOX in Chromium
-    (measured 348px and 356.9px against a 192.5px control), so "renders as
-    nothing" was never the real rule. Three times this guard failed at this
-    line, and twice the reason was that the implementation was chasing a
-    mis-stated rule.
-
-    The rule that actually holds: none of these characters can carry meaning a
-    reader takes off the screen, and all of them can be inserted between the
-    characters of a credential. U+0000 is the sharpest case — it needs no
-    decoding by the reader at all, because the HTML parser DELETES it, so the
-    page renders the credential in plain type.
-
-    AT-606: `@lru_cache`d -- pure per-character function, called once per char
-    of every string folded (measured superlinear: 11.8 s at 518 KB)."""
-    if unicodedata.category(ch) in ("Cf", "Cc"):
-        return True
-    code = ord(ch)
-    return any(low <= code <= high for low, high in _DEFAULT_IGNORABLE)
-
 
 BIDI_OVERRIDES = ("‭", "‮")
 """LEFT-TO-RIGHT and RIGHT-TO-LEFT OVERRIDE: the two characters that force
@@ -208,7 +145,7 @@ def fold_credential(text: str) -> str:
     U+0301/U+0335 between every character of the credential; both render as
     the plain credential and both now fold to it.
     """
-    stripped = "".join(c for c in text if not _is_ignorable(c))
+    stripped = "".join(c for c in text if not is_ignorable_char(c))
     decomposed = unicodedata.normalize("NFKD", stripped).translate(ASCII_CONFUSABLES)
     unmarked = "".join(c for c in decomposed if unicodedata.category(c) != "Mn")
     return _FOLD_STRIP.sub("", unmarked).casefold()
