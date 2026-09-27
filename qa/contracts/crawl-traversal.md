@@ -83,7 +83,12 @@ CR5) and never counted as a "visited" action toward `CrawlFrontier.actions_used`
 since the first crawl (persona already seeded from crawl 1) issues **≤10%** of the first crawl's
 `actions_used`; the same second crawl against a fixture with every screen's structure genuinely
 changed issues close to the first crawl's action count (the skip triggers on stored-and-matching,
-not merely on "seen before").
+not merely on "seen before"). **Ruling on Q3 (routine amendment, 2026-09-27):** "close to" for the
+changed-site arm means `second.actions_used >= first.actions_used` — a lower bound, not a two-sided
+band. This is deliberately asymmetric: nothing in CR3 promises the changed arm costs *no more* than
+the first crawl (every screen having gained a control legitimately costs more), only that the skip
+mechanism cannot silently make it cost *less*. A future criterion wanting an upper bound must name
+one; none is adopted here.
 
 ### CR4 — Change tracking: new / changed / missing / broken, extending `_merge` past add-only PP2
 `portal_persona.py::_merge` (its current behaviour is PP2, add-only: new screens/transitions/flows
@@ -95,18 +100,69 @@ classified as exactly one of:
 - **missing** — present in the stored persona, in the reachable frontier, but not reached this
   crawl (a genuine absence, not a bound-truncated frontier — see CR5's interaction);
 - **broken** — reached this crawl, but the visit produced an error/timeout/off-domain-refusal
-  status that the prior stored screen did not carry.
+  status that the prior stored screen did not carry;
+- **missing_unjudged** (routine amendment, 2026-09-27, ruling on the T-165 build's Q2) — a fifth,
+  disclosed category on `PersonaRevision`: stored keys not reached by a crawl whose frontier was
+  **not** exhausted (a bound stopped it). Populated only in that case, with `missing` then empty for
+  those keys. Silence about an unreached screen is the dishonesty CR5 exists to prevent — reporting
+  nothing would lose the fact, and reporting `missing` would claim a certainty the crawl does not
+  have. `describe()`'s prose and every consuming surface must treat this as a distinct, disclosed
+  "not judged" state, never folded into `missing`'s count.
+- **`broken`'s "prior state" ruling** (routine amendment, 2026-09-27, ruling on Q1) — `PersonaScreen`
+  carries no status field (and PP2 forbids adding a mutable one that would need rewriting in place),
+  so "the prior stored screen['s status]" is read from the append-only revision history: the most
+  recent `PersonaRevision` that classified anything, via its own `broken_screens` list. This is
+  PP2-safe (nothing on the screen itself is read or written) and is the ruling this contract adopts;
+  a future amendment introducing a status field on `PersonaScreen` would itself need its own PP2
+  interaction reviewed, not be inferred from this clause.
 
-A `PersonaRevision` (PP3, already dated + non-blank-summary-enforced) records the counts of all four
-by name — not merely a prose "what changed" sentence, a machine-checkable count per category. PP2's
-existing add-only guarantee is **preserved, not replaced**, for any merge path this criterion does
-not touch (a taught-flow merge from FlowSpec review, for instance): CR4 is additive to `_merge`,
-scoped to crawl-sourced screen classification.
+A `PersonaRevision` (PP3, already dated + non-blank-summary-enforced) records the counts of all
+five categories by name — not merely a prose "what changed" sentence, a machine-checkable count per
+category. PP2's existing add-only guarantee is **preserved, not replaced**, for any merge path this
+criterion does not touch (a taught-flow merge from FlowSpec review, for instance): CR4 is additive
+to `_merge`, scoped to crawl-sourced screen classification.
+
+**Known gap, not yet closed (checker finding ISS-t165-crawl-traversal-2, 2026-09-27):** this
+criterion's "every persona screen ... classified as exactly one of" claim assumes `PersonaScreen.key()`
+uniquely identifies a screen. It does not: two structurally distinct screens sharing a `url_template`
+(the same shape X3/X14 already document as real, e.g. an SPA state toggle) collide onto one key, and
+the losing screen is invisible to this classification entirely — not merely miscategorized. This is
+open, not ratified as acceptable; a unit closing it must either disambiguate `PersonaScreen.key()`
+for crawl-sourced screens (e.g. include `signature`) or change the reachability lookup to keep every
+same-key-different-signature screen rather than the first one seen.
 
 **Falsifiable (D-040's acceptance test (c)):** removing a fixture screen between two crawls of the
 same project produces exactly one `missing` classification on the second crawl's `PersonaRevision`;
 the same two crawls with nothing removed produce zero `missing` entries. A screen whose structure
 was edited between crawls produces exactly one `changed` entry, naming the screen.
+
+**Known gap, not yet closed (checker finding ISS-t165-crawl-traversal-3, 2026-09-27, check A):**
+D-040 acceptance test (c)'s second half — "the same two crawls with nothing removed produce zero
+`missing` entries" — is violated in the ordinary incremental case, not an edge case. `skip_unchanged`
+(CR3) short-circuits BEFORE `explore_node.visit_node`, and `_enqueue` (the only place a new node
+enters `rt.frontier.queue`) runs only inside `visit_node`'s click loop. So when a skipped node's
+children are reachable ONLY through links this crawl never clicked (because the node was skipped),
+those children are never added to THIS crawl's own `rt.nodes` at all — the frontier "exhausts"
+trivially, with `frontier_exhausted=True`, having represented only the nodes that happened to get
+skipped or visited before the queue ran dry. `persona_changes.classify()` then sees
+`frontier_exhausted=True` and every other stored crawl-sourced key as absent from `reached`, so it
+reports them `missing` — "the product lost this screen" — on a byte-identical site. Reproduced live
+(checker A, headed Chromium, `tests/fixtures/deep_site`): crawl 1 (`incremental=False`) explores all
+9 screens (20 actions); `build_portal_persona` seeds the persona; crawl 2 (`incremental=True`)
+matches and skips the entry screen `/` on its stored signature, enqueues nothing else (no click ever
+ran to discover `/deep1.html` etc.), and finishes `status=completed`,
+`stop_reason="frontier empty -- 1 screen(s) skipped..."`, `screens=1`. Running `persona_changes.classify()`
+on that crawl's own 1-node graph against the seeded persona returns all 8 other screens
+(`/deep1..4.html`, `/wide1..4.html`) in `missing_screens` — none of them removed, changed, or even
+looked at. This is CR4's own falsifiable acceptance test failing on the mainline incremental path,
+not a corner case; `test_persona_changes.py`'s synthetic fixtures never combine a live incremental
+crawl's actual graph with `classify()`, so no test in the suite exercises this integration. Closing
+it needs the incremental crawl to still represent (and either skip-mark or explore) every
+`crawl_sourced` key reachable from the persona, not only the ones this run's own click-driven
+discovery happened to reach before the frontier ran dry — e.g. seeding the frontier from
+`persona.keys` as well as `base_url`, or treating a skipped node's PRIOR stored transitions as
+still-valid discovery edges for queueing purposes (bounded by the same reachability the persona
+already recorded, not a new one).
 
 ### CR5 — Completeness stays honest under the new machinery (frontier-completeness, carried forward)
 "Complete" still means the actionable frontier was exhausted, or a named safety/time/action/depth
@@ -154,6 +210,15 @@ run's policy (e.g. `READ_ONLY`, or `synthetic_typing=False`) never has its form 
 "read the recorded values" path still passes through the same X5/X10-b gate a fresh type would, not
 a bypass that only checks "was this typed once before."
 
+**Known gap, not yet closed (checker finding ISS-t165-crawl-traversal-1, 2026-09-27):** X7 ("the
+host is re-checked after EVERY action") is also byte-unchanged and still in force per this
+contract's own "Relationship to explore.md" section, but `explore_replay.perform()` does not call
+`check_destination` after issuing a replayed fill/click, unlike `explore_node.try_action` and
+`explore_typing._type_one`, which both do. A replayed action that lands off-domain is reported as a
+plain success today. This is open, not ratified; closing it means `explore_replay.perform()` calls
+`check_destination` after every issued action and records `OFF_DOMAIN_REFUSED` on
+`NavigationRefused`, matching the two existing call sites.
+
 ## Explicit no-fire list (do not raise these as findings)
 
 - **Back-navigation replay "not built"** — it already exists (`stages/explore_return.py::return_to`
@@ -199,3 +264,21 @@ belongs in a stated-reason new module (C3) rather than pushed into a file alread
   schema/flow persistence, and change-tracking asks map to CR1, CR3/CR4, and CR4 respectively; its
   "permission = testing surface" ask is explicitly routed to T-171 (not this contract) per D-040.
   No prior draft existed; nothing amended.
+- 2026-09-27 · routine · check B of T-165's dual check (D-040) ruled on the three contract-shaped
+  questions the build filed (`qa/feedback-inbox.md` 2026-09-27, Q1-Q3): CR4 formalises
+  `missing_unjudged` as a fifth disclosed category and ratifies reading `broken`'s prior state from
+  the append-only revision history (Q1/Q2); CR3's changed-site "close to" is ruled as the lower
+  bound `second.actions_used >= first.actions_used`, not a two-sided band (Q3). Also recorded two
+  **open, not-ratified** gaps the same check found and filed as blocking issues
+  (`ISS-t165-crawl-traversal-1`, `-2`): CR7 does not yet carry X7's host-recheck into the replay
+  path, and CR4's classification silently drops one of two screens sharing a `url_template` (a
+  `PersonaScreen.key()` collision). Still DRAFT — this contract goes ACTIVE only on T-165's first
+  PASS, which this check did not grant.
+- 2026-09-27 · routine · check A of T-165's dual check (D-040), independently, ratified the same
+  Q1/Q2/Q3 readings (converged before reading check B's edit to this file) and found a third,
+  distinct blocking gap: CR4's own `missing`/D-040(c) acceptance test fails on the ordinary
+  incremental path because `skip_unchanged` short-circuits before the frontier can enqueue a
+  skipped node's children, so an incremental crawl can represent only a handful of nodes yet still
+  read `frontier_exhausted=True`, reporting the rest of a byte-identical, untouched portal as
+  `missing`. Filed and documented under CR4 as `ISS-t165-crawl-traversal-3`, open, not ratified.
+  Still DRAFT — this check also did not grant PASS.

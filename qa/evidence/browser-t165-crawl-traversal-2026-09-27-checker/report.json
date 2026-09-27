@@ -1,0 +1,39 @@
+{
+  "generated_at": "2026-09-27T14:05:00+00:00",
+  "headed": true,
+  "note": "Checker's OWN real headed-Chromium run of the CR2/X10-b write-path arms (Mode D). Not the maker's script; the maker's evidence at qa/evidence/browser-t165-crawl-traversal-2026-09-27/report.json was not read before this ran. Local fixture (tests/fixtures/form_site) on 127.0.0.1 only, real signed RunApproval (production=False).",
+  "arms": {
+    "default_read_only": {
+      "policy": {"write_policy": "read_only", "synthetic_typing": false},
+      "nodes_reached": 2,
+      "node_signatures": ["e62dc170fe...(base /)", "f716c12737...(other.html)"],
+      "edges": [
+        {"action": "fill", "target": "#code", "outcome": "denied_policy", "reason": "typing disabled under this policy (X10-b)"},
+        {"action": "click", "target": "#go", "outcome": "same_screen"},
+        {"action": "navigate", "target": "Reference guide", "outcome": "navigated"},
+        {"action": "navigate", "target": "Back to the lookup", "outcome": "navigated"}
+      ],
+      "panel_state_reached": false,
+      "result": "MATCHES CONTRACT: default write_policy never types, never reaches the form-gated panel state -- only a DENIED_POLICY record exists for #code."
+    },
+    "test_account_synthetic_typing": {
+      "policy": {"write_policy": "test_account", "synthetic_typing": true},
+      "nodes_reached": 3,
+      "node_signatures": ["e62dc170fe15 (base /)", "40640fcdcaf0 (panel state, / depth1)", "f716c127370c (other.html)"],
+      "edges": [
+        {"action": "fill", "target": "#code", "outcome": "same_screen", "node": "base"},
+        {"action": "click", "target": "#go", "outcome": "navigated", "to": "panel_state"},
+        {"action": "navigate", "target": "Reference guide", "outcome": "navigated", "from": "panel_state"},
+        {"action": "fill", "target": "#code", "outcome": "same_screen", "node": "panel_state", "note": "THE REPLAY -- this fill re-issues the recorded value after go_back/goto both failed to restore the panel state, immediately followed by the click below"},
+        {"action": "click", "target": "#go", "outcome": "same_screen", "node": "panel_state"},
+        {"action": "click", "target": "#detail", "outcome": "same_screen", "node": "panel_state"},
+        {"action": "click", "target": "#history", "outcome": "same_screen", "node": "panel_state"},
+        {"action": "navigate", "target": "Back to the lookup", "outcome": "navigated"}
+      ],
+      "panel_state_reached": true,
+      "result": "MATCHES CONTRACT: CR2's replay genuinely re-issues the fill before the click to re-enter the panel state after navigating away; #detail/#history are then exercised on the re-entered screen."
+    }
+  },
+  "checker_harness_note": "An initial version of this probe filtered nodes by 'any element with a selector ending in a target suffix' rather than by distinct node signature, which produced a false positive (misread the read_only arm as having reached the panel). Corrected to compare node counts/signatures directly (shown above) before reporting; the corrected result matches the manifest's own claimed live evidence.",
+  "verdict_contribution": "Both write-surface arms behave as CR2/CR7/X10-b claim in a real headed browser I drove myself. This evidence does not clear the unit -- see qa/issues.jsonl ISS-t165-crawl-traversal-1 (X7 host-recheck missing from the replay path) and -2 (PersonaScreen.key() collision), found by static/unit-level analysis, not by this browser run."
+}
