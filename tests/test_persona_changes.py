@@ -187,6 +187,10 @@ def test_a_persona_written_before_this_unit_still_loads_and_classifies() -> None
     assert old.screens[1].ident() == ("/taught", None)
     assert old.history[0].counts() == {"new": 0, "changed": 0, "missing": 0,
                                        "broken": 0, "missing_unjudged": 0}
+    # The review fix added `healthy_screens`; a revision written before it must
+    # still validate, and default to "recorded no observation" rather than
+    # "observed everything healthy" -- the latter would clear real broken records.
+    assert old.history[0].healthy_screens == []
     diff = _classify(old, [_node("/", "sig-a-EDITED")])
     assert diff["changed_screens"] == ["/"] and diff["missing_screens"] == []
 
