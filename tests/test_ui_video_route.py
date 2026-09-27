@@ -87,6 +87,13 @@ def test_run_view_links_to_the_video_route(client: TestClient, scratch_root: Pat
 def test_run_view_shows_no_video_link_when_there_is_no_video_evidence(
     client: TestClient, scratch_root: Path
 ) -> None:
+    """AT-654 (checker, cycle 1): this test was VACUOUS. It seeded a `RawResult`
+    with no `evidence=` at all, which `schema/run.py` defaults to `[]`, so the
+    run had zero evidence of ANY kind — the assertion held whether
+    `_video_section`'s `EvidenceKind.VIDEO` filter existed, was inverted, or was
+    deleted. It now seeds a SCREENSHOT row, so the filter is the only thing that
+    keeps `.webm` out of the page and removing it reddens this test.
+    """
     store = ProjectStore("demo", scratch_root)
     store.save_project(
         Project(slug="demo", name="Demo", base_url="https://demo.test",
@@ -97,12 +104,18 @@ def test_run_view_shows_no_video_link_when_there_is_no_video_evidence(
                 steps=[Step(order=1, action=Action.NAVIGATE, target="/")])
     store.add_case(case)
     store.save_run(Run(id=RUN_ID, project="demo", case_ids=[case.id]))
-    store.save_result(RUN_ID, RawResult(case_id=case.id, outcome=Outcome.COMPLETED))
+    store.save_result(RUN_ID, RawResult(
+        case_id=case.id, outcome=Outcome.COMPLETED,
+        evidence=[Evidence(kind=EvidenceKind.SCREENSHOT, path="step-1.png", step_order=1)],
+    ))
     store.save_verdict(RUN_ID, Verdict(run_id=RUN_ID, case_id=case.id, result=Result.PASS,
                                        criteria_met=1, criteria_total=1, grader_provider="mock"))
 
     response = client.get(f"/projects/demo/runs/{RUN_ID}")
 
+    # The run HAS evidence, so the VIDEO filter is the only thing that can keep a
+    # video link out -- and the prefix reddens for ANY row the filter lets past.
+    assert f"/runs/{RUN_ID}/videos/" not in response.text
     assert ".webm" not in response.text
 
 

@@ -266,5 +266,91 @@ test split, gave `1 failed, 2081 passed, 6 skipped, 14 xfailed` in 1256.13s — 
 failure, confirming the UNC fix and test split introduced no regression (2086 vs 2081 passed
 is exactly the net of the tests added since: the UNC/drive-rooted/mechanism/end-to-end tests).
 
+## CYCLE 2 — the checker's FAIL is right, and its suggested fix was not enough
+
+**Verdict answered:** `qa/verdicts/t191-video-reachable.md` cycle 1, **FAIL** on `AT-654` (now
+**`AT-656`** in this ledger — see the renumbering below). 15/16 rows confirmed; C7 was the sole
+fail driver. The retracted C15 finding is accepted as retracted and nothing was changed for it.
+
+### The defect, restated exactly
+
+`tests/test_ui_video_route.py::test_run_view_shows_no_video_link_when_there_is_no_video_evidence`
+seeded a `RawResult` with no `evidence=` at all. `schema/run.py` defaults that to `[]`, so the run
+under test had zero evidence of **any** kind. `assert ".webm" not in response.text` therefore held
+whether `routes_report.py::_video_section`'s `EvidenceKind.VIDEO` filter existed, was inverted, or
+was deleted. Third vacuous test in this unit; the cycle-1 build self-found and fixed the first two.
+
+### Why the suggested fix shape was insufficient — measured, not argued
+
+The verdict's fix shape was *"seed a non-video Evidence row (e.g. SCREENSHOT) alongside the no-video
+case so the filter is actually exercised."* Seeding the row is necessary and it is **not sufficient**,
+and this was found by building it and running it rather than by reasoning about it:
+
+With the `VIDEO` filter deleted, `_video_section` emits a link for whatever rows it receives — so it
+emits one for the SCREENSHOT row, whose path is `step-1.png`. **That link contains no `.webm`**, so
+`assert ".webm" not in response.text` stays true and the test stays green. The fixture, not the code
+under test, was controlling the asserted substring.
+
+Falsification run in a throwaway `git archive` copy under `%TEMP%` (never the bound worktree), the
+copy as CWD per this repo's documented `PYTHONPATH`-shadowing gotcha:
+
+| Variant | With the VIDEO filter deleted | Reads |
+|---|---|---|
+| Verdict's suggested shape (SCREENSHOT row + `.webm` assertion only) | **6 passed** | still vacuous |
+| Shipped fix (SCREENSHOT row + video **route-prefix** assertion) | **1 failed, 5 passed in 3.61s** | genuinely load-bearing |
+
+GREEN baseline for the same file is **1.80s**, so the 3.61s RED is the same order of magnitude — not
+a collection/import error masquerading as a falsification (the fast-RED tell).
+
+### The fix
+
+`tests/test_ui_video_route.py` only — no `src/` change, because the code was never wrong:
+
+1. Seed `Evidence(kind=EvidenceKind.SCREENSHOT, path="step-1.png", step_order=1)` on the result, so
+   the run has evidence and the filter is the only thing that can keep a video link out.
+2. Assert on the **video route prefix** — `assert f"/runs/{RUN_ID}/videos/" not in response.text` —
+   which is emitted for *any* row the filter lets past, instead of on a file extension the fixture
+   happens to control. The `.webm` assertion is kept as a narrower second check.
+3. The docstring records both the original vacuity and why the obvious repair does not close it, so
+   the next reader does not re-weaken it.
+
+**One thing deliberately NOT done:** `_step_flow` renders `no screenshots captured` for this fixture
+because it reads the screenshot **file** off disk and the fixture writes none. An earlier draft
+asserted `"step-1.png" in response.text` as a fixture-liveness guard and it failed for that reason.
+Writing a real PNG to the run dir would make the guard pass, but it would couple this test to
+`_step_flow`'s disk behaviour, which is another unit's concern. The route-prefix assertion needs no
+such coupling: the evidence list reaching `_video_section` is what it measures.
+
+### Ledger reconciliation (the checker flagged it; merge reconciliation is the orchestrator's job)
+
+The check filed `AT-654`/`AT-655` into **this worktree's** `qa/issues.jsonl`, a stale fork of master
+at `12597de3` whose highest id was `AT-649`. Meanwhile the **root** ledger independently advanced to
+its own unrelated `AT-654` (D-029 dev-only vs production Pathlynks, `3c9cb374`/`6cfefd83`).
+
+- This worktree's `AT-654` -> **`AT-656`**, status `fixed`, with the reason written into its row.
+- `AT-655` (persona-walk hygiene, low) is **unchanged** — that id is free in the root ledger.
+- **Renumbered rather than documented as an 11th `id_collision` pair.** The ten existing pairs are
+  preserved only because both of their ids had already been published outside their branch. Neither
+  of these had. Preserving a collision that nothing depends on would add permanent confusion for no
+  traceability gain.
+- `.gitattributes` carries `qa/issues.jsonl merge=union`, so the merge itself will not conflict.
+
+### AT-655 — not fixed, and the reason is a judgement the checker should rule on
+
+The manifest omits the `Persona walk:` field SKILL.md 5bb expects for a UI-touching unit. Filed low,
+non-blocking. It is **left open deliberately**: the honest walk for this unit is a report reader
+clicking a video link, which Mode D already performed and recorded end to end (real uvicorn, real
+Playwright, 200 then 206 partial content). Adding a `Persona walk:` line now would restate that
+evidence in a second place rather than add any. If the checker wants the field populated as process
+hygiene regardless, say so and it is one line — but the maker is not going to manufacture a second
+account of a walk that is already evidenced.
+
+### Verify commands, cycle 2
+
+- `uv run ruff check src tests scripts` -> **All checks passed!**
+- `uv run autotester doctor` -> **clean**
+- `uv run pytest` -> see the block appended below (no CLI `-q`, AT-503; the **last** summary block and
+  the explicit exit code are the ones that count, per the double-tally hazard recorded in this repo).
+
 ## Status: ready-for-check
-**Fix cycle:** 1 (of max 3)
+**Fix cycle:** 2 (of max 3)
