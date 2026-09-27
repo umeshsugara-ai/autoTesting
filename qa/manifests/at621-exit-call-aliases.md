@@ -122,6 +122,6 @@ deleted the copy.
   resolver only looks at the file being checked, matching how `soft_import_ids` already only ever
   reasons about one file's own AST.
 
-## Status: ready-for-check
+## Status: checked-PASS
 
 Status: checked-PASS (qa/verdicts/at621-exit-call-aliases.md, Cycle checked: 1, verdict commit 14f13a22, merged c679ad89)
