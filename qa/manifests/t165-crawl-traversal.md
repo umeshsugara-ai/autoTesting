@@ -350,4 +350,64 @@ asserted the strictly stronger `second.actions >= first.actions`.
    recorded value replayed onto a screen on a different domain.
 5. **PP2.** Construct a merge path where the CR4 diff could drop or blank a stored screen.
 
-**Status: ready-for-check**
+## Status: needs-fix (cycle 1 FAILED on a dual check — cycle 2 of max 3)
+
+Verdict `qa/verdicts/t165-crawl-traversal.md`, **Cycle checked: 1**, both sections present:
+check B at `6fc02c68`, check A at `c4a845b6`. **Both checks FAILED independently, on four
+non-overlapping defects.** No merge, no push, no PASS — and `qa/contracts/crawl-traversal.md`
+therefore stays **DRAFT**, since it goes ACTIVE on this unit's first PASS and there has not been one.
+
+That is the dual check working as designed rather than a bad outcome: two checkers bound to the same
+contract, neither seeing the other's findings while deriving them, produced a disjoint union. A single
+check would have shipped this unit with three of the four defects still in it.
+
+### The four defects, in the order the fix should take them
+
+| Issue | Sev | Where | What is wrong |
+|---|---|---|---|
+| `ISS-t165-crawl-traversal-3` | **critical** | `explore_incremental.skip_unchanged()` vs `explore_node._enqueue()` | A skipped node's children are never enqueued, because the skip short-circuits **before** `visit_node()`. So an incremental crawl over a byte-identical site ends with a 1-node graph and `stop_reason` claiming an exhausted frontier, and `classify()` on that graph reports the other 8 screens as `missing_screens` — deletions that never happened. |
+| `ISS-t165-crawl-traversal-1` | high | `explore_replay.perform()` | Never calls `check_destination()` after a replayed fill/click. Every other action path in the crawler re-checks the landed host (X7); the replay path does not. |
+| `ISS-t165-crawl-traversal-2` | high | `PersonaScreen.key()` | URL-template-only, unlike `ScreenNode.id` which hashes {url_template, signature}. So `_incoming_screens()`'s `seen` set silently drops a second structurally-distinct screen sharing a URL — it can never appear as new/changed/missing/broken in CR4's diff. |
+| `ISS-t165-crawl-traversal-4` | low | `persona_changes._previously_broken()` | Reads only the first prior revision with any non-empty category, so a continuously-broken screen is re-flagged as newly broken after an unrelated intervening crawl. Noisy, not silent — not independently blocking. |
+
+**ISS-3 is the one that matters most, and it is worse than a masked mutation.** It is D-040's own
+written acceptance test (c) — *"the same two crawls with nothing removed produce zero missing
+entries"* — failing on the **ordinary incremental path**, reproduced live in headed Chromium against
+`tests/fixtures/deep_site`. The unit exists to make completeness honest, and its mainline incremental
+path reports 8 fabricated deletions while claiming the frontier was exhausted. No existing test sees
+it because no test joins a real incremental crawl's own graph to `classify()`:
+`tests/test_persona_changes.py` uses synthetic fixtures only, and the `incremental_pair` fixture in
+`tests/test_explore_completeness.py` never calls `classify()` on its crawl-2 output. **That missing
+join is the test the fix must add** — not another synthetic-fixture case.
+
+### What this manifest got right, recorded because it is the useful part
+
+The "Where to attack this" section named two of the four defects before either checker ran.
+Attack #3 said *"two different screens colliding on `PersonaScreen.key()`"* — that is exactly
+`ISS-2`. Attack #4 said *"confirm CR2's replay cannot widen X10-b"* — check B looked there and found
+the missing `check_destination()`, `ISS-1`. Writing down where the unit is weakest is what made two
+of these findable in one cycle. It is also the honest reading of attack #2's prediction (*"assume
+there is a third masked mutation"*): check A re-ran the mutation set and found **none** — the ten
+capability rows held. The defect was in an **eleventh claim nobody wrote a row for**, which is the
+sharper lesson: the gap was in the coverage table's scope, not in its rigour.
+
+### Rulings folded into the contract (both checkers, independently identical)
+
+Q1 ratified (`existing.history` reversed is the only PP2-safe source for `broken`'s prior state) ·
+Q2 ratified (`missing_unjudged` becomes a named **fifth** CR4 category for the bound-truncated
+frontier) · Q3 ratified with `second.actions_used >= first.actions_used` as a **lower bound only**.
+Check A derived all three before reading check B's section. The merge resolution in `a25119fa` was
+verified sound by both: CR2's `explore_replay.perform()` and AT-335's bounded arrival poll both
+survive and are correctly sequenced in `_replay_discovery()`.
+
+### Two things recorded, neither chargeable to this unit
+
+Check A saw `test_hook_prints_the_report_and_exits_zero_on_a_healthy_log` red in a narrow background
+run and clean in the full run — reads as this worktree's live `qa/.last-tick` bleeding into a test
+that expects a clean `tmp_path`. Filed for a look, not against T-165. And check B caught a false
+positive in **its own** first probe (mis-filtered edges by outcome, same-selector instead of
+distinct-signature) and corrected it before including the probe in the verdict.
+
+**Cycle 2 is a normal fix cycle — no HUMAN_GATE.** Both checkers said so explicitly, and I agree:
+every one of the four is a code defect with a named location, and none of them needs a decision only
+Umesh can make.
