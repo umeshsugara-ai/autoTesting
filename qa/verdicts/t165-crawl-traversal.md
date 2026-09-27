@@ -225,3 +225,135 @@ crawl-sourced screens, or change the reachability lookup to stop dropping same-k
 resubmit as cycle 2. The contract amendments (Q1-Q3 rulings, the two "known gap" call-outs) are
 already committed to `qa/contracts/crawl-traversal.md` regardless of this cycle's outcome, since a
 contract's job is to state ground truth whether or not the current artifact meets it yet.
+
+## CHECK A (independent first checker, D-040 dual check)
+
+Written by check A, dispatched with emphasis on **completeness honesty** — "complete means the
+frontier was exhausted; every bound must name what it left unreached; a crawl that reports success
+while having silently stopped early is the worst failure this system can have." I did not read or
+coordinate with check B while forming my own findings; I read check B's section above only after
+reaching my own conclusions, to append rather than overwrite, per protocol. Independently reached
+the same rulings on Q1/Q2/Q3 as check B (see below) and found a third, distinct, higher-severity
+defect than either of check B's two.
+
+**Cycle checked: 1**
+**Date:** 2026-09-27
+**Bound root:** `D:/autoTesting`, worktree `D:/autoTesting/.claude/worktrees/agent-a6b3b2d68e31aeec3`,
+branch `wave/t165-crawl-traversal`. Judged the same commits as check B: `d0778797` (build, 34 files,
++2074/-73), `380cfa64`/`85935ce8` (manifest), on top of `a25119fa` (orchestrator's `master` merge).
+
+```
+VERDICT: FAIL
+SCOREBOARD: CR1/CR2-mechanism/CR6 hold; CR5's structural claim (terminal_status cannot launder an
+unexhausted frontier into COMPLETED) holds; CR3's skip mechanism holds in isolation; CR4 does NOT
+hold -- fails D-040's own acceptance test (c) on the mainline incremental path.
+FAILURES:
+- [CR4 / CR5 / D-040(c)] sev: critical · An incremental crawl's frontier is seeded only from
+  base_url (explore.py::_seed); the only path that ever enqueues a node is
+  explore_node._enqueue(), reachable only via try_action -> _click_loop -> visit_node. But
+  explore_incremental.skip_unchanged() short-circuits BEFORE visit_node() runs for a matched node,
+  so a skipped node's children are never enqueued. Live-reproduced: a full crawl of a 9-screen
+  fixture followed by an incremental re-crawl of the byte-identical site skips the entry screen,
+  enqueues nothing else, ends with a graph of exactly 1 node, and stop_reason starts with "frontier
+  empty" -- which every caller reads as frontier_exhausted=True. persona_changes.classify() then
+  reports the other 8 untouched, unremoved screens as `missing_screens`, not `missing_unjudged`.
+  This is D-040's own written acceptance criterion (c) failing on the crawl this unit's manifest
+  itself demonstrates (case C / the incremental_pair path), not a hypothetical corner case, and no
+  existing test catches it because none combines a real incremental crawl's own graph with
+  persona_changes.classify() · fix: seed/track the frontier from the persona's known screens too (or
+  otherwise account for every previously-known screen as explored-or-skip-marked) so
+  frontier_exhausted is only ever true when every crawl-sourced screen was actually accounted for
+  this run · issue: ISS-t165-crawl-traversal-3
+- [CR4] sev: medium · `persona_changes._previously_broken()` takes the FIRST prior revision with
+  any non-empty category and returns only that revision's own `broken_screens`, rather than the
+  union of broken-ever status across history; a continuously-broken screen can be re-reported as
+  newly broken after an intervening crawl whose revision happened to record something unrelated ·
+  reproduced concretely in a throwaway scratch script (3-crawl sequence) · fix: accumulate
+  was-broken status across all revisions, not just the nearest non-empty one · issue:
+  ISS-t165-crawl-traversal-4
+CAPABILITY-COVERAGE: did not re-run all 10 rows independently; re-verified the CR5/displayed_status
+extension row (BLOCKED_NO_ACTIONS) via a throwaway-copy mutation-and-revert, confirmed
+green-before/red-after with the correct assertion firing
+(test_a_skip_never_reads_as_having_explored_the_screen went red for the right reason). Did not find
+a third *masked* mutation among the manifest's 10 enumerated claims -- instead found a real,
+uncaught bug in a mainline path the capability-coverage table never names as a claim at all (no row
+exists for "an incremental crawl's own graph, run through classify(), reports zero missing entries
+when nothing was removed" -- which is exactly D-040(c)). Treat this as the more serious finding: the
+gap is not a weak test, it is an untested claim.
+LIVE-BROWSER: qa/evidence/browser-t165-crawl-traversal-2026-09-27-checker-a/report.json -- my own
+headed Chromium runs: (1) hybrid/max_actions=8 reproduction of the manifest's case B (stopped_bound,
+actions=8, screens=9, coverage 40%, matches the manifest's claimed shape); (2) an independent
+full+incremental pair against tests/fixtures/deep_site (not the maker's fixture/script), whose own
+real captured graph is what surfaces the CR4 bug above -- not a synthetic test fixture.
+ISSUES-WRITTEN: ISS-t165-crawl-traversal-3, ISS-t165-crawl-traversal-4
+EXECUTOR: a /maker build subagent (Opus) per the manifest (checker: claude-sonnet-subagent, this
+session, dispatched as check A of the D-040 dual check)
+EXPLANATION: The unit's core traversal/replay/skip mechanisms are sound in isolation, and
+`terminal_status`'s login branches cannot launder an incomplete frontier into COMPLETED (verified
+structurally: COMPLETED is returned from exactly one branch, gated on `if not completed`, which the
+LOGIN_FAILED/LOGIN_WALL returns never reach). But the unit's own headline claim -- CR4's
+completeness/honesty -- fails on the ordinary incremental path this same unit introduces: a
+byte-identical re-crawl reports 8 of 9 known screens as missing. This is independent of and more
+severe than either of check B's two findings, and blocks PASS on its own.
+```
+
+### Report-back answers, per the dispatch
+
+- **Could `terminal_status`'s login branches launder an unexhausted frontier into `completed`?**
+  No. Read `src/autotester/stages/explore_status.py::terminal_status` in full: `CrawlStatus.COMPLETED`
+  is assignable from exactly one branch — the final `else`, itself gated by `if not completed`.
+  `LOGIN_FAILED`/`LOGIN_WALL` both `return` earlier, before that gate is ever reached. The two
+  outcomes are structurally mutually exclusive; I could not construct an input that reaches
+  `COMPLETED` through a login branch.
+- **Third masked mutation?** I re-verified the CR5/`displayed_status` capability-coverage row
+  (green-before/red-after, in a throwaway copy) and it held. I did not find a third row that fails
+  to falsify the way rows #3/#5 originally did. What I found instead is worse in kind: a real,
+  reproducible defect on a path with **no capability-coverage row at all** — the incremental
+  crawl's own graph run through `persona_changes.classify()`. The manifest's 10 rows test 10 named
+  claims; this bug lives in an 11th claim (D-040 acceptance test (c)) nobody wrote a row for.
+- **Q1/Q2/Q3 and `missing_unjudged`:** I independently derived and ratify the same readings check B
+  recorded — Q1 (broken's prior state from append-only history is the only PP2-safe source), Q2
+  (`missing_unjudged` as a named fifth category is correct — silence about an unknown is exactly
+  what CR5 exists to prevent), Q3 (`second.actions_used >= first.actions_used` as a lower bound
+  only, no upper-bound claim invented). I reached these before reading check B's section and found
+  no disagreement worth recording separately.
+- **Own live-browser numbers:** hybrid/max_actions=8 — `actions=8, screens=9, coverage_percent=40,
+  controls_discovered=20, controls_exercised=8, holes=12`, `stop_reason=max_actions` (honest bound
+  reporting, not `completed`). Incremental pair — crawl 1 `actions=20, screens=9`; crawl 2
+  `actions=0, screens=1, skipped_unchanged=1, status=completed,
+  stop_reason="frontier empty -- 1 screen(s) skipped as unchanged..."`. Running the real
+  `persona_changes.classify()` on crawl 2's own graph with `frontier_exhausted=True` (as read from
+  that stop_reason, matching what the real pipeline would do) returns the 8-screen
+  `missing_screens` list above and an empty `missing_unjudged` — the dishonest outcome the
+  dispatch was most worried about, reproduced on the mainline path, not a contrived one.
+- **Merge resolution of `explore_return.py`:** confirmed sound. `_replay_discovery` calls
+  `explore_replay.perform(rt, edge)` (CR2) then `_matches(rt, node)` (AT-335's bounded poll,
+  `RETURN_SETTLE_TOLERANCE_MS=1500`, `_RETURN_POLL_S=0.15`, explicit deadline — genuinely bounded).
+  Both properties are present and neither was lost; `_matches` is reused correctly at the earlier
+  `go_back`/`goto` rungs too.
+- **Design-rule caps / licence:** `ExploreRuntime`'s move from `explore.py` to `explore_runtime.py`
+  reads as a clean extraction (no behavior change, `frontier_exhausted: bool = False` default
+  intact). Did not find copied Crawljax/Stagehand code or a new dependency; the port reads as
+  idea-level only (grepped imports/pyproject — no new third-party crawl/replay package added).
+- **Verify commands (this session):** `uv run pytest` — full suite, 2100 passed, 5 skipped, 14
+  xfailed, exactly the 2 expected pre-existing failures
+  (`test_goal_done_checks.py::test_no_pending_task_has_a_done_check_that_cannot_fail` and
+  `::test_revised_goal_contract_is_registered`), no third/fourth unexpected failure in the full run.
+  `uv run ruff check src tests scripts` and `uv run autotester doctor` both re-run separately and
+  clean. (A `test_a_skip_never_reads_as_having_explored_the_screen` red and an unrelated
+  `test_hook_prints_the_report_and_exits_zero_on_a_healthy_log` red appeared only in a *separate*,
+  narrower background run used for capability-coverage mutation testing in a throwaway copy — the
+  first is the expected red half of that row's green→red→revert cycle, not a suite regression; the
+  second looks like environment bleed from this worktree's own live `qa/.last-tick` state into a
+  test that assumes a clean `tmp_path`, unrelated to crawl-traversal, and did not reappear in the
+  clean full-suite run above. Worth a look but not chargeable to this unit.)
+- **For Umesh:** independent second confirmation that this cannot merge yet. Check B's two findings
+  (missing host-recheck in replay; `PersonaScreen.key()` collision) and my one critical + one medium
+  finding (incremental frontier never re-seeded, causing false `missing_screens`; `_previously_broken`
+  can re-flag a continuously-broken screen) are four distinct, non-overlapping defects — none of us
+  found the other's issues, which is exactly what a dual check is for. My finding is the more
+  fundamental one: it means the unit currently fails the specific acceptance test (D-040 (c)) that
+  most directly measures the "completeness honesty" this whole unit exists to deliver. Recommend
+  the maker treat ISS-3 as the highest-priority fix of the four before resubmitting, since it is
+  the one that fires on the ordinary, undisputed mainline path rather than a rarer collision or
+  multi-crawl sequence.
