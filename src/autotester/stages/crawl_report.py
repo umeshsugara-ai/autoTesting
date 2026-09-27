@@ -53,6 +53,9 @@ def crawl_summary(crawl: Crawl) -> list[tuple[str, str]]:
         ("Refused by policy", str(crawl.denied)),
         ("Issues found (in the product)", str(crawl.issues)),
         ("Tool failures (the crawler's own)", str(crawl.tool_failures)),
+        # CR5: never omitted, even at zero -- a reader of the workbook must be
+        # able to tell "explored everything" from "trusted a previous crawl".
+        ("Screens skipped as unchanged (NOT explored)", str(crawl.skipped_unchanged)),
         ("Started", crawl.started_at or "—"),
         ("Finished", crawl.finished_at or "—"),
     ]

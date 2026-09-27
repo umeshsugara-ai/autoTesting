@@ -217,6 +217,15 @@ def displayed_status(crawl: Crawl, *, now: datetime | None = None) -> CrawlStatu
     return crawl.status
 
 
+def skip_note(crawl: Crawl) -> str:
+    """CR5 (crawl-traversal.md): the clause every X16 one-line surface appends
+    when a crawl skipped screens as unchanged. One place that knows the wording
+    (C3), and empty for the overwhelming majority of crawls, which skip nothing."""
+    if not crawl.skipped_unchanged:
+        return ""
+    return f", {crawl.skipped_unchanged} screens skipped as unchanged (not explored)"
+
+
 def is_success(crawl: Crawl) -> bool:
     """The one test every surface uses to decide whether to colour a crawl as success."""
     return displayed_status(crawl) is CrawlStatus.COMPLETED

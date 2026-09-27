@@ -1101,3 +1101,40 @@ only, same as consent.md); a UI grant form for adversarial approvals.
 **APPLIES NEXT:** whichever unit eventually builds T-154 builds directly against AD1–AD7 (as the
 checker amends them), and does not re-derive D-017/D-018 from scratch.
 
+
+---
+
+## 2026-09-27 — maker, T-165 `t165-crawl-traversal`: three contract-shaped questions in `crawl-traversal.md`
+
+Filed here rather than guessing silently (`qa/contracts/` is checker-owned; I did not edit it).
+None of the three blocked the build — I took a reading in each case and say which — but each is a
+place where the contract is open enough that a different reading would also pass a literal check,
+which is exactly how T-125 burned three fix cycles.
+
+**Q1 — CR4 `broken`: what holds the "prior" state?**
+CR4 defines `broken` as an error status "that the prior stored screen did not carry". A
+`PersonaScreen` carries no status field at all, and PP2 (`portal-persona.md`) forbids rewriting a
+stored screen, so the prior status cannot live on the screen without breaking add-only.
+*My reading:* the prior state is read from the append-only revision history — the most recent
+`PersonaRevision` that classified anything (`persona_changes._previously_broken`). This is real
+evidence, PP2-safe, and satisfies the clause literally. *If the checker intended a status field on
+`PersonaScreen` instead, that is a PP2 amendment and belongs in the contract, not in this unit.*
+
+**Q2 — CR4 `missing` on a bound-truncated frontier: what is reported instead?**
+CR4 requires `missing` to be "a genuine absence, not a bound-truncated frontier", but does not say
+what a bound-stopped crawl should report for a stored screen it never reached. Reporting nothing
+loses the fact; reporting `missing` is the dishonesty CR5 exists to prevent.
+*My reading:* a fifth, disclosed category `missing_unjudged` on `PersonaRevision`, populated only
+when the frontier was NOT exhausted, with `missing` then empty. *If the revision is meant to carry
+exactly the four named categories, say so and the unjudged set moves elsewhere (or is dropped);
+I would argue against dropping it, since silence about an unknown is the failure mode.*
+
+**Q3 — CR3's changed-site arm: what does "close to" mean numerically?**
+The unchanged arm is exact (`<=10%` of the first crawl's `actions_used`). The changed arm is
+"issues close to the first crawl's action count", with no figure.
+*My reading:* asserted `second.actions >= first.actions` — a strictly stronger claim than "close
+to" for this fixture (every screen gains a control, so the second crawl legitimately costs more),
+and one that cannot be satisfied by a skip. *A checker who wants a two-sided band should name it.*
+
+**APPLIES NEXT:** whoever checks `t165-crawl-traversal` rules on Q1-Q3 and, if the readings stand,
+folds them into `crawl-traversal.md` so the next unit does not re-derive them.

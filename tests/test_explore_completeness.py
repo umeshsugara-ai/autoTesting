@@ -25,7 +25,10 @@ from crawl_live import FIXTURES, live_crawl
 from autotester.schema.crawl import Crawl, CrawlBounds
 from autotester.schema.enums import CrawlStatus, NodeStatus, TraversalStrategy
 from autotester.schema.project import Project
-from autotester.stages import crawl_coverage, explore_status
+from autotester.schema.screen_graph import CrawlFrontier, ScreenNode
+from autotester.stages import crawl_coverage, explore, explore_node, explore_status
+from autotester.stages.explore_runtime import ExploreRuntime
+from autotester.stages.explore_safety import DialogBreaker
 from autotester.stages.portal_persona import build_portal_persona
 from autotester.store.project_store import ProjectStore
 
@@ -66,6 +69,53 @@ def test_completed_is_reachable_only_with_a_stop_reason_that_says_frontier_empty
     crawl, _store, _page = crawl_it(tmp_path, bounds=CrawlBounds(), strategy=strategy)
     if crawl.status is CrawlStatus.COMPLETED:
         assert crawl.stop_reason.startswith("frontier empty")
+
+
+def test_a_bound_that_fires_mid_node_never_reads_as_an_exhausted_frontier(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AT-463, and the ONE shape that actually exercises the chokepoint.
+
+    Every other test here stops the crawl at the TOP of the traversal loop,
+    where `_bfs` returns early and the completeness line never runs at all. The
+    dangerous case is the other one: `_click_loop` spends the last action
+    partway through a screen and sets `stop_reason` itself, and the queue then
+    happens to empty in the same iteration. A drained queue is NOT an exhausted
+    frontier there — controls were left untried on the screen being visited.
+
+    Found by falsification: stubbing `rt.frontier_exhausted = True` left the
+    parametrized bound tests above entirely green, because none of them ever
+    reached the mutated line. A claim whose test cannot see the mutation is not
+    a tested claim.
+    """
+    store = ProjectStore("p", tmp_path)
+    project = Project(slug="p", name="p", base_url="https://app.test/")
+    store.save_project(project)
+    crawl = Crawl(project="p", bounds=CrawlBounds(max_actions=3))
+    store.save_crawl(crawl)
+    node = ScreenNode(crawl_id=crawl.id, project="p", url_template="/",
+                      url_example="https://app.test/", signature="sig", name="Home")
+    rt = ExploreRuntime(project=project, session=None, store=store, crawl=crawl,  # type: ignore[arg-type]
+                        observer=None, breaker=DialogBreaker(2), clock=lambda: 0.0,  # type: ignore[arg-type]
+                        started=0.0, frontier=CrawlFrontier())
+    rt.nodes[node.id] = node
+    rt.frontier.queue.append(node.id)
+
+    def _bound_fires_partway_through(runtime: ExploreRuntime, _node: ScreenNode) -> None:
+        """What `_click_loop` really does when a bound stops it mid-screen."""
+        runtime.frontier.actions_used = runtime.bounds.max_actions
+        runtime.stop_reason = "max_actions"
+
+    monkeypatch.setattr(explore_node, "visit_node", _bound_fires_partway_through)
+
+    explore._bfs(rt)
+
+    assert not rt.frontier.queue, "the queue did not drain -- the AT-463 shape was not built"
+    assert rt.stop_reason == "max_actions"
+    assert rt.frontier_exhausted is False, (
+        "the queue emptied after a bound had already fired and the crawl called itself "
+        "complete -- controls on the last screen were never tried")
+    assert explore._terminal_status(rt, rt.frontier_exhausted, None) is CrawlStatus.STOPPED_BOUND
 
 
 def test_terminal_status_cannot_return_completed_when_the_frontier_was_not_exhausted() -> None:

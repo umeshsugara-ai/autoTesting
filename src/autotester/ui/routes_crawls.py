@@ -157,12 +157,13 @@ def crawls(slug: str) -> str:
             f"<td>{escape(crawl.stop_reason or '—')}</td><td>{crawl.screens}</td>"
             f"<td>{crawl.denied}</td><td>{crawl.issues}</td>"
             f"<td>{crawl.tool_failures}</td>"
+            f"<td>{crawl.skipped_unchanged or '—'}</td>"  # CR5: a skip is not an exploration
             f"<td>{escape(crawl.started_at or '—')}</td></tr>"
         )
     table = (
         "<table class='data-table'><thead><tr><th>Crawl</th><th>Status</th>"
         "<th>Stopped because</th><th>Screens</th><th>Refused</th><th>Issues</th>"
-        "<th>Tool failures</th>"
+        "<th>Tool failures</th><th>Skipped (unchanged)</th>"
         f"<th>Started</th></tr></thead><tbody>{''.join(rows)}</tbody></table>"
     )
     body = (

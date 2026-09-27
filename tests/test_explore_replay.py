@@ -28,10 +28,6 @@ from autotester.store.project_store import ProjectStore
 FORM_SITE = FIXTURES / "form_site"
 
 
-def _templates(store: ProjectStore, crawl: Crawl) -> set[str]:
-    return {n.url_template for n in store.list_nodes(crawl.id)}
-
-
 # --- CR2 / CR7: form-input replay, live -------------------------------------
 
 

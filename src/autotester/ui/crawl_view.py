@@ -60,6 +60,11 @@ def summary_stats(crawl: Crawl) -> str:
         + theme.stat(str(crawl.denied), "Refused")
         + theme.stat(str(crawl.issues), "Issues")
         + theme.stat(str(crawl.tool_failures), "Tool failures")
+        # CR5 (crawl-traversal.md): a skipped screen was NOT explored. Shown only
+        # when there were any, in the same row as the other counts, so an
+        # incremental crawl cannot read like a full one at a glance.
+        + (theme.stat(str(crawl.skipped_unchanged), "Skipped (unchanged)")
+           if crawl.skipped_unchanged else "")
         + "</div>"
         + f"<p class='meta'>{theme.pill(escape(displayed_status(crawl).value), tone)} · "
         + f"stopped: {theme.pill(escape(crawl.stop_reason or 'unknown'), tone)}"

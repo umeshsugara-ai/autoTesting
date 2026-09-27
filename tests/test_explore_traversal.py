@@ -1,13 +1,16 @@
-"""CR1/CR2/CR6/CR7 — traversal strategy and form-input replay, against real pages.
+"""CR1/CR6 — the ORDER the frontier is walked in, against real pages.
 
 Contract: qa/contracts/crawl-traversal.md. `explore.md` X1-X18 are unamended and
-untouched here; every criterion below is about the ORDER the frontier is walked
-in (CR1/CR6) or about re-performing an action the crawl already performed once
-(CR2/CR7).
+untouched here; every criterion below is about which queued screen is visited
+next (CR1) and about that choice being a pure, reproducible function of
+frontier state (CR6).
 
-The CR1 and CR2 proofs are REAL Chromium crawls of local fixture sites, not
-fakes: traversal order and form replay are both about what a browser actually
-does, and this repo has a filed history (AT-243) of fixture-only "proof".
+CR2/CR7 — replaying an action the crawl already performed — lives in
+`test_explore_replay.py`, split out at the 300-line C2 cap.
+
+The CR1 proof is a REAL Chromium crawl of a local fixture site, not a fake:
+traversal order is about what a browser actually does, and this repo has a
+filed history (AT-243) of fixture-only "proof".
 """
 
 from __future__ import annotations
@@ -25,7 +28,6 @@ from autotester.stages import explore_traversal
 from autotester.store.project_store import ProjectStore
 
 DEEP_SITE = FIXTURES / "deep_site"
-FORM_SITE = FIXTURES / "form_site"
 
 # The budget is the whole point of CR1: `/` costs 5 actions, each branch page
 # costs 3, each workflow step costs 1. Breadth-first spends 5 + 1 + 3 + 3 = 12

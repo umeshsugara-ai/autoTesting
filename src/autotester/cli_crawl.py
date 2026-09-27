@@ -107,13 +107,13 @@ def echo_crawl_summary(crawl: Any) -> None:
     workbook: this line is the only place such a run learns the crawl could
     not record part of what it saw. Dropping it under-reports as dishonestly
     as folding it into `issues` over-reported."""
-    from autotester.stages.explore_status import displayed_status, is_success
+    from autotester.stages.explore_status import displayed_status, is_success, skip_note
 
     typer.secho(
         f"{crawl.id}: {displayed_status(crawl).value} ({crawl.stop_reason}) — "
         f"{crawl.screens} screens, {crawl.edges} edges, {crawl.actions} actions, "
         f"{crawl.denied} denied, {crawl.issues} issues, "
-        f"{crawl.tool_failures} tool failures",
+        f"{crawl.tool_failures} tool failures{skip_note(crawl)}",  # CR5
         fg=typer.colors.GREEN if is_success(crawl) else typer.colors.YELLOW,  # X18(c)
     )
 
