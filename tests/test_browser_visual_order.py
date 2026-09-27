@@ -270,7 +270,11 @@ def test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor(page_
     inserted to ask "would something HERE be visible?", changed the real page:
     author `:last-child` rules restarted an animation and dropped
     LASTCHILD_SIBLING_S7, while `span:empty` hid the probe (AT-442/443). No node
-    may be inserted."""
+    may be inserted.
+    A3/A4 (AT-453): closed-details judgment ignored `::details-content`'s own
+    display, so `display:contents`/`display:inline` overrides (content-visibility
+    does not apply, body still paints) were dropped. Validated across 26 pages:
+    .../browser-at438-display-contents-2026-09-16-checker-c3/fixdir3.out."""
     page, visit = page_factory
     visit("cvcontents.html")
     page.wait_for_timeout(400)
@@ -279,7 +283,8 @@ def test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor(page_
 
     seen = visual_text(page)
     for shown in ("CONTENTS_PLAIN_S1", "CONTENTS_OPENDETAILS_S2", "CONTENTS_ANIMATED_S6",
-                  "LASTCHILD_SIBLING_S7", "CONTENTS_ACCORDION_S10"):
+                  "LASTCHILD_SIBLING_S7", "CONTENTS_ACCORDION_S10",
+                  "CONTENTS_DETAILSCONTENT_CONTENTS_A3", "CONTENTS_DETAILSCONTENT_INLINE_A4"):
         assert shown in seen, (shown, seen)
     # S8/S9 (unslotted shadow child, <select> child) are never laid out, so every
     # glyph measures 0 wide and the width guard drops them -- measured. They are
