@@ -41,3 +41,33 @@ at334   nodes: 1 screen patterns: ['/index.html'] | run visits '/': gap = True
 - The full suite was started on the tip. Its result is appended below when it lands; it cannot change this FAIL.
 
 - **Addendum:** the full-suite run was stopped by the checker after the FAIL was established, to free RAM for the next unit in the queue. Cycle 2 re-runs the full suite and Mode D.
+
+---
+
+# Verdict — at334-index-alias, cycle 2
+
+**Date:** 2026-09-27
+**Cycle checked:** 2
+**Checker:** /checker (standing checker session: orchestrator plus 3 fresh-context lenses — rows, end-to-end repro + scope, Mode D)
+**Contract:** qa/contracts/explore.md (screen identity), qa/contracts/coverage.md V1; issues AT-334, AT-618
+**Branch / code commit:** wave/at334-index-alias · 7f051eb (manifest c2764e4, flip a23ec9b)
+
+```
+VERDICT: PASS
+SCOREBOARD: 2/2 criteria met (AT-334 node identity folds; one identity across all Screen/coverage seams), 3/3 invariants hold (C2 caps, C3 one fold helper in core/urls.py, coverage.md V1 same normalisation on both sides)
+FAILURES: none
+CAPABILITY-COVERAGE: 5/5 rows reproduced, each in its own copy, green before / red on the named assertion after (urls.py fold removed; fold over-broadened; coverage.py:36, explore_merge.py:78, merge_flowspec.py:175 each un-folded → false CoverageGap / duplicate Screen (2 == 1) / VideoRequest stays open)
+LIVE-BROWSER: qa/evidence/browser-at334-index-alias-2026-09-27-checker/report.json (on master)
+ISSUES-WRITTEN: none (AT-618 fixed by this unit; flip after merge)
+EXECUTOR: maker builder (checker: claude-opus orchestrator + subagents)
+EXPLANATION: Every seam the cycle-1 FAIL named now folds, and an independent end-to-end reproduction (node_from → screen_from → diff_crawl, both visit orders, nested /docs/index.html, /about still a gap, /index.php not folded) shows no false gap. The only unfolded caller left is the disclosed, gated scripts/migrate_url_patterns.py:101. In a real headed Chromium on modal_site, '/' after '/index.html' gives no CoverageGap, and the modal clicks changed state on both visits.
+```
+
+**Re-ran:**
+- `uv run ruff check src tests scripts`: clean.
+- `uv run autotester doctor`: clean.
+- The 13 targeted test files: 175 passed.
+- Full `uv run pytest`: 1957 passed, 2 failed, 6 skipped, 32 xfailed (15m58s). Neither failure is charged:
+  - `test_flake_probe_real_process…grandchild` is AT-518, and fails on master too.
+  - `test_browser_visual_order…[table-header-group]` was `net::ERR_NO_BUFFER_SPACE` on page.goto, meaning the Windows socket buffers ran out under concurrent load. When the same test module was re-run alone on this branch it gave 20 passed. The unit does not touch the browser or visual-order code.
+- Diff scope `28cc326..a23ec9b`: exactly the 6 files in What changed plus the manifest. Nothing removed.
