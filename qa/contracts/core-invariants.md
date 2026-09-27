@@ -276,6 +276,15 @@ for it. So a criterion that pins a rule at one call site pins half of it; where 
 two places, one test exercises both against the same object (`qa/contracts/consent.md` CN10 states
 this for bounds).
 
+**The other half, and it binds the checker hardest (the maker's, 2026-09-28).** A matcher reports on
+the state its pattern can EXPRESS, and every one of us has read that as a report on the state that
+EXISTS. Five instances in one day, and the last two were the people measuring rather than the code:
+a `Status:` matcher blind to `## Status (cycle 2):` reported a manifest as having no state at all,
+and a conclusion about the hook's count was drawn from a predicate that was not the hook's predicate
+(AT-662). So *verify by construction, not inspection* is only half a rule - **the construction has to
+be the same one the claim is about.** A count re-derived by a different pattern is a second opinion,
+never a confirmation, and where two patterns disagree the disagreement is the finding.
+
 **The last row of the table is the agent measuring, not the code, and it belongs here for that reason.** On
 2026-09-28 the maker read free space on `C:` at 0.37 GB then 0.34 GB, inferred "degrading ~30 MB/hr,
 ~11 hours to zero", and **held a build on it.** The checker, asked to act, measured 2.37 GB and
@@ -730,3 +739,14 @@ judgements and only the second was wrong.
   test exercises both against the same object. Additive; no clause weakened. **Changes-authorized:**
   qa/contracts/core-invariants.md C12 principle table + paragraph + Amendment log (this entry). No
   enforcement-path file touched. **Links:** AT-660; AT-661; AT-673; AT-657; qa/contracts/consent.md CN10.
+- 2026-09-28 - routine (extend) - C12 gained the other half of its pairing principle, and it is the
+  MAKER's (autotesting-52): a matcher reports on the state its pattern can express, and we have all
+  read that as a report on the state that exists. So "verify by construction, not inspection" is half
+  a rule - the construction has to be the same one the claim is about, a count re-derived by a
+  different pattern is a second opinion and not a confirmation, and a disagreement between two
+  patterns IS the finding. Cause: five instances in one day, the last two being the agents measuring
+  rather than the code - the checker's `Status:` matcher blind to `## Status (cycle 2):`, and its
+  conclusion about the hook's count drawn from a predicate that was not the hook's (AT-662).
+  Additive; no clause weakened. **Changes-authorized:** qa/contracts/core-invariants.md C12 principle
+  + Amendment log (this entry). No enforcement-path file touched. **Links:** AT-662; AT-673; AT-660;
+  qa/contracts/loop-status.md LS6.

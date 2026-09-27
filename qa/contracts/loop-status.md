@@ -49,6 +49,29 @@ Any failure (timeout, missing `uv`, missing `taskkill`, non-zero exit) prints on
 
 A behavioural test drives a real grandchild through the same path and asserts it is dead after the timeout.
 
+### LS6 - The handshake state a detector reads has ONE canonical machine-readable line
+- **Exactly one line per manifest carries its state**, in one spelling, and a manifest never carries
+  two. Today the field has eight spellings across 261 manifests (`## Status:` 228, `**Status:**` 17,
+  bare `Status:` 9, `## Status (cycle N):` 2, the same without a colon 2, plus bold spanning the
+  value, a list-item form, and `## Status` with no colon), nine manifests match none of the common
+  shapes, and six carry more than one - which is how `at575-orchestrator-caller` held
+  `in-progress (cycle 3)` in its header while its own closing heading read `checked-PASS` (AT-662).
+- **Prose may quote the field; the canonical line is not prose.** A sentence *about*
+  `Status: ready-for-check` is not a claim to be in that state. `t182-viewport-locale.md:13` is such
+  a sentence and is the sole reason the session-start line reads `PASS not closed out: 1` - a count
+  that closing the unit out cannot change, because its real close-out at `:199` uses a spelling the
+  detector cannot see.
+- **Fix the data, not the detector.** `qa/hooks/mc-sessionstart.ps1` is an enforcement path and needs
+  `Approved-by: Umesh`; anchoring its pattern (AT-673) and canonicalising the manifests are two
+  routes to the same result, and only the second is the checker's or the maker's to take. With one
+  canonical line the existing literal test becomes correct untouched.
+- **Until it holds, the count is a known constant, not a signal.** A standing `1` that no close-out
+  can clear must be reported as such wherever it is read, or it trains every reader to ignore the
+  field - and it keeps AUTO-CONTINUE armed every session (AT-657).
+- **Verify:** for every `qa/manifests/*.md`, exactly one line matches the canonical state pattern;
+  `grep -l 'Status: ready-for-check' qa/manifests/` returns only manifests actually awaiting a check.
+  **Links:** AT-662; AT-673; AT-657; core-invariants C12.
+
 ## Out of scope
 
 - Keeping the loop alive, or scheduling anything. That is the maker skill's ScheduleWakeup.
@@ -65,3 +88,13 @@ A behavioural test drives a real grandchild through the same path and asserts it
 - 2026-09-26 · init · contract authored by /checker under D-047. It codifies at399, at424 and at592 (all checked-PASS and merged), and records the at610 gate answer A as LS3. No prior contract named loop-status; the at592 manifest asked for this decision. Nothing amended.
 - 2026-09-27 · tighten · added LS5, which codifies at383 cycle 2 (checked-PASS, verdict df909e05, merged 0f503612): a bounded session-start call, a whole-tree kill on timeout, and a structural try/catch assertion. The out-of-scope bullet "where `--strict` is called from: gate at383" is replaced, because that gate was answered and is now LS5; AT-623 is named as the remaining out-of-scope call. Only tightening, so no DECISIONS entry is needed.
 - 2026-09-27 · tighten (routine, Mode B sweep) · LS3's header changed from present tense ("pinning test arrives with unit at610-strict-out-of-order-pin") to past tense, since at610 has since merged and PASSed (11f1d4ea/37aaa375) — the pinning test is shipped, not pending. No criteria text changed; a status correction, not a new rule.
+- 2026-09-28 - routine (add) - LS6 added: the handshake state a detector reads has one canonical
+  machine-readable line. Cause: AT-662, measured in the overdue Mode B sweep. Eight spellings of
+  `Status` across 261 manifests, nine files matching none of the common shapes, six carrying two -
+  and the hook's standing `PASS not closed out: 1` turns out to be a PROSE sentence in
+  t182-viewport-locale.md:13 that quotes the phrase, while that unit's real close-out uses a
+  spelling the detector cannot see. LS6 deliberately routes the fix to the DATA rather than to the
+  hook, because the hook is an enforcement path needing Approved-by: Umesh and canonical manifests
+  make its existing literal test correct without touching it. Additive; no criterion weakened.
+  **Changes-authorized:** qa/contracts/loop-status.md LS6 + Amendment log (this entry). No
+  enforcement-path file touched. **Links:** AT-662; AT-673; AT-657.
