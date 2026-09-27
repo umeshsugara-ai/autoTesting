@@ -1,0 +1,56 @@
+{
+  "generated_at": "2026-09-27T15:10:00+00:00",
+  "checker": "check A (D-040 dual check), emphasis: completeness honesty",
+  "headed": true,
+  "note": "Checker A's own real headed-Chromium runs, not read from the manifest's evidence files before running. tests/fixtures/deep_site served on 127.0.0.1:8931, real signed RunApproval (production=False).",
+  "run_1_hybrid_max_actions_8": {
+    "purpose": "reproduce the manifest's case B (hybrid strategy, max_actions=8) independently",
+    "result": {
+      "status": "stopped_bound",
+      "is_success": false,
+      "stop_reason": "max_actions",
+      "actions": 8,
+      "screens": 9,
+      "skipped_unchanged": 0,
+      "coverage_percent": 40,
+      "controls_discovered": 20,
+      "controls_exercised": 8,
+      "holes": 12
+    },
+    "verdict_contribution": "Bound-hit reporting is honest here: stopped_bound + stop_reason=max_actions, not completed. This arm does not by itself demonstrate a completeness problem."
+  },
+  "run_2_incremental_pair": {
+    "purpose": "CR3/CR4/CR5 -- crawl 1 full explore + build_portal_persona, crawl 2 incremental against the byte-identical site",
+    "crawl_1": {"actions": 20, "screens": 9, "note": "full crawl, all 9 fixture screens reached"},
+    "crawl_2": {
+      "status": "completed",
+      "is_success": false,
+      "actions": 0,
+      "screens": 1,
+      "skipped_unchanged": 1,
+      "coverage_percent": 0,
+      "stop_reason": "frontier empty -- 1 screen(s) skipped as unchanged since the stored persona, and so NOT explored on this crawl"
+    },
+    "classify_on_real_graph": {
+      "frontier_exhausted_as_read_from_stop_reason": true,
+      "new_screens": [],
+      "changed_screens": [],
+      "missing_screens": [
+        "/deep1.html", "/deep2.html", "/deep3.html", "/deep4.html",
+        "/wide1.html", "/wide2.html", "/wide3.html", "/wide4.html"
+      ],
+      "broken_screens": [],
+      "missing_unjudged": []
+    },
+    "bug": "ISS-t165-crawl-traversal-3 (filed by check A): the incremental crawl's frontier is seeded only from base_url via _seed(); the only place a node ever enters rt.frontier.queue is _enqueue(), reachable only from try_action() -> _click_loop() -> visit_node(). explore_incremental.skip_unchanged() short-circuits BEFORE visit_node() runs, so a skipped node's children are never enqueued this crawl. Crawl 2's own graph therefore contains exactly 1 node (the skipped entry screen). Its stop_reason starts with 'frontier empty', which every caller treats as frontier_exhausted=True (confirmed against explore.py's own _bfs queue-drain logic), so persona_changes.classify() is invoked with frontier_exhausted=True and reports the other 8 previously-known, byte-identical, never-removed screens as missing_screens -- not missing_unjudged. This is a direct violation of D-040 acceptance test (c): 'the same two crawls with nothing removed produce zero missing entries.' It reproduces on the mainline incremental path (not a corner case) and is not caught by any existing test, because no test combines a real incremental crawl's own graph with persona_changes.classify() -- tests/test_persona_changes.py uses synthetic fixtures only, and the incremental_pair fixture in tests/test_explore_completeness.py never calls classify() on its own crawl-2 output.",
+    "reproduction_scripts": [
+      ".work/checkerA_live_repro.py --incremental",
+      ".work/checkerA_verify_missing_bug.py"
+    ]
+  },
+  "terminal_status_login_branch_check": {
+    "method": "static read of src/autotester/stages/explore_status.py::terminal_status, confirmed structurally rather than by a login fixture crawl",
+    "finding": "CrawlStatus.COMPLETED is returned from exactly one place: the final else branch, itself only reached when `if not completed` is false. LOGIN_FAILED and LOGIN_WALL are returned from earlier branches that return before that point. There is no route by which a login-branch return can produce a COMPLETED reading; the two statuses are mutually exclusive by construction, not by convention.",
+    "conclusion": "NO laundering route found via terminal_status. Did not find a way to make a crawl claim completed on an unexhausted frontier through this function."
+  }
+}

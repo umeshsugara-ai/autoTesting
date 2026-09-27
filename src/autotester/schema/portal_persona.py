@@ -73,8 +73,25 @@ class PersonaScreen(BaseModel):
 
     def key(self) -> str:
         """Cross-run identity: the templated URL when known, else the folded name.
-        Two runs naming the same screen must land on one entry (PP2)."""
+        Two runs naming the same screen must land on one entry (PP2).
+
+        Deliberately signature-free, and it must stay so: CR4's `changed` is
+        defined as *the same key with a different signature*, so folding the
+        signature in here would turn every edited screen into a new screen and
+        destroy change tracking. `ident()` is what distinguishes two screens
+        that merely share a URL."""
         return self.url_template or " ".join(self.name.casefold().split())
+
+    def ident(self) -> tuple[str, str | None]:
+        """Distinct-SCREEN identity: the cross-run `key()` plus the structural
+        signature (`ISS-t165-crawl-traversal-2`).
+
+        `key()` alone is `url_template`-only, so two structurally distinct
+        screens sharing a URL — an SPA state toggle, the shape X3/X14 document
+        as real — collided onto one entry and the second was dropped before it
+        was ever stored or classified. Storage dedupes on this; the diff still
+        groups by `key()`, because that is what `changed` compares within."""
+        return (self.key(), self.signature)
 
 
 class PersonaTransition(BaseModel):
@@ -131,12 +148,45 @@ class Gotcha(BaseModel):
 
 class PersonaRevision(BaseModel):
     """One dated entry in the persona's history: when it was updated and a
-    non-empty summary naming what changed (PP3)."""
+    non-empty summary naming what changed (PP3).
+
+    CR4 adds the four change-tracking categories as MACHINE-CHECKABLE counts plus
+    the keys behind each, rather than only the prose `summary` PP3 already had: a
+    sentence cannot be diffed, and T-168 needs to read what moved. `missing_unjudged`
+    is the honesty field — a bound-truncated frontier cannot tell a genuinely absent
+    screen from one it simply never reached (CR5), so those are counted here and
+    NEVER as `missing`."""
 
     model_config = ConfigDict(extra="forbid")
 
     at: str = Field(description="ISO-8601 UTC timestamp of the update")
     summary: str = Field(description="what this update changed — never blank (PP3)")
+    new_screens: list[str] = Field(default_factory=list, description="CR4: keys first seen")
+    changed_screens: list[str] = Field(
+        default_factory=list, description="CR4: keys whose live signature differs from the stored")
+    missing_screens: list[str] = Field(
+        default_factory=list, description="CR4: stored keys an EXHAUSTED frontier did not reach")
+    broken_screens: list[str] = Field(
+        default_factory=list, description="CR4: keys reached with an error/off-domain status")
+    missing_unjudged: list[str] = Field(
+        default_factory=list,
+        description="CR5: stored keys not reached by a BOUND-TRUNCATED crawl — unknown, never "
+                    "reported as missing. A non-empty list means this diff is incomplete.")
+    healthy_screens: list[str] = Field(
+        default_factory=list,
+        description="NOT a sixth CR4 category and NOT in `counts()` — provenance: keys a PRIOR "
+                    "revision recorded broken that this crawl VISITED and found not broken. "
+                    "Without it, 'the prior stored status' cannot distinguish 'never re-observed' "
+                    "from 'observed healthy', so a screen that broke, healed, then relapsed could "
+                    "never be reported broken again (ISS-t165-crawl-traversal-4). A skipped node "
+                    "is not an observation and never lands here. Defaulted, so personas written "
+                    "before this field still load.")
+
+    def counts(self) -> dict[str, int]:
+        """CR4: the count per named category — what a surface renders and a test asserts."""
+        return {"new": len(self.new_screens), "changed": len(self.changed_screens),
+                "missing": len(self.missing_screens), "broken": len(self.broken_screens),
+                "missing_unjudged": len(self.missing_unjudged)}
 
     @field_validator("summary")
     @classmethod

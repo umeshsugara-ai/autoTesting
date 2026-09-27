@@ -31,7 +31,7 @@ from autotester.stages.explore_safety import (
 from autotester.stages.screen_identity import node_from
 
 if TYPE_CHECKING:
-    from autotester.stages.explore import ExploreRuntime
+    from autotester.stages.explore_runtime import ExploreRuntime
 
 
 def capture(rt: ExploreRuntime, node: ScreenNode) -> str | None:

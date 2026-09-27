@@ -94,11 +94,15 @@
 | `stages/expand.py` | EXPAND: FlowSpec -> Case[], covering every applicable CaseClass per flow. |
 | `stages/explore.py` | EXPLORE: a bounded, safety-gated BFS crawl of a (usually logged-in) app. |
 | `stages/explore_consent.py` | The crawl's consent pre-flight (D-018 gate 2) — split from `explore.py` |
+| `stages/explore_incremental.py` | Incremental crawl: don't re-explore a screen the persona already knows. |
 | `stages/explore_merge.py` | Fold a crawl's screen graph into the reviewed FlowSpec (Track B5). |
 | `stages/explore_node.py` | One node's worth of exploring: try each safe candidate action, record what |
+| `stages/explore_replay.py` | Re-performing a discovering action, INCLUDING the values that were typed. |
 | `stages/explore_return.py` | Getting the browser back onto a screen the crawl has already seen. |
+| `stages/explore_runtime.py` | The live state of one crawl in flight — session, store, clock, counters. |
 | `stages/explore_safety.py` | The explorer's inner safety guard (Track B4, D-016). |
 | `stages/explore_status.py` | How a finished crawl is judged, and how a stored one is shown (X16, X18). |
+| `stages/explore_traversal.py` | Which screen the crawl visits next — the frontier's ORDER, and nothing else. |
 | `stages/explore_typing.py` | The X10-b typing pre-pass (D-029): what the crawler types, and where it |
 | `stages/grade.py` | GRADE: an independent, stateless judge reads a Rubric + a RawResult's evidence. |
 | `stages/ingest.py` | INGEST: turn a video Source into a FlowSpec, provenance-tracked to the second. |
@@ -110,6 +114,7 @@
 | `stages/orchestrate.py` | ORCHESTRATE: drive the stage pipeline as a resumable learn-or-explore run. |
 | `stages/orchestrate_runners.py` | The concrete stage runners the orchestrator threads — thin adapters over the |
 | `stages/parallel_run.py` | PARALLEL_RUN: fan N cases out across isolated browser contexts (T-173/D-041). |
+| `stages/persona_changes.py` | What moved in the product since the last crawl: new / changed / missing / broken. |
 | `stages/portal_persona.py` | PORTAL PERSONA: promote per-crawl knowledge into the durable, cross-run |
 | `stages/portal_persona_view.py` | Render a `PortalPersona` as `knowledge.md` — a human-readable VIEW of the |
 | `stages/product_map.py` | PRODUCT MAP: fold every recording analysis into one navigable screen map. |

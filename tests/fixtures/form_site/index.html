@@ -1,0 +1,30 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Reference lookup</title></head><body>
+<h1>Reference lookup</h1>
+
+<!--
+  CR2 (qa/contracts/crawl-traversal.md). The panel below is a screen that:
+    * has NO url of its own (it is a client-side STATE of this page, AT-227's
+      shape), so `return_to` can never restore it with `goto`; and
+    * appears ONLY when the field above it has really been filled.
+  So the only way back to it is to REPLAY the fill and then the click. A
+  click-only replay lands on this page with an empty field and the panel shut.
+-->
+<input id="code" type="text" name="code" placeholder="Reference code">
+<button type="button" id="go">Open the matching record</button>
+
+<a href="/other.html">Reference guide</a>
+
+<div id="panel" hidden>
+  <h2>Matching record</h2>
+  <button type="button" id="detail">Show record detail</button>
+  <button type="button" id="history">Show record history</button>
+</div>
+
+<script>
+  document.getElementById('go').addEventListener('click', function () {
+    var code = document.getElementById('code').value;
+    document.getElementById('panel').hidden = (code.trim() === '');
+  });
+</script>
+</body></html>

@@ -251,6 +251,15 @@ class Confidence(StrEnum):
     HIGH = "high"
 
 
+class TraversalStrategy(StrEnum):
+    """CR1 (crawl-traversal.md): how the frontier is ORDERED. `hybrid` still maps
+    the portal breadth-first and adds a bounded depth-first descent per workflow;
+    it invents no new bound (X4's four bounds are unchanged)."""
+
+    BFS = "bfs"
+    HYBRID = "hybrid"
+
+
 class NodeStatus(StrEnum):
     """A crawled screen's state in the BFS frontier (Track B)."""
 
@@ -258,6 +267,9 @@ class NodeStatus(StrEnum):
     EXPLORED = "explored"
     ABORTED_DIALOG = "aborted_dialog"
     ABORTED_ERROR = "aborted_error"
+    SKIPPED_UNCHANGED = "skipped_unchanged"
+    """CR3/CR5: matched a stored `PersonaScreen` and was not re-visited. Its own
+    status, never folded into EXPLORED — a skipped screen was not explored."""
 
 
 class EdgeOutcome(StrEnum):

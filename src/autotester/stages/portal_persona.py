@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 
 from autotester.core.redact import Redactor
 from autotester.schema.base import utc_now
-from autotester.schema.enums import EdgeOutcome, IssueKind
+from autotester.schema.enums import CrawlStatus, EdgeOutcome, IssueKind
 from autotester.schema.portal_persona import (
     AuthField,
     AuthShape,
@@ -34,6 +34,7 @@ from autotester.schema.portal_persona import (
     PortalPersona,
     TaughtFlow,
 )
+from autotester.stages import persona_changes
 
 if TYPE_CHECKING:  # a stage names the store only in a signature (execute.py's convention)
     from autotester.schema.crawl import CrawlIssue
@@ -80,13 +81,18 @@ def _screen_from_node(node: ScreenNode) -> PersonaScreen:
 
 
 def _incoming_screens(flowspec: FlowSpec | None, nodes: list[ScreenNode]) -> list[PersonaScreen]:
+    """Every distinct screen this update contributes, deduped on
+    `PersonaScreen.ident()` — key AND signature — not `key()` alone
+    (`ISS-t165-crawl-traversal-2`): two crawled nodes at one `url_template` with
+    different signatures are two screens, and the second used to be dropped here
+    before the merge or the CR4 diff saw it. Add-only either way (PP2)."""
     screens = [_screen_from_flowspec(s) for s in (flowspec.screens if flowspec else [])]
-    seen = {s.key() for s in screens}
+    seen = {s.ident() for s in screens}
     for node in nodes:
         persona_screen = _screen_from_node(node)
-        if persona_screen.key() not in seen:
+        if persona_screen.ident() not in seen:
             screens.append(persona_screen)
-            seen.add(persona_screen.key())
+            seen.add(persona_screen.ident())
     return screens
 
 
@@ -206,7 +212,9 @@ def _merge(existing: PortalPersona | None,
     """Fold `incoming` into `existing`, never rewriting known knowledge (PP2)."""
     if existing is None:
         return incoming, _initial_summary(incoming)
-    screens, s_new = _add_new(existing.screens, incoming.screens, key=lambda s: s.key())
+    # `ident()`, not `key()` (ISS-2): a 2nd distinct screen at a known URL is a
+    # screen, not a duplicate -- see `PersonaScreen.ident`. Still add-only.
+    screens, s_new = _add_new(existing.screens, incoming.screens, key=lambda s: s.ident())
     trans, t_new = _add_new(existing.transitions, incoming.transitions, key=lambda t: t.key())
     flows, f_new = _add_new(existing.taught_flows, incoming.taught_flows, key=lambda f: f.id)
     gotchas, g_new = _add_new(existing.gotchas, incoming.gotchas, key=lambda g: g.key())
@@ -251,16 +259,42 @@ def _persist(store: ProjectStore, persona: PortalPersona,
     return persona
 
 
+def _frontier_exhausted(store: ProjectStore, crawl_id: str | None) -> bool:
+    """CR5: may this crawl's evidence support a `missing` claim at all?
+
+    Only a crawl that really drained its frontier can say a stored screen is
+    gone. `COMPLETED` is exactly that judgement, already made by
+    `explore_status.terminal_status` — every other status (a fired bound, a
+    login wall, an abort) means the crawl never saw the whole product, so
+    `persona_changes` records the absences as unjudged instead."""
+    if crawl_id is None:
+        return False
+    crawl = store.load_crawl(crawl_id)
+    return crawl is not None and crawl.status is CrawlStatus.COMPLETED
+
+
 def build_portal_persona(
     store: ProjectStore, *, crawl_id: str | None = None, redactor: Redactor | None = None
 ) -> PortalPersona:
     """Build or update the durable persona from the crawl graph + reviewed
-    FlowSpec, persist it, and regenerate `knowledge.md` (PP1-PP6)."""
+    FlowSpec, persist it, and regenerate `knowledge.md` (PP1-PP6).
+
+    CR4: the merge itself stays PP2 add-only — nothing existing is dropped,
+    blanked or rewritten. What is new is that the dated revision now also
+    carries the machine-checkable new/changed/missing/broken classification, so
+    a screen that DISAPPEARED is recorded even though an add-only merge has, by
+    construction, nothing to add for it."""
     project = store.load_project()
     incoming = _build_incoming(store, project, crawl_id)
     existing = store.load_portal_persona()
     persona, summary = _merge(existing, incoming)
-    if summary is not None:
+    diff = persona_changes.classify(
+        existing, store.list_nodes(crawl_id) if crawl_id else [],
+        frontier_exhausted=_frontier_exhausted(store, crawl_id))
+    note = persona_changes.describe(diff)
+    summary = "; ".join(part for part in (summary, note) if part)
+    if summary:
         persona = persona.model_copy(update={
-            "history": [*persona.history, PersonaRevision(at=_now(), summary=summary)]})
+            "history": [*persona.history,
+                        PersonaRevision(at=_now(), summary=summary, **diff)]})
     return _persist(store, persona, redactor)

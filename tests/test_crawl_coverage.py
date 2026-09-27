@@ -118,6 +118,27 @@ def test_a_crawl_that_did_not_complete_never_reads_100() -> None:
     assert cov.percent < 100
 
 
+def test_a_crawl_that_skipped_a_screen_as_unchanged_never_reads_100_either() -> None:
+    """CR5 (crawl-traversal.md), the same V7(d) rule for the incremental crawl:
+    every control the crawl LOOKED at was performed and its frontier drained
+    cleanly, but a screen was taken on trust from the stored persona instead of
+    being explored. That is not full coverage of the product.
+
+    Isolated deliberately: in a crawl where the skipped screen still carries
+    controls, those become holes and the arithmetic drops the figure by itself,
+    which MASKS whether the rule is really enforced (found by falsification --
+    `skipped_any = False` left the live test green). Here the skipped screen
+    contributes no holes, so only the rule can keep the headline off 100."""
+    explored = _node(NodeStatus.EXPLORED, "#a")
+    skipped = _node(NodeStatus.SKIPPED_UNCHANGED)
+
+    cov = _compute(CrawlStatus.COMPLETED, [explored, skipped],
+                   [_edge(explored, "#a", EdgeOutcome.SAME_SCREEN)])
+
+    assert cov.controls_exercised == cov.controls_discovered == 1
+    assert cov.percent < 100, "a skipped screen was reported as covered"
+
+
 def test_a_refused_submit_on_a_login_wall_is_named_login_wall() -> None:
     node = _node(NodeStatus.EXPLORED, "#go")
     edges = [_edge(node, "#go", EdgeOutcome.DENIED_POLICY, reason="form submit under read_only")]
@@ -177,6 +198,42 @@ def test_the_workbook_has_the_figure_and_an_unreached_sheet(
     assert summary["Coverage"].startswith(f"{crawl.coverage.percent}%")
     assert len(unreached) == len(crawl.coverage.holes)
     assert {row[3] for row in unreached} == set(crawl.coverage.by_reason())
+
+
+def test_a_skip_is_visible_on_every_surface_x16_lists(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+) -> None:
+    """CR5 (crawl-traversal.md): skip-for-unchanged is a NEW NAMED category and
+    must appear on every surface X16 already lists — crawl page, crawls table,
+    CLI line, workbook, `crawl.json` — not only inside the coverage holes.
+
+    Written as a surface test over a stored envelope on purpose: these five
+    renderers read `crawl.json`, and the bug this guards against is a renderer
+    that silently omits the field, which a crawl-level test cannot see."""
+    from autotester.cli_crawl import echo_crawl_summary
+
+    monkeypatch.setenv("AUTOTESTER_ROOT", str(tmp_path))
+    store = ProjectStore("demo", tmp_path)
+    store.save_project(Project(slug="demo", name="Demo", base_url="https://x.test/",
+                               allowed_domains=["x.test"]))
+    crawl = Crawl(id="crawl_skipped", project="demo", status=CrawlStatus.COMPLETED, actions=4,
+                  screens=3, stop_reason="frontier empty -- 2 screen(s) skipped as unchanged",
+                  skipped_unchanged=2)
+    store.save_crawl(crawl)
+    client = TestClient(app)
+
+    page = client.get("/projects/demo/crawls/crawl_skipped").text
+    table = client.get("/projects/demo/crawls").text
+    echo_crawl_summary(crawl)
+    cli = capsys.readouterr().out
+    book = load_workbook(export_crawl_excel("demo", crawl.id, tmp_path / "s.xlsx", tmp_path))
+    summary = {r[0]: r[1] for r in book["Summary"].iter_rows(values_only=True)}
+
+    assert "Skipped (unchanged)" in page and ">2<" in page
+    assert "Skipped (unchanged)" in table
+    assert "2 screens skipped as unchanged (not explored)" in cli
+    assert summary["Screens skipped as unchanged (NOT explored)"] == "2"
+    assert store.load_crawl(crawl.id).skipped_unchanged == 2  # crawl.json itself
 
 
 def test_a_crawl_recorded_before_coverage_says_so_instead_of_inventing_a_number(

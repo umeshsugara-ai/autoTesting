@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from autotester.core.ids import content_id, run_id
 from autotester.schema.base import Artifact
-from autotester.schema.enums import CrawlStatus, IssueKind, WritePolicy
+from autotester.schema.enums import CrawlStatus, IssueKind, TraversalStrategy, WritePolicy
 
 
 class DialogEvent(BaseModel):
@@ -135,7 +135,7 @@ class CoverageHole(BaseModel):
     selector: str
     name: str = ""
     reason: str = Field(description="bound:<name> | policy:<rule> | unnamed | off_domain | "
-                                    "error | login_wall | not_visited")
+                                    "error | login_wall | not_visited | skipped_unchanged")
 
 
 class CrawlCoverage(BaseModel):
@@ -186,6 +186,17 @@ class Crawl(Artifact):
     bounds: CrawlBounds = Field(default_factory=CrawlBounds)
     policy: SafetyPolicy = Field(default_factory=SafetyPolicy)
     login_case_id: str | None = None
+    strategy: TraversalStrategy = TraversalStrategy.BFS
+    """CR1: `bfs` is byte-identical to the original FIFO frontier; `hybrid` adds a
+    bounded depth-first descent per workflow under the SAME X4 bounds."""
+    incremental: bool = False
+    """CR3: whether this crawl was seeded from `portal_persona.json` (a screen whose
+    stored `(key, signature)` still matches is skipped). OFF by default."""
+    skipped_unchanged: int = 0
+    """CR3/CR5: screens skipped as unchanged. Counted APART from `screens` for the
+    same reason `tool_failures` is counted apart from `issues`: a number a human
+    reads as "screens explored" must never silently include screens nobody looked
+    at. A non-zero value here means this crawl did NOT explore the whole portal."""
     provider: str = "mock"
     started_at: str | None = None
     finished_at: str | None = None

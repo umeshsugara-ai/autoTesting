@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
-from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from urllib.parse import urlparse
 
@@ -21,64 +20,29 @@ from autotester.browser.observe import PageObserver, observe
 from autotester.browser.session import BrowserSession, NavigationRefused
 from autotester.schema.case import Case
 from autotester.schema.crawl import Crawl, CrawlBounds, NoiseCount, SafetyPolicy
-from autotester.schema.enums import Action, CrawlStatus, Outcome
+from autotester.schema.enums import Action, CrawlStatus, Outcome, TraversalStrategy
 from autotester.schema.project import Project
-from autotester.schema.screen_graph import CrawlFrontier, ScreenEdge, ScreenNode
+from autotester.schema.screen_graph import CrawlFrontier, ScreenNode
 from autotester.stages import (
     crawl_coverage,
     explore_consent,
+    explore_incremental,
     explore_node,
     explore_status,
+    explore_traversal,
     network_capture,
 )
 from autotester.stages.execute import run_case
+from autotester.stages.explore_runtime import ExploreRuntime
 from autotester.stages.explore_safety import DialogBreaker
 from autotester.stages.screen_identity import node_from
 from autotester.store.project_store import ProjectStore
 
+__all__ = ["ExploreRuntime", "run_crawl", "stop_reason"]
+
 
 def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
-
-
-@dataclass
-class ExploreRuntime:
-    """Live objects for one crawl — session, store, clock, in-memory node
-    index. NOT a schema model: duplicates no persisted shape (C1)."""
-
-    project: Project
-    session: BrowserSession
-    store: ProjectStore
-    crawl: Crawl
-    observer: PageObserver
-    breaker: DialogBreaker
-    clock: Callable[[], float]
-    started: float
-    frontier: CrawlFrontier
-    nodes: dict[str, ScreenNode] = field(default_factory=dict)
-    discovery: dict[str, ScreenEdge] = field(default_factory=dict)
-    # node id -> the edge that first reached it (AT-227: a screen that is only a
-    # client-side STATE of another has no URL, so replaying this edge is the way back).
-    noise: dict[str, int] = field(default_factory=dict)
-    edges: int = 0
-    denied: int = 0
-    issues: int = 0
-    tool_failures: int = 0
-    stop_reason: str | None = None
-    seed_error: str | None = None
-    login_precheck_error: str | None = None  # AT-273: the precheck's exception, diagnostic
-    login_signature: str | None = None
-    """X18(a)/AT-462: the login screen's structure, observed before the case typed."""
-    login_observe_error: str | None = None  # AT-474: observed_signature()'s error, if any
-    return_error: str | None = None  # why the last `return_to` failed (AT-108), scratch
-
-    @property
-    def bounds(self) -> CrawlBounds:
-        return self.crawl.bounds
-
-    @property
-    def policy(self) -> SafetyPolicy:
-        return self.crawl.policy
 
 
 def stop_reason(rt: ExploreRuntime) -> str | None:
@@ -182,18 +146,34 @@ def _seed(rt: ExploreRuntime) -> ScreenNode | None:
 
 
 def _bfs(rt: ExploreRuntime) -> None:
+    """Drain the frontier in `rt.strategy`'s order. Named `_bfs` still because
+    `bfs` remains the default and the whole portal is still mapped breadth-first
+    either way (CR1); `explore_traversal` owns the ordering."""
     while rt.frontier.queue:
         reached = stop_reason(rt)
         if reached:
             rt.stop_reason = reached
             return
-        node = rt.nodes.get(rt.frontier.queue.pop(0))
+        node_id = explore_traversal.next_node_id(
+            queue=rt.frontier.queue, nodes=rt.nodes, discovery=rt.discovery,
+            strategy=rt.strategy, last_visited=rt.last_visited)
+        node = rt.nodes.get(node_id) if node_id is not None else None
         if node is None:
             continue
-        explore_node.visit_node(rt, node)
+        if not explore_incremental.skip_unchanged(rt, node):
+            explore_node.visit_node(rt, node)
+        rt.last_visited = node.id
         rt.frontier.visited.append(node.id)
         rt.store.save_frontier(rt.crawl.id, rt.frontier)
-    rt.stop_reason = rt.stop_reason or "frontier empty"
+    # The queue drained. That is an exhausted frontier ONLY if no bound had
+    # already fired: `_click_loop` sets `stop_reason` when a bound stops it
+    # mid-node (AT-463), which leaves controls untried on the last screen even
+    # though nothing is left to pop. Byte-equivalent to the string comparison
+    # `run_crawl` used to make, but structural -- a new stop reason (a skip
+    # note, a bound qualifier) can no longer silently turn it into "complete".
+    rt.frontier_exhausted = rt.stop_reason is None
+    rt.stop_reason = rt.stop_reason or explore_incremental.exhausted_reason(
+        rt.skipped_unchanged)
 
 
 def _login_failed_reason(rt: ExploreRuntime) -> str:
@@ -243,6 +223,7 @@ def _finish(rt: ExploreRuntime, status: CrawlStatus) -> Crawl:
         "denied": rt.denied,
         "issues": rt.issues,
         "tool_failures": rt.tool_failures,
+        "skipped_unchanged": rt.skipped_unchanged,  # CR3/CR5: visible on every surface
         "noise_counts": [NoiseCount(host=h, count=c) for h, c in sorted(rt.noise.items())],
         "coverage": crawl_coverage.of_run(rt, status),  # V7
     })
@@ -263,6 +244,8 @@ def run_crawl(
     login_case: Case | None = None,
     crawl_id: str | None = None,
     clock: Callable[[], float] = time.monotonic,
+    strategy: TraversalStrategy = TraversalStrategy.BFS,
+    incremental: bool = False,
 ) -> Crawl:
     """Crawl `project` breadth-first within `bounds`, refusing anything
     `policy` denies. Returns the finished `Crawl` envelope; the graph itself
@@ -280,6 +263,8 @@ def run_crawl(
         "bounds": bounds,
         "policy": policy,
         "login_case_id": login_case.id if login_case else None,
+        "strategy": strategy,
+        "incremental": incremental,
         "started_at": _now_iso(),
     }
     crawl = Crawl(id=crawl_id, **envelope) if crawl_id else Crawl(**envelope)  # type: ignore[arg-type]
@@ -287,7 +272,8 @@ def run_crawl(
     rt = ExploreRuntime(
         project=project, session=session, store=store, crawl=crawl, observer=observer,
         breaker=DialogBreaker(crawl.bounds.dialog_repeat_limit), clock=clock,
-        started=clock(), frontier=CrawlFrontier(),
+        started=clock(), frontier=CrawlFrontier(), strategy=strategy,
+        persona=explore_incremental.load_index(store, enabled=incremental),
     )
     if login_case is not None and not _bootstrap_login(rt, login_case):
         rt.stop_reason = _login_failed_reason(rt)
@@ -296,5 +282,4 @@ def run_crawl(
         rt.stop_reason = f"could not open base_url -- {rt.seed_error or 'cause not recorded'}"
         return _finish(rt, CrawlStatus.ABORTED)
     _bfs(rt)
-    completed = rt.stop_reason == "frontier empty"
-    return _finish(rt, _terminal_status(rt, completed, login_case))
+    return _finish(rt, _terminal_status(rt, rt.frontier_exhausted, login_case))

@@ -220,14 +220,24 @@ def grant_crawl_approval(store: ProjectStore, project: Project,
 
 def crawl_it(tmp_path: Path, *, project: Project | None = None,
              bounds: CrawlBounds | None = None, policy: SafetyPolicy | None = None,
-             clock: Any = None) -> tuple[Any, ProjectStore, FakeSitePage]:
+             clock: Any = None, strategy: Any = None, incremental: bool = False,
+             store: ProjectStore | None = None) -> tuple[Any, ProjectStore, FakeSitePage]:
+    """T-165: `strategy`/`incremental` are passed through only when set, so every
+    pre-existing caller gets byte-identical behaviour (bfs, no persona skip).
+    `store` is accepted so a test can crawl the SAME project twice — CR3's
+    incremental skip and CR4's change tracking both need a second crawl that can
+    see the first one's persona."""
     project = project or make_project()
     session, page = make_session(tmp_path, project)
-    store = ProjectStore("demo", tmp_path)
+    store = store or ProjectStore("demo", tmp_path)
     grant_crawl_approval(store, project, bounds)
     kwargs: dict[str, Any] = {"observer": PageObserver(), "bounds": bounds or CrawlBounds(),
                               "policy": policy}
     if clock is not None:
         kwargs["clock"] = clock
+    if strategy is not None:
+        kwargs["strategy"] = strategy
+    if incremental:
+        kwargs["incremental"] = True
     crawl = run_crawl(project, session, store, **kwargs)
     return crawl, store, page

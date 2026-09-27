@@ -1,0 +1,344 @@
+{
+  "generated_at": "2026-09-27T12:45:54.220162+00:00",
+  "headed": true,
+  "scenarios": {
+    "A_bfs": {
+      "slug": "ev-bfs",
+      "strategy": "bfs",
+      "incremental": false,
+      "status": "stopped_bound",
+      "displayed_status": "stopped_bound",
+      "is_success": false,
+      "stop_reason": "max_actions",
+      "actions": 10,
+      "skipped_unchanged": 0,
+      "screens_reached": 4,
+      "templates_visited": [
+        "/",
+        "/deep1.html",
+        "/wide1.html",
+        "/wide2.html"
+      ],
+      "templates_queued_never_visited": [
+        "/deep2.html",
+        "/wide3.html",
+        "/wide4.html"
+      ],
+      "coverage_percent": 52,
+      "controls_discovered": 19,
+      "controls_exercised": 10,
+      "holes_by_reason": {
+        "bound:max_actions": 2,
+        "not_visited": 7
+      },
+      "unreached_controls": [
+        {
+          "screen": "/wide2.html",
+          "selector": "#fb2",
+          "name": "Filter beta two",
+          "reason": "bound:max_actions"
+        },
+        {
+          "screen": "/wide2.html",
+          "selector": "#fc2",
+          "name": "Filter gamma two",
+          "reason": "bound:max_actions"
+        },
+        {
+          "screen": "/wide3.html",
+          "selector": "#fa3",
+          "name": "Filter alpha three",
+          "reason": "not_visited"
+        },
+        {
+          "screen": "/wide3.html",
+          "selector": "#fb3",
+          "name": "Filter beta three",
+          "reason": "not_visited"
+        },
+        {
+          "screen": "/wide3.html",
+          "selector": "#fc3",
+          "name": "Filter gamma three",
+          "reason": "not_visited"
+        },
+        {
+          "screen": "/wide4.html",
+          "selector": "#fa4",
+          "name": "Filter alpha four",
+          "reason": "not_visited"
+        },
+        {
+          "screen": "/wide4.html",
+          "selector": "#fb4",
+          "name": "Filter beta four",
+          "reason": "not_visited"
+        },
+        {
+          "screen": "/wide4.html",
+          "selector": "#fc4",
+          "name": "Filter gamma four",
+          "reason": "not_visited"
+        },
+        {
+          "screen": "/deep2.html",
+          "selector": "role=link[name=\"Workflow step three\"] >> nth=0",
+          "name": "Workflow step three",
+          "reason": "not_visited"
+        }
+      ]
+    },
+    "A_hybrid": {
+      "slug": "ev-hyb",
+      "strategy": "hybrid",
+      "incremental": false,
+      "status": "stopped_bound",
+      "displayed_status": "stopped_bound",
+      "is_success": false,
+      "stop_reason": "max_actions",
+      "actions": 10,
+      "skipped_unchanged": 0,
+      "screens_reached": 6,
+      "templates_visited": [
+        "/",
+        "/deep1.html",
+        "/deep2.html",
+        "/deep3.html",
+        "/deep4.html",
+        "/wide1.html"
+      ],
+      "templates_queued_never_visited": [
+        "/wide2.html",
+        "/wide3.html",
+        "/wide4.html"
+      ],
+      "coverage_percent": 50,
+      "controls_discovered": 20,
+      "controls_exercised": 10,
+      "holes_by_reason": {
+        "bound:max_actions": 1,
+        "not_visited": 9
+      },
+      "unreached_controls": [
+        {
+          "screen": "/wide1.html",
+          "selector": "#fc1",
+          "name": "Filter gamma one",
+          "reason": "bound:max_actions"
+        },
+        {
+          "screen": "/wide2.html",
+          "selector": "#fa2",
+          "name": "Filter alpha two",
+          "reason": "not_visited"
+        },
+        {
+          "screen": "/wide2.html",
+          "selector": "#fb2",
+          "name": "Filter beta two",
+          "reason": "not_visited"
+        },
+        {
+          "screen": "/wide2.html",
+          "selector": "#fc2",
+          "name": "Filter gamma two",
+          "reason": "not_visited"
+        },
+        {
+          "screen": "/wide3.html",
+          "selector": "#fa3",
+          "name": "Filter alpha three",
+          "reason": "not_visited"
+        },
+        {
+          "screen": "/wide3.html",
+          "selector": "#fb3",
+          "name": "Filter beta three",
+          "reason": "not_visited"
+        },
+        {
+          "screen": "/wide3.html",
+          "selector": "#fc3",
+          "name": "Filter gamma three",
+          "reason": "not_visited"
+        },
+        {
+          "screen": "/wide4.html",
+          "selector": "#fa4",
+          "name": "Filter alpha four",
+          "reason": "not_visited"
+        },
+        {
+          "screen": "/wide4.html",
+          "selector": "#fb4",
+          "name": "Filter beta four",
+          "reason": "not_visited"
+        },
+        {
+          "screen": "/wide4.html",
+          "selector": "#fc4",
+          "name": "Filter gamma four",
+          "reason": "not_visited"
+        }
+      ]
+    },
+    "B_bound_incomplete": {
+      "slug": "ev-bound",
+      "strategy": "hybrid",
+      "incremental": false,
+      "status": "stopped_bound",
+      "displayed_status": "stopped_bound",
+      "is_success": false,
+      "stop_reason": "max_actions",
+      "actions": 8,
+      "skipped_unchanged": 0,
+      "screens_reached": 4,
+      "templates_visited": [
+        "/",
+        "/deep1.html",
+        "/deep2.html",
+        "/deep3.html"
+      ],
+      "templates_queued_never_visited": [
+        "/deep4.html",
+        "/wide1.html",
+        "/wide2.html",
+        "/wide3.html",
+        "/wide4.html"
+      ],
+      "coverage_percent": 40,
+      "controls_discovered": 20,
+      "controls_exercised": 8,
+      "holes_by_reason": {
+        "not_visited": 12
+      },
+      "unreached_controls": [
+        {
+          "screen": "/wide1.html",
+          "selector": "#fa1",
+          "name": "Filter alpha one",
+          "reason": "not_visited"
+        },
+        {
+          "screen": "/wide1.html",
+          "selector": "#fb1",
+          "name": "Filter beta one",
+          "reason": "not_visited"
+        },
+        {
+          "screen": "/wide1.html",
+          "selector": "#fc1",
+          "name": "Filter gamma one",
+          "reason": "not_visited"
+        },
+        {
+          "screen": "/wide2.html",
+          "selector": "#fa2",
+          "name": "Filter alpha two",
+          "reason": "not_visited"
+        },
+        {
+          "screen": "/wide2.html",
+          "selector": "#fb2",
+          "name": "Filter beta two",
+          "reason": "not_visited"
+        },
+        {
+          "screen": "/wide2.html",
+          "selector": "#fc2",
+          "name": "Filter gamma two",
+          "reason": "not_visited"
+        },
+        {
+          "screen": "/wide3.html",
+          "selector": "#fa3",
+          "name": "Filter alpha three",
+          "reason": "not_visited"
+        },
+        {
+          "screen": "/wide3.html",
+          "selector": "#fb3",
+          "name": "Filter beta three",
+          "reason": "not_visited"
+        },
+        {
+          "screen": "/wide3.html",
+          "selector": "#fc3",
+          "name": "Filter gamma three",
+          "reason": "not_visited"
+        },
+        {
+          "screen": "/wide4.html",
+          "selector": "#fa4",
+          "name": "Filter alpha four",
+          "reason": "not_visited"
+        },
+        {
+          "screen": "/wide4.html",
+          "selector": "#fb4",
+          "name": "Filter beta four",
+          "reason": "not_visited"
+        },
+        {
+          "screen": "/wide4.html",
+          "selector": "#fc4",
+          "name": "Filter gamma four",
+          "reason": "not_visited"
+        }
+      ]
+    },
+    "C_form_replay_default_policy": {
+      "slug": "ev-form",
+      "strategy": "bfs",
+      "incremental": false,
+      "status": "completed",
+      "displayed_status": "completed",
+      "is_success": true,
+      "stop_reason": "frontier empty",
+      "actions": 3,
+      "skipped_unchanged": 0,
+      "screens_reached": 2,
+      "templates_visited": [
+        "/",
+        "/other.html"
+      ],
+      "templates_queued_never_visited": [],
+      "coverage_percent": 75,
+      "controls_discovered": 4,
+      "controls_exercised": 3,
+      "holes_by_reason": {
+        "policy:typing disabled under this policy (X10-b)": 1
+      },
+      "unreached_controls": [
+        {
+          "screen": "/",
+          "selector": "#code",
+          "name": "",
+          "reason": "policy:typing disabled under this policy (X10-b)"
+        }
+      ]
+    },
+    "C_form_replay_typing_on": {
+      "slug": "ev-form2",
+      "strategy": "bfs",
+      "incremental": false,
+      "status": "completed",
+      "displayed_status": "completed",
+      "is_success": true,
+      "stop_reason": "frontier empty",
+      "actions": 9,
+      "skipped_unchanged": 0,
+      "screens_reached": 3,
+      "templates_visited": [
+        "/",
+        "/other.html"
+      ],
+      "templates_queued_never_visited": [],
+      "coverage_percent": 100,
+      "controls_discovered": 9,
+      "controls_exercised": 9,
+      "holes_by_reason": {},
+      "unreached_controls": []
+    }
+  }
+}
