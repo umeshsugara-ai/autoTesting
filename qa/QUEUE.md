@@ -1460,3 +1460,40 @@ pre-first-commit `git init`. But when HEAD exists and the generated path is abse
 violation (`uncommitted-generated`, "generated file is not in HEAD"): once a repo has history, a
 generated doc missing from that history is a stronger version of the same defect, not an exemption.
 Silently passing both cases would rebuild AT-697's blind spot one level down.
+
+#### AT-697 correction — the maker's reason for distrusting a green suite was WRONG; the peer's mechanism replaces it
+
+Recorded as a correction rather than a quiet edit, because the mechanism is what tells the build what
+to write, and the two mechanisms prescribe different fixtures.
+
+**What the maker wrote above and what is wrong with it:** *"a tmpdir fixture repo may not inherit
+`autocrlf` and would therefore pass either way."* The inheritance claim is false. `core.autocrlf` is
+set at **system** scope on this machine, so a fresh `git init` in a tmpdir reads `true` — the peer
+built one and checked, and the maker then reproduced it independently:
+`git init -q` in a clean tmpdir → `git config --show-scope --get-all core.autocrlf` → `system true`.
+
+**The conclusion survives; the reason is different, and it is the useful part.** Normalisation only
+manifests when git *writes the file out*. A fixture that writes LF and commits never triggers a
+checkout, so disk and blob are both LF and a raw comparison passes — whether or not the implementation
+normalises. Measured across three fixture shapes in a throwaway repo:
+
+| fixture shape | disk CRLF | blob CRLF | raw equal | normalised equal |
+|---|---|---|---|---|
+| A — write LF, then commit (the naive fixture) | 0 | 0 | **True** | True |
+| B — force a checkout (`rm gen.md; git checkout -- gen.md`) | 3 | 0 | **False** | True |
+| C — fresh `git clone` of that repo | 3 | 0 | **False** | True |
+
+Shape A is an always-green test: it passes on a correct implementation and on a broken one, so it
+measures nothing. Git even says so out loud at `git add` time — *"LF will be replaced by CRLF the next
+time Git touches it"* — and the whole defect lives in that "next time".
+
+**So the prescription on this row is a fixture requirement, not a warning:** the test must check the
+file out after committing — a fresh clone (shape C), `git checkout --`, or delete-and-restore (shape
+B). Any of the three reproduces the CRLF-vs-LF split that the implementation has to survive. A test
+built as shape A must not be accepted as evidence for this row however green it is, and the checker
+should treat a shape-A fixture as a finding in its own right rather than a weak test.
+
+**Why this is in the queue at all rather than just fixed in passing:** the maker's wrong reason would
+have produced a *correct-looking* instruction ("don't trust the fixture") attached to a false fact,
+and a build following it would most likely have written shape A anyway while believing it had been
+warned. A wrong mechanism with a right conclusion is harder to catch than a wrong conclusion.
