@@ -103,86 +103,14 @@
     return effectiveOpacity(el) !== 0;
   }
 
-  const SCROLLS = /^(auto|scroll)$/;
-
-  // Nearest ancestor that clips its overflow WHERE A READER CANNOT GET AT IT.
-  // `text-indent:-9999px` and an absolutely-positioned off-screen block both put
-  // glyphs where no amount of scrolling reveals them.
-  //
-  // A genuinely SCROLLABLE pane is the opposite case and was conflated with it
-  // (AT-379): a reader can scroll an `overflow:auto` pane and read every line,
-  // so its box is not a boundary. `overflow:hidden` with nothing to scroll still
-  // is, and the two are told apart by MEASUREMENT — computed overflow is
-  // `auto`/`scroll` AND the content actually overflows — never by guess.
-  //
-  // Per axis, deliberately: `overflow-y:auto; overflow-x:hidden` really does
-  // hide what runs off its right edge while exposing what runs off its bottom.
-  //
-  // Returns `{clip, scrollX, scrollY}` — the accumulated scroll offset of the
-  // window AND every scrollable ancestor (AT-392, AT-408), plus the running
-  // intersection of every clip above (AT-393).
-  function reachOf(el) {
-    let scrollX = window.scrollX;
-    let scrollY = window.scrollY;
-    let clip = null;
-    // The walk goes ALL THE WAY UP, narrowing one running clip (AT-408/AT-393).
-    // Returning at the first clipping ancestor was wrong twice over: a pane
-    // inside a SCROLLED pane lost the outer offset entirely, and a pane inside a
-    // clipping box reported text the outer box hides. Both are answered by
-    // carrying the offset and the intersection instead of stopping.
-    const narrow = (box) => (clip === null ? box : {
-      left: Math.max(clip.left, box.left),
-      right: Math.min(clip.right, box.right),
-      top: Math.max(clip.top, box.top),
-      bottom: Math.min(clip.bottom, box.bottom),
-    });
-    for (let node = el; node && node !== document.documentElement; node = node.parentElement) {
-      const style = window.getComputedStyle(node);
-      if (style.clipPath !== "none") {
-        clip = narrow(node.getBoundingClientRect());
-        continue;
-      }
-      if (style.overflow === "visible") continue;
-      const box = node.getBoundingClientRect();
-      const scrollsY = SCROLLS.test(style.overflowY) && node.scrollHeight > node.clientHeight;
-      const scrollsX = SCROLLS.test(style.overflowX) && node.scrollWidth > node.clientWidth;
-      if (scrollsX) scrollX += node.scrollLeft;
-      if (scrollsY) scrollY += node.scrollTop;
-      clip = narrow({
-        left: scrollsX ? -Infinity : box.left,
-        right: scrollsX ? Infinity : box.right,
-        top: scrollsY ? -Infinity : box.top,
-        bottom: scrollsY ? Infinity : box.bottom,
-      });
-    }
-    return { clip, scrollX, scrollY };
-  }
-
-  function isReachable(rect, reach) {
-    // Off the DOCUMENT's left edge or above its top cannot be scrolled to.
-    // Further down or right can be, so those stay.
-    //
-    // THIS LINE HAS BEEN WRONG FOUR TIMES, always the same way: a fix for false
-    // POSITIVES that manufactured a false NEGATIVE of the AT-355 shape — a
-    // credential rendering in plain type while this returns a clean string.
-    // AT-373 (viewport-relative test), AT-379 (a scrollable pane read as a
-    // clip), AT-392 (window offset only), AT-408 (walk stopped at the first
-    // one-axis scroller). Each asked "can a reader SEE this?" where the question
-    // is "can a reader REACH it?". Details in those ledger rows; the rule here:
-    //
-    //   a glyph is unreachable only if it sits before the document origin AFTER
-    //   everything scrollable has been scrolled back.
-    //
-    // `reach.scrollX/scrollY` carry exactly that — window plus every scrollable
-    // ancestor. The clip below stays viewport-relative and is right that way,
-    // because `reachOf` never reports a scrollable pane as a clip.
-    if (rect.right + reach.scrollX <= 0) return false;
-    if (rect.bottom + reach.scrollY <= 0) return false;
-    const clip = reach.clip;
-    if (!clip) return true;
-    return rect.right > clip.left && rect.left < clip.right &&
-           rect.bottom > clip.top && rect.top < clip.bottom;
-  }
+  // ---- reachability (AT-408/AT-416; split into visual_order_reach.js) -----
+  // Moved out to its own file when the fix needed room this module's 300-line
+  // cap did not have. Spliced back in HERE by observe.py (string replace on
+  // the marker below) so `reachOf`/`isReachable` share this IIFE's closure and
+  // `page.evaluate()` still receives ONE script shaped exactly as before —
+  // never two top-level scripts, which risks Playwright's expression-vs-
+  // function parsing of the string differently than today's `(() => {...})();`.
+  // AUTOTESTER:REACH_MODULE
 
   // ---- measurement --------------------------------------------------------
 

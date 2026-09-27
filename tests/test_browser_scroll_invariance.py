@@ -107,8 +107,22 @@ def _open_defects(shape: tuple[str, ...], clip_path: bool) -> list[str]:
     measurement; the attribution was not, and attribution is what this corpus
     exists to hand the AT-416 gate.
 
-      * **AT-416** — a `hidden` box OUTSIDE an `auto` one: a scrollable pane
-        inside a clipping ancestor.
+      * **AT-416 — FIXED (at408-416-scroll-reach), no longer named here.** Was
+        a `hidden` box OUTSIDE an `auto` one: a scrollable pane inside a
+        clipping ancestor. `reachOf`/`isReachable` (now `visual_order_reach.js`)
+        test the innermost scroller's own box against clips found ABOVE it,
+        instead of the glyph's current (scroll-dependent) rect — option B of
+        `qa/gates/at416-clip-vs-reach-direction.md`. **UNVERIFIED against this
+        corpus with real Chromium**: the RAM gate never cleared in this build
+        session (readings 1.47/0.77/0.62/0.90/0.81/0.88 GB over 30 min, other
+        concurrent builders holding memory) — see
+        `qa/manifests/at408-416-scroll-reach.md`. The prediction is backed by a
+        unit harness that `eval()`s the shipped `visual_order_reach.js`
+        verbatim against the checker's own recorded probe geometries (P1, P2,
+        P6, P7, and the non-overflowing NESTCLIP case), not by the corpus
+        itself. If the prediction is wrong in EITHER direction the mechanism
+        below still catches it — a shape wrongly left unmarked now fails
+        outright instead of passing.
       * **AT-417** — `clip-path` on a box that also scrolls. `_html` puts the
         clip on the OUTERMOST box, so it applies only when that box is `auto`;
         a clip-path on a `hidden` box scrolls nothing and is not AT-417.
@@ -116,13 +130,12 @@ def _open_defects(shape: tuple[str, ...], clip_path: bool) -> list[str]:
     This is not a prediction trusted on faith. Every derived defect becomes an
     `xfail(strict=True)`, so the rule is checked on every run in both directions:
     a shape it wrongly marks red XPASSes and fails, and a shape it wrongly marks
-    green fails outright. Measured when written: exactly the 32 failing shapes,
-    AT-416 on 20, AT-417 on 14, both on 2 — matching a checker's independent
-    count taken by fixing each defect in turn.
+    green fails outright. Measured when AT-416 was still open: exactly the 32
+    failing shapes, AT-416 on 20, AT-417 on 14, both on 2 — matching a checker's
+    independent count taken by fixing each defect in turn. Post-fix expectation
+    (unverified, see above): 14 red shapes, all AT-417.
     """
     defects = []
-    if any(shape[i] == "hidden" and "auto" in shape[i + 1:] for i in range(len(shape))):
-        defects.append("AT-416")
     if clip_path and shape[0] == "auto":
         defects.append("AT-417")
     return defects

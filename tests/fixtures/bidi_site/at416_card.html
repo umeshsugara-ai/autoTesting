@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Scrollable pane inside a hard clip</title>
+<!-- AT-416: the "ordinary shape" every real UI has -- an overflow:hidden card
+     (rounded corners, a fixed small height) wrapping a genuinely scrollable
+     body. Reproduces the checker's own probes P6 (a tight ~40px band) and P7
+     (a taller card), qa/evidence/browser-at379-scrollable-pane-reachability-
+     2026-09-16-checker-c3/{p6-scroller-inside-hard-clip,p7-card-wrapper}.json.
+
+     The defect: reachOf's running clip intersection tested the glyph's
+     CURRENT (scroll-dependent) rect against the card's clip, so the verdict
+     flipped with the pane's OWN scroll position -- reported=false at rest,
+     reported=true only once the pane happened to be scrolled to exactly the
+     right spot. The contract (qa/contracts/ui.md U14a) is scroll-INVARIANT:
+     the SET of glyphs reported must not change with scroll position. Both
+     sentinels below must be reported BOTH at rest and after scrolling. -->
+<p>CONTROL_AT416_ALWAYS_VISIBLE</p>
+
+<div id="at416_card" style="height:42px;width:300px;overflow:hidden;border-radius:8px">
+  <div id="at416_body" style="height:160px;width:280px;overflow:auto">
+    <p>CARD_TOP_SENTINEL</p>
+    <p style="margin-top:500px">CARD_BELOW_FOLD_SENTINEL</p>
+  </div>
+</div>
+
+<!-- A P7-shaped pair: a taller card (272px) over the same tall body, so the
+     visible band and the pane's own box overlap by a lot more than P6's -- a
+     second, differently-sized reproduction of the same shape rather than one
+     coincidence. -->
+<div id="at416_card2" style="height:222px;width:300px;overflow:hidden">
+  <div id="at416_body2" style="height:160px;width:280px;overflow:auto">
+    <p>CARD2_TOP_SENTINEL</p>
+    <p style="margin-top:500px">CARD2_BELOW_FOLD_SENTINEL</p>
+  </div>
+</div>
+
+<!-- Negative control, same page: a card wrapping a pane that does NOT
+     overflow (AT-393's own shape, not AT-416's) -- nothing in it can be
+     scrolled, so the card's hard clip is a real boundary and the line below
+     it must stay excluded. Proves the fix does not degenerate into "every
+     card-wrapped pane reports everything it holds". -->
+<div style="height:30px;width:300px;overflow:hidden">
+  <div style="height:150px;width:280px;overflow:auto">
+    <p>CARD3_TOP_SENTINEL</p>
+    <p style="margin-top:40px">CARD3_HIDDEN_SENTINEL</p>
+  </div>
+</div>
