@@ -131,6 +131,44 @@ it refuses", it is "can a check that ran for real get past it".
   gate's happy path being exercised by every crawl test that exists.
 - Reversing this is a **CRITICAL** amendment (it weakens a safety invariant): human decision only.
 
+### CN10 — A bound means one thing on both sides, and a bound that constrains nothing is not a bound
+- **One meaning, stated once.** `max_actions`, `max_probes` and `wall_clock_s` each mean the same
+  thing at the gate (`core/consent.py::_shortfalls`) and during the run
+  (`stages/parallel_run.py::RunBudget.try_consume`). Today they do not: the gate compares bare
+  (`if actions > approval.max_actions`) so `0` is a **zero budget**, while the run guards on
+  truthiness (`if approval.max_actions and ...`) so `0` is **unlimited** — and the permissive
+  reading is the one that governs once a run starts. All three fields carry the identical inversion
+  (`parallel_run.py:158`, `:162`, `:164`).
+- The chosen meaning is written in the field's own docstring in `schema/approval.py`, so the next
+  reader does not re-derive it from two call sites that disagree.
+- **Asserted from both sides in ONE test.** Two tests each checking one side is exactly how this
+  survived: each passes, and the disagreement between them is what nothing asserts. The test
+  constructs one approval and exercises the gate and the budget against it.
+- **A fixture with `0` bounds is an unexercised refusal path, not a fixture.** It passes the gate
+  *and* enforces nothing, so "an approved run proceeds" passes for the wrong reason, and "an
+  over-budget run is refused" cannot be written at all — `0 > 0` is false, so there is no
+  over-budget to construct. Every fixture approval carries **non-zero** bounds, and an over-budget
+  refusal test exists.
+- **Plausibility, which fixing `0` does not give you.** A bound may be present, non-zero, signed and
+  pass every check while constraining nothing: `projects/pathlynks/approvals.jsonl`'s live row
+  carries `wall_clock_s = 600000000.0`, which is **19 years**. No falsy guard fires on it and no
+  criterion above rejects it. This is the worse of the two failures because it survives a reviewer
+  reading the row. A grant path or a validator must reject a bound that exceeds any defensible run,
+  or the gate is decorative on exactly the axis (`wall_clock_s`) that limits a run which is
+  *misbehaving* rather than merely long.
+- **Never rescued.** Existing rows are not special-cased, grandfathered, migrated or back-filled to
+  survive a semantics change. Under a fail-closed reading they authorize nothing, and re-granting is
+  already required (AT-674).
+- **Ratification is disclosed, not assumed.** If the build chooses what `0` means rather than a
+  human ratifying it, the **verdict must say so in those terms** — that the semantics were chosen by
+  the build and await ratification. A PASS is not blocked by the absence of ratification (the code
+  must mean something, and fail-closed is the reversible direction), but a PASS that is silent about
+  it launders a build's design decision into a settled one, which is the decision drift the Lab
+  Protocol exists to catch. This binds the checker, not the maker.
+- **Verify:** `uv run pytest` covers one approval asserted from both the gate and the budget side,
+  and an over-budget refusal; `grep` shows no truthiness guard on a bound in `RunBudget`.
+  **Links:** AT-660; AT-570; AT-674; core-invariants C12.
+
 ## Out of scope / ignore (do not raise these as findings)
 
 - **Revocation.** Expiry only, for now. There is no `autotester revoke`; deleting the row is the
@@ -183,3 +221,20 @@ it refuses", it is "can a check that ran for real get past it".
   already on disk keep start-of-day. This widens consent only for grants made after this date,
   and only by the operator's own explicit choice of day. Nothing already granted changes. The
   maker builds it against this text, and AT-150/AT-151 are re-judged against it.
+- 2026-09-28 - routine (add) - CN10 added: a bound means one thing on both sides, and a bound that
+  constrains nothing is not a bound. Cause: AT-660, found while verifying the maker's narrowing of
+  AT-659. `0` is a zero budget at the gate (`_shortfalls`, bare comparison) and unlimited during the
+  run (`RunBudget.try_consume`, truthiness guard), on all three bound fields, and
+  `require_approval`'s own defaults are `0` - so a caller that omits them is accepted by a vacuous
+  check and then bounded by nothing. AT-570's briefed fix (making `approval` non-optional) is
+  necessary and NOT sufficient: the fail-open survives inside a signed, unexpired, correctly-scoped
+  approval, which is worse than the original defect because everything a reviewer inspects says the
+  run was authorized. CN10 also carries two things the `0` question does not reach: a fixture with
+  `0` bounds cannot express an over-budget refusal, so it is an unexercised refusal path (the maker
+  ranked this the most likely escape and it is the AT-218 vacuous-guard class); and a bound can be
+  non-zero, valid and still decorative - the live pathlynks row's `wall_clock_s` is 19 years. The
+  ratification clause binds the CHECKER's verdict wording, answering the maker's direct question:
+  absent ratification does not block a PASS, silence about it does. Additive; no criterion weakened.
+  **Changes-authorized:** qa/contracts/consent.md CN10 + Amendment log (this entry). No
+  enforcement-path file touched. **Links:** AT-660; AT-659; AT-570; AT-674; AT-218;
+  qa/contracts/core-invariants.md C12.
