@@ -15,13 +15,16 @@ one or more participants' attempts (`BenchTrial`) on detection rate, false-posit
 severity-weighted recall — via `BenchTrial.score`, never a hand-typed number. Prove this with a
 real trial, not a description of one.
 
-**Honest scope note (same discipline as T-050/T-060/T-110):** a live, timed human tester was not
-available in this autonomous session. The AutoTester side of the scorecard is a **real** trial —
-the actual execute→grade pipeline run against a genuinely broken build, real `Verdict`s, real
-`grader_provider`. The human side is an explicitly labeled **oracle baseline** (perfect precision
-and recall against the corpus's own seeded bugs, `participant_label="human-oracle-baseline"`) —
-not a fabricated claim of a timed human run. This is documented here and in every manifest/run
-output, never presented as a live trial.
+**Scope note — the oracle-baseline substitution is SUPERSEDED (2026-09-27).** The paragraph this
+replaces read: *"a live, timed human tester was not available in this autonomous session ... The
+human side is an explicitly labeled oracle baseline ... `participant_label="human-oracle-baseline"`."*
+That was honest when written and is no longer the plan: Umesh, 2026-09-27, answered *"Human tester
+parallel me baithega"* and *"teri reporting aur human ka compare krkee mai btuangaa"* — a real,
+timed human tester sits in parallel on the Pathlynks proof run (T-169/T-136), and he owns the
+verdict on the comparison. The oracle baseline is not deleted: it remains a legitimate participant
+for a fixture corpus with no human in the room, and K1–K5 continue to govern it unchanged. What
+changes is that it may no longer stand IN PLACE OF a human where a human actually ran — K6 makes
+the two distinguishable in the artifact so no reader can mistake one for the other.
 
 ## Criteria
 
@@ -54,10 +57,64 @@ The corpus and each trial save through `ProjectStore` (a new `save_bench_corpus`
 other artifact kind in that file) — plain JSON files under `projects/<slug>/bench/`, not
 throwaway in-memory objects.
 
+### K6 — A real human trial is distinguishable from an oracle baseline, in the artifact
+A `BenchTrial` whose participant is a human records **which kind of human**: a live, timed tester
+or the synthetic `human-oracle-baseline`. A reader of the saved JSON alone — no manifest, no prose,
+no session memory — can tell them apart. `participant_label` is a free-text string and is
+therefore **not** sufficient on its own: a label is a convention, and a convention is what a later
+caller silently breaks. The distinction must be a typed field the schema enforces, and the
+comparison output must carry it through. A comparison that reports "human: 0.82 recall" without
+saying which kind of human produced it fails this criterion even if every number in it is correct.
+
+### K7 — Ground-truth ordering is recorded per human finding (AT-653)
+A human finding authored **after** reading AutoTester's report is not independent evidence: it
+anchors on what AutoTester already said. False positives survive that contamination (a claim
+AutoTester made that the human rejects is still a false positive); **recall does not** (a bug the
+human only noticed because AutoTester pointed at it cannot measure what a human finds unaided).
+So:
+- Each trial records the ordering it was produced under — whether the participant saw the other
+  participant's findings before producing its own, and if so, which one ran first.
+- Each human finding records whether it was **independent** or **prompted** (authored after
+  reading AutoTester's report).
+- `severity_weighted_recall` for the human side is computed from the **independent subset only**.
+  A trial whose ordering is unknown has no independent subset, which is K8's case, not a licence
+  to use all of it.
+- The false-positive rate may use every reported finding, and must say that it does.
+
+### K8 — A missing measurement reports unavailable, never a flattering default (C12 class)
+Every number this contract's scorecard reports must be **absent when its input is absent**, not
+substituted with the value most favourable to the participant. Concretely, and each of these is a
+real defect shape found in this repo rather than a hypothetical:
+- Recall with no ordering recorded reports `unavailable (ordering not recorded)`. It must not
+  default to `0.0` either: a Pydantic field defaulting to zero reintroduces the same bias through
+  the back door, because a zero is then indistinguishable from a measured zero.
+- Wall-clock with no timing recorded reports unavailable. `duration_s: float = 0.0` states that a
+  trial took **no time**, which is the best possible value on the axis the north star names third
+  ("AutoTester wins on bugs found, false positives, and **time**") — so an untimed trial currently
+  reads as an infinitely fast one.
+- A false-positive rate over zero reported findings is not `0.0` precision; a trial that reported
+  nothing has no precision to quote.
+Verify by construction, not by inspection: build a trial with the input missing and assert the
+scorecard says unavailable. A test that only checks the populated path cannot catch this class —
+the bug IS the unpopulated path.
+
+### K9 — The comparison artifact is complete enough to be judged by someone who was not there
+`scripts/check_acceptance_comparison.py <slug>` (T-136's `done_check`) exits non-zero unless the
+comparison artifact carries, for the run it names: both participants with their K6 kind; the K7
+ordering and the independent/prompted split; each side's detection rate, false-positive rate,
+severity-weighted recall and wall-clock, each either a number **from `BenchTrial.score`** or the
+K8 unavailable marker; the seeded-or-confirmed bug list both sides were scored against; and a
+per-bug row showing who found it. Umesh's verdict (he owns it — *"mai btuangaa"*) is recorded as
+a decision **on** this artifact, never computed by it: the script asserts completeness, it does
+not assert that AutoTester won.
+
 ## No-fire list
 
-- A live, timed human trial — explicitly out of scope this cycle (no tester available); the
-  oracle-baseline substitution is the documented, honest alternative (see Purpose).
+- **Scheduling, recruiting or instrumenting the human tester** — Umesh supplies the tester and
+  owns the session; this contract governs what the ARTIFACT must contain, not how the human's time
+  is arranged. (The older item here said a live human trial was itself out of scope; superseded
+  2026-09-27, see Purpose.)
+- **Judging who won.** K9's script asserts the comparison is complete; the verdict is Umesh's.
 - Multi-corpus benchmarking, leaderboards, or a bench UI page — out of scope; one real corpus,
   one real comparison, is the bar for this unit.
 - CI wiring to run bench automatically — future enhancement, not required here.
@@ -65,3 +122,18 @@ throwaway in-memory objects.
 ## Amendment log (append-only; git history is the version)
 
 - 2026-09-03 · init · contract created for T-120 — no contract existed before this cycle.
+- 2026-09-27 · K6–K9 added; the Purpose's oracle-baseline scope note superseded; no-fire item 1
+  replaced. Cause: Umesh 2026-09-27 replaced the no-human-available premise this contract was
+  written under ("Human tester parallel me baithega"), and T-169/T-136 — the project's definition
+  of done — had **no checkable criteria anywhere** in `qa/contracts/` (AT-281). Amending the
+  contract that already governs `schema/bench.py` rather than authoring a new
+  `acceptance-comparison.md`, because a new checker-authored contract file needs a
+  `docs/DECISIONS.md` `Changes-authorized` line and that append path is permission-blocked
+  (`ISS-at638-remainder-1`) — the criteria would have waited on a gate instead of landing.
+  K8 generalises **C12** (`core-invariants.md`, "every health signal the loop reports must fail
+  closed") from health signals to reported *measurements*; it is the fourth instance of one defect
+  shape found in a single day — `RunBudget(None)` = unlimited (AT-570), recall-without-ordering
+  = fully-credited (AT-653), `duration_s = 0.0` = instant, and the earlier loop-health signals.
+  **Changes-authorized:** qa/contracts/bench.md Purpose, Criteria (K6–K9), No-fire list (this
+  entry). No enforcement-path file touched. **Links:** AT-281; AT-653; AT-570;
+  qa/gates/write-policy-tier.md; T-169; T-136; T-120.

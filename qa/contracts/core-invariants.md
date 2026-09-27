@@ -245,7 +245,9 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   no undeclared import. Known false-positive class: `TYPE_CHECKING`-only and `try/except ImportError`
   optional imports (AT-590). That is a check defect to fix, not a licence to skip declaring a real import.
 
-### C12 — Every health signal the loop reports must fail closed
+### C12 — Every signal and every measurement this system reports must fail closed
+
+**(a) Health signals — the loop watching itself.**
 - A liveness, coverage, or completeness check the loop or its hooks report (session-start injection,
   `loop-status`, a sweep's own terminal state) must be able to tell "nothing is wrong" apart from
   "my evidence was destroyed, truncated, or never written." A check that reports clean over missing
@@ -262,6 +264,37 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   "never dispatched" rather than "checked and lost" (AT-641). (3) Two worktrees held finished,
   unjudged commits for two days with their issues still `open` on master, and no sweep or hook
   check ever enumerated worktrees to surface them (AT-643).
+
+**(b) Reported measurements — the system watching the thing under test (added 2026-09-27).**
+- The same rule, one surface out. A number this system **reports about a product or a
+  participant** — a score, a rate, a duration, a coverage figure, a budget — must be **absent when
+  its input is absent**, never substituted with the value most favourable to whatever is being
+  measured. "I did not measure this" and "I measured this and it was fine" are different facts and
+  must be different outputs.
+- The tell is a default in the type, not a bug in the arithmetic: a numeric field whose default is
+  its own best case, or a divisor guarded by `or 1` so an empty numerator yields a flattering
+  quotient. **A zero default is not a safe default** — once written, a zero is indistinguishable
+  from a measured zero, so the absence is unrecoverable downstream. Absence needs its own
+  representation (`None`, `unavailable`, or a variant), and the reporting path must carry it
+  through to the human rather than coercing it on the way out.
+- **Verify by construction, never by inspection:** build the object with the input missing and
+  assert the report says unavailable. A test that exercises only the populated path cannot catch
+  this class, because the unpopulated path IS the defect.
+- **Known instances (measured, four found on one day — 2026-09-27 — which is why this clause
+  exists):** (1) `RunBudget(None)` returns `True` from `try_consume` forever, so a run with no
+  `RunApproval` is not "unapproved" but *unlimited*, and `run_cases(..., approval=None)` is the
+  default (AT-570, `stages/parallel_run.py:146-156,216-225`). (2) `severity_weighted_recall` is
+  computed unconditionally although nothing records whether the human's findings were independent
+  or written after reading AutoTester's report, so a contaminated recall is reported as a clean one
+  (AT-653; remedy: bench.md K7/K8). (3) `BenchTrial.duration_s = 0.0` reports that an untimed
+  trial took no time — the best possible value on the axis the north star names third — and the
+  same function's `or 1` divisors make a trial that reported nothing score perfect precision
+  (AT-655). (4) Clause (a)'s own three loop-health instances are this same shape on the
+  self-observation surface; (a) and (b) are one invariant, split only by what is being watched.
+- **Why this is not scope creep:** this project's product is a report about someone else's
+  software. A report that silently rounds an unmeasured axis toward "fine" is the exact failure it
+  exists to catch in others (intent.md O4). An invariant that held the loop to a standard the
+  product's own output was exempt from would be the wrong way round.
 
 ## No-fire list (do not raise these as findings)
 
@@ -612,3 +645,15 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   entry). No enforcement-path file touched. **Links:** AT-438;
   qa/verdicts/at438-answered-gate-remainder.md; qa/verdicts/t192-url-pattern-heal.md;
   qa/manifests/at438-answered-gate-remainder.md.
+- 2026-09-27 · routine (extend) · C12 widened from "every health signal the loop reports" to
+  "every signal and every measurement this system reports", split into (a) loop health (unchanged,
+  verbatim) and (b) reported measurements (new). Cause: three fail-open measurement defaults were
+  found on disk in a single day — `RunBudget(None)` = unlimited (AT-570), recall computed without
+  any ordering record (AT-653), `duration_s = 0.0` = instant plus `or 1` divisors (AT-655) — all
+  three the identical shape as (a)'s loop-health instances, and none of them reachable by C12 as
+  written, because each is a number about the *product under test* rather than about the loop.
+  Extending the existing invariant rather than adding a C13: the principle is the same sentence,
+  and two numbered rules for one idea is how a checker ends up citing the weaker one. No existing
+  clause, instance or verify line was altered — (a) is the prior text unchanged. **Changes-authorized:**
+  qa/contracts/core-invariants.md C12 (this entry). No enforcement-path file touched.
+  **Links:** AT-570; AT-653; AT-655; AT-644; qa/contracts/bench.md K8 (the contract-local form).
