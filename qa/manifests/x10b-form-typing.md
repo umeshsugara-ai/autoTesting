@@ -227,4 +227,48 @@ tests/test_approve_cli.py` → 10 passed; combined consent/typing/UI seam set
 confirmation belongs to the next checker pass (its unit or a sweep) — this
 manifest does not self-certify it.
 
-## Status: STALLED
+## Status: checked-PASS (cycle 3, closed on a re-pass)
+
+Verdict `qa/verdicts/x10b-form-typing.md`, **Cycle checked: 3 (re-pass)**, commit `529746b2`.
+`AT-539` moves `fixed` -> `verified` with `regression_check: uv run pytest tests/test_approve_cli.py`.
+**No cycle 4 was spent**, and none was needed — see `qa/debug/x10b-form-typing-cycle3.md` and
+`AT-648` in `qa/QUEUE.md` for why this was a verdict question rather than a work question.
+
+**This manifest's own refusal to self-certify is what made the close-out possible.** It recorded the
+maker's post-fix run and then said explicitly: *"AT-539's confirmation belongs to the next checker
+pass (its unit or a sweep) — this manifest does not self-certify it."* Had it claimed the green
+instead, the unit would have closed on the maker's word months ago and nobody would have re-derived
+anything. The refusal cost a delay and bought a real verdict.
+
+**The re-pass took nothing on trust, which was the whole point of the dispatch.** Two parties had
+already reported AT-539 green (a checker sweep on 2026-09-22, and sweep 2026-09-27b), and the
+checker was told to treat both as hearsay. It:
+
+- Grepped the whole repo: all three sites in `tests/test_approve_cli.py` (lines 63, 78, 164) import
+  `from autotester.stages.explore_consent import require_consent`; exactly **one**
+  `def require_consent` exists anywhere (`stages/explore_consent.py:31`); `explore.py:277` only
+  calls it. `autotester.stages.explore.require_consent` is genuinely gone, not re-added.
+- Ran `uv run pytest tests/test_approve_cli.py` itself: **11 passed**.
+- Ran the full adapter instrument itself: **2 failed, 2050 passed, 6 skipped, 14 xfailed** in 1135s,
+  and then **grepped the whole 1135s log for `test_approve_cli`, `require_consent` and `ImportError`
+  — zero occurrences.** Both failures are the pre-existing `ISS-at638-remainder-2` goal-count drift.
+- **Read the failure list rather than the exit code**, which was the crux: cycle 3's red *was* a
+  non-zero exit, and the suite is still non-zero today for unrelated reasons. A checker that judged
+  on the exit code alone would have kept this unit stalled forever.
+
+**The `regression_check` was actually run, not asserted** — the AT-218 defect class this project
+keeps filing. In a throwaway copy outside the bound tree, it confirmed via `git show 3da1f56a^` vs
+`3da1f56a` that the fix commit touches exactly the three import lines, then substituted the pre-fix
+`test_approve_cli.py` against the current source: **3 failed at ImportError**, naming exactly the
+three tests in AT-539's own title. Reverting the fix reproduces the defect; the current tree does
+not carry it.
+
+**One slip it caught and corrected itself**, recorded because the near-miss matters: its first edit
+to `qa/issues.jsonl` re-serialized all 657 rows via `json.dumps` and produced a 94-line diff from
+unicode-escape normalisation. It noticed, reverted with `git checkout`, and redid it as a
+byte-preserving single-line replacement — final diff **1 line**. That is the right instinct on an
+append-only canonical ledger, and it is the same file that separately turns out to carry 10
+duplicated ids (`ISS-ledger-duplicate-ids`).
+
+The other 16 criteria stand on cycle 3's own verdict and were not reopened.
+
