@@ -17,7 +17,8 @@ stage).
 
 ## What it is
 
-Today each stage that needs a prompt reads its `.md` file directly off `core/paths.py::Paths.prompts_dir`
+Before this unit, each stage that needs a prompt read its `.md` file directly off
+`core/paths.py::RepoDocs.prompts_dir` (`paths.py:251`; there is no class named `Paths`)
 (e.g. `stages/grade.py:44`) — a separate inline read per stage, no shared loader. This unit gives the
 four named prompts (grader, test-design/expand, bug-hunting, ingest) a home as `SKILL.md` folders
 (the Agent Skills open standard) — the maker judges the right location against `CLAUDE.md`'s "prompts
@@ -81,3 +82,10 @@ green→red-for-the-named-reason→revert→green. File/function caps (core-inva
 - 2026-09-24 · init · contract authored by /checker as DRAFT, from D-041 (Approved-by Umesh —
   AskUserQuestion answers + plan approval, chat 2026-09-24). No prior draft existed; nothing amended.
 - 2026-09-25 · DRAFT->ACTIVE · /checker Mode B sweep, on T-175 checker PASS (qa/verdicts/t175-prompt-skills.md Cycle checked: 1, merged 9b3fd5e), as this contract's own status line pre-authorized; precedent network-assertions.md at the T-170 PASS. No criterion text changed.
+- 2026-09-28 - routine (correct) - the "What it is" before-state now names `RepoDocs.prompts_dir`
+  (`core/paths.py:251`) instead of `Paths.prompts_dir`; there has never been a class named `Paths` in
+  that module, only `ProjectPaths` and `RepoDocs`. Its tense also moved from "Today each stage..." to
+  "Before this unit..." - this unit shipped (T-175, PASSED 2026-09-25), so the present tense described a
+  state that no longer exists and the sentence read as current behaviour. Cause: AT-691. No criterion
+  changed. **Changes-authorized:** qa/contracts/skills.md "What it is" + Amendment log (this entry).
+  **Links:** AT-691; T-175.

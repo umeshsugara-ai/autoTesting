@@ -34,7 +34,8 @@ opens with no server and no network. The video link alone needs its file to sit 
 
 ### RE4 — Defaults to the latest run when none is named
 Both CLI commands accept an optional `run_id`; omitting it uses the most recent run for that
-project (matches the existing `ui/app.py::report` route's own "latest run" convention).
+project (matches the existing `ui/routes_report.py:212::report` route's own "latest run" convention;
+it moved out of `ui/app.py`, whose own docstring records the split).
 
 ### RE5 — No secret ever reaches an exported file
 Screenshots are already masked before capture (B7, unchanged); scoreboards/errors are whatever
@@ -67,3 +68,9 @@ unchanged: nothing recomputed). (Current gap tracked by AT-582: `stages/report_e
   is linked, not embedded. Why: a 15-20 minute recording cannot sensibly be a base64 data URI, and
   RE3 predates video evidence. **Narrowing, named:** "needs no other file on disk" no longer holds
   for the video link. It still holds for every screenshot and every other part of the page.
+- 2026-09-28 - routine (correct) - RE4's cited route path updated from `ui/app.py::report` to
+  `ui/routes_report.py:212::report`. Cause: AT-691. The route moved when app.py was split (app.py's own
+  docstring records it) and no `report` function remains there, so a checker following RE4 to see the
+  "latest run" convention would find nothing at the named path. Behaviour claim unchanged - the
+  convention and the route both still exist. **Changes-authorized:** qa/contracts/report-export.md RE4
+  + Amendment log (this entry). **Links:** AT-691.

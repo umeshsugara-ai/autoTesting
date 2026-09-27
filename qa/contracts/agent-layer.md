@@ -150,8 +150,8 @@ instruction the model is asked to obey.
   and wall time.** The same fixture product/job is run once through the plain pipeline
   (`stages/orchestrate.py::run_or_resume`) and once through the Deep Agents lead agent, and a
   comparison report records, for each: bugs found, false-positive count, total tokens, wall-clock
-  time — the same axes `docs/ARCHITECTURE.md`'s north star names (`schema/bench.py::scorecard`
-  precedent). (Falsifiable: run the comparison script on a seeded fixture corpus twice (once per
+  time — the same axes `docs/ARCHITECTURE.md`'s north star names (`stages/bench.py:76::scorecard`
+  precedent - `schema/bench.py` holds only the data models). (Falsifiable: run the comparison script on a seeded fixture corpus twice (once per
   path) → a report artifact with all four numbers populated for both paths, not estimated or
   asserted from memory.)
 - **AL13 — The layer is kept only if the comparison shows a gain; otherwise the finding is
@@ -210,3 +210,10 @@ separate refusal paths.
   `umesh/operating-brain/wiki/concepts/krishnaik/deep-agents.md`. No prior draft existed; nothing
   amended. T-180/T-181 groups are pre-registered ahead of their units building, per D-042's dispatch
   instruction; they become judgeable only once T-180/T-181 are in flight.
+- 2026-09-28 - routine (correct) - the cited scorecard precedent updated from `schema/bench.py::scorecard`
+  to `stages/bench.py:76::scorecard`. Cause: AT-691. `schema/bench.py` holds only the Pydantic models
+  (SeededBug, Finding, BenchCorpus, BenchTrial); the function is in the stage. `qa/contracts/bench.md:44`
+  already cited it correctly, so this was a one-file drift, not a shared error. No criterion changed -
+  this contract is DRAFT and the line is a precedent citation inside a falsifiability note.
+  **Changes-authorized:** qa/contracts/agent-layer.md (the T-181 comparison note) + Amendment log (this
+  entry). **Links:** AT-691.
