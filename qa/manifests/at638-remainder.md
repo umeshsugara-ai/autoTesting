@@ -227,4 +227,45 @@ fabricating a falsification table for prose.
 Not UI-touching — no surface changed. `qa/feedback-inbox.md` and this manifest are the only paths
 touched; neither renders anywhere in the product.
 
-## Status: ready-for-check
+## Status: cycle-1 FAIL — HUMAN_GATE. NOT merged, and no cycle 2 will be started.
+
+## Close-out (maker orchestrator, 2026-09-27)
+
+Verdict: `qa/verdicts/at638-remainder.md`, cycle 1, **FAIL** — copied onto `master` so the record is
+visible without merging a failed branch. Gate: `qa/gates/at638-four-contract-files-authorization.md`,
+also on `master`. Ledger: `ISS-at638-remainder-1` (high, `approval-required`).
+
+**This FAIL is not a defect in this unit's work.** The checker judged **all 17 criteria sound and
+buildable as worded**, reproduced every pasted grep exactly (all exit 1/2 as claimed, including
+`ls src/autotester/agents/` exiting 2), confirmed the diff touched exactly the two claimed files with
+zero deletions, and verified `schema/portal_persona.py` really carries the `PersonaScreen` /
+`PersonaTransition` / `PersonaRevision` classes EC1's knowledge-graph extension needs. It failed the
+unit solely on this unit's **own** finding: no `docs/DECISIONS.md` entry authorizes the four contract
+files — and the checker independently re-derived that from the decision text rather than trusting
+this manifest's paste.
+
+**No cycle 2.** A fix cycle exists for a maker defect; the blocker here is a decision only Umesh can
+make, and `Approved-by:` cannot be self-granted. Spending a cycle would be theatre. The unit resumes
+the moment the gate is answered — and if answered as option A, the criteria need no re-review.
+
+**Corrections the close-out owes this unit:**
+
+- **The orchestrator's dispatch was wrong about PS2.** I told the checker PS2
+  (destructive-actions-last) was a freely-arguable `[maker]` addition. It is not — this unit tagged
+  it `[D-040 verbatim]` and it matches D-040's text exactly. The genuinely arguable ones are PS4,
+  DC3 and RR3, all three reviewed and accepted as low-risk. The filing was right; my summary of it
+  was wrong.
+- **The Executor line held up.** This unit stated its authorship accurately and explicitly cited the
+  sibling's mis-description rather than repeating it. Recorded because the pair's value depends on
+  the record naming who did what, and this one did.
+
+**Left open, not silently absorbed:** RR2's `consent.md` CN5/CN6 tag is overstated relative to its
+own `Verify` (checker, low — not a ledger row, since the file does not exist yet); the D-042 / T-179
+dependency contradiction sits inside T-167's own `.goal/goal.json` `note` field and both this unit
+and the checker deliberately left it disclosed; and the checker **did not complete `uv run pytest`**,
+accepting ruff + doctor + the diff-stat on the grounds that the diff touches zero `src/` or `tests/`
+files. That reasoning is sound for a contracts-only unit and it disclosed it rather than claiming a
+green run, but it is a gap in the evidence and is recorded as one.
+
+**AT-638 stays `open`.** Track C is genuinely closed by the sibling unit's PASS; these four
+capabilities have reviewed *proposals*, which is not the same as checkable criteria.
