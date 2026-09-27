@@ -51,6 +51,16 @@ that is `0` on every axis; only the command the refusal prints carries real numb
 was produced that way — all three rows have non-zero actions — but it means the `0` problem is
 reachable on every bound through the CLI, not only on `max_probes` through the UI.
 
+**The cleanest statement of it is the checker's, and it is confirmed line by line**
+(`cli_crawl.py:232-243`): on `approve_cmd`, **every identity field is required** —
+`--kind`, `--target`, `--scope`, `--granted-by`, `--expires` are all `typer.Option(...)` — while
+**every bound defaults to void.** *The command whose entire job is to set limits enforces provenance
+and not limits.* And the sharpest detail is in the help text of the one field that is required:
+`--expires` reads *"YYYY-MM-DD; consent is never open-ended"*. So the command refuses open-ended
+consent in **time**, by construction, and hands out open-ended consent in **magnitude**, by default,
+in the same signature. That is not a missing `min=`; it is the wrong half of a grant being treated as
+the mandatory half.
+
 So one bound was defeated by the code and another by a value chosen at the keyboard. Only the second is
 a granting-practice question, and it is the reason step 3 below matters: the command the tool prints
 derives its bounds from the run that was actually attempted, so it structurally cannot emit a 19-year
