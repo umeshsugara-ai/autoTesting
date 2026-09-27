@@ -1,11 +1,10 @@
 """Derive the living docs from code and the ledger. Nothing here is hand-typed.
 
-`render_map` fills the generated sections of ARCHITECTURE.md (directory map from
-module docstrings, schema summary from the models). `render_snapshot` writes the
-lean session-start digest. `doctor` regenerates both and fails on any diff. Also
-holds `soft_import_ids`, the AST classifier doctor's dependency check uses to tell
-a genuinely optional import from a required one dressed up as one (AT-590/AT-619;
-see the "optional-import detection" section below for why it lives in this file).
+`render_map` fills the generated sections of ARCHITECTURE.md (directory map from module docstrings,
+schema summary from the models). `render_snapshot` writes the lean session-start digest. `doctor`
+regenerates both and fails on any diff. Also holds `soft_import_ids`, the AST classifier doctor's
+dependency check uses to tell a genuinely optional import from a required one dressed up as one
+(AT-590/AT-619; see the "optional-import detection" section below for why it lives in this file).
 """
 
 from __future__ import annotations
@@ -226,12 +225,13 @@ def _product_paragraph(architecture: Path) -> list[str]:
 
 
 def _feature_lines(docs: RepoDocs) -> list[str]:
+    """AT-613: the shown high-value slice is newest-first by id, so a new live feature is kept."""
     events = load_events(docs.features)
     current = live(events)
     lines = ["## Live features"]
     high = [e for e in current if e.user_value is UserValue.HIGH]
     normal = [e for e in current if e.user_value is not UserValue.HIGH]
-    shown = sorted(high, key=lambda x: x.id)
+    shown = sorted(high, key=lambda x: x.id, reverse=True)
     for e in shown[:HIGH_FEATURES_SHOWN]:
         lines.append(f"- {e.id} **{e.title}** [high] — {e.description} · reason: {e.reason}")
     if len(shown) > HIGH_FEATURES_SHOWN:
