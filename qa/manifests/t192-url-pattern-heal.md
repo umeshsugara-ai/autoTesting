@@ -149,4 +149,37 @@ into the test suite.
   repairing Goodhartable `done_check`s across five tasks is its own unit, and four of the five are
   in flight right now.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1)
+
+Verdict `qa/verdicts/t192-url-pattern-heal.md`, **Cycle checked: 1**, verdict commit `cfa8cdb9`,
+pushed to `origin/master`. The checker re-traced the vision-call question independently rather
+than taking this manifest's word for it: it confirmed via file mtimes (every observation and
+`analysis.json` under `src_c6bb964cfff8` still dated 2026-09-09, only `screenmap.json` dated
+2026-09-27) and by reading `analyze_cmd` and `map_product_cmd` in full that **no model call and no
+network request occurred** — the approval remains unspent. It also did the live browser walk this
+manifest listed as a gap, in real visible Chromium, and confirmed all three healed rows render
+`/erp/trainers` on `/projects/erp/product-map` with zero console errors
+(`qa/evidence/browser-t192-url-pattern-heal-2026-09-27-checker/`). It re-ran `ingest map` itself and
+ruled the heal idempotent in substance (only `created_at` restamps), and re-verified the blast
+radius against the pre-image hash: exactly 3 fields changed.
+
+**One finding filed, non-blocking — `ISS-t192-url-pattern-heal-1` (medium), and it is a fair hit
+on this unit.** The checker judged the narrowing from `analyze` to `ingest map` a legitimate,
+loudly-disclosed narrowing rather than a covert substitution, and agreed the gate's own qualifying
+language for option B ("normal pipeline, no bespoke script, exercises the fixed producer") is
+satisfied *more* literally by what was run — `screen_url_pattern` is never reached by
+`adjudicate.py` at all, so `ingest map` exercises the fixed producer and `analyze` partly would
+not. But it held that the specific command Umesh named should have gone back to him before acting:
+a HUMAN_GATE exists to keep that decision with him even when the builder's case is technically
+sound. That is correct and I accept it. **One line of ratification from Umesh is the open item.**
+
+Two things the checker recorded without failing the unit, both noted here so they are not lost:
+the untracked-file durability gap is repo-wide by pre-existing design (`projects/*/sources/` is
+gitignored; no `screenmap.json` has ever been committed in this repo's history), so solving it here
+would be an inconsistent one-off — it belongs in its own unit if it matters. And C10
+(commit-before-verdict) was flagged as worth a future scope clarification for zero-code units
+rather than filed as a violation.
+
+`T-192` flipped to `done` in `.goal/goal.json`. `user_value: normal`, so no `FEATURES.jsonl` row is
+required beyond the auto-stamp. T-192's own `done_check` is still the broken one
+(`ISS-at638-remainder-2`) — repairing it stays queued as its own unit in `qa/QUEUE.md`.
