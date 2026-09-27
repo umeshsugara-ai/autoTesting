@@ -7,12 +7,12 @@
   "updated": "2026-09-27T19:42:02",
   "progress": {
     "total": 81,
-    "done": 56,
+    "done": 57,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 25,
+    "pending": 24,
     "current": "T-122",
-    "percent": 69
+    "percent": 70
   },
   "tasks": [
     {
@@ -915,7 +915,7 @@
       ],
       "done_check": {
         "type": "cmd",
-        "cmd": "uv run pytest tests/test_goal_done_checks.py::test_revised_goal_contract_is_registered",
+        "cmd": "uv run pytest tests/test_goal_contract_registration.py::test_revised_goal_contract_is_registered",
         "expect_exit": 0
       },
       "note": "The previous 69 percent omitted mandatory capabilities from Umesh's corrected goal. D-023 registers them before more implementation can narrow the target again.",
@@ -1409,7 +1409,7 @@
       "criticality": "critical",
       "done_check": {
         "type": "cmd",
-        "cmd": "uv run pytest tests/test_scroll_reach.py",
+        "cmd": "uv run pytest tests/test_browser_scroll_reach_at408_416.py",
         "expect_exit": 0
       },
       "note": "AT-416/AT-408/AT-379; gate at416-clip-vs-reach-direction answer B (D-048). Branch built earlier, held on the gate.",
@@ -1498,7 +1498,8 @@
       "done_check": {
         "type": "cmd",
         "cmd": "uv run pytest tests/ -k persona",
-        "expect_exit": 0
+        "expect_exit": 0,
+        "waiver": "no code or test exists yet for the UserPersona/UX-advisory track -- schema/user_persona.py and its test file are unbuilt, and the plan gate in qa/contracts/persona-ux-advisory.md (Plan-gate items 3-4) has not fixed the exact module/file layout, so a task-specific node id would be a guess, not a fact. Tighten this to the real test node the moment T-190 is built (AT-647/ISS-at638-remainder-2 is exactly the failure mode of guessing wrong)."
       },
       "note": "gate meeting-user-persona-ux-judging answer A (D-048). Checker writes the contract once this task exists; maker PLAN gate (intent/spec/plan) before code.",
       "attempts": 0,
