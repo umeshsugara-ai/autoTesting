@@ -21,6 +21,13 @@ close-out, each with a matching-cycle verdict); not judged technically, per inst
 - GRILL: recurring vacuous-guard prevention policy (AT-218). Unanswered, carried.
 - GRILL: real two-mode acceptance thresholds for D-023/T-169 (AT-281). Carried.
 - GRILL (AT-402): structure-before-code review of `visual_order.js`. Carried.
+- HUMAN_GATE (ISS-at638-remainder-1, 2026-09-27): approve a DECISIONS entry naming
+  `qa/contracts/permission-surface.md`, `eval-compiler.md`, `release-regression.md` and
+  `damage-control-report.md` as checker-owned DRAFT deliverables (draft text in
+  `qa/verdicts/at638-remainder.md`) — none of the four is named by D-040/D-041/D-042, breaking this
+  repo's 5/5 practice of naming a contract file in a decision before it is written. 17 criteria
+  (PS1-PS4/EC1-EC4/RR1-RR5/DC1-DC4) are already filed and checker-reviewed in
+  `qa/feedback-inbox.md`, waiting only on this approval — no further analysis needed once it lands.
 
 ## Findings this sweep — FINDINGS: 1
 
