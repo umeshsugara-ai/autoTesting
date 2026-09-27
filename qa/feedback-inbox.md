@@ -1101,3 +1101,41 @@ only, same as consent.md); a UI grant form for adversarial approvals.
 **APPLIES NEXT:** whichever unit eventually builds T-154 builds directly against AD1–AD7 (as the
 checker amends them), and does not re-derive D-017/D-018 from scratch.
 
+## 2026-09-27 — self-discovered, t186-details-content build (maker, not user feedback)
+
+> While verifying T-186 (`AT-453`) with the full `uv run pytest`, two failures showed up in
+> `tests/test_goal_done_checks.py` that are unrelated to this unit's diff (confirmed:
+> `.goal/goal.json` and `.goal/dashboard.html` carry zero diff from master `72513124` in this
+> worktree — these fail identically on master with no code change):
+> - `test_no_pending_task_has_a_done_check_that_cannot_fail` — `.goal/goal.json` carries five
+>   pending tasks, **including T-186 itself**, whose `done_check.cmd` is a shape
+>   `offenders_in()`/`is_capable_of_failing()` rejects as not task-specific: `uv run pytest
+>   tests/ -k details` (also `T-189`, `T-190`, `T-191`, `T-192`). Per that function's own
+>   docstring/AT-154: `tests/` is "the whole suite wearing a path", and a `-k` keyword filter is
+>   not credited as narrowing it — the allowlist only recognises a `.py` file or a `::` node id.
+>   Measured independently: `uv run pytest tests/ -k details --collect-only` collects exactly one
+>   test, `tests/test_browser_unreadable.py::test_text_a_reader_cannot_see_is_not_reported[closed-details]`
+>   — a case that already passed before this unit existed and is unrelated to AT-453's fix (the
+>   new `test_display_contents_text_is_seen_but_never_through_a_hiding_ancestor` assertions this
+>   unit actually depends on do not match `-k details` at all, since that test's name contains no
+>   literal "details" substring). So T-186's registered `done_check` would report PASS whether or
+>   not this unit's fix ever landed.
+> - `test_revised_goal_contract_is_registered` — `assert progress["total"] == len(data["tasks"]) ==
+>   70` now sees `81`; the hardcoded `70` predates the batch of tasks these five (and others)
+>   belong to and was never updated when they were registered.
+>
+> **PATTERN:** a goal-task `done_check` written as `pytest tests/ -k <filter>` looks specific (it
+> names a real pytest invocation) but is the AT-154 shape wearing a `-k` flag instead of a bare
+> path — the allowlist that closed AT-154/AT-155 does not parse `-k` values, so it still passes.
+> **EVIDENCE:** `uv run pytest tests/test_goal_done_checks.py -v` on this worktree, unmodified
+> `.goal/goal.json` (git diff empty) — offenders `['T-186', 'T-189', 'T-190', 'T-191', 'T-192']`;
+> count assertion `81 == 70`.
+> **APPLIES NEXT:** whoever registers a goal task with a `-k`-filtered `done_check` should give it
+> a node-id or file-scoped check instead (T-186's own unit did not change this — capped at 2
+> cycles for the AT-453 detector fix itself, and rewriting five tasks' `done_check`s and a
+> hardcoded task-count assertion is its own unit, not a single-hunk fix inside this one). The
+> `70` in `test_revised_goal_contract_is_registered` needs updating by whoever owns that batch's
+> registration, or the assertion needs to stop hardcoding a total.
+
+**Status:** unfolded
+
