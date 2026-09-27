@@ -46,6 +46,12 @@ class RawResult(Artifact):
     duration_s: float = 0.0
     error: str | None = None
     hitl_prompt: str | None = Field(default=None, description="what the human must supply")
+    not_run_reason: str | None = Field(
+        default=None,
+        description="D-045/AT-581 (E6): set when case_class named an execution condition "
+                    "(VIEWPORT_MOBILE/LOCALE_I18N) the executor could not enact -- outcome is "
+                    "then NOT_RUN and this names why, never a silent default-condition PASS",
+    )
     evidence: list[Evidence] = Field(default_factory=list)
     log_ref: str | None = None
 

@@ -682,3 +682,59 @@ answered).
 **Terminal state: `FINDINGS: 3`** (AT-565 high, AT-566, AT-567; AT-564 extended; T-173 reopened;
 T-126 closed; 8/8 sampled fixed rows verified; bypass CLEAN; HEAD at stamp `8a97eca`-window, commit
 `89f5b3a` + this correction).
+
+
+## Meeting-input refresh — 2026-09-26 (checker goal-coverage review of the 2026-09-25 counselor-tool meeting)
+
+Source: Umesh shared the transcript of the counselor-tool meeting. It asks for exactly AutoTester's job: a tester agent
+separate from the builder, testing "as a tier-2 counselor", happy AND negative paths on every release, a reviewable
+video, "run the 50 cases", and written checklists so a known bug never comes back. The checker mapped each ask against
+the repo with file:line evidence and filed **AT-581..AT-589**. Contracts were tightened by **D-045**: execute.md E6 and
+report-export.md RE6.
+
+### TOP-3 BUILDABLE NEXT UNITS (meeting refresh)
+
+| # | Unit | Why |
+|---|---|---|
+| **1** | **AT-581** — enact VIEWPORT_MOBILE / LOCALE_I18N (per-case viewport/locale), or report not-run | High. These cases pass today at desktop size in the default locale, a false-pass class the north star counts. Closes execute.md E6. |
+| **2** | **AT-582** — show each failure's reason, fix_hint and repro steps in both exports | Medium and cheap. The judge already writes these; the developer report drops them. Closes report-export.md RE6. |
+| **3** | **AT-585** — known bug -> pinned p0 regression case in every release run | High. Answers "why does this bug keep coming back" (e.g. Google sign-in dropping signup data). |
+
+**Extend existing tasks rather than creating new ones:** T-166 += structured scenario variants (AT-586); T-125 += standard
+packs for OAuth sign-up carry-over, month/year pickers and Excel column-mapping upload (AT-588); T-180 += an explicit
+judge vendor with a warning when judge == agent (AT-589).
+
+### HUMAN_GATE (new, open)
+
+| Gate | Blocks |
+|---|---|
+| `meeting-user-persona-ux-judging.md` | AT-583 user personas, AT-584 advisory UX/comprehension judging |
+| `meeting-run-video-scope.md` | AT-587 run video recording (always vs on-FAIL, retention, secret masking) |
+
+**Out of scope for this repo (noted only):** the seminar-capture agent, audio-first counselor UX, and removing the Gemini
+dependency from VTC belong to other Vidysea projects.
+
+## Sweep 2026-09-26
+
+Mode B, sharded (3 shards + consolidation), window `a49c3b8..HEAD`. Full report:
+`qa/verdicts/sweep-2026-09-26.md`. 4 new rows filed (AT-613..AT-616), 0 fixed→verified flips, 1
+instrument gap (shard 1 returned empty — checks 1/2/3/1c did not run this cycle).
+
+### TOP-3 NEXT UNITS (this sweep)
+
+| # | Unit | Why |
+|---|---|---|
+| **1** | **AT-616** — reproduce the AT-608/AT-609 regression-check red/green split cleanly, then flip both `fixed -> verified` | Blocks closing out two already-fixed secret-leak rows; the discrepancy itself (real-path pytest run stays green with the fix reverted) is worth a second pair of eyes before it's dismissed as tooling noise. |
+| **2** | **AT-614** — split `src/autotester/core/redact_fold.py` off the 300-line cap | Same remedy AT-567 already proved out for helpers.py/session.py/routes_runs.py; do it before the next redact fix has to work in a file with zero headroom. |
+| **3** | **AT-613** — re-run the real `autotester snapshot` generator over `docs/SNAPSHOT.md` | The file every SessionStart hook injects is currently missing F-057/058/059 and T-182/183/184; cheap, high-leverage fix. |
+
+### GRILL: (carried, unchanged by this sweep)
+
+- AT-218, AT-281, AT-402 — untouched this window, out of scope for shards 2/3 (check 6 owns them,
+  ran but did not re-verify; still open, not re-litigated here).
+
+### Proposed folds for the standing checker (not applied by this sweep)
+
+- **AT-582**: stale — its named fix shipped via T-183 (checker-PASSed) and is confirmed live in
+  `stages/report_export.py`. Flip to `fixed`/`fixed_by: T-183`, or narrow the title to the
+  still-open must-fix/suggestion split noted in `docs/FEATURES.jsonl` F-057.

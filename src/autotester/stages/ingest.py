@@ -13,7 +13,7 @@ from pathlib import Path
 
 from autotester.core.ids import content_id, file_sha256
 from autotester.core.paths import RepoDocs
-from autotester.core.urls import absolute_url, url_template
+from autotester.core.urls import screen_url_pattern
 from autotester.providers.base import Provider, load_skill_prompt
 from autotester.schema.base import Provenance
 from autotester.schema.enums import ReviewStatus, SourceKind
@@ -134,8 +134,7 @@ def _to_screen(observed: ObservedScreen, source_id: str) -> Screen:
         id=content_id("scr", {"name": observed.name, "signals": sorted(observed.signals)}),
         name=observed.name,
         signals=observed.signals,
-        url_pattern=(url_template(absolute_url(observed.url), keep_host=False)
-                     if observed.url else None),
+        url_pattern=screen_url_pattern(observed.url),
         fields=observed.fields,
         source_ref=SourceRef(source_id=source_id, t_start=observed.t_start,
                              t_end=observed.t_end),

@@ -73,10 +73,14 @@ class GeminiProvider(Provider):
                                  prompt_file=prompt_file, fed_id=fed_id)
 
     def _config(self, schema: type[BaseModel] | None, options: VisionOptions | None) -> Any:
-        """Build the generation config. 3.x models take `media_resolution` and a
-        thinking level; older ones take a temperature. Seed and token ceiling
-        are set for BOTH, because without them a re-run of the same chunk is a
-        different answer and the on-disk observation cache means nothing."""
+        """Build the generation config. 3.x models additionally take
+        `media_resolution` and a thinking level; `temperature` is an independent
+        sampling knob the SDK accepts on every model (AT-367: it does NOT
+        conflict with `thinking_config`, which governs reasoning effort, not
+        sampling) so it is applied whenever the caller sets it, regardless of
+        model. Seed and token ceiling are set for ALL calls, because without
+        them a re-run of the same chunk is a different answer and the on-disk
+        observation cache means nothing."""
         from google.genai import types
 
         opts = options or VisionOptions()
@@ -98,7 +102,12 @@ class GeminiProvider(Provider):
                 kwargs["thinking_config"] = types.ThinkingConfig(
                     thinking_level=opts.thinking_level.upper()
                 )
-            elif opts.temperature is not None:
+            # AT-367: temperature used to be gated behind `elif`, so a caller-set
+            # value was silently dropped for every 3.x model (including
+            # DEFAULT_MODEL) with nothing failing. It is an independent
+            # GenerateContentConfig field the SDK accepts alongside
+            # thinking_config, so it is honoured for every model.
+            if opts.temperature is not None:
                 kwargs["temperature"] = opts.temperature
             if opts.system_instruction:
                 kwargs["system_instruction"] = opts.system_instruction

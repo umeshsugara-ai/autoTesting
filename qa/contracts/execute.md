@@ -61,6 +61,12 @@ whose steps were authored to mutate data, which is an EXPAND-stage (T-070) and h
 (T-065) concern, not this stage's; `run_case` itself has no branch on `write_policy` because it
 has no way to add or remove actions from what the case already specifies.
 
+### E6 — A case's execution condition is enacted, or the case did not run (D-045)
+A case whose `case_class` names an execution condition (`VIEWPORT_MOBILE`, `LOCALE_I18N`) runs under that
+condition: a mobile-sized viewport, or the non-default locale. If the executor cannot enact it, the case is
+recorded as not run, with the reason. It never yields a PASS from a run at the default desktop viewport or
+locale. (Current gap tracked by AT-581: `browser/launch.py:30` hard-codes 1366x850.)
+
 ## No-fire list
 
 - Vision/LLM-based judgement of `visual_signal` (belongs to `grade.py`, T-041).
@@ -113,3 +119,7 @@ has no way to add or remove actions from what the case already specifies.
   and `browser/assertions.py::_network_met` reads the same scope (AT-577, AT-578). Proven live in a
   real browser by `qa/verdicts/at576-577-serial-runs.md` cycle 2 PASS (merged 8e50efc). Reported
   stale by the builder via qa/feedback-inbox.md (at576-577 cycle 1 entry).
+- 2026-09-26 · amendment (authorized by D-045) · **E6 added** — execution-condition classes
+  (VIEWPORT_MOBILE, LOCALE_I18N) must be enacted or reported not-run, never PASS on a default-condition run. Tightening
+  only. The current code violates it (AT-581, high): the viewport is hard-coded and no locale is set. Source: the
+  checker's goal-coverage review of the 2026-09-25 counselor-tool meeting.

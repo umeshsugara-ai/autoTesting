@@ -162,6 +162,7 @@ EXPECTED_SITES = {
     ("cli_issues.py", "ingest analyze"),
     ("cli_issues.py", "ingest list"),
     ("cli_issues.py", "issues derive"),
+    ("cli_issues.py", "issues list"),
     ("cli_video.py", "ingest register"),
     ("cli_video.py", "ingest list"),
     ("core/consent.py", "approve"),
@@ -188,7 +189,7 @@ interpolates it), so this set has ten entries for eleven sites; the count is
 asserted separately. AT-110 added a second `core/consent.py` "approve" site
 (re-grant an unsigned approval), so that command now has two sites as well."""
 
-EXPECTED_SITE_COUNT = 18
+EXPECTED_SITE_COUNT = 19
 
 
 def test_no_advice_site_can_vanish_unnoticed() -> None:
