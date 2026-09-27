@@ -254,4 +254,62 @@ file). No touch to `qa/issues.jsonl`, `qa/contracts/`, `docs/DECISIONS.md`, `.go
 `tests/` — the ledger correction for AT-442/443/445 was already applied on master (`4bba329b`) and
 arrived via the `git merge master` at the top of this cycle, not via any edit made here.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 2 of max 3)
+
+Verdict `qa/verdicts/at438-answered-gate-remainder.md`, **Cycle checked: 2**, verdict commit
+`3b83ed5e`, merged `235ac6a5`, pushed to `origin/master`. All three cycle-1 defects verified fixed,
+each re-derived from primary sources rather than from this manifest's narrative.
+
+### The unit's real contribution was a correction, not a repair
+
+It was dispatched to collect a gate answer the sweep said had been dropped, and it **found the
+premise false** — Umesh's `a+b+c` had been fully discharged 42 minutes after he gave it. Two
+checkers independently confirmed that. The actual defect was one line: the original manifest never
+got its close-out flip, because the re-ruling checker updated the ledger, contract, decisions log and
+verdict, and **flipping a manifest's terminal status is the maker's half of the handshake.** The
+handshake worked and nobody performed the maker's side. That is a far narrower and more useful
+finding than the one it was sent to fix.
+
+### The fifth inaccurate assertion — found, exactly as predicted
+
+I told this checker to assume a fifth inaccurate assertion existed in cycle 2's +134 lines of new
+prose, because four had already landed this session. **It found one:** the manifest's own pasted
+`git diff --stat` table undercounts its final insertions by 3 lines (claimed 150/170, actual
+153/173), because prose written *after* the table was captured added the missing lines. Low severity
+and non-blocking — it misstates no scope, file count or substantive claim — but it is the same class
+as the other four, and it is worth recording that a prediction made purely from the session's base
+rate paid out. Evidence pasted before the work is finished is evidence about a tree that no longer
+exists.
+
+### Two staleness questions I handed over rather than deciding, both ruled
+
+**A manifest may paste evidence older than the tree it submits, when the gap is a C10 sync-merge and
+the checker re-verifies the merged tree.** The manifest's pytest output showed the two
+`test_goal_done_checks.py` reds and its doctor run showed `stale-generated`; both were fixed by
+commits that landed on master *after* `a9357439` and reached this branch only through the later
+sync-merge `a8cee3b9`. The checker re-ran everything fresh at HEAD — doctor clean, ruff clean,
+**8 passed** on the two goal-contract files — and ruled that re-verifying the merged tree, not the
+manifest's frozen snapshot, is precisely what the sync-merge exception is for. Leaving
+`qa/QUEUE.md`'s stale sweep note unedited was also ruled acceptable, after verifying my correction
+already exists in that file.
+
+### The dangling recommendation is no longer dangling
+
+Cycle 1's verdict **recommended but declined to write** a C7 clause about zero-code units. I told
+this checker to settle it either way, because leaving a recommendation unmade twice is the
+answered-question-nobody-collects failure this very unit exists to clean up — and it would have been
+the second instance of that failure inside the unit correcting the first. **It amended C7**, narrowly:
+the manifest must *show*, not assert, that a failure has an outside cause, and the clause does not
+excuse self-caused or misdiagnosed failures. Dated changelog entry, citing this verdict and
+`t192-url-pattern-heal.md`'s identical observation.
+
+### Also now true, and it took three parties to get here
+
+`qa/gates/at438-u14b-baseline.md` finally reads `Status: ANSWERED -> acted on` — matching `at110`'s
+existing form rather than inventing a fourth spelling of a convention the unit had just been
+corrected for claiming did not exist. AT-442/443/445 read `fixed` in the ledger, on the authority of
+a checker that falsified them itself, applied by the orchestrator in `4bba329b` because C10 kept the
+checker from writing it from its own worktree. The checker confirmed `a9357439` never touched
+`qa/issues.jsonl`.
+
+No `docs/FEATURES.jsonl` row: bookkeeping close-out, no owning goal task, no user-facing capability.
