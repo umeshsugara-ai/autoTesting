@@ -264,6 +264,7 @@ The list is measured, every entry found in this repo:
 | a truncated `qa/.last-tick` (`loop-status --strict`) | no history vs a clean history | a dead loop as healthy (AT-644) |
 | **two spot samples of a churning quantity** | a **rate** vs noise | a trend that does not exist (below) |
 | a check that examines **one site at a time** | a **disagreement between two sites** | each site as correct on its own (below) |
+| a command run through a **pipe** (`uv run pytest \| tail`) | a non-zero exit, and any line it dropped | the *tail's* success as the command's, over a failing suite (AT-692) |
 
 **The pairing row is the maker's (2026-09-28) and is the list one level up.** Three defects found in
 one evening were invisible to any check that looked at a single site, because **each half read as a
@@ -284,6 +285,39 @@ and a conclusion about the hook's count was drawn from a predicate that was not 
 (AT-662). So *verify by construction, not inspection* is only half a rule - **the construction has to
 be the same one the claim is about.** A count re-derived by a different pattern is a second opinion,
 never a confirmation, and where two patterns disagree the disagreement is the finding.
+
+**The pipe row is how BOTH loops run their own verify commands, and it fails open in two
+directions at once (2026-09-28, AT-692).** A pipeline's exit status is its *last* command's, so
+`uv run pytest 2>&1 | tail -15` reports `exit 0` while its own summary line reads `1 failed` —
+measured three ways in one shell: `false | tail -1` → 0, `set -o pipefail; false | tail -1` → 1,
+`exit 3` unpiped → 3. This row sits above the flake it hid (AT-518) because it is the one shape on
+this list that can turn a FAIL into a PASS in a verdict, and PASS is the checker's alone to grant.
+The second loss is worse and has no remedy after the fact: the filter also discards the diagnostics,
+so the AT-518 occurrence it hid could not be matched against that issue's recorded failure shape at
+all and had to be filed cause-unknown. A pipe has no representation for a non-zero exit and none for
+a line it did not keep.
+
+**The rule, and it names both roles because the hazard is symmetric.** *A verify command's exit code
+must be the command's own, so no gate command is piped or grouped. Where a pipe is genuinely wanted
+for aggregation it is a diagnostic line, named as such, and never the thing a verdict rests on.*
+Filtering a file you have already kept is fine; filtering a stream you did not keep is not — so the
+practice is redirect-then-read (`> .work/<name>.txt 2>&1`), and `set -o pipefail` in any script that
+pipes a command whose status matters. **`qa/adapter.json` is where this is enforceable**, because its
+three gate commands are declared in one file.
+
+**Measured before being asserted, on both seats — and the measuring is the lesson again.** The
+checker's seat had the live instance above. The maker's seat measures **clean**: `qa/adapter.json`'s
+three gate commands are unpiped with `"expect": "exit 0"`, and across 261 manifests exactly **one**
+shell line pipes a verify command (`at423-scroll-invariance-probe.md:54`, `| uniq -c` over skip
+reasons — a probe aggregating reasons, not a gate), out of 17 piped shell lines in all. So this
+criterion forecloses a hazard on the maker's side; it does **not** describe a defect there. The
+reason that sentence is in the contract is that the maker's *first* measurement of its own seat said
+**37 files** — a `grep` for `pytest[^|]*|` counting the `|` of markdown **table borders** in every
+manifest's evidence table, 75 such cells against 1 real pipe. It would have confirmed the checker's
+guess about the maker's practice using a pattern that cannot tell a shell pipe from a column
+delimiter. And on the same check the checker's own `adapter.json` walker printed **zero** matches
+over a file that visibly contains three, so the citation above rests on reading the file, not on the
+script. Three instruments, one question, and two of them were the agents.
 
 **The last row of the table is the agent measuring, not the code, and it belongs here for that reason.** On
 2026-09-28 the maker read free space on `C:` at 0.37 GB then 0.34 GB, inferred "degrading ~30 MB/hr,
@@ -750,3 +784,20 @@ judgements and only the second was wrong.
   Additive; no clause weakened. **Changes-authorized:** qa/contracts/core-invariants.md C12 principle
   + Amendment log (this entry). No enforcement-path file touched. **Links:** AT-662; AT-673; AT-660;
   qa/contracts/loop-status.md LS6.
+- 2026-09-28 - routine (extend) - C12's instrument table gained a **ninth** row and three paragraphs:
+  a command run through a pipe cannot represent a non-zero exit or a line the filter dropped, so it
+  reports the tail's success as the command's. Cause: AT-692, found when a `uv run pytest 2>&1 |
+  tail -15` in the checker's own session showed `[exited with code 0]` over `1 failed, 2150 passed`.
+  Measured: `false | tail -1` -> 0, with `set -o pipefail` -> 1, unpiped `exit 3` -> 3. The rule
+  added is stated for BOTH roles - no gate command is piped or grouped; a pipe used for aggregation
+  is a diagnostic line and never what a verdict rests on - and it names `qa/adapter.json` as the
+  enforceable place, since the three gate commands are declared there. **It is a foreclosure, not an
+  indictment of the maker's practice:** the adapter's three commands are unpiped with `expect: exit
+  0`, and 1 of 261 manifests pipes a verify command (at423:54, `| uniq -c` over skip reasons, a
+  probe). Both seats were measured before the claim was written, and the paragraph records that the
+  maker's first count of its own seat said 37 files by counting markdown table borders as pipes, and
+  that the checker's own adapter walker returned zero matches over a file containing three - two of
+  the three instruments in that exchange were the agents, which is the half of C12 this addition
+  sits under. Additive; no clause weakened, no signal relaxed. **Changes-authorized:**
+  qa/contracts/core-invariants.md C12 principle table + paragraphs + Amendment log (this entry). No
+  enforcement-path file touched. **Links:** AT-692; AT-518; AT-503.
