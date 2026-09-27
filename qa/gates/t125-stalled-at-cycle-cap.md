@@ -35,23 +35,45 @@ fix; the checker caught it because I asked it to attack the rule, and caught cyc
 **No criterion in `qa/contracts/catalog.md` ever defines which secret key "belongs to" which
 catalog row.** CT5 and CT8 judge the blocked state and its `unblock_action`, so a checker can prove
 an answer *wrong* without the contract ever saying what is *right*. Each cycle was therefore a guess
-at unwritten ground truth, and a fourth guess is not obviously better than the third. An independent
-read-only root-cause review is running to confirm or refute exactly that, and to say whether a single
-coherent relevance rule even exists that satisfies all four fixtures on record — including the one
-where a flow is legitimately relevant to **both** the auth rows and the OAuth pack, which is what
-broke cycle 2.
+at unwritten ground truth, and a fourth guess is not obviously better than the third.
 
-There is also a live question of whether the answer is expressible at all under **CT2**, which
-mandates exactly one row per `CaseClass` for the whole project: if a project has three
-credential-consuming flows, "which secret does *the* `auth_wrong_creds` row need" may have no
-correct answer, only less-wrong ones.
+**An independent read-only review has now confirmed this, and it corrected me on one point.** Full
+report: `qa/debug/t125-catalog-cycle3.md`. Its findings that change this gate:
+
+1. **The contract is genuinely silent** — and not only per my reading. *Both* fresh checkers, on
+   different cycles, hit the same wall and each recorded it as outside its own blast radius rather
+   than filing it (`qa/verdicts/t125-catalog.md:132-146` and `:340-343`). Three independent parties
+   reached the same diagnosis from different angles. The ambiguity traces to `docs/plan.md:521-523`
+   — the only worked example D-039 authorizes — which says "an unset secret … naming the key",
+   singular and spec-wide. **It predates any maker touching the file.**
+2. **No coherent rule exists at the current schema level.** The review added a fifth fixture I had
+   not considered: a flow clicking a Google button for an unrelated purpose (“sign in with Google to
+   import a Drive file”) is misclassified by the very heuristic cycles 2 and 3 relied on. Inferring
+   which field is a credential would also violate this repo's own stated discipline
+   (`stages/explore_merge.py:50-51`: *“`secret_key` is deliberately never inferred”*). So a cycle 4
+   built on any keyword or structural classifier fails in the same shape again.
+3. **Option B is not the safe fallback I wrote it as — see the corrected row below.**
+
+**CT2 is confirmed as the real constraint, structurally.** `schema/catalog.py:120-131`'s
+`CatalogEntry` carries `case_class` and nothing identifying a flow, and `Catalog` has no per-flow
+index — while `schema/case.py:22` keys the pipeline's *actual* generated artifact by `flow_id` and
+`stages/expand.py:55-56` already computes "does this flow need auth" **per flow**. `catalog()` is the
+one place forced to throw that dimension away. So: once a project has more than one
+credential-consuming flow — which is AT-588's own modal case, a login form plus an OAuth carry-over
+— "which secret does *the* `auth_wrong_creds` row need" has **no single correct answer**, only
+safe-but-broad (cycles 1/3) or unsafe-narrow (cycle 2). There is no third option in the current shape.
+
+**Least-harmful ranking, on the review's side-by-side diff read:** cycle 3 ≈ cycle 1 (tied, both
+over-block) ≪ cycle 2 (the only version that renders a false green). And per CT7 the `Catalog` is
+consumed by T-152/T-166, so a false green could propagate into an automated dispatcher rather than
+only misleading a human reading a page — which is why over-blocking is the safer of the two errors.
 
 ## The options, with the cost of each
 
 | | Option | What it costs |
 |---|---|---|
-| **A** | **Specify relevance first, then one scoped exception cycle.** The checker amends `catalog.md` to define which flows a row is about (it owns the contracts); the maker then builds once against a written rule instead of guessing. | Breaks the 3-cycle cap, which is a real discipline and exists precisely to stop this pattern. The justification would be that the cap assumes the maker is failing at a *specified* task, which the diagnosis says is not the case — fixing the specification changes the conditions rather than buying another guess. **Maker's recommendation, conditional on the root-cause review confirming the contract is silent.** |
-| **B** | **Revert cycles 2 and 3** (`513a08c7`, `72f71aa1`) back to `cfc13b0b` and re-open T-125 with a corrected design from the start. | This is what your own standing rule says to do — *"on a regression, REVERT to the last good git state — do NOT stack a new fix"* — and cycle 1's failure mode is the least harmful of the three (visibly over-named actions, no false greens, no false blocks). Costs the ISS-t125-3 hybrid fix and its regression test, which are genuinely correct work, and leaves CT5/CT8 failing exactly as they did at cycle 1. |
+| **A** | **Specify relevance first, then one scoped exception cycle.** The checker amends `catalog.md` to define which flows a row is about (it owns the contracts); the maker then builds once against a written rule instead of guessing. | Breaks the 3-cycle cap, which is a real discipline and exists precisely to stop this pattern. The justification would be that the cap assumes the maker is failing at a *specified* task, which the diagnosis says is not the case — fixing the specification changes the conditions rather than buying another guess. **Maker's recommendation — the condition is now met: the review confirmed the contract is silent.** The rule must be *written* before the cycle, not guessed inside it; the review's two candidate shapes are a flow dimension on `CatalogEntry` or a human-declared relevance field on `SecretRef` (matching the "never infer, only declare" pattern this repo already uses). |
+| **B** | **Revert cycles 2 and 3** (`513a08c7`, `72f71aa1`) back to `cfc13b0b` and re-open T-125 with a corrected design from the start. | **CORRECTED 2026-09-27 — I had this wrong, and the row said the opposite before the review read the actual diffs.** `cfc13b0b:catalog.py:128` threads a **global unscoped union into the gate**, exactly as cycle 3 does — so **cycle 1 has the identical ISS-t125-5 defect**, not a milder one. It also loses cycle 3's scoped wording, and **`cfc13b0b` was never a passing commit** (no manifest, and the cycle-1 check failed it on CT5/CT6). The standing regression rule assumes a last *good* state to return to; in this function's history there is none — every version ever checked has failed. Reverting therefore buys nothing on correctness and costs the genuinely-correct ISS-t125-3 hybrid fix and its test. **Still listed because it is your rule and your call, but I no longer present it as the low-risk option.** |
 | **C** | **Ship the catalog without a credential gate at all** — the rows report applicability and blocked-for-write-policy, and say nothing about whether secrets are set. | Honest: the system stops making a claim it has no specified rule for. An operator then discovers a missing credential when the case runs and fails, with a clear error, instead of beforehand. Costs a real feature that AT-588 asked for, and CT5/CT8 would need amending to match — so it is also a contract change, not just a deletion. |
 | **D** | **Amend CT2 to allow more than one row per `CaseClass`** (per-flow or per-screen), so "which secret" becomes answerable by construction, then build. | Addresses the root shape rather than its symptom. Costs the catalog's best property — a fixed-length table an operator can scan — and is much the largest change of the four. |
 
