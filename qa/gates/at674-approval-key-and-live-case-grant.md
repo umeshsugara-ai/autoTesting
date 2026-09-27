@@ -16,11 +16,18 @@ the fix is right, and it needs one human action in front of it.
 
 `projects/pathlynks/approvals.jsonl` holds 3 rows. All three fail, for reasons that stack:
 
-| Row | `run_kind` | expires | `production` | signature |
-|---|---|---|---|---|
-| `appr_333a83b240ce` | crawl | 2026-09-10 (expired) | false | **absent** |
-| `appr_7ffa35808cf0` | crawl | 2026-09-24 (expired) | false | **absent** |
-| `appr_d89c9e3c61fd` | crawl | 2026-12-12 | false | **absent** |
+| Row | `run_kind` | expires | `production` | signature | `max_actions` | `max_probes` | `wall_clock_s` |
+|---|---|---|---|---|---|---|---|
+| `appr_333a83b240ce` | crawl | 2026-09-10 (expired) | false | **absent** | 40 | **0** | 300.0 |
+| `appr_7ffa35808cf0` | crawl | 2026-09-24 (expired) | false | **absent** | 150 | **0** | 600.0 |
+| `appr_d89c9e3c61fd` | crawl | 2026-12-12 | false | **absent** | 200000 | **0** | **600000000.0 = 19.01 years** |
+
+**Read that last row across.** The two rows with sensible bounds (40 actions / 300 s, 150 / 600 s) are
+the **expired** ones. The only unexpired approval is also the least bounded one: 200 000 actions,
+`scope: everything`, and a wall clock of **nineteen years**. That is a granting-practice matter, not a
+code defect — every row reads `granted_by: umesh` — and it is the reason step 3 below matters: the
+command the tool prints derives its bounds from the run that was actually attempted, so it will not
+reproduce this.
 
 1. **No row carries a `signature` field at all** — the key is absent from the parsed key union, not
    merely empty.
@@ -51,9 +58,15 @@ verified first-hand) found `0` means two opposite things — at the gate `consen
 run `parallel_run.py:158,162,164` all read `if approval.max_actions and …`, where `0` is falsy, the
 conjunct short-circuits and **no bound is applied at all**. All three bounds behave this way. And
 `require_approval` declares `actions/probes/wall_clock_s` as **defaults of 0**, so a caller that
-omits them is accepted by a vacuous check and then bounded by nothing. **So the three existing rows
-are not harmless — they are ambiguous, and which way they resolve depends on a caller's argument
-rather than on your grant.** That is being fixed inside the AT-570 unit; it is named here because
+omits them is accepted by a vacuous check and then bounded by nothing. **A second correction, to the correction:** an earlier version of this
+paragraph said all three rows carry `0` bounds. They do not — see the table above. `max_actions` is
+non-zero on all three, so the falsy-guard inversion is **not** live for actions. It **is** live for
+`max_probes`, which is `0` on every row, so probes are unbounded at run time today. And the live
+row's `wall_clock_s` of 19 years is the *other* shape: non-zero, so every check passes, and it
+constrains nothing — which the `0` fix does not reach. **So the rows are neither harmless nor
+uniformly zero: one bound is defeated by the code, another by the value chosen.** The worse of the
+two is the 19 years, because `0` at least looks suspicious while `600000000.0` looks like a number
+somebody chose. That is being fixed inside the AT-570 unit; it is named here because
 this gate previously implied those rows simply refuse everything, and that was half the truth.
 
 **You still do not need to work the bounds out:** every refusal ends
