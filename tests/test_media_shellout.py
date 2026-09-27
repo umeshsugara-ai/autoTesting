@@ -143,3 +143,47 @@ def test_unreadable_json_from_ffprobe_is_the_same_fact(monkeypatch, tmp_path: Pa
     monkeypatch.setattr(probe_mod.subprocess, "run", Garbage())
 
     assert probe_mod.probe(tmp_path / "x.mp4") == (0.0, 0, 0)
+
+
+# -- AT-639: the cut is bounded, and a killed cut leaves no truncated chunk ---
+
+def test_the_chunk_cut_asks_for_a_timeout(monkeypatch, tmp_path: Path) -> None:
+    """AT-639: `encode_chunks` was the one unbounded shell-out of the three, so
+    a wedged ffmpeg hung `prepare` forever -- and `media_prep` already catches
+    every exception this call can raise, so the ONLY failure it could not
+    degrade from was the one that never raises. The kwarg is asserted rather
+    than the wall-clock because a test that actually hangs to prove a bound
+    exists is a test nobody runs twice."""
+    seen: dict[str, object] = {}
+
+    def spy(argv, *args, **kwargs):
+        seen.update(kwargs)
+        return subprocess.CompletedProcess(list(argv), 0, stdout="", stderr="")
+
+    monkeypatch.setattr(chunks_mod.subprocess, "run", spy)
+    chunks_mod.encode_chunks(tmp_path / "in.mp4", tmp_path / "out", [(0.0, 180.0)])
+
+    assert seen.get("timeout") == chunks_mod.CHUNK_TIMEOUT_S, (
+        f"the cut ran with timeout={seen.get('timeout')!r} -- an unbounded "
+        f"ffmpeg cannot be recovered from by any caller"
+    )
+
+
+def test_a_timed_out_cut_leaves_no_half_written_chunk(monkeypatch, tmp_path: Path) -> None:
+    """A timeout kills ffmpeg mid-write, so the file on disk is a truncated clip
+    that is indistinguishable from a real one. It must be gone, and the failure
+    must still reach `media_prep` (AT-166) rather than be swallowed here."""
+    out_dir = tmp_path / "out"
+
+    def write_then_hang(argv, *args, **kwargs):
+        Path(argv[-1]).parent.mkdir(parents=True, exist_ok=True)
+        Path(argv[-1]).write_bytes(b"\x00truncated")
+        raise subprocess.TimeoutExpired(argv, kwargs.get("timeout", 0))
+
+    monkeypatch.setattr(chunks_mod.subprocess, "run", write_then_hang)
+
+    with pytest.raises(subprocess.TimeoutExpired):
+        chunks_mod.encode_chunks(tmp_path / "in.mp4", out_dir, [(0.0, 180.0)])
+
+    leftovers = sorted(p.name for p in out_dir.glob("*.mp4"))
+    assert leftovers == [], f"a truncated chunk survived the timeout: {leftovers}"

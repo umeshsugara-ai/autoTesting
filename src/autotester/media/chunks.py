@@ -20,6 +20,17 @@ from autotester.schema.media import MediaChunk
 
 DEFAULT_CHUNK_S = 180.0
 DEFAULT_OVERLAP_S = 15.0
+CHUNK_TIMEOUT_S = 900.0
+"""Per-chunk ceiling on the ffmpeg cut (AT-639).
+
+`media/frames.py` bounds a single-still grab at 60s and
+`media/transcribe.py` bounds whisper at 3600s; this call was the one
+unbounded shell-out of the three, so a wedged ffmpeg hung `prepare`
+forever and no health signal said a word. 900s is deliberately generous
+-- a 180s chunk re-encoded at `-preset veryfast` finishes in seconds on
+any machine that can run the browser, so this bound only ever fires on a
+hang, never on slow-but-working work."""
+
 MIN_TAIL_S = 10.0
 """A tail shorter than this is folded into the previous chunk rather than sent
 on its own: a 4-second clip costs a whole model call to say almost nothing.
@@ -104,12 +115,22 @@ def encode_chunks(source: Path, out_dir: Path,
     chunks: list[MediaChunk] = []
     for index, (offset_s, length_s) in enumerate(plan):
         path = out_dir / chunk_name(index, offset_s)
-        subprocess.run(
-            ["ffmpeg", "-y", "-i", str(source), "-ss", f"{offset_s}", "-t", f"{length_s}",
-             "-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
-             "-c:a", "aac", str(path)],
-            check=True, capture_output=True,
-        )
+        try:
+            subprocess.run(
+                ["ffmpeg", "-y", "-i", str(source), "-ss", f"{offset_s}", "-t", f"{length_s}",
+                 "-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
+                 "-c:a", "aac", str(path)],
+                check=True, capture_output=True, timeout=CHUNK_TIMEOUT_S,
+            )
+        except (OSError, subprocess.SubprocessError):
+            # AT-165's lesson, applied here: a timeout kills ffmpeg MID-WRITE,
+            # so the chunk on disk is a truncated clip that looks like a real
+            # one. Delete it, then re-raise -- `stages/media_prep.prepare`
+            # owns the degradation (AT-166: it turns any failure here into
+            # UnreadableRecording and writes no media.json, because a partial
+            # chunk set reads as a complete plan).
+            path.unlink(missing_ok=True)
+            raise
         chunks.append(MediaChunk(index=index, offset_s=offset_s, length_s=length_s,
                                  path=str(path)))
     return chunks
