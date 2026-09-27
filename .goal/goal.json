@@ -4,15 +4,15 @@
   "north_star": "A reusable AI testing platform where an operator submits any project URL, domain-scoped test-account credential references, and optional evals, conditions, use cases, video, audio, documents, text, email or Google Drive sources. AutoTester learns from supplied evidence or logs in and performs bounded breadth-first exploration, preserves a durable Portal Persona, compiles traceable best/worst/edge evals, reruns them after developer releases in a real visible browser, and reports workflow/API regressions through clear HTML, Excel, text and screenshots. First acceptance targets: Vidysea ERP and Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-27T15:22:01",
+  "updated": "2026-09-27T16:07:03",
   "progress": {
     "total": 81,
-    "done": 52,
+    "done": 53,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 29,
+    "pending": 28,
     "current": "T-122",
-    "percent": 64
+    "percent": 65
   },
   "tasks": [
     {
@@ -792,7 +792,7 @@
     {
       "id": "T-150",
       "title": "Track C governance: register C tasks, file ai-target.md and adversarial.md criteria for the checker",
-      "status": "pending",
+      "status": "done",
       "base_criticality": "low",
       "deps": [
         "T-124"
@@ -802,7 +802,7 @@
         "cmd": "uv run python scripts/check_deliverable.py --exists qa/contracts/ai-target.md qa/contracts/adversarial.md && uv run autotester doctor",
         "expect_exit": 0
       },
-      "note": "D-017/D-018 already appended 2026-09-08. Contracts are checker-owned; this unit files the criteria, it does not write them.",
+      "note": "D-017/D-018 already appended 2026-09-08. Contracts are checker-owned; this unit files the criteria, it does not write them. CLOSED 2026-09-27: criteria filed by the maker, qa/contracts/ai-target.md (AI1-AI8) and qa/contracts/adversarial.md (AD1-AD7) authored by /checker on the PASS (verdict qa/verdicts/t150-track-c-governance.md, cycle 1). adversarial.md is DRAFT because T-154/T-155 stay HELD.",
       "attempts": 0,
       "created": "2026-09-08T00:46:52",
       "user_value": "normal",
@@ -1914,6 +1914,6 @@
     "velocity_per_day": 2.06,
     "eta_days": 14.1
   },
-  "last_deterministic_tick": "2026-09-27T15:22:01",
+  "last_deterministic_tick": "2026-09-27T16:07:03",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }

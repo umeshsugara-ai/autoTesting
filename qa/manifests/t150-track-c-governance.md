@@ -160,4 +160,47 @@ this explicitly rather than fabricating a falsification table for prose.
 Not UI-touching — no surface changed. `qa/feedback-inbox.md` and this manifest are the only paths
 touched; neither renders anywhere in the product.
 
-**Status: ready-for-check**
+**Status: checked-PASS** — /checker cycle 1, verdict `qa/verdicts/t150-track-c-governance.md`
+(`Cycle checked: 1`), verdict commit `a3d04cd2`, merged into master. T-150 marked `done` in
+`.goal/goal.json`; `docs/FEATURES.jsonl` row **F-060** (`live`, `track-c-governance`).
+
+**What the checker did that closed this unit, and what it changed about the proposals:**
+- **Authored both contracts** — `qa/contracts/ai-target.md` (AI1–AI8) and
+  `qa/contracts/adversarial.md` (AD1–AD7). T-150's `done_check` now genuinely passes on master:
+  `check_deliverable.py --exists …` → `OK 2 deliverable(s) present`, `doctor: clean`, ruff clean.
+  It could only ever be closed this way round — the maker creating those files would have been the
+  maker writing its own ground truth.
+- **Split my AI2** into AI2 (the D-017-verbatim table-mapping claim) and AI3 (the poisoned/
+  out-of-table "kind" hardening), tagging the latter `[maker]` so it is independently attackable.
+  That was the right call: I had fused an authorized claim with my own extension, which would have
+  let my judgement inherit D-017's authority.
+- **Refused to refile my AI3** (one `Catalog`, not a second) as a new criterion, because
+  `catalog.md`'s CT7 already extends to Track C's catalog code by path — folding it in as a
+  cross-reference instead, so one concept does not get two ground truths in two contracts. This is
+  the "one concept, one place" rule applied to contracts, and I had missed it.
+- **Accepted AD6/AD7** (my own additions: an absolute probe ceiling independent of the approval's
+  bound, and an audit row on a refused attempt), tagged `[maker's addition, accepted]` rather than
+  `[D-018]`, reasoned against D-016's real inner-guard-inside-an-outer-boundary precedent. Judged
+  narrowing-only, so within checker authority and no gate opened — **flagged in the verdict so
+  Umesh can reverse it**, since D-018 designs the approval as the sole control point.
+- **Corrected a false claim in my filed criteria.** My AI3 draft asserted its own `Verify`
+  (`grep -rn "class Catalog" src/autotester/schema/`) would return exactly one definition; run for
+  real it returns **zero** — `schema/catalog.py` does not exist yet and T-125 is still pending. The
+  checker documented it as the expected pre-T-125 state rather than a defect, but the draft stated
+  as fact something it had not run.
+- **Added a `Landing note` to every forward-declared criterion**, because a `grep` against a
+  not-yet-existing Track C stage file **exits 2, not "no match"** — so a future checker could read
+  "file not found" as "criterion satisfied". That is the AT-218 vacuous-guard trap one level up, and
+  closing it was the most valuable thing this check did.
+
+**Carried forward as open debt:** `ISS-t150-1` (low, spec-coverage-gap) — `docs/spec.md` R30 has no
+requirement row for T-154/T-155, so AD1–AD7 rest on D-018's `Changes-authorized` alone.
+
+**Still open, deliberately: `AT-638`.** It names five ungoverned capabilities; this unit answered only
+Track C. **T-166, T-167, T-168 and T-171 still have zero checkable criteria** and need their own
+governance unit, which must match the prefix and `Landing note` conventions the checker set here.
+
+**A process gap of mine, recorded rather than hidden:** `autotester ledger relitigation` is supposed
+to run *before* a unit is picked; I ran it after the PASS. It returned `no gate — no retired
+features (rule)`, so nothing was revived and no harm followed, but the gate was checked in the wrong
+order and that is worth the honesty.
