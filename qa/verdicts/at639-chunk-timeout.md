@@ -3,7 +3,43 @@
 **Cycle checked:** 1
 **Date:** 2026-09-27
 **Checker:** fresh claude-sonnet-subagent (Executor of unit: claude-opus-5, maker orchestrator inline)
-**Status:** IN PROGRESS — incremental log below, final VERDICT block to follow.
+**Status:** COMPLETE.
+
+## Final verdict block
+
+```
+VERDICT: PASS
+SCOREBOARD: 3/3 criteria met, 1/1 invariant chain holds
+FAILURES: none
+CAPABILITY-COVERAGE: 2/2 rows reproduced (isolating, not vacuous)
+LIVE-BROWSER: not-applicable (changed paths: src/autotester/media/chunks.py, tests/test_media_shellout.py -- no UI/route/component surface)
+ISSUES-WRITTEN: ISS-at639-1 (medium, unbounded-aggregate-timeout), ISS-at639-2 (low, unlink-can-raise-obscuring-cause)
+EXECUTOR: claude-opus-5, maker orchestrator inline (checker: claude-sonnet-subagent)
+EXPLANATION: AT-639's original defect -- one wholly unbounded ffmpeg subprocess.run in encode_chunks
+-- is genuinely fixed: CHUNK_TIMEOUT_S=900.0 is wired into the call, a killed cut's half-written
+chunk is deleted, and the re-raise reaches media_prep.prepare's existing except Exception, preserving
+AT-166's degrade-to-UnreadableRecording contract (re-derived from code, not assumed). Both new tests
+are isolating, not vacuous: each falsifying edit reddens exactly and only the test named for it,
+reproduced independently in a throwaway copy. Full suite (2016 passed, 5 skipped, 32 xfailed) and all
+three verify commands match the manifest exactly, including exact line counts (136/189). Two follow-on
+gaps are filed as debt (aggregate N-chunk exposure; an unguarded unlink that could swap the recorded
+exception type) -- neither contradicts a stated criterion or breaks fail-closed behaviour, so neither
+blocks this unit.
+```
+
+## Criteria scored
+
+- **C2 (line caps):** met. `wc -l` gives 136 / 189, both far under the 300-line cap; both new
+  functions are well under 50 lines. Module docstring intact.
+- **C7 (failing-first sabotage on every new guard):** met. Both new tests' falsifying edits were
+  independently reproduced by the checker (not merely read as claimed) — see Capability coverage.
+- **C12 (every health signal fails closed):** met, by the AT-166 chain re-derivation below — this
+  unit does not touch a loop/hook health signal directly, but its stated purpose ("no health signal
+  said a word" while ffmpeg hung) is the same class C12 names, and the fix routes into the existing
+  fail-closed `UnreadableRecording` path rather than adding a new, separately-fallible one.
+- **VL1 (video-learning.md):** not directly scored — its own scope note excludes a present-but-hanging
+  tool ("A tool that is present and fails is not covered here"); this unit's fix lives in the AT-166
+  umbrella VL1's scope note names instead, which is where I judged it.
 
 ## Diff scope (git diff master...HEAD --stat)
 
@@ -71,9 +107,18 @@ All four match the manifest's claimed output exactly (line counts identical; pas
 the wall-clock difference, 3.01s vs the manifest's 78.97s, is a warm-cache/no-contention artifact,
 not a discrepancy in what ran — same 21 tests, same 3 files, same exit code).
 
-**Full suite (`uv run pytest`, no `-q`)**: launched in background at cycle-check time (~1300-1600s
-expected per dispatch). Result folded in below once complete; not blocking the capability-coverage
-and diff-scope findings above.
+**Full suite (`uv run pytest`, no `-q`)**: ran to completion.
+
+```
+2016 passed, 5 skipped, 32 xfailed, 15 warnings in 764.18s (0:12:44)
+```
+
+Exit 0. `grep -iE "FAILED|ERROR"` over the full log matches nothing except the summary line itself
+and one unrelated test *name* containing the word "failed"
+(`test_a_raising_stage_leaves_a_failed_checkpoint_then_resume_re_enters`, which passed). **AT-627's
+flake (`tests/test_flake_probe_real_process.py`) did not surface this run** — grep for
+`flake_probe` in the log returns nothing beyond collection, so there is nothing to disclaim as
+pre-existing here. The suite is clean.
 
 ## Capability coverage (re-run by checker in throwaway copy)
 
