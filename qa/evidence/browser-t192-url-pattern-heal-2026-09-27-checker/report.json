@@ -1,0 +1,19 @@
+{
+  "unit": "t192-url-pattern-heal",
+  "date": "2026-09-27",
+  "checker": "claude-sonnet-subagent",
+  "server": "uv run uvicorn autotester.ui.app:app --host 127.0.0.1 --port 8971 (local, started by checker)",
+  "url": "http://127.0.0.1:8971/projects/erp/product-map",
+  "browser": "real visible Chromium via playwright MCP (browser_navigate + browser_snapshot)",
+  "findings": {
+    "screen_5791c5e71012_Trainers_url_pattern": "/erp/trainers",
+    "screen_bedf01acbd4b_Trainers_List_url_pattern": "/erp/trainers",
+    "screen_1d9d49ae0357_Trainers_List_Edit_Drawer_url_pattern": "/erp/trainers",
+    "console_messages": "0 total (0 errors, 0 warnings)",
+    "page_title": "ERP · Product map — AutoTester",
+    "screens_rendered": 8,
+    "journeys_rendered": 3
+  },
+  "verdict_contribution": "PASS on the live-render claim: the product-map page, rendered by a real browser hitting the actual FastAPI route (routes_product_map.py::product_map_page -> store.load_screen_map()), shows /erp/trainers for all three previously-corrupted screens, matching the gate's motivating claim exactly. No console errors.",
+  "screenshot": "product-map.png (full page, same directory)"
+}
