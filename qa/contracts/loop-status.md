@@ -41,11 +41,19 @@ Making out-of-order lines gate `--strict` needs a new gate answer. It is not a f
 
 `loop-status` is never wired into `autotester doctor` or the adapter's verify chain. A stale loop must not fail every unit's verification, because a liveness signal that breaks the build is worse than the silence it replaces (AT-368). It never writes, repairs or re-sorts `qa/.last-tick`.
 
+### LS5 — The session-start consumer is bounded and cannot block or break session start (at383, AT-622/AT-624)
+
+`qa/hooks/mc-sessionstart.ps1` calls `loop-status` once, with a timeout (default 15000 ms). On timeout it kills the **whole process tree** (`taskkill /T /F`), not only the `uv` process. No `uv`-launched python grandchild may survive a timed-out call.
+
+Any failure (timeout, missing `uv`, missing `taskkill`, non-zero exit) prints one skip line with a stderr tail and lets the hook continue with exit 0. The call sits inside an outer try whose catch prints that skip line. A test asserts this structure, not merely that `try {` and `catch {` appear somewhere in the file.
+
+A behavioural test drives a real grandchild through the same path and asserts it is dead after the timeout.
+
 ## Out of scope
 
 - Keeping the loop alive, or scheduling anything. That is the maker skill's ScheduleWakeup.
 - Proving a **closed** gap was deliberate. `/maker resume` deletes `qa/.paused`, so a finished pause leaves no trace (`retro_blind`). That is disclosed in the output, not a defect here.
-- Where `--strict` is called from automatically: that is gate at383.
+- The hook's other, pre-existing calls (e.g. the `autotester snapshot` regeneration). That is AT-623, gated for Umesh.
 
 ## No-fire list
 
@@ -55,3 +63,4 @@ Making out-of-order lines gate `--strict` needs a new gate answer. It is not a f
 ## Amendment log (append-only; git history is the version)
 
 - 2026-09-26 · init · contract authored by /checker under D-047. It codifies at399, at424 and at592 (all checked-PASS and merged), and records the at610 gate answer A as LS3. No prior contract named loop-status; the at592 manifest asked for this decision. Nothing amended.
+- 2026-09-27 · tighten · added LS5, which codifies at383 cycle 2 (checked-PASS, verdict df909e05, merged 0f503612): a bounded session-start call, a whole-tree kill on timeout, and a structural try/catch assertion. The out-of-scope bullet "where `--strict` is called from: gate at383" is replaced, because that gate was answered and is now LS5; AT-623 is named as the remaining out-of-scope call. Only tightening, so no DECISIONS entry is needed.
