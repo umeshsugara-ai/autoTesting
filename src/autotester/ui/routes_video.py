@@ -33,7 +33,20 @@ def _safe_video_path(run_dir: Path, video_path: str) -> Path | None:
     same shape `report_export.png_base64` already uses for screenshots.
     Serves only `.webm` (the one container this feature produces), never a
     generic serve-any-file-under-run_dir route.
+
+    A leading slash/backslash or an embedded `:` is rejected by a plain
+    string check BEFORE any `Path.resolve()` call touches `video_path`
+    (senior-software-engineer review, this cycle): a UNC-shaped value such
+    as `\\\\host\\share\\x.webm` joined onto a Windows `Path` and resolved
+    makes the OS attempt a real SMB connection to `host` -- a blocking
+    network round-trip (measured ~21s against an unreachable host) that a
+    later `is_relative_to` containment check is too late to prevent. The
+    same check also covers POSIX-absolute (`/etc/passwd`) and drive-rooted
+    (`C:\\Windows\\...`) values, none of which a relative evidence path
+    would ever legitimately contain.
     """
+    if not video_path or video_path[0] in "\\/" or ":" in video_path:
+        return None
     trusted_root = run_dir.resolve()
     if not trusted_root.is_dir():
         return None

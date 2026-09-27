@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import time
 from pathlib import Path
 from urllib.parse import quote
 
@@ -233,6 +234,42 @@ def test_safe_video_path_refuses_a_windows_junction_escape(tmp_path: Path) -> No
     assert made.returncode == 0, made.stderr.decode(errors="replace")
 
     assert _safe_video_path(run_dir, "escape/secret.webm") is None
+
+
+def test_safe_video_path_refuses_a_unc_path_without_touching_the_network(tmp_path: Path) -> None:
+    """senior-software-engineer review, this cycle: before the string-level
+    guard existed, an attacker-controlled `\\\\host\\share\\...` reached
+    `Path.resolve()`, which makes Windows attempt a real SMB connection to
+    `host` -- measured ~21s against an unreachable host in review, a
+    blocking DoS / forced-SMB-auth vector, not merely a wrong answer. The
+    bounded wall-clock assertion proves the guard fires BEFORE `resolve()`
+    is ever called; `result is None` alone would pass even at 21s."""
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    start = time.perf_counter()
+
+    result = _safe_video_path(run_dir, r"\\198.51.100.1\share\x.webm")
+
+    assert result is None
+    assert time.perf_counter() - start < 2.0
+
+
+def test_safe_video_path_refuses_a_drive_rooted_path(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+
+    assert _safe_video_path(run_dir, r"C:\Windows\System32\drivers\etc\hosts") is None
+
+
+def test_serve_run_video_refuses_a_unc_path_end_to_end(
+    client: TestClient, scratch_root: Path
+) -> None:
+    _seed_with_video(scratch_root)
+    unc = r"\\198.51.100.1\share\x.webm"
+
+    response = client.get(f"/projects/demo/runs/{RUN_ID}/videos/{quote(unc, safe='')}")
+
+    assert response.status_code == 404
 
 
 def test_safe_video_path_accepts_a_real_nested_video(tmp_path: Path) -> None:
