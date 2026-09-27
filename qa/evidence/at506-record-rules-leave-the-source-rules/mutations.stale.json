@@ -1,0 +1,10 @@
+{
+  "entries": [
+    {
+      "old_nodeid": "tests/test_ledger_checks.py::test_a_line_opening_with_the_marker_in_backticks_is_not_a_claim",
+      "moved_to": "tests/test_marker_blocks.py::test_a_line_opening_with_the_marker_in_backticks_is_not_a_claim",
+      "moved_by_unit": "at513-the-block-tests-leave-the-row-tests",
+      "note": "stale on purpose, test moved to tests/test_marker_blocks.py -- the AT-516 issue's own reproduction case"
+    }
+  ]
+}
