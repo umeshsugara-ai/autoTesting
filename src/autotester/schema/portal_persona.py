@@ -172,6 +172,15 @@ class PersonaRevision(BaseModel):
         default_factory=list,
         description="CR5: stored keys not reached by a BOUND-TRUNCATED crawl — unknown, never "
                     "reported as missing. A non-empty list means this diff is incomplete.")
+    healthy_screens: list[str] = Field(
+        default_factory=list,
+        description="NOT a sixth CR4 category and NOT in `counts()` — provenance: keys a PRIOR "
+                    "revision recorded broken that this crawl VISITED and found not broken. "
+                    "Without it, 'the prior stored status' cannot distinguish 'never re-observed' "
+                    "from 'observed healthy', so a screen that broke, healed, then relapsed could "
+                    "never be reported broken again (ISS-t165-crawl-traversal-4). A skipped node "
+                    "is not an observation and never lands here. Defaulted, so personas written "
+                    "before this field still load.")
 
     def counts(self) -> dict[str, int]:
         """CR4: the count per named category — what a surface renders and a test asserts."""

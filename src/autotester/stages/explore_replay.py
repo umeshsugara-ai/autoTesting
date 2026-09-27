@@ -155,7 +155,11 @@ def replay_fills(rt: ExploreRuntime, node_id: str, *, skip: str | None = None) -
             return (f"re-issuing the recorded value for {typed.element.selector!r} raised "
                     f"{type(exc).__name__}: {exc}")
         # X7 after EVERY action: a fill whose `onchange` auto-submits can leave
-        # the domain without any click being replayed at all.
+        # the domain without any click being replayed at all. SETTLE FIRST --
+        # `BrowserSession.fill()` is a bare Playwright fill that does not wait for
+        # a JS-triggered navigation, so an unsettled `current_url()` still reads
+        # the old, on-domain URL and the check silently passes.
+        rt.session.settle(timeout_ms=rt.bounds.settle_ms)
         refused = _landed_on_domain(rt, node_id, typed.element, typed.action)
         if refused is not None:
             return refused

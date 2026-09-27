@@ -87,27 +87,44 @@ class _Secrets:
 
 
 class _RecordingSession:
-    """Records what a replay asks the browser to do, and where it landed."""
+    """Records what a replay asks the browser to do, and where it landed.
 
-    def __init__(self, landed: str = "https://app.test/panel") -> None:
+    Navigation is modelled ASYNCHRONOUSLY on purpose: an action only *schedules*
+    the new URL, and `current_url()` keeps returning the old one until `settle()`
+    runs. `BrowserSession.fill()` is a bare Playwright fill that does not wait
+    for a JS-triggered navigation, so a fake that flipped the URL the instant an
+    action was issued would let an X7 check with no settle in front of it pass
+    for free -- which is exactly how the missing settle in `replay_fills`
+    survived the first cycle-2 attempt.
+    """
+
+    def __init__(self, landed: str = "https://app.test/panel",
+                 start: str = "https://app.test/") -> None:
         self.calls: list[tuple[str, str, str]] = []
         self.landed = landed
         self.secrets = _Secrets()
+        self._url = start
+        self._pending: str | None = None
+
+    def _act(self, kind: str, selector: str, value: str = "") -> None:
+        self.calls.append((kind, selector, value))
+        self._pending = self.landed
 
     def fill(self, selector: str, value: str) -> None:
-        self.calls.append(("fill", selector, value))
+        self._act("fill", selector, value)
 
     def select_option(self, selector: str, value: str) -> None:
-        self.calls.append(("select", selector, value))
+        self._act("select", selector, value)
 
     def click(self, selector: str) -> None:
-        self.calls.append(("click", selector, ""))
+        self._act("click", selector)
 
     def settle(self, timeout_ms: int = 0) -> None:
-        return None
+        if self._pending is not None:
+            self._url, self._pending = self._pending, None
 
     def current_url(self) -> str:
-        return self.landed
+        return self._url
 
 
 class _CountingStore:

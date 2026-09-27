@@ -29,7 +29,7 @@
     "/wide4.html"
   ],
   "revision": {
-    "summary": "screens 8 not judged (the frontier was not exhausted)",
+    "summary": "screens 8 not judged (a bound or a skipped-unchanged screen left the crawl incomplete)",
     "new": 0,
     "changed": 0,
     "missing": 0,
@@ -60,7 +60,8 @@
       "/wide2.html",
       "/wide3.html",
       "/wide4.html"
-    ]
+    ],
+    "healthy_screens": []
   },
   "skipped_node_count": 1
 }

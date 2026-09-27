@@ -114,6 +114,39 @@ def test_a_screen_broken_across_an_unrelated_intervening_revision_is_not_re_repo
     assert diff["broken_screens"] == []
 
 
+def test_a_screen_that_healed_and_then_relapsed_is_reported_broken_again() -> None:
+    """The other half of ISS-t165-crawl-traversal-4, and the review finding the
+    first cycle-2 attempt earned: a PLAIN union over the history can never
+    un-remember, so a screen that broke, was observed HEALTHY, then genuinely
+    relapsed would be silently suppressed forever. The issue's `expected` asks
+    for the union minus any later revision that observed the screen not-broken,
+    so `healthy_screens` (recorded by `classify` on the healing crawl) subtracts."""
+    heal = _classify(_persona(("/a", "sig-a"), history=[
+        PersonaRevision(at="2026-09-01T00:00:00", summary="1 broken", broken_screens=["/a"])]),
+        [_node("/a", "sig-a")])
+    assert heal["healthy_screens"] == ["/a"], "the healing crawl did not record the observation"
+    assert heal["broken_screens"] == []
+
+    history = [
+        PersonaRevision(at="2026-09-01T00:00:00", summary="1 broken", broken_screens=["/a"]),
+        PersonaRevision(at="2026-09-02T00:00:00", summary="1 recovered",
+                        healthy_screens=heal["healthy_screens"]),
+    ]
+    relapse = _classify(_persona(("/a", "sig-a"), history=history),
+                        [_node("/a", "sig-a", status=NodeStatus.ABORTED_ERROR)])
+    assert relapse["broken_screens"] == ["/a"], (
+        "a genuine relapse after an observed recovery was suppressed")
+
+
+def test_a_skipped_screen_is_not_an_observation_of_health() -> None:
+    """A CR3 skip never visited the screen, so it may not clear a broken record
+    any more than it may support a `missing` claim (`_judged_exhausted`)."""
+    diff = _classify(_persona(("/a", "sig-a"), history=[
+        PersonaRevision(at="2026-09-01T00:00:00", summary="1 broken", broken_screens=["/a"])]),
+        [_node("/a", "sig-a", status=NodeStatus.SKIPPED_UNCHANGED)])
+    assert diff["healthy_screens"] == []
+
+
 # --- ISS-2: two distinct screens that merely share a URL ---------------------
 
 
@@ -177,7 +210,7 @@ def test_a_skipped_screen_is_evidence_of_nothing() -> None:
     diff = _classify(_persona(("/a", "sig-a")),
                      [_node("/a", "sig-a", status=NodeStatus.SKIPPED_UNCHANGED)])
     assert diff == {"new_screens": [], "changed_screens": [], "missing_screens": [],
-                    "broken_screens": [], "missing_unjudged": []}
+                    "broken_screens": [], "missing_unjudged": [], "healthy_screens": []}
 
 
 def test_a_queued_never_visited_node_is_not_evidence_either() -> None:
@@ -216,8 +249,14 @@ def test_classify_returns_exactly_the_revisions_own_field_names() -> None:
     """One concept, one place (C3): the schema defines the shape, `classify`
     returns values FOR it. A drifted key would silently drop a whole category."""
     diff = _classify(None, [_node("/a", "sig-a")])
-    assert set(diff) == set(persona_changes.CATEGORIES)
+    assert set(diff) == set(persona_changes.CATEGORIES) | set(persona_changes.PROVENANCE)
     PersonaRevision(at="2026-09-27T00:00:00", summary="s", **diff)  # must construct
+    assert len(persona_changes.CATEGORIES) == 5, (
+        "CR4/CR5 name five REPORTABLE categories; a sixth needs a contract amendment")
+    assert set(persona_changes.CATEGORIES).isdisjoint(persona_changes.PROVENANCE)
+    assert set(PersonaRevision(at="x", summary="s").counts()) == {
+        "new", "changed", "missing", "broken", "missing_unjudged"}, (
+        "provenance leaked into the counted surface")
 
 
 def test_pp3_is_unchanged_a_blank_summary_is_still_refused() -> None:

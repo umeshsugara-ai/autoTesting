@@ -116,6 +116,10 @@ def test_a_real_incremental_recrawl_of_an_unchanged_site_reports_no_deletion(
     assert set(revision.missing_unjudged) <= known
     assert [s.key() for s in persona.screens] == [s.key() for s in seeded.screens], (
         "PP2: the re-crawl dropped or duplicated a stored screen")
+    assert "frontier empty" in (second.stop_reason or ""), second.stop_reason
+    assert "frontier was not exhausted" not in revision.summary, (
+        "the human-facing summary contradicts the crawl's own stop_reason: the frontier "
+        f"WAS exhausted here, a skip is what blocked the claim -- {revision.summary!r}")
 
 
 def test_a_bound_stopped_crawl_writes_unjudged_not_missing(tmp_path: Path) -> None:

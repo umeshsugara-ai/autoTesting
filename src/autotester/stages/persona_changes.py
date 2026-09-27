@@ -40,6 +40,13 @@ nothing (CR5)."""
 
 CATEGORIES = ("new_screens", "changed_screens", "missing_screens",
               "broken_screens", "missing_unjudged")
+"""The five REPORTABLE categories CR4/CR5 name — what `counts()` counts and a
+surface renders. Adding a sixth needs a contract amendment, so it stays five."""
+
+PROVENANCE = ("healthy_screens",)
+"""Fields `classify` also returns that are NOT findings: evidence this crawl
+recorded so a LATER crawl can classify honestly (`_previously_broken`). Kept
+separate from CATEGORIES so the five-category surface cannot drift by accident."""
 
 
 def _previously_broken(existing: PortalPersona | None) -> frozenset[str]:
@@ -47,18 +54,29 @@ def _previously_broken(existing: PortalPersona | None) -> frozenset[str]:
     carry". A `PersonaScreen` carries no status — PP2 forbids rewriting one — so
     the prior state is read from the append-only revision history instead.
 
-    **Broken-EVER, across the whole history** (`ISS-t165-crawl-traversal-4`).
+    **Still broken, replayed over the whole history** (`ISS-t165-crawl-traversal-4`).
     Reading only the most recent revision that classified anything was wrong: a
     screen broken in revision 1 and still broken in revision 3 was re-reported
     as newly broken whenever revision 2 happened to record something unrelated
     (a new screen, say), because revision 2 was "the most recent that classified
-    anything" and its own `broken_screens` was empty. The history is append-only
-    and a screen is never un-recorded, so the union over every revision is the
-    only reading that cannot forget.
+    anything" and its own `broken_screens` was empty.
+
+    A plain union over every revision fixes that and introduces the OPPOSITE
+    dishonesty: a screen that broke, was later observed HEALTHY, then genuinely
+    relapsed could never be reported broken again. The issue's own `expected`
+    asks for the union "minus any later revision that observed the screen and
+    found it not-broken", so the history is replayed in order: `broken_screens`
+    adds a key, `healthy_screens` (reached-and-not-broken, recorded by
+    `classify` itself) removes it. A revision that did not reach the screen
+    changes nothing, which is exactly the case the issue was filed about.
     """
     if existing is None:
         return frozenset()
-    return frozenset(key for revision in existing.history for key in revision.broken_screens)
+    broken: set[str] = set()
+    for revision in existing.history:
+        broken.update(revision.broken_screens)
+        broken.difference_update(revision.healthy_screens)
+    return frozenset(broken)
 
 
 def _stored_signatures(existing: PortalPersona | None) -> dict[str, set[str]]:
@@ -135,11 +153,21 @@ def classify(
         and any(node.status in BROKEN_STATUSES for node in at_key)
     )
     absent = sorted(crawl_sourced - set(reached))
+    # A SKIPPED_UNCHANGED node was never visited, so it is evidence of nothing --
+    # the same reasoning `_judged_exhausted` applies to `missing`. A key is only
+    # observed healthy when this crawl actually VISITED it and nothing broke.
+    healthy = sorted(
+        key for key, at_key in reached.items()
+        if key in was_broken
+        and any(node.status is not NodeStatus.SKIPPED_UNCHANGED for node in at_key)
+        and not any(node.status in BROKEN_STATUSES for node in at_key)
+    )
     return {
         "new_screens": new, "changed_screens": changed,
         "missing_screens": absent if judged else [],
         "broken_screens": broken,
         "missing_unjudged": [] if judged else absent,
+        "healthy_screens": healthy,
     }
 
 
@@ -166,7 +194,9 @@ def describe(diff: dict[str, list[str]]) -> str | None:
     this is only what a human reads first."""
     labels = (("new_screens", "new"), ("changed_screens", "changed"),
               ("missing_screens", "missing"), ("broken_screens", "broken"),
-              ("missing_unjudged", "not judged (the frontier was not exhausted)"))
+              ("missing_unjudged",
+               "not judged (a bound or a skipped-unchanged screen left the crawl incomplete)"),
+              ("healthy_screens", "recovered"))
     parts = [f"{len(diff[field])} {label}" for field, label in labels if diff[field]]
     if not parts:
         return None

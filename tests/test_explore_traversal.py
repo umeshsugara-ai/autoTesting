@@ -173,3 +173,40 @@ def test_no_provider_or_vendor_sdk_reaches_the_traversal_modules() -> None:
         imports = [ln for ln in text.splitlines()
                    if ln.startswith(("import ", "from ")) and any(b in ln for b in banned)]
         assert imports == [], f"{name}.py imports a provider: {imports}"
+
+
+def test_the_persona_index_recognises_the_second_stored_state_at_one_url() -> None:
+    """CR3 efficiency, after ISS-t165-crawl-traversal-2 made a persona able to
+    hold two structurally distinct screens at one URL. `PersonaIndex` kept a
+    first-wins `{key: screen}` map, so a live node matching the SECOND stored
+    state compared against the first, missed, and was re-explored on every
+    incremental crawl -- never a false skip, but D-040 acceptance test (b)'s
+    "<=10% of the first crawl's actions" quietly lost for that shape."""
+    from autotester.schema.portal_persona import (
+        PersonaRevision,
+        PersonaScreen,
+        PortalPersona,
+    )
+    from autotester.stages.explore_incremental import PersonaIndex
+
+    persona = PortalPersona(
+        project="p",
+        screens=[PersonaScreen(id="s0", name="/", url_template="/", signature="sig-base"),
+                 PersonaScreen(id="s1", name="/", url_template="/", signature="sig-panel")],
+        history=[PersonaRevision(at="2026-09-01T00:00:00", summary="seeded")])
+    index = PersonaIndex(persona)
+
+    def node(signature: str, template: str = "/") -> ScreenNode:
+        return ScreenNode(crawl_id="c", project="p", url_template=template,
+                          url_example=template, signature=signature, name=template)
+
+    assert index.skip_reason(node("sig-base")) is not None
+    assert index.skip_reason(node("sig-panel")) is not None, (
+        "the second stored state at this URL was never recognised as unchanged")
+    assert index.skip_reason(node("sig-new")) is None
+    assert index.skip_reason(node("sig-base", "/other")) is None
+    flowspec = PortalPersona(
+        project="p", screens=[PersonaScreen(id="f0", name="/f", url_template="/f")],
+        history=[PersonaRevision(at="2026-09-01T00:00:00", summary="seeded")])
+    assert PersonaIndex(flowspec).skip_reason(node("sig-base", "/f")) is None, (
+        "a FlowSpec-sourced screen has no recorded signature and may never license a skip")

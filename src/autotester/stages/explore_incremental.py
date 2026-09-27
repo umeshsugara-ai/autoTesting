@@ -45,43 +45,54 @@ class PersonaIndex:
     where it is certain).
     """
 
-    __slots__ = ("_by_key", "_revision")
+    __slots__ = ("_at_key", "_revision")
 
     def __init__(self, persona: PortalPersona | None) -> None:
-        self._by_key: dict[str, PersonaScreen] = {}
+        # EVERY stored screen at a key, not the first. Since
+        # `ISS-t165-crawl-traversal-2` the persona may legitimately hold two
+        # structurally distinct states at one URL (X3/X14 SPA toggles), and a
+        # first-wins index compares the live signature against only one of them
+        # -- never a false skip, but the second state is then re-explored on
+        # every incremental crawl, which is the CR3 efficiency guarantee lost.
+        self._at_key: dict[str, list[PersonaScreen]] = {}
         self._revision: str | None = None
         if persona is None:
             return
         for screen in persona.screens:
-            self._by_key.setdefault(screen.key(), screen)
+            self._at_key.setdefault(screen.key(), []).append(screen)
         if persona.history:
             self._revision = persona.history[-1].at
 
     def __len__(self) -> int:
-        return len(self._by_key)
+        return len(self._at_key)
 
     @property
     def keys(self) -> frozenset[str]:
         """Every screen key the stored persona carries (CR4's `missing` candidates)."""
-        return frozenset(self._by_key)
+        return frozenset(self._at_key)
 
     def stored(self, key: str) -> PersonaScreen | None:
-        return self._by_key.get(key)
+        """The first stored screen at `key`, for callers that want one exemplar.
+        Skip decisions must NOT use this -- they go through `skip_reason`, which
+        considers every stored state at the key."""
+        at_key = self._at_key.get(key)
+        return at_key[0] if at_key else None
 
     def skip_reason(self, node: ScreenNode) -> str | None:
         """CR3: the reason to skip `node`, or None to explore it as normal.
 
-        A node is skipped only when a stored screen has the SAME key AND a
-        recorded signature EQUAL to the live one. Three cases are deliberately
-        NOT skips, because none of them is evidence the screen is unchanged:
-        no stored screen at that key (new), a stored screen with no signature at
-        all (it came from a FlowSpec, never from a crawl — nothing to compare),
-        and a stored signature that differs (changed, CR4).
+        A node is skipped only when SOME stored screen at that key carries a
+        recorded signature EQUAL to the live one. These are deliberately NOT
+        skips, because none of them is evidence the screen is unchanged: no
+        stored screen at that key (new), a stored
+        screen with no signature at all (it came from a FlowSpec, never from a
+        crawl — nothing to compare), and every stored signature differing
+        (changed, CR4).
         """
-        stored = self._by_key.get(node_key(node))
-        if stored is None or stored.signature is None:
-            return None
-        if stored.signature != node.signature:
+        # `ScreenNode.signature` is a required str and a stored `None` means
+        # "unknown", so a FlowSpec-sourced screen can never match by accident.
+        signatures = {s.signature for s in self._at_key.get(node_key(node), [])}
+        if node.signature not in signatures:
             return None
         return SKIP_REASON.format(at=self._revision) if self._revision else NO_REVISION
 
