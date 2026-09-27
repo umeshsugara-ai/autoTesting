@@ -20,6 +20,12 @@
   /* AT-449: a responsive accordion expanded on desktop. Scoped by id so it cannot
      change the plain closed-details case above. */
   #accordion::details-content { content-visibility: visible }
+  /* AT-453. `::details-content` still reports content-visibility:hidden here, but
+     an author display override means content-visibility does not apply and the
+     body still paints (measured, AT-437's HIDES_ON class): `contents` and `inline`
+     are two members. Scoped by id so neither touches the plain closed-details case. */
+  #a3::details-content { display: contents }
+  #a4::details-content { display: inline }
 </style>
 <p>Quarterly report for the trainers list</p>
 <div style="margin:40px 0"><div style="display:contents">CONTENTS_PLAIN_S1</div></div>
@@ -53,3 +59,5 @@
   document.getElementById("shost").attachShadow({ mode: "open" }).innerHTML =
     "<details><summary>in shadow</summary><slot></slot></details>";
 </script>
+<div style="margin:40px 0"><details id="a3"><summary>a3</summary><div style="display:contents">CONTENTS_DETAILSCONTENT_CONTENTS_A3</div></details></div>
+<div style="margin:40px 0"><details id="a4"><summary>a4</summary><div style="display:contents">CONTENTS_DETAILSCONTENT_INLINE_A4</div></details></div>
