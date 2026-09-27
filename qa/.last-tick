@@ -200,3 +200,99 @@ LIVE (4 builds, all independent): at335-determinism-salvage, t186-details-conten
 t189-stale-evidence-tag, t191-run-video.
 SERIAL: T-192 still waits on its single-shot vision-call authorization.
 HELD FROM PUSH: 6 commits. D-007 covers checker-PASS only; this is a FAIL plus gates.
+
+## tick 2026-09-27T12:15:00+00:00 -- ADVANCED (T-192 built + dispatched)
+T-192 healed and ready-for-check; checker dispatched same turn (no dangling).
+
+THE APPROVED VISION CALL WAS NOT SPENT. Gate t135 answer B approved one Analyze run "costing a
+vision run". Read-only tracing BEFORE spending showed B purpose is reachable at zero model cost:
+- all 3 corrupted rows come from ONE source (src_c6bb964cfff8) -- checked first, because 3
+  sources exist and 3 runs would have exceeded a single-shot approval;
+- the corruption is in the RAW model output: the cached observation literally contains
+  "vidysea.com/erp/trainers", so re-requesting returns the same string. The model was never the
+  broken part;
+- the fix is downstream -- core/urls.py::screen_url_pattern is by its own docstring THE one
+  boundary where an observed url becomes a stored url_pattern, called from product_map.py:40 in
+  build_screen_map, reachable as `autotester ingest map`. No model call.
+Ran `uv run autotester ingest map erp`. Exactly 3 url_pattern fields changed across 3 screens,
+nothing else; 8 screens / 3 journeys unchanged. Pre-image + sha256 kept.
+The approval remains UNSPENT and available. Flagged to Umesh as a loose end, not as consumed.
+The gate own cost estimate for option B was wrong (observations are cached, --force is opt-in) --
+recorded as a correction to its reasoning, not to its choice. The checker is asked to rule
+whether this is a legitimate NARROWING of the approval or a SUBSTITUTION of mechanism, because
+that is the maker deciding something a human already chose, and it is not my call to bless.
+
+DID NOT CITE T-192 OWN done_check AS ACCEPTANCE. It is `uv run autotester doctor`, which passes
+on a clean repo regardless -- the exact AT-100 shape. Acceptance offered instead is the
+before/after structural field-level diff.
+
+CHECKER FOLLOW-UP (at638-remainder, after its verdict): it let the full suite finish and caught
+its own near-miss first -- it had piped pytest through `| tail -40`, which reports the pipeline
+exit code, not pytest. Re-ran the failures directly. Found TWO UNDISCLOSED pre-existing failures
+beyond AT-627, filed as ISS-at638-remainder-2 (high, goodhartable-done-check): five PENDING tasks
+(T-186, T-189, T-190, T-191, T-192) carry done_checks that cannot fail, and the goal-pinning test
+still hardcodes 70 tasks while goal.json has 81 -- the D-041/D-045 "pin the new rows" duty was
+never carried out for T-182..192.
+THIS HITS FOUR UNITS I HAVE IN FLIGHT RIGHT NOW (T-186, T-189, T-191, T-192). Their done_checks
+are not acceptance and their checkers must not treat them as such. Carried into the T-192
+dispatch explicitly. The done_check repair itself is its own unit, not smuggled into any of them.
+My own earlier dispatches named only AT-627 as the known failure -- that was incomplete, because
+I had only ever seen the suite through a run that stopped at the first summary line.
+
+LIVE: t192 checker + 4 builds (at335-salvage, t186 [cap 2], t189, t191). t186 stopped once
+waiting on its own background work and has not reported yet.
+OPEN HUMAN GATES (3): t125 stall A-D; CT6 vs RU3; at638 four-contract authorization.
+NEW LEDGER DEBT: ISS-at638-remainder-2 (high) -- needs its own unit once the wave drains.
+
+## tick 2026-09-27T12:40:00+00:00 -- ADVANCED (at335 salvage ready + dispatched)
+at335-modal-determinism ready-for-check (eae44a3a); master merged in; checker dispatched same
+turn (no dangling). The salvage was ADOPTED WITH REWORK, which is the outcome I hoped for when I
+told the subagent to verify rather than adopt:
+- it found the salvaged test was VACUOUS -- mutating _matches to unconditionally return True
+  left it passing, proving only that a success path exists, not that the fingerprint is polled.
+  Exactly the AT-548/549/550 shape. Closed with a new lag-exceeds-bound test.
+- it caught the false claim I had flagged: the salvaged docstring said "measured live" of the
+  1500ms/0.15s constants. The 1-in-14 rate is real and evidenced; the constants were never
+  measured. Reworded in place to say so.
+- it traced the real cost rather than hand-waving X4: ~16.5s added from the tolerance alone,
+  ~44s combined worst case per pathological return_to, a ~60% growth in the per-action overshoot
+  ceiling. Disclosed as a cost and referred to the checker for a ruling.
+- live flake_probe N=20 gave 0/20 but it stated honestly this bounds the rate only at 13.9%@95%
+  and does NOT exclude the suspected 7.1%; declined to extend to N=41 because the harness own
+  prior N=41 against UNFIXED code was also clean. Corroboration, not proof. Correct call.
+
+CORRECTED A SUBAGENT ATTRIBUTION: it blamed the two extra suite failures on AT-642. Wrong --
+AT-642 is target.md:212 stale progress line, a different defect. The right row is
+ISS-at638-remainder-2, and I traced the cause to my own commit f9e7d406. Its out-of-scope
+CONCLUSION was right (its diff touches no .goal/ file); its attribution was not. Carried into the
+checker dispatch with an instruction to re-derive rather than trust either of us.
+
+LIVE (4): at335 checker, t192 checker, t186 build (cap 2), t189 build, t191 build.
+T-186 has now stopped twice waiting on its own background work without reporting.
+OPEN HUMAN GATES (3): t125 stall A-D; CT6 vs RU3; at638 four-contract authorization.
+QUEUED, DEPENDENCY NAMED: iss-at638-2-done-check-repair waits on the 4 in-flight checks.
+
+## tick 2026-09-27T12:55:00+00:00 -- CEILING (measured), nothing new dispatched
+Checked whether anything else is dispatchable rather than idling on the wave. Result: the
+binding constraint this tick is RAM, measured not assumed.
+
+DEPENDENCY SCAN: T-165 (the crawl spine, critical, dual-check) is FULLY UNBLOCKED -- deps T-163
+and T-144 both done. T-174 and T-178 are blocked on T-125, which is gated and stalled. T-190 is
+dependency-free but is a new user-facing surface, so it needs the maker PLAN gate
+(intent -> /grill user-type mode -> spec -> plan -> qa/gates/plan-approved.md) before any code,
+and the grill needs Umesh.
+
+MEASURED CEILING: 0.9 GB free of 23.7 GB, 64 node/python/chrome processes live. The wave rule
+trims on free RAM above a 2 GB floor; there is none. So:
+SERIAL: T-165 waits on the measured RAM ceiling (0.9 GB free), not on a dependency edge.
+Dispatching the spine now would degrade the five agents already running -- and T-186 stopping
+twice on its own background work without reporting may already be a symptom of contention rather
+than of anything it found. Recorded as a measurement so the next tick re-measures instead of
+inheriting this guess.
+
+Secondary reason, weaker but real: T-165 works in stages/crawl*.py and explore.py while the
+at335 check holds stages/explore_return.py. Different files, same package -- not a hard
+collision, but not free either.
+
+LIVE (5): at335 checker, t192 checker, t186 build (cap 2), t189 build, t191 build.
+No new dispatch. No wave started that the machine cannot carry.
