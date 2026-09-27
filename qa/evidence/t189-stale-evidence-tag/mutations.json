@@ -1,0 +1,33 @@
+{
+  "tests": "tests/test_evidence_spec_tombstones.py",
+  "timeout_s": 300,
+  "mutations": [
+    {
+      "name": "AT-218: the tombstone check trusts an entry's mere PRESENCE instead of resolving its moved_to -- a lying tombstone would silently pass",
+      "file": "src/autotester/ledger/evidence_specs.py",
+      "old": "            entry = tagged.get(_tombstone_key(nodeid))\n            if entry is not None and _resolves(root, entry.moved_to, scope=[]):\n                continue  # stale on purpose, and the tag is honest",
+      "new": "            entry = tagged.get(_tombstone_key(nodeid))\n            if entry is not None:\n                continue  # stale on purpose, and the tag is honest",
+      "kills": [
+        "tests/test_evidence_spec_tombstones.py::test_a_tombstone_whose_moved_to_does_not_resolve_is_still_flagged"
+      ]
+    },
+    {
+      "name": "a bare kills name resolves against the WHOLE tests tree instead of the spec's own declared tests scope",
+      "file": "src/autotester/ledger/evidence_specs.py",
+      "old": "    name = _bare(nodeid)\n    return any(_defines(f, name) for f in scope)",
+      "new": "    name = _bare(nodeid)\n    return any(_defines(f, name) for f in root.joinpath(\"tests\").rglob(\"*.py\"))",
+      "kills": [
+        "tests/test_evidence_spec_tombstones.py::test_a_bare_kills_name_outside_the_specs_tests_scope_is_stale"
+      ]
+    },
+    {
+      "name": "the tombstone entry's path-qualified validator becomes a no-op, so a bare moved_to is accepted",
+      "file": "src/autotester/schema/evidence_tombstone.py",
+      "old": "    def _must_be_path_qualified(cls, value: str) -> str:\n        if \"::\" not in value:\n            raise ValueError(f\"{value!r} must be 'file::function', not a bare name\")\n        return value",
+      "new": "    def _must_be_path_qualified(cls, value: str) -> str:\n        return value",
+      "kills": [
+        "tests/test_evidence_spec_tombstones.py::test_the_tombstone_entry_refuses_a_bare_moved_to"
+      ]
+    }
+  ]
+}

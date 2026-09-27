@@ -1,0 +1,49 @@
+{
+  "unit": "t186-details-content",
+  "issue": "AT-453",
+  "chromium": "151.0.7922.34",
+  "mode": "headed (launch(headless=False)), direct file:// navigation, no HTTP server",
+  "instrument": "autotester.browser.observe.visual_text (the shipping detector, not a hand-copied JS string)",
+  "pages": ["tests/fixtures/bidi_site/cvcontents.html"],
+  "console_errors": {"tests/fixtures/bidi_site/cvcontents.html": 0},
+  "interactions": [
+    {
+      "did": "visual_text(page) over closed <details id=a3> whose ::details-content is author-overridden to display:contents",
+      "expected": "CONTENTS_DETAILSCONTENT_CONTENTS_A3 reported (ground truth: painted=true, qa/evidence/browser-at438-display-contents-2026-09-16-checker-c3/report_attack3.json row A3)",
+      "observed": "reported: true",
+      "pass": true
+    },
+    {
+      "did": "visual_text(page) over closed <details id=a4> whose ::details-content is author-overridden to display:inline",
+      "expected": "CONTENTS_DETAILSCONTENT_INLINE_A4 reported (ground truth: painted=true, same evidence, row A4)",
+      "observed": "reported: true",
+      "pass": true
+    },
+    {
+      "did": "visual_text(page) over the plain closed <details> with no author override (S3)",
+      "expected": "CONTENTS_CLOSEDDETAILS_S3 NOT reported -- the ordinary closed-details case must stay hidden",
+      "observed": "not reported (absent from result)",
+      "pass": true
+    },
+    {
+      "did": "visual_text(page) over a content-visibility:hidden block (S4), unrelated to <details>",
+      "expected": "CONTENTS_CVHIDDEN_S4 NOT reported -- confirms the fix did not widen HIDES_ON itself, only where it is applied",
+      "observed": "not reported (absent from result)",
+      "pass": true
+    },
+    {
+      "did": "visual_text(page) over an OPEN <details> (S2)",
+      "expected": "CONTENTS_OPENDETAILS_S2 reported -- open details must still paint normally",
+      "observed": "reported: true",
+      "pass": true
+    },
+    {
+      "did": "positive control 'Quarterly report' present on the same page",
+      "expected": "present",
+      "observed": "present",
+      "pass": true
+    }
+  ],
+  "raw_result_file": "after.json",
+  "probe_script": "probe.py"
+}

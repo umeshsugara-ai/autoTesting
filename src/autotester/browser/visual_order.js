@@ -67,8 +67,14 @@
     let child = el;
     for (let box = flatParent(el); box; child = box, box = flatParent(box)) {
       const s = window.getComputedStyle(box);
+      // AT-453: the pseudo's own contentVisibility is not enough -- an author
+      // `::details-content{display:contents|inline}` etc. means content-visibility
+      // does not apply and the body still paints (AT-437's HIDES_ON allow-list,
+      // now applied to the PSEUDO's display instead of assuming block). Measured
+      // against 26 details-shaped pages incl. A3/A4:
+      // qa/evidence/browser-at438-display-contents-2026-09-16-checker-c3/fixdir3.py.
       if (box.tagName === "DETAILS" && child !== box.querySelector(":scope > summary") &&
-          window.getComputedStyle(box, "::details-content").contentVisibility === "hidden") return false;
+          (p => p.contentVisibility === "hidden" && HIDES_ON.test(p.display))(window.getComputedStyle(box, "::details-content"))) return false;
       if (s.display === "contents") continue;
       if (!box.checkVisibility()) return false;
       return !(s.contentVisibility === "hidden" && HIDES_ON.test(s.display));
