@@ -65,7 +65,8 @@ def _patch_common(monkeypatch, fake_plan: ParallelPlan):
             return True
 
     monkeypatch.setattr(routes_runs_module, "LangChainFallbackProvider", _AvailableProvider)
-    monkeypatch.setattr(routes_runs_module, "plan_parallel_run", lambda project_: fake_plan)
+    monkeypatch.setattr(routes_runs_module, "plan_parallel_run",
+                        lambda project_, **kwargs: fake_plan)
     # AT-567: _run_cases_in_parallel/_run_and_grade_resilient now live in
     # ui/run_execution.py, so `default_session_factory`/`run_and_grade_case_
     # resilient` must be patched there -- that is where those names are
@@ -89,7 +90,7 @@ def test_a_session_factory_crash_for_one_case_still_saves_every_case_and_the_run
                              free_ram_mb=99999.0, cpu_count=8)
     run_execution_module = _patch_common(monkeypatch, fake_plan)
 
-    def fake_default_session_factory(project_, secrets_, run_dir_):
+    def fake_default_session_factory(project_, secrets_, run_dir_, **kwargs):
         def factory(case):
             if case.id == crash_id:
                 raise RuntimeError("boom starting the session")

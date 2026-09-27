@@ -23,6 +23,7 @@ from autotester.schema.run_state import StageCheckpoint, StageName
 from autotester.stages.coverage import diff_coverage, queue_requests
 from autotester.stages.orchestrate import StageContext
 from autotester.stages.parallel_run import ParallelPlan, plan_parallel_run
+from autotester.stages.video_retention import prune_old_videos
 from autotester.store.project_store import ProjectStore
 from autotester.ui.helpers import _load_project_or_404
 from autotester.ui.run_execution import _run_cases_in_parallel, _run_cases_serially
@@ -73,7 +74,7 @@ def _execute_with_trace(
     covering the whole batch."""
     ctx = StageContext(store=store, run_id=run_id, secrets=secrets)
     judge.trace = ctx.trace
-    plan = plan_parallel_run(project)
+    plan = plan_parallel_run(project, video_enabled=True)
 
     started = ctx.clock()
     if plan.n > 1:
@@ -126,6 +127,7 @@ def trigger_run(slug: str) -> RedirectResponse:
         id=run_id, project=slug, case_ids=[c.id for c in cases],
         parallel_n=plan.n, parallel_bound_by=plan.bound_by,
     ))
+    prune_old_videos(store)  # T-191/AT-587 V5: most recent 20 kept videos, project-wide
     _ask_for_what_it_did_not_recognise(store, run_id)
     return RedirectResponse(f"/projects/{slug}/report", status_code=303)
 

@@ -10,6 +10,7 @@ process's Chrome.
 from __future__ import annotations
 
 import contextlib
+import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -18,6 +19,7 @@ from autotester.browser import assertions
 from autotester.browser.evidence import MASK_ATTR, MASK_CSS, EvidenceMixin
 from autotester.browser.launch import launch_options
 from autotester.browser.secrets import SecretStore, host_of
+from autotester.browser.video import VIDEO_DIR_NAME, VideoMixin
 from autotester.core.paths import ProjectPaths
 from autotester.core.redact import PLACEHOLDER_RE
 from autotester.schema.enums import EvidenceKind, Outcome
@@ -72,7 +74,7 @@ def check_destination(project: Project, url: str) -> str:
     return host
 
 
-class BrowserSession(EvidenceMixin):
+class BrowserSession(EvidenceMixin, VideoMixin):
     """Drive one project's browser. Construct, `start()`, act, `close()`.
 
     Every method that touches the page is small on purpose: the executor stage
@@ -80,12 +82,19 @@ class BrowserSession(EvidenceMixin):
     """
 
     def __init__(self, project: Project, secrets: SecretStore, run_dir: Path,
-                 paths: ProjectPaths | None = None, *, observer: Any | None = None) -> None:
+                 paths: ProjectPaths | None = None, *, observer: Any | None = None,
+                 record_video: bool = False) -> None:
         self.project = project
         self.secrets = secrets
         self.paths = paths or ProjectPaths(project.slug)
         self.state = SessionState(run_dir=run_dir)
         self.observer = observer
+        self.record_video = record_video
+        """T-191/AT-587: opt-in per session. Only the case-execution call
+        sites (`ui/run_execution.py`, `stages/parallel_run.py`) pass True --
+        every other caller (crawl explorer, manual login, existing tests) is
+        unchanged (C2)."""
+        self._video_case_id: str | None = None
         self._playwright: Any = None
         self._context: Any = None
         self._page: Any = None
@@ -94,12 +103,13 @@ class BrowserSession(EvidenceMixin):
     def start(self) -> BrowserSession:
         from playwright.sync_api import sync_playwright
 
+        self.state.run_dir.mkdir(parents=True, exist_ok=True)
+        video_dir = self.state.run_dir / VIDEO_DIR_NAME if self.record_video else None
         self._playwright = sync_playwright().start()
         self._context = self._playwright.chromium.launch_persistent_context(
-            **launch_options(self.project, self.paths)
+            **launch_options(self.project, self.paths, record_video_dir=video_dir)
         )
         self._page = self._context.pages[0] if self._context.pages else self._context.new_page()
-        self.state.run_dir.mkdir(parents=True, exist_ok=True)
         if self.observer is not None:
             self.observer.attach(self._page)
         return self
@@ -114,6 +124,23 @@ class BrowserSession(EvidenceMixin):
             if self._playwright is not None:
                 self._playwright.stop()
                 self._playwright = None
+            if self.record_video:
+                self._sweep_orphan_videos()
+
+    def _sweep_orphan_videos(self) -> None:
+        """V1 (run-video.md): "exactly one video file per case, never a
+        stray." `start()` always launches with one page open (Playwright
+        gives `launch_persistent_context` a page whether we ask or not), and
+        with `record_video_dir` set that page records too -- but it is never
+        any case's video, so `end_case_video` never renames it out of
+        `_video_scratch`. Same for any page a crash leaves mid-recording.
+        Every legitimate case video has already been moved OUT of
+        `_video_scratch` (to `run_dir/<case_id>.webm`) by the time `close()`
+        runs, so anything still in there by construction belongs to no case
+        -- delete the whole scratch dir rather than leak it run after run."""
+        scratch = self.state.run_dir / VIDEO_DIR_NAME
+        if scratch.is_dir():
+            shutil.rmtree(scratch, ignore_errors=True)
 
     def __enter__(self) -> BrowserSession:
         return self.start()

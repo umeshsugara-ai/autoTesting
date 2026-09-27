@@ -29,6 +29,7 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 
+from autotester.browser.video import VIDEO_OVERHEAD_MB
 from autotester.schema.approval import RunApproval
 from autotester.schema.case import Case
 from autotester.schema.enums import Outcome, WritePolicy
@@ -106,16 +107,23 @@ def _free_ram_mb_posix() -> float:
 def plan_parallel_run(
     project: Project, *, cpu_count: int | None = None,
     free_ram_mb: float | None = None, per_context_mb: float = DEFAULT_PER_CONTEXT_MB,
+    video_enabled: bool = False,
 ) -> ParallelPlan:
     """PR1 + PR3: decide N and record which term bound it.
 
     `cpu_count`/`free_ram_mb` are injected by tests so the decision is
     reproducible on constructed numbers, never on this host's live state
     (parallel-run.md: "never falsify by running against the live tree" --
-    the same principle applied to a measurement, not just an edit)."""
+    the same principle applied to a measurement, not just an edit).
+
+    `video_enabled` (T-191/AT-587 V6): adds `VIDEO_OVERHEAD_MB` to
+    `per_context_mb` before the RAM budget divides by it, so a run that
+    records video never plans the same concurrency a silent, unrecorded run
+    would at the same measured free RAM -- fewer parallel slots, same host."""
     cpu = cpu_count if cpu_count is not None else (os.cpu_count() or 1)
     measured_free = free_ram_mb if free_ram_mb is not None else _free_ram_mb()
-    ram_slots = max(0, int((measured_free - _RAM_FLOOR_MB) // per_context_mb))
+    effective_per_context_mb = per_context_mb + (VIDEO_OVERHEAD_MB if video_enabled else 0.0)
+    ram_slots = max(0, int((measured_free - _RAM_FLOOR_MB) // effective_per_context_mb))
     measured_budget = max(1, min(ram_slots, cpu)) if ram_slots > 0 else 1
     config_ceiling = max(1, project.max_parallel)
 
@@ -223,7 +231,7 @@ def run_cases(
 
 def default_session_factory(
     project: Project, secrets: object, run_dir: object,
-    session_cls: Callable[..., object] | None = None,
+    session_cls: Callable[..., object] | None = None, *, record_video: bool = False,
 ) -> SessionFactory:
     """PR2, the real (non-fake) integration: each case gets its OWN
     `BrowserSession` against its OWN profile directory (`case.id`-scoped), so
@@ -248,7 +256,7 @@ def default_session_factory(
 
     def _factory(case: Case) -> object:
         paths = ProjectPaths(f"{project.slug}-parallel-{case.id[:12]}")
-        session = build(project, secrets, run_dir, paths)
+        session = build(project, secrets, run_dir, paths, record_video=record_video)
         state = getattr(session, "state", None)
         if state is not None:
             state.evidence_prefix = case.id

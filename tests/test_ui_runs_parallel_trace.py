@@ -258,7 +258,8 @@ def test_with_max_parallel_2_two_cases_run_concurrently(
     monkeypatch.setattr(routes_runs_module, "LangChainFallbackProvider", _AvailableProvider)
     monkeypatch.setattr(run_execution_module, "run_and_grade_case_resilient",
                         fake_run_and_grade_case_resilient)
-    monkeypatch.setattr(routes_runs_module, "plan_parallel_run", lambda project_: fake_plan)
+    monkeypatch.setattr(routes_runs_module, "plan_parallel_run",
+                        lambda project_, **kwargs: fake_plan)
 
     response = client.post("/projects/demo/run", follow_redirects=False)
 

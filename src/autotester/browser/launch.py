@@ -8,6 +8,7 @@ into `session.py` so nothing else needs to know it moved.
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import Any
 
 from autotester.core.paths import ProjectPaths
@@ -17,18 +18,33 @@ DEFAULT_VIEWPORT = {"width": 1366, "height": 850}
 """The desktop viewport every context launches with. `browser/conditions.py` reads this
 to reset a VIEWPORT_MOBILE case back to default afterwards (D-045/AT-581)."""
 
+RECORD_VIDEO_SIZE = {"width": 640, "height": 400}
+"""T-191 plan-decision 2: scaled well below `DEFAULT_VIEWPORT` (same ~1.6:1
+aspect ratio) so a 15-20 minute recording stays a manageable size. Applied
+only when a caller opts in via `record_video_dir` below -- this constant is
+never read unless recording is on."""
 
-def launch_options(project: Project, paths: ProjectPaths) -> dict[str, Any]:
+
+def launch_options(
+    project: Project, paths: ProjectPaths, *, record_video_dir: Path | None = None
+) -> dict[str, Any]:
     """Arguments for `launch_persistent_context` (B5): headed by default, own profile.
 
     `AUTOTESTER_SLOW_MO_MS` (unset/0 by default -- no behavior change) pads every
     Playwright operation by that many ms, so a human watching the noVNC live view
     can actually see a run happen instead of it completing in under a second.
     Opt-in only, never set by the app itself -- a human exports it before a demo.
+
+    `record_video_dir` (T-191/AT-587, V1/V7): when given, every page this
+    context creates is recorded to that directory at `RECORD_VIDEO_SIZE`. This
+    is the ONLY place `record_video_dir`/`record_video_size` are set (V7's
+    single-choke-point requirement) -- omitted by default, so every caller
+    that does not pass it (crawl explorer, manual login, every existing test)
+    is unchanged, no video, no behavior change (C2).
     """
     paths.profile_dir.mkdir(parents=True, exist_ok=True)
     slow_mo_ms = int(os.environ.get("AUTOTESTER_SLOW_MO_MS", "0") or "0")
-    return {
+    options: dict[str, Any] = {
         "user_data_dir": str(paths.profile_dir),
         "headless": not project.headed,
         "viewport": dict(DEFAULT_VIEWPORT),
@@ -45,3 +61,8 @@ def launch_options(project: Project, paths: ProjectPaths) -> dict[str, Any]:
             "--disable-dev-shm-usage",
         ],
     }
+    if record_video_dir is not None:
+        record_video_dir.mkdir(parents=True, exist_ok=True)
+        options["record_video_dir"] = str(record_video_dir)
+        options["record_video_size"] = dict(RECORD_VIDEO_SIZE)
+    return options
