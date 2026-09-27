@@ -135,6 +135,34 @@ def _utf16_hex_needles(value: str) -> list[str]:
     return [le_hex, le_hex.upper(), be_hex, be_hex.upper()]
 
 
+def _utf16_b64_needles(value: str) -> list[str]:
+    """AT-617: base64 (standard and URL-safe, at each of the 3 byte-alignment
+    offsets, plus the isolated whole-blob spelling) of `value` encoded as
+    UTF-16-LE and UTF-16-BE bytes -- the wire format PowerShell's
+    `-EncodedCommand` produces (it base64-encodes a UTF-16-LE script). Missed
+    entirely before this: `declared_secret_encodings` computed UTF-16 only as
+    hex (`_utf16_hex_needles` above) and double-base64 only of the UTF-8 bytes
+    (`_double_b64_needles` above) -- neither combination reaches "base64 of
+    UTF-16 bytes". Same technique as every other multi-byte-group encoding
+    here (see `_alignment_needles`): the isolated spelling covers "the whole
+    payload IS base64(utf16(secret))"; the 3 offsets cover the secret sitting
+    inside a longer base64 stream alongside unrelated UTF-16 code units on
+    either side (e.g. more of a `-EncodedCommand` script).
+
+    Evidence this closes: checker probe 2026-09-26 (AT-617) -- 8/8 fake
+    secrets (lengths 8/16/28/26, LE and BE) missed by both
+    `assert_no_raw_secrets` and `Redactor.contains_folded` on master AND on
+    the at598 branch (pre-existing, not a regression).
+    """
+    needles: list[str] = []
+    for utf16_bytes in (value.encode("utf-16-le"), value.encode("utf-16-be")):
+        needles.append(base64.b64encode(utf16_bytes).decode("ascii"))
+        needles.append(base64.urlsafe_b64encode(utf16_bytes).decode("ascii"))
+        needles.extend(_alignment_needles(utf16_bytes, base64.b64encode, 3, 4))
+        needles.extend(_alignment_needles(utf16_bytes, base64.urlsafe_b64encode, 3, 4))
+    return needles
+
+
 def declared_secret_encodings(value: str) -> list[str]:
     """Every exact encoded spelling of one declared secret worth searching
     for as a literal substring of raw, unfolded text: base64 (standard and
@@ -172,6 +200,7 @@ def declared_secret_encodings(value: str) -> list[str]:
 
     AT-606 cycle 1's `@lru_cache` here was unproven and retained raw secrets
     in memory, so cycle 2 drops it -- the real speed-up is `_is_ignorable`'s cache.
+    AT-617 added `_utf16_b64_needles` (see its own docstring for why).
     """
     raw = value.encode("utf-8")
     needles: list[str] = [
@@ -183,4 +212,5 @@ def declared_secret_encodings(value: str) -> list[str]:
     needles.extend(_isolated_variant_needles(raw))
     needles.extend(_double_b64_needles(raw))
     needles.extend(_utf16_hex_needles(value))
+    needles.extend(_utf16_b64_needles(value))
     return [needle for needle in needles if needle]
