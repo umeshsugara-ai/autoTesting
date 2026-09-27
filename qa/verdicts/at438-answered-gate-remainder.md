@@ -208,3 +208,183 @@ routine checker sweep add one sentence to C7 confirming this reading, citing thi
    no such convention exists in this project.
 
 ## Status: not passed — cycle 2 required
+
+## CHECK — cycle 2
+
+**Checker:** /checker (fresh, isolated context, bound to
+`D:/autoTesting/.claude/worktrees/agent-abbe17c7593b44730`, branch `wave/at438-answered-gate-remainder`)
+**Date:** 2026-09-27
+**Cycle checked: 2**
+**Code under check:** commit `a9357439` (reviewed SHA). `a8cee3b9` (`Merge: a9357439 e1414fec`) is a
+clean sync-merge of master with no manual changes beyond the two parents own content -- the C10
+exception ("a `Merge branch master` sync commit that brings in nothing but masters own history")
+applies, so it needed no new cycle; I verified against it anyway (see Verify below) because that is
+the tree the merge would actually ship.
+
+```
+VERDICT: PASS
+SCOREBOARD: 3/3 required cycle-2 fixes verified genuine, 0 new self-contradictions, 1 new low-severity
+  inaccuracy found (self-disclosed, non-substantive) -- doctor clean -- ruff clean -- the two pytest
+  reds named in the manifest are confirmed real-at-commit-time and already fixed on the tree this unit
+  actually merges into
+CAPABILITY-COVERAGE: not-applicable (bookkeeping unit, no capability rows)
+LIVE-BROWSER: not-applicable
+ISSUES-WRITTEN: none new
+EXPLANATION: see below
+```
+
+### The three required cycle-2 fixes, each independently re-derived from primary sources
+
+**1. Self-contradiction on AT-442/443/445 -- fixed, genuinely.** `qa/issues.jsonl` at HEAD reads
+`"status": "fixed"` for all three, `fixed_by` citing exactly `qa/verdicts/at438-answered-gate-remainder.md
+(3ae87a54)` (confirmed by direct parse of the ledger, not the manifest's summary of it). I confirmed:
+- `3ae87a54` is a real commit, `qa(checker): FAIL at438-answered-gate-remainder cycle 1 --
+  self-contradictory close-out` -- the cited authority genuinely exists and genuinely did the
+  falsification (its own text, read directly, shows the `visual_order.js:60` reasoning and the fresh
+  pytest re-run).
+- `4bba329b` (`chore(qa): apply the checker's AT-442/443/445 ruling to the ledger`) is a real,
+  separate commit on master, authored by the orchestrator applying the checker's ruling, as the
+  manifest claims, and is an ancestor of this branch's HEAD (`git merge-base --is-ancestor 4bba329b
+  HEAD` -> yes) -- reached via merge, not written from this worktree.
+- `a9357439` itself (the unit's own cycle-2 commit) does **not** touch `qa/issues.jsonl` --
+  `git show --stat a9357439` confirms only the three manifest/gate paths. The unit's claim that it
+  "did not touch qa/issues.jsonl myself" and that the fix "arrived via `git merge master`" is literally
+  true, not a rationalization.
+- D-049's `Result:` section (`docs/DECISIONS.md`, read directly) names only AT-438/AT-449/AT-450
+  (-> fixed), AT-454 (-> wontfix), AT-453 (stays open) -- AT-442/443/445 do not appear in `Result:` at
+  all, only in the unrelated `Links:` line. The manifest's claim that D-049 "never names them" is
+  correct.
+- Both files (`at438-answered-gate-remainder.md`, `at438-display-contents.md`) now cite `3ae87a54` as
+  the explicit authority for AT-442/443/445 and do not attribute them to D-048/D-049. No contradiction
+  remains between the two files -- verified by reading both in full, not by trusting the manifest's own
+  claim that it fixed this.
+
+**2. Overstated `checked-PASS` -- fixed, and accurately scoped.** `at438-display-contents.md`'s header
+now reads `**Status:** checked-PASS **for U14(b) only**`, names AT-453 (`t186-details-content`,
+`580fd3a7`) and AT-454 (`wontfix`) as resolved elsewhere, and the closing `## Status:` line matches. I
+confirmed `580fd3a7` (`qa(checker): t186-details-content cycle 1 -- PASS...`) and its merge `336433d1`
+are both real commits reachable from HEAD, and that the qualifier matches exactly what
+`qa/verdicts/at438-display-contents.md`'s "Re-ruling of cycle 3" section says ("for U14(b) only") --
+neither broader nor narrower than that scope.
+
+**3. False convention claim + stale gate -- fixed, and the correction itself is accurate.** I
+independently re-checked all seven named gates:
+`grep -n "Status:" qa/gates/{at147-expiry-end-of-day,at520-scripts-line-cap,commit-before-verdict,
+at610-strict-out-of-order}.md` -> none use the field (confirming the cycle-1 sample was accurately
+described, just wrongly generalized), and `at106-hook-architecture-path.md` / `at110-approval-forgery.md`
+/ `at355-guard-shape.md` do use `Status: ANSWERED` (at110: `Status: ANSWERED -> built and merged`). The
+gate this unit is named after, `qa/gates/at438-u14b-baseline.md`, now reads `**Status: ANSWERED -> acted
+on**` -- `git diff a9357439^ a9357439 -- qa/gates/at438-u14b-baseline.md` shows exactly `+4/-1`, only
+the header line changed. The new form follows the `at110` style (arrow + what happened) rather than
+inventing a fourth spelling -- consistent with the existing two-form convention (bare `ANSWERED`, or
+`ANSWERED -> <outcome>`), not a new one.
+
+### Did correcting the prose introduce new inaccuracies? Yes -- one, low severity, self-disclosed
+
+The manifest's own pasted "Cycle-2 `git diff --stat` before commit" table reads:
+```
+qa/gates/at438-u14b-baseline.md               |   5 +-
+qa/manifests/at438-answered-gate-remainder.md | 150 ++++++++++++++++++++++----
+qa/manifests/at438-display-contents.md        |  40 ++++++-
+3 files changed, 170 insertions(+), 25 deletions(-)
+```
+The actual `git diff --stat a9357439^ a9357439` (re-run fresh by me) is:
+```
+qa/gates/at438-u14b-baseline.md               |   5 +-
+qa/manifests/at438-answered-gate-remainder.md | 153 ++++++++++++++++++++++----
+qa/manifests/at438-display-contents.md        |  40 ++++++-
+3 files changed, 173 insertions(+), 25 deletions(-)
+```
+150 vs 153, 170 vs 173 -- a 3-line undercount on the remainder manifest's own insertion count. This is
+real: the pasted table is stale relative to the file's own final committed state. The manifest's own
+caveat ("the count includes this very table's own addition, which is expected for a self-describing
+manifest") correctly anticipates that this kind of drift is structurally possible for a
+self-describing file, but the actual number pasted still doesn't match -- tracing it, the trailing
+paragraph after the table ("Exactly the three paths...", "No touch to...", the `## Status:` line) was
+written after the `git diff --stat` was captured, adding the missing lines. **I am not failing the unit
+over this**: it does not misstate which files changed, does not change the file count, does not affect
+any of the three required fixes' substance, and is an order of magnitude smaller than the kind of
+misrepresentation cycle 1 FAILed on (a self-contradiction about ledger status, an overstated scope, a
+false convention claim). It is, however, exactly the class of thing the brief asked me to hunt for, and
+I record it here rather than let a fifth instance of "asserting without looking" pass unnoted -- a
+manifest citing an exact `git diff --stat` table should run it *after* all prose is final, or caveat
+the specific number, not just the general phenomenon.
+
+### Doctor / pytest staleness -- ruled acceptable, and here is why with evidence
+
+The manifest's cycle-2 Verify table reports `uv run autotester doctor` -> 1 violation
+(`stale-generated: docs/SNAPSHOT.md`) and `uv run pytest` -> `2 failed` (`test_goal_done_checks.py`,
+T-190 waiver + 81==70 count). Re-running both fresh against this worktree's actual HEAD
+(`a8cee3b9`, which includes the sync-merge of master bringing in `bae9568e` "stamp the tick -- waves
+15-18; recompute goal progress" and the merged `at638-done-check-repair` PASS):
+- `uv run autotester doctor` -> `doctor: clean` (run twice for consistency).
+- `uv run ruff check src tests scripts` -> `All checks passed!`.
+- `uv run pytest tests/test_goal_done_checks.py tests/test_goal_contract_registration.py` ->
+  `8 passed`.
+
+Both reds the manifest reported are real at the manifest's own commit time (`a9357439`) and have since
+been fixed by commits that landed on master *after* `a9357439` (`bae9568e` for the SNAPSHOT
+regeneration; `4a580f2c`/`0b79ab1b` merging the already-PASSed `at638-done-check-repair` for the two
+test reds) and reached this branch only via the later sync-merge `a8cee3b9` -- confirmed via
+`git merge-base --is-ancestor bae9568e a9357439` -> **no** (i.e. it postdates the unit's own commit).
+`git diff --numstat a9357439^ a9357439` confirms the unit's own diff never touches `.goal/*` or
+`docs/SNAPSHOT.md`, so it did not cause either red.
+
+**Ruling: acceptable, not a defect, and not the same question as the manifest's own diff-stat staleness
+above.** `qa/contracts/core-invariants.md` C10 explicitly distinguishes the "reviewed SHA" (what a
+manifest's Verify table describes) from a subsequent "`Merge branch master` sync commit that brings
+in nothing but master's own history," which needs no new cycle precisely because the checker is
+expected to re-verify against the merged tree before relying on it -- which is what I just did, fresh,
+and it is green. Requiring a manifest to predict and paste evidence for commits that land on master
+*after* its own commit, while it waits in the check queue, would be a moving target with no fixed
+point; the sync-merge exception exists so that job falls to the checker instead. This is a different
+disposition from the diff-stat mismatch above only in that the diff-stat table describes the unit's
+*own* content, fully within its control at commit time, whereas the suite/doctor state describes the
+wider repo, which explicitly is not.
+
+### Item 8 -- the two deliberate omissions
+
+- **`qa/QUEUE.md`'s stale sweep note, left unedited.** Verified: a correction already exists in the
+  file at "## Correction -- the `at438-display-contents` answered-gate finding was mostly wrong" (the
+  orchestrator's entry, dated 2026-09-27, naming the sweep's three false claims and filing
+  `ISS-sweep-unverified-negative`). The manifest's claim that "the orchestrator has since appended a
+  correction there" is accurate. **Ruling: acceptable** -- `qa/QUEUE.md` is a live, concurrently-written
+  log with no established in-place-edit convention for past rows (checked: no other row in the file is
+  retroactively marked resolved), and the correction the unit points to already discharges the concern
+  independently.
+- **`qa/contracts/` left untouched by the unit.** Correct restraint -- `qa/contracts/` is checker-owned.
+  See the C7 amendment below, which I made myself in this cycle rather than leaving the cycle-1
+  verdict's recommendation dangling a second time.
+
+### The C7 amendment -- made, not just recommended again
+
+The cycle-1 verdict recommended, but declined to write (correctly, for C10 reasons), one sentence for
+`qa/contracts/core-invariants.md` C7 confirming that a zero-code unit's correctly-named
+pre-existing/concurrent failure does not block its own PASS. The brief asked this cycle's checker to
+settle it rather than pass the recommendation forward a second time. **I amended it.** Added to C7 (new
+bullet after the existing Verify clause) and logged in the Amendment log, both dated 2026-09-27, citing
+this verdict and `qa/verdicts/t192-url-pattern-heal.md`'s independent identical observation. The
+addition is deliberately narrow: it requires the manifest to name the failing test(s) individually and
+*show*, not assert, the cause outside its own diff, and it does not excuse a failure the unit caused,
+misnamed, or did not actually verify -- so it tightens the reading into words without weakening the
+underlying Verify duty. `uv run autotester doctor` and `uv run ruff check src tests scripts` both stay
+clean after this edit (re-run above, post-edit).
+
+### What I did not fault, confirmed independently
+
+- **Diff discipline**: `git diff --numstat a9357439^ a9357439` -> exactly the three paths the manifest
+  and this unit's brief name, matching `qa/gates/at438-u14b-baseline.md` (+4/-1),
+  `qa/manifests/at438-answered-gate-remainder.md` (+134/-19), `qa/manifests/at438-display-contents.md`
+  (+35/-5) exactly as given in the dispatch brief.
+  Cycle-1's own diff (`76bc6e93^..76bc6e93`) numstat re-confirmed too: `142/0` (new file) and `24/2` --
+  matching both manifests' own claims about their cycle-1 change sizes.
+- **Every commit SHA cited by the cycle-2 prose** (`3ae87a54`, `4bba329b`, `6d2eb0bd`, `580fd3a7`,
+  `336433d1`, `76ceb4d4`) resolves to a real commit with the claimed subject line.
+- **`qa/contracts/ui.md`** grep claims ("branch point", "AT-454") both present as claimed.
+- **`at015-at028-hook-adapter-fix.md`** precedent text ("Recovery confirmed -- checked-PASS.") verified
+  present, supporting the manifest's citation of it as prior art for a STALLED-unit resolution flip.
+- **AT-627** is a real, previously-documented flaky-test tag (`test_flake_probe_real_process.py`
+  grandchild test) -- the manifest's framing of its clean pass this cycle as "supporting contention, not
+  regression" is a reasonable, non-overstated reading, not a fifth new claim needing correction.
+
+## Status: checked-PASS -- cycle 2

@@ -175,6 +175,16 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   failing test per mutation; a manifest containing an unreachability claim pastes the attempted
   mutation and its INCONCLUSIVE run alongside it; `uv run autotester doctor` exits 0, which includes
   `check_stale_evidence_specs` finding no unexplained-stale evidence spec.
+- **A failure the manifest correctly names as pre-existing or concurrent, and traces to a cause
+  outside the unit's own diff, does not by itself block that unit's PASS.** The Verify clause above
+  exists to catch drift the unit's own merge introduces or fails to reveal — not to hold a
+  diff-scoped unit (a zero-code bookkeeping/data close-out, or any unit whose `git diff --stat` does
+  not touch the failing test or the code it exercises) hostage to a red it did not cause and cannot
+  repair inside its own path scope (C10). This is not self-certified: the manifest must name the
+  failing test(s) individually (never a summary count), show — not assert — the cause outside its
+  diff, and the checker independently re-runs the suite and re-derives the trace before relying on
+  it. It does not excuse a failure the unit did cause, one it named incorrectly, or one whose cause
+  it did not actually verify.
 
 ### C8 — Provider-agnostic
 - All model calls go through `providers.base.Provider`. No stage imports a vendor SDK directly.
@@ -587,3 +597,18 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   meant. **Changes-authorized:** qa/contracts/core-invariants.md C9 (this entry). No
   enforcement-path file touched. **Links:** AT-638; qa/manifests/at638-done-check-repair.md;
   qa/verdicts/at638-done-check-repair.md.
+- 2026-09-27 · routine (checker, at438-answered-gate-remainder cycle 2) · **C7 gains the
+  pre-existing/concurrent-failure carve-in, in words.** A suite failure the manifest correctly names
+  and traces to a cause outside the unit's own diff does not by itself block that unit's PASS; the
+  checker still independently re-runs and re-derives the trace before relying on it. Two independent
+  units reasoned this out from first principles before this entry existed —
+  `qa/verdicts/at438-answered-gate-remainder.md` (cycle 1) recommended exactly this wording rather
+  than acting on it (correctly out of its own C10 path scope), and `qa/verdicts/t192-url-pattern-heal.md`
+  made the identical observation independently. Closing the recommendation here rather than leaving
+  a second dangling answered question, per the cycle-1 verdict's own instruction to this unit's
+  cycle-2 checker. Tightening/clarifying only: it makes explicit a reading both units already had to
+  derive by hand, and it does not excuse a failure the unit itself caused, named wrong, or did not
+  actually verify the cause of. **Changes-authorized:** qa/contracts/core-invariants.md C7 (this
+  entry). No enforcement-path file touched. **Links:** AT-438;
+  qa/verdicts/at438-answered-gate-remainder.md; qa/verdicts/t192-url-pattern-heal.md;
+  qa/manifests/at438-answered-gate-remainder.md.
