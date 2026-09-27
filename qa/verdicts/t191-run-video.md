@@ -196,11 +196,24 @@ a PASS.
 
 Independently re-ran `uv run pytest tests/ -k video` (76 passed), `uv run ruff check src tests
 scripts` (all checks passed), `uv run autotester doctor` (clean) myself — all green, matching the
-manifest. The full `uv run pytest` re-run was kicked off by the checker directly (not the
-maker's pasted output) and is still completing at time of writing due to real-Chromium-heavy
-tests on a memory-constrained, multi-agent-shared box; its output will be attached to this
-verdict's evidence trail once complete. This does not block the FAIL ruling above, which rests
-on the sweep-race finding alone, independently and completely reproduced.
+manifest. The full `uv run pytest` was also kicked off by the checker directly (not the maker's
+pasted output) and has since completed:
+
+```
+FAILED tests/test_goal_done_checks.py::test_no_pending_task_has_a_done_check_that_cannot_fail
+FAILED tests/test_goal_done_checks.py::test_revised_goal_contract_is_registered
+2 failed, 2067 passed, 6 skipped, 14 xfailed, 15 warnings in 1172.88s (0:19:32)
+```
+
+Both failures are the manifest's own disclosed, independently-confirmed-pre-existing
+`.goal/goal.json` drift (81 tasks vs. the test's hardcoded 70 — `ISS-at638-remainder-2`, already
+filed, already queued as its own unit). AT-627
+(`test_run_once_kills_a_real_hung_process_and_its_real_grandchild`) did **not** fail this run —
+consistent with it being load-sensitive rather than deterministically broken; its absence here is
+not a regression, and its presence would not have been one either. **No fourth failure, no
+failure chargeable to this unit** — the full-suite result confirms the manifest's own account
+exactly. This does not change the FAIL ruling above, which rests entirely on the independently
+reproduced sweep-race finding.
 
 ## Credential boundary
 
