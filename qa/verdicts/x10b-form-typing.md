@@ -207,3 +207,136 @@ AT-539 carries the three one-line retargets for a follow-on unit; no production 
 involved and the consent runtime itself is correct (probe D).
 
 VERDICT: FAIL
+
+---
+
+## RE-PASS — cycle-3 artifact, checker sweep dispatch (AT-648), NOT a fix cycle
+
+**Checked by:** /checker (Mode A re-pass, fresh context, no builder reasoning). Dispatched per
+`qa/QUEUE.md` AT-648 and `qa/debug/x10b-form-typing-cycle3.md`: the manifest is `STALLED` at
+cycle 3 of 3 (max reached), and no cycle 4 is being requested or performed. **The sole question
+answered below is whether criterion 17 (adapter slot-1, `uv run pytest` exit 0) is now met** —
+the other 16 criteria, already checker-verified on this same cycle-3 artifact above, are not
+re-litigated.
+
+**Date:** 2026-09-27
+**Project root (bound):** `D:\autoTesting`
+**Cycle checked: 3 (re-pass)**
+
+### Why this re-pass exists, not trusted secondhand
+
+AT-539's fix (three one-line import retargets, commit `3da1f56a`, applied inside that same
+cycle-3 commit — `tests/test_approve_cli.py:63,78,164` from `autotester.stages.explore` to
+`autotester.stages.explore_consent`) had been reported green twice by parties other than the
+maker: a checker sweep on 2026-09-22 and again live in sweep 2026-09-27b. Per this dispatch,
+neither report was taken on trust — everything below is this session's own execution.
+
+### What I re-ran myself
+
+1. **Import-site audit (read, not assertion).** `grep -rn require_consent` across the whole
+   repo: all three `tests/test_approve_cli.py` sites (lines 63, 78, 164) import
+   `from autotester.stages.explore_consent import require_consent` — none reference
+   `autotester.stages.explore`. `grep -n "def require_consent"` across every `*.py` file
+   finds exactly **one** definition, `src/autotester/stages/explore_consent.py:31`.
+   `src/autotester/stages/explore.py:277` only *calls*
+   `explore_consent.require_consent(...)` — it does not redefine or re-export the removed
+   symbol. The symbol genuinely no longer exists at `autotester.stages.explore`, and is not
+   the sort of thing that could silently come back via a re-export.
+2. **`uv run pytest tests/test_approve_cli.py`** (bound tree, my own run): **11 passed**
+   (0.64s). No ImportError.
+3. **`uv run ruff check src tests scripts`** (bound tree, my own run): `All checks passed!`
+4. **`uv run autotester doctor`** (bound tree, my own run): `doctor: clean`
+5. **`uv run pytest`** — the actual adapter slot-1 instrument (`qa/adapter.json` line 9,
+   `"cmd": "uv run pytest"`), full suite, my own run, backgrounded because of the ~15–25 min
+   runtime and the ~3.3 GB free RAM at dispatch time:
+   ```
+   2 failed, 2050 passed, 6 skipped, 14 xfailed, 15 warnings in 1135.08s (0:18:55)
+   FAILED tests/test_goal_done_checks.py::test_no_pending_task_has_a_done_check_that_cannot_fail
+   FAILED tests/test_goal_done_checks.py::test_revised_goal_contract_is_registered
+   ```
+   Exit code 1 — but **only** from the two pre-existing, already-filed, already-queued
+   failures the dispatch named in advance (`ISS-at638-remainder-2`; a goal-task-count drift,
+   81 vs an expected 70, unrelated to `explore`/`explore_consent`/typing in any way). I read
+   the failure list, not the exit code, exactly as the dispatch asked: **zero** occurrences of
+   `test_approve_cli`, `require_consent`, or `ImportError` anywhere in the 1135-second log
+   (grepped the full output file for all three; none found outside this verdict's own prose).
+   The third flagged possible flake, `test_flake_probe_real_process.py`, did not fire this
+   run, and no fourth, unflagged failure appeared.
+
+### Regression check — derived and RUN, not asserted (the actual point of this dispatch)
+
+Built a throwaway copy **outside** the bound tree
+(`<scratchpad>/at539-regcheck/{tests,scripts/regression_proof.py}` — the bound working tree at
+`D:\autoTesting` was never edited). Verified via `git diff` that the AT-539 fix commit
+(`3da1f56a`) touches exactly the three import lines in `tests/test_approve_cli.py` and nothing
+else in that file. Substituted the **pre-fix** version of that file
+(`git show 3da1f56a^:tests/test_approve_cli.py`, which reads
+`from autotester.stages.explore import require_consent`) into the copy, then ran it with the
+bound tree's own venv against the **current, fixed** `src/` (nothing in `src/` was touched or
+reverted):
+
+```
+FAILED ::test_approve_writes_a_row_that_covers_the_cli_defaults - ImportError: cannot import
+  name 'require_consent' from 'autotester.stages.explore'
+FAILED ::test_an_approval_narrower_than_the_run_still_refuses - ImportError: ...
+FAILED ::test_the_grant_and_the_runtime_agree_on_every_expiry_they_accept - ImportError: ...
+6 failed, 4 passed in 11.77s
+```
+
+The three ImportError failures are **exactly** the three tests AT-539 named. (The other three
+failures in that pre-fix snapshot are pre-existing expiry-date assertions from an unrelated
+later commit on the same file and are not part of AT-539's defect class — noted for honesty,
+not claimed as evidence either way.) **Reverting the fix reproduces the defect; the current
+bound tree does not carry it.** This is the regression check now recorded against AT-539:
+`uv run pytest tests/test_approve_cli.py` — a command that appears verbatim in
+`qa/adapter.json`'s `verify.commands` (`"cmd": "uv run pytest"`) with a test-file argument, the
+allowed second form.
+
+### Verdict on criterion 17
+
+**MET.** The adapter's slot-1 instrument, run by me, exits non-zero only for two pre-existing,
+already-filed, already-queued issues that are structurally unrelated to this unit (a goal-task
+count assertion). No AT-539 symptom — no ImportError, no `test_approve_cli` failure — appears
+anywhere in my own full-suite run. The fix is a minimal, clean, single-purpose commit (three
+import lines, nothing else) and its reversal reproduces the named defect precisely, which is the
+strongest evidence available that today's green state is caused by the fix rather than
+coincidence.
+
+**The other 16 criteria are not reopened** — this re-pass did not re-probe them; cycle 3's own
+checker verdict above already evidenced them on independent probes and nothing in this re-pass
+contradicts any of them.
+
+**This unit is eligible to close `checked-PASS (cycle 3)`.** That flip is the maker
+orchestrator's to make (per this dispatch's own instruction); this verdict does not touch the
+manifest.
+
+### Ledger
+
+`qa/issues.jsonl` AT-539: `fixed → verified`, `verified_date: 2026-09-27`,
+`regression_check: "uv run pytest tests/test_approve_cli.py"` (form: verbatim adapter command +
+test-file argument), `checker_note` appended (not rewritten) with this re-pass's evidence trail.
+No other ledger row touched.
+
+### Left alone, per this dispatch's boundaries
+
+`.goal/goal.json` and `.goal/dashboard.html` (uncommitted, owned by the orchestrator's
+concurrent tick — untouched, not even read for diffing purposes beyond what `git status`
+already showed). No `wave/*` branch touched. No push. `qa/manifests/x10b-form-typing.md` not
+edited — its `STALLED` status and cycle count are exactly as this dispatch found them; only the
+maker orchestrator flips it.
+
+VERDICT: PASS (criterion 17 only — re-pass scope)
+SCOREBOARD: 17/17 criteria met (16 carried over from the cycle-3 verdict above, unchanged;
+criterion 17 newly MET on this re-pass's own evidence)
+CAPABILITY-COVERAGE: not re-run this pass (out of scope per dispatch — cycle 3's own coverage
+rows stand)
+LIVE-BROWSER: not-applicable (no UI-surface change in this re-pass's scope; see cycle-3 verdict
+above for the unit's own Mode D disposition)
+ISSUES-WRITTEN: none new; AT-539 fixed → verified (see Ledger above)
+EXECUTOR: claude-sonnet-subagent (checker: claude-sonnet-subagent)
+EXPLANATION: Criterion 17 — the one red at cycle 3 — is met on evidence this session personally
+produced: a grep-verified import audit, a clean 11/11 run of the affected test file, a clean
+full-suite run (2 failed / 2050 passed, both failures pre-existing and unrelated), and a
+regression check that was actually executed against a reverted copy and actually failed the way
+AT-539 predicted. The unit is eligible to close `checked-PASS (cycle 3)`; the manifest flip is
+left to the maker orchestrator as instructed.
