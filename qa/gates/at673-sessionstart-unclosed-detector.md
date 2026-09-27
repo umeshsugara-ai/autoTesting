@@ -120,7 +120,7 @@ The hold was right; the reason given for it was not.
 ## Addendum — ledger id block 670–679 is RETIRED, not reserved
 
 The checker flagged that `AT-673` was allocated from the block `qa/QUEUE.md` reserves for
-`wave/t191-video-reachable`. Checked: that wave **merged** at `afa7773a` and its remap to 670/671/672
+`wave/t191-video-reachable`. Checked: that wave **merged** at `8f577aef` and its remap to 670/671/672
 is already on master, so no further ids are coming from it and 673+ were free. Verified `AT-673` is
 unique on master. The reservation table should now read the block as retired — the checker's caution
 was correct in form, and the block being live is the only thing that made it not a collision.
