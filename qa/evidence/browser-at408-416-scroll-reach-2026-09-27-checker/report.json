@@ -1,0 +1,48 @@
+{
+  "unit": "at408-416-scroll-reach",
+  "date": "2026-09-27",
+  "checker_role": "independent Mode D live-browser verification (D-024, gate qa/gates/at416-clip-vs-reach-direction.md)",
+  "instrument": "playwright MCP tool driving real headless Chromium (own browser, not the maker's pytest run or screenshots)",
+  "runs": [
+    {
+      "target": "tests/fixtures/bidi_site/at416_card.html (this unit's own shipped fixture, served from the bound worktree at 127.0.0.1:8934)",
+      "script": "the ACTUAL spliced visual_order.js + visual_order_reach.js from the bound worktree (read verbatim, spliced exactly as observe.py does, evaluated in-page)",
+      "before_scroll": "CONTROL_AT416_ALWAYS_VISIBLECARD_TOP_SENTINELCARD2_TOP_SENTINELCARD3_TOP_SENTINELCARD_BELOW_FOLD_SENTINELCARD2_BELOW_FOLD_SENTINEL",
+      "after_scroll_both_bodies_to_end": "CARD_TOP_SENTINELCARD2_TOP_SENTINELCONTROL_AT416_ALWAYS_VISIBLECARD_BELOW_FOLD_SENTINELCARD2_BELOW_FOLD_SENTINELCARD3_TOP_SENTINEL",
+      "sorted_glyph_sets_equal": true,
+      "CARD3_HIDDEN_SENTINEL_ever_reported": false,
+      "console_errors": ["favicon.ico 404 (irrelevant)"],
+      "verdict": "matches the fixture tests' claim; independently reproduced outside pytest"
+    },
+    {
+      "target": "checker-authored probe: checker_probe_3scroller.html (L0 hidden 40px clip > L1 auto 40px > L2 auto 40px > L3 auto 40px, 3 GENUINE scrollers under one hard clip -- NOT present anywhere in the shipped corpus, which caps at DEPTHS=(1,2,3) i.e. at most 2 scrollers)",
+      "served_from": "scratchpad (outside the bound root), never written into the artifact tree",
+      "purpose": "independently probe whether the manifest's claim ('a chain of N segments, one per scroller crossing... a strict generalization') actually holds for N=3 scroller crossings, since the shipped test suite only exercises N<=2 (the hidden-auto-auto family)",
+      "at_rest": "CONTROL_PROBE3_ALWAYS_VISIBLEPROBE3_TOPPAGE_FOOT_PROBE3PROBE3_BOTTOM",
+      "after_scrolling_L1_and_L2_to_150px (the two INTERMEDIATE scrollers, not the innermost)": "PROBE3_TOPCONTROL_PROBE3_ALWAYS_VISIBLEPROBE3_BOTTOMPAGE_FOOT_PROBE3",
+      "sorted_glyph_sets_equal": true,
+      "finding": "the shipped code handles this correctly by live measurement, BUT this exact geometry (3 genuine scroller crossings under one clip) has NO test anywhere in the unit -- only 2 scrollers (hidden-auto-auto) are ever exercised by the committed corpus. Reduces analytically to the same single-non-trivial-segment shape as the tested case (only 1 hard clip exists in this probe), so it does not by itself prove the MULTI-clip chain case."
+    },
+    {
+      "target": "checker-authored probe: checker_probe_2clip.html (L0 hidden 40px clip > L1 auto 40px > L2 hidden 40px clip > L3 auto 40px, TWO independent hard-clip boundaries each adjacent to its own scroller -- the harder case: two simultaneously non-trivial segments in the same chain, never exercised at any depth in the shipped corpus since DEPTHS caps at 3 and this needs depth 4)",
+      "served_from": "scratchpad (outside the bound root), never written into the artifact tree",
+      "purpose": "this is the geometry that actually stresses 'a chain of N segments' as opposed to 'N-1 vacuous no-op segments plus one real one' -- the shipped hidden-auto-auto fix only ever has ONE non-trivial clip segment even with 2 scrollers present",
+      "at_rest": "CONTROL_PROBE2C_ALWAYS_VISIBLEPROBE2C_TOPPAGE_FOOT_PROBE2CPROBE2C_BOTTOM",
+      "after_scrolling_L1_to_150px_and_L3_to_150px": "PROBE2C_TOPCONTROL_PROBE2C_ALWAYS_VISIBLEPROBE2C_BOTTOMPAGE_FOOT_PROBE2C",
+      "sorted_glyph_sets_equal": true,
+      "finding": "the shipped code is ALSO correct on this harder, never-tested geometry, verified independently in real Chromium by this checker. This is evidence the implementation generalizes correctly, but it remains evidence the CHECKER produced, not evidence the ARTIFACT carries -- no committed test exercises 2+ simultaneous non-trivial clip segments, so the manifest's 'strict generalization... chain of N segments' claim is unenumerated beyond N=2 in the unit itself, per core-invariants.md C7's mutation/enumeration discipline."
+    }
+  ],
+  "capability_coverage_falsification_rows": {
+    "throwaway_copy": "scratchpad/falsify-at408416 (own venv, uv sync --frozen, confirmed green: 54 passed, 14 xfailed, before any edit)",
+    "rows_reproduced": 4,
+    "rows_total": 4,
+    "detail": [
+      {"row": "AT-408 accumulation gate", "expected": "13 failed incl named regression test", "observed": "13 failed, 24 passed, 14 xfailed, named test in failures", "match": true},
+      {"row": "AT-416 core (refBox vs rect)", "expected": "20 failed incl both named fixture tests", "observed": "20 failed, 18 passed, 14 xfailed, both named tests in failures", "match": true},
+      {"row": "AT-416 nested (lock refBox to first scroller)", "expected": "4 failed, 14 xfailed (manifest's '50 passed' parenthetical is a typo -- corpus total is 50, so 4+32+14=50; actual observed passed count is 32, not 50)", "observed": "4 failed, 32 passed, 14 xfailed -- exactly the 4 predicted shapes (hidden-auto-auto, +tall, +clip, +clip+tall)", "match": "match on failure count and named shapes; manifest's passed-count parenthetical is off by 18 (typo, not a material misrepresentation)"},
+      {"row": "AT-393 negative control (drop overflow-amount check)", "expected": "3 failed, NESTCLIP_BELOW_SENTINEL_F2 leak assertion fires", "observed": "3 failed, exact assertion (NESTCLIP_BELOW_SENTINEL_F2 leaked) confirmed", "match": true}
+    ],
+    "revert_verification": "each row's file was byte-diffed against the worktree original after revert -- REVERTED-IDENTICAL every time; bound worktree left untouched throughout"
+  }
+}
