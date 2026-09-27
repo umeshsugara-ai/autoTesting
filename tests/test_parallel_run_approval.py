@@ -130,11 +130,14 @@ def test_the_shape_the_approve_command_writes_with_no_bound_flags_grants_nothing
 # -- PR7: consent bounds apply to the whole run, never widened per worker ----
 
 def test_pr7_aggregate_budget_is_not_multiplied_by_concurrency() -> None:
+    """CN10: the bound and the MARGIN are named, so the refusal is demonstrably
+    the bound firing rather than a number chosen large enough that exceeding it
+    was arranged. Granted 10 actions; the run wants 12 (4 cases x 3 steps), so
+    it is over by 2 -- and the last case to ask must be refused."""
     cases = [_case(i, n_steps=3) for i in range(4)]  # cost 3 each -> 12 if ungated
     naive_total = sum(action_cost(c) for c in cases)
-    assert naive_total == 12
-
     approval = _approval(max_actions=10)  # a REAL non-zero bound, narrower than the run
+    assert (approval.max_actions, naive_total, naive_total - approval.max_actions) == (10, 12, 2)
     results = run_cases(cases, _plan(4), _isolated_factory([]), _ok, approval=approval)
 
     assert any(_exhausted(r) for r in results), "at least one case refused by the shared budget"

@@ -98,7 +98,7 @@ No existing row edited or renumbered.
   wall_clock_s=100_000.0, sign=True, expires_at="2099-01-01", run_kind=LIVE_CASE)`. Grant it, never
   bypass the gate. Not a test module (pytest does not collect it) and deliberately not in
   `crawl_fake.py`, which drags in a real `BrowserSession`.
-- **NEW `tests/test_parallel_run_approval.py`** (163 lines, 9 tests) — the `RunBudget`/`RunApproval`
+- **NEW `tests/test_parallel_run_approval.py`** (166 lines, 9 tests) — the `RunBudget`/`RunApproval`
   file. Imports `_approval, _case, _isolated_factory, _project` from `test_parallel_run` (the
   repo's established cross-test-module pattern, e.g. `test_ui_runs_parallel_trace` imports from
   `test_ui_runs`). Holds the AT-660 **both-sides-in-one-test** assertion and the two PR7 budget
@@ -398,5 +398,27 @@ because they are the largest diff surface a reviewer will see:
   first hardcoded `target="https://demo.test"` and still 403'd, because onboarding normalises the posted
   `base_url` and `require_approval` matches the target **exactly** — it now reads `project.base_url` back
   from disk.
+
+### D14 — CN10 moved under me while I was building, and I folded both new clauses
+
+`master` advanced to `e64ccf22` during this build and `qa/contracts/consent.md` gained two CN10
+clauses I was not briefed on (`git diff a27fb03b..master -- qa/contracts/consent.md`). I read them and
+folded both rather than shipping against the older text:
+1. **"The over-budget test names the bound it exceeds and by how much."**
+   `test_pr7_aggregate_budget_is_not_multiplied_by_concurrency` now asserts
+   `(approval.max_actions, naive_total, naive_total - approval.max_actions) == (10, 12, 2)` — the
+   bound, the demand and the margin, so the refusal is demonstrably the bound firing. At the route
+   level the margin is already in the asserted message text: `"actions 3 > approved 1"`.
+2. **"The remediation covers all three bound fields, not the one visible on disk."** Already satisfied
+   — all three guards were dropped, which is also what the coordinator's scope-guard correction #5
+   required. The checker's own amendment entry records that this clause *corrects the checker's* earlier
+   narrowing to `max_probes`; I did not narrow.
+
+**Merge hazard, not a defect.** My branch is based on `a27fb03b`; `master` is now `e64ccf22` and has
+appended `AT-690`, `AT-691`, `AT-692`, `AT-693`, `AT-694` (and others) to `qa/issues.jsonl` while I
+appended `AT-680`–`AT-683` to the same file's end. **`qa/issues.jsonl` will conflict on merge**, purely
+positionally — no id collides, both sides are pure appends, and the resolution is to keep both blocks.
+Flagging it because the checker merges the reviewed SHA and should not discover this mid-merge. Nothing
+else I touched has moved on master (`git diff a27fb03b..master` lists no `src/` or `tests/` path I own).
 
 ## Status: ready-for-check
