@@ -1176,3 +1176,127 @@ folds them into `crawl-traversal.md` so the next unit does not re-derive them.
 
 **Status:** unfolded
 
+
+## 2026-09-27 — self-discovered, t165-crawl-traversal cycle-2 build (maker, not user feedback)
+
+> Three contract-shaped questions the ISS-3 fix raised. I did not edit `qa/contracts/`; the
+> reading I took is stated so a checker can ratify or overturn it.
+>
+> **Q4 — `missing_unjudged` now also covers a SKIP, not only a bound.** CR4's text defines the
+> fifth category as "stored keys not reached by a crawl whose frontier was **not** exhausted (a
+> bound stopped it)", and `PersonaRevision.missing_unjudged`'s own field description says
+> "BOUND-TRUNCATED". The ISS-3 fix puts skip-truncated keys in the same category, because a CR3
+> skip is likewise a crawl that did not look: `persona_changes._judged_exhausted` returns False
+> when any node carries `SKIPPED_UNCHANGED`, so a byte-identical incremental re-crawl now reports
+> 0 `missing` and 8 `missing_unjudged` (live numbers below). **Reading taken:** the category's
+> purpose is "a disclosed unknown, never a finding", and a skip produces exactly that, so it is
+> the same category rather than a sixth. `describe()`'s prose changed from "a bound truncated the
+> frontier" to "a bound or a skipped-unchanged screen left the crawl incomplete" — it must name
+> BOTH causes, because a skip-truncated crawl still ends with an empty frontier. If the checker wants skip-truncation
+> named separately, that is a new category plus a `PersonaRevision` field, and nothing else in
+> this unit depends on which way it goes.
+>
+> **Q5 — check A's suggested fix (seed the frontier from `persona.keys`) was NOT taken, and
+> should be ruled on.** The two closures CR4's own gap note offers are (a) seed the frontier from
+> the persona's known screens, (b) treat a skipped node's prior stored transitions as discovery
+> edges. I took neither, for reasons that are contract-level, not preference: (a) `PersonaScreen`
+> stores a `url_template` — a TEMPLATE (`/user/{id}`), not a resolvable URL — so navigating to it
+> means the crawler inventing a destination it never observed, which X1/X7 sit directly against;
+> (b) the persona's `PersonaTransition` records screen NAMES, not node ids or signatures, so it
+> cannot re-materialise a `ScreenNode` to enqueue. Both (a) and (b) also cost real navigations,
+> which puts CR3's own acceptance test (b) — "≤10% of the first crawl's `actions_used`" — out of
+> reach: `deep_site` costs 20 actions for 9 screens, so re-reaching 8 of them is ~40%. **Reading
+> taken:** D-040's ≤10% figure means pruning the subtree IS the intended behaviour, and the defect
+> was entirely in what the pruned crawl then CLAIMED. If the checker reads D-040 the other way,
+> CR3's ≤10% acceptance test and this fix cannot both stand, and that is a contract decision.
+>
+> **Q6 — the consequence of Q5, stated plainly because it is a real capability limit.** With
+> pruning intended, an incremental crawl detects a change only on screens it actually reaches: if
+> `/` is unchanged and `/deep3.html` changed, crawl 2 skips `/`, never clicks through, and reports
+> `/deep3.html` as `missing_unjudged` — honest (it says it did not look) but not a change
+> detector. CR3's own falsifiable test only exercises the all-changed and none-changed arms, so
+> nothing in the contract currently promises the mixed case either way. A future unit wanting
+> "detect a deep change cheaply" needs a mechanism this unit does not have — most likely a cheap
+> navigation-only re-walk that does not count as exploration — and it needs its own criterion.
+>
+> **EVIDENCE:** `qa/evidence/browser-t165-crawl-traversal-2026-09-27-cycle2/report.json` (headed
+> Chromium, `tests/fixtures/deep_site`): crawl 1 `actions=20, screens=9, completed`; crawl 2
+> `actions=0, screens=1, skipped_unchanged=1`; revision `missing=0, missing_unjudged=8`. Cycle 1
+> produced `missing=8` on the same pair.
+> **Q7 — the ISS-2 fix makes the persona grow against an UNSTABLE structural signature, and the
+> growth has no cap.** `_merge` now dedupes screens on `PersonaScreen.ident()` (key AND signature)
+> instead of `key()`, which is what stops a second real screen at one URL from being dropped. The
+> cost, measured directly (5 crawls of one URL whose signature rotates every run): stored screens
+> go `1, 2, 3, 4, 5`, one `PersonaRevision` each, `changed=['/']` from crawl 2 on. The same input
+> before this change gave 1 stored screen and the identical `changed` every crawl — so the new
+> cost is unbounded GROWTH, not extra noise. PP2 forbids pruning, so nothing reclaims it.
+> **Reading taken:** a screen you never learn about is worse than a screen you learn about twice,
+> and `screen_identity.structural_signature` already excludes `in_row` elements precisely so that
+> list pages do not churn — so signatures are meant to be stable and an unstable one is a product
+> or fingerprinting defect, not a normal case. **But that is a judgement, not a contract clause.**
+> If a checker wants a bound, the options I can see are (a) cap the stored states per key and
+> record the truncation (needs a PP2 amendment), (b) keep one entry per key and carry a set of
+> signatures on it (a schema change, which breaks nothing that reads today but must be ruled on),
+> or (c) accept the growth. Nothing else in this unit depends on which.
+> **EVIDENCE:** probe run in the throwaway `git archive` copy, not the bound worktree; numbers
+> above. Also measured and reported in the manifest: the STABLE two-state case does NOT grow — 3
+> crawls of a `/` with two fixed signatures leave 2 screens and 1 revision in total.
+> **APPLIES NEXT:** whoever checks `t165-crawl-traversal` cycle 2, alongside Q4-Q6.
+>
+> **APPLIES NEXT:** whoever checks `t165-crawl-traversal` cycle 2 rules on Q4-Q9.
+
+> **Q8 — CR4's "broken's prior state" ruling and ISS-t165-crawl-traversal-4 now contradict each
+> other, and the contract clause is the one that has to move.** The contract (crawl-traversal.md,
+> "`broken`'s 'prior state' ruling", routine amendment 2026-09-27) says the prior state is "the most
+> recent `PersonaRevision` that classified anything, via its own `broken_screens` list". That is
+> *exactly* the implementation ISS-4 was filed against and asked to be replaced. ISS-4's `expected`
+> asks instead for "the union of `broken_screens` across ALL prior revisions minus any later
+> revision that observed the screen and found it not-broken". I implemented the issue, not the
+> clause, because the issue is the later, more specific ruling and the clause's own reading is
+> the defect. **The clause needs a superseding amendment on PASS; a checker reading the contract
+> literally will otherwise find the code in violation of it.**
+> **What the implementation costs.** The subtraction is impossible to compute from the five CR4/CR5
+> categories alone: a screen that a crawl reached and found healthy appears in NO category, so
+> "never re-observed" and "observed healthy" are indistinguishable in the stored history. I added a
+> **sixth field** to `PersonaRevision`, `healthy_screens`, and kept it deliberately outside the
+> category surface: it is not in `counts()`, `CATEGORIES` stays five, a new `PROVENANCE` tuple holds
+> it, and a test asserts all three of those so the five-category surface cannot drift by accident.
+> It is `default_factory=list`, so every persona written before this unit still loads (tested).
+> It records only keys a PRIOR revision called broken and this crawl VISITED and found healthy — a
+> `SKIPPED_UNCHANGED` node is not an observation and never lands there, the same reasoning
+> `_judged_exhausted` applies to `missing`. `describe()` gains the word "recovered" for it, which is
+> the one place it surfaces to a human.
+> **Residual I could not close:** if a heal happens on a crawl whose merge summary is otherwise
+> empty AND nothing else classified, `build_portal_persona` writes no revision at all — but since
+> `healthy_screens` is non-empty exactly when a previously-broken screen recovered, `describe()`
+> now returns "N recovered" in that case, so the revision IS written. I believe this closes it;
+> I could not construct a case where it does not, which is not the same as proving there is none.
+> **Ruling wanted:** (a) amend the "prior state" clause to the replay reading, and (b) ratify
+> `healthy_screens` as provenance rather than a sixth category — or reject it and tell me to accept
+> that a relapse is never re-reported.
+> **EVIDENCE:** review of 96bacbbc by a fresh `senior-software-engineer` agent, live-reproduced;
+> tests `test_a_screen_that_healed_and_then_relapsed_is_reported_broken_again` and
+> `test_a_skipped_screen_is_not_an_observation_of_health`; falsifications M5, M6, M7.
+> **APPLIES NEXT:** whoever checks `t165-crawl-traversal` cycle 2.
+
+> **Q9 — two defects the checker's cycle-1 dual check did NOT find, fixed here, both worth a
+> filed issue so the ledger is honest about them.** Neither is one of the four I was sent.
+> (1) `explore_incremental.PersonaIndex.__init__` kept the identical first-wins
+> `setdefault(screen.key(), screen)` that ISS-2 removed from `_reached`, `_incoming_screens` and
+> `_merge`. It is in a file cycle 2 did not otherwise touch, and it only became reachable BECAUSE
+> the ISS-2 fix made a persona able to store two states at one URL. Consequence: a live node
+> matching the SECOND stored state never matched, so it was re-explored on every incremental crawl
+> — never a false skip (the safe direction), but CR3's efficiency guarantee and D-040 acceptance
+> test (b)'s "≤10% of the first crawl's actions" silently lost for exactly the X3/X14 shape the
+> ISS-2 fix newly supports. (2) `replay_fills` ran the new X7 check with **no `settle()` in front
+> of it**, unlike every other X7 site (`explore_typing._type_one`, and `perform()`'s own two
+> branches). `BrowserSession.fill()` is a bare Playwright fill that does not wait for a
+> JS-triggered navigation, so `current_url()` could read a stale, still-on-domain URL — the check
+> would have passed for free in precisely the auto-submitting-fill case its own comment claims to
+> catch. The first-cycle-2 tests could not see it because the fake session returned a constant URL;
+> `_RecordingSession` now models navigation **asynchronously** (an action only schedules the new
+> URL; `current_url()` changes only after `settle()`), so a missing settle cannot pass again.
+> **APPLIES NEXT:** file both against `crawl-traversal`; and note the general lesson — a fake that
+> cannot be wrong about timing cannot test a timing-dependent guard.
+
+**Status:** unfolded
