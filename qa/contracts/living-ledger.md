@@ -75,6 +75,34 @@ human instead of silently rebuilt. It is the product's **overview, not a logger*
   (confidence-gated rules → AI).
 - **Verify:** `git log -p docs/DECISIONS.md` shows additions only; a direct Edit is denied by the hook.
 
+### L8 - A ledger id identifies exactly one row, and a repeated one is REPORTED, never merged
+- `qa/issues.jsonl` is the canonical issue ledger and is `merge=union`: two loops appending
+  concurrently is normal, so a duplicated id is not an anomaly to be prevented by care - it is what
+  one shared counter produces under concurrent filing, and this repo carries ten documented pairs
+  to prove it.
+- **The rule is detection, not prevention, and explicitly not deletion.** A duplicate id must be
+  *surfaced* - `uv run autotester doctor` names each duplicated id with both line numbers.
+  Pre-existing pairs are history: they are grandfathered by an allow-list that carries the reason,
+  or remapped once under a manifest with the old -> new mapping recorded in each row's
+  `checker_note`. **A validator is never made green by destroying the rows that made it red.**
+- **No id-keyed read may silently collapse a duplicate.** `dict[id] = row` keeps one row per id,
+  chosen by file order, so a `verified` row can shadow an `open` one with the same id and the open
+  finding disappears from every consumer at once. A reader must return a state the caller cannot
+  mistake for a single status. This is **C12(b)** on the ledger surface: absence of uniqueness
+  currently reports as cleanliness. Verify by construction - build a ledger with two rows for one
+  id and assert the reader does not report one clean status; a test over a unique-id fixture cannot
+  catch this, because the duplicate IS the defect.
+- **Allocation is separate from detection, and both are required.** A branch that files rows
+  reserves an id block first rather than allocating from the shared high-water mark (`qa/QUEUE.md`,
+  maker 2026-09-28: renumbering into a range another writer is still advancing cannot converge).
+  That rule prevents *new* collisions while every writer reads it; it does nothing about the ones
+  already on disk, and it is prose in a queue document rather than a check.
+- **Precedent, same codebase:** `ledger/store.py::load_events` already rejects a repeated id in
+  `docs/FEATURES.jsonl` - *"rows are history, so a repeated id is a defect, not a merge."* The
+  canonical ledger is the one with no such rule. It is the outlier, not the baseline.
+- **Verify:** `uv run autotester doctor` reports a violation for a ledger holding two rows with one
+  id, and `uv run pytest` covers the two-rows-one-id reader case. **Links:** AT-656.
+
 ## Out of scope
 The UI view of the ledger (T-100); auto-inferring `user_value` from run data (suggestion source
 only, later); Google-Sheet sync.
@@ -96,3 +124,17 @@ only, later); Google-Sheet sync.
   `render_map`'s returned dict by the checker independently (zero-diff `doctor.py`, and a scratch-copy
   reproduction proving `check_generated_fresh` reddens on both a new untracked script and an edited
   existing script's docstring). Additive only, no criterion weakened.
+- 2026-09-28 - routine (add) - L8 added: a ledger id identifies one row; a repeat is reported, never
+  merged, and never fixed by deleting rows. Cause: the maker reserved id blocks (commit 449fd3c9,
+  `qa/QUEUE.md:1333`) after finding that renumbering into a range another writer is still advancing
+  cannot converge - a correct rule for ALLOCATION that says nothing about DETECTION. Checker
+  measurement on master at 6f7846c9: ten duplicate ids, six of them status-divergent, and
+  `ledger/checks.py:141-152` `_status_by_id` keeps the last row per id unconditionally, so three
+  rows that are `open` on disk read as `verified`/`fixed` to every id-keyed consumer - including
+  `check_qa_issue_rows`, the loss-detector written *because* a status silently reverted. Latent, not
+  currently firing: `at540-assertion-layer` names all six as bare ids, so `_claims_a_fix` yields an
+  empty set and doctor is correctly clean today; the guard is defeated the moment a manifest uses
+  the documented parenthetical form. L8 is additive - no existing criterion weakened, and it
+  deliberately does NOT require the ten pairs to be removed. **Changes-authorized:**
+  qa/contracts/living-ledger.md L8 + Amendment log (this entry). No enforcement-path file touched.
+  **Links:** AT-656; AT-645; AT-496; qa/contracts/core-invariants.md C12(b); qa/QUEUE.md.
