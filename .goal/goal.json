@@ -4,7 +4,7 @@
   "north_star": "A reusable AI testing platform where an operator submits any project URL, domain-scoped test-account credential references, and optional evals, conditions, use cases, video, audio, documents, text, email or Google Drive sources. AutoTester learns from supplied evidence or logs in and performs bounded breadth-first exploration, preserves a durable Portal Persona, compiles traceable best/worst/edge evals, reruns them after developer releases in a real visible browser, and reports workflow/API regressions through clear HTML, Excel, text and screenshots. First acceptance targets: Vidysea ERP and Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-27T23:52:06",
+  "updated": "2026-09-28T04:32:02",
   "progress": {
     "total": 81,
     "done": 58,
@@ -419,7 +419,7 @@
       "deps": [],
       "done_check": {
         "type": "cmd",
-        "cmd": "uv run autotester doctor",
+        "cmd": "uv run python scripts/check_deliverable.py --exists docs/plan.md --contains docs/DECISIONS.md D-016 && uv run autotester doctor",
         "expect_exit": 0
       },
       "note": "Plan approved 2026-09-07 (plan.md). Backlog was empty; this registers all Track A/B/G units so the maker doesn't report BACKLOG_EMPTY. [AT-089 fix: marked done after checker sweep caught the tick/goal-state mismatch -- commit fc6aa70 landed all the work but never flipped this row.]",
@@ -1533,7 +1533,7 @@
       "criticality": "medium",
       "done_check": {
         "type": "cmd",
-        "cmd": "uv run autotester doctor",
+        "cmd": "uv run python scripts/check_deliverable.py --contains projects/erp/screenmap.json \"\\\"url_pattern\\\": \\\"/erp/trainers\\\"\" && uv run autotester doctor",
         "expect_exit": 0
       },
       "note": "gate t135-url-pattern-data-migration answer B (D-048): the answer approves exactly one Analyze run's vision call on projects/erp.",
@@ -1921,9 +1921,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 2.07,
-    "eta_days": 11.1
+    "velocity_per_day": 2.05,
+    "eta_days": 11.2
   },
-  "last_deterministic_tick": "2026-09-27T23:52:06",
+  "last_deterministic_tick": "2026-09-28T04:32:02",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }
