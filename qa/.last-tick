@@ -243,3 +243,31 @@ LIVE: t192 checker + 4 builds (at335-salvage, t186 [cap 2], t189, t191). t186 st
 waiting on its own background work and has not reported yet.
 OPEN HUMAN GATES (3): t125 stall A-D; CT6 vs RU3; at638 four-contract authorization.
 NEW LEDGER DEBT: ISS-at638-remainder-2 (high) -- needs its own unit once the wave drains.
+
+## tick 2026-09-27T12:40:00+00:00 -- ADVANCED (at335 salvage ready + dispatched)
+at335-modal-determinism ready-for-check (eae44a3a); master merged in; checker dispatched same
+turn (no dangling). The salvage was ADOPTED WITH REWORK, which is the outcome I hoped for when I
+told the subagent to verify rather than adopt:
+- it found the salvaged test was VACUOUS -- mutating _matches to unconditionally return True
+  left it passing, proving only that a success path exists, not that the fingerprint is polled.
+  Exactly the AT-548/549/550 shape. Closed with a new lag-exceeds-bound test.
+- it caught the false claim I had flagged: the salvaged docstring said "measured live" of the
+  1500ms/0.15s constants. The 1-in-14 rate is real and evidenced; the constants were never
+  measured. Reworded in place to say so.
+- it traced the real cost rather than hand-waving X4: ~16.5s added from the tolerance alone,
+  ~44s combined worst case per pathological return_to, a ~60% growth in the per-action overshoot
+  ceiling. Disclosed as a cost and referred to the checker for a ruling.
+- live flake_probe N=20 gave 0/20 but it stated honestly this bounds the rate only at 13.9%@95%
+  and does NOT exclude the suspected 7.1%; declined to extend to N=41 because the harness own
+  prior N=41 against UNFIXED code was also clean. Corroboration, not proof. Correct call.
+
+CORRECTED A SUBAGENT ATTRIBUTION: it blamed the two extra suite failures on AT-642. Wrong --
+AT-642 is target.md:212 stale progress line, a different defect. The right row is
+ISS-at638-remainder-2, and I traced the cause to my own commit f9e7d406. Its out-of-scope
+CONCLUSION was right (its diff touches no .goal/ file); its attribution was not. Carried into the
+checker dispatch with an instruction to re-derive rather than trust either of us.
+
+LIVE (4): at335 checker, t192 checker, t186 build (cap 2), t189 build, t191 build.
+T-186 has now stopped twice waiting on its own background work without reporting.
+OPEN HUMAN GATES (3): t125 stall A-D; CT6 vs RU3; at638 four-contract authorization.
+QUEUED, DEPENDENCY NAMED: iss-at638-2-done-check-repair waits on the 4 in-flight checks.
