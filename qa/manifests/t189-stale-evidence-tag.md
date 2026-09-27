@@ -281,4 +281,50 @@ this manifest — confirmed no file overlap.
 - The CRLF hashing caveat — verify a checker session on the same Windows checkout reproduces the
   `rev-parse`/`hash-object` match, not a `sha256sum` mismatch mistaken for a real change.
 
-**Status: ready-for-check**
+**Status: checked-PASS (cycle 1)**
+
+Verdict `qa/verdicts/t189-stale-evidence-tag.md`, **Cycle checked: 1**, verdict commit `7eb8a712`,
+merged `52c7ff2c`, pushed to `origin/master`. `T-189` is `done`; `AT-516` moves open -> fixed with
+`regression_check: uv run pytest tests/test_evidence_spec_tombstones.py`.
+
+**The checker attacked the AT-218 lying-tombstone class directly rather than reading the claim**,
+in a clean-room temp root outside the bound tree, importing the shipped
+`check_stale_evidence_specs`. Two fixtures: a well-formed but nonexistent target is correctly
+flagged with the exact "tagged moved to ... but that does not resolve either" message; a *real but
+wrong* function (a decoy) is correctly **not** caught. That second result is the honest structural
+limit of this unit — **resolution proves existence, not semantic correctness** — and the checker
+folded it into the contract text so it is recorded rather than implied. It also re-ran the mutation
+proof independently (3/3 killed, `git status --porcelain` identical before and after) and traced
+`scripts/mutation_check.py::collected_tests()` to confirm the bare-name scope fix genuinely matches
+the spec's own declared `tests` field.
+
+**Byte-intactness re-derived, including the trap:** all 7 tagged specs MATCH on
+`git rev-parse HEAD:<path>` vs `git hash-object <path>`, and the checker reproduced the
+`core.autocrlf=true` CRLF trap itself (a naive `sha256sum` mismatches an untouched file) rather
+than taking this manifest's caveat on trust.
+
+**The retroactive audit went further than sampling.** All 24 tombstone entries were traced to the
+commits that split the test files (`3546a28c` for at506, `9ed3833b` for at513) — every
+`+def test_...` in those diffs matches an entry 1:1. The 24th (at469, honestly recorded as
+`"unknown"`) was traced by hand and its "renamed" narrative is **imprecise**: the old and new names
+were both created in the same commit `f7e83cdc`, and the old was later *deleted*, not renamed, by
+an unrelated rewrite `07428a76`. No live regression is at risk — the old mutations targeted code
+that no longer exists — so it is filed as `ISS-t189-stale-evidence-tag-1` (low), not a blocker.
+
+**Contract fold-in was the checker's to do and it did it:** D-048 authorized folding the at516
+tagging rule into C7 but deliberately left it unwritten, since `qa/contracts/` is checker-owned.
+C7 now carries the resolution-not-presence discipline, the disclosed real-but-wrong-function limit,
+and the bare-name scope fix, plus an amendment-log entry. Tightening only; no enforcement path
+touched, so no `Approved-by` gate was needed.
+
+**Concurrency, recorded because it touched shared state:** master advanced under the checker while
+it worked, and it watched `.goal/goal.json`'s done count move 54 -> 55 on its own. It stashed the
+live uncommitted `.goal/` work, merged (two conflicts, both correctly resolved — an append-only
+ledger row and a timestamp), then found its stash conflicted against still-newer live writes and
+**discarded its own redundant copy rather than forcing a resolution into another session's
+in-flight state.** I verified that call: the current uncommitted `.goal/` diff is exactly the
+progress recompute from T-189's own close (54 -> 55 done, 27 -> 26 pending), which is what
+`goal_cli.py done` produces. Nothing was lost.
+
+`ISS-at638-remainder-2` was correctly left untouched — it is queued as its own unit.
+

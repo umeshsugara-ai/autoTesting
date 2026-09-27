@@ -875,3 +875,50 @@ the file half-green, and would collide with the unit that fixes the rest — so 
 **Do not fold this into any of the four in-flight units.** Their manifests must not claim a
 `done_check` as acceptance (the T-192 manifest states this explicitly and its dispatch told the
 checker so). The repair is its own unit with its own check.
+
+## ISS-at542-lost-correction — a ledger correction has been sitting in an orphan stash for 5 days
+
+**Found:** 2026-09-27 by the maker, while verifying the tree after the T-189 checker's stash/merge
+dance. **Not created by that checker** — the stash predates it by five days.
+**Severity:** high (the ledger is the honesty surface; this is a false claim left standing, not a
+missing nicety). **Owner:** unassigned. **Blocks:** nothing.
+
+`git stash list` carries one entry, `stash@{0}: On master: checker-temp-at540`, dated
+**2026-09-22 15:19:15 +0530**. It contains three files, and one of them is real lost work:
+
+```
+.goal/dashboard.html | 2 +-      <- stale, superseded
+.goal/goal.json      | 8 ++--    <- stale, superseded
+docs/FEATURES.jsonl  | 1 +       <- NEVER LANDED
+```
+
+The `FEATURES.jsonl` row is an **`event: updated` correction to F-039**, written for **AT-542**
+(checker sweep 2026-09-22). Its substance: F-039 shipped claiming "two-model ensemble … counting
+where two models independently agreed", when the honest state was **ensemble-capable code,
+ensemble-of-one practice** — the UI built `[providers.get(vision)]` and the CLI defaulted
+`--models` to gemini alone, and all 3 erp issue rows carry `models_agreeing=1`,
+`model_labels=[gemini]`.
+
+**Why this is worth a unit rather than a note:**
+
+1. **`AT-542` is marked `fixed` in `qa/issues.jsonl`** — closed on the strength of a correction
+   that never reached the file. The issue ledger and the feature ledger disagree, and the feature
+   ledger is the one a human reads.
+2. **F-039 on `master` still carries the overstated claim today**, unamended.
+3. **The id was silently reused.** The stashed row was `F-044`; `F-044` on master is now
+   `source-adapters` (T-162, 2026-09-23). So the correction cannot be applied as-is — it needs a
+   fresh id (next free is **F-061**).
+
+**What I deliberately did NOT do.** `docs/FEATURES.jsonl` is append-only and the project rule is
+that a ledger row is added via `autotester ledger add` with a **prefilled reason shown to Umesh to
+confirm or edit** (D-004). Hand-applying a five-day-old stashed line into an append-only file, on
+my own authority, is exactly the move that rule exists to prevent — and an append is not
+reversible. The stash is **left in place**, not dropped, so the original wording survives.
+
+**Residual risk while this sits:** another checker doing the same stash-merge-pop dance may stash
+on top of it, and a future `git stash clear` would destroy the only copy. The wording is quoted in
+full in this queue row as a second copy for exactly that reason.
+
+**Next action:** one small unit — re-add the correction as `F-061` via
+`autotester ledger add`, with the AT-542 wording as the prefilled reason, then drop the stash once
+the row is on master.
