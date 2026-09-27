@@ -296,3 +296,38 @@ collision, but not free either.
 
 LIVE (5): at335 checker, t192 checker, t186 build (cap 2), t189 build, t191 build.
 No new dispatch. No wave started that the machine cannot carry.
+
+## tick 2026-09-27T13:10:00+00:00 -- ADVANCED (t189 ready + dispatched)
+t189-stale-evidence-tag ready-for-check (d2e8ebe1), master merged, checker dispatched same turn.
+RAM re-measured before dispatching rather than inheriting last tick number: 2.4 GB free (was
+0.9). The t189 build finishing freed its slot, so the dispatch is within the ceiling. T-165 still
+held -- one freed slot is not the spine budget.
+
+The unit solved the real tension (byte-intact AND tagged) with a SIDECAR,
+qa/evidence/<slug>/mutations.stale.json, plus a new schema and a doctor-wired check. What makes
+it worth checking hard rather than rubber-stamping:
+- it does NOT trust a tombstone presence -- it re-resolves moved_to, giving three distinct
+  outcomes including "the tag itself lies". That is the AT-218 class answered directly.
+- it found and fixed its own false positive first: bare kills names must resolve against the
+  spec declared tests scope, not the whole repo. The checker is told to re-derive that against
+  scripts/mutation_check.py rather than trust it -- if that semantics is wrong, every bare-name
+  resolution in the new check is wrong.
+- RETROACTIVE SCOPE IS THE REAL RISK: running the check cold surfaced 27 already-stale kills
+  entries across 7 specs, each hand-tombstoned. A wrong moved_to that happens to resolve
+  silences a real staleness signal permanently -- strictly worse than the neglect it replaces.
+  The checker is asked to spot-check a sample independently.
+- it documented a Windows trap I would otherwise have hit: core.autocrlf=true means a naive
+  sha256sum vs `git show HEAD:<path>` ALWAYS mismatches even on an untouched file. Byte-intact
+  was proved with git hash-object instead.
+- one tombstone records moved_by_unit "unknown" with a note rather than a fabricated attribution.
+
+AGAIN DID NOT ACCEPT A done_check AS ACCEPTANCE: T-189 is `pytest -k evidence`, named by
+ISS-at638-remainder-2. Acceptance rests on the capability table + the C7 mutation proof (3/3
+killed), and the checker is told to re-run that proof itself.
+
+LEFT TO THE CHECKER BY DESIGN: D-048 authorizes folding the tagging rule into core-invariants.md
+C7 prose. The subagent correctly did not write it -- contracts are checker-owned. A PASS that
+leaves C7 silent gives the next unit no ground truth, so the dispatch makes that explicit.
+
+LIVE (5): at335 checker, t192 checker, t189 checker, t186 build (cap 2), t191 build.
+OPEN HUMAN GATES (3) unchanged. QUEUED: iss-at638-2-done-check-repair, dependency named.
