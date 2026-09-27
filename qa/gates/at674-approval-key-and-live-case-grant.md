@@ -24,10 +24,31 @@ the fix is right, and it needs one human action in front of it.
 
 **Read that last row across.** The two rows with sensible bounds (40 actions / 300 s, 150 / 600 s) are
 the **expired** ones. The only unexpired approval is also the least bounded one: 200 000 actions,
-`scope: everything`, and a wall clock of **nineteen years**. That is a granting-practice matter, not a
-code defect — every row reads `granted_by: umesh` — and it is the reason step 3 below matters: the
-command the tool prints derives its bounds from the run that was actually attempted, so it will not
-reproduce this.
+`scope: everything`, and a wall clock of **nineteen years**.
+
+**An earlier version of this gate called that "a granting-practice matter, not a code defect". That was
+half wrong, and checking it before it reached you is why this paragraph changed.** The honest split,
+measured (`AT-675`):
+
+- **The tool's doing, not yours.** The UI grant form has **no `max_probes` field at all** — its entire
+  field set is `expires_at, granted_by, max_actions, note, scope, timezone_offset_minutes,
+  wall_clock_s` — so every approval granted through the UI is written `max_probes=0`, and the CLI's
+  `--max-probes` defaults to `0` too. Combined with `parallel_run.py:164`'s falsy guard, **no approval
+  granted through the UI can ever bound probes.** So `max_probes=0` on all three rows is what the tool
+  produces; it is not a lapse by whoever granted them, and it should not be reported as one.
+- **Hand-entered.** The form's own defaults are `max_actions` **200** and `wall_clock_s` **600**, both
+  required with `min=1`. The live row carries **200 000** and **600 000 000** — three orders of
+  magnitude off — and `scope: everything` against a required free-text field whose placeholder reads
+  *"what this crawl may read and click"*. Those were typed.
+
+So one bound was defeated by the code and another by a value chosen at the keyboard. Only the second is
+a granting-practice question, and it is the reason step 3 below matters: the command the tool prints
+derives its bounds from the run that was actually attempted, so it structurally cannot emit a 19-year
+clock or a scope of `everything`.
+
+**One thing deliberately not concluded:** `granted_by` reads `Umesh` on the two disciplined rows and
+`umesh` on the live one. Both the UI and the CLI take that field as free text, so the casing does **not**
+establish which path produced the row, and it is recorded as a weak signal rather than an identification.
 
 1. **No row carries a `signature` field at all** — the key is absent from the parsed key union, not
    merely empty.
