@@ -44,8 +44,19 @@ missing. So the key is not a preference about ordering — **you cannot grant un
 ## What to do — and you should NOT hand-write the bounds
 
 `--max-actions`, `--max-probes` and `--wall-clock` all default to **0**, and `consent.py::_shortfalls`
-refuses any run exceeding the approved bound — so a grant written without them produces a row that
-refuses everything. **This is already solved and you do not need to work it out:** every refusal ends
+refuses any run exceeding the approved bound. **A correction to an earlier version of this gate,
+because it mattered:** that does NOT make a `0`-bound row safely useless. `AT-660` (checker, high,
+verified first-hand) found `0` means two opposite things — at the gate `consent.py:56`
+`if actions > approval.max_actions` has no falsy guard, so `0` is a **zero budget**; but during the
+run `parallel_run.py:158,162,164` all read `if approval.max_actions and …`, where `0` is falsy, the
+conjunct short-circuits and **no bound is applied at all**. All three bounds behave this way. And
+`require_approval` declares `actions/probes/wall_clock_s` as **defaults of 0**, so a caller that
+omits them is accepted by a vacuous check and then bounded by nothing. **So the three existing rows
+are not harmless — they are ambiguous, and which way they resolve depends on a caller's argument
+rather than on your grant.** That is being fixed inside the AT-570 unit; it is named here because
+this gate previously implied those rows simply refuse everything, and that was half the truth.
+
+**You still do not need to work the bounds out:** every refusal ends
 with `Grant one with:` followed by a pasteable command carrying the correct bounds for that exact run
 (`consent.py:129-133` → `_grant_command`, tested at `tests/test_consent.py:195,209`). The docstring
 records that an earlier version omitted the bounds and *"an operator who followed the printed command
