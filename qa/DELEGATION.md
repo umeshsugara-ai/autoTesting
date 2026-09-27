@@ -2,16 +2,20 @@
 # maker step 4b reads THIS, never the raw manifests.
 # class · executor · n · pass@1 · pass@<=3 · med_wall_s · $/unit · rank · last
 
+fix · claude-sonnet [->claude-sonnet-5] · n=29 · pass@1=100% · pass@<=3=100% · 0s · $? · rank=0.85 · 2026-09-27
 test-hardening · ollama/deepseek-v4.1-flash · n=1 · pass@1=0% · pass@<=3=100% · 166s · $? · rank=0.85 · 2026-09-22
-goal-registration-fix · claude-sonnet [->claude-sonnet-5] · n=1 · pass@1=100% · pass@<=3=100% · 197s · $? · rank=0.85 · 2026-09-24
+goal-registration-fix · claude-sonnet [->claude-sonnet-5] · n=1 · pass@1=100% · pass@<=3=100% · 197s · $? · rank=0.84 · 2026-09-24
 governance-fix · claude-sonnet [->claude-sonnet-5] · n=1 · pass@1=100% · pass@<=3=100% · 368s · $? · rank=0.84 · 2026-09-24
-goal-registration · claude-sonnet [->claude-sonnet-5] · n=1 · pass@1=100% · pass@<=3=100% · 457s · $? · rank=0.83 · 2026-09-24
-refactor · claude-sonnet [->claude-sonnet-5] · n=1 · pass@1=100% · pass@<=3=100% · 618s · $? · rank=0.82 · 2026-09-25
-security-fix · claude-sonnet [->claude-sonnet-5] · n=1 · pass@1=100% · pass@<=3=100% · 625s · $? · rank=0.82 · 2026-09-24
-governance-config · claude-sonnet [->claude-sonnet-5] · n=1 · pass@1=100% · pass@<=3=100% · 941s · $? · rank=0.80 · 2026-09-24
-security-feature · claude-sonnet [->claude-sonnet-5] · n=1 · pass@1=100% · pass@<=3=100% · 1231s · $? · rank=0.78 · 2026-09-24
-feature-build · claude-opus [->claude-opus-5-5] · n=1 · pass@1=100% · pass@<=3=100% · 1680s · $? · rank=0.75 · 2026-09-24
-feature · claude-sonnet [->claude-sonnet-5] · n=2 · pass@1=100% · pass@<=3=100% · 1778s · $? · rank=0.74 · 2026-09-25
-issue-fix-batch · claude-sonnet [->claude-sonnet-5] · n=1 · pass@1=100% · pass@<=3=100% · 2122s · $? · rank=0.72 · 2026-09-24
-merge-reland · claude-sonnet [->claude-sonnet-5] · n=1 · pass@1=100% · pass@<=3=100% · 2764s · $? · rank=0.68 · 2026-09-24
-feature-build · claude-sonnet [->claude-sonnet-5] · n=1 · pass@1=100% · pass@<=3=100% · 3200s · $? · rank=0.65 · 2026-09-24
+goal-registration · claude-sonnet [->claude-sonnet-5] · n=1 · pass@1=100% · pass@<=3=100% · 457s · $? · rank=0.84 · 2026-09-24
+security-fix · claude-sonnet [->claude-sonnet-5] · n=1 · pass@1=100% · pass@<=3=100% · 625s · $? · rank=0.83 · 2026-09-24
+test-fix · claude-opus [->claude-opus-5-5] · n=2 · pass@1=100% · pass@<=3=100% · 800s · $? · rank=0.83 · 2026-09-25
+governance-config · claude-sonnet [->claude-sonnet-5] · n=1 · pass@1=100% · pass@<=3=100% · 941s · $? · rank=0.82 · 2026-09-24
+feature · claude-sonnet [->claude-sonnet-5] · n=5 · pass@1=100% · pass@<=3=100% · 1186s · $? · rank=0.81 · 2026-09-26
+security-feature · claude-sonnet [->claude-sonnet-5] · n=1 · pass@1=100% · pass@<=3=100% · 1231s · $? · rank=0.81 · 2026-09-24
+refactor · claude-sonnet [->claude-sonnet-5] · n=2 · pass@1=100% · pass@<=3=100% · 1462s · $? · rank=0.81 · 2026-09-25
+feature-build · claude-opus [->claude-opus-5-5] · n=1 · pass@1=100% · pass@<=3=100% · 1680s · $? · rank=0.80 · 2026-09-24
+issue-fix-batch · claude-sonnet [->claude-sonnet-5] · n=1 · pass@1=100% · pass@<=3=100% · 2122s · $? · rank=0.79 · 2026-09-24
+merge-reland · claude-sonnet [->claude-sonnet-5] · n=1 · pass@1=100% · pass@<=3=100% · 2764s · $? · rank=0.77 · 2026-09-24
+feature-build · claude-sonnet [->claude-sonnet-5] · n=1 · pass@1=100% · pass@<=3=100% · 3200s · $? · rank=0.75 · 2026-09-24
+bugfix · claude-sonnet [->claude-sonnet-5] · n=2 · pass@1=100% · pass@<=3=100% · 3472s · $? · rank=0.75 · 2026-09-25
+integration · claude-sonnet [->claude-sonnet-5] · n=2 · pass@1=100% · pass@<=3=100% · 6735s · $? · rank=0.65 · 2026-09-25

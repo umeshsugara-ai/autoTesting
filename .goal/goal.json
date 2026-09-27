@@ -4,15 +4,15 @@
   "north_star": "A reusable AI testing platform where an operator submits any project URL, domain-scoped test-account credential references, and optional evals, conditions, use cases, video, audio, documents, text, email or Google Drive sources. AutoTester learns from supplied evidence or logs in and performs bounded breadth-first exploration, preserves a durable Portal Persona, compiles traceable best/worst/edge evals, reruns them after developer releases in a real visible browser, and reports workflow/API regressions through clear HTML, Excel, text and screenshots. First acceptance targets: Vidysea ERP and Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-26T08:34:30",
+  "updated": "2026-09-27T15:22:01",
   "progress": {
-    "total": 70,
-    "done": 47,
+    "total": 81,
+    "done": 52,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 23,
+    "pending": 29,
     "current": "T-122",
-    "percent": 67
+    "percent": 64
   },
   "tasks": [
     {
@@ -442,7 +442,7 @@
         "cmd": "uv run pytest tests/test_execute.py tests/test_run_case_pipeline.py",
         "expect_exit": 0
       },
-      "note": "Blocked until Umesh enters real values on /projects/erp/env. Registers the login bootstrap case B3 reuses.",
+      "note": "Blocked until Umesh enters real values on /projects/erp/env. Registers the login bootstrap case B3 reuses. | 2026-09-26: gate erp-credentials answered \"provide\" (D-048): Umesh enters TEST-account ERP_EMAIL/ERP_PASSWORD in the UI; unblocks once both KEYS exist in projects/erp/.env (key names only, never values); each run still needs its own approval. Keys absent as of 22:45 IST.",
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
       "user_value": "high",
@@ -1399,6 +1399,197 @@
       "created": "2026-09-26T07:35:49",
       "user_value": "high",
       "completed": "2026-09-26T08:17:10"
+    },
+    {
+      "id": "T-185",
+      "title": "at416-B: re-check wave/at408-416-scroll-reach (merge master, fresh cycle, real-Chromium Mode D + 50-shape corpus)",
+      "status": "pending",
+      "deps": [],
+      "base_criticality": "high",
+      "criticality": "critical",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_scroll_reach.py",
+        "expect_exit": 0
+      },
+      "note": "AT-416/AT-408/AT-379; gate at416-clip-vs-reach-direction answer B (D-048). Branch built earlier, held on the gate.",
+      "attempts": 0,
+      "created": "2026-09-26T22:47:07",
+      "user_value": "normal"
+    },
+    {
+      "id": "T-186",
+      "title": "AT-453: closed <details> judged by ::details-content display as well as content-visibility (own unit, max 2 cycles)",
+      "status": "pending",
+      "deps": [],
+      "base_criticality": "medium",
+      "criticality": "medium",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/ -k details",
+        "expect_exit": 0
+      },
+      "note": "gate at438-u14b-baseline answer a+b+c (D-048): AT-453 filed as its own unit capped at 2 cycles. | D-049 fix direction (checker 2026-09-26): gate the details branch on the pseudo display via HIDES_ON; add fixture rows A3/A4.",
+      "attempts": 0,
+      "created": "2026-09-26T22:47:07",
+      "user_value": "normal"
+    },
+    {
+      "id": "T-187",
+      "title": "at383-A: session-start hook calls `autotester loop-status --strict` and prints its report",
+      "status": "done",
+      "deps": [],
+      "base_criticality": "high",
+      "criticality": "high",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/ -k loop_status",
+        "expect_exit": 0
+      },
+      "note": "gate at383-loop-status-consumer answer C part A; enforcement path qa/hooks/mc-sessionstart.ps1 authorized by D-048 (Approved-by: Umesh). Part B (shared sweep) later; checker adds loop-status LS5.",
+      "attempts": 0,
+      "created": "2026-09-26T22:47:07",
+      "user_value": "normal",
+      "completed": "2026-09-27T08:48:19"
+    },
+    {
+      "id": "T-188",
+      "title": "at147-C: --expires <date> means end of that day for newly minted approvals; existing approvals.jsonl rows keep their instant",
+      "status": "done",
+      "deps": [],
+      "base_criticality": "medium",
+      "criticality": "medium",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/ -k expir",
+        "expect_exit": 0
+      },
+      "note": "gate at147-expiry-end-of-day answer C (D-048); criterion folded into qa/contracts/consent.md by the checker.",
+      "attempts": 0,
+      "created": "2026-09-26T22:47:07",
+      "user_value": "normal",
+      "completed": "2026-09-27T08:22:22"
+    },
+    {
+      "id": "T-189",
+      "title": "at516-c: stale evidence spec stays byte-intact and gets a 'stale on purpose, test moved to <node>' tag a check can tell apart",
+      "status": "pending",
+      "deps": [],
+      "base_criticality": "medium",
+      "criticality": "medium",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/ -k evidence",
+        "expect_exit": 0
+      },
+      "note": "gate at516-evidence-spec-splitting-policy answer (c) (D-048).",
+      "attempts": 0,
+      "created": "2026-09-26T22:47:07",
+      "user_value": "normal"
+    },
+    {
+      "id": "T-190",
+      "title": "Advisory UX track: UserPersona (role, tech comfort, locale, device) + severity-scored UX findings that NEVER change PASS/FAIL (AT-583, AT-584)",
+      "status": "pending",
+      "deps": [],
+      "base_criticality": "high",
+      "criticality": "high",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/ -k persona",
+        "expect_exit": 0
+      },
+      "note": "gate meeting-user-persona-ux-judging answer A (D-048). Checker writes the contract once this task exists; maker PLAN gate (intent/spec/plan) before code.",
+      "attempts": 0,
+      "created": "2026-09-26T22:47:07",
+      "user_value": "high"
+    },
+    {
+      "id": "T-191",
+      "title": "Run video on FAIL/inconclusive only, keep last 20, secrets masked in video exactly as in screenshots (AT-587)",
+      "status": "pending",
+      "deps": [],
+      "base_criticality": "high",
+      "criticality": "high",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/ -k video",
+        "expect_exit": 0
+      },
+      "note": "gate meeting-run-video-scope answer A, retention 20 (D-048).",
+      "attempts": 0,
+      "created": "2026-09-26T22:47:07",
+      "user_value": "high"
+    },
+    {
+      "id": "T-192",
+      "title": "t135-B: one Analyze re-run on the erp project to heal the 3 corrupted url_pattern rows (approved single vision call)",
+      "status": "pending",
+      "deps": [],
+      "base_criticality": "medium",
+      "criticality": "medium",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run autotester doctor",
+        "expect_exit": 0
+      },
+      "note": "gate t135-url-pattern-data-migration answer B (D-048): the answer approves exactly one Analyze run's vision call on projects/erp.",
+      "attempts": 0,
+      "created": "2026-09-26T22:47:07",
+      "user_value": "normal"
+    },
+    {
+      "id": "T-193",
+      "title": "AT-617: base64-of-UTF-16 (PowerShell -EncodedCommand) bypasses both redaction doors",
+      "status": "done",
+      "deps": [],
+      "base_criticality": "medium",
+      "criticality": "critical",
+      "done_check": {
+        "type": "manual",
+        "description": "checker PASS on qa/verdicts/at617-*.md; UTF-16 base64 of a declared secret is redacted at both doors"
+      },
+      "note": "Security medium, filed by checker 92653c3. Add UTF-16-LE/BE base64 needles to redact_encodings (after at598-607 merges -- same file). Failing-first sabotage row per C7.",
+      "attempts": 0,
+      "created": "2026-09-26",
+      "user_value": "normal",
+      "completed": "2026-09-27T08:22:22"
+    },
+    {
+      "id": "T-194",
+      "title": "AT-620: redact_encodings.py:112 docstring still credits _is_ignorable lru_cache (removed by at611)",
+      "status": "done",
+      "deps": [],
+      "base_criticality": "low",
+      "criticality": "critical",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/ -k redact",
+        "expect_exit": 0
+      },
+      "note": "Low, checker 584fc05. Docstring-only fix. After at617 merges (same file).",
+      "attempts": 0,
+      "created": "2026-09-27",
+      "user_value": "normal",
+      "completed": "2026-09-27T08:36:26"
+    },
+    {
+      "id": "T-195",
+      "title": "AT-621: _is_exit_call misses os._exit(1) and aliased sys (import sys as s; s.exit())",
+      "status": "done",
+      "deps": [],
+      "base_criticality": "low",
+      "criticality": "critical",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run pytest tests/test_doctor.py",
+        "expect_exit": 0
+      },
+      "note": "Low, checker 584fc05 (at590 c2 adversary lens). After at590 merges; render.py is at 300/300 so may need a helper move.",
+      "attempts": 0,
+      "created": "2026-09-27",
+      "user_value": "normal",
+      "completed": "2026-09-27T14:14:20"
     }
   ],
   "decisions": [],
@@ -1663,6 +1854,55 @@
       "message": "T-184 needs review (high)",
       "task_id": "T-184",
       "acked": false
+    },
+    {
+      "ts": "2026-09-26T22:47:20",
+      "level": "critical",
+      "message": "T-185 is CRITICAL — human required",
+      "task_id": "T-185",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-26T22:47:20",
+      "level": "warn",
+      "message": "T-187 needs review (high)",
+      "task_id": "T-187",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-26T22:47:20",
+      "level": "warn",
+      "message": "T-190 needs review (high)",
+      "task_id": "T-190",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-26T22:47:20",
+      "level": "warn",
+      "message": "T-191 needs review (high)",
+      "task_id": "T-191",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-26T23:27:07",
+      "level": "critical",
+      "message": "T-193 is CRITICAL — human required",
+      "task_id": "T-193",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-27T07:47:03",
+      "level": "critical",
+      "message": "T-194 is CRITICAL — human required",
+      "task_id": "T-194",
+      "acked": false
+    },
+    {
+      "ts": "2026-09-27T07:47:03",
+      "level": "critical",
+      "message": "T-195 is CRITICAL — human required",
+      "task_id": "T-195",
+      "acked": false
     }
   ],
   "preferences": {
@@ -1671,9 +1911,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 1.91,
-    "eta_days": 12.6
+    "velocity_per_day": 2.06,
+    "eta_days": 14.1
   },
-  "last_deterministic_tick": "2026-09-26T08:32:02",
+  "last_deterministic_tick": "2026-09-27T15:22:01",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }
