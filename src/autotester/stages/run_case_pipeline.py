@@ -12,12 +12,15 @@ with no hand-written Python required.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from autotester.browser.session import BrowserSession
+from autotester.browser.video import MAX_VIDEO_DURATION_S
 from autotester.providers.base import Provider
 from autotester.schema.base import Provenance
 from autotester.schema.case import Case
-from autotester.schema.enums import Result
-from autotester.schema.run import RawResult
+from autotester.schema.enums import EvidenceKind, Result
+from autotester.schema.run import Evidence, RawResult
 from autotester.schema.verdict import Criterion, Rubric, Verdict
 from autotester.stages.execute import run_case
 from autotester.stages.grade import grade
@@ -98,6 +101,31 @@ def _rubric_for(case: Case, store: ProjectStore) -> Rubric:
     return rubric
 
 
+def _finalize_video(result: RawResult, verdict: Verdict, video_rel: str | None,
+                     run_dir: Path) -> None:
+    """T-191/AT-587 V2/V6/V8, the named prune call site: the ONE function that
+    decides whether a just-recorded video survives. `video_rel` is whatever
+    `BrowserSession.end_case_video()` returned (already a finished file at
+    this point) or `None` when this session had no recording -- both are
+    no-ops beyond this call.
+
+    Kept only when the verdict is FAIL/INCONCLUSIVE/BLOCKED (gate answer A:
+    never PASS) AND the case finished inside `MAX_VIDEO_DURATION_S` (V6's
+    disk safety net -- a runaway case's video is dropped regardless of
+    verdict, the same "record, then discard" shape V2 already uses for PASS,
+    just gated on duration instead of result). Kept videos are appended to
+    `result.evidence` as `EvidenceKind.VIDEO` (V8) -- the same envelope every
+    other evidence kind uses, never a new field on `RawResult`."""
+    if video_rel is None:
+        return
+    video_path = run_dir / video_rel
+    over_budget = result.duration_s > MAX_VIDEO_DURATION_S
+    if verdict.result is Result.PASS or over_budget:
+        video_path.unlink(missing_ok=True)
+        return
+    result.evidence.append(Evidence(kind=EvidenceKind.VIDEO, path=video_rel, masked=True))
+
+
 def run_and_grade_case(
     case: Case, session: BrowserSession, judge: Provider, run_id: str,
     store: ProjectStore | None = None,
@@ -107,10 +135,15 @@ def run_and_grade_case(
     for this `rubric_ref`. The single source of truth for "run one case,"
     so a UI button and a CLI script call exactly the same path."""
     store = store or ProjectStore(case.project)
-    result = run_case(case, session)
+    session.begin_case_video(case.id)
+    try:
+        result = run_case(case, session)
+    finally:
+        video_rel = session.end_case_video()
     rubric = _rubric_for(case, store)
     verdict = grade(rubric, result, run_id, judge, run_dir=store.paths.run_dir(run_id),
                     secrets=session.secrets)
+    _finalize_video(result, verdict, video_rel, store.paths.run_dir(run_id))
     return result, verdict
 
 
@@ -132,7 +165,11 @@ def run_and_grade_case_resilient(
     always returned; any exception raised while resolving the rubric or
     grading is caught, and it produces an `INCONCLUSIVE` verdict naming the
     grader failure instead of propagating."""
-    result = run_case(case, session)
+    session.begin_case_video(case.id)
+    try:
+        result = run_case(case, session)
+    finally:
+        video_rel = session.end_case_video()
     try:
         rubric = _rubric_for(case, store)
         verdict = grade(rubric, result, run_id, judge, run_dir=store.paths.run_dir(run_id),
@@ -143,6 +180,7 @@ def run_and_grade_case_resilient(
             scoreboard="not judged: the grader failed after execution completed",
             grader_provider="rule", note=f"{type(exc).__name__}: {exc}",
         )
+    _finalize_video(result, verdict, video_rel, store.paths.run_dir(run_id))
     return result, verdict
 
 

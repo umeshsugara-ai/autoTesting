@@ -64,7 +64,7 @@ def _run_entry_case(
     (AT-572's mechanism) nests this case's files under `run_dir/<case.id>/`."""
     entry_paths = ProjectPaths(f"{slug}-entry-test")
     shutil.rmtree(entry_paths.profile_dir, ignore_errors=True)
-    session = BrowserSession(project, secrets, run_dir, entry_paths)
+    session = BrowserSession(project, secrets, run_dir, entry_paths, record_video=True)
     session.state.evidence_prefix = case.id
     session.start()
     try:
@@ -110,7 +110,7 @@ def _run_cases_serially(
     normal_cases = [c for c, is_entry in zip(cases, entry_flags, strict=True) if not is_entry]
     if not normal_cases:
         return
-    session = BrowserSession(project, secrets, run_dir, paths)
+    session = BrowserSession(project, secrets, run_dir, paths, record_video=True)
     session.start()
     try:
         for case in normal_cases:
@@ -155,7 +155,7 @@ def _run_cases_in_parallel(
         verdicts[case.id] = verdict
         return result
 
-    session_factory = default_session_factory(project, secrets, run_dir)
+    session_factory = default_session_factory(project, secrets, run_dir, record_video=True)
     for result in run_cases(normal_cases, plan, session_factory, _run_and_grade):
         # AT-568/PR6: a session_factory crash, or any exception BEFORE
         # run_and_grade_case_resilient captures its own result, means

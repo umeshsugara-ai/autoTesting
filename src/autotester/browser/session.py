@@ -10,6 +10,8 @@ process's Chrome.
 from __future__ import annotations
 
 import contextlib
+import shutil
+import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -18,6 +20,7 @@ from autotester.browser import assertions
 from autotester.browser.evidence import MASK_ATTR, MASK_CSS, EvidenceMixin
 from autotester.browser.launch import launch_options
 from autotester.browser.secrets import SecretStore, host_of
+from autotester.browser.video import VIDEO_DIR_NAME, VideoMixin
 from autotester.core.paths import ProjectPaths
 from autotester.core.redact import PLACEHOLDER_RE
 from autotester.schema.enums import EvidenceKind, Outcome
@@ -72,7 +75,7 @@ def check_destination(project: Project, url: str) -> str:
     return host
 
 
-class BrowserSession(EvidenceMixin):
+class BrowserSession(EvidenceMixin, VideoMixin):
     """Drive one project's browser. Construct, `start()`, act, `close()`.
 
     Every method that touches the page is small on purpose: the executor stage
@@ -80,12 +83,20 @@ class BrowserSession(EvidenceMixin):
     """
 
     def __init__(self, project: Project, secrets: SecretStore, run_dir: Path,
-                 paths: ProjectPaths | None = None, *, observer: Any | None = None) -> None:
+                 paths: ProjectPaths | None = None, *, observer: Any | None = None,
+                 record_video: bool = False) -> None:
         self.project = project
         self.secrets = secrets
         self.paths = paths or ProjectPaths(project.slug)
         self.state = SessionState(run_dir=run_dir)
         self.observer = observer
+        self.record_video = record_video
+        """T-191/AT-587: opt-in per session. Only the case-execution call
+        sites (`ui/run_execution.py`, `stages/parallel_run.py`) pass True --
+        every other caller (crawl explorer, manual login, existing tests) is
+        unchanged (C2)."""
+        self._video_case_id: str | None = None
+        self._video_scratch_id = uuid.uuid4().hex[:12]  # ISS-t191-run-video-1: isolates siblings
         self._playwright: Any = None
         self._context: Any = None
         self._page: Any = None
@@ -94,12 +105,14 @@ class BrowserSession(EvidenceMixin):
     def start(self) -> BrowserSession:
         from playwright.sync_api import sync_playwright
 
+        self.state.run_dir.mkdir(parents=True, exist_ok=True)
+        video_dir = (self.state.run_dir / VIDEO_DIR_NAME / self._video_scratch_id
+                     if self.record_video else None)
         self._playwright = sync_playwright().start()
         self._context = self._playwright.chromium.launch_persistent_context(
-            **launch_options(self.project, self.paths)
+            **launch_options(self.project, self.paths, record_video_dir=video_dir)
         )
         self._page = self._context.pages[0] if self._context.pages else self._context.new_page()
-        self.state.run_dir.mkdir(parents=True, exist_ok=True)
         if self.observer is not None:
             self.observer.attach(self._page)
         return self
@@ -114,6 +127,23 @@ class BrowserSession(EvidenceMixin):
             if self._playwright is not None:
                 self._playwright.stop()
                 self._playwright = None
+            if self.record_video:
+                self._sweep_orphan_videos()
+
+    def _sweep_orphan_videos(self) -> None:
+        """V1: `start()`'s initial page, and any crash-mid-recording page,
+        leave an untracked recording in THIS SESSION'S OWN scratch
+        subdirectory (`_video_scratch/<self._video_scratch_id>`, never bare
+        `_video_scratch` -- ISS-t191-run-video-1, see `video.py`'s
+        `VIDEO_DIR_NAME` docstring for why a shared bare directory was unsafe
+        under parallel siblings). Every legitimate case video is already
+        renamed OUT of this subdirectory by `end_case_video` before `close()`
+        runs, so deleting the whole subdirectory can never touch a case's
+        kept evidence -- this session's or, since the id is unique, any
+        sibling's."""
+        scratch = self.state.run_dir / VIDEO_DIR_NAME / self._video_scratch_id
+        if scratch.is_dir():
+            shutil.rmtree(scratch, ignore_errors=True)
 
     def __enter__(self) -> BrowserSession:
         return self.start()

@@ -143,6 +143,9 @@ class EvidenceKind(StrEnum):
     TRACE = "trace"
     CONSOLE = "console"
     DB = "db"
+    VIDEO = "video"
+    """T-191/AT-587: a kept run video (FAIL/INCONCLUSIVE only, masked, linked
+    in the report -- never embedded, report-export.md RE3's named exception)."""
 
 
 class Trigger(StrEnum):
