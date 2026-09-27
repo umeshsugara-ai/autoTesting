@@ -962,3 +962,142 @@ independently; this note exists so the same 20 minutes are not spent twice.
 **Suggested contract/tooling follow-up (checker's call, not the maker's):** the throwaway-copy
 recipe in the capability-coverage rule should exclude `__pycache__` and `.pytest_cache` alongside
 `.git`/`.venv`, so a falsification's own evidence stops looking like a rule violation.
+
+---
+
+## 2026-09-27 · maker (T-150, Track C governance) · two contract-criteria requests, `qa/contracts/ai-target.md` (AI1–AI7) and `qa/contracts/adversarial.md` (AD1–AD7)
+
+Filing the criteria this unit was asked to propose; contracts are checker-owned and this unit
+does not create either file itself — T-150's own `done_check` names both files as its
+deliverable, which is exactly why the maker cannot write them (that would be the maker writing
+its own ground truth). AT-638 filed this gap; this entry answers the Track C portion of it only —
+T-166/T-167/T-168/T-171 (AT-638's other four) are untouched here and AT-638 should stay `open`.
+
+Prefix choice: `AT-` is already this repo's *issue* ledger prefix (`qa/issues.jsonl`), and every
+existing contract-id prefix (`AL, B, C, CN, CR, D, E, F, G, I, K, L, LC, LS, ML, O, P, R, RE, RP,
+U, V, VL, X` — checked via `grep -ohE '^### [A-Z]+[0-9]+' qa/contracts/*.md`) is either taken or
+would be ambiguous next to it. `AI` (ai-target.md) and `AD` (adversarial.md) are free and read
+unambiguously as "AI-target" and "ADversarial" rather than colliding with an `AT-NNN` issue id.
+
+### `qa/contracts/ai-target.md` — AI1–AI7, covering T-151 (C1) / T-152 (C2) / T-153 (C3)
+
+Each is marked **[D-017]** (reasoned directly from the authorizing decision — a checker/Umesh
+correction here is a correction to D-017's own text, not to my judgement) or **[maker]** (my own
+call, freely arguable).
+
+- **AI1 — Discovery signals are deterministic and file-cited, never model-produced. [D-017]**
+  `stages/discover.py` and `stages/read_context.py` compute every `Signal` by grep/file
+  inspection; no `Provider` call sits anywhere in the signal-emission path. Every `Signal` names a
+  real `file:line` in the scanned tree (this is also T-151's own goal-task note, restated as a
+  checkable claim). **Verify:** `grep -rn "Provider" src/autotester/stages/discover.py
+  src/autotester/stages/read_context.py` returns no call site; a test scans a fixture tree and
+  asserts every emitted `Signal.file`/`Signal.line` resolves to a real, matching line on disk.
+- **AI2 — A model may NAME the system kind; it may never CHOOSE which checks run. [D-017]**
+  `stages/ai_catalog.py`'s kind→checks mapping is a literal table in code, not a prompt-conditioned
+  branch — the same discipline D-015 used to keep action choice out of the crawler's model calls.
+  **Verify:** the table is a plain dict/match literal a reader can enumerate by eye; a test forces
+  a mocked classifier to return an out-of-table or adversarial-string "kind" and asserts the
+  resulting check set is either the table's exact entry for a real `AiTargetKind` member or a
+  named `BlockedReason`-shaped refusal — never a check list the model's own text could have swayed.
+- **AI3 — One `Catalog`, reused, not duplicated. [D-017 + catalog.md CT7]** `ai_catalog.py::match`
+  returns `schema/catalog.py::Catalog` entries against the existing `BlockedReason` vocabulary;
+  it does not define a second `Catalog`-shaped model or `BlockedReason`-shaped enum. This is
+  `catalog.md`'s own CT7, restated here as the criterion the checker judges T-152 against, per
+  catalog.md's own line ("this contract's CT7 is what a later T-152 checker judges against").
+  **Verify:** `grep -rn "class Catalog" src/autotester/schema/` and `grep -rn "class
+  BlockedReason" src/` each return exactly one definition after T-152 lands.
+- **AI4 — A blocked AI check names the missing fixture, never silently drops. [D-017, extending
+  T-152's own goal-task note]** A `runnable=False` entry always carries a non-null reason naming
+  the concrete missing thing (e.g. "no live endpoint configured", "no ground-truth file at
+  `<path>`"), matching catalog.md CT8's "not merely the enum value" standard already accepted for
+  Track A/B. **Verify:** one fixture per blocking condition; row text is distinct from the bare
+  enum name.
+- **AI5 — The capturer never grades. [D-017 explicit + core-invariants C7]** `stages/ai_capture.py`
+  contains no `Verdict`/`Result` construction and no PASS/FAIL decision; judgement happens only in
+  `stages/grade.py` against a `Rubric`, mirroring `execute.py`'s existing observation/judgement
+  split. **Verify:** `grep -n "Result\.\|Verdict(" src/autotester/stages/ai_capture.py` returns
+  nothing; a test proves a capture's output is handed unmodified to `grade()` and the PASS/FAIL
+  comes back from the grade call, not from capture.
+- **AI6 — Every capture is scrubbed before a judge sees it. [T-153's own goal-task note, D-017's
+  C5 lineage]** `ai_capture.py`'s output passes `core.redact.Redactor.scrub` and
+  `core.redact.assert_no_raw_secrets` before it is ever placed in a prompt built for `grade()`.
+  **Verify:** plant a synthetic secret-shaped string in a mocked target response; assert it never
+  reaches the built judge prompt (mirrors C5's own verify pattern, applied to this new caller).
+- **AI7 — Context folder is read as plain structured markdown only. [D-017 explicit]**
+  `read_context.py` extracts frontmatter and tags; it does not resolve `[[backlinks]]` into a
+  graph, does not read a Dataview query, and depends on no Obsidian-vault-index library.
+  **Verify:** a fixture vault containing backlink syntax and a Dataview block in body text is read
+  end-to-end; the resulting `Signal`/context model carries frontmatter+tags only, and a grep for
+  an Obsidian API/vault-index package in `pyproject.toml` returns nothing.
+
+**Judgement call for the checker to attack:** AI2's phrasing ("out-of-table or adversarial-string
+kind") assumes the eventual classifier prompt is itself a place a hostile context folder could
+try to inject a fake kind — I extended D-017's "never choose which checks run" to explicitly cover
+a poisoned-input case D-017's text doesn't name. If the checker judges that scope creep beyond
+what D-017 authorizes, AI2 should be split into a D-017-verbatim half and a separate [maker]
+hardening criterion.
+
+### `qa/contracts/adversarial.md` — AD1–AD7, the bound a HELD capability must satisfy before it is built
+
+**Scope note, stated explicitly per this unit's brief:** these criteria bound what T-154/T-155 may
+become — they are governance, filed now so the contract exists before the code. Building T-154,
+or sending a single probe request, is out of scope for this unit and remains HELD on Umesh's
+2026-09-27 decision (plan.md "Held / blocked": *"build C1–C3, hold the adversarial pass for a
+separate approval; no probe traffic without a fresh decision"*).
+
+- **AD1 — Nothing outward-facing starts without a matching approval, and a refused run leaves no
+  trace. [D-018, mirrors consent.md CN1]** `adversarial.py` raises `ApprovalRequired` before a
+  probe envelope, a connection to the target, or a `projects/<slug>/ai/adversarial/<run_id>/`
+  directory exists. **Verify:** mirrors CN1's own verify, applied to this new caller — a refused
+  run leaves the project directory exactly as it found it.
+- **AD2 — The approval must name the exact endpoint and a probe count at or above the planned run.
+  [D-018 verbatim]** `adversarial.py` calls `require_approval` with the real target string and the
+  real planned probe count — not a placeholder — so CN5 (exact match) and CN6 (bounds checked, not
+  just existence) actually bind this caller rather than existing only for the crawl. **Verify:** a
+  test plans N probes against an approval granted for N-1 and asserts refusal naming the shortfall
+  (`probes N > approved N-1`), reusing CN6's mechanism against this caller for the first time.
+- **AD3 — Adversarial against a named production endpoint requires a `production=True` grant.
+  [D-018 + CN7 verbatim]** This is consent.md CN7's own forward-reference ("T-154's surface")
+  discharged: `ApprovalKind.ADVERSARIAL` requested with `production=True` is refused without a
+  matching `production=True` approval. **Verify:** CN7's own verify, run for real against
+  `adversarial.py` once it exists rather than left as a documented intention.
+- **AD4 — Probe sets are file-defined; Garak/PyRIT/DeepTeam are never a hard dependency. [D-017
+  explicit rejection]** Probes live in `prompts/probes/*.md` behind a `ProbeSource` adapter.
+  **Verify:** `grep -rniE "garak|pyrit|deepteam" src/ pyproject.toml` returns nothing.
+- **AD5 — The exerciser never grades. [D-017 "C7 is preserved" + core-invariants C7]**
+  `adversarial.py` records capture only (prompt sent, response received, latency, whether the
+  probe cap was hit) with no PASS/FAIL/`Verdict` construction; judgement is a separate call
+  through `grade.py`. **Verify:** same shape as AI5, applied to `adversarial.py`.
+- **AD6 — An absolute probe ceiling exists independent of the approval's own bound. [maker]** The
+  runner refuses to start if the planned probe count exceeds a hardcoded ceiling in code, even
+  when the approval itself would permit more — a second, code-level bound so a generous or
+  mistaken approval cannot be the only thing standing between an operator and a very large probe
+  run. This is a proposed additional bound, not a restatement of D-018: D-018 names the approval
+  as the control, not a second code ceiling on top of it. **Verify (once built):** an approval
+  granting probes above the ceiling is still refused by the ceiling, with the ceiling value named
+  in the refusal.
+- **AD7 — A refused attempt leaves an audit trail, not silence. [maker]** A refused adversarial run
+  appends one line to a local, non-secret log (e.g. `projects/<slug>/ai/adversarial/refusals.jsonl`)
+  naming target, timestamp, requested probe count, and denial reason, so repeated refusal attempts
+  are visible without an operator having to notice that nothing happened. The log row itself must
+  never carry probe content — it records that a request was refused, not what the request said.
+  **Verify (once built):** trigger a refusal, assert the log row exists with those fields and no
+  probe-body content.
+
+**Judgement calls for the checker (or Umesh) to attack, named explicitly:** AD6 and AD7 are my own
+proposals, not derived from D-018's text — D-018 designs the approval as the single control point,
+and a second hardcoded ceiling (AD6) is an extra layer the decision does not ask for and could be
+judged as scope creep onto a HELD capability, or as exactly the kind of defense-in-depth D-016
+already modelled for the crawler (an inner guard inside an outer boundary). AD7's audit-log
+requirement is likewise mine: D-018's text stops at "the runner sends nothing and exits non-zero"
+and says nothing about a durable refusal record. Both are offered as criteria a checker can accept,
+narrow, or reject outright without touching AD1–AD5, which restate D-018/D-017 directly.
+
+**No-fire list offered (mirroring consent.md's own, for this contract):** building T-154/T-155
+itself; sending any probe, including a single one, against a live target; choosing the concrete
+`AiCheckKind`→probe mapping (T-152/T-153's job); revocation of an adversarial approval (expiry
+only, same as consent.md); a UI grant form for adversarial approvals.
+
+**APPLIES NEXT:** whichever unit eventually builds T-154 builds directly against AD1–AD7 (as the
+checker amends them), and does not re-derive D-017/D-018 from scratch.
+
