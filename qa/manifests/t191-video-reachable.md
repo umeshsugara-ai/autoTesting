@@ -374,5 +374,46 @@ account of a walk that is already evidenced.
 - Cycle 2 added **no** test and removed none; it changed one existing test's fixture and assertion.
   The identical total across cycles is what that should look like.
 
-## Status: ready-for-check
-**Fix cycle:** 2 (of max 3)
+## CLOSE-OUT — cycle 2 PASS
+
+**Verdict:** `qa/verdicts/t191-video-reachable.md` **CYCLE 2 = PASS** (root master `5183ff10`).
+16/16 capability rows confirmed load-bearing; C7, the sole cycle-1 fail driver, satisfied; no failures.
+
+**What the checker did that the maker had not, and it strengthens the record:**
+
+- **It inverted the filter** (`is not EvidenceKind.VIDEO`) as well as deleting it — a mutation neither
+  the manifest nor cycle 1 tried. Two tests reddened (`2 failed, 4 passed in 1.10s`), which is what
+  proves the assertion is load-bearing *for the right reason* rather than merely load-bearing.
+- **It reproduced both variants of the central claim** and confirmed the insufficiency: cycle 1's own
+  suggested shape stays `6 passed` with the filter deleted; the shipped route-prefix assertion goes
+  `1 failed, 5 passed in 0.90s` against a `0.63s` GREEN baseline.
+- **It settled the dropped fixture-liveness guard rather than leaving it open**, with an argument the
+  maker had not made: the filter-deleted mutation going RED *is itself* proof the seeded evidence
+  reached `_video_section` intact — had it been dropped upstream, deleting a downstream filter could
+  not have produced a link either way. So no new vacuity was introduced by dropping the guard.
+- **It simulated the merge instead of citing `.gitattributes`** — fresh clone of root, fetch of this
+  branch, real `git merge`, then a scripted duplicate-id scan of the merged file. Clean auto-merge, and
+  exactly the ten pre-existing collision pairs, none newly introduced.
+- **`AT-670`** (was AT-655, persona walk) ruled **accept as filed**: this manifest postdates
+  2026-09-26, so a missing `Persona walk:` field is SKILL.md 5bb's "newer manifest without the field"
+  case, which is what the row already says. The maker's argument that cycle-1's Mode D pass *is* the
+  honest persona walk here is accepted.
+- **Mode D skipped, reasoned and stated:** cycle 2 touched zero bytes of `routes_video.py`,
+  `routes_report.py` or `app.py`, so cycle 1's real-uvicorn/real-Playwright pass against byte-identical
+  code stands.
+
+**The finding that outlives this unit — `AT-672` (was AT-657), high, environmental, NOT charged here.**
+The checker's own full-suite run hit `18 failed, 13 errors`, every one an
+`OSError: [Errno 28] No space left on device`. Independently confirmed by the maker: **C: has 0.37 GB
+free of 474.72 (0.1%)**, and G: is in the same state; D: (this repo) has 212 GB. The checker correctly
+declined to charge it — the regression question is covered by the test-file-only diff scope, a clean
+targeted re-run (`16 passed in 2.41s`) and clean ruff/doctor. **But it can produce a false full-suite
+FAIL on any unit whose verify lands while the disk is this full, so it is surfaced to Umesh rather than
+filed and forgotten.** Note the maker's own cycle-2 full run read `2087 passed` with zero failures, so
+the disk crossed its threshold *between* that run and the check — which is exactly why a green suite is
+not evidence the instrument was healthy.
+
+**Ledger ids remapped into the reserved block** (`qa/QUEUE.md` "Ledger id reservation"):
+`AT-655`→`AT-670`, `AT-656`→`AT-671`, `AT-657`→`AT-672`. Each row carries its own mapping.
+
+## Status: checked-PASS (cycle 2 of max 3)
