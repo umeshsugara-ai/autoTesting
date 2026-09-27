@@ -148,7 +148,12 @@ def check_dependencies_declared(root: Path) -> list[Violation]:
     third-party top-level import under src/ must be declared directly, or be
     stdlib. Imports of modules the current environment cannot resolve at all
     are left to `import` itself to fail -- this check only catches the
-    "works by transitive accident" class."""
+    "works by transitive accident" class. AT-590: a declared-optional soft import
+    (TYPE_CHECKING-only or try/except ImportError/ModuleNotFoundError) is skipped
+    here instead, per `ledger.render.soft_import_ids` (moved there -- this file is
+    at C2's 300-line cap)."""
+    from autotester.ledger.render import soft_import_ids
+
     pyproject = root / "pyproject.toml"
     if not pyproject.exists():
         return []
@@ -161,12 +166,15 @@ def check_dependencies_declared(root: Path) -> list[Violation]:
     for path in _python_files(root):
         rel = path.relative_to(root)
         tree = ast.parse(path.read_text(encoding="utf-8"))
+        soft = soft_import_ids(tree)
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 modules = [(alias.name, node.lineno) for alias in node.names]
             elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
                 modules = [(node.module, node.lineno)]
             else:
+                continue
+            if id(node) in soft:
                 continue
             for module, lineno in modules:
                 top = module.split(".")[0]

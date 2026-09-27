@@ -13,12 +13,14 @@ handling or the overall scan's asymptotic shape. Synthetic fake secrets only.
 
 from __future__ import annotations
 
+import inspect
 import random
 import time
 import unicodedata
 
 import pytest
 
+from autotester.core import redact_encodings
 from autotester.core.redact import Redactor, assert_no_raw_secrets
 from autotester.core.redact_wrap import is_ignorable_char
 
@@ -148,3 +150,19 @@ def test_cjk_heavy_scan_stays_within_a_generous_multiple_of_ascii() -> None:
     # concurrently, against ~21-25s pre-fix under the same contention) -- this
     # pins "not superlinear-cache-thrashing any more", not a tight target.
     assert cjk_time < 15.0, f"CJK-heavy 1 MB took {cjk_time:.2f}s, expected under 15s"
+
+
+def test_redact_encodings_docstring_does_not_credit_the_removed_lru_cache() -> None:
+    """AT-620: `redact_encodings.py` used to credit `_is_ignorable`'s
+    `lru_cache` as the speed-up, but AT-611 removed that cache and moved the
+    (renamed) function to `redact_wrap.is_ignorable_char`. Guards against the
+    docstring drifting back to naming a function/mechanism that no longer
+    exists; `is_ignorable_char` is asserted live via `hasattr` rather than
+    just imported, so the test also fails loudly if the real rename ever
+    regresses instead of just the prose about it."""
+    source = inspect.getsource(redact_encodings)
+    assert "_is_ignorable" not in source, (
+        "redact_encodings.py still references the removed `_is_ignorable` "
+        "name/cache -- see AT-620"
+    )
+    assert callable(is_ignorable_char)
