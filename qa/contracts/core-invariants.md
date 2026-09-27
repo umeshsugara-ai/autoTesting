@@ -192,8 +192,10 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   against the reader's actual vocabulary in a test, and files the upstream defect in the ledger.
 - Applies to `.goal/goal.json` control fields (`base_criticality`, `done_check`, `approved`) as
   well as to `projects/<slug>/` artifacts.
-- **Verify:** `uv run pytest tests/test_goal_criticality_vocabulary.py tests/test_goal_done_checks.py`
-  exits 0 — one file per control field pinned so far (`base_criticality`, `done_check`). `approved`
+- **Verify:** `uv run pytest tests/test_goal_criticality_vocabulary.py tests/test_goal_done_checks.py
+  tests/test_goal_contract_registration.py` exits 0 — one file per control field pinned so far
+  (`base_criticality`, `done_check`; the latter split across two files at AT-638, see below).
+  `approved`
   is not yet pinned (AT-156); when it is, its test joins this line.
 
 ### C10 — A unit's commit carries only that unit's paths
@@ -573,3 +575,15 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   **Changes-authorized:** qa/contracts/core-invariants.md C7 (this entry). No enforcement-path file
   touched. **Links:** D-048; AT-516; qa/gates/at516-evidence-spec-splitting-policy.md;
   qa/manifests/t189-stale-evidence-tag.md; qa/verdicts/t189-stale-evidence-tag.md.
+- 2026-09-27 · routine (checker, at638-done-check-repair cycle 1) · **C9's Verify line repaired,
+  drift found while checking the unit, not claimed by it.** AT-638 split
+  `test_revised_goal_contract_is_registered` out of `tests/test_goal_done_checks.py` into a new
+  `tests/test_goal_contract_registration.py` (doctor's 300-line cap). C9's own Verify command —
+  `uv run pytest tests/test_goal_criticality_vocabulary.py tests/test_goal_done_checks.py` — was
+  never updated to name the new file, so running exactly the command this criterion prescribes now
+  silently skips the one test that pins the T-160..T-184 `done_check` registration: the contract's
+  own text stopped matching what it verifies. Added `tests/test_goal_contract_registration.py` to
+  the Verify line. No criterion weakened or added; a stale pointer repaired to what it already
+  meant. **Changes-authorized:** qa/contracts/core-invariants.md C9 (this entry). No
+  enforcement-path file touched. **Links:** AT-638; qa/manifests/at638-done-check-repair.md;
+  qa/verdicts/at638-done-check-repair.md.
