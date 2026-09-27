@@ -1,6 +1,7 @@
 # Manifest — at575-orchestrator-caller
 
-**Status:** in-progress (cycle 3 — see the Fix cycle 3 section at the end)
+**Status:** checked-PASS (cycle 3 — verdict `qa/verdicts/at575-orchestrator-caller.md`
+`Cycle checked: 3` VERDICT: PASS; close-out at the end of this file, commit `0ac4105`)
 **Fix cycle:** 3 of 3
 **Dual check:** no
 **Issues addressed:** AT-575
