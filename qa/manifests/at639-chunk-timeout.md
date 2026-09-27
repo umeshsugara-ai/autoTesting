@@ -111,4 +111,21 @@ this unit's two modified files, `timeout=CHUNK_TIMEOUT_S` still present at :123,
   encode times was gathered; the number is reasoned from `-preset veryfast` on a 180s chunk.
 - **AT-645 (duplicate ledger ids) is not addressed here** and is not claimed to be.
 
-## Status: ready-for-check
+## Status: checked-PASS (qa/verdicts/at639-chunk-timeout.md, Cycle checked: 1, verdict commit 50849f58, merged into master)
+
+**Two follow-on issues filed by the checker, carried forward open — neither blocking:**
+- `ISS-at639-1` (medium) — `CHUNK_TIMEOUT_S` bounds ONE ffmpeg call, but `media_prep.prepare`'s
+  loop over the whole chunk plan has no aggregate deadline: a systemically broken ffmpeg can
+  still hang INGEST for N x 900s (~3.25h for a 40-minute recording's ~13 chunks). This is the
+  sharper version of the gap this manifest disclosed but stopped short of naming. The original
+  single-call-unbounded defect is genuinely closed; the aggregate one is new debt.
+- `ISS-at639-2` (low) — `path.unlink(missing_ok=True)` at `chunks.py`:132 is itself unguarded;
+  on Windows it can raise `PermissionError` on a just-killed file and replace the original
+  exception before the `raise`. Fail-closed still holds (`media_prep`'s broad `except`), but the
+  persisted failure would carry the wrong exception type — a diagnostics-quality defect.
+
+The checker also judged this manifest's disclosed gap (neither test wedges a real 900s hang)
+**sufficient**: proving `timeout=` reaches `subprocess.run` and that cleanup fires on a
+simulated `TimeoutExpired` is the right-shaped test, matching what was already accepted for
+`frames.py`/`transcribe.py`'s sibling bounds. Its own full suite ran clean — 2016 passed, exit 0,
+764s, with AT-627 not surfacing at all.
