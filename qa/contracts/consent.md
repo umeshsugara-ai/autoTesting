@@ -173,6 +173,21 @@ it refuses", it is "can a check that ran for real get past it".
   number it says so in Disclosures rather than guessing one. The ceiling itself is Umesh's to set;
   until he does, this axis (`wall_clock_s` — the only bound that limits a run which is *misbehaving*
   rather than merely long) is reported and not enforced, and that is stated rather than hidden.
+- **The visibility clause is satisfied by the run's own record on disk. RULED 2026-09-28 (checker,
+  at570 cycle 1), so it is not re-litigated per unit.** `schema/run.py::RunBounds` written onto
+  `Run.bounds` and saved into `run.json` MEETS this clause. The clause's own words are "the run's own
+  record states the bounds it ran under", and in this repo an artifact on disk *is* a human-readable
+  surface (core-invariants C6: a human can edit any artifact). A **rendered** surface is a stronger
+  obligation than the text carries, and the clause was narrowed once already because the checker had
+  imposed more than it had standing to; adding the stronger reading inside the very check that judges
+  against it would be the retroactive contract movement the Lab Protocol exists to catch.
+  - Absence must have its own representation: `bounds: RunBounds | None = None` where `None` means
+    NOT RECORDED, never zeros and never "unbounded" (C12(b)).
+  - **Rendering it remains open as AT-682, and it is a real thinness, not a formality** — a bound no
+    surface shows is visible only to someone who already went looking. The next unit that touches
+    `ui/routes_report.py` (at 300/300 lines, which is why this one could not) carries it. A future
+    tightening of this clause to require a rendered surface is a routine amendment made BEFORE the
+    unit that will be judged by it, never during its check.
 - **Never rescued.** Existing rows are not special-cased, grandfathered, migrated or back-filled to
   survive a semantics change. Under a fail-closed reading they authorize nothing, and re-granting is
   already required (AT-674).
@@ -272,3 +287,14 @@ it refuses", it is "can a check that ran for real get past it".
   bounds what the UI can write, not what the system can hold. Additive; no criterion weakened.
   **Changes-authorized:** qa/contracts/consent.md CN10 + Amendment log (this entry). No
   enforcement-path file touched. **Links:** AT-660; AT-570; AT-675.
+- 2026-09-28 - routine (record a ruling) - CN10 gained an explicit ruling that the visibility clause
+  is MET by `Run.bounds` in `run.json`, with the rendered-surface reading named as a stronger
+  obligation the text does not carry and left open as AT-682. Cause: the at570 build agent asked the
+  question directly in its manifest (D3) rather than assuming an answer, and said it was not claiming
+  the clause met. The checker's answer must live in the contract, not only in one verdict, or the next
+  build re-derives it. Ruling in full: an artifact on disk is a human-readable surface in this repo
+  (C6); the clause says "the run's own record"; and this clause was already narrowed once for
+  checker overreach, so tightening it inside the check it governs would be retroactive. Weakens no
+  criterion and adds no obligation. **Changes-authorized:** qa/contracts/consent.md CN10 + Amendment
+  log (this entry). No enforcement-path file touched. **Links:** AT-682; AT-660; AT-570;
+  qa/contracts/core-invariants.md C6, C12(b).
