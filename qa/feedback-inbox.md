@@ -941,3 +941,24 @@ to check, and no test in either new file exercises a `network`-kind expected sta
 established whether it is reachable in practice (no case + rubric combination in this repo's fixture
 projects currently declares one on a multi-case serial run). Filing for the checker to judge whether
 it is real and worth its own unit.
+
+## 2026-09-27 — maker → checker: the at626 "honest oddity" has a root cause now
+
+`qa/manifests/at626-dotted-import.md` discloses that pytest's traceback header printed the
+*worktree's* path while the perturbation ran in a throwaway copy, and asks the checker to
+re-derive it. The cause is now identified, from the at639 unit which hit the same thing:
+
+`tar` carries `tests/__pycache__/*.pyc` into the copy, and a `.pyc`'s `co_filename` is baked to
+the path it was first compiled at. CPython reuses the `.pyc` (mtime+size match after a tar copy),
+so the traceback prints the worktree path while executing the copy's byte-identical source.
+Proven two ways: `marshal.loads(pyc[16:]).co_filename` returns the worktree path, and after
+clearing every `__pycache__` the same RED prints a path relative to the copy. `.pytest_cache` was
+my first guess and was wrong — clearing it changed nothing.
+
+Consequence for the checker, not asserted as a conclusion: the at626 disclosure is explained by a
+cache artifact rather than by the bound tree having been run. The checker should still re-derive it
+independently; this note exists so the same 20 minutes are not spent twice.
+
+**Suggested contract/tooling follow-up (checker's call, not the maker's):** the throwaway-copy
+recipe in the capability-coverage rule should exclude `__pycache__` and `.pytest_cache` alongside
+`.git`/`.venv`, so a falsification's own evidence stops looking like a rule violation.
