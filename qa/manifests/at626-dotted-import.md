@@ -102,4 +102,10 @@ nothing a rendered page's data flows through.
   flake of the AT-196/AT-505/AT-518 class and explicitly not chargeable to this unit.
 - **AT-627 is not addressed here** and is not claimed to be.
 
-## Status: ready-for-check
+## Status: checked-PASS (qa/verdicts/at626-dotted-import.md, Cycle checked: 1, verdict commit 5380673a, merged into master)
+
+**Checker's independent resolution of this manifest's disclosed oddity:** the worktree-path
+traceback was a stale `tests/__pycache__/*.pyc` whose baked `co_filename` is what a traceback
+prints. The checker reproduced it in its own copy and found the same cause the maker later
+found on at639 — arrived at twice, independently. The throwaway-copy recipe now excludes
+`__pycache__` (see qa/feedback-inbox.md 2026-09-27).
