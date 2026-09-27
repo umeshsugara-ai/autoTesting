@@ -56,6 +56,25 @@ class RawResult(Artifact):
     log_ref: str | None = None
 
 
+class RunBounds(BaseModel):
+    """The `RunApproval` bounds a run ACTUALLY ran under (AT-660/CN10).
+
+    Recorded rather than capped. A bound can be present, non-zero, signed and
+    still constrain nothing — `projects/pathlynks/approvals.jsonl`'s live row
+    grants 600000000.0 wall-clock seconds, which is 19 years — and what counts
+    as a defensible maximum is a gate decision, not a build's. So the run's own
+    record states what it ran under, where a human reading `run.json` sees it,
+    and no ceiling is invented here.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    approval_id: str
+    max_actions: int
+    max_probes: int
+    wall_clock_s: float
+
+
 class Run(Artifact):
     """One regression run over a set of cases."""
 
@@ -78,4 +97,11 @@ class Run(Artifact):
         description="which term chose parallel_n -- project.max_parallel ('config'), the "
                     "measured RAM/CPU budget ('budget'), or a forced serial fallback because "
                     "write_policy is allow_writes ('write_policy')",
+    )
+    bounds: RunBounds | None = Field(
+        default=None,
+        description="AT-570/CN10: the approval and bounds this run ran under. None means NOT "
+                    "RECORDED (a run from before the live-case gate, or a path that does not "
+                    "record it) -- never 'unbounded', and deliberately not zeros, which would "
+                    "be indistinguishable from a measured zero (core-invariants C12(b))",
     )

@@ -120,6 +120,7 @@
 | `stages/product_map.py` | PRODUCT MAP: fold every recording analysis into one navigable screen map. |
 | `stages/report_export.py` | Tester-style run reports: an Excel summary and a screen-by-screen HTML |
 | `stages/review.py` | FlowSpec review gate: nothing generates cases from an unreviewed understanding |
+| `stages/run_budget.py` | RUN_BUDGET: the consent budget one case run spends against (AT-570/AT-660). |
 | `stages/run_case_pipeline.py` | RUN_CASE_PIPELINE: the one function that runs a case and grades it. |
 | `stages/score.py` | SCORE: compare AutoTester's issues against a human tester's own sheet. |
 | `stages/screen_identity.py` | Screen identity: turn one `PageObservation` into a `ScreenNode`. |
@@ -233,6 +234,7 @@
 | `Evidence` (`schema/run.py`) | A file or value the grader may cite. Already redacted and masked. |
 | `ProviderUsage` (`schema/run.py`) | Token and call accounting per provider role — the cost story per run. |
 | `RawResult` (`schema/run.py`) | One case's execution record. |
+| `RunBounds` (`schema/run.py`) | The `RunApproval` bounds a run ACTUALLY ran under (AT-660/CN10). |
 | `Run` (`schema/run.py`) | One regression run over a set of cases. |
 | `StageName` (`schema/run_state.py`) | The pipeline stages a run drives, in canonical order. |
 | `StageCheckpoint` (`schema/run_state.py`) | One stage's durable record within a run. |

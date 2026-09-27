@@ -12,17 +12,22 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import RedirectResponse
 
 from autotester.browser.secrets import SecretStore
+from autotester.core.consent import ApprovalRequired
 from autotester.core.ids import ulid
 from autotester.core.paths import ProjectPaths
 from autotester.providers.langchain_fallback import LangChainFallbackProvider
+from autotester.schema.approval import RunApproval
 from autotester.schema.case import Case
-from autotester.schema.enums import Action
+from autotester.schema.crawl import CrawlBounds
+from autotester.schema.enums import Action, ApprovalKind
 from autotester.schema.project import Project
-from autotester.schema.run import Run
+from autotester.schema.run import Run, RunBounds
 from autotester.schema.run_state import StageCheckpoint, StageName
 from autotester.stages.coverage import diff_coverage, queue_requests
+from autotester.stages.explore_consent import covering_approval
 from autotester.stages.orchestrate import StageContext
 from autotester.stages.parallel_run import ParallelPlan, plan_parallel_run
+from autotester.stages.run_budget import action_cost, wall_clock_request_s
 from autotester.stages.video_retention import prune_old_videos
 from autotester.store.project_store import ProjectStore
 from autotester.ui.helpers import _load_project_or_404
@@ -62,10 +67,33 @@ def _require_declared_values(project: Project, secrets: SecretStore, slug: str) 
         ))
 
 
+def _require_live_case_approval(
+    project: Project, store: ProjectStore, cases: list[Case]
+) -> RunApproval:
+    """D-018 gate 2 for a CASE run (AT-570). Refuses BEFORE a run id, a run
+    directory, a browser or a `Run` record exists (consent.md CN1's "a refused
+    run leaves no trace"), and the refusal text names WHICH state refused it --
+    no `live_case` row / the row carries no signature / no signing key is
+    configured -- because `require_approval` builds that text per candidate.
+
+    The bounds requested are the run's own: `action_cost` per case (the system's
+    existing vocabulary for an action, never 0, which would find any approval
+    "wide enough") and a positive wall clock, so an approval granting zero time
+    is refused here rather than exhausting `RunBudget` after the first case."""
+    bounds = CrawlBounds(
+        max_actions=sum(action_cost(c) for c in cases),
+        wall_clock_s=wall_clock_request_s(cases),
+    )
+    try:
+        return covering_approval(project, store, bounds, kind=ApprovalKind.LIVE_CASE)
+    except ApprovalRequired as exc:
+        raise HTTPException(403, str(exc)) from exc
+
+
 def _execute_with_trace(
     store: ProjectStore, run_id: str, secrets: SecretStore, project: Project,
     cases: list[Case], entry_flags: list[bool], run_dir: Path, paths: ProjectPaths,
-    slug: str, judge: LangChainFallbackProvider,
+    slug: str, judge: LangChainFallbackProvider, approval: RunApproval,
 ) -> ParallelPlan:
     """AT-562/AT-564: build this run's `StageContext` with the project's real
     `SecretStore` (RT6 — a real, redacted `trace.jsonl`), attach it to the
@@ -79,7 +107,8 @@ def _execute_with_trace(
     started = ctx.clock()
     if plan.n > 1:
         _run_cases_in_parallel(
-            cases, entry_flags, plan, project, secrets, run_dir, slug, judge, run_id, store
+            cases, entry_flags, plan, project, secrets, run_dir, slug, judge, run_id, store,
+            approval,
         )
     else:
         _run_cases_serially(
@@ -115,17 +144,23 @@ def trigger_run(slug: str) -> RedirectResponse:
     paths = ProjectPaths(slug)
     secrets = SecretStore.load(project, paths.env_file, strict=False)
     _require_declared_values(project, secrets, slug)
+    approval = _require_live_case_approval(project, store, cases)
     run_id = f"run-{ulid()}"
     run_dir = paths.run_dir(run_id)
     entry_flags = [_is_entry_case(c, project) for c in cases]
 
     plan = _execute_with_trace(
-        store, run_id, secrets, project, cases, entry_flags, run_dir, paths, slug, judge
+        store, run_id, secrets, project, cases, entry_flags, run_dir, paths, slug, judge,
+        approval,
     )
 
     store.save_run(Run(
         id=run_id, project=slug, case_ids=[c.id for c in cases],
         parallel_n=plan.n, parallel_bound_by=plan.bound_by,
+        # CN10: what it ran under, reported not capped -- a 19-year wall clock is
+        # visible to whoever reads run.json instead of silently honoured.
+        bounds=RunBounds(approval_id=approval.id, max_actions=approval.max_actions,
+                          max_probes=approval.max_probes, wall_clock_s=approval.wall_clock_s),
     ))
     prune_old_videos(store)  # T-191/AT-587 V5: most recent 20 kept videos, project-wide
     _ask_for_what_it_did_not_recognise(store, run_id)

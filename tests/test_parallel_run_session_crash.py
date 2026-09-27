@@ -12,7 +12,7 @@ Contract: qa/contracts/parallel-run.md PR6.
 
 from __future__ import annotations
 
-from test_parallel_run import _case, _project
+from test_parallel_run import _approval, _case, _project
 
 from autotester.schema.case import Case
 from autotester.schema.enums import Outcome
@@ -46,7 +46,8 @@ def test_pr6_a_session_factory_that_raises_for_one_case_does_not_abort_siblings(
         return RawResult(case_id=case.id, outcome=Outcome.COMPLETED)
 
     plan = plan_parallel_run(_project(max_parallel=3), cpu_count=8, free_ram_mb=1e9)
-    by_id = {r.case_id: r for r in run_cases(cases, plan, factory, run_fn)}
+    results = run_cases(cases, plan, factory, run_fn, approval=_approval())
+    by_id = {r.case_id: r for r in results}
 
     crashed = by_id[cases[1].id]
     assert crashed.outcome is Outcome.ERRORED

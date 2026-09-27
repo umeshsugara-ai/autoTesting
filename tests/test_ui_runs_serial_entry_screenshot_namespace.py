@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from test_ui_runs import _approve_demo_runs
 from test_ui_runs_parallel_trace import client, scratch_root
 
 from autotester.schema.case import Case
@@ -104,6 +105,7 @@ def test_entry_and_ordinary_case_screenshots_never_collide_on_disk(
     # (evidence_prefix and all) is what this test exercises.
     monkeypatch.setattr(pipeline_module, "grade", fake_grade)
 
+    _approve_demo_runs(scratch_root, BASE_URL)  # AT-570: the live_case approval a run now needs
     response = client.post("/projects/demo/run", follow_redirects=False)
     assert response.status_code == 303, response.text
 

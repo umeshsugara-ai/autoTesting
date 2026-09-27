@@ -53,9 +53,30 @@ class RunApproval(Artifact):
     run_kind: ApprovalKind
     target: str = Field(description="the exact base_url or endpoint this authorises")
     scope: str = Field(description="what will be read, clicked or sent — in the human's words")
-    max_actions: int = 0
-    max_probes: int = 0
-    wall_clock_s: float = 0.0
+    max_actions: int = Field(
+        default=0,
+        description="how many actions this run may spend in total. ZERO MEANS ZERO: an approval "
+                    "that grants 0 authorises no action at all, it does not mean 'unbounded' "
+                    "(AT-660/CN10 — `core/consent.py::_shortfalls` always read it this way; "
+                    "`RunBudget.try_consume` used to read the same 0 as unlimited, and the "
+                    "permissive side governed the run). Chosen by the AT-570 build as the "
+                    "fail-closed direction; awaiting ratification.",
+    )
+    max_probes: int = Field(
+        default=0,
+        description="how many probes this run may spend in total. ZERO MEANS ZERO, as above. "
+                    "Every row in `projects/pathlynks/approvals.jsonl` carries 0 here, so this "
+                    "is the field where the old truthiness guard was live on disk.",
+    )
+    wall_clock_s: float = Field(
+        default=0.0,
+        description="how many seconds this run may take in total. ZERO MEANS ZERO, as above: an "
+                    "approval granting 0 seconds authorises no time. Present-and-non-zero is not "
+                    "the same as plausible — the live pathlynks row grants 600000000.0s (19 "
+                    "years) and nothing here rejects it; CN10 requires that bound be REPORTED "
+                    "(`schema/run.py::RunBounds`), not capped, because the ceiling is a gate "
+                    "decision and not a build's.",
+    )
     production: bool = Field(
         default=False,
         description="an adversarial run against production requires this to be explicitly true",

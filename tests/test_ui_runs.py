@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from run_approval_fixture import grant_live_case_approval
 
 from autotester.schema.enums import Outcome, Result
 from autotester.schema.run import RawResult
@@ -37,6 +38,22 @@ def _onboard_demo(client: TestClient) -> None:
         "slug": "demo", "name": "Demo", "base_url": "https://demo.test",
         "allowed_domains": "demo.test",
     })
+
+
+def _approve_demo_runs(root: Path, target: str | None = None) -> None:
+    """The `live_case` approval `POST /projects/demo/run` requires since AT-570.
+
+    Granted, never bypassed -- so every run test also exercises the gate's happy
+    path, the same reason `crawl_fake.grant_crawl_approval` exists for crawls. A
+    guard only the production callers pass through is a guard tested nowhere.
+    Bounds are non-zero (AT-660/CN10); refusal paths are covered on purpose in
+    `tests/test_ui_runs_live_case_approval.py`."""
+    store = ProjectStore("demo", root)
+    project = store.load_project()
+    assert project is not None, "onboard the project before approving its runs"
+    # Read `base_url` back from disk rather than hardcoding it: `require_approval`
+    # matches the target EXACTLY, and onboarding normalises what the form posted.
+    grant_live_case_approval(store, target=target or project.base_url)
 
 
 def test_run_refuses_a_project_with_no_cases(client: TestClient, scratch_root: Path) -> None:
@@ -113,6 +130,7 @@ def test_run_executes_every_case_and_redirects_to_the_report(
     monkeypatch.setattr(run_execution_module, "run_and_grade_case_resilient",
                         fake_run_and_grade_case_resilient)
 
+    _approve_demo_runs(scratch_root)  # AT-570: the live_case approval a run now needs
     response = client.post("/projects/demo/run", follow_redirects=False)
 
     assert response.status_code == 303
@@ -203,6 +221,7 @@ def test_entry_case_gets_an_isolated_wiped_profile_not_the_shared_one(
     monkeypatch.setattr(run_execution_module, "run_and_grade_case_resilient",
                         fake_run_and_grade_case_resilient)
 
+    _approve_demo_runs(scratch_root)  # AT-570: the live_case approval a run now needs
     response = client.post("/projects/demo/run", follow_redirects=False)
 
     assert response.status_code == 303

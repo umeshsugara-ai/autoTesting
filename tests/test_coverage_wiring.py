@@ -20,6 +20,7 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from test_ui_runs import _approve_demo_runs
 
 from autotester.schema.case import Case
 from autotester.schema.crawl import Crawl
@@ -72,7 +73,7 @@ def _a_case(store: ProjectStore) -> Case:
 
 
 def _run_with_urls(
-    monkeypatch: pytest.MonkeyPatch, client: TestClient, urls: list[str]
+    monkeypatch: pytest.MonkeyPatch, client: TestClient, urls: list[str], root: Path
 ) -> None:
     """Press ▶ Run tests for real, with the browser faked out and the run's
     evidence saying it reached `urls`."""
@@ -102,6 +103,7 @@ def _run_with_urls(
     # name is actually looked up at call time, not on routes_runs_module.
     monkeypatch.setattr(run_execution_module, "run_and_grade_case_resilient",
                         fake_run_and_grade_case_resilient)
+    _approve_demo_runs(root)  # AT-570: the live_case approval a run now needs
     response = client.post("/projects/demo/run", follow_redirects=False)
     assert response.status_code == 303, response.text
 
@@ -113,7 +115,7 @@ def test_a_run_that_reaches_an_unknown_route_asks_for_a_video(
     store = _project(scratch_root, screens=[Screen(id="s1", name="Home", url_pattern="/")])
     _a_case(store)
 
-    _run_with_urls(monkeypatch, client, ["https://demo.test/reports/new"])
+    _run_with_urls(monkeypatch, client, ["https://demo.test/reports/new"], scratch_root)
 
     requests = ProjectStore("demo", scratch_root).list_requests()
     assert len(requests) == 1, requests
@@ -128,7 +130,7 @@ def test_a_run_that_stays_on_known_routes_asks_for_nothing(
     store = _project(scratch_root, screens=[Screen(id="s1", name="Home", url_pattern="/")])
     _a_case(store)
 
-    _run_with_urls(monkeypatch, client, ["https://demo.test/"])
+    _run_with_urls(monkeypatch, client, ["https://demo.test/"], scratch_root)
 
     assert ProjectStore("demo", scratch_root).list_requests() == []
 
@@ -141,8 +143,8 @@ def test_two_runs_over_the_same_unknown_route_ask_once(
     store = _project(scratch_root, screens=[Screen(id="s1", name="Home", url_pattern="/")])
     _a_case(store)
 
-    _run_with_urls(monkeypatch, client, ["https://demo.test/reports/new"])
-    _run_with_urls(monkeypatch, client, ["https://demo.test/reports/new"])
+    _run_with_urls(monkeypatch, client, ["https://demo.test/reports/new"], scratch_root)
+    _run_with_urls(monkeypatch, client, ["https://demo.test/reports/new"], scratch_root)
 
     assert len(ProjectStore("demo", scratch_root).list_requests()) == 1
 
@@ -157,7 +159,7 @@ def test_a_run_on_a_project_with_no_flowspec_asks_for_nothing(
                                allowed_domains=["demo.test"]))
     _a_case(store)
 
-    _run_with_urls(monkeypatch, client, ["https://demo.test/reports/new"])
+    _run_with_urls(monkeypatch, client, ["https://demo.test/reports/new"], scratch_root)
 
     assert ProjectStore("demo", scratch_root).list_requests() == []
 
