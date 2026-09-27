@@ -188,3 +188,106 @@ def test_screen_url_pattern_is_unaffected_when_a_real_path_survives() -> None:
 def test_screen_url_pattern_is_none_for_no_input() -> None:
     assert screen_url_pattern(None) is None
     assert screen_url_pattern("") is None
+
+
+# -- AT-334: a directory index reached by "/" and by "/index.html" is one screen --
+# The fold is opt-in (`fold_index=True`, default False) -- see
+# test_fold_index_defaults_to_off_... below for why.
+
+def test_trailing_index_html_folds_to_root() -> None:
+    assert url_template("/index.html", keep_host=False, fold_index=True) == "/"
+
+
+def test_trailing_index_htm_also_folds_to_root() -> None:
+    assert url_template("/index.htm", keep_host=False, fold_index=True) == "/"
+
+
+def test_root_and_index_html_produce_the_identical_template() -> None:
+    """The exact AT-334 measurement: a browser crawl reaching the same page via
+    "/" and via "/index.html" must land on one `url_template`, or explore's
+    node identity (a pure function of `(url_template, signature)`) counts one
+    screen twice."""
+    assert url_template("/", keep_host=False) == url_template(
+        "/index.html", keep_host=False, fold_index=True
+    )
+
+
+def test_nested_trailing_index_html_folds_to_the_directory() -> None:
+    """Folds to whatever the directory form ITSELF already normalises to --
+    `/docs/` already drops its trailing slash under this function's own
+    documented rule, so `/docs/index.html` must land on that same `/docs`,
+    not on a third, unvisited `/docs/` shape. Landing on `/docs/` instead
+    would break the idempotence this module already promises: re-templating
+    `/docs/` collapses to `/docs`, so `/docs/` could never be a stable output
+    of this function in the first place."""
+    assert url_template("/docs/index.html", keep_host=False, fold_index=True) == "/docs"
+    assert (
+        url_template("/docs/index.html", keep_host=False, fold_index=True)
+        == url_template("/docs/", keep_host=False)
+        == url_template("/docs", keep_host=False)
+    )
+
+
+def test_index_html_fold_survives_query_and_fragment() -> None:
+    assert url_template("/index.html?tab=2#x", keep_host=False, fold_index=True) == "/"
+
+
+def test_index_html_fold_works_with_host_kept() -> None:
+    assert url_template("https://app.test/docs/index.html", fold_index=True) == "app.test/docs"
+
+
+def test_bare_index_html_with_host_kept_folds_to_host_root() -> None:
+    assert url_template("https://app.test/index.html", fold_index=True) == "app.test/"
+
+
+def test_fold_index_defaults_to_off_so_migrate_url_patterns_repair_is_unaffected() -> None:
+    """`scripts/migrate_url_patterns.py::repair` calls `url_template` directly
+    and its own tests pin `/index.html` as an ordinary, unchanged remainder
+    once a real declared host has been stripped off -- that script sits behind
+    its own separate, unanswered gate (qa/gates/t135-url-pattern-data-migration.md)
+    and AT-334 does not authorize touching it. The fold must therefore be
+    opt-in, not the default, so every caller that never asked for it (like
+    `repair`) keeps behaving exactly as before with zero code changes."""
+    assert url_template("/index.html", keep_host=False) == "/index.html"
+    assert url_template("/docs/index.html", keep_host=False) == "/docs/index.html"
+
+
+# -- AT-334: what must NOT fold, pinned so the fold cannot over-broaden --
+# Called WITH fold_index=True throughout -- the guard must hold even when
+# folding is actively requested, not merely when it is off by default.
+
+def test_myindex_html_is_not_folded() -> None:
+    """Only the exact segment `index.html`/`index.htm` folds -- a filename that
+    merely ends with it is an ordinary, distinct page."""
+    assert url_template("/myindex.html", keep_host=False, fold_index=True) == "/myindex.html"
+
+
+def test_index_html_bak_is_not_folded() -> None:
+    assert (
+        url_template("/index.html.bak", keep_host=False, fold_index=True) == "/index.html.bak"
+    )
+
+
+def test_index_php_is_not_folded() -> None:
+    assert url_template("/index.php", keep_host=False, fold_index=True) == "/index.php"
+
+
+def test_index_html_fold_is_case_sensitive() -> None:
+    """Case-sensitive on purpose: most web servers (and every Linux one) treat
+    paths as case-sensitive, so `/Index.html` is not provably the same
+    resource as `/index.html` -- folding it too would be a guess this module's
+    own history (AT-287, AT-299b) already warns against making."""
+    assert url_template("/Index.html", keep_host=False, fold_index=True) == "/Index.html"
+    assert url_template("/INDEX.HTML", keep_host=False, fold_index=True) == "/INDEX.HTML"
+
+
+# -- AT-334: the boundary callers that DO opt in --
+
+def test_screen_url_pattern_folds_trailing_index_html_like_node_identity_does() -> None:
+    """`screen_url_pattern` is the ingest/product_map/login-case boundary X15
+    requires to agree with `ScreenNode.url_template` -- both must fold, or a
+    screen learned via a video's `/index.html` frame never matches a crawl
+    observing the same page at `/`."""
+    assert screen_url_pattern("/index.html") == "/"
+    assert screen_url_pattern("/docs/index.html") == "/docs"
+    assert screen_url_pattern("erp/index.html") == "/erp"
