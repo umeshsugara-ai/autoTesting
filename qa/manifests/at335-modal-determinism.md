@@ -272,4 +272,59 @@ skip (backend-only, no UI surface touched). `qa/adapter.json`'s `verify.commands
 - No live product traffic or network calls beyond the local fake-page fixture and the real local
   Chromium crawl already exercised by `test_explore_modal.py`'s existing fixtures.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1)
+
+Verdict `qa/verdicts/at335-modal-determinism.md`, **Cycle checked: 1**, verdict commit `3c29bc60`,
+merged and pushed to `origin/master` at `f395852d`. `AT-335` moves open -> fixed with
+`regression_check: uv run pytest tests/test_explore_return_determinism.py`.
+
+**The vacuous-guard gap this salvage existed to close was proved real, not merely asserted.** The
+checker built its own throwaway copy (`git archive HEAD`, with a junction to a copied `.venv`,
+never a mutation of the bound worktree) and — importantly — **confirmed a green baseline in the
+copy before mutating anything** (`2 passed in 14.33s`), so a later RED could not be an artefact of
+a broken extraction. Then two mutations:
+
+- **A:** `_matches` reverted to a single check (the pre-fix shape) -> test 1 RED with the exact
+  quoted failure (`AssertionError: never reached the page behind the modal`). The poll is real.
+- **B:** `_matches` stubbed to unconditional `return True` (the AT-548/549/550 vacuous shape) ->
+  the **original salvaged test still passed**, confirming the gap was genuine, while the new
+  `test_return_to_still_fails_when_the_lag_exceeds_the_bound` went RED. That second test is the
+  one actually closing the hole.
+
+Bound worktree verified clean before and after.
+
+**X4 (guaranteed termination) verified in code rather than from this manifest's trace:**
+`explore_node.py` checks `stop_reason()` before every action (`:243`) and before every node
+(`:290`), never inside `return_to`/`_replay_discovery` — so termination holds regardless of what
+the tolerance costs. The worst case does grow from ~27.5s to ~44s, but only when both `go_back`
+and `goto` fail at all 4 depths. Ruled **acceptable to ship, not a blocker**, with
+`ISS-at335-followup-tolerance-scope` (medium, non-blocking) filed for the remedy this manifest
+itself proposed: skip the tolerance on the terminal `MAX_REPLAY_DEPTH` rung, which cannot recover
+by replay anyway.
+
+**The unmeasured constants were accepted as an honest guess, not rubber-stamped.** The checker
+confirmed the docstring now says 1500ms/0.15s are "NOT independently measured... a conservative,
+bounded guess... not a proven-minimal one", and declined to substitute a different number it had
+no more evidence for. That is the right call: the reworded docstring is the fix for the original
+false "measured live" claim.
+
+**The AT-642 attribution correction holds.** The checker independently confirmed AT-642 and
+`ISS-at638-remainder-2` are genuinely distinct issues and that this unit's diff touches no `.goal/`
+file — so the two `test_goal_done_checks.py` failures are correctly out of scope here.
+
+**Merge handling, recorded because it was unusually careful and worth repeating.** Rather than
+touch the main checkout — which had unrelated uncommitted `.goal/` changes and concurrent writers —
+the checker did the whole merge in a **detached temp worktree**, resolved one append-only conflict
+in `qa/issues.jsonl` by keeping all three concurrently-added rows, rebased twice against a
+fast-moving `origin/master`, pushed, and then confirmed via `git show origin/master:...` that fix,
+test, manifest and verdict are all live on the remote. It deliberately left local
+`refs/heads/master` alone. I reconciled it here with an ordinary fetch/merge, stashing and
+restoring the in-flight `.goal/` work; the pre-existing `stash@{0}` (`checker-temp-at540`, the
+subject of `ISS-at542-lost-correction`) was verified still present afterwards.
+
+**One process note the checker volunteered against itself**, recorded rather than dropped: its
+first full-pytest invocation piped through `tail` — the exact anti-pattern its dispatch warned
+about. It did not rely on the pipeline's exit code (it read the printed failure summary), and it
+re-ran the three adapter commands separately and unpiped, but it flagged the slip itself. That is
+the behaviour this pair wants; noted so the next dispatch keeps warning about it.
+
