@@ -206,14 +206,32 @@ def _case_section(
     error = escape(result.error) if result.error else ""
     no_shots = "<p class='meta'>no screenshots captured</p>"
     detail = _failure_detail_html(verdict, case, redactor)
+    video_html = _video_link_html(result)
     return (
         f"<section><h2>{title} "
         f"<span class='badge' style='background:{color}'>{badge_text}</span></h2>"
         f"<p class='meta'>{scoreboard}{error}</p>"
         f"{detail}"
         f"<div class='shots'>{figures or no_shots}</div>"
+        f"{video_html}"
         "</section>"
     )
+
+
+def _video_link_html(result) -> str:
+    """RE3's named exception (D-050) + T-191 V8: a kept video is LINKED, never
+    embedded like a screenshot -- a 15-20 minute recording base64'd into the
+    page would defeat the whole point of the exception. Path is run-relative,
+    same as `Evidence.path` everywhere else; `report-export.md`'s "relative
+    to the run directory" phrasing (not to the exported file)."""
+    videos = [e for e in result.evidence if e.kind is EvidenceKind.VIDEO]
+    if not videos:
+        return ""
+    links = "".join(
+        f"<p class='meta'><a href='{escape(v.path)}'>video ({escape(v.path)})</a></p>"
+        for v in videos
+    )
+    return links
 
 
 def _failure_detail_html(verdict: Verdict | None, case: Case | None, redactor: Redactor) -> str:

@@ -129,6 +129,7 @@ def test_pr2_default_session_factory_gives_each_case_a_distinct_profile() -> Non
     class FakeBrowserSession:
         def __init__(
             self, project: Project, secrets: object, run_dir: object, paths: object,
+            *, record_video: bool = False,
         ) -> None:
             captured.append(paths)
             self.paths = paths

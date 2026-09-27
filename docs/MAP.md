@@ -16,6 +16,7 @@
 | `browser/observe.py` | Passive observation: enumerate a page's controls, capture console/network |
 | `browser/secrets.py` | The credential boundary. Secret values live here and nowhere else. |
 | `browser/session.py` | One real, visible browser session per project. Contract: browser-and-secrets.md B5-B9. |
+| `browser/video.py` | Per-case video recording for `BrowserSession` (T-191/AT-587). |
 | `cli.py` | Command line. Every action the UI offers is available here first. |
 | `cli_crawl.py` | Crawl commands — `autotester explore` and `autotester report crawl`. |
 | `cli_issues.py` | `autotester issues` — turn an analysis into the sheet a human tester reads. |
@@ -119,6 +120,7 @@
 | `stages/screen_identity.py` | Screen identity: turn one `PageObservation` into a `ScreenNode`. |
 | `stages/similarity_score.py` | How two bug reports are compared for `stages/score.py`'s T-136 scorer. |
 | `stages/synthetic_values.py` | The synthetic value generator (X10-b, D-029): what the crawler types. |
+| `stages/video_retention.py` | T-191/AT-587 V5: keep at most the N most recent kept videos, project-wide. |
 | `store/crawl_store.py` | Crawl artifact persistence — split from `project_store.py` at the |
 | `store/filestore.py` | The one place any artifact is read from or written to disk. Contract: core-invariants.md C6. |
 | `store/project_store.py` | Typed convenience over `filestore` for one project's directory. |
