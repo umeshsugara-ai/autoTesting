@@ -284,4 +284,4 @@ Not UI-touching — a PowerShell session-start hook plus its tests. Changed path
   matches the hook's overall "never fail session start on a config problem" posture but means a
   typo in that env var (nobody sets it outside this one test) fails silently rather than loudly.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 2, qa/verdicts/at383-sessionstart-loop-status.md df909e05)
