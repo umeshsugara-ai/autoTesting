@@ -1237,3 +1237,65 @@ and re-derived it anyway. A checker that had deferred to the orchestrator's fram
 a confident ruling on a mechanism that does not need one, and the unit's real merits would have gone
 unexamined behind a manufactured headline. Deference to the dispatcher is a failure mode of checking,
 not a courtesy.
+
+---
+
+## NEXT UNIT (queued 2026-09-28, maker) — `at570-live-case-approval` · T-122 precondition
+
+**Why it is first:** Umesh named production Pathlynks the first target and the `allow_writes` flip is
+pending. T-122 is a **case** run, and the case-run path is the one path with no approval check at all.
+Fixing it after the first live run would mean the run that mattered was the unguarded one.
+
+**Not blocked by anything.** Serial only on the RAM ceiling (0 while t191's check runs).
+
+### The defect is two-sided, and the second half is the one that lasts
+
+1. **`ui/routes_runs.py::trigger_run` (`:96-132`) requires no approval.** `grep -n 'approval\|Approval'
+   on that file returns **nothing** (verified twice, maker + peer checker).
+2. **`stages/parallel_run.py::RunBudget.try_consume` FAILS OPEN.** It opens with
+   `if approval is None: return True`, and its own docstring says *"`None` means no approval was
+   supplied (unlimited)"*. A guard granting permission by the **absence** of permission — the C12
+   principle inverted. Unlimited actions, unlimited wall-clock, unlimited probes.
+
+**The full production chain, traced rather than assumed:** `trigger_run` → `_execute_with_trace`
+(`routes_runs.py:65`) → `_run_cases_in_parallel` / `_run_cases_serially` → **`ui/run_execution.py:159`
+`run_cases(normal_cases, plan, session_factory, _run_and_grade)`** — no `approval=` argument — →
+`parallel_run.py:225 RunBudget(approval)` with `approval=None` → unbounded.
+
+**`run_cases` has exactly ONE production caller** (`run_execution.py:159`). Every other call site is a
+test, and only `tests/test_parallel_run.py:264` passes an approval at all.
+
+### The finding that should shape the fix
+
+**`ApprovalKind.LIVE_CASE` already exists** (`schema/enums.py:165-172`: `READ`, `CRAWL`,
+`ADVERSARIAL`, `LIVE_CASE`). So D-018 always intended a case run to need its own approval — **the enum
+member was defined and never wired.** This is not a design gap to be argued; it is a contract the code
+silently does not keep. That also names the right `kind` to check, with no new schema.
+
+### Build brief
+
+- **Do not add a second `covering_approval`.** `stages/explore_consent.py:22-29` hardcodes
+  `kind=ApprovalKind.CRAWL`; give it a `kind` parameter defaulting to `CRAWL` so every existing caller
+  stays valid, and call it with `LIVE_CASE` from the run path. One concept, one place.
+- **`RunBudget(None)` must mean ZERO, not unlimited** — and that alone is insufficient. The
+  `approval: RunApproval | None = None` **default at `parallel_run.py:216-218` is the delivery
+  mechanism**: a caller reaches unlimited by passing nothing. Make the parameter non-optional at that
+  seam, or raise on `None` if it must stay accepted for test construction. Without that, a future
+  caller re-acquires unlimited by omission and this row gets re-filed in six weeks.
+- **Fail closed, and prove it.** A test that asserts the refusal must also assert a *bounded* budget
+  actually bounds — `AT-218`'s vacuous-guard class is a standing finding here.
+- **Ten existing `run_cases` test call sites pass no approval** and will change behaviour. They are the
+  regression surface; each needs an explicit bounded approval, not a bypass flag.
+- `trigger_run` is a `RedirectResponse` endpoint: the refusal is an HTTP error a human can read and act
+  on, naming the missing approval's id, in the shape `covering_approval` already raises.
+
+### Out of scope for this unit, named so it is not silently absorbed
+
+`AT-654` (D-029's dev-only condition vs production Pathlynks) is a **HUMAN_GATE on Umesh**, holds T-145
+only, and is not touched here — see `qa/gates/at654-d029-dev-only-vs-production-pathlynks.md`. T-122 is
+outside D-029 entirely: the `typing_allowed` gate has call sites on the crawl path only.
+
+**Links:** `AT-570` (high) · `AT-654` · D-018 · T-122 · T-145 · `schema/enums.py:165-172` ·
+`stages/parallel_run.py:216-225` · `stages/explore_consent.py:22-29` · `ui/routes_runs.py:96-132` ·
+`ui/run_execution.py:159` · `qa/contracts/consent.md` (its "Out of scope" line deferred exactly this to
+T-122's live-case gate)
