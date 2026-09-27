@@ -1365,3 +1365,50 @@ worktree keeps `AT-655`/`AT-656`/`AT-657` until its verdict lands; the orchestra
 
 `.gitattributes` carries `qa/issues.jsonl merge=union`, so the merge itself will not conflict — which is
 exactly why a duplicate id would survive silently and has to be resolved deliberately.
+
+---
+
+## AT-697 — doctor's L1 freshness check reads the disk only (queued 2026-09-28, maker tick 33r)
+
+**Filed by the peer checker session; the fix is a `src/` change and therefore the maker's.** Not
+dispatched this tick: RAM ceiling **0** (1.06 GB free; `floor((1.06 - 2)/0.6)` is negative), both
+at570 agents holding the slot. `SERIAL: at697-doctor-committed-freshness waits on the measured RAM
+ceiling of 0, not on any dependency edge` — it is independent of every in-flight unit and goes in the
+first wave with a free slot.
+
+**Dependency facts (written at planning time, per PARALLEL WAVES step 1):**
+
+- `files:` `src/autotester/doctor.py` · `tests/test_doctor.py`
+- `schema:` no
+- `surface:` the meaning of `doctor: clean` — the declared validator in `qa/adapter.json`
+- `consumes:` `ledger/render.py::render_snapshot`, `apply_map`, `core/paths.py::RepoDocs`
+- `runtime:` none (no port, no DB, no browser) — so it collides with nothing and never needs to run alone
+- `after:` nothing
+
+**The defect, re-derived and confirmed at `doctor.py:195-217`:** both sides of the comparison are
+resolved on disk — `docs.snapshot.read_text()` against `render_snapshot(docs)` — and no git object is
+read anywhere in the module. So a generated artifact that is current in the working tree and stale in
+the committed blob passes clean, and the repo is stale for everyone who clones it while `doctor: clean`
+holds on the one machine holding the uncommitted regeneration. That is not hypothetical: it is exactly
+the state this repo sat in until `49bed42e`, and it cost three sessions a false disagreement in which
+a correct build agent was nearly charged with a defect.
+
+**Target, quoting the definition the peer and I converged on:** `doctor: clean` should mean
+**committed == disk == fresh regeneration**. Today it means only the last two.
+
+**Deliberately NOT in scope, and this is the point rather than a caveat:** this is a doctor widening,
+not a hook. A hook fires at commit time; this is a *state the repository can sit in* between commits,
+and only a validator that can be run at any moment reports on a state. The peer reached the same
+conclusion independently and for the same reason.
+
+**Open design question for the build, to be answered in the manifest and not guessed here:** what
+doctor should do when there is no git object to compare against — a fresh `git init`, a file that has
+never been committed, or a detached/bare checkout. The honest options are *skip with a stated reason*
+or *report a distinct violation kind*; silently passing would rebuild the same blind spot one level
+down, and silently failing would make `doctor` unusable in a fresh clone before the first commit.
+
+**Also queued, separately, because it is the checker's to write and not the maker's:** the L1
+invariant this check enforces is declared in **no contract at all** — the only statement of L1 in the
+repository is `doctor.py:196`'s own docstring. So the check has been its own specification, which is
+why widening its meaning needs no contract amendment and also why nothing external could ever have
+caught that its meaning was narrower than its name. Filed to `qa/feedback-inbox.md` for `/checker`.

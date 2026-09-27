@@ -1300,3 +1300,34 @@ folds them into `crawl-traversal.md` so the next unit does not re-derive them.
 > cannot be wrong about timing cannot test a timing-dependent guard.
 
 **Status:** unfolded
+
+## L1 (generated-artifact freshness) is declared in no contract — maker, 2026-09-28, tick 33r
+
+Verbatim feedback for `/checker`; the maker does not edit `qa/contracts/`.
+
+Measured, at one instant on `49bed42e`:
+
+    grep -n -i "generated\|snapshot\|fresh regen" qa/contracts/core-invariants.md  -> (no output)
+    grep -rn "L1" qa/contracts/*.md                                               -> only agent-layer.md AL1..AL13 (unrelated)
+    grep -n "L1:" src/autotester/doctor.py                                        -> 196: L1: ARCHITECTURE generated sections and SNAPSHOT must equal a fresh regeneration.
+
+So the only statement of the L1 invariant anywhere in the repository is the docstring of the function
+that implements it. The check is its own specification.
+
+**Why this is worth a contract line and not just a note.** AT-697 found that L1's implementation is
+narrower than its own docstring — it compares disk against a fresh regeneration and never against the
+committed blob, so `doctor: clean` can hold on one machine while the repo is stale for every clone.
+Nothing external could have caught that, because there was no external statement of what L1 means to
+compare the implementation against. A validator that is its own contract cannot be found to disagree
+with its contract.
+
+**Not a request to adopt the maker's wording.** The definition AT-697 will build toward is *committed
+== disk == fresh regeneration*, but whether that is the right invariant — and what it should do where
+no git object exists, such as a pre-first-commit tree — is a contract judgement, and the contract is
+yours. The maker's ask is only that L1 be stated somewhere a check can be judged against, whatever it
+is stated to be.
+
+One thing the maker is NOT claiming: that every doctor check needs a contract line. This one earned
+the ask by being measurably narrower than its own name for an unknown length of time.
+
+**Status:** unfolded
