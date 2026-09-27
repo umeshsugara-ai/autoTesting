@@ -248,3 +248,53 @@ def test_cli_non_strict_exit_code_on_the_corrupt_log_is_unchanged(cli_root: Path
 
     assert result.exit_code == 0, result.output
     assert "CORRUPT" in result.output
+
+
+# -- AT-610: write-order corruption stays report-only (answer A) ---------------
+
+def test_out_of_order_ticks_with_a_credible_recent_tick_do_not_gate_strict(tmp_path: Path) -> None:
+    """AT-610, answered A (qa/gates/at610-strict-out-of-order.md): `out_of_order`
+    counts file-order inversions, but liveness runs on the sorted credible ticks
+    -- a reordered log with a recent credible tick is a write-order smell, not a
+    liveness lie. The CORRUPT row must still render: report-only means reported."""
+    root = _tick_log(tmp_path, [
+        f"{_at(16, 10)} ADVANCED written first, later time",
+        f"{_at(16, 8)} ADVANCED written second, earlier time",
+    ])
+    report = status(root, now=datetime(2026, 9, 16, 11, tzinfo=UTC))
+
+    assert report.anomalies.out_of_order == 1
+    assert report.strict_unhealthy is False, "write-order corruption alone does not gate --strict"
+    rendered = "\n".join(text for text, _ in report_lines(report))
+    assert "CORRUPT" in rendered and "out of chronological order" in rendered
+
+
+def test_cli_strict_zero_on_out_of_order_with_credible_tick(cli_root: Path) -> None:
+    """AT-610 answer A, through the real CLI: two recent ticks written out of
+    order must still leave `--strict` green."""
+    now = datetime.now(UTC)
+    _cli_tick_log(cli_root, [
+        (now - timedelta(minutes=1)).isoformat() + " ADVANCED written first, later time",
+        (now - timedelta(minutes=2)).isoformat() + " ADVANCED written second, earlier time",
+    ])
+
+    result = runner.invoke(app, ["loop-status", "--strict"])
+
+    assert result.exit_code == 0, result.output
+    assert "CORRUPT" in result.output
+
+
+def test_cli_strict_nonzero_on_out_of_order_with_stale_tick(cli_root: Path) -> None:
+    """AT-610's other half: the pin must not mask a real outage. Out-of-order
+    lines with a genuinely stale last tick (`asleep_now`) still exit non-zero --
+    write-order corruption never gets to excuse a dead loop."""
+    now = datetime.now(UTC)
+    _cli_tick_log(cli_root, [
+        (now - timedelta(days=10)).isoformat() + " ADVANCED written first, later time",
+        (now - timedelta(days=11)).isoformat() + " ADVANCED written second, earlier time",
+    ])
+
+    result = runner.invoke(app, ["loop-status", "--strict"])
+
+    assert result.exit_code != 0, result.output
+    assert "CORRUPT" in result.output
