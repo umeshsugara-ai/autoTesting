@@ -263,8 +263,20 @@ The list is measured, every entry found in this repo:
 | recall with no ordering field (`schema/bench.py`) | independent vs prompted findings | a contaminated recall as a clean one (AT-653) |
 | a truncated `qa/.last-tick` (`loop-status --strict`) | no history vs a clean history | a dead loop as healthy (AT-644) |
 | **two spot samples of a churning quantity** | a **rate** vs noise | a trend that does not exist (below) |
+| a check that examines **one site at a time** | a **disagreement between two sites** | each site as correct on its own (below) |
 
-**The last row is the agent measuring, not the code, and it belongs here for that reason.** On
+**The pairing row is the maker's (2026-09-28) and is the list one level up.** Three defects found in
+one evening were invisible to any check that looked at a single site, because **each half read as a
+sensible rule in isolation**: `0` as a zero budget at the gate and `0` as unlimited during the run
+(AT-660); a close-out detector and a manifest that merely *quotes* the phrase it matches on (AT-673 +
+AT-657); and, on the same disk, two carefully-scoped approvals that had expired beside one live
+approval scoped `everything` for nineteen years (AT-661). In every case nothing was wrong at either
+site alone — the defect **was** the disagreement, and a check reading one site has no representation
+for it. So a criterion that pins a rule at one call site pins half of it; where a rule is enforced in
+two places, one test exercises both against the same object (`qa/contracts/consent.md` CN10 states
+this for bounds).
+
+**The last row of the table is the agent measuring, not the code, and it belongs here for that reason.** On
 2026-09-28 the maker read free space on `C:` at 0.37 GB then 0.34 GB, inferred "degrading ~30 MB/hr,
 ~11 hours to zero", and **held a build on it.** The checker, asked to act, measured 2.37 GB and
 refused to act on either number, reporting the disagreement instead. Neither instrument was faulty
@@ -707,3 +719,14 @@ judgements and only the second was wrong.
   qa/contracts/core-invariants.md C12 principle + Amendment log (this entry). No enforcement-path
   file touched. **Links:** AT-656; AT-673; AT-657; AT-570; AT-653; AT-655; AT-644; AT-672;
   qa/contracts/living-ledger.md L8; qa/contracts/bench.md K8.
+- 2026-09-28 - routine (extend) - C12's instrument table gained an eighth row and a paragraph: a
+  check that examines one site at a time has no representation for a DISAGREEMENT between two sites,
+  so it reports each site as correct on its own. **Attribution: the maker's** (autotesting-52,
+  2026-09-28), which named the shape after the third instance of it in one evening - AT-660 (0 at the
+  gate vs 0 in the run), AT-673 + AT-657 (a detector vs a manifest that quotes the phrase it matches
+  on), and AT-661 (disciplined-but-expired grants beside an unbounded live one). In each, neither
+  site was wrong alone; the pairing was the defect. Practical consequence recorded with it: a
+  criterion pinned at one call site pins half a rule, so where a rule is enforced in two places one
+  test exercises both against the same object. Additive; no clause weakened. **Changes-authorized:**
+  qa/contracts/core-invariants.md C12 principle table + paragraph + Amendment log (this entry). No
+  enforcement-path file touched. **Links:** AT-660; AT-661; AT-673; AT-657; qa/contracts/consent.md CN10.

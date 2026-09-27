@@ -153,9 +153,15 @@ it refuses", it is "can a check that ran for real get past it".
   pass every check while constraining nothing: `projects/pathlynks/approvals.jsonl`'s live row
   carries `wall_clock_s = 600000000.0`, which is **19 years**. No falsy guard fires on it and no
   criterion above rejects it. This is the worse of the two failures because it survives a reviewer
-  reading the row. A grant path or a validator must reject a bound that exceeds any defensible run,
-  or the gate is decorative on exactly the axis (`wall_clock_s`) that limits a run which is
-  *misbehaving* rather than merely long.
+  reading the row. **CORRECTED 2026-09-28, this clause overreached:** it first said a grant path or
+  validator "must reject a bound that exceeds any defensible run". Rejecting requires a policy
+  ceiling, and **what counts as a defensible maximum is a gate decision, not a build's** — the maker
+  was right to push back. What the unit owes is **visibility, not enforcement**: the run's own record
+  states the bounds it ran under, so `19 years` appears where a human reads it. A build must NOT
+  invent a ceiling or hard-code a maximum, and if it judges plausibility uncheckable without a policy
+  number it says so in Disclosures rather than guessing one. The ceiling itself is Umesh's to set;
+  until he does, this axis (`wall_clock_s` — the only bound that limits a run which is *misbehaving*
+  rather than merely long) is reported and not enforced, and that is stated rather than hidden.
 - **Never rescued.** Existing rows are not special-cased, grandfathered, migrated or back-filled to
   survive a semantics change. Under a fail-closed reading they authorize nothing, and re-granting is
   already required (AT-674).
@@ -238,3 +244,10 @@ it refuses", it is "can a check that ran for real get past it".
   **Changes-authorized:** qa/contracts/consent.md CN10 + Amendment log (this entry). No
   enforcement-path file touched. **Links:** AT-660; AT-659; AT-570; AT-674; AT-218;
   qa/contracts/core-invariants.md C12.
+- 2026-09-28 - routine (correct) - CN10's plausibility clause narrowed from "must reject a bound that
+  exceeds any defensible run" to visibility plus an explicit Disclosures route. Cause: the maker
+  pushed back that rejecting needs a policy ceiling and a ceiling is a gate decision, not a build's,
+  and it is right - the clause as written would have had a build agent invent a policy number to
+  satisfy a contract. Weakens no other criterion and removes an obligation the checker had no
+  standing to impose. **Changes-authorized:** qa/contracts/consent.md CN10 (this entry).
+  **Links:** AT-660; AT-661.
