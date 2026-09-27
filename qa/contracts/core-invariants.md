@@ -143,11 +143,38 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   - A guard with no such row is an unenumerated claim. It fails the unit on its own, even when
     every test is green.
   - This extends the test-mutation duty above from tests to every kind of guard.
+- **A stale evidence spec stays byte-intact and is tagged, never silently left to rot or silently
+  rewritten** (at516 answered option c, D-048). When a later unit splits or renames the test file a
+  `qa/evidence/<unit>/mutations.json` spec's `kills` node-ids name, the spec's bytes never change —
+  its committed content is the faithful record of the run that actually happened, and no later unit
+  may edit it to keep it collectible. Whether staleness is deliberate or a lost test is instead
+  recorded in a sidecar, `qa/evidence/<unit>/mutations.stale.json`, one `EvidenceTombstoneEntry`
+  (`schema/evidence_tombstone.py`) per moved node-id, both `old_nodeid` and `moved_to` required
+  `file::function` (never a bare name — that would reopen the "which file?" ambiguity the tag exists
+  to remove).
+  - The check (`ledger/evidence_specs.py::check_stale_evidence_specs`, wired into
+    `uv run autotester doctor`) never trusts a tombstone's mere presence — that would be exactly the
+    vacuous-guard class this clause's AT-218 sibling bullet already forbids. For a `kills` id that
+    does not resolve against the spec's own declared `tests` scope, it looks up a tombstone entry
+    and **re-resolves `moved_to`** the same way. Three outcomes, distinguishable in the reported
+    detail: resolves directly (not stale), tombstone's `moved_to` resolves (deliberate, passes), or
+    no tombstone / `moved_to` also fails to resolve (flagged, with a different message for each of
+    those two cases).
+  - **Known limit, disclosed rather than hidden:** resolution proves the named function EXISTS at
+    the named path; it cannot prove that function is the actual, semantically-correct continuation
+    of the property the stale `kills` id defended. A tombstone whose `moved_to` names a real function
+    that is simply the *wrong* one resolves and passes — this is not caught, and no mechanism in this
+    clause claims otherwise. A tombstone's `moved_by_unit` and `note` are read by a human, not
+    mechanically verified; an honest `"unknown"` attribution is acceptable in place of a guessed one.
+  - A bare `kills` name (no `::`) is resolved only against the spec's own declared `tests` field, the
+    same scope `scripts/mutation_check.py`'s `collected_tests()` uses — never the whole repo. Treating
+    a bare name as unresolvable outside that scope is a false positive, not a stricter check.
 - **Verify:** `uv run pytest` exits 0 and the manifest pastes real output, not a summary; a
   sabotage claim in a manifest is re-run by the checker in its own harness, never read; a unit
   adding or rewriting a test pastes its mutation run, with a green asserted baseline and a named
   failing test per mutation; a manifest containing an unreachability claim pastes the attempted
-  mutation and its INCONCLUSIVE run alongside it.
+  mutation and its INCONCLUSIVE run alongside it; `uv run autotester doctor` exits 0, which includes
+  `check_stale_evidence_specs` finding no unexplained-stale evidence spec.
 
 ### C8 — Provider-agnostic
 - All model calls go through `providers.base.Provider`. No stage imports a vendor SDK directly.
@@ -531,3 +558,18 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   itself (`qa/contracts/` is checker-owned), so no `Approved-by` entry is required for this row —
   the child fix units it names (esp. the `.last-tick` write guard) remain individually gated where
   they touch `qa/hooks/*`.
+- 2026-09-27 · routine (authorized by D-048, at516 = c) · **C7 gains the evidence-spec tagging
+  rule**: a stale `mutations.json` stays byte-intact and gets tagged, never edited, by a sidecar
+  `mutations.stale.json` tombstone whose `moved_to` the checker (`check_stale_evidence_specs`,
+  `uv run autotester doctor`) re-resolves rather than trusts on presence — the same vacuous-guard
+  discipline this clause already applies to sabotage assertions (AT-218). Also folds in that a bare
+  `kills` name resolves only against the spec's own `tests` scope, matching
+  `scripts/mutation_check.py`'s real semantics (a false positive this unit's own build hit and
+  fixed). Disclosed, not silently accepted: resolution proves a named function exists, never that
+  it is the semantically correct continuation of the stale claim — a tombstone naming a real but
+  wrong function is not caught by this mechanism, and none of its prose claims otherwise. Folded
+  from unit t189-stale-evidence-tag (T-189), whose own manifest correctly left this fold-in to the
+  checker, per the maker/checker split. Tightening only; no existing clause weakened.
+  **Changes-authorized:** qa/contracts/core-invariants.md C7 (this entry). No enforcement-path file
+  touched. **Links:** D-048; AT-516; qa/gates/at516-evidence-spec-splitting-policy.md;
+  qa/manifests/t189-stale-evidence-tag.md; qa/verdicts/t189-stale-evidence-tag.md.
