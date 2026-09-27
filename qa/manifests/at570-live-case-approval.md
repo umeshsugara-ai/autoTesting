@@ -30,6 +30,11 @@ duplicates `browser/session.py`'s 8000 ms), **AT-682** (`Run.bounds` recorded bu
 No existing row edited or renumbered.
 **Goal task:** T-122 (blocked on a human act — see Disclosures)
 **Executor:** claude-opus-subagent (`/maker` build agent)
+**Commits this manifest describes** (branch `wave/at570-live-case-approval`, based on `a27fb03b`):
+`1fdba241` code + tests (21 paths) · `e7bfeb6b` this manifest · `a169d45a` CN10's margin clause +
+D14 · and the final manifest commit that carries the evidence below. The `Status` line is written
+**last**, after every code commit, so the handshake describes the tree the checker will actually
+check.
 
 ## What changed
 
@@ -103,6 +108,10 @@ No existing row edited or renumbered.
   repo's established cross-test-module pattern, e.g. `test_ui_runs_parallel_trace` imports from
   `test_ui_runs`). Holds the AT-660 **both-sides-in-one-test** assertion and the two PR7 budget
   tests moved out of `test_parallel_run.py`, which was within a few lines of the 300 cap.
+  `test_pr7_aggregate_budget_is_not_multiplied_by_concurrency` states **the bound and the margin**
+  — `assert (approval.max_actions, naive_total, naive_total - approval.max_actions) == (10, 12, 2)`
+  — per CN10's clause added to `qa/contracts/consent.md` on master **while this unit was being
+  built** (commit `a169d45a` on this branch folds it; see D14).
 - **NEW `tests/test_ui_runs_live_case_approval.py`** (268 lines, 9 tests) — the route-level gate,
   including one test per refusing state (C12 "verify by construction": each state is *built* and the
   message asserted to name it, and to NOT name the others).
@@ -122,9 +131,9 @@ No existing row edited or renumbered.
 | `tests/run_approval_fixture.py::grant_live_case_approval` (defaults) | 10 000 | **0** | 100 000.0 | yes | 2099-01-01 | wide enough not to bound a test that is not about bounds; `max_probes=0` passed **explicitly** rather than inherited from the model default, because a case run spends actions and never probes (`_run_one` consumes `action_cost(case)` only) — and because it is the exact shape every UI-granted row has (AT-675) |
 | `tests/test_parallel_run.py::_approval()` (defaults) | 10 000 | **0** | 3 600.0 | yes | 2099-01-01 | same reasoning, for the `run_cases` unit tests |
 | `_approval(max_actions=0, wall_clock_s=0.0)` | 0 | 0 | 0.0 | yes | 2099-01-01 | the both-sides zero test, and the shape `approve` writes with no bound flags |
-| `_approval(max_actions=10)` | 10 | 0 | 3 600.0 | yes | 2099-01-01 | PR7's **over-budget refusal** test: 4 cases × 3 steps = 12 > 10, so the shared budget must refuse at least one |
+| `_approval(max_actions=10)` | 10 | 0 | 3 600.0 | yes | 2099-01-01 | PR7's **over-budget refusal** test. CN10 wants the bound AND the margin named, so the test asserts them: bound 10, demand 12 (4 cases x 3 steps), **margin 2 over** -- and the last case to ask is refused |
 | `_approval(max_actions=50)` | 50 | 0 | 3 600.0 | yes | 2099-01-01 | the 200-thread race: exactly 50 accepted, never 51 |
-| `grant_live_case_approval(max_actions=1)` | 1 | 0 | 100 000.0 | yes | 2099-01-01 | route-level shortfall: "actions 3 > approved 1" |
+| `grant_live_case_approval(max_actions=1)` | 1 | 0 | 100 000.0 | yes | 2099-01-01 | route-level shortfall, bound and margin in the asserted message itself: **"actions 3 > approved 1"** (bound 1, demand 3, margin 2 over) |
 | `grant_live_case_approval(wall_clock_s=0.0)` | 10 000 | 0 | **0.0** | yes | 2099-01-01 | zero time is refused at preflight, before a browser opens |
 | `grant_live_case_approval(sign=False)` | 10 000 | 0 | 100 000.0 | **no** | 2099-01-01 | the unsigned shape every pathlynks row really has |
 | `grant_live_case_approval(run_kind=CRAWL)` | 10 000 | 0 | 100 000.0 | yes | 2099-01-01 | a crawl row must not cover a case run |
@@ -132,57 +141,92 @@ No existing row edited or renumbered.
 
 ## Verify — actual outputs
 
+**`uv run pytest` EXITS 1. This unit is not green by the adapter's literal pass condition, and I am
+not reporting it as green.** `qa/adapter.json` `verify.commands[0]` is `uv run pytest` with
+`"expect": "exit 0"`, and that condition is unmet **repo-wide** right now — see **AT-695** (high: the
+gate command itself), driven by **AT-518** (medium: three whole-suite occurrences of one
+load-dependent failure). The run below is the FINAL tree (`a169d45a`), run **bare and redirected,
+never piped** — a piped pytest reports the pipe's exit status, so `pytest | tail` exits 0 over a
+failing suite (**AT-692**) — and with **no CLI `-q`**, because `pyproject.toml`'s `addopts` already
+supplies one and a second reaches `-qq`, which prints no summary line at all (**AT-503**).
+
 ```
-$ uv run pytest
-============================= test session starts =============================
-(2187 tests collected; full run started 04:05:10, finished 04:34:02)
-...
+$ uv run pytest > .work/verify-pytest-final.txt 2>&1; echo exit=$?
 =========================== short test summary info ===========================
 FAILED tests/test_flake_probe_real_process.py::test_run_once_kills_a_real_hung_process_and_its_real_grandchild
-1 failed, 2166 passed, 6 skipped, 14 xfailed, 15 warnings in 1698.64s (0:28:18)
-PYTEST_EXIT=1
+1 failed, 2166 passed, 6 skipped, 14 xfailed, 15 warnings in 1560.41s (0:26:00)
+exit=1
 ```
 
+The sole failure, with its cause, from the same log:
+
 ```
-$ uv run ruff check src tests scripts
+>       assert not _alive(int(pid_file.read_text())), (
+E       FileNotFoundError: [Errno 2] No such file or directory:
+E       'C:\Users\Lenovo\AppData\Local\Temp\pytest-of-Lenovo\pytest-8128\test_run_once_kills_a_real_hun0\child.pid'
+```
+
+**It is outside my changed paths, and I measured that rather than asserting it.** My diff touches
+`schema/approval.py`, `schema/run.py`, `stages/explore_consent.py`, `stages/parallel_run.py`,
+`stages/run_budget.py`, `ui/routes_runs.py`, `ui/run_execution.py` and twelve test files. The failure
+is in `tests/test_flake_probe_real_process.py`, whose import graph is `scripts/flake_probe.py` +
+`test_flake_probe_runner` + `test_mutation_check_judgement` — not one file I touched. Three
+measurements, each a bare run:
+
+| tree | result |
+|---|---|
+| **my branch's content**, pristine `git archive a169d45a` in a temp dir | `2 passed in 11.22s`, **exit 0** |
+| **master's content**, pristine `git archive e64ccf22` in a temp dir | `2 passed in 11.11s`, **exit 0** |
+| **my working directory** (same content as row 1, plus accumulated build state) | `1 failed, 1 passed` × 3 consecutive runs, exit 1 |
+
+So the failure is a property of the **working directory**, not of the commit: the same code passes
+when extracted clean. I did NOT measure master inside a loaded tree, so I am not claiming master
+fails there — what I can show is the flip over time in ONE tree: this same worktree ran that file
+**2 passed** at 04:36 and **1 failed, 1 passed** three times running at 05:17, with no change to any
+file in its import graph in between. That is AT-518's stated class ("passed cleanly in isolation
+immediately after"), i.e. it flipped under machine state, not under a code change. Mechanism, consistent with AT-518's timing class: the test spawns a real
+`python -m pytest` and gives it a **10 s** bound; the inner run must reach `test_hang` and write
+`child.pid` inside that window, and when it does not, the assertion reads a file that was never
+created. 40 stale `pytest-of-Lenovo/*` directories are sitting in the temp root on this host.
+
+**I did not xfail it, skip it, quarantine it, mark it, or touch that test in any way.** Silencing it
+is the habit AT-695 exists to warn about, and it is not this unit's to fix. `git diff master..HEAD`
+does not contain `tests/test_flake_probe_real_process.py`.
+
+```
+$ uv run ruff check src tests scripts > .work/verify-ruff-final.txt 2>&1; echo exit=$?
 All checks passed!
+exit=0
 ```
 
 ```
-$ uv run autotester doctor
+$ uv run autotester doctor > .work/verify-doctor-final.txt 2>&1; echo exit=$?
 stale-generated: docs/SNAPSHOT.md - differs from regeneration; run `autotester snapshot`
 
 1 violation(s)
+exit=1
 ```
 
-**`uv run pytest` exits 1, and it is NOT my unit.** The single failure is
-`tests/test_flake_probe_real_process.py::test_run_once_kills_a_real_hung_process_and_its_real_grandchild`,
-failing on `FileNotFoundError ... child.pid` -- the exact documented signature of **AT-518** ("failed
-once in a whole-suite run (FileNotFoundError reading a spawned child's pid file), passed cleanly in
-isolation immediately after -- a third live instance of the AT-196/AT-627 class") and of
-**ISS-t164-1** ("Pre-existing, deterministic full-suite pytest failure unrelated to T-164 ... so C7's
-literal 'uv run pytest exits 0' is currently false"). Re-run in isolation immediately afterwards:
-`uv run pytest tests/test_flake_probe_real_process.py` -> `2 passed in 15.81s`. No file this unit
-touches is in that test's import graph.
-
-**`uv run autotester doctor` reports 1 violation, and it is NOT my unit either.**
-`docs/SNAPSHOT.md` is stale **on `master`**, before this branch: `git show master:docs/FEATURES.jsonl
-| grep -c F-065` = 1 while `git show master:docs/SNAPSHOT.md | grep -c F-065` = 0 -- another unit
-appended a ledger row (F-065, and F-066 in `f0e6bab0`) without regenerating the snapshot, whose last
-master commit is the older `f9adfdec`. `uv run autotester map` regenerates `SNAPSHOT.md` as a side
+**`uv run autotester doctor` also exits 1, and that one is stale generated output on `master`, not
+mine.** `docs/SNAPSHOT.md` is stale before this branch: `git show master:docs/FEATURES.jsonl |
+grep -c F-065` = 1 while `git show master:docs/SNAPSHOT.md | grep -c F-065` = 0 — another unit
+appended ledger rows (F-065, and F-066 in `f0e6bab0`) without regenerating the snapshot, whose last
+master commit is the older `f9adfdec`. `uv run autotester map` regenerates SNAPSHOT.md as a side
 effect, so it briefly appeared in my working tree; I **reverted** it, because its entire diff is
-another unit's feature rows and C10 says a unit's commit carries only that unit's paths. `docs/MAP.md`
-IS in my commit, because its whole diff is mine (the new `stages/run_budget.py` row and the new
-`RunBounds` schema row). I did not fix SNAPSHOT.md and I am not claiming doctor is clean.
+another unit's feature rows and C10 says a unit's commit carries only that unit's paths.
+`docs/MAP.md` IS in my commit, because its whole diff is mine (the new `stages/run_budget.py` row
+and the new `RunBounds` schema row). **Two of the three adapter commands therefore exit non-zero on
+this branch, and neither is caused by it.** If the checker's rule is the adapter's literal exit
+codes, this unit does not meet it and I am not claiming otherwise.
 
 **Master baseline, disclosed as incomplete.** The full suite on `master` did not complete on this
 host: a first attempt reached 53% in ~25 minutes and then crawled (free RAM 1.9 GB, many Python
 subprocesses) and I killed it. What I have instead is a **targeted** master baseline over the touched
 surface: `uv run pytest tests/test_parallel_run.py tests/test_parallel_run_session_crash.py
 tests/test_ui_runs.py tests/test_consent.py tests/test_explore_consent.py` -> `43 passed, 1 warning in
-11.41s`, exit 0. So the surface I changed was green before I changed it; I cannot show from my own
-measurement that the *whole* suite was green before it, which is why the two violations above are
-argued from the repo's own issue rows and from `git show master:` rather than from a baseline run.
+11.41s`, exit 0. So the surface I changed was green before I changed it; I cannot show from a full
+baseline run of my own that the whole suite was green before it, which is why the two non-zero exits
+above are argued from `git show master:` and from clean-archive runs rather than from a baseline.
 
 ## Live browser evidence
 
@@ -224,6 +268,13 @@ sub-3-second file, so a collection error would show as `error`, not as the named
 | 6 | **CN1: a refused run leaves no trace** | moved the preflight to AFTER `run_id = …`, `run_dir = paths.run_dir(run_id)` and an `mkdir(parents=True)` | same | `7 failed, 2 passed` — exactly the 7 refusal tests, each on `_assert_not_run`; both happy paths still pass, which is the attribution: only the *no-trace* property broke | 2.02 s / 6 s |
 | 7 | **The gate check is not vacuous (AT-218)**: it asks for the run's OWN bounds, never 0 | `max_actions=sum(action_cost(c) …)` → `max_actions=0`, `wall_clock_s=wall_clock_request_s(cases)` → `0.0` | same | `2 failed, 7 passed` — `test_an_approval_narrower_than_the_run_is_refused_with_the_shortfall`, `test_an_approval_granting_no_wall_clock_is_refused_before_a_browser_opens`. The other 7 still pass, which is the point: a 0-bound request still refuses a missing/unsigned/expired/wrong-kind row, so only the *bounds* half of the gate goes vacuous — precisely the shape that would otherwise pass review | 2.04 s / 5 s |
 | 8 | **CN10 visibility: the run records the bounds it ran under** | deleted `bounds=RunBounds(approval_id=…, …)` from `store.save_run(Run(...))` | same | `1 failed, 8 passed` — `test_a_signed_live_case_approval_lets_the_run_proceed` on `assert run.bounds is not None, "a run must record the approval it ran under"` | 1.28 s / 4 s |
+| 9 | **CN10's later clause: the over-budget test names the bound AND the margin** (added to the contract on master *during* this build; folded by `a169d45a`) | widened the bound until exceeding it was arranged: `_approval(max_actions=10)` → `_approval(max_actions=10_000)` | `pytest tests/test_parallel_run_approval.py` | `1 failed, 8 passed` — `test_pr7_aggregate_budget_is_not_multiplied_by_concurrency` on `assert (10000, 12, -9988) == (10, 12, 2)`, i.e. the test now refuses a bound chosen large enough to make the refusal easy | 0.29 s / 3 s |
+
+**Row 9 was falsified separately, against the FINAL SHA.** Rows 1–8 ran against `1fdba241`; row 9
+ran in a second throwaway `git archive` copy of **`a169d45a`** (the commit that added the clause),
+with its own asserted GREEN baseline (`9 passed in 0.30s`), its own RED, and an asserted GREEN
+restore from `git show a169d45a:` (`9 passed in 0.12s`). That copy was deleted too. Rows 1–8 are
+unaffected by `a169d45a`, which changes three lines inside one test body and no source file.
 
 **What rows 3a–3c prove and what they do not.** The both-sides test uses `max_actions=0` *and*
 `wall_clock_s=0.0`, so it stays green under 3a or 3b alone (the surviving guard still refuses) and
@@ -420,5 +471,21 @@ appended `AT-680`–`AT-683` to the same file's end. **`qa/issues.jsonl` will co
 positionally — no id collides, both sides are pure appends, and the resolution is to keep both blocks.
 Flagging it because the checker merges the reviewed SHA and should not discover this mid-merge. Nothing
 else I touched has moved on master (`git diff a27fb03b..master` lists no `src/` or `tests/` path I own).
+
+### D15 — the adapter gate is unmet repo-wide, and I left it that way deliberately
+
+`qa/adapter.json` expects exit 0 from `uv run pytest`; the repo does not produce it today (AT-695,
+high). I could have made this branch show a green gate in four ways and took none of them: no xfail,
+no skip, no quarantine marker, no filtered/piped run in the manifest. The only evidence I added is
+measurement — three clean-archive runs and the worktree flip — so the checker can see it is outside
+my paths without taking my word for it. If that leaves the unit unable to satisfy the adapter
+literally, that is the honest state and AT-695 is the row that owns it, not this unit.
+
+### D16 — my own earlier statement about this flake was wrong within the session
+
+At 04:36 I measured `tests/test_flake_probe_real_process.py` passing 2/2 in isolation and wrote that
+down. At 05:17 the same file failed 3/3 in the same worktree. Both measurements are real; the first
+one is no longer true, and a manifest that kept only the convenient one would have read as evidence
+that the failure was harmless. Recording the reversal because the convenient reading was mine.
 
 ## Status: ready-for-check
