@@ -1037,3 +1037,65 @@ four gate files' options (Umesh's decision), the `checker-temp-at540` stash, and
 FINDINGS: 2 new (AT-647, AT-648) - 8 re-triaged (3 -> verified, 5 -> fixed) - 0 false gate claims -
 1 confirmed-accurate stash reading, unapplied - 1 dangling human-gate answer surfaced (at438) -
 1 dangling stalled-but-fixed manifest surfaced (x10b-form-typing)
+
+## AT-648 — x10b-form-typing needs a verdict, not a fix cycle
+
+**Source:** checker sweep 2026-09-27b (`bd69565d`). **Severity:** medium. **Blocks:** nothing.
+**Diagnosis report (now written):** `qa/debug/x10b-form-typing-cycle3.md`.
+
+`qa/manifests/x10b-form-typing.md` is `STALLED` at cycle 3 of 3, scoring **16/17**. Its single red
+was **AT-539** (three stale imports of the removed `explore.require_consent` in
+`tests/test_approve_cli.py` — the fourth sibling seam file). The follow-on retarget landed, and
+AT-539 has since been confirmed green **twice by parties other than the maker**: a checker sweep
+the same day (full suite, 0 failed) and again live in sweep 2026-09-27b.
+
+**The stalling condition no longer exists.** What is missing is a verdict, not work.
+
+**Next action — a checker re-pass, explicitly NOT a cycle 4.** A fix cycle is for a maker defect
+and none remains. The re-pass judges one question: *is criterion 17 now met?* If yes, the unit
+closes `checked-PASS (cycle 3)`. Until a checker says so the manifest stays `STALLED` — the
+orchestrator does not promote it on its own reading, which is the same rule that correctly stopped
+the maker self-certifying AT-539 in the first place.
+
+**Held only by the RAM ceiling** (2.42 GB free at the time of writing → ceiling 0, two builds
+live). Dispatch when a slot frees.
+
+## at438-display-contents — an answered gate nobody acted on
+
+**Source:** checker sweep 2026-09-27b. **Severity:** medium. **Blocks:** nothing directly.
+
+`qa/gates/at438-u14b-baseline.md` was **answered by Umesh on 2026-09-26T22:34:22+05:30** ("a+b+c")
+and nothing has moved on it since: no commit touches it, **AT-438 is still `fixed` rather than
+closed under the new baseline**, and **AT-454 is undocumented**.
+
+Worth stating plainly: this is the answered-gate failure mode, which is worse than an unanswered
+one. Umesh spent the decision and the system did not collect it. Part of the answer *was* consumed
+— D-048's 2-cycle cap was applied to T-186, which passed under it at cycle 1 — and the AT-453
+split-off did happen as T-186. So the gate was partly acted on and then dropped, which is exactly
+how the remainder became invisible.
+
+**Next action:** one small bookkeeping unit — close AT-438 under the new baseline and document
+AT-454. Not actioned by the sweep, correctly: it is unit work, not bookkeeping.
+
+## AT-647 — T-185's done_check names a test file that does not exist
+
+**Source:** checker sweep 2026-09-27b. **Severity:** medium. **Blocks:** nothing.
+
+The mirror image of `ISS-at638-remainder-2`. Where those five `done_check`s can never **fail**
+(Goodhartable), T-185's names a **nonexistent test file**, so it can never **pass**. Both are the
+same underlying defect — a registered check that does not measure the thing it claims to — and
+both should be repaired by the same unit. The sweep could not fix it: `.goal/` was off-limits to
+it this run, deliberately, because the orchestrator holds uncommitted changes there.
+
+**Fold into `iss-at638-2-done-check-repair`** rather than queueing separately — same file, same
+defect class, and two units editing `.goal/goal.json` concurrently is the collision this queue
+keeps warning about.
+
+## Correction to ISS-at638-remainder-2's own framing
+
+The sweep confirmed the **root cause holds** — `f9e7d406` landed 81 goal tasks against a parent of
+70 without pinning the new test, and `uv run pytest tests/test_goal_done_checks.py` reproduces both
+failures live. But its **"five pending tasks, blocked on an in-flight wave" framing is now stale**:
+T-186, T-189 and T-192 are `done`; T-191 is mid-cycle-2; T-190 is not even named on the row's own
+dependency line. The sweep flagged rather than edited it, which was right. Recorded here so the row
+is not read as a current description of the backlog.
