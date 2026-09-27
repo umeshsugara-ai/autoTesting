@@ -1,0 +1,28 @@
+{
+  "entries": [
+    {
+      "old_nodeid": "tests/test_ledger_checks.py::test_a_code_fence_ends_the_block",
+      "moved_to": "tests/test_marker_blocks.py::test_a_code_fence_ends_the_block",
+      "moved_by_unit": "at513-the-block-tests-leave-the-row-tests",
+      "note": "stale on purpose, test moved to tests/test_marker_blocks.py"
+    },
+    {
+      "old_nodeid": "tests/test_ledger_checks.py::test_a_field_label_carrying_a_parenthetical_still_ends_the_block",
+      "moved_to": "tests/test_marker_blocks.py::test_a_field_label_carrying_a_parenthetical_still_ends_the_block",
+      "moved_by_unit": "at513-the-block-tests-leave-the-row-tests",
+      "note": "stale on purpose, test moved to tests/test_marker_blocks.py"
+    },
+    {
+      "old_nodeid": "tests/test_ledger_checks.py::test_a_verdict_block_ends_at_the_next_FIELD_not_at_a_blank_line",
+      "moved_to": "tests/test_marker_blocks.py::test_a_verdict_block_ends_at_the_next_FIELD_not_at_a_blank_line",
+      "moved_by_unit": "at513-the-block-tests-leave-the-row-tests",
+      "note": "stale on purpose, test moved to tests/test_marker_blocks.py"
+    },
+    {
+      "old_nodeid": "tests/test_ledger_checks.py::test_an_issue_id_with_a_parenthetical_is_not_a_field_label",
+      "moved_to": "tests/test_marker_blocks.py::test_an_issue_id_with_a_parenthetical_is_not_a_field_label",
+      "moved_by_unit": "at513-the-block-tests-leave-the-row-tests",
+      "note": "stale on purpose, test moved to tests/test_marker_blocks.py"
+    }
+  ]
+}

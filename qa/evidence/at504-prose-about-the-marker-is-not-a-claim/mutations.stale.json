@@ -1,0 +1,28 @@
+{
+  "entries": [
+    {
+      "old_nodeid": "tests/test_doctor.py::test_a_decorated_marker_line_is_still_a_marker_line",
+      "moved_to": "tests/test_marker_blocks.py::test_a_decorated_marker_line_is_still_a_marker_line",
+      "moved_by_unit": "at513-the-block-tests-leave-the-row-tests",
+      "note": "stale on purpose, test moved test_doctor.py -> test_ledger_checks.py (at506) -> test_marker_blocks.py (at513); covers every parametrize id of this test"
+    },
+    {
+      "old_nodeid": "tests/test_doctor.py::test_a_line_opening_with_the_marker_in_backticks_is_not_a_claim",
+      "moved_to": "tests/test_marker_blocks.py::test_a_line_opening_with_the_marker_in_backticks_is_not_a_claim",
+      "moved_by_unit": "at513-the-block-tests-leave-the-row-tests",
+      "note": "stale on purpose, test moved test_doctor.py -> test_ledger_checks.py (at506) -> test_marker_blocks.py (at513)"
+    },
+    {
+      "old_nodeid": "tests/test_doctor.py::test_a_passed_unit_whose_issue_is_still_open_is_a_stale_row",
+      "moved_to": "tests/test_ledger_checks.py::test_a_passed_unit_whose_issue_is_still_open_is_a_stale_row",
+      "moved_by_unit": "at506-record-rules-leave-the-source-rules",
+      "note": "stale on purpose, test moved to tests/test_ledger_checks.py"
+    },
+    {
+      "old_nodeid": "tests/test_doctor.py::test_an_issue_a_manifest_names_must_still_have_a_ledger_row",
+      "moved_to": "tests/test_ledger_checks.py::test_an_issue_a_manifest_names_must_still_have_a_ledger_row",
+      "moved_by_unit": "at506-record-rules-leave-the-source-rules",
+      "note": "stale on purpose, test moved to tests/test_ledger_checks.py"
+    }
+  ]
+}

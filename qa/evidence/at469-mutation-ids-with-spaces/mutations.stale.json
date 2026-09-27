@@ -1,0 +1,10 @@
+{
+  "entries": [
+    {
+      "old_nodeid": "tests/test_mutation_check.py::test_failed_tests_keeps_a_nodeid_whose_parametrize_id_contains_spaces",
+      "moved_to": "tests/test_mutation_check.py::test_a_mutation_is_attributed_to_a_parametrized_test_with_spaces_in_its_id",
+      "moved_by_unit": "unknown -- renamed after AT-469 shipped; found stale by T-189's audit (2026-09-27), no unit slug attributes the rename",
+      "note": "stale on purpose, test moved (renamed) to test_a_mutation_is_attributed_to_a_parametrized_test_with_spaces_in_its_id"
+    }
+  ]
+}

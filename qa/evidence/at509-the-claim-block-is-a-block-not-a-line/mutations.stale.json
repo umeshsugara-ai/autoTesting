@@ -1,0 +1,28 @@
+{
+  "entries": [
+    {
+      "old_nodeid": "tests/test_ledger_checks.py::test_a_fix_claim_on_a_continuation_line_is_read",
+      "moved_to": "tests/test_marker_blocks.py::test_a_fix_claim_on_a_continuation_line_is_read",
+      "moved_by_unit": "at513-the-block-tests-leave-the-row-tests",
+      "note": "stale on purpose, test moved to tests/test_marker_blocks.py"
+    },
+    {
+      "old_nodeid": "tests/test_ledger_checks.py::test_an_id_on_a_continuation_line_is_still_named",
+      "moved_to": "tests/test_marker_blocks.py::test_an_id_on_a_continuation_line_is_still_named",
+      "moved_by_unit": "at513-the-block-tests-leave-the-row-tests",
+      "note": "stale on purpose, test moved to tests/test_marker_blocks.py"
+    },
+    {
+      "old_nodeid": "tests/test_ledger_checks.py::test_the_block_ends_at_a_blank_line_or_a_heading",
+      "moved_to": "tests/test_marker_blocks.py::test_the_block_ends_at_a_blank_line_or_a_heading",
+      "moved_by_unit": "at513-the-block-tests-leave-the-row-tests",
+      "note": "stale on purpose, test moved to tests/test_marker_blocks.py; covers every parametrize id of this test"
+    },
+    {
+      "old_nodeid": "tests/test_ledger_checks.py::test_a_verdict_block_ends_at_the_next_FIELD_not_at_a_blank_line",
+      "moved_to": "tests/test_marker_blocks.py::test_a_verdict_block_ends_at_the_next_FIELD_not_at_a_blank_line",
+      "moved_by_unit": "at513-the-block-tests-leave-the-row-tests",
+      "note": "stale on purpose, test moved to tests/test_marker_blocks.py"
+    }
+  ]
+}
