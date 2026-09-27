@@ -145,3 +145,7 @@ spanning all three `CaseKind`s (best / worst / edge)**, and `autotester expand` 
   records the old filename it replaced. No behaviour claim changed. **Changes-authorized:** this
   contract's prompt-location line + Amendment log (this entry). **Links:** AT-670; T-175; D-043;
   core-invariants C8.
+- 2026-09-28 - CORRECTION (id only) - the entry above cites `AT-670`; the correct id is **AT-690**.
+  AT-670 was already spent by the t191 remap the same day, so the sweep row collided with it and was
+  renumbered into the checker's new block (AT-690..AT-709). No criterion, claim or verification line
+  changes. Appended rather than edited because this log is append-only. **Links:** AT-690; AT-664.
