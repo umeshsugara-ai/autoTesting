@@ -198,8 +198,8 @@ def declared_secret_encodings(value: str) -> list[str]:
     spelling gets the SAME adjacency immunity the uppercase one does, not a
     narrower one.
 
-    AT-606 cycle 1's `@lru_cache` here was unproven and retained raw secrets
-    in memory, so cycle 2 drops it -- the real speed-up is `_is_ignorable`'s cache.
+    AT-606 cycle 1's `@lru_cache` here was unproven and retained raw secrets in memory, so cycle 2
+    drops it -- the speed-up now is `redact_wrap.is_ignorable_char`'s bisect table (AT-611).
     AT-617 added `_utf16_b64_needles` (see its own docstring for why).
     """
     raw = value.encode("utf-8")
