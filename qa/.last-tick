@@ -113,3 +113,57 @@
   SERIAL: t186/t189/t190/t191/t192/t165/t174/t178/t179 wait on the at638-remainder build + RAM.
   GATED on Umesh: t125 stall (NEW), CT6-vs-RU3, AD6/AD7 reversibility, ISS-t150-1, AT-644, AT-646,
   T-154/T-155 approval, ERP credentials (T-122/T-145), ERP_Issues_Trainers.xlsx (T-136).
+
+## tick 2026-09-27T11:20:00+00:00 — ADVANCED · wave=5 · concurrent peak=5
+State: ADVANCED. Both live agents collected and acted on; 4 new build units + 1 check dispatched.
+
+ROOT-CAUSE REVIEW BACK (t125): SPECIFICATION failure, confirmed, and it corrected me.
+- Contract silence confirmed independently: both fresh checkers had hit the same wall on
+  different cycles and each recorded it as outside its own blast radius rather than filing it
+  (qa/verdicts/t125-catalog.md:132-146 and :340-343). Traces to docs/plan.md:521-523, the only
+  worked example D-039 authorizes, which says "an unset secret ... naming the key" — singular,
+  spec-wide. Predates any maker touching the file.
+- CORRECTION TO THE GATE: option B (revert to cfc13b0b) is NOT the low-risk fallback I wrote.
+  cfc13b0b:catalog.py:128 threads a global unscoped union into the GATE exactly as cycle 3 does,
+  so cycle 1 carries the IDENTICAL ISS-t125-5 defect — and cfc13b0b was never a passing commit.
+  No "last good state" exists in this function's history. Gate row rewritten; the correction is
+  flagged as mine, not buried.
+- Fifth fixture found: a Google button clicked for an unrelated purpose defeats any keyword flow
+  classifier, so a cycle 4 built on one fails in the shape cycles 2 and 3 already did.
+- Diagnosis report: qa/debug/t125-catalog-cycle3.md (the skill's required beat — a STALLED stamp
+  with no qa/debug/ report is itself a sweep finding). Commit 81054533.
+- T-125 remains GATED. No cycle 4. Branch still neither merged nor reverted.
+
+AT-638 REMAINDER collected and reviewed before dispatch: Executor line accurate this time (it
+cited the sibling's mis-description and did not repeat it). Merged master in cleanly, dispatched
+/checker. Its key finding is passed to the checker as ITS ruling, not mine: all 5 existing
+checker-authored contracts have a DECISIONS `Changes-authorized` line naming the file; none of its
+4 proposed files does. It refused to manufacture a D-entry. If the checker rules an authorizing
+entry is needed first, that is a new HUMAN_GATE.
+
+SALVAGE — real work rescued from deletion: .worktrees/at335-modal-determinism held an UNCOMMITTED
+33-line fix to stages/explore_return.py plus a 163-line untracked test, on a branch already fully
+merged into master. One `git worktree remove` would have destroyed it. Copied to scratchpad, then
+dispatched as a proper unit off current master with instructions to verify rather than trust it —
+its "measured live" comment has no evidence file behind it.
+
+DISPATCHED THIS TICK (5 agents, all independent — no shared file, port, DB or browser):
+- /checker at638-remainder (wave/at638-remainder, cycle 1)
+- at335-determinism-salvage (bounded-poll fix + flake_probe evidence, or a written kill)
+- t186-details-content (AT-453, D-049 direction, CAP 2 CYCLES not 3)
+- t189-stale-evidence-tag (D-048 answer (c); byte-intact + a distinguishable tag)
+- t191-run-video (AT-587, D-048 answer A retention 20; the video-masking guarantee is the risk)
+SERIAL: T-192 waits on a single-shot authorization — gate t135-url-pattern-data-migration answer
+B approves EXACTLY ONE Analyze vision call on projects/erp. A parallel subagent that fumbles and
+retries blows an authorization that cannot be re-granted without Umesh. Runs alone, deliberately.
+
+WORKTREE HYGIENE: all 5 "stale" branches turned out to be fully merged into master, including the
+two I had reported as possibly-abandoned — so no abandoned work existed except the at335 salvage.
+Pruned 6 clean ones (at408-416-scroll-reach, at518-grandchild-pid-flake, at626-dotted-import,
+at639-chunk-timeout, t125-catalog-mutate, t150's agent worktree). Kept at335-modal-determinism
+until its salvage unit confirms nothing else is needed from it.
+Noted: 3 of the new agent worktrees branched from 72513124 rather than 81054533 — the delta is
+gates/debug docs only, harmless to those units, recorded rather than assumed harmless.
+
+HELD FROM PUSH: 4 commits (f163328a, ac66b4f5, 6cb01cb6, 81054533). D-007 authorizes push on
+checker-PASS commits only; these are a FAIL, two gates, a diagnosis and a tick stamp.
