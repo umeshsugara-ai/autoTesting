@@ -2,7 +2,14 @@
 
 **Opened:** 2026-09-27 by the maker, on the cycle-3 checker verdict (`a27f9794`): **FAIL, 5/8,
 unit STALLED at its 3-cycle cap.**
-**Decider:** Umesh. **Status:** OPEN — asked once, then written here.
+**Decider:** Umesh. **Status:** **ANSWERED 2026-09-27 — option A** (specify relevance first, then
+exactly one scoped cycle). Recorded as **D-051**. The checker amends `qa/contracts/catalog.md` to
+define which flows a row is about; only then does the maker build cycle 4 against the written rule.
+The cap is broken by one cycle, deliberately and on the record, because its premise (a maker failing
+at a *specified* task) was never met. Constraint carried into the amendment: `secret_key` is never
+inferred (`stages/explore_merge.py:50-51`), so no keyword or structural classifier — the two
+candidate shapes are a flow dimension on `CatalogEntry` or a declared relevance field on `SecretRef`,
+and the checker chooses. `qa/gates/t125-ct6-tiered-dispatch-vs-ru3.md` is untouched by this answer.
 **Blocks:** T-125 only. Nothing else in the backlog waits on this, and **nothing broken has
 shipped** (see "Blast radius").
 **Related gate, still open:** `qa/gates/t125-ct6-tiered-dispatch-vs-ru3.md` — CT6 is a *second,

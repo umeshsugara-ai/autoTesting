@@ -137,6 +137,26 @@ DISCOVER and MODEL are primary stages, not side features. 🎯 (promotion tracke
 - [x] T-100 FastAPI onboarding, masked `.env` editor, live run view, report
 - [x] T-161 unified project intake (URL, credential refs, evals, conditions, use cases, sources)
 
+### M6b · Evidence, advisory UX & hardening (issue-driven units, D-048/D-050) — mostly ✅
+*These eleven units (T-185..T-195) existed in `.goal/goal.json` and were missing from this roadmap
+until 2026-09-27 — nine of them already done. Recorded here so the milestone view stops
+under-reporting the build.*
+- [x] T-191 run video on FAIL/INCONCLUSIVE only, last 20 retained, secrets masked as in screenshots
+      (contract `run-video.md` V1–V8, D-050). **Open follow-up: `ISS-t191-run-video-2` — a kept video is
+      reachable by no human through any shipped path; `run_view` filters on SCREENSHOT only. In build.**
+- [ ] T-190 advisory UX track: `UserPersona` (role, tech comfort, locale, device) + severity-scored UX
+      findings that **never** change PASS/FAIL (AT-583/AT-584, contract `persona-ux-advisory.md`
+      PU1–PU9, D-048/D-050). **Needs the maker PLAN gate + a grill with Umesh before any code.**
+- [x] T-186 closed `<details>` judged by `::details-content` display as well as `content-visibility` (D-049)
+- [x] T-189 stale evidence spec stays byte-intact and carries a distinguishable "stale on purpose" tag
+- [x] T-192 one approved Analyze re-run healing the 3 corrupted `url_pattern` rows on the erp project
+- [x] T-187 session-start hook calls `autotester loop-status --strict` and prints its report
+- [x] T-188 `--expires <date>` means end of that day for newly minted approvals
+- [x] T-193 base64-of-UTF-16 (PowerShell `-EncodedCommand`) no longer bypasses either redaction door
+- [x] T-194 `redact_encodings.py` docstring corrected (credited a removed `lru_cache`)
+- [x] T-195 `_is_exit_call` now catches `os._exit(1)` and aliased `sys` (`import sys as s; s.exit()`)
+- [ ] T-185 re-check `wave/at408-416-scroll-reach` (merge master, fresh cycle, real-Chromium Mode D)
+
 ---
 
 ## THE PROOF (must clear before AutoTester counts as "working on a real product")
@@ -147,6 +167,12 @@ comes only after that — "not only erp". T-122/T-145/T-136 get re-scoped to "se
 - [!] T-122 login case + first logged-in run on the second product — credentials after Pathlynks is proven
 - [!] T-145 live bounded READ_ONLY crawl of the second product — needs T-122 + consent (CRITICAL, dual-check)
 - [!] T-136 score recordings vs a trainer truth sheet → real recall/FP/time — **needs the truth sheet**
+- [ ] **T-136a (D-052, 2026-09-27): a fixture-derived trust number now** — build and review the
+      recall / false-positive / time harness against a fixture product so it is proven before real
+      inputs exist. Labelled **fixture-derived in `schema/bench.py`'s own fields**, never only in prose,
+      and never rendered where a reader could take it for the real number. It does **not** tick M7 and
+      does not close T-136. Its own proof is falsifiability: it must produce a *wrong* score on a
+      known-bad fixture, or it has not been proven.
 - [x] T-123 medium credential-safety batch — AT-085 `/healthz` + AT-065 rubric stamp ✅ (18ff2a9); AT-086/087 ✅ merged 6e5c806 (checker FINAL PASS + Mode D; gate answered: both a)
 - [ ] T-125 test catalog (runnable/blocked + cheap→expensive) — D-039 ✅, contract `catalog.md` DRAFT
 - [x] T-126 governance debt sweep — maker side ✅ (allowlist + FEATURES backfill, checker PASS, merged); AT-560 follow-up ✅ merged f94c5c2; closed by checker sweep 2026-09-25
@@ -163,9 +189,14 @@ fixture-proven only. The ERP trust number is the first time AutoTester is measur
 ### M8 · Systematic exploration upgrades
 - [x] T-163 resumable learn-or-explore orchestrator + durable per-stage checkpoints (F-045, dual PASS) — ✅ live caller `autotester orchestrate` (AT-575, merged ec98b33)
 - [x] T-170 first-party API/network assertions (D-040 split from T-165) — F-047, checker PASS, merged 1fc7276
-- [ ] T-165 hybrid BFS→bounded-DFS traversal + frontier completeness + form-input replay + persona-seeded
-      incremental crawl + change tracking (D-040; contract `crawl-traversal.md` DRAFT; CRITICAL dual-check)
-- [ ] T-171 permission-surface coverage — every reachable control exercised or blocked-with-reason (D-040)
+- [x] T-165 hybrid BFS→bounded-DFS traversal + frontier completeness + form-input replay + persona-seeded
+      incremental crawl + change tracking — ✅ **D-040 dual PASS at cycle 2** (both checkers independent,
+      2026-09-27), contract `crawl-traversal.md` now **ACTIVE**, F-062/F-063, merged 162c3dc7.
+      **Disclosed residual:** two states at one URL where one is genuinely deleted is reported nowhere
+      (`ISS-t165-crawl-traversal-a8`) — passed because the only one-cycle closure would fabricate a
+      deletion on every SPA toggle; a sound one needs per-signature reachability, not presence.
+- [ ] T-171 permission-surface coverage — every reachable control exercised or blocked-with-reason (D-040).
+      **Unblocked by T-165 as of 2026-09-27; also waits on `at638-four-contract-files-authorization`.**
 - [x] T-173 parallel case execution — ✅ merged 626fa03 + live UI wiring ef1b043 (at562-564: per-case evidence, crash isolation; checker PASS c3 + Mode D). Open: AT-574 serial-path resilience, AT-570 RunApproval (T-122)
 
 ### M9 · Durable product model
@@ -192,7 +223,12 @@ fixture-proven only. The ERP trust number is the first time AutoTester is measur
 - Prompts ship as `SKILL.md` skills (T-175) while crawl / run_case / get_persona / get_catalog / capture_network / grade_case / report stay plain tools with deterministic guards (safety, credentials, write-policy) inside them, not left to the model (D-042).
 - Refused: "regenerate tests instead of maintaining them". Deferred to Umesh: differential base-vs-head oracle.
 
-### M11 · Adversarial / below-the-UI (Track C)
+### M11 · Adversarial / below-the-UI (Track C) — 🎯 unblocked for BUILD only (D-052, 2026-09-27)
+*Umesh 2026-09-27 released T-154/T-155 from their hold. **The machinery is unblocked; firing it is not.**
+No adversarial probe traffic against any real target without a separate per-run approval naming the
+target and the consent scope — consent gate 2 existing is not permission to use it. T-154 is proven
+against a fixture target only, and `adversarial_proof.py` must first demonstrate that the pass refuses
+to exceed its declared scope. `write_policy` stays `read_only`.*
 - [ ] T-150 Track C governance (file ai-target.md + adversarial.md criteria for the checker)
 - [ ] T-151 read-only AI-target discovery + deterministic signals + classification
 - [ ] T-152 AI check registry + catalog matching · [ ] T-153 behavioural checks graded by the judge
@@ -209,7 +245,35 @@ fixture-proven only. The ERP trust number is the first time AutoTester is measur
 2. Both intake modes work on a real target and beat-or-match a human tester (T-169).
 3. Every finding is evidence-backed and correctly classified; coverage shows untested branches.
 
-## Progress (from `.goal/goal.json`, 2026-09-26): 47 / 70 done (67% — T-182..T-184 added by the 2026-09-26 meeting review, D-045; T-182 mobile/locale conditions, T-183 export failure detail and T-184 pinned regression case done — the roadmap grew by 12 tasks via D-040/D-041/D-042, not a regression). Status 2026-09-25: merged today — AT-110, AT-560, AT-086/087, T-173, T-175, T-172, AT-571, at562-564 live wiring (ef1b043). Open follow-ups: AT-574 serial-path resilience, AT-575 orchestrator live caller, AT-567 file splits, AT-570 RunApproval (T-122). Waiting on Umesh: AT-335 + T-125 builders were stopped. Next: T-179 Deep Agents lead tester (deps done) when RAM allows.
+## Progress (from `.goal/goal.json`, 2026-09-27): **58 / 81 done (72%)**
+
+**Roadmap reconciliation, 2026-09-27:** this file previously read "47 / 70 done (67%)" and listed no
+tasks above T-184. `T-185..T-195` were in the machine backlog and absent here — **nine of the eleven
+already done.** They are now in M6b. The roadmap was under-reporting the build by eleven tasks, which
+is the opposite of the failure mode this file exists to prevent, so the count is now derived from
+`.goal/goal.json` rather than maintained by hand.
+
+**Landed 2026-09-27:** T-165 hybrid BFS→bounded-DFS traversal + frontier completeness + form replay +
+persona-seeded incremental crawl (**D-040 dual PASS at cycle 2**, contract `crawl-traversal.md` now
+ACTIVE, F-062/F-063) · T-186, T-189, T-192, T-193, T-194, T-195, T-191 · `at438-answered-gate-remainder`
+· `at638-done-check-repair` · `.gitattributes` union-merge for the ledger.
+
+**Decisions taken 2026-09-27:** **D-051** T-125 proceeds by specifying flow relevance in
+`qa/contracts/catalog.md` first, then exactly one scoped cycle 4 (the 3-cycle cap is broken by one,
+deliberately, because its premise — a maker failing at a *specified* task — was never met).
+**D-052** Pathlynks stays first; a **fixture-derived** trust number is built now so the scoring harness
+is proven before real inputs exist; Track C (T-150..T-155) is unblocked **for build, not for firing** —
+adversarial probe traffic against any real target still needs a separate per-run approval naming the
+target and consent scope.
+
+**Critical path:** T-125 gates four tasks (T-152, T-166, T-174, T-178) and is the single highest-value
+unblock. T-171 and T-176 are newly free behind T-165. T-169 remains the definition of done and remains
+gated on inputs only Umesh supplies.
+
+**Blocked on a human:** T-122 / T-145 / T-136 (Pathlynks proof, then credentials, then a truth sheet) ·
+T-190 (PLAN gate + grill) · `qa/gates/at638-four-contract-files-authorization.md` (blocks T-166/167/168/171) ·
+`qa/gates/t125-ct6-tiered-dispatch-vs-ru3.md` (a second, independent reason T-125 cannot reach 8/8).
+
 _Machine backlog + done-checks: `.goal/goal.json`. Whole-project screen: `docs/SNAPSHOT.md`._
 _Note: rewriting `.goal/goal.json`'s north star or adding DISCOVER/MODEL to `docs/ARCHITECTURE.md`
 is a state change that needs an authorizing `docs/DECISIONS.md` entry first (Lab Protocol) — this

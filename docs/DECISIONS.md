@@ -1191,3 +1191,168 @@ The exception narrows RE3 for video only. It is named here as a deliberate narro
 No enforcement path.
 
 **Links:** D-048; T-190; T-191; AT-583; AT-584; AT-587; qa/gates/meeting-user-persona-ux-judging.md; qa/gates/meeting-run-video-scope.md
+
+## D-051 | 2026-09-27 | type: decision | status: ACTIVE
+
+**What:** T-125 proceeds by specifying relevance first, then exactly one scoped cycle (option A)
+
+**Date:** 2026-09-27
+**Decider:** Umesh (asked at the `qa/gates/t125-stalled-at-cycle-cap.md` gate, answered A)
+**Approved-by:** Umesh
+**Status:** ACCEPTED
+**Links:** T-125 · T-152 · T-166 · T-174 · T-178 · `qa/gates/t125-stalled-at-cycle-cap.md` ·
+`qa/gates/t125-ct6-tiered-dispatch-vs-ru3.md` · `qa/debug/t125-catalog-cycle3.md` ·
+`ISS-t125-1` · `ISS-t125-5` · D-039
+**Result:** T-125 unblocks by specification, not by another guess. The checker amends
+`qa/contracts/catalog.md` to define flow relevance; the maker then gets exactly one cycle (cycle 4)
+against that written rule. Releases T-152 / T-166 / T-174 / T-178 once T-125 lands.
+
+**Why:** No criterion in `catalog.md` ever defines which secret key belongs to which catalog row, so
+each of the three failed cycles was a guess at unwritten ground truth. Three independent parties
+reached that diagnosis separately (both cycle checkers, recording it as outside their blast radius at
+`qa/verdicts/t125-catalog.md:132-146` and `:340-343`, plus the read-only review in
+`qa/debug/t125-catalog-cycle3.md`). The 3-cycle cap exists to stop a maker grinding at a *specified*
+task; that premise was never met here, so fixing the specification changes the conditions rather than
+buying a fourth guess. The ambiguity traces to `docs/plan.md:521-523`, which predates any maker
+touching the file.
+
+**Changes-authorized:** none in `docs/ARCHITECTURE.md`. Authorizes the checker to amend
+`qa/contracts/catalog.md` (CT2/CT5/CT8 as needed) to define flow relevance, and authorizes exactly
+one additional T-125 fix cycle (cycle 4) after that amendment lands.
+
+### Decision
+
+T-125 does **not** get a fourth guess. The checker first amends `qa/contracts/catalog.md` to define
+**which flows a catalog row is about**, and only then does the maker build once against that written
+rule. This breaks the 3-cycle fix cap by one cycle, deliberately and on the record.
+
+### Why the cap is broken rather than respected here
+
+The cap exists to stop a maker from grinding at a task it keeps failing. That is not what happened.
+Three independent parties reached the same diagnosis from different angles: **no criterion in
+`catalog.md` ever defines which secret key belongs to which catalog row.** CT5 and CT8 judge the
+blocked state and its `unblock_action`, so a checker can prove an answer *wrong* without the contract
+ever saying what is *right*. Both cycle-2 and cycle-3 checkers hit the same wall and each recorded it
+as outside its own blast radius rather than filing it
+(`qa/verdicts/t125-catalog.md:132-146` and `:340-343`); the read-only review in
+`qa/debug/t125-catalog-cycle3.md` then confirmed it independently. The ambiguity traces to
+`docs/plan.md:521-523` — the only worked example D-039 authorizes — which says "an unset secret …
+naming the key", singular and spec-wide, and **predates any maker touching the file.**
+
+So the cap's premise — a maker failing at a *specified* task — was never met. Fixing the
+specification changes the conditions rather than buying another guess. **The rule must be written
+before the cycle, not guessed inside it.** That is the whole content of this decision, and the single
+extra cycle is conditional on the amendment landing first.
+
+### Why the alternatives were not chosen
+
+- **B (revert to cycle 1) was corrected during the gate and is not the safe fallback it looked
+  like.** `cfc13b0b:catalog.py:128` threads the same global unscoped union into the gate that cycle 3
+  does, so **cycle 1 carries the identical `ISS-t125-5` defect** — and `cfc13b0b` was never a passing
+  commit (no manifest; the cycle-1 check failed it on CT5/CT6). The standing regression rule assumes a
+  last *good* state to return to; in this function's history there is none. Reverting buys nothing on
+  correctness and loses cycle 3's genuinely-correct `ISS-t125-3` fix and its test.
+- **C (ship with no credential gate)** is honest but gives up a feature AT-588 asked for, and still
+  requires amending CT5/CT8 — so it is a contract change either way, with less delivered.
+- **D (amend CT2 to allow >1 row per `CaseClass`)** addresses the root shape and remains the fallback
+  if the amendment cannot express relevance at the current schema level. It costs the catalog's best
+  property — a fixed-length table an operator can scan — and is the largest change of the four.
+
+### Constraint the amendment must respect
+
+`stages/explore_merge.py:50-51` states the repo's own discipline: **`secret_key` is deliberately never
+inferred.** Any rule built on a keyword or structural classifier fails in the same shape again — the
+review demonstrated this with a fifth fixture (a Google button clicked to import a Drive file, not to
+authenticate). The two candidate shapes that respect the discipline are a **flow dimension on
+`CatalogEntry`** or a **human-declared relevance field on `SecretRef`**. The checker chooses; the
+maker does not.
+
+### Blast radius
+
+`src/autotester/stages/catalog.py` does not exist on `master`. The entire stage and both regressions
+live only on the unmerged `wave/t125-catalog`. No shipped behaviour is affected and no operator has
+ever seen a wrong catalog row. `wave/t125-catalog` stays unmerged and un-reverted until cycle 4.
+
+### Still open, and not answered by this entry
+
+`qa/gates/t125-ct6-tiered-dispatch-vs-ru3.md` is a **second, independent** reason T-125 cannot reach
+8/8. This decision does not touch it.
+
+## D-052 | 2026-09-27 | type: decision | status: ACTIVE
+
+**What:** Trust-number path: Pathlynks first, a fixture trust number now, Track C built but not fired
+
+**Date:** 2026-09-27
+**Decider:** Umesh (asked in-session; selected three options together)
+**Approved-by:** Umesh
+**Status:** ACCEPTED
+**Links:** T-136 · T-150 · T-154 · T-155 · T-169 · `target.md` M7 / M11 / M12 ·
+`qa/gates/erp-credentials.md` · `qa/gates/t136-model-credentials.md` ·
+`qa/gates/live-crawl-target.md` · D-023 · D-048 · `schema/bench.py`
+**Result:** Pathlynks stays the first product (T-122/T-145/T-136 held for a second). A
+fixture-derived trust number is built now so the scoring harness is proven before real inputs exist.
+T-150/T-151/T-152/T-153/T-154/T-155 are unblocked for BUILD; adversarial probe traffic against any
+real target still requires a separate per-run approval naming target and consent scope.
+
+**Why:** Umesh selected Pathlynks-first, a fixture trust number, and unblocking Track C together. The
+finish line T-169 is gated on inputs only he can supply, so the value of this routing is that it takes
+everything *else* off the critical path: when the inputs arrive, only the run remains. The build/fire
+split on Track C is written because the maker flagged at the gate that unblocking T-154/T-155 implies
+real probe traffic and that a target and consent scope would need naming; none was named, so the
+machinery is built and the firing still gates to a human. Consent gate 2 existing is not permission to
+use it.
+
+**Changes-authorized:** `target.md` M7/M11/M12 status rows may be updated to reflect this routing.
+No `docs/ARCHITECTURE.md` prose change.
+
+### Decision, in three parts
+
+1. **Pathlynks stays first** (confirming D-023 / the 2026-09-24 scoping). T-122, T-145 and T-136
+   remain held for a *second* product; no credentials are requested for ERP or anything else until
+   Pathlynks is proven.
+2. **A fixture-derived trust number is built now.** The recall / false-positive / time machinery of
+   T-136 is built and checker-reviewed against a fixture product, so the scoring harness is proven
+   before real credentials or a real truth sheet exist.
+3. **T-154 and T-155 are unblocked for BUILD, not for FIRING** — see the boundary below, which is the
+   operative half of this entry.
+
+### Part 2 — what a fixture trust number may and may not claim
+
+The point is to have the measurement apparatus reviewed before it is pointed at anything that matters,
+so that the first real number is trustworthy on arrival instead of being debugged under pressure.
+
+- Every output is labelled **fixture-derived** at the point of production — in `schema/bench.py`'s own
+  fields, not only in prose around it. A fixture number is never rendered in a position where a reader
+  could take it for the real one.
+- It is **not** the T-136 acceptance number and does not tick M7. T-136 stays `pending` and still needs
+  `ERP_Issues_Trainers.xlsx` or its Pathlynks equivalent.
+- Its purpose is falsifiable: the harness must be shown to produce a *wrong* score when fed a known-bad
+  fixture, or it has not been proven at all.
+
+### Part 3 — the boundary on Track C, stated because it is the risk
+
+**The build is unblocked; probe traffic is not.** T-150 (governance), T-151 (read-only discovery),
+T-152/T-153 (registry and behavioural checks), T-154 (the bounded adversarial pass and
+`adversarial_proof.py`) and T-155 (the tiered report) may all be built. What stays gated:
+
+- **No adversarial probe traffic against any real target** without a *separate, per-run* approval from
+  Umesh that names the target and the consent scope. Consent gate 2 is the mechanism T-154 builds; the
+  mechanism existing is not the same as permission to fire it.
+- T-154 is developed and proven **against a fixture target only**. `adversarial_proof.py` must
+  demonstrate the bound holds — i.e. that the pass refuses to exceed its declared scope — as its
+  primary evidence, before any live use is contemplated.
+- T-151 is **read-only by construction** and unchanged by this entry: signals come from grep and file
+  inspection, never a model, and every `Signal` cites a real `file:line`.
+- `write_policy` stays `read_only`. Nothing here authorises a write to a live product.
+
+**Why the boundary is written rather than assumed:** the maker flagged at the gate that unblocking
+T-154/T-155 implies real probe traffic and that the target and consent scope would need naming first.
+Umesh selected the option and did not name a target. The faithful reading of that — and the one this
+entry records — is that the *machinery* is wanted now and the *firing* still gates to a human. If the
+intent was broader, this entry is the thing to correct.
+
+### Consequence for the finish line
+
+T-169 remains the definition of done and remains gated on inputs only Umesh supplies. This entry does
+not move that date; it removes everything *else* from the critical path, so that when the inputs arrive
+the only remaining work is the run itself.
