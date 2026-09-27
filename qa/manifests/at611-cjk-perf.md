@@ -195,4 +195,4 @@ Not UI-touching. Changed paths: `src/autotester/core/redact_wrap.py`,
   similarly stale (historical narrative, not code) and left untouched — out of this unit's stated
   scope, and correcting every historical cross-reference across the test suite was not asked for.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, qa/verdicts/at611-cjk-perf.md 1e439b7)
