@@ -19,6 +19,7 @@ shape this generalizes to the serial path).
 
 from __future__ import annotations
 
+from test_ui_runs import _approve_demo_runs
 from test_ui_runs_parallel_trace import _non_entry_case, client, scratch_root
 
 from autotester.schema.case import Case
@@ -102,6 +103,7 @@ def test_a_grader_crash_for_one_of_three_serial_cases_still_saves_every_case_and
     monkeypatch.setattr(pipeline_module, "run_case", fake_run_case)
     monkeypatch.setattr(pipeline_module, "grade", fake_grade)
 
+    _approve_demo_runs(scratch_root)  # AT-570: the live_case approval a run now needs
     response = client.post("/projects/demo/run", follow_redirects=False)
 
     assert response.status_code == 303, response.text
@@ -148,6 +150,7 @@ def test_a_run_case_crash_for_one_of_three_serial_cases_still_saves_every_case_a
     monkeypatch.setattr(pipeline_module, "run_case", fake_run_case)
     monkeypatch.setattr(pipeline_module, "grade", fake_grade)
 
+    _approve_demo_runs(scratch_root)  # AT-570: the live_case approval a run now needs
     response = client.post("/projects/demo/run", follow_redirects=False)
 
     assert response.status_code == 303, response.text
@@ -199,6 +202,7 @@ def test_an_entry_case_crash_still_saves_every_case_and_the_run(
     monkeypatch.setattr(pipeline_module, "run_case", fake_run_case)
     monkeypatch.setattr(pipeline_module, "grade", fake_grade)
 
+    _approve_demo_runs(scratch_root)  # AT-570: the live_case approval a run now needs
     response = client.post("/projects/demo/run", follow_redirects=False)
 
     assert response.status_code == 303, response.text

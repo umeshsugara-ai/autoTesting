@@ -17,6 +17,7 @@ from autotester.browser.secrets import SecretStore
 from autotester.browser.session import BrowserSession
 from autotester.core.paths import ProjectPaths
 from autotester.providers.langchain_fallback import LangChainFallbackProvider
+from autotester.schema.approval import RunApproval
 from autotester.schema.case import Case
 from autotester.schema.enums import Outcome
 from autotester.schema.project import Project
@@ -121,26 +122,41 @@ def _run_cases_serially(
         session.close()
 
 
-def _run_cases_in_parallel(
-    cases: list[Case], entry_flags: list[bool], plan: ParallelPlan, project: Project,
-    secrets: SecretStore, run_dir: Path, slug: str, judge: LangChainFallbackProvider,
-    run_id: str, store: ProjectStore,
+def _run_entry_cases(
+    entry_cases: list[Case], project: Project, secrets: SecretStore, run_dir: Path,
+    slug: str, judge: LangChainFallbackProvider, run_id: str, store: ProjectStore,
 ) -> None:
-    """`plan.n > 1` (T-173/AT-562): fan the non-entry cases out through the
-    real `stages.parallel_run.run_cases` at the planned width, each in its
-    own isolated browser context (PR2). Entry cases keep their dedicated
-    wiped profile (AT-044) and always run serially, before the fan-out — an
-    entry-screen assertion is about one logged-out state, not something
-    concurrency helps."""
-    entry_cases = [c for c, is_entry in zip(cases, entry_flags, strict=True) if is_entry]
-    normal_cases = [c for c, is_entry in zip(cases, entry_flags, strict=True) if not is_entry]
-
+    """The serial entry-case leg of a parallel run: each entry case keeps its
+    dedicated wiped profile (AT-044) and they always run one at a time, before
+    the fan-out. Extracted from `_run_cases_in_parallel` so that function stays
+    inside the 50-line design cap (core-invariants C2); the ordering guarantee
+    it carries is asserted by `tests/test_ui_runs_serial_entry_order.py`."""
     for case in entry_cases:
         result, verdict = _run_entry_case(case, project, secrets, run_dir, slug, judge, run_id,
                                           store)
         store.save_result(run_id, result)
         store.save_verdict(run_id, verdict)
 
+
+def _run_cases_in_parallel(
+    cases: list[Case], entry_flags: list[bool], plan: ParallelPlan, project: Project,
+    secrets: SecretStore, run_dir: Path, slug: str, judge: LangChainFallbackProvider,
+    run_id: str, store: ProjectStore, approval: RunApproval,
+) -> None:
+    """`plan.n > 1` (T-173/AT-562): fan the non-entry cases out through the
+    real `stages.parallel_run.run_cases` at the planned width, each in its
+    own isolated browser context (PR2). Entry cases keep their dedicated
+    wiped profile (AT-044) and always run serially, before the fan-out — an
+    entry-screen assertion is about one logged-out state, not something
+    concurrency helps.
+
+    AT-570: `approval` is threaded in from `trigger_run`'s preflight and handed
+    to `run_cases`, which builds the shared `RunBudget` from it. It has no
+    default here either -- the caller that forgot to pass one is exactly how
+    the case-run path ran unbounded."""
+    entry_cases = [c for c, is_entry in zip(cases, entry_flags, strict=True) if is_entry]
+    normal_cases = [c for c, is_entry in zip(cases, entry_flags, strict=True) if not is_entry]
+    _run_entry_cases(entry_cases, project, secrets, run_dir, slug, judge, run_id, store)
     if not normal_cases:
         return
     case_by_id = {c.id: c for c in normal_cases}
@@ -156,7 +172,8 @@ def _run_cases_in_parallel(
         return result
 
     session_factory = default_session_factory(project, secrets, run_dir, record_video=True)
-    for result in run_cases(normal_cases, plan, session_factory, _run_and_grade):
+    for result in run_cases(normal_cases, plan, session_factory, _run_and_grade,
+                            approval=approval):
         # AT-568/PR6: a session_factory crash, or any exception BEFORE
         # run_and_grade_case_resilient captures its own result, means
         # `_run_and_grade` above never ran to completion for this case, so

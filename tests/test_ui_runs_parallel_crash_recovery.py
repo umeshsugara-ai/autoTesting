@@ -25,6 +25,7 @@ qa/contracts/parallel-run.md PR6.
 
 from __future__ import annotations
 
+from test_ui_runs import _approve_demo_runs
 from test_ui_runs_parallel_trace import _non_entry_case, client, scratch_root
 
 from autotester.schema.enums import Outcome, Result
@@ -108,6 +109,7 @@ def test_a_session_factory_crash_for_one_case_still_saves_every_case_and_the_run
     monkeypatch.setattr(run_execution_module, "run_and_grade_case_resilient",
                         fake_run_and_grade_case_resilient)
 
+    _approve_demo_runs(scratch_root)  # AT-570: the live_case approval a run now needs
     response = client.post("/projects/demo/run", follow_redirects=False)
 
     assert response.status_code == 303, response.text
@@ -159,6 +161,7 @@ def test_run_and_grade_case_resilient_itself_raising_still_saves_every_case_and_
     monkeypatch.setattr(run_execution_module, "run_and_grade_case_resilient",
                         fake_run_and_grade_case_resilient)
 
+    _approve_demo_runs(scratch_root)  # AT-570: the live_case approval a run now needs
     response = client.post("/projects/demo/run", follow_redirects=False)
 
     assert response.status_code == 303, response.text

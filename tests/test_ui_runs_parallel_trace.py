@@ -19,7 +19,7 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
-from test_ui_runs import _onboard_demo, _only_run_id
+from test_ui_runs import _approve_demo_runs, _onboard_demo, _only_run_id
 
 from autotester.schema.case import Case
 from autotester.schema.enums import Action, CaseClass, CaseKind, Outcome, Result
@@ -85,6 +85,7 @@ def test_a_real_run_writes_a_trace_with_at_least_one_span(
     monkeypatch.setattr(run_execution_module, "run_and_grade_case_resilient",
                         fake_run_and_grade_case_resilient)
 
+    _approve_demo_runs(scratch_root)  # AT-570: the live_case approval a run now needs
     response = client.post("/projects/demo/run", follow_redirects=False)
     assert response.status_code == 303
 
@@ -145,6 +146,7 @@ def test_a_declared_fake_secret_never_appears_raw_in_the_trace(
     monkeypatch.setattr(run_execution_module, "run_and_grade_case_resilient",
                         fake_run_and_grade_case_resilient)
 
+    _approve_demo_runs(scratch_root)  # AT-570: the live_case approval a run now needs
     response = client.post("/projects/demo/run", follow_redirects=False)
     assert response.status_code == 303
 
@@ -185,6 +187,7 @@ def test_run_records_parallel_n_and_bound_by_even_when_serial(
     monkeypatch.setattr(run_execution_module, "run_and_grade_case_resilient",
                         fake_run_and_grade_case_resilient)
 
+    _approve_demo_runs(scratch_root)  # AT-570: the live_case approval a run now needs
     response = client.post("/projects/demo/run", follow_redirects=False)
     assert response.status_code == 303
 
@@ -261,6 +264,7 @@ def test_with_max_parallel_2_two_cases_run_concurrently(
     monkeypatch.setattr(routes_runs_module, "plan_parallel_run",
                         lambda project_, **kwargs: fake_plan)
 
+    _approve_demo_runs(scratch_root)  # AT-570: the live_case approval a run now needs
     response = client.post("/projects/demo/run", follow_redirects=False)
 
     assert response.status_code == 303

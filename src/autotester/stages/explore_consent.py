@@ -19,10 +19,16 @@ from autotester.schema.project import Project
 from autotester.store.project_store import ProjectStore
 
 
-def covering_approval(project: Project, store: ProjectStore, bounds: CrawlBounds):
-    """The RunApproval covering this crawl, or `ApprovalRequired`."""
+def covering_approval(project: Project, store: ProjectStore, bounds: CrawlBounds,
+                      *, kind: ApprovalKind = ApprovalKind.CRAWL):
+    """The RunApproval covering this run, or `ApprovalRequired`.
+
+    `kind` defaults to `CRAWL` so every existing caller is unchanged, and the
+    UI case-run preflight passes `LIVE_CASE` (AT-570). One gate, one place: a
+    second `covering_approval` for cases would be C3's one-concept-two-places,
+    and the enum member it checks has existed unused since D-018."""
     return require_approval(
-        store.list_approvals(), project=project.slug, kind=ApprovalKind.CRAWL,
+        store.list_approvals(), project=project.slug, kind=kind,
         target=project.base_url, actions=bounds.max_actions,
         wall_clock_s=bounds.wall_clock_s,
     )

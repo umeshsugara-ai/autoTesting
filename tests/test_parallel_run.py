@@ -26,8 +26,6 @@ from autotester.schema.project import Project
 from autotester.schema.run import RawResult
 from autotester.stages.parallel_run import (
     DEFAULT_PER_CONTEXT_MB,
-    RunBudget,
-    action_cost,
     default_session_factory,
     plan_parallel_run,
     run_cases,
@@ -47,6 +45,23 @@ def _case(idx: int, n_steps: int = 1) -> Case:
     steps = [Step(order=i, action=Action.CLICK, target=f"#c{idx}-{i}") for i in range(n_steps)]
     return Case(project="p1", flow_id="f1", kind=CaseKind.BEST, case_class=CaseClass.HAPPY,
                 title=f"case-{idx}", steps=steps)
+
+
+def _approval(**overrides: object) -> RunApproval:
+    """Every `run_cases` call needs a real `RunApproval` now (AT-570), and its
+    bounds are deliberately NON-ZERO (AT-660/CN10): a 0-bound fixture passes the
+    gate and enforces nothing, so a test built on one asserts "the run
+    proceeded" for the wrong reason. The default is wide enough not to bound a
+    test that is not about bounds; a test that wants a refusal passes a real
+    small bound. Signed, so the same fixture also satisfies the consent gate."""
+    fields: dict[str, object] = {
+        "project": "p1", "run_kind": ApprovalKind.LIVE_CASE, "target": "https://p1.test",
+        "scope": "fixture case run in tests", "max_actions": 10_000, "max_probes": 0,
+        "wall_clock_s": 3_600.0, "granted_by": "tester",
+        "granted_at": "2026-09-25T00:00:00", "expires_at": "2099-01-01",
+    }
+    fields.update(overrides)
+    return RunApproval(**fields).sign()  # type: ignore[arg-type]
 
 
 class FakeSession:
@@ -91,7 +106,7 @@ def test_pr1_n_is_min_of_config_ceiling_and_measured_budget() -> None:
             concurrent -= 1
         return RawResult(case_id=case.id, outcome=Outcome.COMPLETED)
 
-    run_cases(cases, plan, _isolated_factory([]), run_fn)
+    run_cases(cases, plan, _isolated_factory([]), run_fn, approval=_approval())
     assert peak <= 3
 
 
@@ -118,7 +133,7 @@ def test_pr2_each_case_gets_its_own_session_no_shared_state() -> None:
         return RawResult(case_id=case.id, outcome=Outcome.COMPLETED)
 
     plan = plan_parallel_run(_project(max_parallel=2), cpu_count=8, free_ram_mb=1e9)
-    run_cases([login_case, other_case], plan, factory, run_fn)
+    run_cases([login_case, other_case], plan, factory, run_fn, approval=_approval())
     assert len({id(s) for s in created}) == 2
     assert all(s.closed for s in created)
 
@@ -163,7 +178,8 @@ def test_pr3_allow_writes_forces_serial_regardless_of_max_parallel() -> None:
             intervals.append((start, end))
         return RawResult(case_id=case.id, outcome=Outcome.COMPLETED)
 
-    run_cases([_case(i) for i in range(3)], plan, _isolated_factory([]), run_fn)
+    run_cases([_case(i) for i in range(3)], plan, _isolated_factory([]), run_fn,
+              approval=_approval())
     intervals.sort()
     for (_, end), (next_start, _) in itertools.pairwise(intervals):
         assert end <= next_start  # never two in flight at once
@@ -192,8 +208,10 @@ def test_pr4_parallel_verdicts_equal_serial_verdicts() -> None:
 
     serial_plan = plan_parallel_run(_project(max_parallel=1), cpu_count=8, free_ram_mb=1e9)
     parallel_plan = plan_parallel_run(_project(max_parallel=4), cpu_count=8, free_ram_mb=1e9)
-    serial = run_cases(cases, serial_plan, _isolated_factory([]), _timed_run_fn)
-    parallel = run_cases(cases, parallel_plan, _isolated_factory([]), _timed_run_fn)
+    serial = run_cases(cases, serial_plan, _isolated_factory([]), _timed_run_fn,
+                       approval=_approval())
+    parallel = run_cases(cases, parallel_plan, _isolated_factory([]), _timed_run_fn,
+                         approval=_approval())
 
     assert {r.case_id: r.outcome for r in serial} == {r.case_id: r.outcome for r in parallel}
     assert [r.case_id for r in parallel] == [c.id for c in cases]  # order survives concurrency
@@ -212,11 +230,11 @@ def test_pr5_parallel_is_faster_than_serial_for_n_ge_2() -> None:
     parallel_plan = plan_parallel_run(_project(max_parallel=4), cpu_count=8, free_ram_mb=1e9)
 
     t0 = time.monotonic()
-    run_cases(cases, serial_plan, _isolated_factory([]), run_fn)
+    run_cases(cases, serial_plan, _isolated_factory([]), run_fn, approval=_approval())
     serial_s = time.monotonic() - t0
 
     t0 = time.monotonic()
-    run_cases(cases, parallel_plan, _isolated_factory([]), run_fn)
+    run_cases(cases, parallel_plan, _isolated_factory([]), run_fn, approval=_approval())
     parallel_s = time.monotonic() - t0
 
     # strictly less (PR5), with a margin so ordinary scheduler jitter can never
@@ -235,62 +253,11 @@ def test_pr6_one_case_crashing_does_not_abort_siblings() -> None:
         return RawResult(case_id=case.id, outcome=Outcome.COMPLETED)
 
     plan = plan_parallel_run(_project(max_parallel=3), cpu_count=8, free_ram_mb=1e9)
-    by_id = {r.case_id: r for r in run_cases(cases, plan, _isolated_factory([]), run_fn)}
+    results = run_cases(cases, plan, _isolated_factory([]), run_fn, approval=_approval())
+    by_id = {r.case_id: r for r in results}
 
     crashed = by_id[cases[1].id]
     assert crashed.outcome is Outcome.ERRORED
     assert "ValueError" in (crashed.error or "")
     assert by_id[cases[0].id].outcome is Outcome.COMPLETED
     assert by_id[cases[2].id].outcome is Outcome.COMPLETED
-
-
-# -- PR7: consent bounds apply to the whole run, never widened per worker ---
-
-def test_pr7_aggregate_budget_is_not_multiplied_by_concurrency() -> None:
-    cases = [_case(i, n_steps=3) for i in range(4)]  # cost 3 each -> 12 if ungated
-    naive_total = sum(action_cost(c) for c in cases)
-    assert naive_total == 12
-
-    approval = RunApproval(
-        project="p1", run_kind=ApprovalKind.CRAWL, target="https://p1.test", scope="test",
-        max_actions=10, max_probes=0, wall_clock_s=0.0,
-        granted_by="tester", granted_at="2026-09-25T00:00:00", expires_at="2099-01-01",
-    )
-
-    def run_fn(case: Case, session: object) -> RawResult:
-        return RawResult(case_id=case.id, outcome=Outcome.COMPLETED)
-
-    plan = plan_parallel_run(_project(max_parallel=4), cpu_count=8, free_ram_mb=1e9)
-    results = run_cases(cases, plan, _isolated_factory([]), run_fn, approval=approval)
-
-    def _exhausted(r: RawResult) -> bool:
-        return r.outcome is Outcome.ERRORED and "budget exhausted" in (r.error or "")
-
-    assert any(_exhausted(r) for r in results), "at least one case refused by the shared budget"
-    ran_cost = sum(action_cost(c) for c, r in zip(cases, results, strict=True) if not _exhausted(r))
-    assert ran_cost <= approval.max_actions < naive_total
-
-
-def test_pr7_run_budget_try_consume_is_thread_safe_under_race() -> None:
-    approval = RunApproval(
-        project="p1", run_kind=ApprovalKind.CRAWL, target="https://p1.test", scope="test",
-        max_actions=50, max_probes=0, wall_clock_s=0.0,
-        granted_by="tester", granted_at="2026-09-25T00:00:00", expires_at="2099-01-01",
-    )
-    budget = RunBudget(approval)
-    accepted = 0
-    lock = threading.Lock()
-
-    def worker() -> None:
-        nonlocal accepted
-        if budget.try_consume(actions=1):
-            with lock:
-                accepted += 1
-
-    threads = [threading.Thread(target=worker) for _ in range(200)]
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join()
-
-    assert (accepted, budget.actions_used) == (50, 50)

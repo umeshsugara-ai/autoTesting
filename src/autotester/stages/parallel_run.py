@@ -23,8 +23,6 @@ from __future__ import annotations
 import ctypes
 import os
 import platform
-import threading
-import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -35,6 +33,7 @@ from autotester.schema.case import Case
 from autotester.schema.enums import Outcome, WritePolicy
 from autotester.schema.project import Project
 from autotester.schema.run import RawResult
+from autotester.stages.run_budget import RunBudget, action_cost
 
 DEFAULT_PER_CONTEXT_MB = 512.0
 """Conservative estimate of one Chromium `BrowserContext`'s resident memory --
@@ -135,56 +134,14 @@ def plan_parallel_run(
     bound_by = "budget" if measured_budget < config_ceiling else "config"
     return ParallelPlan(config_ceiling, measured_budget, n, bound_by, measured_free, cpu)
 
-
-class RunBudget:
-    """PR7: one shared, thread-safe consent budget for the whole run -- never
-    one per worker, so N-way concurrency can never spend up to N times what
-    `RunApproval` granted. `None` means no approval was supplied (unlimited);
-    the aggregate is checked-and-reserved atomically so two workers racing to
-    spend the last few actions can never both succeed."""
-
-    def __init__(self, approval: RunApproval | None) -> None:
-        self._approval = approval
-        self._lock = threading.Lock()
-        self._actions_used = 0
-        self._probes_used = 0
-        self._start = time.monotonic()
-
-    def try_consume(self, *, actions: int = 0, probes: int = 0) -> bool:
-        approval = self._approval
-        if approval is None:
-            return True
-        with self._lock:
-            if approval.wall_clock_s and (time.monotonic() - self._start) > approval.wall_clock_s:
-                return False
-            actions_after = self._actions_used + actions
-            probes_after = self._probes_used + probes
-            if approval.max_actions and actions_after > approval.max_actions:
-                return False
-            if approval.max_probes and probes_after > approval.max_probes:
-                return False
-            self._actions_used = actions_after
-            self._probes_used = probes_after
-            return True
-
-    @property
-    def actions_used(self) -> int:
-        return self._actions_used
-
-
-def action_cost(case: Case) -> int:
-    """One case's cost against the aggregate action budget -- one unit per
-    declared step, the system's own vocabulary for "an action" (`Action` in
-    `schema/enums.py`); a step-less case still costs at least 1."""
-    return max(1, len(case.steps))
-
-
 SessionFactory = Callable[[Case], object]
+
+
 RunFn = Callable[[Case, object], RawResult]
 
 
 def _run_one(
-    case: Case, session_factory: SessionFactory, run_fn: RunFn, budget: RunBudget | None,
+    case: Case, session_factory: SessionFactory, run_fn: RunFn, budget: RunBudget,
 ) -> RawResult:
     """One case, isolated: its own session (PR2), its own try/except so a
     crash is reported as ITS outcome and never propagates to a sibling (PR6).
@@ -196,7 +153,7 @@ def _run_one(
     out of `run_cases`' `[f.result() for f in futures]`, discarding every
     sibling's already-finished result instead of reporting just this case
     as ERRORED."""
-    if budget is not None and not budget.try_consume(actions=action_cost(case)):
+    if not budget.try_consume(actions=action_cost(case)):
         return RawResult(case_id=case.id, outcome=Outcome.ERRORED,
                           error="run budget exhausted before this case could start")
     session: object | None = None
@@ -215,13 +172,19 @@ def _run_one(
 
 def run_cases(
     cases: list[Case], plan: ParallelPlan, session_factory: SessionFactory, run_fn: RunFn,
-    *, approval: RunApproval | None = None,
+    *, approval: RunApproval,
 ) -> list[RawResult]:
     """Run `cases` at concurrency `plan.n` (PR1/PR3: `n=1` is exactly the
     serial baseline PR4/PR5 compare against -- one function, two widths, not
     two code paths, C3). Results come back in `cases` order regardless of
     completion order, so a caller can diff parallel vs serial verdicts by
-    position without re-sorting."""
+    position without re-sorting.
+
+    `approval` is a REQUIRED keyword with no default (AT-570). The default it
+    replaces was the whole delivery mechanism for the fail-open: every caller
+    reached an unbounded run by passing nothing, and the one production caller
+    (`ui/run_execution.py`) did exactly that. With no default there is nothing
+    to omit, so a future caller cannot re-acquire unlimited by silence."""
     budget = RunBudget(approval)
     n = max(1, plan.n)
     with ThreadPoolExecutor(max_workers=n) as pool:
