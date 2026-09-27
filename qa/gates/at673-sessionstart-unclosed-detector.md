@@ -282,8 +282,32 @@ property of *a maker being alive*, not of the mechanism. The hook exists precise
 where one is not — and in that case it reports `Checks pending: 0` and a session starts on something
 else. That is the `AT-641` scenario, and it has already happened once in this project.
 
-**Direction only, not a fix, and it collapses three asks into one.** The checker's suggestion is to
-enumerate `git worktree list --porcelain` — which is the same enumeration `AT-643` needs. So one
-change to this hook answers `AT-673`, `AT-669`, `AT-696` and `AT-643`; `AT-668` is the reason none of
-them can be made without you, since the guard that should ask before a `qa/hooks/*` edit does not
-cover `qa/hooks/*`. **That is the fourth reason this is one conversation rather than five.**
+**Direction only, not a fix — and a correction to what an earlier version of this addendum said.**
+It claimed "one change to this hook answers `AT-673`, `AT-669`, `AT-696` and `AT-643`." **That was
+wrong, and it contradicted a sentence two paragraphs above it** — the same addendum had just
+explained that anchoring the patterns does not touch `AT-696` at all. Both cannot be true. The
+checker caught it before this reached you. It is **one file and one decision, but three changes at
+three sites**, and the row sets are disjoint:
+
+| site | what is there now | rows it answers |
+|---|---|---|
+| `:11-12` | `Get-ChildItem 'qa/manifests'` — the current checkout only | `AT-696`, `AT-643` — **enumeration** |
+| `:14, :16, :18, :21` | `'Status: ready-for-check'` unanchored; `Fix cycle` / `Cycle checked` / `VERDICT:\s*PASS` taken as first match | `AT-673`, `AT-669` — **anchoring** |
+| `:30, :38` | the `$backlog` / `$asleep` arming condition and the directive it emits | `AT-657` — **the arming condition** |
+
+**This makes the warning at the top of this gate stronger, not weaker.** With three sites, a partial
+landing is *more* likely than with one, and each partial leaves a different thing broken:
+
+- **Anchoring alone** leaves the hook **silent** on any manifest living in a worktree — which is
+  where every in-flight unit's manifest lives.
+- **Enumeration alone** leaves the `t182` **false alarm**, and therefore leaves `AT-657` armed
+  forever, because `$unclosed.Count` is one of its two permanently-true terms.
+
+So an approval of the form *"fix the hook"* is not enough on its own; the answer needs to cover all
+three sites, or say explicitly which ones it covers. `AT-668` is the reason none of them can be made
+without you at all, since the guard that should ask before a `qa/hooks/*` edit does not cover
+`qa/hooks/*`. **That is the fourth reason this is one conversation rather than five.**
+
+*(The `ready-for-check` pattern is at `:14`. Both sessions wrote `:13` earlier today; the substantive
+claim — that `:11-12` is the enumeration and the pattern would match fine if the file were
+enumerated — is unaffected.)*
