@@ -317,4 +317,13 @@ re-confirmed green (byte-identical to the worktree's file, checked with `diff`) 
 Ruff and doctor are not falsified here — neither expresses a runtime claim this table charges; both
 are re-run clean against the final tree in "Verify" above.
 
-## Status: ready-for-check
+## Status: checked-PASS (qa/verdicts/at408-416-scroll-reach.md, Cycle checked: 1, verdict commit edbee6b2, merged into master)
+
+**Two findings left open by the PASS, carried forward not closed:**
+- `ISS-at408-416-1` (medium) — the N-segment generalization is argued in prose but the
+  committed corpus caps at `DEPTHS=(1,2,3)`: 3+ scroller crossings and 2+ simultaneous clip
+  segments are never exercised. The checker's own novel fixtures found the code correct at
+  those depths, so this is a coverage gap, not a live defect.
+- `ISS-at408-416-2` (low) — this manifest's capability row 3 says "50 passed"; the real
+  reproduced number is 32. The named failing shapes and the total were correct.
+
