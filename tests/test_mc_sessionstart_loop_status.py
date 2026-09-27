@@ -9,7 +9,11 @@ Two layers, same split as `tests/test_session_start_hook.py`:
   or the try/catch entirely, even where PowerShell itself cannot run.
 - Behavioural, real-PowerShell subprocess tests (Windows only, skipped
   elsewhere) that actually run the hook end to end against a healthy and an
-  asleep `qa/.last-tick`, plus the tool-missing path with `uv` off PATH.
+  asleep `qa/.last-tick`, the tool-missing path with `uv` off PATH, and (AT-622,
+  fix cycle 2) a real hung grandchild process to prove the timeout kills the
+  whole tree, not just `uv` itself. `AUTOTESTER_LOOPSTATUS_TIMEOUT_MS` lets
+  that last test bound a real hang to a couple of seconds instead of the real
+  15s default.
 
 LS4 (qa/contracts/loop-status.md): `loop-status` is read-only and never part
 of `doctor`'s verify chain. This hook call must not change that -- it only
@@ -23,10 +27,12 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
+from test_mutation_check_judgement import _alive
 
 REPO = Path(__file__).resolve().parents[1]
 HOOK = REPO / "qa" / "hooks" / "mc-sessionstart.ps1"
@@ -90,16 +96,37 @@ def test_the_hook_checks_the_exit_code() -> None:
     assert "LOOP UNHEALTHY" in code, "the hook no longer prints the unhealthy warning line"
 
 
+_OUTER_TRY_RE = re.compile(
+    r'try\s*\{(?P<body>.*?)\}\s*catch\s*\{\s*'
+    r'Write-Output\s*"loop-status: skipped \(uv/autotester unavailable\)"\s*\}',
+    re.DOTALL,
+)
+
+
 def test_the_hook_wraps_the_call_so_a_failure_cannot_propagate() -> None:
-    """Row (c): let a failure propagate (no try/catch), this fails. A liveness
-    probe that can crash or hang session start is worse than the silence it
-    replaces -- same reasoning loop_status.py itself states for LS4."""
+    """Row (c) of the C7 falsification: remove the OUTER try/catch (the one whose
+    catch prints the clean skip line) and this must fail.
+
+    AT-624: a whole-file `'try {' in code and 'catch {' in code` substring check
+    stays green by accident even with the outer wrapper removed, because the
+    unrelated timeout guard (`try { ... taskkill ... } catch {}`) also contains
+    those two tokens somewhere in the file. This instead asserts the actual
+    nesting: the Process.Start() call and its WaitForExit bound must sit INSIDE
+    the span of the specific try block whose catch prints the
+    uv/autotester-unavailable skip line -- not merely that both tokens appear
+    somewhere in the file."""
     code = hook_code()
-    assert "try {" in code and "catch {" in code, (
-        "the loop-status call is not wrapped in try/catch -- an unavailable uv/autotester "
-        "would propagate and could fail the whole session-start hook"
+    match = _OUTER_TRY_RE.search(code)
+    assert match is not None, (
+        "no try { ... } catch { print the clean skip line } wrapper found around "
+        "the loop-status invocation -- an unavailable uv/autotester would propagate "
+        "and could fail the whole session-start hook"
     )
-    assert "WaitForExit" in code, "the loop-status call has no bounded timeout"
+    body = match.group("body")
+    assert "System.Diagnostics.ProcessStartInfo" in body, (
+        "the loop-status Process.Start() call is not inside the outer try block"
+    )
+    assert "WaitForExit" in body, "the loop-status call inside the wrapper has no bounded timeout"
 
 
 def test_the_hooks_own_exit_code_is_unconditional_zero() -> None:
@@ -171,3 +198,76 @@ def test_hook_skips_cleanly_when_uv_is_unavailable(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
     assert "loop-status: skipped (uv/autotester unavailable)" in result.stdout
     assert "LOOP UNHEALTHY" not in result.stdout
+
+
+@windows_only
+def test_the_timeout_kills_the_real_grandchild_process_not_just_uv(tmp_path: Path) -> None:
+    """AT-622: on timeout the hook must kill the whole process tree, not just the
+    immediate `uv` process. `uv run` always spawns python as a child; Windows
+    PowerShell 5.1/.NET Framework's `Process.Kill()` has no entireProcessTree
+    overload, so a bare `Kill()` leaves that python grandchild running.
+
+    This shims `uv` with a real copy of `python.exe` (so the process the hook
+    launches is a genuine OS process, not a stub) placed first on PATH. The
+    hook's fixed `Arguments` string is `run --project "<ROOT>" autotester
+    loop-status --strict`; with no file extension on the first token, CPython
+    treats "run" as a script path relative to the child's own working
+    directory (which the hook sets to `$ROOT`, and `$ROOT` here is `tmp_path`
+    because the hook's cwd is `tmp_path`). Placing a script literally named
+    `run` in `tmp_path` therefore makes the shim spawn a REAL grandchild that
+    records its own pid and hangs, then hang itself -- exercising the exact
+    ProcessStartInfo path the hook uses. AT-494/AT-495 in
+    `scripts/flake_probe.py` established this real-grandchild shape;
+    `tests/test_flake_probe_real_process.py` is its direct precedent, and
+    `_alive` is imported from `test_mutation_check_judgement` rather than
+    redefined (C3)."""
+    real_python = shutil.which("python") or sys.executable
+    assert real_python, "need a real python.exe on this machine to build the uv shim"
+
+    shim_dir = tmp_path / "shim"
+    shim_dir.mkdir()
+    shutil.copy(real_python, shim_dir / "uv.exe")
+
+    pid_file = tmp_path / "grandchild.pid"
+    child_code = (
+        "import os, pathlib, time; "
+        f"pathlib.Path(r'{pid_file}').write_text(str(os.getpid())); time.sleep(600)"
+    )
+    run_script = (
+        "import subprocess, sys, time\n"
+        f"subprocess.Popen([sys.executable, '-c', {child_code!r}])\n"
+        "time.sleep(600)\n"
+    )
+    (tmp_path / "run").write_text(run_script, encoding="utf-8")
+
+    qa = tmp_path / "qa"
+    qa.mkdir()
+    (qa / "manifests").mkdir()
+
+    stripped_path = str(shim_dir) + os.pathsep + r"C:\Windows\System32;C:\Windows"
+    env = _base_env(
+        AUTOTESTER_ROOT=str(tmp_path),
+        AUTOTESTER_LOOPSTATUS_TIMEOUT_MS="2000",
+        Path=stripped_path,
+        PATH=stripped_path,
+    )
+
+    start = time.monotonic()
+    result = _run_hook(tmp_path, env)
+    elapsed = time.monotonic() - start
+
+    assert result.returncode == 0, result.stderr
+    assert "loop-status: skipped (timed out after 2s)" in result.stdout
+    assert elapsed < 30, "the injectable timeout must actually bound the call"
+
+    deadline = time.monotonic() + 10
+    pid_text = ""
+    while time.monotonic() < deadline:
+        if pid_file.exists():
+            pid_text = pid_file.read_text().strip()
+            if pid_text:
+                break
+        time.sleep(0.2)
+    assert pid_text, "the grandchild never started -- the uv shim did not run"
+    assert not _alive(int(pid_text)), (
+        "the hook's timeout killed uv but left its real grandchild running (AT-622)")

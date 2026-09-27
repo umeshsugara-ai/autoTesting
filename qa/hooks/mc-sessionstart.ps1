@@ -49,6 +49,14 @@ if (Test-Path 'qa/.paused') {
 # hook's cwd; AUTOTESTER_ROOT (if the caller set it, e.g. tests) still governs
 # which qa/.last-tick loop-status actually reads.
 $lsTimeoutMs = 15000
+if ($env:AUTOTESTER_LOOPSTATUS_TIMEOUT_MS) {
+  # Test-only override (AT-622): lets a behavioural test bound a real hung
+  # grandchild to a couple of seconds instead of waiting out the real 15s.
+  $lsParsedTimeout = 0
+  if ([int]::TryParse($env:AUTOTESTER_LOOPSTATUS_TIMEOUT_MS, [ref]$lsParsedTimeout) -and $lsParsedTimeout -gt 0) {
+    $lsTimeoutMs = $lsParsedTimeout
+  }
+}
 try {
   $lsPsi = New-Object System.Diagnostics.ProcessStartInfo
   $lsPsi.FileName = "uv"
@@ -64,12 +72,20 @@ try {
   $lsStderr = $lsProc.StandardError.ReadToEndAsync()
   $lsExited = $lsProc.WaitForExit($lsTimeoutMs)
   if (-not $lsExited) {
-    try { $lsProc.Kill() } catch {}
+    # AT-622: Windows PowerShell 5.1/.NET Framework's Process.Kill() has no
+    # entireProcessTree overload -- it kills only this `uv` process, and `uv
+    # run` always starts python as a child, which would otherwise survive.
+    # taskkill /T stops the whole tree; its own failures (already exited,
+    # etc.) are swallowed here -- this path must still reach the skip line
+    # below and must never fail the hook.
+    try { & taskkill /T /F /PID $lsProc.Id *> $null } catch {}
     Write-Output ("loop-status: skipped (timed out after " + ($lsTimeoutMs / 1000) + "s)")
   } else {
     $lsStdout.Result -split "`r?`n" | Where-Object { $_ -ne "" } | ForEach-Object { Write-Output ("  " + $_) }
     if ($lsProc.ExitCode -ne 0) {
       Write-Output ("LOOP UNHEALTHY (loop-status --strict exit " + $lsProc.ExitCode + ")")
+      $lsErrTail = $lsStderr.Result -split "`r?`n" | Where-Object { $_ -ne "" } | Select-Object -Last 1
+      if ($lsErrTail) { Write-Output ("  stderr: " + $lsErrTail) }
     }
   }
 } catch {
