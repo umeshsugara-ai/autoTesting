@@ -112,4 +112,4 @@ confirmed RED on exactly the named assertion, then stopped touching the copy.
 - Not re-run against the full test suite (`uv run pytest` with no filter) — targeted tests only,
   per instruction.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, qa/verdicts/at613-snapshot-live-features.md b528a994)
