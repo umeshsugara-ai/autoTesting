@@ -46,31 +46,37 @@ const SCROLLS = /^(auto|scroll)$/;
 // wrongly kept over a reachable glyph wrongly dropped, and the coarse test is
 // the side of that trade this module is built to take.)
 //
-// `innerClip` is narrowed by every ancestor up to and including the first
-// (innermost) genuinely scrollable one, and is tested against the GLYPH's
-// rect: nothing between the glyph and that scroller moves relative to the
-// glyph when the scroller is scrolled (AT-379's own P2 probe: "the middle box
-// is a real boundary"), so that test stays invariant to the scroller's own
-// scrolling. `outerClip` is narrowed by every ancestor ABOVE the innermost
-// scroller, and is tested against that scroller's OWN box (`scrollerBox`,
-// captured once — the innermost only, "carry the innermost scroller's box
-// forward"). An outer scroller further up the same chain still adds its own
-// offset to `scrollX`/`scrollY` and still narrows `outerClip` like any other
-// ancestor; it just never replaces `scrollerBox`. Neither running clip reads
-// the glyph's position relative to a scroller that contains it, so neither
-// flips with that scroller's own scroll position. The AT-408/AT-393 idea —
-// walk all the way up, narrowing — stays; it is just two narrowings now,
-// split at the first scroller, instead of one tested against the wrong thing.
+// The chain is walked in SEGMENTS, not just two (AT-4xx — found by the
+// 50-shape corpus once real Chromium finally ran on this fix: two nested
+// scrollers under one hard clip re-broke AT-416 one level removed). A
+// segment's clip is narrowed by every hard-clip ancestor between one scroller
+// crossing and the next, and is tested against that segment's REFERENCE box:
+// the glyph's own rect for the first segment (nothing before the first
+// scroller moves relative to the glyph), and each further scroller's OWN box
+// for the segment after it — never the glyph's, and never an INNER scroller's
+// box either. Two nested scrollers taught this: `L2`(auto) inside
+// `L1`(auto) inside `L0`(hidden) — testing `L2`'s box (the innermost) against
+// `L0`'s clip is exactly as scroll-variant as testing the glyph's own rect
+// was, because `L2`'s box moves on screen whenever `L1` — which contains it —
+// is scrolled. Only the box of the scroller NEAREST an outer clip is fixed
+// relative to that clip (nothing between them scrolls, by definition — if
+// something did, it would be that nearer scroller instead). So each scroller
+// crossing closes out the current segment and opens a fresh one anchored on
+// ITS OWN box, discarding any inner scroller's box as the reference — the
+// inner scroller's own reachability was already covered by its own segment.
 //
-// Returns `{innerClip, outerClip, scrollerBox, scrollX, scrollY}` —
-// `scrollX`/`scrollY` the accumulated scroll offset of the window AND every
-// scrollable ancestor (AT-392, AT-408: the walk never stops at the first one).
+// Returns `{segments, scrollX, scrollY}` — `segments` is an array of
+// `{clip, refBox}` (`refBox: null` means "test against the glyph's own
+// rect"), each independently required to pass in `isReachable`. `scrollX`/
+// `scrollY` is the accumulated scroll offset of the window AND every
+// scrollable ancestor (AT-392, AT-408: the walk never stops at the first
+// one).
 function reachOf(el) {
   let scrollX = window.scrollX;
   let scrollY = window.scrollY;
-  let innerClip = null;
-  let outerClip = null;
-  let scrollerBox = null;
+  let clip = null;
+  let refBox = null;
+  const segments = [];
   const narrow = (clip, box) => (clip === null ? box : {
     left: Math.max(clip.left, box.left),
     right: Math.min(clip.right, box.right),
@@ -80,9 +86,7 @@ function reachOf(el) {
   for (let node = el; node && node !== document.documentElement; node = node.parentElement) {
     const style = window.getComputedStyle(node);
     if (style.clipPath !== "none") {
-      const box = node.getBoundingClientRect();
-      if (scrollerBox) outerClip = narrow(outerClip, box);
-      else innerClip = narrow(innerClip, box);
+      clip = narrow(clip, node.getBoundingClientRect());
       continue;
     }
     if (style.overflow === "visible") continue;
@@ -91,25 +95,26 @@ function reachOf(el) {
     const scrollsX = SCROLLS.test(style.overflowX) && node.scrollWidth > node.clientWidth;
     if (scrollsX) scrollX += node.scrollLeft;
     if (scrollsY) scrollY += node.scrollTop;
-    const clipBox = {
+    if (scrollsX || scrollsY) {
+      // Close out the segment ending at this scroller (tested against the
+      // PREVIOUS segment's reference — the glyph, or an earlier scroller's
+      // box) and start a fresh one anchored on THIS scroller's own box: it is
+      // the new nearest-fixed reference for anything further out, replacing
+      // any inner scroller's box.
+      segments.push({ clip, refBox });
+      clip = null;
+      refBox = box;
+      continue; // a scroller's own box is a reference, never itself a clip
+    }
+    clip = narrow(clip, {
       left: scrollsX ? -Infinity : box.left,
       right: scrollsX ? Infinity : box.right,
       top: scrollsY ? -Infinity : box.top,
       bottom: scrollsY ? Infinity : box.bottom,
-    };
-    if (scrollerBox) {
-      // Already past the innermost scroller: this ancestor's own box narrows
-      // the OUTER clip, same shape as any other ancestor above the scroller.
-      outerClip = narrow(outerClip, clipBox);
-    } else {
-      innerClip = narrow(innerClip, clipBox);
-      // The FIRST genuinely scrollable ancestor found (innermost, since the
-      // walk starts at the glyph). A later one further up only contributes to
-      // outerClip/scrollX/scrollY above, per `if (scrollerBox)`.
-      if (scrollsX || scrollsY) scrollerBox = box;
-    }
+    });
   }
-  return { innerClip, outerClip, scrollerBox, scrollX, scrollY };
+  segments.push({ clip, refBox });
+  return { segments, scrollX, scrollY };
 }
 
 function isReachable(rect, reach) {
@@ -128,29 +133,30 @@ function isReachable(rect, reach) {
   // those ledger rows; the rule here:
   //
   //   a glyph is unreachable only if it sits before the document origin after
-  //   everything scrollable has been scrolled back, OR it sits outside a hard
-  //   clip that no scroll moves, OR the scroller carrying it sits outside a
-  //   hard clip further out that no scroll of THAT scroller moves either.
+  //   everything scrollable has been scrolled back, OR any segment of the
+  //   scroller chain carrying it sits outside a hard clip that no scroll of
+  //   THAT segment's own reference (the glyph, or the scroller that opened
+  //   the segment) moves it into.
   //
   // `reach.scrollX/scrollY` carry the first part — window plus every
   // scrollable ancestor — and are already scroll-position invariant (moving a
-  // scroller by `d` moves `rect` by `-d` and `scrollY` by `+d`). `innerClip`
-  // is the second part, tested against the glyph itself because nothing
-  // between it and the first scroller moves relative to it when that scroller
-  // is scrolled. `outerClip` is the third part, tested against
-  // `reach.scrollerBox` rather than `rect` because a scroller's own box does
-  // NOT move when its own content is scrolled — only the glyph inside it does
-  // — so testing the scroller's box is what keeps this invariant too (AT-416).
+  // scroller by `d` moves `rect` by `-d` and `scrollY` by `+d`). Each segment
+  // in `reach.segments` is the second part: its `clip` is tested against its
+  // `refBox` (or `rect`, the glyph itself, when `refBox` is null — the first
+  // segment, nothing before the first scroller moves relative to the glyph).
+  // A scroller's own box does NOT move when its own content is scrolled —
+  // only the glyph (or an inner scroller) inside it does — so testing each
+  // segment's own fixed reference is what keeps every segment invariant
+  // (AT-416, and the nested-scroller case one level removed that the 50-shape
+  // corpus caught in this same fix once real Chromium finally ran it: a
+  // segment's reference must be the NEAREST scroller to its own clip, never
+  // an inner one, since only the nearest one's box is fixed relative to it).
   if (rect.right + reach.scrollX <= 0) return false;
   if (rect.bottom + reach.scrollY <= 0) return false;
-  if (reach.innerClip) {
-    const c = reach.innerClip;
-    if (!(rect.right > c.left && rect.left < c.right &&
-          rect.bottom > c.top && rect.top < c.bottom)) return false;
-  }
-  if (reach.outerClip) {
-    const c = reach.outerClip;
-    const box = reach.scrollerBox;
+  for (const seg of reach.segments) {
+    if (!seg.clip) continue;
+    const box = seg.refBox || rect;
+    const c = seg.clip;
     if (!(box.right > c.left && box.left < c.right &&
           box.bottom > c.top && box.top < c.bottom)) return false;
   }
