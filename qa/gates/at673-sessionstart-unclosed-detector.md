@@ -174,3 +174,62 @@ authoritative line, let historical and per-cycle lines stay exactly as they are,
 `autotester doctor` check new manifests against it. That is worth doing and does not need this gate.
 What still needs this gate is `t182` and anything else whose match lives in prose — because the only
 fix for a detector that reads prose as state is the detector.
+
+
+## Addendum (maker, tick wave 33j) — two more enforcement-path findings, both verified first-hand
+
+The checker's sweep closed with two findings that belong in **this** conversation rather than their
+own, because both are enforcement paths and therefore need `Approved-by: Umesh`. The maker verified
+each against the files before putting it in front of him.
+
+### `AT-668` (high) — the guard does not guard the maker-checker hooks
+
+`.claude/hooks/decisions-append-guard.ps1:92-94` decides what counts as an enforcement file:
+
+```powershell
+$isEnforcement = ($relL.StartsWith(".claude\hooks\")) -or
+                 ($relL -eq "scriptsppend_decision.ps1") -or
+                 ($relL -eq ".claude\settings.json")
+```
+
+`qa\hooks\` is **not in that list** — and `.claude/settings.json` wires exactly those hooks, at
+`:37` (`qa/hooks/mc-sessionstart.ps1`) and `:58` (`qa/hooks/mc-precommit.ps1`). The project
+`CLAUDE.md` names `qa/hooks/*` as an enforcement path in policy. **So the policy covers those files
+and the mechanism does not:** an edit that widened, weakened or deleted the AUTO-CONTINUE detection
+passes with no ask, while the identical edit one directory over is correctly gated. Confirmed by
+reading both files; the checker's account is exact.
+
+This is the finding that hides the others. Every other item on this gate is about a detector
+reporting the wrong state; this one is about whether a change to a detector gets noticed at all.
+
+### `AT-669` (medium) — the same hook also fails toward SILENCE, and that pairs with the defect above
+
+`qa/hooks/mc-sessionstart.ps1:16-20`:
+
+```powershell
+$a = Select-String -Path $m.FullName -Pattern 'Fix cycle[:*\s]+(\d+)' | Select-Object -First 1
+$b = Select-String -Path $v -Pattern '(Cycle checked|Fix cycle judged)[:*\s]+(\d+)' | Select-Object -First 1
+if ($vc -lt $mc) { $pending += $m.BaseName; continue }
+```
+
+Neither pattern is anchored to a field, and each takes the **first** match in the document. A prose
+line mentioning a cycle number ahead of the real field therefore sets `$mc` too low (or `$vc` too
+high), `$vc -lt $mc` comes out false, and a manifest genuinely awaiting a check is **not reported**.
+AUTO-CONTINUE never fires for it.
+
+**Stated honestly: this is reachable by construction and is not firing today.** The block is gated at
+`:14` on the literal `Status: ready-for-check`, and only one manifest in 261 matches that literal —
+`t182`, via prose. So the hook currently has exactly one file flowing through this code, and that
+file is the *other* defect.
+
+**Why the pairing is the point, and why fixing one is worse than fixing neither.** The same hook
+over-reports in one direction (`AT-673`: prose read as state, `t182` counted forever) and
+under-reports in the other (`AT-669`: prose read as a cycle number, real pending state silenced).
+They share a single root — **no pattern in this hook is anchored to the field it claims to read** —
+and they fail in opposite directions. Anyone asked to "fix the hook" will naturally anchor the
+pattern that is visibly wrong, see the spurious `1` disappear, and ship with the silent direction
+intact. **Option B below (anchor the patterns) must anchor all of them, `:14`, `:16`, `:18` and `:21`,
+or it fixes the noise and keeps the silence.**
+
+That is the seventh instance today of one instrument, two states, one representation — and the first
+where the two halves of the pair point opposite ways in the same file.
