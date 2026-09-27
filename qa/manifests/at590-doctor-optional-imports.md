@@ -374,4 +374,4 @@ Not applicable -- same dev-tooling fix, no UI surface. Changed paths this cycle:
   expected fix; maker does not edit contracts, so no amendment is proposed here —
   flagged for the checker to close the loop C11's own text describes.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 2, qa/verdicts/at590-doctor-optional-imports.md e354a58)
