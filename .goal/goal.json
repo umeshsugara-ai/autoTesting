@@ -4,15 +4,15 @@
   "north_star": "A reusable AI testing platform where an operator submits any project URL, domain-scoped test-account credential references, and optional evals, conditions, use cases, video, audio, documents, text, email or Google Drive sources. AutoTester learns from supplied evidence or logs in and performs bounded breadth-first exploration, preserves a durable Portal Persona, compiles traceable best/worst/edge evals, reruns them after developer releases in a real visible browser, and reports workflow/API regressions through clear HTML, Excel, text and screenshots. First acceptance targets: Vidysea ERP and Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-09-27T16:07:03",
+  "updated": "2026-09-27T17:57:02",
   "progress": {
     "total": 81,
-    "done": 53,
+    "done": 55,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 28,
+    "pending": 26,
     "current": "T-122",
-    "percent": 65
+    "percent": 68
   },
   "tasks": [
     {
@@ -1420,7 +1420,7 @@
     {
       "id": "T-186",
       "title": "AT-453: closed <details> judged by ::details-content display as well as content-visibility (own unit, max 2 cycles)",
-      "status": "pending",
+      "status": "done",
       "deps": [],
       "base_criticality": "medium",
       "criticality": "medium",
@@ -1473,7 +1473,7 @@
     {
       "id": "T-189",
       "title": "at516-c: stale evidence spec stays byte-intact and gets a 'stale on purpose, test moved to <node>' tag a check can tell apart",
-      "status": "pending",
+      "status": "done",
       "deps": [],
       "base_criticality": "medium",
       "criticality": "medium",
@@ -1485,7 +1485,8 @@
       "note": "gate at516-evidence-spec-splitting-policy answer (c) (D-048).",
       "attempts": 0,
       "created": "2026-09-26T22:47:07",
-      "user_value": "normal"
+      "user_value": "normal",
+      "completed": "2026-09-27T17:52:11"
     },
     {
       "id": "T-190",
@@ -1524,7 +1525,7 @@
     {
       "id": "T-192",
       "title": "t135-B: one Analyze re-run on the erp project to heal the 3 corrupted url_pattern rows (approved single vision call)",
-      "status": "pending",
+      "status": "done",
       "deps": [],
       "base_criticality": "medium",
       "criticality": "medium",
@@ -1911,9 +1912,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 2.06,
-    "eta_days": 14.1
+    "velocity_per_day": 2.09,
+    "eta_days": 12.4
   },
-  "last_deterministic_tick": "2026-09-27T16:07:03",
+  "last_deterministic_tick": "2026-09-27T17:57:02",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }

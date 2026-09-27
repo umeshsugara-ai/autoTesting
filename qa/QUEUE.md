@@ -21,6 +21,13 @@ close-out, each with a matching-cycle verdict); not judged technically, per inst
 - GRILL: recurring vacuous-guard prevention policy (AT-218). Unanswered, carried.
 - GRILL: real two-mode acceptance thresholds for D-023/T-169 (AT-281). Carried.
 - GRILL (AT-402): structure-before-code review of `visual_order.js`. Carried.
+- HUMAN_GATE (ISS-at638-remainder-1, 2026-09-27): approve a DECISIONS entry naming
+  `qa/contracts/permission-surface.md`, `eval-compiler.md`, `release-regression.md` and
+  `damage-control-report.md` as checker-owned DRAFT deliverables (draft text in
+  `qa/verdicts/at638-remainder.md`) — none of the four is named by D-040/D-041/D-042, breaking this
+  repo's 5/5 practice of naming a contract file in a decision before it is written. 17 criteria
+  (PS1-PS4/EC1-EC4/RR1-RR5/DC1-DC4) are already filed and checker-reviewed in
+  `qa/feedback-inbox.md`, waiting only on this approval — no further analysis needed once it lands.
 
 ## Findings this sweep — FINDINGS: 1
 
@@ -828,3 +835,298 @@ low (corrected, single-loss + uncommitted-ledger instance); AT-642 medium; AT-64
 existing rows updated (AT-218 fixed, AT-253 noted, AT-567 rescoped, AT-614 fixed); 1 new contract
 invariant (core-invariants.md C12); 0 reopens; token-ledger line appended; AT-621/626/627
 untouched throughout.
+
+## Added 2026-09-27 by the maker orchestrator (not a sweep finding — an owned regression)
+
+| Unit | Issue | State | Note |
+|---|---|---|---|
+| `iss-at638-2-done-check-repair` | `ISS-at638-remainder-2` (high) | **QUEUED — blocked on the in-flight wave, not on a decision** | Two tests in `tests/test_goal_done_checks.py` are red on `master`. Reproduced by the orchestrator directly, not taken on the filing checker's word. |
+
+**Two distinct defects under one issue:**
+
+1. **The pin was never carried out for T-185..T-195.** `test_revised_goal_contract_is_registered`
+   asserts `progress["total"] == len(data["tasks"]) == 70`; `goal.json` now holds **81**.
+2. **Five PENDING tasks carry `done_check`s that cannot fail** — T-186, T-189, T-190, T-191, T-192.
+   Four are `uv run pytest tests/ -k <keyword>` matching pre-existing unrelated tests; T-192's is
+   literally `uv run autotester doctor`. None carries a `done_check.waiver`. This is the AT-100
+   shape the failing test's own docstring names.
+
+**Owned, because it is mine.** `git log -S` traces the 70→81 jump to **`f9e7d406`** (2026-09-27
+15:23), my own commit earlier this session, landing goal state that earlier sessions had left
+unclaimed in the working tree. **Every prior registration in this repo pinned its rows in the same
+commit** — `5374567c` ("pin T-170/T-171 deps + done_check"), `36c357fc`, `7913387d` all did. Mine
+did not. Worse, its message says *"Validated before landing: progress block matches the task list
+exactly, no duplicate task ids, analytics.json parses"* — three validations, none of them the test
+that exists to guard this exact file. The suite has been red on `master` since 15:23 today.
+
+**Why it stayed invisible:** every check since has seen the suite through a partial or truncated
+run. The `at638-remainder` checker was the first to let it finish, and only caught it after noticing
+its own near-miss (it had piped pytest through `| tail -40`, which reports the pipeline's exit code
+rather than pytest's — the masking `qa/adapter.json` warns about, and the second instance of that
+exact trap this session).
+
+**Why it is not being fixed right now, with the dependency named:**
+`SERIAL: iss-at638-2-done-check-repair waits on the checkers of T-186, T-189, T-191 and T-192.`
+Defect 2 rewrites the acceptance criterion of four units whose checks are running this minute.
+Changing a `done_check` under a live check is changing the rules mid-judgement, which is worse than
+a red suite that is already understood and recorded. Defect 1 alone is safe to fix but would leave
+the file half-green, and would collide with the unit that fixes the rest — so both wait together.
+
+**Do not fold this into any of the four in-flight units.** Their manifests must not claim a
+`done_check` as acceptance (the T-192 manifest states this explicitly and its dispatch told the
+checker so). The repair is its own unit with its own check.
+
+## ISS-at542-lost-correction — a ledger correction has been sitting in an orphan stash for 5 days
+
+**Found:** 2026-09-27 by the maker, while verifying the tree after the T-189 checker's stash/merge
+dance. **Not created by that checker** — the stash predates it by five days.
+**Severity:** high (the ledger is the honesty surface; this is a false claim left standing, not a
+missing nicety). **Owner:** unassigned. **Blocks:** nothing.
+
+`git stash list` carries one entry, `stash@{0}: On master: checker-temp-at540`, dated
+**2026-09-22 15:19:15 +0530**. It contains three files, and one of them is real lost work:
+
+```
+.goal/dashboard.html | 2 +-      <- stale, superseded
+.goal/goal.json      | 8 ++--    <- stale, superseded
+docs/FEATURES.jsonl  | 1 +       <- NEVER LANDED
+```
+
+The `FEATURES.jsonl` row is an **`event: updated` correction to F-039**, written for **AT-542**
+(checker sweep 2026-09-22). Its substance: F-039 shipped claiming "two-model ensemble … counting
+where two models independently agreed", when the honest state was **ensemble-capable code,
+ensemble-of-one practice** — the UI built `[providers.get(vision)]` and the CLI defaulted
+`--models` to gemini alone, and all 3 erp issue rows carry `models_agreeing=1`,
+`model_labels=[gemini]`.
+
+**Why this is worth a unit rather than a note:**
+
+1. **`AT-542` is marked `fixed` in `qa/issues.jsonl`** — closed on the strength of a correction
+   that never reached the file. The issue ledger and the feature ledger disagree, and the feature
+   ledger is the one a human reads.
+2. **F-039 on `master` still carries the overstated claim today**, unamended.
+3. **The id was silently reused.** The stashed row was `F-044`; `F-044` on master is now
+   `source-adapters` (T-162, 2026-09-23). So the correction cannot be applied as-is — it needs a
+   fresh id (next free is **F-061**).
+
+**What I deliberately did NOT do.** `docs/FEATURES.jsonl` is append-only and the project rule is
+that a ledger row is added via `autotester ledger add` with a **prefilled reason shown to Umesh to
+confirm or edit** (D-004). Hand-applying a five-day-old stashed line into an append-only file, on
+my own authority, is exactly the move that rule exists to prevent — and an append is not
+reversible. The stash is **left in place**, not dropped, so the original wording survives.
+
+**Residual risk while this sits:** another checker doing the same stash-merge-pop dance may stash
+on top of it, and a future `git stash clear` would destroy the only copy. The wording is quoted in
+full in this queue row as a second copy for exactly that reason.
+
+**Next action:** one small unit — re-add the correction as `F-061` via
+`autotester ledger add`, with the AT-542 wording as the prefilled reason, then drop the stash once
+the row is on master.
+
+---
+
+## Sweep 2026-09-27b (bookkeeping-only, five-priority dispatch)
+
+Bound to `D:/autoTesting`. Scope: `qa/issues.jsonl` re-triage + gate fact-check + manifest audit
+only -- no product-code fixes, no unit PASS, `.goal/goal.json`/`.goal/dashboard.html` left
+untouched (concurrent orchestrator ownership), `docs/DECISIONS.md` and all `wave/*` branches
+untouched.
+
+**P1 -- ISS-at638-remainder-2 diagnosis: HOLDS, framing is stale.** `f9e7d406` landing 81 goal
+tasks (parent had 70) without pinning the new test is confirmed the root cause --
+`tests/test_goal_done_checks.py` reproduces both named failures live
+(`test_no_pending_task_has_a_done_check_that_cannot_fail`,
+`test_revised_goal_contract_is_registered`), exactly the expected/pre-existing count. But the
+row's "five pending tasks, blocked on an in-flight wave" framing no longer matches
+`.goal/goal.json`: T-186/T-189/T-192 are already `done`, T-191 has no build currently in flight,
+and T-190 isn't even named on the row's own SERIAL dependency line. Not corrected in the row
+itself (`.goal/goal.json` cross-checks only, no edit made to the issue) -- flagging for whoever
+next reads it so the staleness doesn't get taken as current.
+
+**P2 -- re-triage of the open/fixed tail.** Promoted to **`verified`** with a genuine isolated
+green-before/red-after/restored falsification (scratch copy outside the bound tree, `.venv`'s
+forced `sys.path` `.pth` entry stripped and reasserted per row so the copy's own code ran, not
+the real repo's -- confirmed via `autotester.__file__`):
+- **AT-284** (`ui/helpers.py::_require_reachable_base_url` + `app.py` guard ordering) --
+  `uv run pytest tests/test_ui_credential_exemption.py::test_a_credential_pasted_into_base_url_is_not_echoed_back`
+- **AT-341** (`browser/session.py::check_destination`) --
+  `uv run pytest tests/test_browser_navigation_secrets.py::test_goto_still_refuses_a_resolved_destination_outside_project_domains`
+- **AT-350** (`stages/explore.py::_finish` scrub) --
+  `uv run pytest tests/test_explore_secret_scrubbing.py::test_a_seed_failures_exception_message_is_scrubbed_in_the_persisted_crawl`
+
+Flipped `open -> fixed` (existing independent PASS/regression evidence found, but not the
+personal-falsification bar `verified` needs):
+- **AT-408/AT-416** -- `qa/verdicts/at408-416-scroll-reach.md` cycle 1 PASS (13/14 + 5/5), own
+  re-run of `tests/test_browser_scroll_reach_at408_416.py` green.
+- **AT-368** -- live `uv run autotester loop-status --strict` behavior + `tests/test_loop_status.py`
+  all green.
+- **AT-420** -- gate-text correction commit `7d98b64d`; `regression_check: null` per the project's
+  own prose-fix precedent (AT-218/AT-636/AT-637).
+- **AT-447** -- this sweep itself is "the pair seeing it", which was the procedural complaint.
+
+**New finding -- AT-647** (medium, `done-check-cannot-pass`): found while re-checking AT-408/AT-416
+-- `.goal/goal.json` T-185's `done_check.cmd` names `tests/test_scroll_reach.py`, which does not
+exist (the real file is `tests/test_browser_scroll_reach_at408_416.py`); the command can never
+exit 0 as written, mirror-image of ISS-at638-remainder-2's always-passes shape. Not fixed here --
+`.goal/goal.json` is off-limits this run.
+
+**P3 -- four HUMAN_GATE files, zero false claims.** Independently re-derived every citation in
+`t125-stalled-at-cycle-cap.md`, `t125-ct6-tiered-dispatch-vs-ru3.md`,
+`at638-four-contract-files-authorization.md`, and `t192-narrowed-command-ratification.md`: commit
+hashes exist/don't-exist exactly as claimed, file:line quotes match verbatim
+(`explore_merge.py:50-51`, `schema/case.py:22`, `stages/expand.py:55-56`,
+`schema/catalog.py` on `wave/t125-catalog`), the at638 gate's five-row precedent table checks out
+against `docs/DECISIONS.md` D-017/D-018/D-039/D-040/D-041/D-042 exactly, the t192 gate's mtime
+claim and its `.work/t192/screenmap.before.json` sha256 prefix (`46e97134a8...`) both reproduce
+exactly. No option text touched -- the decision stays Umesh's.
+
+**P4 -- ISS-at542-lost-correction reading confirmed accurate.** `git diff stash@{0}^ stash@{0} --
+docs/FEATURES.jsonl` shows the stash adds one row, id **F-044**, `event: updated`, dated
+2026-09-22T08:18:13Z, correcting F-039's "two-model ensemble" claim to "ensemble-capable code,
+ensemble-of-one practice" (AT-542's own wording). Confirmed live: F-039 on master today is still
+the original, unamended overstated claim (line 39); F-044 on master today is a *different*,
+unrelated row -- `source-adapters` (T-162, 2026-09-23) -- so the id was reused by unrelated work
+before the correction could land under it; the next free id is **F-061**. Stash left untouched
+(neither applied nor dropped) per instruction -- `docs/FEATURES.jsonl` append-only discipline
+(D-004) means this needs a prefilled-reason `autotester ledger add` shown to Umesh, not a
+checker-authority stash-pop.
+
+**P5 -- manifest audit (256 files), read every hit, not just grepped.** `Status: ready-for-check`
+hits: only `at621-exit-call-aliases` and `t182-viewport-locale`, both confirmed genuinely
+`checked-PASS` further down the same file (the two named false positives held). `STALLED`
+mentions: 13 files, of which 9 are prose referencing a *different* manifest's stall or a
+hypothetical ("if this cycle fails...") with their own status resolved to `checked-PASS` --
+false positives, same shape as the ready-for-check ones. `EXHAUSTED`: 1 hit
+(`at011-loop-md`), prose naming the terminal-state vocabulary, own status `checked-PASS` -- false
+positive.
+
+Four **genuinely terminal STALLED** manifests, all with a matching `qa/debug/<slug>-cycle3.md`
+report as the project's own convention requires: `at015-at028-hook-adapter-fix` (STALLED then
+recovered -> `checked-PASS`, closed correctly), `at345-346-fold-coverage` (STALLED after 3 cycles,
+correctly handed to Umesh, not reopened), `at379-scrollable-pane-reachability` (STALLED after 3
+cycles, correctly handed off) -- no action needed on these three.
+
+The fourth, **`at438-display-contents`, is a dangling handshake**: its blocking
+`qa/gates/at438-u14b-baseline.md` was **answered by Umesh on 2026-09-26T22:34:22+05:30** ("a + b +
+c" -- rebaseline U14(b) against the pre-unit detector, close AT-438 under it, split AT-453 into its
+own capped unit, accept AT-454 as a documented limitation) -- but nothing has acted on the answer
+since: `git log --since="2026-09-26 22:30"` on the manifest/gate/ledger shows no commits, AT-438
+still reads `status: fixed` (not closed under the new baseline), no AT-453 split-off manifest
+exists, AT-454 isn't documented as an accepted limitation anywhere. Not actioned by this sweep --
+rebaselining U14(b) and closing AT-438 is unit work, not bookkeeping. Flagging so it isn't lost
+under `T-191`/`T-190` activity.
+
+**New finding -- AT-648** (medium, `dangling-handshake`): `qa/manifests/x10b-form-typing.md` is
+also terminally `STALLED` (cycle 3 of 3), but unlike the three genuine STALLEDs above it has **no**
+matching `qa/debug/x10b-form-typing-cycle3.md` report, and its blocking defect (AT-539) was
+**already fixed and independently reconfirmed** the same day by a checker sweep
+(`qa/issues.jsonl` AT-539's own `checker_note`: "sweep 2026-09-22 ... FULL SUITE uv run pytest ->
+1514 passed ... 0 failed ... Slot-1 instrument green again"), reproduced again live this sweep
+(`tests/test_approve_cli.py tests/test_explore_typing.py` -> all green). The manifest was never
+re-submitted for a cycle-4 check or closed on a verdict. AT-533/AT-536/AT-537/AT-539 (the four
+x10b-cycle issues) all still read `status: fixed`, not `verified`, despite their own
+`checker_note`s already describing a cycle-3 sabotage/restore falsification -- left as-is (`fixed`
+is defensible; promoting to `verified` on someone else's already-embedded note rather than a
+falsification run by me this sweep would be exactly the unverified-status-change P2 forbids).
+
+**Left deliberately alone:** `.goal/goal.json`, `.goal/dashboard.html` (concurrent orchestrator
+writes), `docs/DECISIONS.md` (append-only, not this sweep's write path), all `wave/*` branches, the
+four gate files' options (Umesh's decision), the `checker-temp-at540` stash, and no `git push`
+(sweep bookkeeping, D-007 doesn't apply here).
+
+FINDINGS: 2 new (AT-647, AT-648) - 8 re-triaged (3 -> verified, 5 -> fixed) - 0 false gate claims -
+1 confirmed-accurate stash reading, unapplied - 1 dangling human-gate answer surfaced (at438) -
+1 dangling stalled-but-fixed manifest surfaced (x10b-form-typing)
+
+## AT-648 — x10b-form-typing needs a verdict, not a fix cycle
+
+**Source:** checker sweep 2026-09-27b (`bd69565d`). **Severity:** medium. **Blocks:** nothing.
+**Diagnosis report (now written):** `qa/debug/x10b-form-typing-cycle3.md`.
+
+`qa/manifests/x10b-form-typing.md` is `STALLED` at cycle 3 of 3, scoring **16/17**. Its single red
+was **AT-539** (three stale imports of the removed `explore.require_consent` in
+`tests/test_approve_cli.py` — the fourth sibling seam file). The follow-on retarget landed, and
+AT-539 has since been confirmed green **twice by parties other than the maker**: a checker sweep
+the same day (full suite, 0 failed) and again live in sweep 2026-09-27b.
+
+**The stalling condition no longer exists.** What is missing is a verdict, not work.
+
+**Next action — a checker re-pass, explicitly NOT a cycle 4.** A fix cycle is for a maker defect
+and none remains. The re-pass judges one question: *is criterion 17 now met?* If yes, the unit
+closes `checked-PASS (cycle 3)`. Until a checker says so the manifest stays `STALLED` — the
+orchestrator does not promote it on its own reading, which is the same rule that correctly stopped
+the maker self-certifying AT-539 in the first place.
+
+**Held only by the RAM ceiling** (2.42 GB free at the time of writing → ceiling 0, two builds
+live). Dispatch when a slot frees.
+
+## at438-display-contents — an answered gate nobody acted on
+
+**Source:** checker sweep 2026-09-27b. **Severity:** medium. **Blocks:** nothing directly.
+
+`qa/gates/at438-u14b-baseline.md` was **answered by Umesh on 2026-09-26T22:34:22+05:30** ("a+b+c")
+and nothing has moved on it since: no commit touches it, **AT-438 is still `fixed` rather than
+closed under the new baseline**, and **AT-454 is undocumented**.
+
+Worth stating plainly: this is the answered-gate failure mode, which is worse than an unanswered
+one. Umesh spent the decision and the system did not collect it. Part of the answer *was* consumed
+— D-048's 2-cycle cap was applied to T-186, which passed under it at cycle 1 — and the AT-453
+split-off did happen as T-186. So the gate was partly acted on and then dropped, which is exactly
+how the remainder became invisible.
+
+**Next action:** one small bookkeeping unit — close AT-438 under the new baseline and document
+AT-454. Not actioned by the sweep, correctly: it is unit work, not bookkeeping.
+
+## AT-647 — T-185's done_check names a test file that does not exist
+
+**Source:** checker sweep 2026-09-27b. **Severity:** medium. **Blocks:** nothing.
+
+The mirror image of `ISS-at638-remainder-2`. Where those five `done_check`s can never **fail**
+(Goodhartable), T-185's names a **nonexistent test file**, so it can never **pass**. Both are the
+same underlying defect — a registered check that does not measure the thing it claims to — and
+both should be repaired by the same unit. The sweep could not fix it: `.goal/` was off-limits to
+it this run, deliberately, because the orchestrator holds uncommitted changes there.
+
+**Fold into `iss-at638-2-done-check-repair`** rather than queueing separately — same file, same
+defect class, and two units editing `.goal/goal.json` concurrently is the collision this queue
+keeps warning about.
+
+## Correction to ISS-at638-remainder-2's own framing
+
+The sweep confirmed the **root cause holds** — `f9e7d406` landed 81 goal tasks against a parent of
+70 without pinning the new test, and `uv run pytest tests/test_goal_done_checks.py` reproduces both
+failures live. But its **"five pending tasks, blocked on an in-flight wave" framing is now stale**:
+T-186, T-189 and T-192 are `done`; T-191 is mid-cycle-2; T-190 is not even named on the row's own
+dependency line. The sweep flagged rather than edited it, which was right. Recorded here so the row
+is not read as a current description of the backlog.
+
+## ISS-ledger-duplicate-ids — qa/issues.jsonl carries 10 duplicated ids
+
+**Found:** 2026-09-27 by the maker orchestrator while resolving an append-only merge conflict on
+`qa/issues.jsonl`. **Pre-existing on `master`, not caused by that merge** — verified by counting ids
+on the merge parents before committing the resolution.
+**Severity:** medium. **Blocks:** nothing. **Owner:** unassigned.
+
+`master`'s `qa/issues.jsonl` has **657 rows but only 647 unique ids**. Ten ids appear twice:
+
+```
+AT-288  AT-289  AT-290  AT-291  AT-547
+AT-548  AT-549  AT-550  AT-551  AT-552
+```
+
+`CLAUDE.md` names this file **canonical** for open issues, and a canonical store with duplicate
+primary keys means any consumer that indexes by id silently sees one row and not the other. Which
+one wins depends on iteration order, so two readers can legitimately disagree about an issue's
+status. Note that four of the duplicates — **AT-548/549/550** plus AT-547 — are the
+*vacuous-guard/unisolated-capability* rows this project cites constantly as precedent; a reader
+resolving them by id could pick up the stale copy of exactly the rows most often used as authority.
+
+**Not fixed here, deliberately.** Deduplicating means choosing which copy is authoritative, and the
+two copies may differ in `status` or `regression_check` — that is a judgement about issue history,
+not a mechanical cleanup, and it is checker territory rather than the maker's. Doing it during a
+live wave with three agents writing the file would also be the worst possible moment.
+
+**Next action:** a small `/checker` unit that, for each of the ten, diffs the two rows, states which
+is authoritative and why, collapses them, and adds a `doctor` check asserting id-uniqueness so the
+class cannot recur. **Hold until the current wave drains** — `qa/issues.jsonl` has had three
+concurrent writers this session and already produced one merge conflict.

@@ -68,3 +68,274 @@
   GATED on Umesh, not routed around: CT6-vs-RU3 (qa/gates/t125-ct6-tiered-dispatch-vs-ru3.md) --
   t125 cannot reach 8/8 on any cycle without it, and cycle 3 is the last. Also AT-644, AT-646,
   T-154/T-155 approval, ERP credentials (T-122/T-145), ERP_Issues_Trainers.xlsx (T-136).
+2026-09-27T11:55:00+00:00 ADVANCED wave=12 · T-150 CLOSED (4th unit today)
+  t150-track-c-governance checked-PASS cycle 1 (verdict a3d04cd2, merge 61f33c3c, close-out
+  72513124); PUSHED a0c4af6d..72513124 under D-007. T-150 -> done (53/81, 65%), F-060 live.
+  The checker authored qa/contracts/ai-target.md (AI1-AI8) + adversarial.md (AD1-AD7) -- the only
+  way this unit could close, since its done_check names two checker-owned files.
+  Three checker corrections against me: AI2 fused an authorized claim with my own extension (split);
+  AI3 duplicated catalog.md CT7 as a second ground truth (refiled as cross-reference); AI3's draft
+  asserted a Verify result I had never run (real answer: zero, not one).
+  Best thing the check added: a Landing note per forward-declared criterion, because a grep against
+  a not-yet-existing file exits 2 rather than reporting no match -- AT-218's vacuous-guard trap one
+  level up, inside the fix for AT-638.
+  t125 cycle-3 F identified and exculpated: AT-627, reproduced on master where the diff does not
+  exist; NOT chargeable. Recorded a trap of my own: I chained the 3 verify commands, so the reported
+  exit 0 was doctor's while pytest had failed inside the group -- run pytest as its own command.
+  Process gap of mine: ran `ledger relitigation` AFTER the PASS, not before picking the unit
+  (returned "no gate", so no harm -- but wrong order).
+  NEXT: at638-remainder (T-166/167/168/171 criteria) -- now unblocked, must match the AI/AD prefix
+  and Landing-note conventions the t150 checker set. Needs no test runs.
+  SERIAL: t186/t189/t190/t191/t192/t165/t174/t178/t179 wait on the t125 cycle-3 checker (live).
+  GATED on Umesh: CT6-vs-RU3 (t125 cannot reach 8/8 on any cycle; cycle 3 is the last), AD6/AD7
+  accepted by the checker as narrowing-only and reversible by him, ISS-t150-1, AT-644, AT-646,
+  T-154/T-155 approval, ERP credentials (T-122/T-145), ERP_Issues_Trainers.xlsx (T-136).
+2026-09-27T12:20:00+00:00 ADVANCED (a stall recorded is progress) wave=13
+  t125-catalog cycle 3 FAILED 5/8 -- STALLED AT CAP, verdict a27f9794, NOT merged, NOT reverted.
+  ISS-t125-3 genuinely fixed (checker flipped it to verified after its own live walk). But the fix
+  over-corrects: ISS-t125-5 (high, open) -- the gate now needs every declared secret, so a row whose
+  own credential IS set gets blocked by an unrelated flow's unset one. Reproduced twice, incl. live.
+  Cycles 2 and 3 are both my defects. Three cycles, three answers, each breaking something new.
+  CAUSE: qa/contracts/catalog.md never defines WHICH secret belongs to which row -- CT5/CT8 can prove
+  an answer wrong without defining a right one, so every cycle guessed at unwritten ground truth.
+  NO CYCLE 4 STARTED -- cap respected, not quietly exceeded. A fourth guess is not better than the third.
+  GATE OPENED: qa/gates/t125-stalled-at-cycle-cap.md (on master, f163328a) -- 4 costed options:
+  specify-then-build / revert cycles 2-3 to cfc13b0b per the standing regression rule / drop the
+  credential gate / amend CT2's one-row-per-CaseClass shape. Maker is NOT choosing.
+  BLAST RADIUS NONE: stages/catalog.py does not exist on master; both regressions are branch-only.
+  MY OWN PROCESS DEFECT, FIXED: the CT6 gate had lived only in the wave worktree for two ticks -- a
+  decision I kept reporting as "gated on Umesh" was invisible on master, and a revert would have
+  deleted it with the code. A gate the human cannot see is not a gate. Now on master.
+  Independent root-cause review dispatched (senior-software-engineer, read-only) to confirm or refute
+  that the contract is silent, and to say whether ONE coherent relevance rule satisfies all 4 fixtures.
+  Also live: at638-remainder build (T-166/167/168/171 criteria).
+  HELD FROM PUSH: 2 commits (gates + tick) -- D-007 covers checker-PASS commits only, and this is a FAIL.
+  SERIAL: t186/t189/t190/t191/t192/t165/t174/t178/t179 wait on the at638-remainder build + RAM.
+  GATED on Umesh: t125 stall (NEW), CT6-vs-RU3, AD6/AD7 reversibility, ISS-t150-1, AT-644, AT-646,
+  T-154/T-155 approval, ERP credentials (T-122/T-145), ERP_Issues_Trainers.xlsx (T-136).
+
+## tick 2026-09-27T11:20:00+00:00 — ADVANCED · wave=5 · concurrent peak=5
+State: ADVANCED. Both live agents collected and acted on; 4 new build units + 1 check dispatched.
+
+ROOT-CAUSE REVIEW BACK (t125): SPECIFICATION failure, confirmed, and it corrected me.
+- Contract silence confirmed independently: both fresh checkers had hit the same wall on
+  different cycles and each recorded it as outside its own blast radius rather than filing it
+  (qa/verdicts/t125-catalog.md:132-146 and :340-343). Traces to docs/plan.md:521-523, the only
+  worked example D-039 authorizes, which says "an unset secret ... naming the key" — singular,
+  spec-wide. Predates any maker touching the file.
+- CORRECTION TO THE GATE: option B (revert to cfc13b0b) is NOT the low-risk fallback I wrote.
+  cfc13b0b:catalog.py:128 threads a global unscoped union into the GATE exactly as cycle 3 does,
+  so cycle 1 carries the IDENTICAL ISS-t125-5 defect — and cfc13b0b was never a passing commit.
+  No "last good state" exists in this function's history. Gate row rewritten; the correction is
+  flagged as mine, not buried.
+- Fifth fixture found: a Google button clicked for an unrelated purpose defeats any keyword flow
+  classifier, so a cycle 4 built on one fails in the shape cycles 2 and 3 already did.
+- Diagnosis report: qa/debug/t125-catalog-cycle3.md (the skill's required beat — a STALLED stamp
+  with no qa/debug/ report is itself a sweep finding). Commit 81054533.
+- T-125 remains GATED. No cycle 4. Branch still neither merged nor reverted.
+
+AT-638 REMAINDER collected and reviewed before dispatch: Executor line accurate this time (it
+cited the sibling's mis-description and did not repeat it). Merged master in cleanly, dispatched
+/checker. Its key finding is passed to the checker as ITS ruling, not mine: all 5 existing
+checker-authored contracts have a DECISIONS `Changes-authorized` line naming the file; none of its
+4 proposed files does. It refused to manufacture a D-entry. If the checker rules an authorizing
+entry is needed first, that is a new HUMAN_GATE.
+
+SALVAGE — real work rescued from deletion: .worktrees/at335-modal-determinism held an UNCOMMITTED
+33-line fix to stages/explore_return.py plus a 163-line untracked test, on a branch already fully
+merged into master. One `git worktree remove` would have destroyed it. Copied to scratchpad, then
+dispatched as a proper unit off current master with instructions to verify rather than trust it —
+its "measured live" comment has no evidence file behind it.
+
+DISPATCHED THIS TICK (5 agents, all independent — no shared file, port, DB or browser):
+- /checker at638-remainder (wave/at638-remainder, cycle 1)
+- at335-determinism-salvage (bounded-poll fix + flake_probe evidence, or a written kill)
+- t186-details-content (AT-453, D-049 direction, CAP 2 CYCLES not 3)
+- t189-stale-evidence-tag (D-048 answer (c); byte-intact + a distinguishable tag)
+- t191-run-video (AT-587, D-048 answer A retention 20; the video-masking guarantee is the risk)
+SERIAL: T-192 waits on a single-shot authorization — gate t135-url-pattern-data-migration answer
+B approves EXACTLY ONE Analyze vision call on projects/erp. A parallel subagent that fumbles and
+retries blows an authorization that cannot be re-granted without Umesh. Runs alone, deliberately.
+
+WORKTREE HYGIENE: all 5 "stale" branches turned out to be fully merged into master, including the
+two I had reported as possibly-abandoned — so no abandoned work existed except the at335 salvage.
+Pruned 6 clean ones (at408-416-scroll-reach, at518-grandchild-pid-flake, at626-dotted-import,
+at639-chunk-timeout, t125-catalog-mutate, t150's agent worktree). Kept at335-modal-determinism
+until its salvage unit confirms nothing else is needed from it.
+Noted: 3 of the new agent worktrees branched from 72513124 rather than 81054533 — the delta is
+gates/debug docs only, harmless to those units, recorded rather than assumed harmless.
+
+HELD FROM PUSH: 4 commits (f163328a, ac66b4f5, 6cb01cb6, 81054533). D-007 authorizes push on
+checker-PASS commits only; these are a FAIL, two gates, a diagnosis and a tick stamp.
+
+## tick 2026-09-27T11:45:00+00:00 -- HUMAN_GATE (2 open) + 4 builds live
+State: ADVANCED on evidence (a check completed and was closed out); the UNIT is HUMAN_GATE.
+
+at638-remainder: cycle-1 FAIL -- governance, not quality. The checker judged ALL 17 criteria
+sound and buildable as worded, reproduced every pasted grep exactly, confirmed the diff scope,
+and verified schema/portal_persona.py can carry EC1 knowledge graph. It failed the unit only on
+the unit own finding: no DECISIONS entry authorizes the 4 contract files. Independently
+re-derived from the decision text, not trusted from the manifest paste. 5/5 prior
+checker-authored contracts were named in an Approved-by: Umesh entry first; T-168 is named by no
+decision at all.
+- NO CYCLE 2. A fix cycle is for a maker defect and there is none. Not started rather than
+  burned for appearances.
+- Gate + verdict both on MASTER (1fa582d5) so Umesh can see them without merging a FAILed
+  branch -- the CT6 lesson from this session applied without being re-learned.
+- Manifest closed out on the branch (99c6fd12) as cycle-1 FAIL / HUMAN_GATE.
+- AT-638 stays open; only the Track C half is genuinely closed.
+
+CORRECTION AGAINST MYSELF: my dispatch told the checker PS2 was a freely-arguable [maker]
+addition. It is not -- the unit had correctly tagged it [D-040 verbatim]. The filing was right
+and my summary of it was wrong. Recorded in the gate and the manifest close-out, not just here.
+
+DISCLOSED GAP IN THE CHECK ITSELF: the checker did not complete uv run pytest (the suite outran
+its window) and accepted ruff + doctor + diff-stat because the diff touches zero src/ or tests/
+files. Sound for a contracts-only unit, disclosed rather than claimed green, recorded as a gap.
+Second consecutive contracts-only check to hit this -- if it recurs, the adapter should say
+explicitly that a zero-src diff needs no full suite, instead of each checker re-deriving it.
+
+OPEN HUMAN GATES (3): t125 stall options A-D; CT6 vs RU3; at638 four-contract authorization.
+LIVE (4 builds, all independent): at335-determinism-salvage, t186-details-content (cap 2),
+t189-stale-evidence-tag, t191-run-video.
+SERIAL: T-192 still waits on its single-shot vision-call authorization.
+HELD FROM PUSH: 6 commits. D-007 covers checker-PASS only; this is a FAIL plus gates.
+
+## tick 2026-09-27T12:15:00+00:00 -- ADVANCED (T-192 built + dispatched)
+T-192 healed and ready-for-check; checker dispatched same turn (no dangling).
+
+THE APPROVED VISION CALL WAS NOT SPENT. Gate t135 answer B approved one Analyze run "costing a
+vision run". Read-only tracing BEFORE spending showed B purpose is reachable at zero model cost:
+- all 3 corrupted rows come from ONE source (src_c6bb964cfff8) -- checked first, because 3
+  sources exist and 3 runs would have exceeded a single-shot approval;
+- the corruption is in the RAW model output: the cached observation literally contains
+  "vidysea.com/erp/trainers", so re-requesting returns the same string. The model was never the
+  broken part;
+- the fix is downstream -- core/urls.py::screen_url_pattern is by its own docstring THE one
+  boundary where an observed url becomes a stored url_pattern, called from product_map.py:40 in
+  build_screen_map, reachable as `autotester ingest map`. No model call.
+Ran `uv run autotester ingest map erp`. Exactly 3 url_pattern fields changed across 3 screens,
+nothing else; 8 screens / 3 journeys unchanged. Pre-image + sha256 kept.
+The approval remains UNSPENT and available. Flagged to Umesh as a loose end, not as consumed.
+The gate own cost estimate for option B was wrong (observations are cached, --force is opt-in) --
+recorded as a correction to its reasoning, not to its choice. The checker is asked to rule
+whether this is a legitimate NARROWING of the approval or a SUBSTITUTION of mechanism, because
+that is the maker deciding something a human already chose, and it is not my call to bless.
+
+DID NOT CITE T-192 OWN done_check AS ACCEPTANCE. It is `uv run autotester doctor`, which passes
+on a clean repo regardless -- the exact AT-100 shape. Acceptance offered instead is the
+before/after structural field-level diff.
+
+CHECKER FOLLOW-UP (at638-remainder, after its verdict): it let the full suite finish and caught
+its own near-miss first -- it had piped pytest through `| tail -40`, which reports the pipeline
+exit code, not pytest. Re-ran the failures directly. Found TWO UNDISCLOSED pre-existing failures
+beyond AT-627, filed as ISS-at638-remainder-2 (high, goodhartable-done-check): five PENDING tasks
+(T-186, T-189, T-190, T-191, T-192) carry done_checks that cannot fail, and the goal-pinning test
+still hardcodes 70 tasks while goal.json has 81 -- the D-041/D-045 "pin the new rows" duty was
+never carried out for T-182..192.
+THIS HITS FOUR UNITS I HAVE IN FLIGHT RIGHT NOW (T-186, T-189, T-191, T-192). Their done_checks
+are not acceptance and their checkers must not treat them as such. Carried into the T-192
+dispatch explicitly. The done_check repair itself is its own unit, not smuggled into any of them.
+My own earlier dispatches named only AT-627 as the known failure -- that was incomplete, because
+I had only ever seen the suite through a run that stopped at the first summary line.
+
+LIVE: t192 checker + 4 builds (at335-salvage, t186 [cap 2], t189, t191). t186 stopped once
+waiting on its own background work and has not reported yet.
+OPEN HUMAN GATES (3): t125 stall A-D; CT6 vs RU3; at638 four-contract authorization.
+NEW LEDGER DEBT: ISS-at638-remainder-2 (high) -- needs its own unit once the wave drains.
+
+## tick 2026-09-27T12:40:00+00:00 -- ADVANCED (at335 salvage ready + dispatched)
+at335-modal-determinism ready-for-check (eae44a3a); master merged in; checker dispatched same
+turn (no dangling). The salvage was ADOPTED WITH REWORK, which is the outcome I hoped for when I
+told the subagent to verify rather than adopt:
+- it found the salvaged test was VACUOUS -- mutating _matches to unconditionally return True
+  left it passing, proving only that a success path exists, not that the fingerprint is polled.
+  Exactly the AT-548/549/550 shape. Closed with a new lag-exceeds-bound test.
+- it caught the false claim I had flagged: the salvaged docstring said "measured live" of the
+  1500ms/0.15s constants. The 1-in-14 rate is real and evidenced; the constants were never
+  measured. Reworded in place to say so.
+- it traced the real cost rather than hand-waving X4: ~16.5s added from the tolerance alone,
+  ~44s combined worst case per pathological return_to, a ~60% growth in the per-action overshoot
+  ceiling. Disclosed as a cost and referred to the checker for a ruling.
+- live flake_probe N=20 gave 0/20 but it stated honestly this bounds the rate only at 13.9%@95%
+  and does NOT exclude the suspected 7.1%; declined to extend to N=41 because the harness own
+  prior N=41 against UNFIXED code was also clean. Corroboration, not proof. Correct call.
+
+CORRECTED A SUBAGENT ATTRIBUTION: it blamed the two extra suite failures on AT-642. Wrong --
+AT-642 is target.md:212 stale progress line, a different defect. The right row is
+ISS-at638-remainder-2, and I traced the cause to my own commit f9e7d406. Its out-of-scope
+CONCLUSION was right (its diff touches no .goal/ file); its attribution was not. Carried into the
+checker dispatch with an instruction to re-derive rather than trust either of us.
+
+LIVE (4): at335 checker, t192 checker, t186 build (cap 2), t189 build, t191 build.
+T-186 has now stopped twice waiting on its own background work without reporting.
+OPEN HUMAN GATES (3): t125 stall A-D; CT6 vs RU3; at638 four-contract authorization.
+QUEUED, DEPENDENCY NAMED: iss-at638-2-done-check-repair waits on the 4 in-flight checks.
+
+## tick 2026-09-27T12:55:00+00:00 -- CEILING (measured), nothing new dispatched
+Checked whether anything else is dispatchable rather than idling on the wave. Result: the
+binding constraint this tick is RAM, measured not assumed.
+
+DEPENDENCY SCAN: T-165 (the crawl spine, critical, dual-check) is FULLY UNBLOCKED -- deps T-163
+and T-144 both done. T-174 and T-178 are blocked on T-125, which is gated and stalled. T-190 is
+dependency-free but is a new user-facing surface, so it needs the maker PLAN gate
+(intent -> /grill user-type mode -> spec -> plan -> qa/gates/plan-approved.md) before any code,
+and the grill needs Umesh.
+
+MEASURED CEILING: 0.9 GB free of 23.7 GB, 64 node/python/chrome processes live. The wave rule
+trims on free RAM above a 2 GB floor; there is none. So:
+SERIAL: T-165 waits on the measured RAM ceiling (0.9 GB free), not on a dependency edge.
+Dispatching the spine now would degrade the five agents already running -- and T-186 stopping
+twice on its own background work without reporting may already be a symptom of contention rather
+than of anything it found. Recorded as a measurement so the next tick re-measures instead of
+inheriting this guess.
+
+Secondary reason, weaker but real: T-165 works in stages/crawl*.py and explore.py while the
+at335 check holds stages/explore_return.py. Different files, same package -- not a hard
+collision, but not free either.
+
+LIVE (5): at335 checker, t192 checker, t186 build (cap 2), t189 build, t191 build.
+No new dispatch. No wave started that the machine cannot carry.
+
+## tick 2026-09-27T13:10:00+00:00 -- ADVANCED (t189 ready + dispatched)
+t189-stale-evidence-tag ready-for-check (d2e8ebe1), master merged, checker dispatched same turn.
+RAM re-measured before dispatching rather than inheriting last tick number: 2.4 GB free (was
+0.9). The t189 build finishing freed its slot, so the dispatch is within the ceiling. T-165 still
+held -- one freed slot is not the spine budget.
+
+The unit solved the real tension (byte-intact AND tagged) with a SIDECAR,
+qa/evidence/<slug>/mutations.stale.json, plus a new schema and a doctor-wired check. What makes
+it worth checking hard rather than rubber-stamping:
+- it does NOT trust a tombstone presence -- it re-resolves moved_to, giving three distinct
+  outcomes including "the tag itself lies". That is the AT-218 class answered directly.
+- it found and fixed its own false positive first: bare kills names must resolve against the
+  spec declared tests scope, not the whole repo. The checker is told to re-derive that against
+  scripts/mutation_check.py rather than trust it -- if that semantics is wrong, every bare-name
+  resolution in the new check is wrong.
+- RETROACTIVE SCOPE IS THE REAL RISK: running the check cold surfaced 27 already-stale kills
+  entries across 7 specs, each hand-tombstoned. A wrong moved_to that happens to resolve
+  silences a real staleness signal permanently -- strictly worse than the neglect it replaces.
+  The checker is asked to spot-check a sample independently.
+- it documented a Windows trap I would otherwise have hit: core.autocrlf=true means a naive
+  sha256sum vs `git show HEAD:<path>` ALWAYS mismatches even on an untouched file. Byte-intact
+  was proved with git hash-object instead.
+- one tombstone records moved_by_unit "unknown" with a note rather than a fabricated attribution.
+
+AGAIN DID NOT ACCEPT A done_check AS ACCEPTANCE: T-189 is `pytest -k evidence`, named by
+ISS-at638-remainder-2. Acceptance rests on the capability table + the C7 mutation proof (3/3
+killed), and the checker is told to re-run that proof itself.
+
+LEFT TO THE CHECKER BY DESIGN: D-048 authorizes folding the tagging rule into core-invariants.md
+C7 prose. The subagent correctly did not write it -- contracts are checker-owned. A PASS that
+leaves C7 silent gives the next unit no ground truth, so the dispatch makes that explicit.
+
+LIVE (5): at335 checker, t192 checker, t189 checker, t186 build (cap 2), t191 build.
+OPEN HUMAN GATES (3) unchanged. QUEUED: iss-at638-2-done-check-repair, dependency named.
+2026-09-27T12:35:00+00:00 ADVANCED wave=6 concurrent peak=4 -- T-186 checker dispatched; T-192 closed out checked-PASS (verdict cfa8cdb9), goal task done, ratification gate t192-narrowed-command-ratification opened on the checker's ISS-t192-url-pattern-heal-1. RAM re-measured 2.44 GB free -> ceiling floor((2.44-2)/0.6)=0, so no unit added beyond the no-dangling dispatch. SERIAL: T-174 waits on T-125 (HUMAN_GATE, stalled at cycle cap). SERIAL: T-178 waits on T-125 (same gate). SERIAL: iss-at638-2-done-check-repair waits on the checkers of T-186, T-189, T-191. SERIAL: T-171/T-166/T-167/T-168 wait on gate at638-four-contract-files-authorization (no contract to be judged against). SERIAL: T-190 waits on its PLAN gate (grill needs the user). Live: T-165 build (opus, worktree), T-191 build, T-186 checker, T-189 checker.
+2026-09-27T12:55:00+00:00 ADVANCED wave=7 concurrent peak=4 -- THREE PASSes closed out in one tick: T-189 (verdict 7eb8a712, merged 52c7ff2c), T-186 (merged 336433d1, under its 2-cycle cap, byte-check corrected the manifest's own reformat claim), at335-modal-determinism (verdict 3c29bc60, pushed f395852d). Local master reconciled with origin by fetch/merge after the at335 checker pushed from a detached temp worktree. Sweep dispatched (3+ hours stale). Found and owned ISS-at542-lost-correction: stash@{0} from 2026-09-22 holds an AT-542 correction to F-039 that never landed while AT-542 reads fixed -- not applied, FEATURES.jsonl is append-only and D-004 gates it on Umesh. RAM 3.0 GB -> ceiling 1, spent on the sweep. SERIAL: iss-at638-2-done-check-repair waits on the T-191 checker (3 of its 4 dependencies are now closed). SERIAL: T-174/T-178 wait on gate t125-stalled-at-cycle-cap. SERIAL: T-171/T-166/T-167/T-168 wait on gate at638-four-contract-files-authorization. SERIAL: T-190 waits on its PLAN gate. Live: T-165 build (opus), T-191 build, sweep.
+2026-09-27T13:05:00+00:00 ADVANCED wave=8 concurrent peak=3 -- T-191 build handed back (eac530a2), master merged into its worktree, checker dispatched under the no-dangling rule. Its dispatch carries the maker's own four ranked attack points: (1) the disclosed dead run-relative video link in download_report_html -- checker must rule PASS-with-issue vs FAIL, since V8 can be met while the feature is useless to a human; (2) _sweep_orphan_videos deletes on an absence, so a wrong answer deletes evidence; (3) the V1-V8 falsification table re-run; (4) the three-leg masking proof, plus whether screenshot()'s own masking shares the navigation-fragility the maker found (a live secret-exposure risk if so). RAM 3.56 GB. SERIAL: iss-at638-2-done-check-repair waits on this T-191 checker -- its last open dependency. SERIAL: T-174/T-178 wait on gate t125-stalled-at-cycle-cap. SERIAL: T-171/T-166/T-167/T-168 wait on gate at638-four-contract-files-authorization. SERIAL: T-190 waits on its PLAN gate. Live: T-165 build (opus), sweep, T-191 checker.
+2026-09-27T13:20:00+00:00 ADVANCED wave=9 concurrent peak=3 -- T-191 FAILED cycle 1 on ISS-t191-run-video-1 (CRITICAL, reproduced live): parallel siblings share one run_dir and therefore one _video_scratch, and BrowserSession.close() rmtree's it the moment any one sibling finishes -- the checker reproduced thread A's sweep deleting thread B's finished .webm before B could rename it. plan_parallel_run's own RAM math gives n=2 on this box, so the vulnerable path is the DEFAULT, not an edge case, and the destroyed evidence is exactly the FAIL-case video this unit exists to produce. Fix cycle 2 dispatched into the same worktree, scoped to that one defect with a mandatory concurrency regression test proven RED against 52b32f08 first -- the suite currently has no test exercising two concurrent recording sessions sharing a run_dir. NOT in scope for cycle 2: ISS-t191-run-video-2 (high, non-blocking) -- the dead download link, plus the checker's further finding that run_view's _step_flow filters strictly on SCREENSHOT so EvidenceKind.VIDEO never surfaces in the live UI either; design work in files this unit never touched. Checker confirmed screenshot() does NOT share video's navigation-fragility, so no latent secret-exposure risk there. Its full-suite run was still at 31 percent when it finalized -- disclosed honestly, and it does not bear on a FAIL resting on a reproduced race. RAM 3.2 GB. SERIAL: iss-at638-2-done-check-repair still waits on T-191's next checker. SERIAL: T-174/T-178 on gate t125-stalled-at-cycle-cap. SERIAL: T-171/T-166/T-167/T-168 on gate at638-four-contract-files-authorization. SERIAL: T-190 on its PLAN gate. Live: T-165 build (opus), sweep, T-191 cycle-2 build.
+2026-09-27T13:35:00+00:00 ADVANCED wave=10 concurrent peak=2 -- sweep returned (bd69565d). 8 ledger rows re-triaged with evidence, 4 gates fact-checked with ZERO false claims found, all 256 manifests audited by reading. Owned inline (RAM 2.42 GB, ceiling 0, no dispatch possible): wrote the missing qa/debug/x10b-form-typing-cycle3.md, the only genuine terminal STALLED lacking one -- labelled in its own text as orchestrator-written rather than /agent-debugger-dispatched, with the measured reason, defensible only because nothing was left to diagnose. Queued AT-648 (x10b needs a checker re-pass, NOT a cycle 4 -- no maker defect remains), the at438 answered-gate remainder, AT-647 (T-185 done_check can never PASS -- mirror of at638's can-never-FAIL, folded into the same repair unit to avoid two writers on .goal/goal.json), and a correction to ISS-at638-remainder-2's now-stale framing. SERIAL: AT-648 re-pass waits on the RAM ceiling. SERIAL: iss-at638-2-done-check-repair waits on T-191's next checker. SERIAL: T-174/T-178 on gate t125-stalled-at-cycle-cap. SERIAL: T-171/T-166/T-167/T-168 on gate at638-four-contract-files-authorization. SERIAL: T-190 on its PLAN gate. Live: T-165 build (opus), T-191 cycle-2 build.
+2026-09-27T13:50:00+00:00 ADVANCED wave=11 concurrent peak=3 -- RAM recovered to 3.65 GB (ceiling 2) after the sweep returned, so AT-648 dispatched: a checker RE-PASS on x10b-form-typing judging one question only, is criterion 17 met. Explicitly not a cycle 4. Dispatch tells the checker to re-derive AT-539 itself rather than trust the two secondhand green reports, and warns that cycle 3's red WAS a non-zero suite exit -- so it must read the failure list, not the exit code, since the suite is expected non-zero today for unrelated reasons (ISS-at638-remainder-2). Verdict appends to the existing cycle-3 file, no overwrite; no push, since a re-pass carries no merge. SERIAL: iss-at638-2-done-check-repair waits on T-191's next checker. SERIAL: T-174/T-178 on gate t125-stalled-at-cycle-cap. SERIAL: T-171/T-166/T-167/T-168 on gate at638-four-contract-files-authorization. SERIAL: T-190 on its PLAN gate. SERIAL: at438 answered-gate remainder waits on a free slot. Live: T-165 build (opus), T-191 cycle-2 build, x10b re-pass.
+2026-09-27T13:58:00+00:00 ADVANCED wave=11 (no new dispatch) concurrent peak=3 -- RAM 3.62 GB would allow a 4th agent, but the only ready unit is held on a named file dependency rather than the ceiling. SERIAL: at438-answered-gate-remainder waits on the x10b re-pass -- both write qa/issues.jsonl (at438 closes AT-438 and documents AT-454; the re-pass updates AT-539), and concurrent writers on that file is the exact collision qa/QUEUE.md keeps warning about. Not a ceiling hold, a correctness hold. Live: T-165 build (opus), T-191 cycle-2 build, x10b re-pass -- all three still running their own suites.
+2026-09-27T14:15:00+00:00 ADVANCED wave=12 concurrent peak=3 -- T-191 cycle 2 handed back (2dcb4cd3): per-session-unique video scratch subdirectory, safe by construction rather than by lock or refcount, with a deterministic two-thread regression test the suite previously had no equivalent of. Merged master into the worktree, resolving one qa/issues.jsonl append-only conflict by keeping all four rows from both sides. Cycle-2 checker dispatched. Its dispatch carries the maker's SELF-DISCLOSED process violation: it used git stash against the bound worktree for its RED/GREEN check after being told not to, and mid-stash the cycle-1 checker committed f2370b86 in that same worktree. The checker must verify no corruption resulted and rule -- self-disclosure is the behaviour this pair wants and must not be punished as concealment, but it worked out is not the same as it was safe. Also flagged for it: session.py is now exactly 300 lines, the doctor cap with zero headroom. Found and queued ISS-ledger-duplicate-ids: master's canonical issue ledger has 657 rows but 647 unique ids, ten duplicated, four of them the very vacuous-guard rows this project cites as precedent -- pre-existing, verified on both merge parents, NOT caused by the resolution, and deliberately not fixed during a live wave with three writers on that file. RAM 3.03 GB. SERIAL: at438-answered-gate-remainder still waits on the x10b re-pass (both write qa/issues.jsonl). SERIAL: ISS-ledger-duplicate-ids waits on the wave draining. SERIAL: iss-at638-2-done-check-repair waits on this T-191 checker. SERIAL: T-174/T-178 on gate t125-stalled-at-cycle-cap. SERIAL: T-171/T-166/T-167/T-168 on gate at638-four-contract-files-authorization. SERIAL: T-190 on its PLAN gate. Live: T-165 build (opus), x10b re-pass, T-191 cycle-2 checker.
