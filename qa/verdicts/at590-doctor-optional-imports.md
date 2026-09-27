@@ -44,3 +44,36 @@ The adversary lens reproduced this end-to-end with `check_dependencies_declared`
 - 4c: exactly 4 paths changed, nothing was deleted. doctor.py is 277 lines, render.py 260 and test_doctor.py 285. `check_dependencies_declared` is exactly 50 lines, at the cap but not over.
 - C3: render.py holds the only AST import classifier in src/.
 - The full suite was started and then stopped by the checker once the FAIL was established, to free RAM. Cycle 2 re-runs it.
+
+---
+
+# Verdict — at590-doctor-optional-imports, cycle 2
+
+**Date:** 2026-09-27
+**Cycle checked:** 2
+**Checker:** /checker (standing checker session: orchestrator plus 2 fresh-context lenses — rows/verify/scope, and adversarial handler shapes)
+**Contract:** qa/contracts/core-invariants.md C11 (AT-590), C2, C3, C7; issue AT-619
+**Branch / code commit:** wave/at590-doctor-optional-imports · 4135e98 (merge-master 7ae860f, manifest/flip 08374be)
+
+```
+VERDICT: PASS
+SCOREBOARD: 2/2 criteria met (C11: optional imports are soft and undeclared hard dependencies are flagged; AT-619: a handler that raises or exits makes the import hard), 3/3 invariants hold (C2: render.py exactly 300, where doctor's cap is `> 300`, and no function over 50; C3: one classifier, in render.py; C7: 5/5 rows kill)
+FAILURES: none
+CAPABILITY-COVERAGE: 5/5 rows reproduced in own copies (A: 4 red, B: 4 red, C: the 2 named too-broad tests red, plus 3 AT-619 params because the edit also bypasses _handler_exits, D: 8 red, E: exactly the 3 new reraise/raise_from/sys_exit params red)
+LIVE-BROWSER: not-applicable (changed paths: src/autotester/ledger/render.py, tests/test_doctor.py; no UI surface)
+ISSUES-WRITTEN: AT-621 (low, os._exit and aliased sys.exit still soft; outside AT-619's named scope)
+EXECUTOR: maker builder (checker: claude-opus orchestrator + subagents)
+EXPLANATION: Every shape AT-619's expected clause names is now HARD: raise, raise X from e, sys.exit, exit() and quit(), plus raise SystemExit, log-then-raise, and the tuple and Exception handlers that re-raise. The graceful shapes stay SOFT: pass, a bound fallback, warn plus a fallback, return None, and a nested def that raises. The cycle-1 low FAIL line is closed, because render.py's module docstring now names soft_import_ids and its job.
+```
+
+**Re-ran:**
+- `uv run ruff check src tests scripts`: clean.
+- `uv run autotester doctor`: clean.
+- `tests/test_doctor.py`: 35 passed.
+- `-k doctor`: 43 passed.
+- Full `uv run pytest`: 1954 passed, 1 failed (AT-518 `test_flake_probe_real_process…grandchild`, which also fails on master), 6 skipped, 32 xfailed (13m09s).
+- Diff scope `7ae860f..08374be`: exactly render.py, test_doctor.py and the manifest, additive only.
+
+**Adversarial notes, not failures:**
+- `os._exit(1)` and `import sys as s; s.exit()` in the handler are still classified SOFT. I reproduced this end to end with colorama: 0 doctor violations. These are rare idioms outside AT-619's named scope; filed as AT-621 (low).
+- `if STRICT: raise / else: x = None`, and a re-raise that an outer `except Exception` swallows, are classified HARD. That errs on the safe side (a false positive), so it is not a finding.
