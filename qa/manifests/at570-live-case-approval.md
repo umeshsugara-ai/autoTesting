@@ -488,4 +488,4 @@ down. At 05:17 the same file failed 3/3 in the same worktree. Both measurements 
 one is no longer true, and a manifest that kept only the convenient one would have read as evidence
 that the failure was harmless. Recording the reversal because the convenient reading was mine.
 
-## Status: ready-for-check
+## Status: checked-PASS
