@@ -124,3 +124,53 @@ The checker flagged that `AT-673` was allocated from the block `qa/QUEUE.md` res
 is already on master, so no further ids are coming from it and 673+ were free. Verified `AT-673` is
 unique on master. The reservation table should now read the block as retired — the checker's caution
 was correct in form, and the block being live is the only thing that made it not a collision.
+
+
+## Addendum (maker, tick wave 33i) — a proposal to route this fix to the DATA, re-measured
+
+The checker filed `AT-662`/LS6 proposing that the manifests be canonicalised to one status line
+each, which would make the hook's existing literal correct without editing an enforcement path, and
+would therefore make this gate optional rather than blocking. It reported **eight spellings across
+261 manifests**, nine matching none of the common shapes and six carrying more than one.
+
+**261 manifests confirmed. The rest does not survive re-measurement, and the remedy would do damage.**
+
+Counting every line whose start looks like a status field
+(`^[-* ]*\**#*\s*Status`), **twelve** files carry more than one, not six — and then almost all of
+the multiplicity turns out to be either legitimate or not a status line at all:
+
+- **Cycle history, which the repo is supposed to keep.** `t133:117` and `at206:88` read
+  `## Status: superseded by cycle 2` above their `## Status: checked-PASS`; `at576-577:491` reads
+  `## Status (cycle 1, superseded by cycle 2 below)` above `:497`. **Canonicalising to one line per
+  manifest deletes the superseded record** — in a project whose entire discipline is that history is
+  append-only. The remedy is not ours to take as described.
+- **Prose that begins with the word.** `t060:83` (*"Status line updated, naming the real remaining
+  limit…"*), `ui-settings-providers:63` (*"Status pills genuinely reflect the real `.env`…"*), and
+  `at015-at028:121` — where `## Status` is a line of **quoted command output** listing another file's
+  headings. None is a status field. This is the same false-positive class as `t182:13`.
+- **Agreement, not ambiguity.** `at575` and `at621` each carry two lines that now say the same thing,
+  because the maker reconciled them today (`f3a2014b`, `57b1f161`).
+
+**Filtering to lines that genuinely disagree leaves exactly one file: `at438`.** Its `:404` says
+`## Status: STALLED — 3 of 3 fix cycles spent` and its `:439` says
+`**Status: checked-PASS for U14(b)**`. Even there a reader is not actually stuck, because `:8` states
+the resolution — *checked-PASS for U14(b) only, cycle 3 re-ruled under D-048/D-049*. It is ambiguous
+to a **matcher** and coherent to a **reader**.
+
+**So the measured state is: no manifest is genuinely unreadable by a human, and the variance is
+entirely in whether a pattern can read it.** That inverts LS6's premise. This is not data hygiene
+needing a 261-file sweep; it is that the handshake never **declared** which line carries authority,
+so every writer chose a defensible shape and every reader wrote its own pattern.
+
+**And LS6 does not clear `t182` either.** `t182`'s false positive comes from `:13`, a **prose**
+sentence explaining the handshake — ``handshake — `Status: ready-for-check` is written last)``.
+Canonicalising status *fields* does not touch it. Clearing `t182` by editing data means rewriting a
+passed manifest's own explanation of the rule so that a grep stops matching it — deleting an
+explanation to satisfy a detector. That is the wrong direction whatever it costs to ask.
+
+**What this addendum changes about the question below:** nothing about options A/B/C, and one thing
+about urgency. The safe, non-destructive, ours-to-take part of LS6 is *forward-looking*: declare one
+authoritative line, let historical and per-cycle lines stay exactly as they are, and let
+`autotester doctor` check new manifests against it. That is worth doing and does not need this gate.
+What still needs this gate is `t182` and anything else whose match lives in prose — because the only
+fix for a detector that reads prose as state is the detector.
