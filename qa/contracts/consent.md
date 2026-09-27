@@ -149,6 +149,17 @@ it refuses", it is "can a check that ran for real get past it".
   over-budget run is refused" cannot be written at all — `0 > 0` is false, so there is no
   over-budget to construct. Every fixture approval carries **non-zero** bounds, and an over-budget
   refusal test exists.
+- **The over-budget test names the bound it exceeds and by how much.** A fixture whose bounds came
+  from the printed grant command is non-zero and *looks* correct, so a refusal test can pass against
+  a bound large enough that exceeding it was arranged rather than tested. The test states the bound
+  and the margin (e.g. `max_actions=3`, attempt 4) so the refusal is demonstrably the bound firing
+  and not a number chosen to make the assertion true. **The maker's addition, 2026-09-28.**
+- **The remediation covers all three bound fields, not the one visible on disk.**
+  `cli_crawl.py::approve_cmd` defaults `--max-actions`, `--max-probes` and `--wall-clock` to `0`
+  with no `min=` anywhere in the file, so a CLI grant with no bound flags reaches every one of
+  `parallel_run.py:158`, `:162`, `:164`. That the three rows on disk happen to be zero only on
+  `max_probes` is a fact about the UI form's `min='1'`, not about the defect's reach. A fix scoped to
+  the observed field closes a third of the invariant and reads as closed.
 - **Plausibility, which fixing `0` does not give you.** A bound may be present, non-zero, signed and
   pass every check while constraining nothing: `projects/pathlynks/approvals.jsonl`'s live row
   carries `wall_clock_s = 600000000.0`, which is **19 years**. No falsy guard fires on it and no
@@ -251,3 +262,13 @@ it refuses", it is "can a check that ran for real get past it".
   satisfy a contract. Weakens no other criterion and removes an obligation the checker had no
   standing to impose. **Changes-authorized:** qa/contracts/consent.md CN10 (this entry).
   **Links:** AT-660; AT-661.
+- 2026-09-28 - routine (extend) - CN10 gained two clauses, both the MAKER's (autotesting-52), both
+  verified against cli_crawl.py before folding. (i) The over-budget refusal test must name the bound
+  and the margin: a fixture seeded from the printed grant command is non-zero and looks correct, so
+  the test can otherwise pass against a bound so large that exceeding it was arranged. (ii) The
+  remediation scope is all three bound fields. This one corrects MY narrowing: I had inferred from
+  the UI form's min='1' that only max_probes was reachable. approve_cmd defaults all three bounds to
+  0 (:241-243) with no min= in the file, so a CLI grant reaches all three guards. The UI's min='1'
+  bounds what the UI can write, not what the system can hold. Additive; no criterion weakened.
+  **Changes-authorized:** qa/contracts/consent.md CN10 + Amendment log (this entry). No
+  enforcement-path file touched. **Links:** AT-660; AT-570; AT-675.
