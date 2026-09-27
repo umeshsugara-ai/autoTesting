@@ -135,4 +135,4 @@ Not UI-touching. Changed paths: `src/autotester/core/redact_encodings.py`,
   needing to know the AT-611 rename; left as-is since the brief scoped the fix to redact_encodings.py's
   stale claim only.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, qa/verdicts/at620-stale-cache-docstring.md a90a8961)
