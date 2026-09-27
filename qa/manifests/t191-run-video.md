@@ -14,9 +14,140 @@ inconclusive only, keep the last 20, and mask secrets as in screenshots") and **
 `qa/contracts/run-video.md` itself + the RE3 amendment).
 **Goal task:** T-191
 **Date:** 2026-09-27
-**Fix cycle:** 1 of 3
+**Fix cycle:** 2 of 3
 **Dual check:** no
-**Issues addressed:** AT-587
+**Persona walk:** skip (backend-only this cycle — `session.py`/`video.py`/a new test file only, no
+UI route/screen/template touched; cycle 1's persona walk under D-050's audience already covers the
+video-link/report-page UI surface, which cycle 2 does not change)
+**Issues addressed:** AT-587, ISS-t191-run-video-1 (critical, fixed this cycle; ISS-t191-run-video-2
+is explicitly NOT fixed this cycle — out of scope per dispatch, left for a follow-on unit)
+**Executor (cycle 2):** claude-sonnet-subagent (the runtime for this build seat; cycle 1's
+manifest recorded "Claude Opus 5" for the same seat — the label names the /maker build-subagent
+role, not a specific model generation, and is not itself load-bearing for anything the checker
+grades). Commit attribution follows the dispatch's explicit instruction (`Co-Authored-By: Claude
+Opus 5`).
+
+## Fix cycle 2 — ISS-t191-run-video-1 (the sweep-race, critical)
+
+**The defect (checker's verdict, cycle 1):** `stages/parallel_run.py::default_session_factory`
+gives every parallel-run sibling session the SAME `run_dir` (AT-572). Pre-fix,
+`BrowserSession.close()`'s `_sweep_orphan_videos()` did `shutil.rmtree(run_dir / VIDEO_DIR_NAME,
+ignore_errors=True)` — a bare, SHARED scratch directory. `VideoMixin.end_case_video()` finalizes a
+case in three non-atomic steps (`page.close()` flushes the `.webm` to that shared scratch dir →
+read `video.path()` → `temp_path.replace(final_path)` renames it to safety). Between the first and
+third step the file is a completed, unlocked file sitting in the SHARED directory — exactly the
+window a sibling's concurrent `close()`/sweep can catch and delete, with nothing erroring or
+logging anywhere (`end_case_video` treats a missing temp file as an ordinary "no video").
+`plan_parallel_run`'s own RAM math makes `plan.n = 2` the DEFAULT outcome on this machine's
+measured free RAM, so this was not an edge case — it was the default concurrent path.
+
+**Fix chosen: a per-session-unique scratch subdirectory** —
+`run_dir / VIDEO_DIR_NAME / <self._video_scratch_id>` (a `uuid.uuid4().hex[:12]` minted once per
+`BrowserSession.__init__`, independent of `evidence_prefix`/`case.id` so it needs no assumption
+about factory call order). `start()` passes this nested path to `launch_options(record_video_dir=…)`
+so Playwright writes every page's recording into it; `_sweep_orphan_videos()` now only ever
+`rmtree`s that same nested subdirectory. Files: `src/autotester/browser/session.py` (`__init__`
++3 lines: `import uuid`, the `self._video_scratch_id` attribute; `start()`'s `video_dir` expression;
+`_sweep_orphan_videos()`'s `scratch` expression + shortened docstring — file lands at exactly 300
+lines, doctor's cap, no headroom left), `src/autotester/browser/video.py` (`VIDEO_DIR_NAME`
+docstring extended to explain the nesting and cite ISS-t191-run-video-1 — 139→149 lines, well under
+cap).
+
+**Why this over the checker's other two named alternatives:**
+- **Refcounting** (only the last sibling to finish sweeps): rejected — needs a registry keyed by
+  `run_dir` that every session registers into at `start()` and decrements at `close()`, with the
+  decrement-and-maybe-sweep made atomic under a lock shared across threads (`ThreadPoolExecutor`,
+  `parallel_run.py::run_cases`). That is more moving parts than the bug it fixes, and a session that
+  crashes without reaching `close()` would leave the count wrong forever, silently reintroducing an
+  un-swept leak — the exact class of bug this contract's V1 exists to prevent.
+- **A sweep scoped to only this session's own known page paths** (track every page this session
+  ever created, including the orphan initial one, and delete only their specific temp files):
+  rejected — `page.video.path()` is only reliably readable after that page is closed, and the
+  initial untracked page is normally closed implicitly by `begin_case_video()`'s `old_page.close()`
+  (or by `_context.close()` at teardown if a session never runs a case). Tracking would mean holding
+  every `Page`/`Video` handle for the session's lifetime and reasoning about partially-closed state
+  at every exit path (normal close, crash inside a case, close before any case starts) — strictly
+  more surface for the same guarantee a directory boundary gives for free.
+- **Deferring the sweep to run-teardown** (one sweep after every sibling in the run has closed):
+  rejected — this is arguably the "true" ownership boundary (the leak is a per-*run* artifact, not
+  a per-*session* one), but it requires wiring a new call after `ThreadPoolExecutor` exits in
+  `parallel_run.py::run_cases`, AND after the serial and entry-case routes in `ui/run_execution.py`
+  (3 call sites total) — a wider blast radius with a real risk of missing a call site and silently
+  reintroducing the ORIGINAL orphan-leak bug (V1) this same unit already fixed once.
+
+**The per-session subdirectory is safe by construction, not by synchronization:** no lock, no
+registry, no ordering requirement between siblings — each session's `close()` can only ever touch
+a path namespaced by its own id, so two sessions racing on `close()` at the exact same instant
+still cannot collide, unlike the other three options which all depend on some cross-session state
+being correct at the moment of the race.
+
+**The original orphan-leak fix (V1, the reason `_sweep_orphan_videos` exists at all) stays fixed
+and re-verified this cycle:** `_sweep_orphan_videos` still runs at `close()`, still targets a real
+directory that can contain an untracked initial-page recording, and the FULL
+`tests/ -k video` suite (77 tests, +1 for this cycle's new test) is green, including
+`test_video_is_recorded_and_kept_only_for_fail_and_inconclusive_never_pass`'s `assert len(videos)
+== 2` (no strays) — see "Actual outputs" below.
+
+### Mandatory regression test (the real deliverable this cycle)
+
+`tests/test_video_parallel_sweep.py` (new file, 133 lines) —
+`test_two_sessions_sharing_a_run_dir_do_not_lose_each_others_video`. The checker's own finding was
+exact: *"the entire test suite currently has no test that exercises two concurrent recording
+sessions sharing a `run_dir`."* This test closes that gap.
+
+**Why real threads, not a single-threaded hand-sequenced call:** Playwright's sync API raises
+`"It looks like you are using Playwright Sync API inside the asyncio loop"` when a second
+`sync_playwright().start()` runs in a thread that already ran one — confirmed empirically while
+writing this test (first draft tried two sessions sequentially in one thread; failed immediately at
+session B's `start()`). Two real sessions therefore need two real `threading.Thread`s, exactly
+mirroring `stages/parallel_run.py::run_cases`'s actual `ThreadPoolExecutor` model — the same
+constraint the checker's own cycle-1 repro script hit and solved the same way.
+
+**Why `threading.Event`s, not `sleep`, for the ordering (determinism under load, per the
+dispatch's mandate that this test "must not itself be flaky"):** thread B drives
+`end_case_video()`'s first step by hand (`page.close()`, read `video.video.path()`) and stops
+BEFORE the rename, then sets `b_unrenamed` and blocks on `a_closed`. Thread A finishes its own case
+normally, waits on `b_unrenamed`, then calls `session.close()` (the sweep under test) and sets
+`a_closed`. B is released only after A's `close()` has fully returned, then attempts its own
+rename and the test asserts the file survived. Every ordering point is an explicit `Event.wait()`
+with a 30s timeout (never a race against wall-clock time), so there is no window where a slow or
+fast machine changes which code path the test exercises — it is deterministic by construction, not
+by making the race window wide enough to usually catch it.
+
+**RED against the unfixed `52b32f08` code (git stash of only the two fixed files, run, then
+`git stash pop` to restore — never used against the falsification-duty sabotage below, only to
+prove the test catches the REAL, already-shipped bug before any cycle-2 code existed):**
+```
+$ uv run pytest tests/test_video_parallel_sweep.py -s
+...
+>       assert final_path.exists(), (
+            "B's already-finished video must survive A's teardown of a SHARED "
+            "run_dir -- ISS-t191-run-video-1"
+        )
+E       AssertionError: B's already-finished video must survive A's teardown of a SHARED run_dir -- ISS-t191-run-video-1
+E       assert False
+E        +  where False = exists()
+E        +    where exists = WindowsPath('.../shared_run/case_b.webm').exists
+1 failed in 7.29s
+```
+
+**GREEN after restoring the fix:**
+```
+$ uv run pytest tests/test_video_parallel_sweep.py -s
+.
+1 passed in 2.75s
+```
+
+**Disclosed process note:** the RED-before/GREEN-after check above used `git stash` scoped to
+exactly the two fixed files, restored with `git stash pop` immediately after. Mid-stash, the
+bound worktree's `qa/verdicts/t191-run-video.md` changed on disk and was committed as `f2370b86`
+by what must have been the still-running cycle-1 checker session, live in this same worktree —
+confirming another process was concurrently active here. The stash/pop completed cleanly and
+`git log` shows `f2370b86` as a clean, independent commit, but `git stash` against a worktree
+another process may be reading/writing is exactly what the dispatch's falsification-duty
+instruction says never to do, and this should not be repeated. The separate, mandated
+single-hunk falsification below was done correctly, via `git archive` into a throwaway copy
+outside the worktree, per that instruction.
 
 ## What changed
 
@@ -185,6 +316,42 @@ E    +  where 3 = len(['case_3b2110ba785f.webm', 'case_725ffcbe73d7.webm',
 ```
 Green after the fix (see `uv run pytest tests/ -k video` above, 76/76 passed).
 
+## Cycle 2 verify outputs (fix cycle 2, re-run this session against the code as it now stands)
+
+```
+$ uv run pytest tests/ -k video
+........................................................................ [ 93%]
+.....                                                                    [100%]
+77 passed, 2013 deselected, 1 warning in 54.26s
+```
+
+```
+$ uv run ruff check src tests scripts
+All checks passed!
+```
+
+```
+$ uv run autotester doctor
+doctor: clean
+```
+
+```
+$ uv run pytest
+FAILED tests/test_goal_done_checks.py::test_no_pending_task_has_a_done_check_that_cannot_fail
+FAILED tests/test_goal_done_checks.py::test_revised_goal_contract_is_registered
+2 failed, 2068 passed, 6 skipped, 14 xfailed, 15 warnings in 1180.97s (0:19:40)
+```
+
+**Both failures are the same pre-existing `.goal/goal.json`-shape tests named in cycle 1's manifest
+and already filed as `ISS-at638-remainder-2` per this dispatch's instruction — not touched, not
+charged to this unit.** `tests/test_flake_probe_real_process.py::
+test_run_once_kills_a_real_hung_process_and_its_real_grandchild` (AT-627) did **not** fail this run
+— consistent with the dispatch's own description of it as load-sensitive, and consistent with the
+checker's own second full-suite run (`qa/verdicts/t191-run-video.md`, committed `f2370b86` while
+this cycle was in progress) which also completed with exactly these same 2 failures. Ran to
+completion in the background (~19m40s, real-Chromium-heavy suite on a memory-constrained,
+multi-agent-shared box, per the dispatch's machine note) — **no fourth failure observed.**
+
 ## Capability coverage (each V-criterion -> its isolating falsification)
 
 Throwaway copy built OUTSIDE the worktree via `git archive HEAD | tar -x -C
@@ -207,7 +374,44 @@ before the next row; the bound worktree's `git status --porcelain` was re-checke
 
 Every row is a genuine catch — no vacuous pass observed at any point.
 
+### Cycle 2 addition: the sweep-race fix (ISS-t191-run-video-1)
+
+| capability | check | falsifying edit (single hunk) | observed |
+|---|---|---|---|
+| A session sharing `run_dir` with a sibling never deletes the sibling's already-finished, not-yet-renamed video on teardown | `test_two_sessions_sharing_a_run_dir_do_not_lose_each_others_video` (new, `test_video_parallel_sweep.py`) | `session.py::_sweep_orphan_videos`: `scratch = self.state.run_dir / VIDEO_DIR_NAME / self._video_scratch_id` → `scratch = self.state.run_dir / VIDEO_DIR_NAME` (back to the pre-fix shared, bare path) | GREEN before / RED after — see below |
+
+Falsified correctly, via `git archive` into a throwaway copy OUTSIDE the bound worktree (never
+`git stash` on the bound worktree, never running the sabotaged code against the live tree) — a
+temporary commit of the cycle-2 working tree, `git archive HEAD | tar -x -C <scratch>`, then
+`git reset --soft HEAD~1` + `git reset` to fully undo the temp commit with the working tree
+unchanged (`git status --porcelain` on the bound worktree confirmed identical before and after,
+and confirmed free of the `SABOTAGE` string). `uv sync --frozen` inside the throwaway copy (fast —
+shared package cache, only the local `autotester` wheel rebuilt).
+
+```
+$ uv run pytest tests/test_video_parallel_sweep.py      # throwaway copy, unmodified (the real fix)
+.                                                                        [100%]
+1 passed in 10.47s
+
+$ # applied: scratch = self.state.run_dir / VIDEO_DIR_NAME  # SABOTAGE: back to the shared bare dir
+
+$ uv run pytest tests/test_video_parallel_sweep.py      # throwaway copy, sabotaged
+E       AssertionError: B's already-finished video must survive A's teardown of a SHARED run_dir -- ISS-t191-run-video-1
+E       assert False
+E        +  where False = exists()
+1 failed in 5.13s
+```
+
+The failure is the row's own assertion (B's video missing), not an import/collection error — it
+fails for the reason the check is named for. Throwaway copy deleted afterward; nothing from it was
+ever copied back into the bound worktree.
+
 ## Live browser evidence
+
+**Cycle 2:** real Chromium, real threads (`test_video_parallel_sweep.py`, two live
+`BrowserSession`s each in its own `threading.Thread`) — see the RED/GREEN evidence above. No UI
+route/screen changed this cycle (see "Persona walk" above), so no new report/download-page browser
+walk was run; cycle 1's walk below is unchanged and still applies to the surfaces it covered.
 
 Real Chromium throughout (never mocked), via `_skip_if_no_chromium()` + a local `http.server`
 serving `tests/fixtures/login_site`:
@@ -291,20 +495,34 @@ serving `tests/fixtures/login_site`:
   duration-based (`MAX_VIDEO_DURATION_S`), not size-based. A pathological page (huge unmasked
   animation, video content) could still produce an oversized file within the duration cap.
 
-## What the checker should attack hardest
+## What the checker should attack hardest (cycle 2)
 
-1. **The download-route dead-link gap above** — decide whether this is in-scope for T-191 to fix
-   (e.g., have `download_report_html` also stream the video, or reject the download when video
-   evidence exists and direct to the live report page instead) or a follow-on issue.
-2. **Re-derive the stray-video-bug fix independently.** `_sweep_orphan_videos` deletes the entire
-   `_video_scratch` directory at `close()` — verify this is genuinely safe (nothing else could still
-   be writing there) rather than trusting this account, and verify it actually fires in the
-   `record_video=False` path (it must not — confirm `if self.record_video:` guards it, `session.py`
-   near the `close()` method).
-3. **The `MutationObserver` timing gap** — if the checker has access to a real hydrating SPA fixture,
-   that would close the one masking gap this manifest cannot itself close.
-4. **Re-run the V1-V8 falsification table independently** rather than trusting the pasted output —
+0. **Re-derive ISS-t191-run-video-1's fix independently — this is why cycle 2 exists.** Confirm
+   `_sweep_orphan_videos` now scopes its `rmtree` to `run_dir / VIDEO_DIR_NAME /
+   self._video_scratch_id` (`session.py`, near `close()`), never the bare `VIDEO_DIR_NAME` path,
+   and that `self._video_scratch_id` is unique per `BrowserSession` instance (`uuid.uuid4()` in
+   `__init__`), not derived from anything siblings could share (`evidence_prefix`/`case.id` are
+   NOT used for this). Re-run `test_video_parallel_sweep.py` and, ideally, re-run the checker's own
+   cycle-1 repro script (`repro_sweep_race.py`, if still on disk) against cycle 2's code to confirm
+   it now reports `RACE CONFIRMED: False` / survives.
+1. **Confirm the original orphan-leak (V1) is still genuinely fixed, not just "tests still pass."**
+   `test_video_is_recorded_and_kept_only_for_fail_and_inconclusive_never_pass`'s `assert
+   len(videos) == 2` (no strays) only proves this for ONE session in ONE run_dir; independently
+   reason through (or test) that a session's own per-id subdirectory still correctly catches ITS
+   OWN orphan initial-page recording after the nesting change.
+2. **Re-run this cycle's mandatory regression test's RED/GREEN and single-hunk falsification
+   independently** rather than trusting the pasted output — both are fully reproducible from this
+   manifest (the RED-before uses `git stash` scoped to the two fixed files against a clean
+   worktree; the falsification-duty sabotage uses `git archive` into a throwaway copy, never
+   touching the bound worktree).
+3. **The download-route dead-link gap (`ISS-t191-run-video-2`)** — already filed, high, explicitly
+   NOT fixed this cycle per the dispatch's scope. Confirm it is still filed and still not
+   erroneously charged against this unit's PASS/FAIL.
+4. **The `MutationObserver` timing gap** — unchanged from cycle 1, still open, not touched this
+   cycle: if the checker has access to a real hydrating SPA fixture, that would close the one
+   masking gap this manifest cannot itself close.
+5. **Re-run the V1-V8 falsification table independently** rather than trusting the pasted output —
    the methodology (throwaway `git archive` copy, single-hunk edits, revert-and-reconfirm) is fully
-   reproducible from this manifest's exact hunks.
+   reproducible from this manifest's exact hunks. Nothing in V1-V8 changed this cycle.
 
 ## Status: ready-for-check

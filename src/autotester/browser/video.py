@@ -56,7 +56,15 @@ covers `document_start`, when neither `document.head` nor
 VIDEO_DIR_NAME = "_video_scratch"
 """Playwright's own random-named output directory for this session's video
 files -- never the final evidence path. `end_case_video` renames out of here
-into the deterministic, run-relative path evidence uses everywhere else."""
+into the deterministic, run-relative path evidence uses everywhere else.
+`BrowserSession` nests this under a per-session subdirectory
+(`run_dir/_video_scratch/<session-id>`) rather than using it bare: parallel
+siblings share one `run_dir` (`parallel_run.py::default_session_factory`,
+AT-572), and before that nesting existed, `close()`'s unconditional
+`shutil.rmtree` of this bare directory could delete a still-recording
+sibling's already-finished, not-yet-renamed video the instant any other
+sibling finished first (ISS-t191-run-video-1, T-191 cycle 2). Nesting per
+session means each session only ever sweeps its own subdirectory."""
 
 MAX_VIDEO_DURATION_S = 1200.0
 """20 minutes -- the gate's own "15-20 minute walkthrough" language (T-191

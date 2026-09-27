@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import contextlib
 import shutil
+import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -95,6 +96,7 @@ class BrowserSession(EvidenceMixin, VideoMixin):
         every other caller (crawl explorer, manual login, existing tests) is
         unchanged (C2)."""
         self._video_case_id: str | None = None
+        self._video_scratch_id = uuid.uuid4().hex[:12]  # ISS-t191-run-video-1: isolates siblings
         self._playwright: Any = None
         self._context: Any = None
         self._page: Any = None
@@ -104,7 +106,8 @@ class BrowserSession(EvidenceMixin, VideoMixin):
         from playwright.sync_api import sync_playwright
 
         self.state.run_dir.mkdir(parents=True, exist_ok=True)
-        video_dir = self.state.run_dir / VIDEO_DIR_NAME if self.record_video else None
+        video_dir = (self.state.run_dir / VIDEO_DIR_NAME / self._video_scratch_id
+                     if self.record_video else None)
         self._playwright = sync_playwright().start()
         self._context = self._playwright.chromium.launch_persistent_context(
             **launch_options(self.project, self.paths, record_video_dir=video_dir)
@@ -128,17 +131,17 @@ class BrowserSession(EvidenceMixin, VideoMixin):
                 self._sweep_orphan_videos()
 
     def _sweep_orphan_videos(self) -> None:
-        """V1 (run-video.md): "exactly one video file per case, never a
-        stray." `start()` always launches with one page open (Playwright
-        gives `launch_persistent_context` a page whether we ask or not), and
-        with `record_video_dir` set that page records too -- but it is never
-        any case's video, so `end_case_video` never renames it out of
-        `_video_scratch`. Same for any page a crash leaves mid-recording.
-        Every legitimate case video has already been moved OUT of
-        `_video_scratch` (to `run_dir/<case_id>.webm`) by the time `close()`
-        runs, so anything still in there by construction belongs to no case
-        -- delete the whole scratch dir rather than leak it run after run."""
-        scratch = self.state.run_dir / VIDEO_DIR_NAME
+        """V1: `start()`'s initial page, and any crash-mid-recording page,
+        leave an untracked recording in THIS SESSION'S OWN scratch
+        subdirectory (`_video_scratch/<self._video_scratch_id>`, never bare
+        `_video_scratch` -- ISS-t191-run-video-1, see `video.py`'s
+        `VIDEO_DIR_NAME` docstring for why a shared bare directory was unsafe
+        under parallel siblings). Every legitimate case video is already
+        renamed OUT of this subdirectory by `end_case_video` before `close()`
+        runs, so deleting the whole subdirectory can never touch a case's
+        kept evidence -- this session's or, since the id is unique, any
+        sibling's."""
+        scratch = self.state.run_dir / VIDEO_DIR_NAME / self._video_scratch_id
         if scratch.is_dir():
             shutil.rmtree(scratch, ignore_errors=True)
 
