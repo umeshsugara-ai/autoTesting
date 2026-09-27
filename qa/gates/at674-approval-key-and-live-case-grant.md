@@ -37,9 +37,19 @@ measured (`AT-675`):
   granted through the UI can ever bound probes.** So `max_probes=0` on all three rows is what the tool
   produces; it is not a lapse by whoever granted them, and it should not be reported as one.
 - **Hand-entered.** The form's own defaults are `max_actions` **200** and `wall_clock_s` **600**, both
-  required with `min=1`. The live row carries **200 000** and **600 000 000** — three orders of
+  required with `min=1` — so the UI **cannot** emit `0` for those two at all, which makes `max_probes`
+  the only bound a UI-granted row can zero out. The live row carries **200 000** and **600 000 000** — three orders of
   magnitude off — and `scope: everything` against a required free-text field whose placeholder reads
   *"what this crawl may read and click"*. Those were typed.
+
+**One more measured thing, and it is why step 4 below says *paste the printed command* rather than
+*run `approve`*.** `cli_crawl.py:241-243` defaults **all three** bounds of the `approve` command to
+`0`, with no `min=1` anywhere — while `cli_crawl.py:60-61`, the command that actually *runs* a crawl,
+defaults to `200` and `600.0`. So **the command whose job is to set a bound defaults to unbounded,
+and the command it bounds defaults to bounded.** A grant typed by hand without flags writes a row
+that is `0` on every axis; only the command the refusal prints carries real numbers. Nothing on disk
+was produced that way — all three rows have non-zero actions — but it means the `0` problem is
+reachable on every bound through the CLI, not only on `max_probes` through the UI.
 
 So one bound was defeated by the code and another by a value chosen at the keyboard. Only the second is
 a granting-practice question, and it is the reason step 3 below matters: the command the tool prints
