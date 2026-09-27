@@ -233,4 +233,4 @@ screenshot directory involved.
   longer refused), which is why AT-151's own lesson has nothing left to re-forget — recorded rather
   than claimed as a fix of a distinct defect.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1, qa/verdicts/at147-expiry-end-of-day.md 8819662)
