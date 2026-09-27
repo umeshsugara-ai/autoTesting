@@ -1327,3 +1327,40 @@ Three things traced so the build does not have to discover them, each verified r
 **Net effect on the brief:** the unit is smaller than it looked. No new schema, no new gate function —
 a `kind` parameter on `covering_approval`, a call from the run path with a real action estimate, and
 the `RunBudget` default made impossible to reach.
+
+---
+
+## Ledger id reservation (maker, 2026-09-28) — because renumbering a stale fork cannot converge
+
+**What happened, stated as a mistake rather than a hazard.** The `t191-video-reachable` check filed
+`AT-654`/`AT-655` into its worktree's `qa/issues.jsonl`, a stale fork of master at `12597de3` whose
+highest id was `AT-649`. Root had independently reached its own unrelated `AT-654`. The maker renumbered
+the worktree's `AT-654` → `AT-656` and argued this was better than an 11th documented `id_collision`
+pair, because neither id had been published outside its branch.
+
+**The reasoning was sound about the past and wrong about the future.** Within the hour the peer checker
+filed a new `AT-655` in root (`BenchTrial.duration_s` fail-open), so the worktree's `AT-655`
+(persona-walk hygiene) now collides anyway, and the cycle-2 checker has since filed `AT-657` in the
+worktree — a third id at risk. **Renumbering into a range another writer is still advancing cannot
+converge.** That is most likely why this repo already carries ten documented collision pairs: they are
+not sloppiness, they are what concurrent filing produces when ids are allocated from one counter with
+no reservation.
+
+**The rule, so this stops recurring:** a branch that files issue rows **reserves a block first** and
+never allocates from the shared high-water mark.
+
+| Range | Owner |
+|---|---|
+| `AT-656` … `AT-669` | **root ledger** (`d:/autoTesting/qa/issues.jsonl`) — the peer checker and any master-side sweep allocate here, sequentially |
+| `AT-670` … `AT-679` | **reserved for `wave/t191-video-reachable`** — its three rows are remapped into this block at merge time |
+| `AT-680` … `AT-689` | **reserved for the next build branch** (`at570-live-case-approval`) |
+
+**The remap is deferred to merge time on purpose, and not applied now:** the cycle-2 checker is live and
+is actively writing that worktree's `qa/issues.jsonl`. Editing a file a running checker owns would be a
+concurrent write on the one artifact the handshake depends on — worse than the collision it fixes. The
+worktree keeps `AT-655`/`AT-656`/`AT-657` until its verdict lands; the orchestrator remaps them into
+`AT-670`+ as part of the merge, preserving each row's content and recording the old → new mapping in its
+`checker_note`.
+
+`.gitattributes` carries `qa/issues.jsonl merge=union`, so the merge itself will not conflict — which is
+exactly why a duplicate id would survive silently and has to be resolved deliberately.
