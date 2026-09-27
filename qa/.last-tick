@@ -271,3 +271,28 @@ LIVE (4): at335 checker, t192 checker, t186 build (cap 2), t189 build, t191 buil
 T-186 has now stopped twice waiting on its own background work without reporting.
 OPEN HUMAN GATES (3): t125 stall A-D; CT6 vs RU3; at638 four-contract authorization.
 QUEUED, DEPENDENCY NAMED: iss-at638-2-done-check-repair waits on the 4 in-flight checks.
+
+## tick 2026-09-27T12:55:00+00:00 -- CEILING (measured), nothing new dispatched
+Checked whether anything else is dispatchable rather than idling on the wave. Result: the
+binding constraint this tick is RAM, measured not assumed.
+
+DEPENDENCY SCAN: T-165 (the crawl spine, critical, dual-check) is FULLY UNBLOCKED -- deps T-163
+and T-144 both done. T-174 and T-178 are blocked on T-125, which is gated and stalled. T-190 is
+dependency-free but is a new user-facing surface, so it needs the maker PLAN gate
+(intent -> /grill user-type mode -> spec -> plan -> qa/gates/plan-approved.md) before any code,
+and the grill needs Umesh.
+
+MEASURED CEILING: 0.9 GB free of 23.7 GB, 64 node/python/chrome processes live. The wave rule
+trims on free RAM above a 2 GB floor; there is none. So:
+SERIAL: T-165 waits on the measured RAM ceiling (0.9 GB free), not on a dependency edge.
+Dispatching the spine now would degrade the five agents already running -- and T-186 stopping
+twice on its own background work without reporting may already be a symptom of contention rather
+than of anything it found. Recorded as a measurement so the next tick re-measures instead of
+inheriting this guess.
+
+Secondary reason, weaker but real: T-165 works in stages/crawl*.py and explore.py while the
+at335 check holds stages/explore_return.py. Different files, same package -- not a hard
+collision, but not free either.
+
+LIVE (5): at335 checker, t192 checker, t186 build (cap 2), t189 build, t191 build.
+No new dispatch. No wave started that the machine cannot carry.
