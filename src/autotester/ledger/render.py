@@ -108,43 +108,38 @@ def apply_map(docs: RepoDocs) -> str:
 
 
 # -- optional-import detection ------------------------------------------------
-# Lives here, not in doctor.py, purely for C2's 300-line cap (doctor.py was already
-# at 269/300 -- AT-590's fix would not fit). Consumed by doctor's
-# check_dependencies_declared, the same lazy-import pattern this module already
-# serves for check_generated_fresh/check_architecture_budget/check_docs_routed.
-
+# Lives here, not in doctor.py, purely for C2's 300-line cap. Consumed by doctor's
+# check_dependencies_declared, the same lazy-import pattern this module already serves.
 _SOFT_EXCEPT_NAMES = {"ImportError", "ModuleNotFoundError"}
-_EXIT_CALL_NAMES = {"exit", "quit"}
+_EXIT_CALL_NAMES, _EXIT_ATTRS = {"exit", "quit"}, {"exit", "_exit"}
 
 
-def _is_exit_call(call: ast.Call) -> bool:
-    """`exit(...)`/`quit(...)`/`sys.exit(...)` -- AT-619's non-raise exit shape."""
-    func = call.func
-    if isinstance(func, ast.Name):
-        return func.id in _EXIT_CALL_NAMES
-    return (isinstance(func, ast.Attribute) and func.attr == "exit"
-            and isinstance(func.value, ast.Name) and func.value.id == "sys")
-
-
-def _handler_exits(body: list[ast.stmt]) -> bool:
+def _handler_exits(body: list[ast.stmt], modules: set[str], names: set[str]) -> bool:
     """True if a raise or exit call is reachable on any path through `body`, without
     descending into a nested def/class (AT-619: a handler that re-raises or exits is
     a required-dependency guard, not a graceful degrade)."""
+    def is_exit_call(call: ast.Call) -> bool:
+        func = call.func
+        if isinstance(func, ast.Name):
+            return func.id in _EXIT_CALL_NAMES or func.id in names
+        return (isinstance(func, ast.Attribute) and func.attr in _EXIT_ATTRS
+                and isinstance(func.value, ast.Name) and func.value.id in modules)
+
     for stmt in body:
         if isinstance(stmt, ast.Raise):
             return True
         if isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Call) \
-                and _is_exit_call(stmt.value):
+                and is_exit_call(stmt.value):
             return True
         if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
             continue
         if isinstance(stmt, ast.Try) and (
-                any(_handler_exits(h.body) for h in stmt.handlers)
-                or _handler_exits(stmt.finalbody)):
+                any(_handler_exits(h.body, modules, names) for h in stmt.handlers)
+                or _handler_exits(stmt.finalbody, modules, names)):
             return True
         for field in ("body", "orelse", "finalbody"):
             nested = getattr(stmt, field, None)
-            if isinstance(nested, list) and _handler_exits(nested):
+            if isinstance(nested, list) and _handler_exits(nested, modules, names):
                 return True
     return False
 
@@ -159,6 +154,11 @@ def soft_import_ids(tree: ast.AST) -> set[int]:
     is a required-dependency guard, not an optional one). Each guard's own body is
     walked in isolation, so an `if`'s `else` and any statement after the `try` stay
     hard; anything inside the guard is soft however deeply nested."""
+    modules = {a.asname or a.name for n in ast.walk(tree) if isinstance(n, ast.Import)
+               for a in n.names if a.name in {"sys", "os"}}
+    names = {a.asname or a.name for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)
+             and n.module in {"sys", "os"} for a in n.names if a.name in _EXIT_ATTRS}
+
     def is_type_checking(test: ast.expr) -> bool:
         return (isinstance(test, ast.Name) and test.id == "TYPE_CHECKING") or (
             isinstance(test, ast.Attribute) and test.attr == "TYPE_CHECKING")
@@ -171,7 +171,7 @@ def soft_import_ids(tree: ast.AST) -> set[int]:
     def try_is_soft(node: ast.Try) -> bool:
         return bool(node.handlers) and all(
             h.type is not None and except_names(h.type) <= _SOFT_EXCEPT_NAMES
-            and not _handler_exits(h.body)
+            and not _handler_exits(h.body, modules, names)
             for h in node.handlers)
 
     def guarded_body(node: ast.AST) -> list[ast.stmt]:

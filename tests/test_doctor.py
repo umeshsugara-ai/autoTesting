@@ -226,6 +226,8 @@ _SOFT_IMPORT_SHAPES = [
                  "    pytest = None\n", id="try_except_tuple_of_both"),
     pytest.param("try:\n    if True:\n        import pytest\nexcept ImportError:\n"
                  "    pytest = None\n", id="nested_in_try_except"),
+    pytest.param("import json as app\ntry:\n    import pytest\nexcept ImportError:\n"
+                 "    app.exit()\n", id="unrelated_dot_exit_on_non_sys_object_stays_soft"),
 ]
 
 
@@ -254,16 +256,20 @@ _LOOKS_LIKE_A_GUARD_BUT_IS_HARD = [
                  id="raise_from"),
     pytest.param("import sys\n\ntry:\n    import pytest\nexcept ImportError:\n"
                  "    sys.exit('need pytest')\n", id="sys_exit"),
+    pytest.param("import os\ntry: import pytest\nexcept ImportError: os._exit(1)", id="os_exit"),
+    pytest.param("import sys as s\ntry: import pytest\n"
+                 "except ImportError: s.exit(1)", id="sysalias"),
+    pytest.param("from sys import exit as bye\ntry:\n    import pytest\n"
+                 "except ImportError:\n    bye(1)\n", id="aliased_name_import_exit"),
 ]
 
 
 @pytest.mark.parametrize("body", _LOOKS_LIKE_A_GUARD_BUT_IS_HARD)
 def test_shapes_that_look_like_a_guard_but_are_not_stay_hard(tmp_path: Path, body: str) -> None:
-    """AT-590's required behaviour: an else/after-try import, or a handler broader
-    than ImportError/ModuleNotFoundError, does not prove the failure was a missing
-    package -- neither qualifies as soft. AT-619: nor does a handler that re-raises,
-    raises a new error, or exits -- that is a required-dependency guard, not a
-    graceful degrade -- so all stay flagged, end to end through doctor.run."""
+    """AT-590's required behaviour: an else/after-try import, or a broader handler
+    does not prove a missing package -- neither qualifies as soft. AT-619/AT-621: nor
+    does re-raising, raising anew, or exiting (os._exit, a sys/os alias, or exit/_exit
+    imported directly) -- all stay flagged, end to end via doctor.run."""
     root = make_repo(tmp_path)
     write_pyproject(root, [])
     write_module(root, "opt.py", body)
