@@ -1,5 +1,8 @@
 # Intent — AutoTester
 
+**Purpose:** why AutoTester exists, in the originator's words — the problem, the numbered outcomes (O1-O7), who uses it, and the constraints every contract inherits.
+**Open me when:** you are about to add a capability and need to know which outcome it serves, or a contract criterion cites `serves: intent#O*`.
+
 <!-- PLAN phase step 1, written as a BACKFILL (maker SKILL.md init step 2b backfill clause):
      this project shipped M0–M6 before the PLAN rule existed. Drafted from target.md, .goal/goal.json,
      docs/ARCHITECTURE.md and qa/contracts/, not from a fresh interview. -->

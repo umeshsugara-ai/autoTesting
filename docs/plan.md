@@ -1,5 +1,8 @@
 # Plan — AutoTester, remaining units
 
+**Purpose:** the 26 remaining work units in dependency order — files touched, how each is tested, criticality, persona walk — and the four tasks held on a human gate.
+**Open me when:** picking the next unit or wave, or asking what is deliberately not being built right now.
+
 <!-- PLAN phase step 4, BACKFILL. Covers only what is NOT yet shipped; M0–M6 units are already
      checker-PASSed and live in docs/FEATURES.jsonl. Rows become qa/QUEUE.md TODO rows. -->
 

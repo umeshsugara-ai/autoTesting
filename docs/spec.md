@@ -1,5 +1,8 @@
 # Spec — AutoTester
 
+**Purpose:** the requirements (R1-R31) mapped to the outcomes they serve and the contract that judges each one, plus the navigation flow per user type.
+**Open me when:** deriving a contract criterion, picking a unit, or deciding which user types a persona walk must cover.
+
 <!-- PLAN phase step 3, BACKFILL. Requirements below are derived from docs/intent.md and from the
      criteria already living in qa/contracts/ (checker-owned). Where a contract already states a
      rule, this file points at it rather than restating it — one concept, one place. -->
