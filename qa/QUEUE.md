@@ -1299,3 +1299,31 @@ outside D-029 entirely: the `typing_allowed` gate has call sites on the crawl pa
 `stages/parallel_run.py:216-225` · `stages/explore_consent.py:22-29` · `ui/routes_runs.py:96-132` ·
 `ui/run_execution.py:159` · `qa/contracts/consent.md` (its "Out of scope" line deferred exactly this to
 T-122's live-case gate)
+
+### Addendum (read-only design prep, 2026-09-28 — done while the RAM ceiling was 0)
+
+Three things traced so the build does not have to discover them, each verified rather than assumed:
+
+1. **`require_approval` is already generic — do not write a new gate.** `core/consent.py:95-106` takes
+   `actions: int`, `probes: int`, `wall_clock_s: float` as plain numbers with `kind` and `target`. Only
+   `explore_consent.covering_approval` couples to `CrawlBounds`. So the case-run path calls the same
+   function with `kind=ApprovalKind.LIVE_CASE` and `target=project.base_url`; there is **no missing
+   abstraction** and nothing new belongs in `schema/`.
+2. **That gate is genuinely fail-closed and is the model the budget should copy.** `_reject_reason`
+   (`:65-92`) refuses on an edited row (`is_intact`), an unsigned or non-verifying signature, a
+   **missing signing key** (`SigningKeyMissing` → refuse everything, AT-110), expiry, a production
+   target without `production: true`, and any bound shortfall. Note the contrast worth citing in the
+   fix: **this** guard treats "cannot verify" as "refuse", while `RunBudget` treats "nothing supplied"
+   as "allow". Same codebase, opposite defaults — the budget is the outlier, not the rule.
+3. **Do not pass `actions=0`, and the helper already exists.** `parallel_run.py:175-179`
+   `action_cost(case) -> max(1, len(case.steps))` is the system's own vocabulary for an action, and its
+   ONLY caller today is the budget-spending line at `:199`. So the approval check should request
+   `sum(action_cost(c) for c in cases)`, which makes `_shortfalls` compare the approval against the
+   run's real size. Passing `0` would find any valid approval "wide enough" — not a fail-open (the row
+   must still exist, verify, be unexpired and production-flagged, and its own `max_actions` still
+   bounds the run) but it would move the refusal from preflight to mid-run, which is the worse place
+   for it. **One concept, one place:** use `action_cost`, do not re-derive a cost.
+
+**Net effect on the brief:** the unit is smaller than it looked. No new schema, no new gate function —
+a `kind` parameter on `covering_approval`, a call from the run path with a real action estimate, and
+the `RunBudget` default made impossible to reach.
