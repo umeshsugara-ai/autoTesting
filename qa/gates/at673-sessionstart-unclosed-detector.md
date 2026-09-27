@@ -1,5 +1,15 @@
 # GATE — AT-673: the session-start "PASS not closed out" signal is stuck ON
 
+> **Read this before either mechanism below: a partial fix here is worse than no fix.** The hook has
+> two defects with one root — nothing in it is anchored to the field it claims to read — and they fail
+> in **opposite** directions. `AT-673` over-reports (prose counted as state, so `t182` shows as an
+> unclosed PASS forever); `AT-669` under-reports (a prose cycle number silences a manifest that really
+> is awaiting a check). Anchoring only the visibly-wrong pattern makes the spurious `1` disappear —
+> which removes the one symptom that motivates fixing the silent half. Whichever option you pick, it
+> has to cover `:14`, `:16`, `:18` and `:21` together. *(This framing is the checker's; it asked that it
+> be the first thing you read, ahead of either row's mechanism, and it is right.)*
+
+
 **Filed:** 2026-09-28 (maker, tick wave 32) · **Severity:** medium · **Ledger:** `AT-673`
 **Why this is a gate and not a fix:** `qa/hooks/*` is an **enforcement path**. Changing it needs a
 `docs/DECISIONS.md` entry carrying `Approved-by: Umesh` (project CLAUDE.md, Lab Protocol). The maker
