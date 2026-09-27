@@ -221,4 +221,81 @@ copy's own edited content, not the live repo's.
 Not UI-touching — no surface changed. Every edit is to `.goal/goal.json`, `.goal/dashboard.html`
 (regenerated data only, no template/markup change), and two `tests/` files.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 1)
+
+Verdict `qa/verdicts/at638-done-check-repair.md`, **Cycle checked: 1**, verdict commit `b4354156`,
+merged to master as `4a580f2c`. `ISS-at638-remainder-2` and `AT-647` both verified fixed.
+
+**The deliverable landed: the suite is green on master again.** `uv run pytest
+tests/test_goal_done_checks.py tests/test_goal_contract_registration.py` → **8 passed**, run on the
+merged master. That matters beyond its severity — the two reds had been standing all session, so every
+checker dispatched had to be pre-told which failures to ignore, which is exactly how a real regression
+gets waved through. The checker re-measured the full suite itself: **1 failed, 2070 passed** in 1141s
+against the manifest's 1157s, the single failure being AT-627, the pre-named load-sensitive flake.
+
+### The correction that matters, and it is against my own dispatch
+
+I made the **`done_check.waiver` mechanism the headline attack point** of this check, telling the
+checker as verified fact that it was newly invented and appeared nowhere. **That was wrong.** The
+mechanism has existed since `90e4219d` — `waiver_of()`, `_waiver_offenders()`, a 20-character
+hollow-waiver floor and a composition guard — and was **checker-PASSed on 2026-09-08**
+(`qa/verdicts/at154-at157-fail-closed.md`), which had already deliberated and accepted the precise
+tradeoff I asked for a fresh ruling on: *"a waiver is a sentence someone had to write and anyone can
+grep."* I had searched `src/autotester/` and `.goal/goal.json`'s history and never looked in `tests/`,
+where the code that reads `goal.json` lives. T-190 is merely the first task on disk to *use* one.
+
+The checker re-derived this rather than inheriting my framing, and said so. Had it deferred, it would
+have written a confident ruling on a settled question while this unit's real merits went unexamined
+behind a manufactured headline. **Deference to whoever wrote the brief is a failure mode of checking,
+not a courtesy.** Generalised and filed: `qa/QUEUE.md`, commit `e159f3f5` — three unverified negative
+existence claims in one session (the sweep's, the at438 maker's, and mine), every one of them from a
+pathspec that silently excluded the answer.
+
+**What survives as a real finding is narrower and not chargeable here:** `.goal/goal.json` has no
+`done_check` Pydantic schema at all — an unvalidated raw dict — so any future task can still
+self-exempt with one ≥20-character sentence, no linked issue, no expiry. That is known, reviewed
+infrastructure, not a hole this unit dug. The instance is well-founded: `schema/user_persona.py` is
+confirmed absent and T-190's two cited plan-gate items are genuinely undecided.
+
+### Verified independently by the checker, not taken on the manifest's word
+
+The dropped magic number was falsified with **two mutations I had not suggested** (mutate a
+T-160..T-184 row; add a bogus 82nd task without touching `progress.total`) — both still correctly RED,
+so no criterion was weakened. T-185's repaired `done_check` was confirmed to **semantically** exercise
+the AT-408/AT-416 scroll-invariance bug, not merely to resolve — the distinction this project paid for
+under AT-218 (*resolution proves existence, not semantic correctness*). The 19-pending/0-done
+recurrence-guard split was re-derived from `goal.json` independently and matched exactly. The
+`monitor.py`/`register_product` avoidance was verified against the shared `/goal` skill's actual source
+at `D:/ai_os/.claude/skills/goal/scripts/monitor.py:98` — the maker was right that calling `run()`
+would have pointed the cross-project registry at a worktree path.
+
+### Found beyond the brief, and fixed
+
+The AT-638 split had left **C9's own `Verify` line in `qa/contracts/core-invariants.md` not naming the
+new `tests/test_goal_contract_registration.py`** — so running C9's prescribed command silently skipped
+`test_revised_goal_contract_is_registered`. A contract whose own verify command no longer reaches its
+own test is the same defect class this unit exists to fix, one level up. The checker amended it
+(checker-owned, tightening only, dated changelog entry). `AT-649` was filed for the deferred PENDING
+half of AT-647's class — a task whose check can never pass, caught before it is ever built — so it is
+tracked canonically instead of dying in a manifest.
+
+### Two process notes recorded rather than buried
+
+The checker **caught its own near-miss**: it had piped pytest through `tee`, and the reported exit code
+was `tee`'s, not pytest's. It distrusted it and read the failure list directly. That is the
+exit-code-masking trap this project has now hit four times. It also self-reported corrupting a ledger
+line via backticks that bash command-substituted before python saw them, plus a stray `"source"` field
+carried in by copy-paste — caught by re-reading the file immediately, fixed with targeted edits, and
+every line re-validated as JSON.
+
+**The merge was blocked and correctly handed back rather than forced.** The checker found the main
+checkout held live uncommitted `.goal/*` work and refused to overwrite it; its non-destructive
+alternative (`git update-ref`) was denied by the harness classifier, and it stopped there instead of
+hand-editing `.git/refs/`. The "concurrent session" was this orchestrator. Resolved properly: the
+in-flight work was **committed, not discarded** (`bae9568e`) after verifying the incoming `goal.json`
+was a strict superset — identical task statuses, identical progress, differing only in the three
+repaired `done_check`s — and `.goal/dashboard.html`, being generated, was regenerated from the merged
+`goal.json` rather than resolved by picking a side.
+
+No `docs/FEATURES.jsonl` row: this is issue-driven QA repair with no owning goal task, not a
+user-facing capability.
