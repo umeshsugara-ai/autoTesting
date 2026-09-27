@@ -141,9 +141,8 @@ def test_a_second_ai_tools_instruction_file_is_not_root_clutter(tmp_path: Path) 
 
 
 # -- check_dependencies_declared (AT-130) --------------------------------------
-# `pytest` is used as the "undeclared third-party import" fixture below because it
-# is guaranteed installed (this file needs it to run) yet is never in
-# [project].dependencies (it is a dev-group tool) -- a stand-in for the real bug,
+# `pytest` is used as the undeclared-import fixture below -- guaranteed installed (needed to run
+# this file) yet never in [project].dependencies (a dev-group tool), standing in for the real bug:
 # `google-genai` resolving only via `langchain-google-genai`'s transitive pin.
 
 
@@ -208,8 +207,7 @@ def test_no_pyproject_is_not_this_checks_job(tmp_path: Path) -> None:
 # -- AT-590: TYPE_CHECKING-only and try/except-optional imports are soft --------
 # The false-positive AT-130's own checker found: an installed-but-undeclared package
 # guarded by `if TYPE_CHECKING:` or `try/except ImportError` is a deliberate optional,
-# not a transitive accident, and must not get the hard-import "add the direct
-# package" advice.
+# not a transitive accident -- must not get the hard-import "add the direct package" advice.
 
 _SOFT_IMPORT_SHAPES = [
     pytest.param("from typing import TYPE_CHECKING\n\nif TYPE_CHECKING:\n"
@@ -257,6 +255,8 @@ _LOOKS_LIKE_A_GUARD_BUT_IS_HARD = [
     pytest.param("import sys\n\ntry:\n    import pytest\nexcept ImportError:\n"
                  "    sys.exit('need pytest')\n", id="sys_exit"),
     pytest.param("import os\ntry: import pytest\nexcept ImportError: os._exit(1)", id="os_exit"),
+    pytest.param("import os.path\ntry: import pytest\n"
+                 "except ImportError: os._exit(1)", id="os_path"),
     pytest.param("import sys as s\ntry: import pytest\n"
                  "except ImportError: s.exit(1)", id="sysalias"),
     pytest.param("from sys import exit as bye\ntry:\n    import pytest\n"
@@ -267,9 +267,9 @@ _LOOKS_LIKE_A_GUARD_BUT_IS_HARD = [
 @pytest.mark.parametrize("body", _LOOKS_LIKE_A_GUARD_BUT_IS_HARD)
 def test_shapes_that_look_like_a_guard_but_are_not_stay_hard(tmp_path: Path, body: str) -> None:
     """AT-590's required behaviour: an else/after-try import, or a broader handler
-    does not prove a missing package -- neither qualifies as soft. AT-619/AT-621: nor
-    does re-raising, raising anew, or exiting (os._exit, a sys/os alias, or exit/_exit
-    imported directly) -- all stay flagged, end to end via doctor.run."""
+    does not prove a missing package -- neither qualifies as soft. AT-619/AT-621/AT-626: nor
+    does re-raising, raising anew, or exiting (os._exit including via a bare `import os.path`,
+    a sys/os alias, or exit/_exit imported directly) -- all stay flagged, end to end."""
     root = make_repo(tmp_path)
     write_pyproject(root, [])
     write_module(root, "opt.py", body)

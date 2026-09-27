@@ -108,10 +108,9 @@ def apply_map(docs: RepoDocs) -> str:
 
 
 # -- optional-import detection ------------------------------------------------
-# Lives here, not in doctor.py, purely for C2's 300-line cap. Consumed by doctor's
-# check_dependencies_declared, the same lazy-import pattern this module already serves.
+# Lives here, not doctor.py, for C2's 300-line cap; consumed by check_dependencies_declared.
 _SOFT_EXCEPT_NAMES = {"ImportError", "ModuleNotFoundError"}
-_EXIT_CALL_NAMES, _EXIT_ATTRS = {"exit", "quit"}, {"exit", "_exit"}
+_EXIT_CALL_NAMES, _EXIT_ATTRS, _SYS_OS = {"exit", "quit"}, {"exit", "_exit"}, {"sys", "os"}
 
 
 def _handler_exits(body: list[ast.stmt], modules: set[str], names: set[str]) -> bool:
@@ -154,10 +153,11 @@ def soft_import_ids(tree: ast.AST) -> set[int]:
     is a required-dependency guard, not an optional one). Each guard's own body is
     walked in isolation, so an `if`'s `else` and any statement after the `try` stay
     hard; anything inside the guard is soft however deeply nested."""
-    modules = {a.asname or a.name for n in ast.walk(tree) if isinstance(n, ast.Import)
-               for a in n.names if a.name in {"sys", "os"}}
+    modules = {a.asname or a.name.split(".")[0] for n in ast.walk(tree) if isinstance(n, ast.Import)
+               for a in n.names if a.name in _SYS_OS
+               or (a.asname is None and a.name.split(".")[0] in _SYS_OS)}
     names = {a.asname or a.name for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)
-             and n.module in {"sys", "os"} for a in n.names if a.name in _EXIT_ATTRS}
+             and n.module in _SYS_OS for a in n.names if a.name in _EXIT_ATTRS}
 
     def is_type_checking(test: ast.expr) -> bool:
         return (isinstance(test, ast.Name) and test.id == "TYPE_CHECKING") or (
