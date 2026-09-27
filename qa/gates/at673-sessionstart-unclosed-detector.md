@@ -243,3 +243,47 @@ or it fixes the noise and keeps the silence.**
 
 That is the seventh instance today of one instrument, two states, one representation — and the first
 where the two halves of the pair point opposite ways in the same file.
+
+
+## Addendum (maker, tick wave 33p) — `AT-696`: the same hook, both directions, in ONE printed line
+
+The headline at the top of this gate said a partial fix is worse than none, because the hook
+over-reports in one place and under-reports in another. That was two defects in two predicates.
+**It is now demonstrated in a single line of the hook's own output**, and the maker verified it
+first-hand:
+
+```
+git ls-files qa/manifests/ | grep -i 570      ->  nothing
+grep -c worktree qa/hooks/mc-sessionstart.ps1 ->  0
+mc-sessionstart.ps1:11-12                     ->  Get-ChildItem 'qa/manifests'   (current checkout)
+```
+
+The at570 manifest exists only at
+`.claude/worktrees/agent-ac0c11769db9a7239/qa/manifests/at570-live-case-approval.md`, with
+`**Fix cycle:** 1 of max 3` at `:22` and `## Status: ready-for-check` at `:424`. It is genuinely
+awaiting a check right now. The hook prints:
+
+| printed | reality | direction |
+|---|---|---|
+| `PASS not closed out: 1` | that is `t182`, whose match is **prose** explaining the handshake | false positive — fails toward **alarm** |
+| `Checks pending: 0` | at570 is pending and has been for an hour | false negative — fails toward **silence** |
+
+**Both numbers in one line, both wrong, in opposite directions.**
+
+**This one is not the pattern problem, and that is why it is here.** `## Status: ready-for-check`
+would satisfy the substring test at `:14` perfectly — the file simply is not in the directory being
+enumerated. **So no amount of anchoring the patterns (option B) touches it.** It is also distinct
+from `AT-643`, which is about finished but unjudged *commits* sitting in worktrees; this is the
+ready-for-check *signal*, one step earlier in the handshake.
+
+**Why it matters more than a miscount.** Today the loop survives this because the maker dispatches
+its own checker straight at the worktree, so the invisible pending state has a live owner. That is a
+property of *a maker being alive*, not of the mechanism. The hook exists precisely for the case
+where one is not — and in that case it reports `Checks pending: 0` and a session starts on something
+else. That is the `AT-641` scenario, and it has already happened once in this project.
+
+**Direction only, not a fix, and it collapses three asks into one.** The checker's suggestion is to
+enumerate `git worktree list --porcelain` — which is the same enumeration `AT-643` needs. So one
+change to this hook answers `AT-673`, `AT-669`, `AT-696` and `AT-643`; `AT-668` is the reason none of
+them can be made without you, since the guard that should ask before a `qa/hooks/*` edit does not
+cover `qa/hooks/*`. **That is the fourth reason this is one conversation rather than five.**
