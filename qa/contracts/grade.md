@@ -45,7 +45,9 @@ writes it to `projects/<slug>/runs/<run_id>/<case_id>.verdict.json`, distinct fr
 other's files (C6 — no new file format, one glob pattern per artifact kind).
 
 ### G5 — Prompt is a file, not an inline string
-The grading prompt lives at `prompts/grade_v1.md`, versioned by filename per the project's
+The grading prompt lives at `src/autotester/skills/grade/SKILL.md`, loaded by
+`stages/grade.py:23` `SKILL_NAME = "grade"` via `load_skill_prompt` (T-175, D-043; the old
+`prompts/grade_v1.md` no longer exists). Versioned per the project's
 "prompts are files" rule; `build_prompt` only fills placeholders, it never constructs prompt
 text inline in `grade.py`.
 
@@ -75,3 +77,12 @@ text inline in `grade.py`.
   (`qa/verdicts/at049-multimodal-grading.md`). This does not weaken G1's "no case metadata, no
   script source" boundary — an image is evidence the same as a screenshot's filename always was,
   just now genuinely seen rather than merely named.
+- 2026-09-28 - routine (correct) - the criterion's prompt path updated from `prompts/*_v1.md` to the
+  `skills/<name>/SKILL.md` the code actually loads. Cause: the T-175 skills migration (D-043) moved
+  the three stage prompts and amended core-invariants C8, but the three sibling per-stage contracts
+  were never updated - so a criterion that says "verify by reading the prompt file" named a file that
+  does not exist, making it UNCHECKABLE rather than merely out of date. Verified: src/autotester/
+  prompts/ now holds only agent_fix_v1.md and relitigation_v1.md, and each stage's SKILL_NAME comment
+  records the old filename it replaced. No behaviour claim changed. **Changes-authorized:** this
+  contract's prompt-location line + Amendment log (this entry). **Links:** AT-670; T-175; D-043;
+  core-invariants C8.

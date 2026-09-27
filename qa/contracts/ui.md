@@ -277,6 +277,28 @@ again at at438 cycle 1. A module whose acceptance line is invented per verdict c
   Mode D run drives its own browser over the unit's changed shape and one shape from each fixture the
   change touches, and records a before/after report count for (b).
 
+### U15 - The home page answers "can I test with this?" before any project is opened
+Umesh, verbatim (`qa/feedback-inbox.md:353`, 2026-09-06, watching the live UI): *"bhai ye kessa ui
+bnaya hai na dashboard na kuch user kese testing krr payegaa"*. `/` is a bare project-card grid; U2
+covers project DETAIL and nothing covered the landing surface. AT-664.
+
+- **`/` renders portfolio-level state, not only a list of projects.** At minimum: how many projects
+  exist, how many have ever had a run, and per project the outcome and age of its most recent run.
+  A person arriving cold can tell which project needs attention without opening one.
+- **Every number is read from persisted evidence.** U4's rule, unchanged and load-bearing here
+  because an aggregate is the easiest place to invent one: a project with no runs renders `no runs`,
+  never `0 failures`, and a run whose evidence cannot be read renders `unreadable`, never a zero.
+  An aggregate never sums over projects it could not read without saying how many it skipped.
+- **Stale is visible.** A most-recent run older than the project's last change is labelled stale
+  rather than shown as a current result.
+- **It reuses the existing components.** Stat tiles and status vocabulary come from `theme.py` and
+  the project's status vocabulary (AT-116/AT-119), so a new spelling of PASS/FAIL/NOT_RUN is not
+  introduced on the busiest page.
+- **Verify:** with two projects, one never run and one with a failed run, `/` shows the run outcome
+  and its age for the second and `no runs` for the first, and shows neither as `0`; a project whose
+  run evidence is unreadable is counted as skipped in the aggregate and named.
+  **Links:** AT-664; AT-552 (the shadowed row this ask was filed on); U2; U4; AT-116; AT-119.
+
 ## No-fire list
 
 - Authentication/authorization — this is a local, single-operator tool for now (matches the
@@ -516,3 +538,12 @@ again at at438 cycle 1. A module whose acceptance line is invented per verdict c
   ground a rejected earlier cycle had gained, only for falling behind pre-unit master. AT-453 (the
   ::details-content display:contents/inline miss) is NOT added to (c). It stays charged and open as
   its own unit, capped at 2 cycles (gate option b).
+- 2026-09-28 - routine (add) - U15 added: the home page answers "can I test with this?" before any
+  project is opened. Cause: AT-664, found in the overdue Mode B sweep's feedback-inbox fold. Umesh
+  said this watching the live UI on 2026-09-06; it was filed as a ledger row and never encoded, and
+  the row it was filed on carries a DUPLICATE id (AT-552, shared with an unrelated fixed defect), so
+  an id-keyed read of open work cannot see it - the first measured case of AT-656 losing a human
+  instruction rather than a status. U15 states the outcome and the honesty rules and does NOT
+  prescribe a layout; the aggregate-honesty clauses are U4's rule applied where inventing a zero is
+  easiest. Additive; no criterion weakened. **Changes-authorized:** qa/contracts/ui.md U15 +
+  Amendment log (this entry). No enforcement-path file touched. **Links:** AT-664; AT-656; AT-552.

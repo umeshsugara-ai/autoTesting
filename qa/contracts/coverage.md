@@ -130,6 +130,29 @@ a template unentered; (2) disabling the `READ_ONLY` form-submit guard (`explore_
 same test with `AssertionError: read_only must never submit the search form`; (3) dropping coverage
 holes (`crawl_coverage.py::_screens_not_entered`) fails the depth test with the missed routes named.
 
+### V9 - Coverage is measured against what the account MAY do, not what a run happened to reach
+Serves `intent#O4`; requirement `docs/spec.md` R27 (must); unit T-171.
+
+- **The denominator is the permitted control surface.** For a run using a supplied account, the
+  coverage figure's denominator is the set of controls that account's role PERMITS, not the set of
+  screens a bounded crawl reached. Umesh, verbatim (`qa/feedback-inbox.md:855-861`, 2026-09-23):
+  *"jo account mai dunga usme jitni permission hogi uthi tho testing ho hi jaani chaiyee."*
+- **Every permitted-but-unexercised control is listed, with a reason.** Not a count of what was
+  skipped - each one named, and the reason drawn from a closed set (bound reached · deny-listed ·
+  destructive under the run's `write_policy` · never reached from any entry point). "Not reached" is
+  a reason, not an absence of one.
+- **A figure computed against reached screens says so.** Where the permitted surface is unknown - no
+  role introspection, no inventory - the report states that its denominator is screens-reached and is
+  therefore NOT permission coverage. It never presents one as the other, and it never reports
+  `100%` of a denominator it chose by what it saw (V7's rule, applied to the denominator itself).
+- **Narrowing below the account's rights is a finding about the RUN, not a safety feature.** Per
+  `qa/gates/write-policy-tier.md` and D-018/D-053 the supplied account's permissions are the scope;
+  a run that declined a permitted control reports that as a gap in its own coverage.
+- **Verify:** a run whose account permits a control the crawl never exercised produces that control
+  in the un-exercised list with one of the closed-set reasons, and the reported coverage denominator
+  equals the permitted set; a run with no permission introspection labels its denominator
+  `screens-reached`. **Links:** AT-663; T-171; R27; O4; V7.
+
 ## No-fire list
 
 - Screen-level (as opposed to route-level) gap detection — `Screen.name`/`signals` matching is a
@@ -199,3 +222,14 @@ holes (`crawl_coverage.py::_screens_not_entered`) fails the depth test with the 
   **AT-483** — a crawl orphaned by its serving process dying mid-run persists `status=running`
   forever with stale zero counts; not a defect in this unit's mechanism (a clean run completes
   normally) and not required by V8, recorded for future triage.
+- 2026-09-28 - routine (add) - V9 added: coverage is measured against what the supplied account MAY
+  do, not what a run happened to reach. Cause: AT-663, found in the overdue Mode B sweep's
+  feedback-inbox fold. R27 is a MUST requirement serving O4 with a named target unit, and a grep of
+  every contract found NO criterion encoding it - the policy was recorded in
+  qa/gates/write-policy-tier.md while nothing made the coverage NUMBER express it. Umesh's words are
+  quoted verbatim in the criterion because the requirement line paraphrases them. V9 deliberately
+  stops short of prescribing how the permitted surface is discovered (role introspection vs a declared
+  inventory) - that is the unit's design choice - and instead forbids the one thing that makes the
+  figure dishonest: choosing the denominator by what was seen. Additive; no criterion weakened.
+  **Changes-authorized:** qa/contracts/coverage.md V9 + Amendment log (this entry). No
+  enforcement-path file touched. **Links:** AT-663; T-171; docs/spec.md R27; docs/intent.md O4.

@@ -49,34 +49,36 @@ Any failure (timeout, missing `uv`, missing `taskkill`, non-zero exit) prints on
 
 A behavioural test drives a real grandchild through the same path and asserts it is dead after the timeout.
 
-### LS6 - The handshake state a detector reads has ONE canonical machine-readable line
-- **Exactly one line per manifest carries its state**, in one spelling, and a manifest never carries
-  two. Today the field has eight spellings across 261 manifests (`## Status:` 228, `**Status:**` 17,
-  bare `Status:` 9, `## Status (cycle N):` 2, the same without a colon 2, plus bold spanning the
-  value, a list-item form, and `## Status` with no colon), nine manifests match none of the common
-  shapes, and six carry more than one - which is how `at575-orchestrator-caller` held
-  `in-progress (cycle 3)` in its header while its own closing heading read `checked-PASS` (AT-662).
-- **Prose may quote the field; the canonical line is not prose.** A sentence *about*
-  `Status: ready-for-check` is not a claim to be in that state. `t182-viewport-locale.md:13` is such
-  a sentence and is the sole reason the session-start line reads `PASS not closed out: 1` - a count
-  that closing the unit out cannot change, because its real close-out at `:199` uses a spelling the
-  detector cannot see.
-- **Fix the data, not the detector.** `qa/hooks/mc-sessionstart.ps1` is an enforcement path and needs
-  `Approved-by: Umesh`; anchoring its pattern (AT-673) and canonicalising the manifests are two
-  routes to the same result, and only the second is the checker's or the maker's to take. With one
-  canonical line the existing literal test becomes correct untouched.
-- **Until it holds, the count is a known constant, not a signal.** A standing `1` that no close-out
-  can clear must be reported as such wherever it is read, or it trains every reader to ignore the
-  field - and it keeps AUTO-CONTINUE armed every session (AT-657).
-- **Verify:** for every `qa/manifests/*.md`, exactly one line matches the canonical state pattern;
-  `grep -l 'Status: ready-for-check' qa/manifests/` returns only manifests actually awaiting a check.
+### LS6 - The handshake DECLARES which line carries authority; history is never swept
+**CORRECTED 2026-09-28, hours after it was written, on the maker's counter-evidence. The first
+version of this criterion would have destroyed records.** It called for "exactly one line per
+manifest" and for the fix to be made in the data. Re-derived: 12 manifests carry more than one
+status-shaped line (not the 6 my narrower pattern found), and the extra lines are **legitimate
+append-only history** - `t133-ensemble-and-issues.md:117` and `at206-guards-that-guard.md:88` both
+read `## Status: superseded by cycle 2`, and `at576-577-serial-runs.md:491` records cycle 1 above the
+live cycle-2 line. Canonicalising to one line deletes those. In a project whose discipline is that
+history is append-only, that is not hygiene; it is history loss to make a grep correct.
+
+- **One line is DECLARED authoritative, going forward.** The handshake names which line a reader may
+  key on. The defect was never that writers were careless - every shape on disk is defensible - it is
+  that nothing ever said which line counts, so every writer picked one and every reader wrote its own
+  matcher. `at575-orchestrator-caller` did not drift; it was always *able* to drift.
+- **Every historical and per-cycle line stays exactly as it stands.** A superseded-cycle record is
+  evidence. No sweep, no migration, no rewriting a PASSed manifest to satisfy a pattern.
+- **New manifests are checked against the declaration, not old ones.** `uv run autotester doctor`
+  judges manifests written after the declaration. Forward-looking and reversible, so it needs no
+  enforcement-path change and no gate.
+- **This does NOT clear the t182 count, and claiming it did was the first version's second error.**
+  `t182-viewport-locale.md:13` is PROSE explaining the rule - *"handshake - `Status: ready-for-check`
+  is written last)"*. A declaration about fields never touches prose. Clearing t182 through data would
+  mean deleting a manifest's own explanation of the handshake so a detector stops matching it.
+  **So anchoring the detector (AT-673) remains the only route for anything whose match lives in
+  prose, and that gate is not optional.** Until it is taken, the hook's `PASS not closed out: 1` is a
+  known constant and must be reported as one wherever it is read - it keeps AUTO-CONTINUE armed every
+  session (AT-657).
+- **Verify:** a manifest created after the declaration carries the authoritative line in the declared
+  shape, and `doctor` names any that does not; no commit deletes or rewrites an existing status line.
   **Links:** AT-662; AT-673; AT-657; core-invariants C12.
-
-## Out of scope
-
-- Keeping the loop alive, or scheduling anything. That is the maker skill's ScheduleWakeup.
-- Proving a **closed** gap was deliberate. `/maker resume` deletes `qa/.paused`, so a finished pause leaves no trace (`retro_blind`). That is disclosed in the output, not a defect here.
-- The hook's other, pre-existing calls (e.g. the `autotester snapshot` regeneration). That is AT-623, gated for Umesh.
 
 ## No-fire list
 
@@ -96,5 +98,19 @@ A behavioural test drives a real grandchild through the same path and asserts it
   spelling the detector cannot see. LS6 deliberately routes the fix to the DATA rather than to the
   hook, because the hook is an enforcement path needing Approved-by: Umesh and canonical manifests
   make its existing literal test correct without touching it. Additive; no criterion weakened.
+  **Changes-authorized:** qa/contracts/loop-status.md LS6 + Amendment log (this entry). No
+  enforcement-path file touched. **Links:** AT-662; AT-673; AT-657.
+- 2026-09-28 - CORRECTION (narrow) - LS6 rewritten the same day it was added, on the maker's
+  counter-evidence (autotesting-52, 31fe9ec0), and the correction is load-bearing: as first written it
+  called for one status line per manifest and for the fix to be made in the data, which would have
+  DELETED the superseded-cycle records at t133:117, at206:88 and at576-577:491. Re-derived its
+  premise myself: 12 manifests carry more than one status-shaped line, not 6, and the extras are
+  append-only history plus two prose lines and one block of quoted command output. No manifest is
+  unreadable by a human; the whole variance is in whether a PATTERN can read it. LS6 is now a
+  forward-looking DECLARATION of which line carries authority, checked by doctor on new manifests
+  only, with history explicitly untouched. Also withdrawn: the claim that canonicalising data clears
+  the t182 false positive. t182's match is prose explaining the handshake, so a field declaration
+  never reaches it, and the AT-673 detector-anchoring gate stays the only route. My first version
+  would have traded records for a clean grep - the shape of error this contract exists to catch.
   **Changes-authorized:** qa/contracts/loop-status.md LS6 + Amendment log (this entry). No
   enforcement-path file touched. **Links:** AT-662; AT-673; AT-657.

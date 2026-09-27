@@ -39,7 +39,9 @@ When `ExpandedSteps.steps` is empty, `expand_flow` produces no `Case` for that c
 constructs a `Case` with zero steps or synthesizes placeholder steps to force one.
 
 ### X5 — Never a real secret literal invented for a "wrong" value
-The prompt (`prompts/expand_case_v1.md`) instructs the model to invent an obviously-fake value
+The prompt (`src/autotester/skills/expand-case/SKILL.md`, loaded by `stages/expand.py:17`
+`SKILL_NAME = "expand-case"` via `load_skill_prompt` - T-175, D-043; the old
+`prompts/expand_case_v1.md` no longer exists) instructs the model to invent an obviously-fake value
 for a "wrong credential" scenario, never something resembling a real secret, and to leave a
 genuinely-needed real credential's `{{SECRET:KEY}}` placeholder untouched — this is a prompt-level
 instruction (verified by reading the prompt file), not independently enforced in code this cycle
@@ -134,3 +136,12 @@ spanning all three `CaseKind`s (best / worst / edge)**, and `autotester expand` 
   live — `ModuleNotFoundError: No module named 'langchain_ollama'`), never a raw API key or prompt
   content, across every `raise ProviderError(...)` site in `providers/gemini.py` and
   `providers/langchain_fallback.py`. See `qa/verdicts/at264-generate-error-boundary.md`.
+- 2026-09-28 - routine (correct) - the criterion's prompt path updated from `prompts/*_v1.md` to the
+  `skills/<name>/SKILL.md` the code actually loads. Cause: the T-175 skills migration (D-043) moved
+  the three stage prompts and amended core-invariants C8, but the three sibling per-stage contracts
+  were never updated - so a criterion that says "verify by reading the prompt file" named a file that
+  does not exist, making it UNCHECKABLE rather than merely out of date. Verified: src/autotester/
+  prompts/ now holds only agent_fix_v1.md and relitigation_v1.md, and each stage's SKILL_NAME comment
+  records the old filename it replaced. No behaviour claim changed. **Changes-authorized:** this
+  contract's prompt-location line + Amendment log (this entry). **Links:** AT-670; T-175; D-043;
+  core-invariants C8.

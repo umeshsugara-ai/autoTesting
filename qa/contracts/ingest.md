@@ -37,7 +37,9 @@ passed to the provider, never inlined into the prompt text; `GeminiProvider.see_
 uploads the file (`client.files.upload`) before calling `generate_content`.
 
 ### I5 — Prompt is a file, not an inline string
-The ingest prompt lives at `prompts/ingest_video_v1.md`, following the project's "prompts are
+The ingest prompt lives at `src/autotester/skills/ingest-video/SKILL.md`, loaded by
+`stages/ingest.py:31` `SKILL_NAME = "ingest-video"` via `load_skill_prompt` (T-175, D-043; the
+old `prompts/ingest_video_v1.md` no longer exists), following the project's "prompts are
 files" rule; the prompt itself instructs the model not to invent unobserved content and never to
 write down a real-looking credential even as an example.
 
@@ -263,3 +265,12 @@ check, not merely the code - a stub response is enough; no network is required.
   the crawl's `https://vidysea.com/erp/trainers` reduces to `/erp/trainers`. Filed AT-294 (high);
   AT-287 reopened. Judged as an artifact failure, not a contract defect — I7 is right and the code
   does not yet meet it.
+- 2026-09-28 - routine (correct) - the criterion's prompt path updated from `prompts/*_v1.md` to the
+  `skills/<name>/SKILL.md` the code actually loads. Cause: the T-175 skills migration (D-043) moved
+  the three stage prompts and amended core-invariants C8, but the three sibling per-stage contracts
+  were never updated - so a criterion that says "verify by reading the prompt file" named a file that
+  does not exist, making it UNCHECKABLE rather than merely out of date. Verified: src/autotester/
+  prompts/ now holds only agent_fix_v1.md and relitigation_v1.md, and each stage's SKILL_NAME comment
+  records the old filename it replaced. No behaviour claim changed. **Changes-authorized:** this
+  contract's prompt-location line + Amendment log (this entry). **Links:** AT-670; T-175; D-043;
+  core-invariants C8.
