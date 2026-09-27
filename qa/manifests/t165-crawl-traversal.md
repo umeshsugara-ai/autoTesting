@@ -2,6 +2,7 @@
 
 **Unit:** T-165 — crawl traversal: hybrid strategy · form-input replay · incremental crawl · change tracking
 **Criticality:** CRITICAL (dual check, D-040)
+**Commit:** `d0778797` (the build) · `380cfa64` (this manifest + the two gaps falsification found)
 **Fix cycle:** 1
 **Branch:** `wave/t165-crawl-traversal`, from `72513124` (the `master` this worktree was cut from;
 `origin/master` has since moved to `dcb467b7` — I did not rebase, the orchestrator owns the merge)
