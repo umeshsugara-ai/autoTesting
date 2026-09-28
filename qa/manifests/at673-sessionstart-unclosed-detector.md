@@ -279,3 +279,46 @@ Hook on the real tree after the change: `Checks pending: 0 | PASS not closed out
 from cycle 1, which is the expected result: all three answer changes are in files whose units are
 already closed, so no signal moves on today's tree. The proof is the 546-file comparison above, not
 the headline number.
+
+## Independent review (senior-software-engineer agent, fresh read-only context) — VERDICT: Warning
+
+Dispatched on `8ea308ee` because I wrote this code and cannot review my own output. It
+re-derived the 546-file comparison from scratch, ran the real `.ps1`, and sabotaged scratch copies
+to falsify each new test rather than trusting the manifest.
+
+**What it confirmed** (would have been findings if they had not held): the 3-changed-answer claim is
+exact; all three new tests are genuinely falsifiable and none is AT-697 shape-A; the quoted-heading
+hole and its fix are real; and the `-1` asymmetry (`$mc` floored to 0 at `:108`, `$vc` left
+unclamped at `:110`) is deliberate and safe — an unreadable verdict cycle always falls below any
+`$mc >= 0`, so it is classified *pending* and can never become a false unclosed PASS.
+
+**What it found — two real gaps, both reproduced by me independently against the SHIPPED function
+before being recorded** (`.work/at673-probe-review-findings.ps1` loads `Get-CycleNumber` out of the
+real hook rather than reimplementing it):
+
+| Filed | Sev | Shape | Probe result |
+|---|---|---|---|
+| **AT-722** | medium | The strip pairs backticks greedily, so a line with an ODD backtick count leaks one span past it | `See note - ` + backtick-quoted prose containing `Cycle checked: 42` → **returns 42**, where `-1` is correct |
+| **AT-723** | low | No notion of a fenced (```` ``` ````) block; a documentation example inside one reads as a real field | a fence containing `**Fix cycle:** 7` → **returns 7** |
+
+AT-722 is the one that matters, and the reviewer's structural point is correct and worth stating
+plainly: **MAX gives this failure class a strictly larger blast radius than last-wins.** Last-wins is
+only corrupted when a spurious match is the LAST in the file; MAX is corrupted by a spurious match
+ANYWHERE, including deep inside the preserved cycle history that every verdict carries. So AT-713,
+which is right, also makes AT-722 worse. Both are true at once.
+
+Neither is live: the reviewer's independent scan and mine agree that neither shape occurs anywhere
+in the current 546 files, and the 3 changed answers remain correct.
+
+**Both are filed OPEN and NOT FIXED, deliberately.** D-056 scopes this cycle to exactly three rows.
+A backtick-parity guard would be a fourth substantive change to a capped seam, and the whole point
+of the cap is that I do not get to keep widening the same fix because I am already in the file. The
+one change I did make beyond the three rows (the strip itself) is disclosed above as a scope
+judgement for the checker precisely because that line is hard to hold; adding a second would be
+arguing past the cap rather than escalating it. Raising a new waiver is the checker's or Umesh's
+call.
+
+One correction to my own probing, recorded because the rule here is that a claim without a re-run is
+not evidence: my first attempt at the fenced-block probe **errored** and printed `-1`, which I could
+have reported as "no gap". I re-ran it properly and it returns `7`. The reviewer was right and my
+first number was an artifact, not a measurement.
