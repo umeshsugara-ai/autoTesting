@@ -10,6 +10,34 @@ has to cover `:14`, `:16`, `:18` and `:21` together.* All four sites are covered
 
 **Fix cycle:** 1
 
+**Round cap:** (c) — CAP REACHED, ROUND 2 NOT OPENED. Escalated to HUMAN_GATE
+`qa/gates/at673-round-cap.md`.
+
+This seam (the session-start hook and the state it reads) already carries three PASSes:
+`at097-session-start-hook-regression`, `at383-sessionstart-loop-status`, `t005-living-ledger`.
+This unit is the fourth visit. The non-security cap is 2.
+
+**It is NOT security class, and I am not claiming it is.** The hook prints a directive and reads
+manifest/verdict/ledger state. It does not touch tenancy, auth, cross-tenant reads, data writes or
+credential handling. It IS an enforcement path, which is adjacent to the class and not in it —
+and stretching "enforcement path" into "security class" to escape a cap is precisely the
+rationalisation the cap exists to stop. No waiver exists either: option (b) needs a DECISIONS
+entry with `Approved-by`, and that append is classifier-blocked for both seats (see DISCLOSED DEBT
+above).
+
+**The evidence supports the cap rather than an exception to it.** Within this single unit the seam
+produced four defects: two wrong fixes of my own (an anchored Status read that would have silently
+skipped ~37 manifests; a `Fix cycle` pattern that broke on `**Fix cycle:** 2`), plus the checker's
+AT-713 (last-wins is a manifest rule applied to verdicts, which order history the opposite way)
+and AT-714 (the boundary admits a bare space, so prose counts). A seam that yields four defects
+while being fixed once is the shape the cap is named for.
+
+**What this changes, concretely:** AT-713/714/715 are correct and I am NOT fixing them in a cycle 2.
+That would be round N+1 on a capped seam. They stay open, attributed, and go to Umesh as the
+gate's question: accept this round and close, or withdraw it and take the finding as
+file-don't-fix. Cycle 1 stands as built; the check in flight is still worth completing, because a
+verdict on round 1 is information either way.
+
 ## DISCLOSED DEBT — read before judging (a declaration, not an attempt to route around)
 
 `qa/hooks/*` is an **enforcement path**. Per the Lab Protocol it needs an authorizing
