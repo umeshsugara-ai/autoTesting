@@ -203,3 +203,41 @@ omitted (`cli_crawl.py:241-243`, every bound defaulting to `0` with no `min=`), 
 command whose job is to set limits would grant unlimited consent by default. Under "ratify" the same
 omission refuses the run and prints a command with real numbers. **It is your call, and the code is
 already in the reversible direction, so either answer is cheap today and neither is cheap later.**
+
+## Answer
+
+Answered: 2026-09-28 -- Umesh, direct instruction. NOT one of the listed options: he rejected the
+premise that a human types bounds at all.
+
+Verbatim: "aisa kyu banayenge hum like fix number of counts? hamein thodi pata hai wo product kitna
+bada hai. jab auto-test / koi manual tester testing karta hoga to tujhe kya lagta hai uske paas clicks
+limited rehte honge? manual tester jab testing karta hoga wo bas kya karega ki login karega id password
+se aur jo target URL hai wahan pe jaake uske baad us portal ko explore karega end to end full detail
+mein. count permission ya jo chahiye -- bhai jab tere paas id password user ne de diya, wahi sabse badi
+permission hai na. jab tool ka purpose hi wo hai to extra permission extra wo kyu daal raha hai tu.
+itna complicated mat bana system; system easy to use banana hai hame."
+
+THE RULE THAT REPLACES THE GATE: the provisioned account IS the authorization. Credentials in the
+repo-root .env + the target URL + allowed_domains = the grant. Nothing else is typed by a human.
+
+What follows, mechanically:
+1. max_actions / max_probes / wall_clock_s stop being consent and become operational safety brakes
+   the system sets itself. Defaults generous enough that a full end-to-end explore finishes
+   unattended. If a brake stops a run, the report says which -- a truncated run is never reported
+   as a completed one.
+2. AUTOTESTER_APPROVAL_KEY is generated on first use and written to the repo-root .env by the tool.
+   Its job is row integrity (no forged or imported approval), never consent. With authorization
+   derived from the account, a human-typed key adds a step and protects nothing.
+3. approve_cmd bound defaults go from 0 to real values with min=1, so the void-by-default shape
+   this gate measured at cli_crawl.py:241-243 becomes unreachable.
+4. Accountability moves to the record. Every field typed with its prior value, every button pressed,
+   lands in the run report and trace.jsonl. Verbatim: "tu jo karega wo sab to tu apne system pe
+   rakhega na, taaki kal ke din koi tere se kuch bole to tere ko pata ho."
+
+AT-570 is NOT waived by this. Case runs still fail closed; they now have a derivable authorization
+to succeed against instead of a human-typed one that nobody can size correctly.
+
+EVIDENCE THIS GATE ITSELF PROVIDES FOR HIS POSITION: the two approvals on disk with sensible bounds
+are the EXPIRED ones; the only live one carries 200000 actions and a nineteen-year wall clock. When
+a human was forced to guess a number he could not know, he guessed unbounded. The pre-ask delivered
+none of its promised safety and still cost a turn.

@@ -96,3 +96,9 @@ open-ended morning hold a condition. Track C builds through C3 only.
 `AT-651` (prepod has no environment of its own; the `_host_matches` suffix match makes production
 secrets fill-eligible on `dev-new.vidysea.com`) · `AT-281` (T-169 acceptance) · `AT-653` (ground-truth
 ordering) · `T-145` · `T-171` (permission surface — the tier is what makes it reachable) · D-018 · D-052
+
+Re-confirmed 2026-09-28 by Umesh, unprompted and with visible impatience at the repetition.
+projects/pathlynks/project.json write_policy = allow_writes, on production. See
+qa/gates/at654-d029-dev-only-vs-production-pathlynks.md for the verbatim instruction.
+NOTE: the "D-056" cited elsewhere as authorizing this DID NOT EXIST on disk -- highest decision id
+was D-055. That missing entry is why this question kept coming back. Filed as a finding.

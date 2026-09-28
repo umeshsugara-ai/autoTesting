@@ -70,3 +70,13 @@ Left `download_report_html` byte-for-byte unchanged. Its video link stays exactl
 ## How to answer
 
 Add `Answered: YYYY-MM-DD — A | B | C` below, or tell the checker or maker session.
+
+## Answer
+
+Answered: 2026-09-28 -- ROOT-CAUSE FIX, not A and not deprecation -- Umesh, direct instruction.
+Verbatim: "fix krro issue, jab link working hai tho break kyu ho rhaa hai find root cause and fix it".
+
+This explicitly rejects option A (leave it / deprecate the link). The download must carry a video
+link that resolves. The report_export.py 300-line cap is a constraint to work through, not a reason
+to ship a dead link -- split the file as its own unit first if that is what it takes.
+The checker owns any UR3/RE3 amendment that the chosen mechanism needs; ask for it, do not assume it.

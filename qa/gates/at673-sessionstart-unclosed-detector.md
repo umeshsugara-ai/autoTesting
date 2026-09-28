@@ -311,3 +311,11 @@ without you at all, since the guard that should ask before a `qa/hooks/*` edit d
 *(The `ready-for-check` pattern is at `:14`. Both sessions wrote `:13` earlier today; the substantive
 claim — that `:11-12` is the enumeration and the pattern would match fine if the file were
 enumerated — is unaffected.)*
+
+## Answer
+
+Answered: 2026-09-28 -- A (both halves, :14/:16/:18/:21 together) -- Umesh, direct instruction.
+Verbatim: "theek kr, isme permission ka wait mat krr".
+
+Standing consequence he attached: fixing a defect we ourselves created is not a gate.
+Do not route our own bugs to him for permission again.

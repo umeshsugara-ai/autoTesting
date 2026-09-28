@@ -64,3 +64,23 @@ no unit sets `production: false` on a production approval to get past it.
 T-122 · T-145 · `stages/explore_consent.py:42-49` · `stages/explore_safety.py:33-41` ·
 `schema/crawl.py:99-106` · `qa/gates/post-login-forms.md` · `qa/gates/live-crawl-target.md` ·
 `qa/gates/pathlynks-user-account-first.md`
+
+## Answer
+
+Answered: 2026-09-28 -- A (supersede D-029 environment condition) -- Umesh, direct instruction,
+stated as a refusal to re-litigate.
+
+Verbatim: "hum usi conversation ko das barah baar repeat kar chuka hoon main. ki tere ko agar koi
+user access diya hua hai, us user ke paas jo jo rights hain wo saare rights mil jaayenge tujhe. phir
+us par saare rights hain to jo jo possible hai tu wo karega. aur tu jo karega wo sab to tu apne system
+pe rakhega na, taaki kal ke din koi tere se kuch bole to tere ko pata ho hamne data kahan se bhara kya
+nahi bhara. aur real database mein chala jaayega karke uski chinta tujhe kyu ho rahi hai? wo to test
+account se link hai na. us account se data delete ho jaayega. user access management tabhi to diya
+hua hai."
+
+So: synthetic typing is permitted on PRODUCTION Pathlynks at ALLOW_WRITES. The destructive-action
+prohibition is unchanged and is a separate axis. Every typed value is recorded with its prior state.
+Cleanup is the test account`s own scope, which is what a test account is for.
+
+DO NOT RE-ASK THIS. It has now been asked at least three times across D-029, the write-policy-tier
+gate, and this file. The next session that finds this axis open should read this block, not open a gate.

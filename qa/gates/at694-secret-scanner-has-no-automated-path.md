@@ -55,3 +55,12 @@ committed. This is not a hypothetical guard.
 
 Did not edit `qa/adapter.json`. Did not add the hook. Did not re-word the contracts that cite the
 scanner. The one-line adapter change is ready to make on an answer of A.
+
+## Answer
+
+Answered: 2026-09-28 -- A (one line in qa/adapter.json verify list) -- Umesh, direct instruction.
+Verbatim: "go on but ye tere paas aane chaiye, mere human k paas nhi. orchestrator tu, claude code k paas aana chiayee".
+
+ROUTING CONSTRAINT, part of the answer: a scanner hit is an ORCHESTRATOR-facing signal, not a
+human-facing one. It surfaces to the maker/checker loop, which triages and fixes it. It reaches
+Umesh only if the hit is a real credential he must rotate. A false positive must never cost him a turn.

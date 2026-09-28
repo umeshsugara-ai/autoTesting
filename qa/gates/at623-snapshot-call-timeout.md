@@ -17,3 +17,6 @@ enforcement path, so bounding the snapshot call needs its own DECISIONS entry wi
 ## Answer
 
 Append `Answered: <ISO date> — <A|B> — <where>` below BEFORE any unit acts on it.
+
+Answered: 2026-09-28 -- A (15s timeout, kill tree, skip line, exit 0) -- Umesh, direct instruction.
+Verbatim: "agin lgaa de isko aur permission mat maang jo goal k liye need hai vo krr. tu abhi ye krr rhaa hai, mistake krta hai aur fix krne k liye permission seek krr rhaa hai".
