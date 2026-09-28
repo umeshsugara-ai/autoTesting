@@ -191,6 +191,26 @@ above is the complete file list -- so there is nothing pytest would newly exerci
 + the full diff-stat are treated as sufficient verification for this contracts-only, no-code unit,
 matching the sibling checker's own accepted practice on `t150-track-c-governance`.
 
+**ADDENDUM (same cycle, after the verdict block above was written): the full run finished.**
+`3 failed, 2033 passed, 6 skipped, 14 xfailed, 15 warnings in 1394.89s`. **Caught my own near-miss
+first:** the run was piped through `| tail -40`, which reports the pipeline's LAST command's exit
+code (0), not pytest's -- exactly the `qa/adapter.json` warning about a grouped command masking a
+real pytest failure. Re-ran the three named failures directly (no pipe) to get real exit codes and
+full tracebacks:
+- `tests/test_flake_probe_real_process.py::test_run_once_kills_a_real_hung_process_and_its_real_grandchild`
+  -- the disclosed, already-open AT-627 (low). Confirmed, not charged here.
+- `tests/test_goal_done_checks.py::test_no_pending_task_has_a_done_check_that_cannot_fail` and
+  `::test_revised_goal_contract_is_registered` -- **two undisclosed pre-existing failures**, neither
+  mentioned in this unit's dispatch as known. Both reproduce identically on `master` directly (not
+  only in this worktree): five pending tasks (T-186, T-189, T-190, T-191, T-192) carry `done_check`
+  commands that pass on a clean repo regardless of task status (`pytest tests/ -k <keyword>` matching
+  pre-existing unrelated tests, and T-192's is literally `uv run autotester doctor` -- the exact shape
+  the test's own docstring names), with no `done_check.waiver`; and `goal.json` has grown to 81 tasks
+  while the pinning test still hardcodes 70. Neither is caused by this unit -- its diff touches no
+  `.goal/` file -- so nothing here changes the verdict above. Filed separately as
+  `ISS-at638-remainder-2` (high, `goodhartable-done-check`) rather than folded into this unit's own
+  finding, since it is unrelated project-wide regression debt this check happened to surface.
+
 ## Diff scope (step 4c)
 
 `git diff --stat 81054533...HEAD` shows exactly two paths, both listed in the manifest's "What
