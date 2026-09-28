@@ -1,7 +1,7 @@
 # AT-700 — the test could not tell its own setup from its subject
 
 **Unit:** AT-700 (high) + AT-701 (filed by this unit, see below)
-**Fix cycle:** 1 of max 3
+**Fix cycle:** 2 of max 3
 **Contract:** `qa/contracts/core-invariants.md` C12 ("every health signal must fail closed";
 the clause "before reporting a check as evidence, name the arrangement of the data in which
 it would have failed")
@@ -61,7 +61,7 @@ more cluttered machine; splitting the branch alone converts the red into a perma
 
 | # | Claim | Falsifying edit | Observed |
 |---|---|---|---|
-| 1 | The test detects the mutation it exists for | replace `kill_tree(proc)` with `proc.kill()` in `run_once` | **RED at the kill assertion**: `AssertionError: run_once killed pytest but left its real grandchild running`, `assert not True`, `_alive(3616)`, at `test_flake_probe_real_process.py:125`. Restored; `git status` 0 modified; both orphaned grandchildren killed. |
+| 1 | The test detects the mutation it exists for | replace `kill_tree(proc)` with `proc.kill()` in `run_once` | **CYCLE 2, re-run on the committed tree** — RED at the kill assertion: `AssertionError: run_once killed pytest but left its real grandchild running`, `assert not True`, `_alive(3616)`, at `test_flake_probe_real_process.py:125`. Restored; `git status` 0 modified; both orphaned grandchildren killed. |
 | 2 | Before the fix, that same mutation was indistinguishable from setup failure | (measured on the pre-fix file) | the pre-fix mutant died on `PermissionError [WinError 32]` unlinking the log, never reaching the assertion — which is what surfaced AT-701 |
 | 3 | The floor claim is the fixture's shape, not the machine's mood | run the identical no-op inside vs outside the repo | 0.64s vs 19.68s collect, table above |
 
@@ -73,5 +73,36 @@ more cluttered machine; splitting the branch alone converts the red into a perma
 - `uv run autotester doctor` → `doctor: clean`, exit 0.
 - Full-suite re-run NOT yet done for this unit — the last full suite took 26 minutes and its only
   failure was this test. Stated as not-done rather than implied.
+
+## Cycle 1 FAIL — what it was, and it was not a design problem
+
+Verdict `qa/verdicts/at700-setup-vs-subject.md` (c2e430aa). **The production half of this unit was
+never on disk.** After the falsification I ran `git checkout -- scripts/flake_probe.py` to undo the
+MUTATION; it reverted the AT-701 fix in the same stroke, because that fix was still uncommitted.
+`6fd9dcaa` touched no path under `scripts/`, while this manifest described the change in the past
+tense and the ledger carried AT-701 as `fixed`. The checker reproduced the row both ways in a
+throwaway copy of `git archive 6fd9dcaa` and showed it holds if and only if the missing half is
+restored. **The observation was real; it was real of a tree that was never shipped.** On the
+committed tree the conflation had simply moved from setup to cleanup — the unit's own subject
+arriving one layer over, which is why FAIL was the right call rather than a note.
+
+## Cycle 2 — what changed
+
+Only the missing commit. `2782083e` carries the `run_once` change, and it was committed **before**
+the row was re-run so the row and the artifact are the same object. Nothing else in the unit moved.
+
+Evidence the tree and the result are the same object — `git show 2782083e:scripts/flake_probe.py`:
+
+```python
+    finally:
+        try:
+            log.unlink(missing_ok=True)
+        except OSError as held:  # AT-701: a survivor of the kill still holds the handle
+            notes = f"{notes}{chr(10)}log file still held after the kill: {held}"
+```
+
+Re-run on that tree: baseline `2 passed in 22.55s` exit 0; mutation → `AssertionError: run_once
+killed pytest but left its real grandchild running`, `_alive(28028)`, line 125 — the line that
+never executed in cycle 1. `ruff` clean, `doctor: clean`.
 
 ## Status: ready-for-check
