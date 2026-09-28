@@ -398,7 +398,7 @@ judgements and only the second was wrong.
   true or false. Measured instances. (1) **The checker's:** it reported a merge resolution "VERIFIED
   LOSSLESS, checked by substring rather than by eye" after confirming each of the two merge-state
   texts was a substring of the surviving row — while the surviving row had been *built* as
-  `a + <602-char header> + b`. Containment in a concatenation of both sides is a tautology;
+  `a + <separator> + b`. Containment in a concatenation of both sides is a tautology;
   measured afterwards, `find(a) == 0`, `find(b) + len(b) == len(s)`, prefix 0, suffix 0. No
   arrangement of the data returned False (AT-662). (2) **The maker's, four hours earlier and
   independently:** an AT-697 freshness fixture in shape A (write the file with LF, commit, compare)
@@ -407,9 +407,24 @@ judgements and only the second was wrong.
   evidence, name the arrangement of the data in which it would have failed.** If none exists, the
   check has measured the construction and not the claim, and the honest form is a different check —
   here, that the survivor decomposes *exactly* into `a + header + b` with no residue, which can fail
-  on any merge that truncates a side or drops a field (it held: 3902+602+2520 = 7024,
-  913+602+665 = 2180, 2709+602+1051 = 4362, each equal to its survivor's length). Both seats'
-  conclusions were correct; neither had been established. This is also the sense in which SKILL step
+  on any merge that truncates a side or drops a field. It held when first run and again after the
+  separator changed — and **the literals are deliberately not recorded in this clause**: the separator
+  grew from 602 to 1086 chars within the hour (the maker added a precedence sentence, `521df6f8`),
+  which made three freshly verified sums stale while the identity they tested stayed true. A contract
+  states the invariant — `len(a) + len(separator) + len(b) == len(survivor)` with exact reconstruction
+  — and any measurement of it is pinned to the commit it was taken at or it is not repeatable. Writing
+  the numbers into the rule would have put figures that no longer reproduce into the ground truth,
+  which is this criterion's own failure one level up. (The stale literals stand uncorrected in the
+  Amendment log below, as that log is append-only and they were true when written; this is where the
+  rule lives, so this is where they are removed.) Both seats' conclusions were correct; neither had
+  been established. **A check that can fail is necessary and not sufficient** — the maker's limit,
+  accepted 2026-09-28, and it is load-bearing: it went looking for a contradiction between two merged
+  halves with a check that genuinely could have found one, the check came back clean, and it still
+  first reported a contradiction that was not there. So this clause governs whether the instrument
+  could have failed, while the clause above it — a summary is a derived artifact, re-derived clause by
+  clause against the measurement it rests on — governs whether the reported result is the one the
+  check returned. Neither catches the other's failure and both were needed on the same day. This is
+  also the sense in which SKILL step
   4b's green-before-the-edit requirement and C7's sabotage row are the same rule as this one — each
   demands the falsifying arrangement exist before the pass is believed.
 
@@ -881,3 +896,26 @@ judgements and only the second was wrong.
   clause weakened. **Changes-authorized:** qa/contracts/core-invariants.md C12 (new final clause) +
   Amendment log (this entry). No enforcement-path file touched. **Links:** AT-662; AT-697; AT-708;
   AT-676; AT-656.
+- 2026-09-28 - routine (clarify) - C12's degenerate-check clause lost its literals and gained the
+  maker's limit. (1) DE-LITERALISED, because the numbers went stale within the hour: the clause cited
+  3902+602+2520=7024, 913+602+665=2180 and 2709+602+1051=4362 as the decomposition test's result, and
+  the maker then added a precedence sentence to the merge separator (`521df6f8`), growing it 602 ->
+  1086. Re-run at HEAD 05b4e7d8: 3902+1086+2520=7508, 913+1086+665=2664, 2709+1086+1051=4846, exact
+  reconstruction True in all three, one uniform separator. The identity held; the recorded figures did
+  not, so the clause now states the invariant (`len(a)+len(separator)+len(b)==len(survivor)` with exact
+  reconstruction) and says a measurement of it is pinned to its commit or is not repeatable. Numbers
+  that no longer reproduce inside the ground truth are this criterion's own failure one level up. The
+  stale literals REMAIN uncorrected in this log, which is append-only and where they were true when
+  written. (2) THE MAKER'S LIMIT, ACCEPTED AND LOAD-BEARING: a check that can fail is necessary and not
+  sufficient. It hunted a contradiction between the two merged halves with a check that genuinely could
+  have found one, the check came back CLEAN, and it still first reported a contradiction that was not
+  there - then corrected itself unprompted. So the new clause governs whether the instrument could have
+  failed, and the compressing-sentence clause above it governs whether the reported result is the one
+  the check returned; neither catches the other's failure and both were needed on 2026-09-28. The
+  clause now points at it rather than standing alone. Verified independently before accepting: on the
+  single clause where AT-661's two halves overlap they agree verbatim ("it is a granting-practice
+  finding"), the governing half carries the max_probes/AT-675 scoping and the granted_by casing caveat
+  that the other lacks, and no retraction is reversed - the maker's self-correction is accurate and its
+  overstatement was its own. Additive; no clause weakened. **Changes-authorized:**
+  qa/contracts/core-invariants.md C12 final clause + Amendment log (this entry). No enforcement-path
+  file touched. **Links:** AT-662; AT-661; AT-660; AT-675; AT-676; AT-697.
