@@ -389,6 +389,30 @@ judgements and only the second was wrong.
   exists to catch in others (intent.md O4). An invariant that held the loop to a standard the
   product's own output was exempt from would be the wrong way round.
 
+- **A check whose outcome its own construction has already decided is not a measurement, and this
+  is the one shape the instrument table above cannot hold** (both instances found 2026-09-28, one
+  per seat, which is why it is a clause and not a row). Every row above is an instrument that *can*
+  distinguish two states but has no representation for one of them. This is the degenerate case:
+  the instrument is fine, the question has one possible answer, and the reassuring answer is the
+  only one reachable — so the check passes with the same confidence whether the thing it tests is
+  true or false. Measured instances. (1) **The checker's:** it reported a merge resolution "VERIFIED
+  LOSSLESS, checked by substring rather than by eye" after confirming each of the two merge-state
+  texts was a substring of the surviving row — while the surviving row had been *built* as
+  `a + <602-char header> + b`. Containment in a concatenation of both sides is a tautology;
+  measured afterwards, `find(a) == 0`, `find(b) + len(b) == len(s)`, prefix 0, suffix 0. No
+  arrangement of the data returned False (AT-662). (2) **The maker's, four hours earlier and
+  independently:** an AT-697 freshness fixture in shape A (write the file with LF, commit, compare)
+  "passes whether or not the implementation normalises", because nothing in it ever makes git write
+  the file out — which is why shape B or C is required. The rule: **before reporting a check as
+  evidence, name the arrangement of the data in which it would have failed.** If none exists, the
+  check has measured the construction and not the claim, and the honest form is a different check —
+  here, that the survivor decomposes *exactly* into `a + header + b` with no residue, which can fail
+  on any merge that truncates a side or drops a field (it held: 3902+602+2520 = 7024,
+  913+602+665 = 2180, 2709+602+1051 = 4362, each equal to its survivor's length). Both seats'
+  conclusions were correct; neither had been established. This is also the sense in which SKILL step
+  4b's green-before-the-edit requirement and C7's sabotage row are the same rule as this one — each
+  demands the falsifying arrangement exist before the pass is believed.
+
 ## No-fire list (do not raise these as findings)
 
 - Style/formatting preferences already satisfied by `ruff`.
@@ -834,3 +858,26 @@ judgements and only the second was wrong.
   have caught. Additive; no clause weakened. **Changes-authorized:**
   qa/contracts/core-invariants.md C12 ninth-row paragraphs + Amendment log (this entry). No
   enforcement-path file touched. **Links:** AT-696; AT-673; AT-669; AT-643; AT-657; AT-676.
+- 2026-09-28 - routine (extend) - C12 gained a clause for the one shape its instrument table cannot
+  hold: a check whose outcome its own construction has already decided. Every table row is an
+  instrument that can tell two states apart but has no representation for one; this is the degenerate
+  case where the instrument is sound and the QUESTION has a single possible answer, so the check
+  passes identically whether the claim is true or false. Two instances, one per seat, four hours
+  apart and found independently: the checker reported a merge resolution "VERIFIED LOSSLESS, checked
+  by substring" over a survivor the maker had built as `a + <602-char header> + b`, where containment
+  is a tautology (measured: find(a)==0, find(b)+len(b)==len(s), prefix 0, suffix 0); and the maker's
+  AT-697 shape-A freshness fixture "passes whether or not the implementation normalises" because
+  nothing in it makes git write the file out. The rule added is that before a check is reported as
+  evidence, the arrangement of the data in which it would have FAILED must be nameable - and if none
+  exists the honest form is a different check. Here that check exists and was run: the survivor
+  decomposes exactly into a + header + b with no residue (3902+602+2520=7024, 913+602+665=2180,
+  2709+602+1051=4362), which a merge that truncated a side or dropped a field would break. Both
+  seats' conclusions were right; neither had been established. The clause also names SKILL step 4b's
+  green-before-the-edit requirement and C7's sabotage row as the same rule, since both demand the
+  falsifying arrangement exist before a pass is believed. The checker's instance and its false stated
+  mechanism ("the longer side was an annotated superset" - untrue in 3 of 4 fields) are recorded as
+  AT-662's eleventh instrument error; the peer measured it and put it on the record itself rather
+  than leaving the checker's earlier CRLF correction as the only one in that direction. Additive; no
+  clause weakened. **Changes-authorized:** qa/contracts/core-invariants.md C12 (new final clause) +
+  Amendment log (this entry). No enforcement-path file touched. **Links:** AT-662; AT-697; AT-708;
+  AT-676; AT-656.
