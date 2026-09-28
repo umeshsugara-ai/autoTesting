@@ -272,8 +272,30 @@ is the failure direction C12 does not permit. The docstring now states the obser
 uv run ruff check src tests scripts    # All checks passed!
 uv run autotester doctor               # doctor: clean
 uv run pytest tests/test_mc_sessionstart_unclosed.py -p no:cacheprovider   # 8 passed
-uv run pytest                          # full suite, unpiped (AT-692); result appended below
+uv run pytest                          # full suite, unpiped (AT-692) -- result below
 ```
+
+### Full suite — the real result, NOT green
+
+```
+2 failed, 2172 passed, 6 skipped, 14 xfailed, 15 warnings in 2397.39s (0:39:57)
+PYTEST_EXIT=1
+FAILED tests/test_cli_harness_safety.py::test_running_every_command_leaves_the_repository_untouched
+FAILED tests/test_redact_wrap_perf.py::test_redact_scan_stays_under_a_generous_bound_on_a_500kb_corpus
+```
+
+Cycle 1 promised a whole-suite line and never produced one (the run was killed at 65%). This is
+that line, and it is not the green one. Both failures were re-run in isolation afterwards rather
+than explained away from the summary:
+
+| Failure | Re-run alone | Verdict |
+|---|---|---|
+| `test_cli_harness_safety.py::…_leaves_the_repository_untouched` | **1 passed in 24.50s** | **Self-inflicted by the measurement.** The test asserts the working tree is untouched; the suite ran 40 minutes while this same session committed AT-710 into the same repo. The test caught a real dirty tree — mine. Not a defect, and an argument against running a 40-minute suite concurrently with commits. |
+| `test_redact_wrap_perf.py::…_500kb_corpus` | **`500 KB scan took 3.43s, expected under 3s`** — reproduces | **Real, and unrelated to this unit.** A wall-clock bound on `Redactor.contains_folded`. AT-673 changes exactly two files: `qa/hooks/mc-sessionstart.ps1` and `tests/test_mc_sessionstart_unclosed.py`. Neither imports, calls, or is imported by `core/redact.py`. The machine was carrying two build subagents; the test's own comment calls 3 s "loose on purpose … would flake on a loaded machine", which is what happened. Filed **AT-725**, not fixed here. |
+
+I am not claiming a green suite. The honest statement is: **2172 passed, 2 failed, neither failure
+caused by this unit, one of them caused by me running the suite while committing.** The checker
+should re-run it on a quiet tree if it wants the number independently.
 
 Hook on the real tree after the change: `Checks pending: 0 | PASS not closed out: 0` — unchanged
 from cycle 1, which is the expected result: all three answer changes are in files whose units are
