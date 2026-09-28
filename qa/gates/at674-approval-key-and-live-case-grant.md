@@ -241,3 +241,37 @@ EVIDENCE THIS GATE ITSELF PROVIDES FOR HIS POSITION: the two approvals on disk w
 are the EXPIRED ones; the only live one carries 200000 actions and a nineteen-year wall clock. When
 a human was forced to guess a number he could not know, he guessed unbounded. The pre-ask delivered
 none of its promised safety and still cost a turn.
+
+---
+
+## CHECKER CORRECTION — 2026-09-28: one mechanism in this gate is STALE, and it is inverted
+
+Appended, not edited; the text above stands as history. **Read this before acting on the
+`max_probes` paragraph.**
+
+This gate says `max_probes=0` combined with *"`parallel_run.py:164`'s falsy guard"* means **no
+UI-granted approval can ever bound probes** — i.e. probes run unbounded. **That is no longer true,
+and the truth is the opposite.**
+
+`AT-660`/CN10 (ledger status `verified`) removed the truthiness guards. Re-derived from source, not
+from that row:
+
+- `core/consent.py::_shortfalls:56-59` — plain `actions > approval.max_actions`.
+- `stages/run_budget.py::try_consume:64-71` — same, plus `return False` when `wall_clock_s <= 0`.
+  Its docstring: *"every bound means the same thing here as it does at the gate, namely that ZERO
+  GRANTS NOTHING."*
+- `schema/approval.py:56-75` — all three fields now carry **ZERO MEANS ZERO** in their descriptions.
+- `parallel_run.py:164` is now `budget.try_consume(...)`. The falsy guard this gate cites is gone.
+
+**What that changes for the decision.** The three approvals on disk are not permissive; they are
+fail-closed to the point of being unusable. `max_probes=0` refuses every probe. The CLI's
+bound defaults of `0` produce a grant that covers no run at all. So the system today errs hard
+toward refusing work, not toward permitting it.
+
+**What is unchanged.** The `200000` actions and `600000000.0s` (19.01 years) on the one live
+approval are real and hand-entered, and the argument that a human cannot size a product he has not
+explored stands exactly as written. The Answer block above is unaffected.
+
+**Why this appears late.** Three open high rows (`AT-675`, `AT-683`, `AT-661`) were written after
+`AT-660` was verified and each repeated the pre-fix mechanism; this gate was assembled from them.
+A fix landing did not reach the rows that cite it — filed as its own finding.
