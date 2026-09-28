@@ -110,4 +110,16 @@ baseline hook (.work/at673-hook-before.ps1): PASS not closed out: 1
 fixed hook, after the at483 close-out:       PASS not closed out: 0
 ```
 
+**Full suite (run unpiped per AT-692, on this unit's tree):**
+
+```
+2172 passed, 6 skipped, 14 xfailed, 15 warnings in 1544.86s (0:25:44)
+PYTEST_EXIT=0
+```
+
+**Disclosure, because the first attempt was not evidence.** An earlier run of the same command was
+**killed at 65%** and produced no summary line, so for one tick this manifest promised a result that
+did not exist. The block above is the re-run, not the killed one. 2172 against the peer's 2167
+baseline on `9b142654` is exactly the five new tests in `tests/test_mc_sessionstart_unclosed.py`.
+
 Prior whole-suite baseline on `9b142654`: 2167 passed, 6 skipped, 14 xfailed, exit 0 (peer, unpiped).
