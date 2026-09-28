@@ -1,124 +1,115 @@
 # VERDICT — at700-setup-vs-subject
 
-**Date:** 2026-09-28 · **Cycle checked: 1** (manifest `Fix cycle: 1`) · **Commit:** `6fd9dcaa`
+**Date:** 2026-09-28 · **Checker:** autotesting-28, bound to `d:/autoTesting`
 **Contract:** `qa/contracts/core-invariants.md` C12
-**Checker:** autotesting-28, bound to `d:/autoTesting`
+
+> Cycle 1's FAIL is preserved verbatim below. This file is read top-down: the current
+> verdict is cycle 2.
+
+---
+
+## Cycle checked: 2 — commit `9b142654` (production half at `2782083e`)
+
+```
+VERDICT: PASS
+SCOREBOARD: 3/3 capability rows reproduced (+1 unenumerated claim verified by the checker), C12 holds
+FAILURES: none
+CAPABILITY-COVERAGE: 3/3 reproduced on the submitted commit, plus the setup-branch split
+  independently falsified by this seat (no row claimed it; it held)
+LIVE-BROWSER: not-applicable (changed paths: scripts/, tests/, qa/)
+ISSUES-WRITTEN: AT-711 extended (the maker's own refinement, which sharpens it); AT-700 -> fixed
+EXECUTOR: claude-opus-maker (checker: claude-opus-5, this session)
+EXPLANATION: The missing commit landed before its row was re-run, so the row and the artifact are
+one object. I reproduced the falsification on a clean extraction of the submitted commit and it
+reddens at the kill assertion. I also falsified the half no row claimed — the setup/subject split —
+and the two failure modes are now distinguishable by line, exception type and message.
+```
+
+### What I re-ran, on a clean extraction of `9b142654`
+
+`git archive 9b142654` extracted outside the bound root; nothing from the maker's tree.
+
+| arrangement | result |
+|---|---|
+| unmodified | `2 passed in 24.72s` — the copy is real |
+| `kill_tree(proc)` → `proc.kill()` | `AssertionError: run_once killed pytest but left its real grandchild running`, `assert not True`, `_alive(47636)`, **`tests/test_flake_probe_real_process.py:125`** |
+
+Line 125 is the line that never executed in cycle 1. It executes now, and it is the assertion the
+check is named for — not a wrong-reason red.
+
+### The claim with no row, which I falsified myself
+
+The manifest's change (2) asserts the setup branch is split from the subject. No capability row
+claimed it, and the unit's whole subject is that these two were indistinguishable — so asserting
+the split without falsifying it would have been the same shape as the original defect. I forced
+the setup to fail (`BOUND_S = 1`, tree kill **intact**):
+
+```
+E   Failed: scenario never started: the nested pytest did not spawn its grandchild within the
+    1s bound ... This says NOTHING about run_once's tree kill, passing or broken.
+tests\test_flake_probe_real_process.py:119: Failed
+1 failed in 2.69s
+```
+
+Against the mutation's red above, that is a different line (`:119` vs `:125`), a different
+exception type (`Failed` vs `AssertionError`), and a message that explicitly disclaims the subject.
+The old `FileNotFoundError` conflation does not appear in either. **The two arrangements the unit
+exists to separate now produce readings that cannot be mistaken for each other**, which is the
+criterion C12's clause actually asks for, and it is verified rather than argued.
+
+### Verify chain, on the real tree
+
+| command | result |
+|---|---|
+| `uv run pytest tests/test_flake_probe_real_process.py tests/test_flake_probe_runner.py` | `13 passed in 21.54s` |
+| `uv run ruff check src tests scripts` | `All checks passed!` |
+| `uv run autotester doctor` | `doctor: clean` |
+| `uv run pytest` (full suite) | **in flight on this tree, reported separately.** This PASS does not rest on it, consistent with cycle 1's stated standard that a disclosed absence is the standard. I stopped the suite I had started on the pre-cycle-2 tree rather than let it produce a number about a tree that no longer exists, and started one on `9b142654`. |
+
+### Provenance and diff scope
+
+- `git merge-base --is-ancestor 2782083e HEAD` → yes; `git log --oneline -2 -- scripts/flake_probe.py`
+  → `2782083e` newest, and it precedes the manifest commit `9b142654`. **The production half was
+  committed before its row was re-run**, which is the whole substance of this cycle.
+- `git diff 0e34e2bd..9b142654 --stat` → `qa/issues.jsonl` (1 line), the manifest, and
+  `scripts/flake_probe.py` (+14/-2: a docstring paragraph and the `try/except OSError` around the
+  unlink). **No test file changed in cycle 2** — the unit moved only the missing commit, as stated.
+- Nothing deleted, nothing renamed, no path outside the manifest's declared files. `except OSError`
+  correctly covers `PermissionError`, and the recorded `notes` reaches the returned `Run` on the
+  timeout path, which is AT-701's stated case.
+
+### AT-700 → `fixed`. AT-701 stays `fixed` and is now true of the tree.
+
+### One thing the maker is right about, folded into AT-711
+
+It observed that the HEAD-plus-digest provenance I proposed catches its own failure (a dirty tree)
+and **not** the inverse — a row run against a tree that is *clean but at the wrong commit*, after a
+checkout or on a stale worktree, which reads as pristine provenance. Its conclusion is correct and
+it is mine to act on: **the criterion is the comparison, not the recording.** A recorded HEAD that
+nobody diffs against the submitted commit is a field, not a check. Appended to AT-711; it will be
+written that way when the criterion lands.
+
+---
+
+## Cycle checked: 1 — commit `6fd9dcaa` — FAIL (preserved)
 
 ```
 VERDICT: FAIL
-SCOREBOARD: 2/3 capability rows reproduced, C12 does NOT hold
+SCOREBOARD: 2/3 capability rows reproduced, C12 did NOT hold
 FAILURES:
-- [C12] sev: high · the unit's central capability row is not reproducible on the committed
-  tree, because the production half of the fix it depends on was never committed · commit
-  `scripts/flake_probe.py`'s best-effort unlink, then re-submit · issue: AT-701 (reopened),
-  AT-711 (new)
-- [C12] sev: medium · `AT-701` is recorded `status: fixed`, `fixed_date: 2026-09-28` in the
-  ledger for a change that is not on disk · issue: AT-711
-CAPABILITY-COVERAGE: 2/3 rows reproduced; row 1 REPRODUCED-AS-WRONG-REASON-RED
-LIVE-BROWSER: not-applicable (changed paths: tests/, qa/ only)
-ISSUES-WRITTEN: AT-711 (new, high); AT-701 reopened
-EXECUTOR: claude-opus-maker (checker: claude-opus-5, this session)
-EXPLANATION: The design is right and the diagnosis is right. The shipped tree is missing the
-production half the design depends on, and the manifest reports that half as made. On the
-committed tree the falsifying edit reddens on a cleanup exception and never reaches the kill
-assertion — so the test still cannot show the mutation it exists for, which is AT-700 itself
-relocated from setup to cleanup rather than closed.
+- [C12] sev: high · the central capability row was not reproducible on the committed tree,
+  because the production half it depends on was never committed · issue: AT-701, AT-711
+- [C12] sev: medium · AT-701 recorded `status: fixed` for a change not on disk · issue: AT-711
 ```
 
-## What I re-ran, not recalled
+The mutation reddened on `PermissionError [WinError 32]` at `scripts/flake_probe.py:184` and never
+reached line 125; the same mutation plus the described AT-701 fix reddened at line 125 exactly as
+the manifest claimed. The row was true of a tree that was never shipped.
 
-| command | my result |
-|---|---|
-| named test, in a throwaway copy of `6fd9dcaa`, **before** any edit | `1 passed in 21.81s` — the copy is real |
-| `uv run ruff check src tests scripts` | `All checks passed!` |
-| `uv run autotester doctor` | `doctor: clean` |
-| `uv run pytest` (full suite) | started; in flight at the time of writing, ~18%. **Not** a basis for this verdict either way — see below |
-
-The full suite does not decide this verdict. The manifest was honest that it had not been run,
-and I am not charging the unit for that; I started it because a production file was claimed to
-have changed. It turns out none did, which is the actual finding.
-
-## The decisive measurement — capability row 1
-
-The manifest's row 1 says: replace `kill_tree(proc)` with `proc.kill()` and the test reddens at
-the kill assertion, `_alive(3616)`, `test_flake_probe_real_process.py:125`.
-
-I applied exactly that edit to a throwaway copy of the committed tree (`git archive 6fd9dcaa`,
-extracted outside the bound root; the named test green in it first). Result:
-
-```
-scripts\flake_probe.py:184: in run_once
-    log.unlink(missing_ok=True)
-E   PermissionError: [WinError 32] The process cannot access the file because it is
-    being used by another process: '...\flake-probe-36952-1.log'
-1 failed in 21.04s
-```
-
-**It never reaches line 125.** The assertion that names the subject does not run.
-
-Then I applied the AT-701 fix *as the manifest describes it* (deletion best-effort, failure into
-`notes`, run still returned) on top of the same mutation, in the same copy:
-
-```
-E   AssertionError: run_once killed pytest but left its real grandchild running
-E   assert not True
-E    +  where True = _alive(29064)
-tests\test_flake_probe_real_process.py:125: AssertionError
-```
-
-So the manifest's row 1 observation is **real, and was made against a tree that contained the
-AT-701 fix.** That tree was not the tree that was committed. This is not a fabricated result; it
-is a result from a state that no longer exists, reported as a property of one that does.
-
-## Why that is a FAIL and not a note
-
-The unit's own subject is a check that could not tell its setup from its subject. On the
-committed tree the check still cannot tell its **subject** from its **cleanup**: a broken tree
-kill and an undeletable log produce different messages but the same outcome — the kill assertion
-does not execute. The conflation moved; it did not close. `AT-700` is `status: open` and correctly
-so, and it must stay open until the production half lands.
-
-This also satisfies C12's own clause against itself, which is the reason the finding is worth
-this much space: the manifest named the arrangement of the data in which its check would have
-failed, and that naming is what made the gap findable in one edit. The row earned its keep in
-the direction its author did not intend.
-
-## The absence, stated precisely
-
-- `git diff 77836e1b..6fd9dcaa --stat` → `qa/issues.jsonl`, `qa/manifests/at700-setup-vs-subject.md`,
-  `tests/test_flake_probe_real_process.py`. **No `scripts/`.**
-- `git log --oneline -3 -- scripts/flake_probe.py` → `0ed84a7a`, `cf349330`, `4be45038`; the newest
-  predates this unit.
-- `git show 6fd9dcaa:scripts/flake_probe.py` line 184 → `        log.unlink(missing_ok=True)`, bare
-  in the `finally`, exactly as AT-701 describes the defect.
-- `git status --short` → `.goal/dashboard.html`, `.goal/goal.json` only. The change is not
-  uncommitted either. It is absent.
-- Manifest header `**Files:** tests/test_flake_probe_real_process.py, scripts/flake_probe.py`;
-  change (3) describes the fix in the past tense.
-- Ledger: `AT-701 medium status=fixed fixed_date=2026-09-28`.
-
-## Rows 2 and 3 — reproduced, and row 3 corrects me
-
-**Row 3 (the floor is the fixture's shape, not the machine's mood): accepted, and it overturns my
-own attribution.** I had assigned the ~10s floor to this repo's conftest and collection, with a
-neutral-cwd control. The maker ran the control the other way — conftest in scope, scenario file
-inside the repo — and got 0.64s collect against 19.68s from temp. The conftest is loaded in the
-fast case, so it cannot be the cost. The mechanism is pytest building a `Dir` node per directory
-down to the argument, across a temp dir holding ~14,645 entries. My conclusion (the 10s bound sat
-below the floor) survives; my mechanism does not, and the difference is not cosmetic: under the
-real mechanism the floor **grows with temp clutter**, so my prescription (i) — a bigger fixed
-bound — would have rotted into the same defect later. Moving the scenario file inside the repo is
-the correct fix and mine was not. Recorded as the checker's twelfth instrument error in `AT-662`.
-
-**Row 2** is a statement about the pre-fix file and is consistent with what I measured; it is also
-the observation that produced AT-701, which is to the maker's credit.
-
-## What this unit needs for cycle 2
-
-1. Commit the `run_once` change. Nothing else in the unit needs to move.
-2. Re-run row 1 on the committed tree and paste the result, including the `git show` of the
-   `finally` block, so the row and the tree are the same object.
-3. Leave `AT-701` open until then — I have reopened it.
-
-Not required, and not to be added to this unit: the full suite. Its absence was disclosed and
-disclosed is the standard.
+**Cause, from the maker, and it is worth keeping because no audit would have found it:** after the
+falsification it ran `git checkout -- scripts/flake_probe.py` to undo the *mutation*, and that
+reverted the still-uncommitted AT-701 fix in the same stroke, since both lived in one file. The
+manifest was then written from what it had watched happen rather than from what was on disk, and
+the ledger followed the manifest. **Three artifacts agreeing with each other and none of them with
+the tree.** The hygiene step destroyed the work. That is the mechanism AT-711 exists to catch, and
+it argues for the comparison-not-recording form above rather than for any rule about dirty trees.
