@@ -1497,3 +1497,31 @@ should treat a shape-A fixture as a finding in its own right rather than a weak 
 have produced a *correct-looking* instruction ("don't trust the fixture") attached to a false fact,
 and a build following it would most likely have written shape A anyway while believing it had been
 warned. A wrong mechanism with a right conclusion is harder to catch than a wrong conclusion.
+
+### AT-699 follow-up — `autotester sweep stamp` writer (queued 2026-09-28, maker decision, no gate)
+
+Peer-filed AT-699: `qa/.last-sweep` is append-only **only because each checker notices the file
+already has content**. `date -u > qa/.last-sweep` replaced 15 lines of history with one, including
+the only record of the AT-670 id-collision correction and of AT-692's measurements. Self-caught
+before any commit — by a formatting diff run for an unrelated reason, not by care — and restored
+with `git checkout --`.
+
+The structural comparison is the argument: `docs/DECISIONS.md` has a PreToolUse hook and a single
+writer; `docs/FEATURES.jsonl` has `ledger add` plus two id guards; this file has neither.
+
+**Decision taken by the maker, not routed to Umesh.** Two fixes were proposed; the split is:
+
+- **(a) `autotester sweep stamp`, the FEATURES.jsonl pattern — TAKEN.** A `src/` change on a surface
+  with no enforcement path and no contract, so it is ordinary maker work under the standing rules and
+  needs no human decision. It also gives the stamp line a schema, which is the part that outlasts the
+  bug. Queued behind AT-697.
+- **(b) extend `.claude/hooks/decisions-append-guard.ps1` to cover this file — HELD, deliberately not
+  folded into AT-668.** It is an enforcement path and would need `Approved-by: Umesh`. Folding it into
+  AT-668 would turn that gate from one narrow checkable ask (`qa\hooks\` is missing from the
+  `$isEnforcement` list at `:92-94`) into a two-question gate, and a two-question gate is how a gate
+  stops being answered. If (a) ships and the stamp is still clobbered, (b) returns as a gate with
+  evidence behind it rather than a hypothetical — a better gate for having waited.
+
+**Not routed to Umesh at all** — his queue is at seven items, two of them blocking real units.
+Manufacturing a gate out of ordinary maker work makes the queue longer without making any decision
+more informed.
