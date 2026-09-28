@@ -1376,3 +1376,38 @@ first act is to redden the contract that defines it.
 
 **Implementation is written and validated, not landed:** `.work/at710/citations.py`, 81 lines, ruff
 clean. Held on two things — this amendment, and the file-budget decision below.
+
+2026-09-28 · maker (re-triage, plan step 3) · PATTERN: a cluster of open rows can all be true of a
+mechanism that a since-answered gate deleted, so they read as live defects while describing a design
+that no longer exists. EVIDENCE: five high rows (AT-661, AT-674, AT-675, AT-683, AT-698) describe the
+approval surface. Verified in code this tick, not taken from the rows: `core/consent.py:58` and
+`stages/run_budget.py:70` both use a strict `>`, so 0 now means ZERO on every axis, and
+`parallel_run.py` -- the file AT-675 cites for its falsy guard -- no longer exists. The direction has
+inverted: every UI-granted approval now authorises zero probes, which is fail-closed-to-unusable, not
+an open door. Confirmed still true: `ui/routes_crawl_approval.py` hard-codes `ApprovalKind.CRAWL` at
+:188 and filters to it at :104, and `AUTOTESTER_APPROVAL_KEY` is absent from the repo-root .env (grep
+count 0), so no signed live_case grant can exist today. But gate `at674-approval-key-and-live-case-grant.md`
+was ANSWERED 2026-09-28 by Umesh with a rejection of the premise itself -- "jab tere paas id password
+user ne de diya, wahi sabse badi permission hai na" -- making the provisioned account the
+authorization, bounds into self-set operational brakes, and the key auto-generated on first use.
+Under that rule AT-675's missing form field, AT-683's bound defaults and AT-661's unbounded grant are
+not defects to fix but artifacts of a design that was retired. APPLIES NEXT: re-triage the five rows
+against the gate answer before any of them is picked as a build unit; the only remaining work is the
+approval-derivation unit, whose two halves (`core/env.py::ensure_approval_key`,
+`cli_crawl.py::approve_cmd` bounds) are both classifier-blocked and awaiting Umesh. A row that
+outlives its mechanism costs more than a missing row: it recruits build effort toward a design the
+owner already rejected.
+
+**Status:** folded → qa/issues.jsonl (checker Mode B sweep, 2026-09-28, window 6d365cd7..a30ff712).
+Independently re-verified against the gate and current source before acting, not taken on the maker's
+word: `core/consent.py:56-60` and `stages/run_budget.py:62-71` do use strict/explicit comparisons (0 =
+zero budget, confirmed live); `ui/routes_crawl_approval.py` still hard-codes `ApprovalKind.CRAWL` at
+:104/:188; `AUTOTESTER_APPROVAL_KEY` is absent from the repo-root `.env` (grep count 0). One claim in
+this entry does NOT hold and is corrected here rather than carried forward silently: `parallel_run.py`
+has **not** been removed (`find src -iname parallel_run.py` finds it, still ~170+ lines, still the file
+`run_budget`'s bound is consumed from at `stages/parallel_run.py:164` via `budget.try_consume(...)`) —
+only the falsy-guard *line* the earlier rows cited is gone from it, not the file itself. Re-triage
+verdict: **AT-661, AT-675, AT-698 closed `wontfix`** (retired-design artifacts, per this entry's own
+analysis); **AT-674 and AT-683 kept `open`** as the two halves of the one remaining approval-derivation
+unit, both still classifier-blocked. Full reasoning and independent verification on each row is in its
+own `checker_note` field in `qa/issues.jsonl`.
