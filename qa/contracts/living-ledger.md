@@ -103,6 +103,35 @@ human instead of silently rebuilt. It is the product's **overview, not a logger*
 - **Verify:** `uv run autotester doctor` reports a violation for a ledger holding two rows with one
   id, and `uv run pytest` covers the two-rows-one-id reader case. **Links:** AT-656.
 
+**L9 — a cited decision id must resolve to an appended entry.** Any `D-NNN` written into
+`qa/gates/*.md`, `qa/contracts/*.md`, `qa/manifests/*.md`, `qa/verdicts/*.md` or `docs/*.md` names
+an authorization, and a reader cannot tell a real one from an absent one by looking at the
+citation. So the citation is checked, not trusted.
+
+- **The failing shape, measured.** `qa/gates/at654-d029-dev-only-vs-production-pathlynks.md` states
+  *"`qa/gates/write-policy-tier.md` is closed and `ALLOW_WRITES` stands (D-053, D-056)"* and again
+  attributes Umesh's 2026-09-27 direction to *"`qa/gates/pathlynks-user-account-first.md`, D-056"*.
+  **D-056 did not exist.** `grep -rhoE '^## D-[0-9]+' docs/DECISIONS.md docs/archive/ | sort -u |
+  tail -5` returned D-051..D-055. The decision was taken, announced in prose, and never appended.
+- **What it cost, which is the reason this is a criterion and not a lint.** The question D-056 was
+  supposed to close came back to the human a third time on 2026-09-28 (*"hum usi conversation ko
+  das barah baar repeat kar chuka hoon main"*). The append-only log exists precisely so a decision
+  is asked once; a phantom citation defeats that while looking exactly like the thing that serves it.
+- **It fails in both directions and the second is worse.** Work may proceed on consent that was
+  never recorded, and work may be HELD on consent that was in fact given — which is what happened
+  here for a full day, to `T-145` and to the write tier.
+- **Why nothing caught it.** `scripts/append_decision.ps1` validates V3 (sequential id, never
+  reused) on **write**, so the log itself cannot contain a gap. There is no check on **read**, and
+  `autotester doctor` verifies router coverage and generated-section freshness, not cross-references.
+  The guard is on the only surface that was never at risk.
+- **Verify:** `uv run autotester doctor` reports a violation naming the file, line and unresolved id
+  for a `D-NNN` citation with no matching `## D-NNN` header across `docs/DECISIONS.md` **and**
+  `docs/archive/` (an archived entry resolves — archiving is not deletion). A citation inside a
+  fenced code block, or one written as a negative statement of absence, is not a violation; the
+  check reads headers, so this criterion's own sentence *"D-056 did not exist"* must not fire it,
+  and that case is the test fixture rather than an afterthought. **Links:** AT-710.
+
+
 ## Out of scope
 The UI view of the ledger (T-100); auto-inferring `user_value` from run data (suggestion source
 only, later); Google-Sheet sync.
@@ -138,3 +167,16 @@ only, later); Google-Sheet sync.
   deliberately does NOT require the ten pairs to be removed. **Changes-authorized:**
   qa/contracts/living-ledger.md L8 + Amendment log (this entry). No enforcement-path file touched.
   **Links:** AT-656; AT-645; AT-496; qa/contracts/core-invariants.md C12(b); qa/QUEUE.md.
+- 2026-09-28 - routine (add) - L9 added: a `D-NNN` cited in any gate, contract, manifest, verdict
+  or doc must resolve to an appended entry, checked by `autotester doctor` across DECISIONS.md and
+  docs/archive/. Cause: AT-710 (high) - `qa/gates/at654-d029-dev-only-vs-production-pathlynks.md`
+  cited D-056 twice as the entry authorizing Pathlynks `allow_writes`, and the highest id on disk
+  was D-055 across live and archive together. Measured consequence, not hypothetical: the write-tier
+  question reached Umesh for a third time on 2026-09-28 because the 2026-09-27 answer was recorded
+  only in prose. `append_decision.ps1` V3 already makes a gap impossible on WRITE; nothing checked
+  on READ, so the guard sat on the one surface that was never at risk. L9 is additive - no existing
+  criterion weakened, and it deliberately does NOT require the phantom citation to be edited out of
+  the gate file: the gate now carries the correction as history, which is the same discipline L8
+  applies to duplicate rows. **Changes-authorized:** qa/contracts/living-ledger.md L9 + Amendment
+  log (this entry). No enforcement-path file touched. **Links:** AT-710; AT-711;
+  qa/gates/at654-d029-dev-only-vs-production-pathlynks.md; qa/gates/write-policy-tier.md.
