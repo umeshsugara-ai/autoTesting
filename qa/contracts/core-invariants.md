@@ -427,6 +427,16 @@ judgements and only the second was wrong.
   also the sense in which SKILL step
   4b's green-before-the-edit requirement and C7's sabotage row are the same rule as this one — each
   demands the falsifying arrangement exist before the pass is believed.
+  **The in-tree exemplar to imitate, which predates this clause:**
+  `tests/test_ui_video_route_traversal.py::test_safe_video_path_never_calls_resolve_for_a_dangerous_value`.
+  Its docstring names the arrangement in which it reddens ("deleting the guard — `run_dir.resolve()`
+  then raises, uncaught"), says it was confirmed in a throwaway copy with the guard's two lines
+  removed, and exists *because* the timing-based test above it might pass for reasons unrelated to the
+  guard ("regardless of how fast or slow a real OS-level UNC lookup happens to be"). That is this
+  clause satisfied in full, by a test written before the clause existed, and it is the shape to copy:
+  the falsification is stated in the test, not left for a reader to reconstruct. A sweep of all 207
+  test modules on 2026-09-28 found no check in violation — and that sweep's own limit is recorded with
+  it in the Amendment log, because it could only see the class an AST can express.
 
 ## No-fire list (do not raise these as findings)
 
@@ -919,3 +929,24 @@ judgements and only the second was wrong.
   overstatement was its own. Additive; no clause weakened. **Changes-authorized:**
   qa/contracts/core-invariants.md C12 final clause + Amendment log (this entry). No enforcement-path
   file touched. **Links:** AT-662; AT-661; AT-660; AT-675; AT-676; AT-697.
+- 2026-09-28 - routine (extend) - C12's degenerate-check clause gained the in-tree exemplar that
+  satisfies it, found by sweeping all 207 test modules against the clause the same day it was written.
+  THE SWEEP FOUND NO VIOLATION, and the candidates it did surface were each read rather than counted:
+  one textual self-compare (`Case(**kwargs).id == Case(**kwargs).id`) is a determinism test over two
+  distinct objects and can fail; four no-assertion tests are legitimate does-not-raise tests, two of
+  them paired with a `pytest.raises` negative directly above; and of 15 tests that patch a name sharing
+  a word with their own, every one read patches a COLLABORATOR to observe a call rather than its own
+  subject. The exemplar cited in the clause is
+  test_safe_video_path_never_calls_resolve_for_a_dangerous_value, which names its own reddening
+  arrangement, records that it was confirmed in a throwaway copy with the guard removed, and exists
+  because the timing-based test above it could pass for reasons unrelated to the guard - the clause
+  satisfied before the clause existed. THIS SWEEP'S OWN LIMIT, stated because the clause demands it of
+  any check: it is an AST scan, so it can only see vacuity expressed in an ASSERTION. It cannot see the
+  class that actually occurred on 2026-09-28 - vacuity in the FIXTURE's construction (AT-697's shape-A
+  freshness fixture, which passes whether or not the implementation normalises) - nor a test that mocks
+  the very subject it asserts about, beyond the name-overlap heuristic used here. The arrangement in
+  which this sweep would have failed is therefore a repo full of shape-A fixtures, and it would have
+  reported clean. **That class remains unmeasured**; no row is filed because none was found, not
+  because the surface was covered. Additive; no clause weakened. **Changes-authorized:**
+  qa/contracts/core-invariants.md C12 final clause + Amendment log (this entry). No enforcement-path
+  file touched. **Links:** AT-662; AT-697; AT-695.
