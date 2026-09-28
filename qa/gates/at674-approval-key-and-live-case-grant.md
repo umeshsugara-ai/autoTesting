@@ -152,3 +152,54 @@ signed or backfilled, and the build agent was instructed in writing not to weake
 bypass flag or a dev-mode escape to make T-122 runnable — that would reinstate the fail-open defect
 the unit exists to remove. If it judges the unit cannot be both fail-closed and T-122-compatible
 without one, it must say so in Disclosures and leave it here.
+
+---
+
+## UPDATE 2026-09-28 — AT-570 has now LANDED, so the refusal in this gate is live
+
+`wave/at570-live-case-approval` merged at `e303f5e4` on a checker PASS (cycle 1, verdict
+`qa/verdicts/at570-live-case-approval.md`, all eleven capability rows independently falsified by the
+checker in its own isolated copy). The sequencing cost this gate predicted is no longer a prediction:
+**every UI case run is refused today until a signed `live_case` approval exists.** Steps 1-5 above are
+now the live procedure, not a plan.
+
+### One new fact that changes the procedure, found by the checker and NOT disclosed in the build's manifest
+
+**`AT-698` (high).** The UI cannot create a `live_case` approval **at all**:
+`ui/routes_crawl_approval.py:188` hard-codes `run_kind=CRAWL` on the row it writes, and `:104` filters
+the table to `CRAWL`, so a `live_case` row granted by CLI is not even visible in the UI list. F-042
+shipped "complete no-CLI crawl approval"; after this merge **the same operator can no longer start a
+run without touching the CLI.**
+
+This does not change what you do — step 4 already says to paste the command the refusal prints, and
+the refusal renders as a themed HTML page carrying that exact command. It changes what you should
+expect: **do not go looking for a grant button in the UI. There isn't one, and the absence is a filed
+defect rather than something you have missed.** One edit to `routes_crawl_approval.py` closes AT-698
+and AT-675 together, and it is queued.
+
+The checker called the manifest's silence on this *"the one place this manifest fell short of its own
+standard"* — it disclosed the narrower `max_probes` field gap and the "CLI is the intended path" note,
+and never stated that the no-CLI surface can no longer start a run. That judgement is recorded here
+rather than softened, because this gate is where you would have discovered it the hard way.
+
+### A SECOND decision now sitting with you, and it is genuinely open
+
+**Ratify or reverse: `0` means ZERO BUDGET on both sides.** `AT-660` was that `0` meant two opposite
+things — a zero budget at the gate (`consent.py:56`, bare comparison) and *no bound at all* during the
+run (`parallel_run.py`, truthiness guards, where `0` is falsy and the check short-circuits). The build
+closed that by making `0` mean zero budget everywhere, which is the fail-closed direction.
+
+**The build chose that. No human ratified it.** CN10's ratification clause is why the checker said so
+out loud instead of letting a PASS imply agreement, and why all three field descriptions in
+`schema/approval.py:56-79` carry "ZERO MEANS ZERO" **plus** the sentence that it awaits ratification.
+
+- **Ratify** and `0` stays a zero budget: a bound left at `0` refuses everything, loudly and early.
+- **Reverse** and `0` means unbounded: convenient, and it reinstates the shape where the least-bounded
+  approval is the one that looks most innocuous — which is exactly how `appr_d89c9e3c61fd` came to
+  carry `max_probes=0` and a 19-year clock without anyone noticing.
+
+**The maker recommends ratifying**, for one reason: `0` is what the CLI writes when a bound is
+omitted (`cli_crawl.py:241-243`, every bound defaulting to `0` with no `min=`), so under "reverse" the
+command whose job is to set limits would grant unlimited consent by default. Under "ratify" the same
+omission refuses the run and prints a command with real numbers. **It is your call, and the code is
+already in the reversible direction, so either answer is cheap today and neither is cheap later.**
