@@ -124,12 +124,34 @@ citation. So the citation is checked, not trusted.
   reused) on **write**, so the log itself cannot contain a gap. There is no check on **read**, and
   `autotester doctor` verifies router coverage and generated-section freshness, not cross-references.
   The guard is on the only surface that was never at risk.
+- **A foreign id space is not this log's, and must not be resolved against it.** `docs/DECISIONS.md`
+  already cites `D-088` twice — `:623` in prose and `:638` as *"**Links:** D-088 (the outage failure
+  that prompted this), `D:/ai_os/umesh/decisions/log.md` 2026-09-22"*. That is a real decision in the
+  AIOS personal log, a different `D-NNN` id space, and it will never resolve here. **Scope is the
+  ENTRY, not the line:** within `docs/DECISIONS.md` an id qualified by a path to another decisions
+  log anywhere in the same `## D-NNN` entry is out of scope wherever it appears in that entry — `:623`
+  carries no path on its own line and is qualified by `:638`, so a line-scoped rule is still false.
+  Out of scope means **not resolved and not reported**, never "reported and ignored".
+- **A non-claiming occurrence is declared, not inferred.** Quoting a defective citation as evidence,
+  or discussing a known-phantom id, is not an authorization claim — but no check can read that off
+  the prose, and the attempt is what made the first draft of this criterion wrong. So such an
+  occurrence is declared in an allow-list carrying **the reason**, exactly the discipline L8 applies
+  to grandfathered duplicate ids. Per occurrence, with a reason. **Never per file.**
+- **No whole-file exemption, and `docs/DECISIONS.md` least of all.** That file is where a phantom
+  citation is most consequential, so greening this check by silencing it there is silencing with
+  extra steps — the C12 shape in a different costume. This sentence exists because the maker was
+  offered exactly that shortcut by its own measurements on 2026-09-28, declined it, and held the
+  unit instead; the refusal belongs in the criterion rather than in one session's judgement.
 - **Verify:** `uv run autotester doctor` reports a violation naming the file, line and unresolved id
   for a `D-NNN` citation with no matching `## D-NNN` header across `docs/DECISIONS.md` **and**
-  `docs/archive/` (an archived entry resolves — archiving is not deletion). A citation inside a
-  fenced code block, or one written as a negative statement of absence, is not a violation; the
-  check reads headers, so this criterion's own sentence *"D-056 did not exist"* must not fire it,
-  and that case is the test fixture rather than an afterthought. **Links:** AT-710.
+  `docs/archive/` (an archived entry resolves — archiving is not deletion), excluding the two classes
+  above. Header-matching, never substring-matching. Three fixtures, and each is a shape that has
+  already occurred in this repo rather than an invented one: (a) this criterion's own sentence
+  *"D-056 did not exist"* must not fire it; (b) a cross-log citation qualified only elsewhere in its
+  entry must not fire it; (c) the seven real `D-056` citations across
+  `qa/gates/at654-d029-dev-only-vs-production-pathlynks.md` (:8, :18, :63) and
+  `qa/gates/pathlynks-user-account-first.md` (:31, :35, :38, :67) must **all** fire it. **Links:**
+  AT-710; AT-711.
 
 
 ## Out of scope
@@ -180,3 +202,27 @@ only, later); Google-Sheet sync.
   applies to duplicate rows. **Changes-authorized:** qa/contracts/living-ledger.md L9 + Amendment
   log (this entry). No enforcement-path file touched. **Links:** AT-710; AT-711;
   qa/gates/at654-d029-dev-only-vs-production-pathlynks.md; qa/gates/write-policy-tier.md.
+- 2026-09-28 - routine (correct + extend) - L9 amended before it was ever enforced: a foreign id space
+  is out of scope with ENTRY (not line) granularity; a non-claiming occurrence is declared in an
+  allow-list with its reason rather than inferred from prose; no whole-file exemption, and
+  `docs/DECISIONS.md` least of all. Cause: the maker implemented L9 against the real repo and found
+  the criterion **false as written**, twice, in the authority file itself - `docs/DECISIONS.md:623`
+  and `:638` cite `D-088`, a real decision in the AIOS personal log
+  (`D:/ai_os/umesh/decisions/log.md`), which is a different `D-NNN` id space and will never resolve
+  here. L9 said a cited id "must resolve to an appended entry" and named only DECISIONS.md and
+  docs/archive/, so enforcing it verbatim would have filed permanent violations against correct
+  citations. It also fired 6 times on quotation and on discussion of the phantom; the exemption the
+  first draft named ("a negative statement of absence") was narrower than the shapes L9's own prose
+  uses, and that gap was visible only from an implementation - the checker drafted the self-reference
+  fixture and still missed 4 of the 6. **The maker was offered the cheap fix (exempt DECISIONS.md)
+  by its own measurements and declined it**, holding the unit and asking for an amendment instead;
+  that refusal is now written into the criterion so no later session takes the shortcut. The
+  implementation also found MORE of the original defect than AT-710 recorded: `D-056` is cited 7
+  times across TWO gate files, not twice in one - `at654` (:8, :18, :63) and
+  `qa/gates/pathlynks-user-account-first.md` (:31, :35, :38, :67), the second file absent from
+  AT-710's description, and `:35` of it rests on the phantom for the `write_policy: read_only`
+  claim. Corrective, not weakening: every true violation L9 was written to catch still fires, and
+  the fixture list is now three shapes that have occurred here rather than one invented.
+  **Changes-authorized:** qa/contracts/living-ledger.md L9 + Amendment log (this entry). No
+  enforcement-path file touched. **Links:** AT-710; AT-711; AT-662; qa/feedback-inbox.md 4a1b51f9;
+  docs/DECISIONS.md:623,638.
