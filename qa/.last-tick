@@ -530,3 +530,37 @@ tick 33t | 2026-09-28 | ADVANCED
     at570 checker's brief. Nothing puts that in a brief that has not been written yet, and nothing
     carried it to either seat. It belongs in the template, not in a memory of having been careful.
   next: at570 checker verdict -> close-out/merge; at697 needs the host-file call + a free slot
+
+tick 33u | 2026-09-28 | ADVANCED
+  state: ADVANCED -- at570 closed out on a checker PASS and merged; push HELD pending the post-merge suite
+  wave=33u · both at570 agents returned · RAM freed · dispatched: 0 (nothing left needing a subagent)
+  did:
+    - at570-live-case-approval: VERDICT PASS cycle 1 (Cycle checked 1 == Fix cycle 1, reviewed a169d45a).
+      The checker broke all ELEVEN capability rows itself, not the three asked, in its own git-archive
+      copy; every row reproduced exactly. Manifest flipped to checked-PASS (47eef965), checker surfaces
+      committed (d726ca1f), merged --no-ff at e303f5e4.
+    - verified the close-out preconditions rather than taking them on report: a169d45a..HEAD is
+      manifest-only; the single post-1fdba241 code change is 3 lines in one test body INSIDE the
+      reviewed SHA and separately falsified as row 9.
+    - AT-570 and AT-660 flipped to `verified`; doctor had been failing `ledger-row-stale` on both.
+      doctor: clean. ruff: All checks passed.
+    - THE MERGE ITSELF CREATED TWO NEW ID COLLISIONS, 10 -> 12. Not the known shape and not what the
+      checker's simulation could have caught: its check (branch-only AT-680..683 vs master-only
+      AT-662..697) was correct, because the collision came from master and the branch each AMENDING
+      THE SAME EXISTING ROW. merge=union merges lines, not records. THIRD SHAPE:
+        AT-288..291, AT-547..552  different findings sharing an id  -> renumber, never merge
+        AT-660, AT-661            same finding, two amended versions -> merge, never renumber
+      Neither version was a superset, so both texts are preserved verbatim under one row. The general
+      consequence: amend-in-place is UNSAFE on a union-merged file, and nothing catches it today.
+    - the file grew by 2 rows (AT-708/709, peer, inside its reserved block) BETWEEN my read and write,
+      third time this session. Nothing lost only because I checked id-by-id against HEAD instead of
+      trusting the count: 713 in, 2 merged, 2 arrived, 713 out -- the arithmetic is clean by coincidence.
+    - warned the peer OFF AT-698 before it allocated it (the checker had taken it minutes earlier), and
+      withdrew the practice of handing over a "next free id" at all: a number I compute is a snapshot
+      with no lock behind it, and handing it over makes it look more authoritative than my own read was.
+    - AT-674 gate updated: the refusal is live now, the UI cannot grant a live_case approval (AT-698),
+      and a SECOND decision is open -- ratify or reverse 0 = zero budget (maker recommends ratify).
+  PUSH HELD, deliberately: D-007 pre-authorises it on a checker-PASS commit, but the checker verified
+    the BRANCH and the thing being pushed is the MERGE. Running the full suite on merged master first;
+    pushing before it reports would be the maker validating its own ship.
+  next: post-merge suite -> push; then AT-697 (needs Umesh's host-file call) and the T-171 line
