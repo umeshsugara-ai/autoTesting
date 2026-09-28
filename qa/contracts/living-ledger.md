@@ -148,10 +148,20 @@ citation. So the citation is checked, not trusted.
   above. Header-matching, never substring-matching. Three fixtures, and each is a shape that has
   already occurred in this repo rather than an invented one: (a) this criterion's own sentence
   *"D-056 did not exist"* must not fire it; (b) a cross-log citation qualified only elsewhere in its
-  entry must not fire it; (c) the seven real `D-056` citations across
+  entry must not fire it; (c) the seven real write-policy citations across
   `qa/gates/at654-d029-dev-only-vs-production-pathlynks.md` (:8, :18, :63) and
-  `qa/gates/pathlynks-user-account-first.md` (:31, :35, :38, :67) must **all** fire it. **Links:**
-  AT-710; AT-711.
+  `qa/gates/pathlynks-user-account-first.md` (:31, :35, :38, :67) must **all** fire it **while the
+  entry they name is unwritten** -- as of 2026-09-28 they name `D-057`, not `D-056` (AT-718).
+
+- **Resolution is necessary and not sufficient -- the SUBJECT must match too (added 2026-09-28,
+  AT-718).** Fixture (c) was written naming `D-056`, and on 2026-09-28 this seat appended a real
+  `D-056` on an unrelated subject (the at673 round-cap waiver). Every one of those seven citations
+  instantly began to RESOLVE while still being wrong, and a check that only asks "does `## D-NNN`
+  exist" would have gone green on all seven in the same stroke -- reporting the defect as fixed at
+  the exact moment it got harder to see. So the check may not treat a resolving id as clean on its
+  own: where a citation states what the entry authorizes, that claim is compared against the entry's
+  own **What:** field, and a mismatch is a violation in its own right. This is the C12 shape once
+  more -- a green that the construction, not the code, produced. **Links:** AT-710; AT-711; AT-718.
 
 
 ## Out of scope
@@ -226,3 +236,16 @@ only, later); Google-Sheet sync.
   **Changes-authorized:** qa/contracts/living-ledger.md L9 + Amendment log (this entry). No
   enforcement-path file touched. **Links:** AT-710; AT-711; AT-662; qa/feedback-inbox.md 4a1b51f9;
   docs/DECISIONS.md:623,638.
+
+- 2026-09-28 - CORRECTION (narrow, self-inflicted) - L9 fixture (c) amended and one bullet added,
+  because this seat invalidated the fixture by its own append. Appending D-056 as the at673
+  round-cap waiver (authorized by Umesh's option-B answer; `append_decision.ps1` V3 forces
+  max(existing)+1, so the id was not a free choice once the append ran) turned the seven phantom
+  write-policy citations from DANGLING into RESOLVING-BUT-WRONG. The avoidable error was ORDERING,
+  not the id: the write-policy entry should have been written first. Fixture (c) now names D-057
+  and is conditioned on the cited entry being unwritten, and L9 gains an explicit rule that
+  resolution alone is not cleanliness -- a citation stating what an entry authorizes is compared
+  against that entry's **What:**. Strengthening, not weakening: every violation L9 was written to
+  catch still fires, and one class it would have silently stopped catching now fires too.
+  **Changes-authorized:** qa/contracts/living-ledger.md L9 Verify + one L9 bullet + Amendment log
+  (this entry). No enforcement-path file touched. **Links:** AT-718; AT-710; AT-711; D-056.

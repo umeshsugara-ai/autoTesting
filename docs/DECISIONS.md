@@ -1565,3 +1565,55 @@ supersedes clause `:960` and `Changes-authorized` `:967`) · D-054 ·
 **Changes-authorized:** none. No `docs/ARCHITECTURE.md` prose change, no `.goal/goal.json` change (the
 deps array is already correct; the stale note is queued separately), no contract amendment. This entry
 is a clarification of two existing decisions, and it creates no new scope.
+
+## D-056 | 2026-09-28 | type: decision | status: ACTIVE
+
+**What:** Waive the D-014 round cap ONCE for the `qa/hooks/mc-sessionstart.ps1` seam, authorizing a
+single bounded cycle 2 of unit `at673-sessionstart-unclosed-detector` with exactly this scope and
+nothing beyond it: AT-713 (read the MAXIMUM cycle field, not the last one), AT-714 (drop the
+bare-whitespace alternative from the cycle boundary, keeping the heading-prefix allowance), and
+AT-715 (make the new test module's docstring raw). Cycle 1 as built and checked stands; round 4 is
+accepted. After cycle 2 PASSes the seam is closed again and any further visit needs a new waiver.
+This entry also retroactively supplies the authorization the cycle-1 code landed ahead of, which the
+manifest disclosed in writing at the time rather than landing silently.
+
+**Why:** The seam has 3 prior PASSes (`at097-session-start-hook-regression`,
+`at383-sessionstart-loop-status`, `t005-living-ledger`) against a non-security cap of 2, and this
+unit is the 4th visit. The maker escalated rather than argued past the cap, correctly declining both
+available escapes: it is an enforcement path, which is adjacent to the security class and not in it,
+and stretching the one into the other is the rationalisation the cap exists to stop.
+
+The evidence argues for the cap rather than against it, which is why the waiver is bounded to three
+named rows instead of reopening the file. Inside this single unit the seam produced four defects:
+two of the maker's own, caught by measuring (an anchored `^## Status:` read that would have silently
+skipped ~37 of 263 manifests; a `Fix cycle` pattern that broke on `**Fix cycle:** 2`), plus the
+checker's AT-713 and AT-714.
+
+What makes the fix worth spending a waiver on rather than filing as debt: AT-713 and AT-714 resolve
+to ONE change, and it is a correctness change, not a tightening. Cycle numbers only ever increase,
+so reading the MAXIMUM is correct under both orderings, while last-wins is correct only under the
+manifest ordering. LS6 is a rule about manifests and was applied to verdicts, which order their
+history the opposite way — measured over all 280 verdicts, 40 carry multiple cycle values, 39
+ascend and exactly one descends. Under max the bare-whitespace boundary becomes actively harmful
+rather than merely possible, so both rows land in the same cycle by necessity.
+
+Cycle 1 is a real fix and the waiver preserves it: the old phrase read flagged `t182-viewport-locale`
+(whose manifest merely keeps superseded history) and MISSED `at483-orphaned-running-crawl` (a genuine
+cycle-2 PASS never flipped). The headline count stayed 1 across the fix while the set inverted, which
+is why no capability row asserts a count. Option C (revert) would return the hook to that state
+permanently.
+
+**Result:** Cycle 2 authorized with the three-row scope above. Not authorized by this entry: any other
+change to `qa/hooks/mc-sessionstart.ps1`, and the separate question of whether `W` joins the ruff
+select list (AT-715's second half), which stays a contract question for the checker.
+
+**Changes-authorized:** `qa/hooks/mc-sessionstart.ps1` (enforcement path) — `Get-CycleNumber` only,
+for the max-over-last read and the boundary tightening; `tests/test_mc_sessionstart_unclosed.py`
+docstring.
+
+**Approved-by:** Umesh
+
+**Links:** AT-673 · AT-713 · AT-714 · AT-715 · T-673 · `qa/gates/at673-round-cap.md` (answered
+2026-09-28, option B) · `qa/gates/at673-sessionstart-unclosed-detector.md` (answered 2026-09-28,
+option A) · `qa/verdicts/at673-sessionstart-unclosed-detector.md` (cycle 1 PASS) ·
+`qa/contracts/loop-status.md` LS6 · `qa/contracts/core-invariants.md` C12 · D-014

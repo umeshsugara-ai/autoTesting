@@ -70,5 +70,25 @@ spend a decision entry on a hook.
 
 ## Answer
 
-<!-- Append one line here when answered:
-Answered: <ISO date> — <A|B|C> — <where> -->
+Answered: 2026-09-28 — **B** — Umesh, direct instruction in session, verbatim: *"Hook wale fix par
+faisla … Ya accept karo, ya ek aakhri fix allow karo, ya wapas lo --- allow"*.
+
+**Interpretation, stated so it can be corrected:** "allow" is read as **option B** — accept round 4
+AND authorize ONE bounded cycle 2 — not option A. Reason: A is "accept and change nothing further",
+which is not what "allow" asks for, and C is the explicit "wapas lo" he did not pick. B is the only
+option that both lets round 4 stand and permits the remaining fix. If B is wrong, the fallback is A
+and nothing already committed changes.
+
+**Scope of the authorized cycle 2, and nothing beyond it:**
+- AT-713 — read the **maximum** cycle field, not the last one.
+- AT-714 — drop the bare-whitespace alternative from the cycle boundary, keeping the heading-prefix
+  allowance the checker's strict variant proved is required.
+- AT-715 — make the test docstring raw. Whether `W` joins the ruff select list stays a separate
+  contract question and is NOT authorized here.
+
+Nothing else in `qa/hooks/mc-sessionstart.ps1` is opened by this answer. After cycle 2 PASSes, the
+seam is closed again and a further visit needs a new waiver.
+
+**Recorded as:** the authorizing `docs/DECISIONS.md` entry with `Approved-by: Umesh` — see the
+append attempt logged by the checker on 2026-09-28. This gate answer is the human record; the
+DECISIONS entry is its protocol form.
