@@ -6,7 +6,19 @@ is worse than no fix — anchoring only the visibly-wrong pattern makes the spur
 which removes the one symptom that motivates fixing the silent half. Whichever option you pick, it
 has to cover `:14`, `:16`, `:18` and `:21` together.* All four sites are covered below.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+**Verdict:** `qa/verdicts/at673-sessionstart-unclosed-detector.md` (`ded3fbfc`) — `Cycle checked: 1`,
+`VERDICT: PASS`, 8/8 criteria, 3/3 invariants, 5/5 capability rows reproduced, FAILURES: none.
+Verified on disk here rather than taken on report. The checker re-ran the whole suite alone and
+unpiped and got the same 2172/6/14/exit 0 as the block below, plus ruff, doctor, this unit's 5
+cases and the 9 LS5 cases.
+
+**Closing out does NOT open round 2.** The round cap above stands: AT-713/714/715 remain open,
+attributed, and unfixed, and the gate question at `qa/gates/at673-round-cap.md` is still Umesh's to
+answer. The checker's note is recorded here so a cycle 2 never re-derives it: cycle numbers only
+increase, so **MAX is correct under both orderings** while last-wins is correct under only one — if
+(B) is taken, that is the one-line change.
 
 **Fix cycle:** 1
 
