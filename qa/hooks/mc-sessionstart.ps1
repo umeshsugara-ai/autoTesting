@@ -1,6 +1,55 @@
 # maker-checker Layer 2 — session-start directive (pending-state aware, AUTO-CONTINUE)
 # SessionStart stdout is injected into the agent's context — a directive here is read as an
 # instruction, not just a status line.
+function Get-ManifestStatus($path) {
+  # AT-673/AT-669/AT-662: read the Status FIELD, not the phrase. Anchoring alone is not enough --
+  # measured on disk, the field has SIX shapes across 263 manifests: 234 `## Status:`,
+  # 20 `**Status:**`, 9 bare `Status:`, and t182 writes `## Status` as a bare heading with the
+  # value on a LATER line, `- **Status: x**` as a list bullet, and `## Status (cycle 2): x` with a
+  # parenthetical before the colon. An anchor that assumed `^## Status:` would have silently skipped ~37
+  # manifests -- a worse under-report than the over-report this gate was opened for, and the exact
+  # trap the gate warns about. The LAST field wins: manifests keep superseded cycles as history
+  # (LS6), so a first match reads a closed unit's earlier state as its current one.
+  $lines = @(Get-Content -Path $path -ErrorAction SilentlyContinue)
+  $status = $null
+  for ($i = 0; $i -lt $lines.Count; $i++) {
+    $rest = $null
+    if ($lines[$i] -match '^\s*[-*+]?\s*(?:#{1,3}\s*)?\*{0,2}Status\*{0,2}\s*(?:\([^)]*\))?\s*:\s*(.*)$') { $rest = $Matches[1].Trim() }
+    elseif ($lines[$i] -match '^\s*[-*+]?\s*(?:#{1,3}\s*)?\*{0,2}Status\*{0,2}\s*(?:\([^)]*\))?\s*\*{0,2}\s*$') { $rest = '' }
+    else { continue }
+    if ($rest -eq '') {
+      for ($j = $i + 1; $j -lt $lines.Count; $j++) {
+        if ($lines[$j].Trim() -ne '') { $rest = $lines[$j].Trim(); break }
+      }
+    }
+    $status = ($rest -replace '^\*+', '' -replace '\*+$', '').Trim()
+  }
+  return $status
+}
+
+function Get-CycleNumber($path, $names) {
+  # AT-673: read the cycle FIELD wherever it sits on the line, not only at line start.
+  # Measured on disk: 45 of 280 verdicts write it mid-line after a `-' separator
+  # (`**Date:** ... - **Cycle checked:** 1 - **Commit:** ...`), and some write
+  # `**Cycle checked: 1**` with the colon INSIDE the bold. A `^`-anchored read silently
+  # skipped all 45 and scored them -1, the same silent-skip class as the Status field.
+  # A fully unanchored read is not the answer either: sweep-2026-09-24.md quotes
+  # `Cycle checked: 1` inside a code span while describing a DIFFERENT file, and that
+  # would be read as this file's value. So the field must BEGIN at line start or just
+  # after a separator -- a backtick is neither, which is what excludes the quote. An
+  # inline-code strip was tried here first and removed: measured over all 543 manifests
+  # and verdicts it changed zero answers, because the boundary already covers the case.
+  # LAST field wins (LS6).
+  $lines = @(Get-Content -Path $path -ErrorAction SilentlyContinue)
+  $n = -1
+  foreach ($line in $lines) {
+    foreach ($mm in [regex]::Matches($line, '(?:^|[-*+|.\s])\s*\*{0,2}(?:' + $names + ')\*{0,2}\s*(?:\([^)]*\))?\s*:\s*\*{0,2}\s*(\d+)')) {
+      $n = [int]$mm.Groups[1].Value
+    }
+  }
+  return $n
+}
+
 $LEDGER = 'qa/issues.jsonl'
 $ROOT = (Get-Location).Path
 $n = -1
@@ -11,14 +60,27 @@ $pending = @(); $unclosed = @()
 if (Test-Path 'qa/manifests') {
   foreach ($m in Get-ChildItem 'qa/manifests' -Filter *.md -ErrorAction SilentlyContinue) {
     $v = "qa/verdicts/" + $m.Name
-    if (-not (Select-String -Path $m.FullName -Pattern 'Status: ready-for-check' -Quiet)) { continue }
+    # AT-673/AT-669 (gate at673, option A): every read below is ANCHORED to the field it
+    # claims to read. Unanchored, these matched the phrase anywhere -- prose ABOUT the handshake
+    # counted as state (over-report, t182 stuck as an unclosed PASS forever) and a prose cycle
+    # number silenced a manifest that really was awaiting a check (under-report). One root,
+    # opposite directions; fixing only the visible half removes the symptom that motivates the
+    # other. The LAST `## Status:` heading is the current one -- manifests keep superseded cycles
+    # as history (LS6), so first-match would read a closed unit's earlier state as live.
+    $status = Get-ManifestStatus $m.FullName
+    if ($null -eq $status) { continue }
+    if ($status -notmatch 'ready-for-check') { continue }
     if (-not (Test-Path $v)) { $pending += $m.BaseName; continue }
-    $mc = 0; $a = Select-String -Path $m.FullName -Pattern 'Fix cycle[:*\s]+(\d+)' | Select-Object -First 1
-    if ($a) { $mc = [int]$a.Matches[0].Groups[1].Value }
-    $vc = -1; $b = Select-String -Path $v -Pattern '(Cycle checked|Fix cycle judged)[:*\s]+(\d+)' | Select-Object -First 1
-    if ($b) { $vc = [int]$b.Matches[0].Groups[2].Value }
+    $mc = Get-CycleNumber $m.FullName 'Fix cycle'
+    if ($mc -lt 0) { $mc = 0 }
+    $vc = Get-CycleNumber $v 'Cycle checked|Fix cycle judged'
     if ($vc -lt $mc) { $pending += $m.BaseName; continue }
-    if (Select-String -Path $v -Pattern 'VERDICT:\s*PASS' -Quiet) { $unclosed += $m.BaseName }
+    # The block comment above promises "a PASS verdict whose manifest was never flipped to
+    # checked-PASS"; the code never checked the flip. It does now, explicitly, rather than
+    # relying on the ready-for-check test above to imply it.
+    if (Select-String -Path $v -Pattern '^\s*[-*+]?\s*(?:#{1,3}\s*)?\*{0,2}VERDICT[:*\s]+\s*PASS' -Quiet) {
+      $unclosed += $m.BaseName
+    }
   }
 }
 $queue = 0

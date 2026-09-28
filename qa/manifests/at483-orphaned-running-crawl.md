@@ -316,4 +316,4 @@ after at least one typed/clicked action has completed. Nothing in this cycle nar
 that gap — not fixed here, not contradicted here, consistent with the dispatch instruction to
 leave AT-497 alone.
 
-## Status (cycle 2): ready-for-check
+## Status (cycle 2): checked-PASS (verdict qa/verdicts/at483-orphaned-running-crawl.md, Cycle checked: 2, VERDICT: PASS; close-out AT-673 2026-09-28 -- this flip was overdue: the cycle-2 PASS landed and the manifest was never flipped, an AT-648-shaped dangling handshake that the session-start hook could not see because its Status read stopped at the FIRST match, line 177's cycle-1 line, instead of the last)
