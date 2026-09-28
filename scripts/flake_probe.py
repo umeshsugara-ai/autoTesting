@@ -160,7 +160,14 @@ def run_once(nodeid: str, index: int, timeout: float = RUN_TIMEOUT_S) -> Run:
     drains the pipe, which waits for every holder of the write end — and this probe's own
     subject is a browser crawl, whose browser is exactly such a holder. `kill_tree` is
     `mutation_check`'s, not a second copy: AT-487/AT-490 are the same defect in the
-    sibling script, and one bounded-kill implementation is the point."""
+    sibling script, and one bounded-kill implementation is the point.
+
+    AT-701: deleting the log is best-effort. A process that SURVIVES the tree kill still
+    holds the inherited handle, so on Windows the unlink raises PermissionError -- from a
+    `finally` that discarded the `Run` already computed, turning a correctly recorded
+    timeout into an exception. That is the loudest case producing the least informative
+    outcome, and it is this probe's own documented subject: a browser holds such a handle.
+    The failure is recorded in `notes` and the run is still returned."""
     started = time.monotonic()
     log = Path(tempfile.gettempdir()) / f"flake-probe-{os.getpid()}-{index}.log"
     notes = ""
@@ -181,7 +188,10 @@ def run_once(nodeid: str, index: int, timeout: float = RUN_TIMEOUT_S) -> Run:
                     notes = f"{chr(10)}{unkilled}"
         output = log.read_text(encoding="utf-8", errors="replace")
     finally:
-        log.unlink(missing_ok=True)
+        try:
+            log.unlink(missing_ok=True)
+        except OSError as held:  # AT-701: a survivor of the kill still holds the handle
+            notes = f"{notes}{chr(10)}log file still held after the kill: {held}"
     elapsed = time.monotonic() - started
     if code == TIMED_OUT:
         return Run(index=index, returncode=code, seconds=elapsed,
