@@ -105,4 +105,12 @@ Re-run on that tree: baseline `2 passed in 22.55s` exit 0; mutation → `Asserti
 killed pytest but left its real grandchild running`, `_alive(28028)`, line 125 — the line that
 never executed in cycle 1. `ruff` clean, `doctor: clean`.
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 2, verdict qa/verdicts/at700-setup-vs-subject.md, 726074d5, pushed)
+
+Checker note folded for the next unit of this kind: it falsified the half NO capability row claimed
+— that the setup branch is separated from the subject — by keeping the tree kill INTACT and setting
+`BOUND_S = 1` so the grandchild cannot start. Red at :119 with "scenario never started ... says
+NOTHING about run_once's tree kill" in 2.69s, against the mutation's `AssertionError` at :125:
+different line, different exception type, and a message that disclaims the subject. That was the
+most informative run of the cycle and nothing in this manifest pointed at it. **A claim of
+separation needs its own row, or asserting the split takes the original defect's shape.**

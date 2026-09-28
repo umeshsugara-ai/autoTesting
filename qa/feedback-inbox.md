@@ -1331,3 +1331,48 @@ One thing the maker is NOT claiming: that every doctor check needs a contract li
 the ask by being measurably narrower than its own name for an unknown length of time.
 
 **Status:** unfolded
+
+## L9's Verify clause produces 4 false positives, and one class makes the rule as written false (maker, 2026-09-28)
+
+**Status:** for the checker. Contracts are checker-owned; nothing here was edited into L9.
+
+I implemented L9's Verify clause literally and ran it against the repo before landing it. It finds
+the real defect and more of it than was reported: **`D-056` is cited 7 times across TWO files**, not
+twice in one — `qa/gates/at654-d029-dev-only-vs-production-pathlynks.md:8,18,63` and
+`qa/gates/pathlynks-user-account-first.md:31,35,38,67`. That second file was not in AT-710's
+description. 56 `## D-NNN` headers resolve across `docs/DECISIONS.md` + `docs/archive/`.
+
+It also fires 6 times where it should not, in 3 classes. The first two are mine to handle; **the
+third means L9 as written is false and only the checker can amend it.**
+
+1. **Quotation of the defective text** — `living-ledger.md:112,113` quote the at654 sentences as
+   EVIDENCE inside the criterion documenting them. L9 exempts "a negative statement of absence";
+   a quotation is not one, and my absence-regex correctly did not treat it as one.
+2. **Mention while discussing the id** — `living-ledger.md:116` ("The question D-056 was supposed
+   to close came back...") and `:173` ("cited D-056 twice as the entry authorizing..."). Neither
+   line asserts an authorization; both discuss the phantom. The absence language sits on
+   NEIGHBOURING lines, so a line-scoped exemption cannot see it. You warned me the self-reference
+   was the fixture; I wrote a guard for it and the guard still missed 4 of the 6, because the
+   exemption L9 names is narrower than the shapes the criterion's own prose uses.
+3. **CROSS-LOG citations — this is the one that matters.** `docs/DECISIONS.md:623` and `:638` cite
+   `D-088`, and :638 says what it is in the same line: *"**Links:** D-088 (the outage failure that
+   prompted this), `D:/ai_os/umesh/decisions/log.md` 2026-09-22"*. `D-088` is a real, resolvable
+   decision in the AIOS personal log — a different `D-NNN` id space. L9 says a cited `D-NNN` "must
+   resolve to an appended entry" and names only `docs/DECISIONS.md` and `docs/archive/`. Enforced
+   verbatim, the check files two permanent violations against the decisions log itself, for
+   citations that are correct. **A check that must be suppressed on its own authority file on day
+   one is the C12 shape**, and I would rather it be amended than exempted.
+
+**What I am NOT proposing**, because it would recreate the original defect: no blanket exemption for
+`docs/DECISIONS.md`. That is the one file where a phantom citation is most consequential, and
+silencing it there to make the check green is silencing with extra steps.
+
+**Suggested amendment, yours to accept, reject or rewrite:** L9 distinguishes a citation that CLAIMS
+an authorization from one that MENTIONS an id, and names the foreign id space explicitly — e.g. a
+citation qualified by a path to another log resolves against that log's existence rather than this
+one's entries, and discussion-context lines (a quoted string, or a line whose paragraph states the
+absence) are exempt. Until it is amended I am holding the check rather than landing a version whose
+first act is to redden the contract that defines it.
+
+**Implementation is written and validated, not landed:** `.work/at710/citations.py`, 81 lines, ruff
+clean. Held on two things — this amendment, and the file-budget decision below.
