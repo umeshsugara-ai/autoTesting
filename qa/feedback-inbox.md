@@ -1411,3 +1411,63 @@ verdict: **AT-661, AT-675, AT-698 closed `wontfix`** (retired-design artifacts, 
 analysis); **AT-674 and AT-683 kept `open`** as the two halves of the one remaining approval-derivation
 unit, both still classifier-blocked. Full reasoning and independent verification on each row is in its
 own `checker_note` field in `qa/issues.jsonl`.
+
+---
+
+## 2026-09-28 · maker (T-171 permission-surface coverage, build subagent) → /checker
+
+### PS1's `write_policy=TEST_ACCOUNT` contradicts `qa/gates/write-policy-tier.md`
+
+Filed verbatim rather than resolved, because a contract is checker-owned and this is a
+disagreement between two checker-owned records, not a maker preference.
+
+PS1, as filed in this inbox (heading "`qa/contracts/permission-surface.md` — PS1-PS4, covering
+T-171 (D-040)"), reads:
+
+> **PS1 — Every reachable control is exercised or blocked-with-reason, under `write_policy=
+> TEST_ACCOUNT` + a valid `RunApproval`, reusing consent.md's gate rather than a second one.
+> [D-040 verbatim]**
+
+`qa/gates/write-policy-tier.md` (asked by a checker Mode B session 2026-09-27, answered by Umesh
+the same day, re-confirmed 2026-09-28) reads:
+
+> **The answer**
+> **`ALLOW_WRITES`, on every target, production included.**
+> ...
+> **So: no run is scoped narrower than the supplied account's permissions on the checker's
+> initiative.**
+
+T-171 built to the gate, not to PS1's tier: nothing in the unit pins, checks or prefers
+`TEST_ACCOUNT`. `stages/crawl_coverage.py::_permitted_reason` takes the run's actual
+`write_policy` and reports what it did — a declared destructive control that a sub-`ALLOW_WRITES`
+run did not press is listed as `policy:destructive under <tier>`, i.e. a **gap in the run's own
+coverage**, which is exactly `coverage.md` V9's fourth bullet ("narrowing below the account's
+rights is a finding about the RUN, not a safety feature"). Under `ALLOW_WRITES` the same control
+reports as an ordinary `not_reached`.
+
+If PS1 is ever promoted into `qa/contracts/permission-surface.md`, its tier clause should be
+reconciled with the gate first — as written it would make a passing T-171 run require a tier the
+owner withdrew.
+
+### PS3 / PS4, as built (for the record, no action asked)
+
+- **PS3** — honoured by construction. No second counting mechanism was created: `permitted_holes`
+  reuses the same `CoverageHole` model, the same closed reason set (`crawl_coverage.REASONS`,
+  extended by one member, `not_reached`) and the same book-balance shape
+  (`permitted_exercised + len(permitted_holes) == permitted_total`, asserted in
+  `tests/test_permission_coverage.py`). `controls_discovered` / `controls_exercised` / `holes` are
+  byte-unchanged in meaning; V7's identity still holds over them.
+- **PS4** — no new report surface exists. The permitted figure is computed in exactly one place
+  (`stages/crawl_coverage.py::compute_coverage`) and rendered through the existing V7 surfaces
+  (crawl page, `crawl.json`, workbook Summary + Unreached sheet). There is one `percent` field, not
+  two, so there is no number that can disagree with another. Recording it as satisfied-by-absence
+  rather than dropping it, as PS4 itself asks.
+
+### One thing PS1 asks for that this unit does NOT supply
+
+PS1's "the TEST_ACCOUNT-mode exercise pass V7 counts over" is the crawl's own exercise loop, which
+already exists and is already approval-gated (`stages/explore_consent.py`). This unit added no new
+exercise pass and no new approval path — deliberately, per PS1's own "reusing consent.md's gate
+rather than a second one". PS1's negative verify ("a run with no approval ... touches zero
+controls") is therefore an assertion about `explore_consent`, not about anything T-171 changed, and
+was not re-derived here.

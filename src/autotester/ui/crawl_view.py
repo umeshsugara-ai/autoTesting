@@ -47,6 +47,10 @@ def summary_stats(crawl: Crawl) -> str:
         theme.pill(escape(f"{reason}: {count}"), "neutral") + " "
         for reason, count in (cov.by_reason().items() if cov else [])
     )
+    permitted = "".join(  # V9: controls the ACCOUNT may use that this crawl did not
+        theme.pill(escape(f"{reason}: {count}"), "warning") + " "
+        for reason, count in (cov.permitted_by_reason().items() if cov else [])
+    )
     screens = "".join(  # AT-470: screens a bound kept the crawl out of
         theme.pill(escape(f"{reason}: {count}"), "warning") + " "
         for reason, count in (screens_by_reason(cov).items() if cov else [])
@@ -71,7 +75,8 @@ def summary_stats(crawl: Crawl) -> str:
         + f" · policy {theme.pill(escape(crawl.policy.write_policy.value), 'neutral')}</p>"
         + f"<p class='meta'>coverage: {escape(coverage_figure(crawl))}"
         + (f" · not exercised: {reasons}" if reasons else "")
-        + (f" · screens not entered: {screens}" if screens else "") + "</p>"
+        + (f" · screens not entered: {screens}" if screens else "")
+        + (f" · permitted but not exercised: {permitted}" if permitted else "") + "</p>"
     )
 
 

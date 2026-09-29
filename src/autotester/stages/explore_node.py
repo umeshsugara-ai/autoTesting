@@ -18,7 +18,7 @@ from autotester.browser.session import NavigationRefused, check_destination
 from autotester.schema.crawl import CrawlIssue
 from autotester.schema.enums import Action, EdgeOutcome, IssueKind, NodeStatus
 from autotester.schema.screen_graph import ElementRef, ScreenEdge, ScreenNode
-from autotester.stages import crawl_coverage, explore
+from autotester.stages import crawl_coverage, explore, explore_safety
 from autotester.stages.explore_return import return_to, why_lost
 from autotester.stages.explore_safety import (
     OFF_DOMAIN_LINK_REFUSED,
@@ -232,7 +232,7 @@ def _click_loop(rt: ExploreRuntime, node: ScreenNode, typed: int) -> bool:
     """The click phase after the typing pre-pass (AT-533: ONE shared per-node budget).
     Returns False when the node ended ABORTED_DIALOG/ABORTED_ERROR; True otherwise."""
     tried = 0
-    for el in node.elements:
+    for el in explore_safety.destructive_last(node.elements, rt.policy):
         # AT-533: typing and clicking share ONE per-node budget — the typed
         # pre-pass consumed its share first, the click loop gets the rest.
         if tried + typed >= rt.bounds.per_node_action_cap:

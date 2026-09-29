@@ -8,6 +8,8 @@ artifact persisted per crawl.
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from autotester.core.ids import content_id, run_id
@@ -135,7 +137,31 @@ class CoverageHole(BaseModel):
     selector: str
     name: str = ""
     reason: str = Field(description="bound:<name> | policy:<rule> | unnamed | off_domain | "
-                                    "error | login_wall | not_visited | skipped_unchanged")
+                                    "error | login_wall | not_visited | skipped_unchanged | "
+                                    "not_reached")
+
+
+class PermittedControl(BaseModel):
+    """One control the supplied account's role PERMITS (coverage.md V9).
+
+    Declared per project, because nothing we test offers role introspection: the
+    permitted surface is either declared or unknown, and a figure computed against
+    what a bounded crawl happened to reach must SAY it is not permission coverage
+    rather than pass itself off as one.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    url_template: str
+    selector: str
+    name: str = ""
+    destructive: bool = Field(
+        default=False,
+        description="the account may do it, but it is undone by nothing (delete/send/pay). "
+                    "Still part of the denominator (V9: a blocked control never counts as "
+                    "covered, it is REPORTED blocked); a run below ALLOW_WRITES lists it as "
+                    "policy:destructive under <write_policy> rather than dropping it.",
+    )
 
 
 class CrawlCoverage(BaseModel):
@@ -154,6 +180,18 @@ class CrawlCoverage(BaseModel):
     screens_not_entered: list[CoverageHole] = Field(
         default_factory=list, description="screens a link led to that a bound kept the crawl "
                                           "from entering (max_depth / max_screens) — AT-470")
+    denominator_basis: Literal["permitted", "screens-reached"] = Field(
+        default="screens-reached",
+        description="V9: what `percent` is a fraction OF. `permitted` = the controls the "
+                    "supplied account's role permits (project.permitted_surface). "
+                    "`screens-reached` = the controls a bounded crawl happened to find, which "
+                    "is NOT permission coverage and every surface must say so.")
+    permitted_total: int | None = None
+    permitted_exercised: int | None = None
+    permitted_holes: list[CoverageHole] = Field(
+        default_factory=list,
+        description="V9: every PERMITTED control not exercised, each named, each with one "
+                    "closed-set reason. `not_reached` is a reason, not an absence of one.")
     spec_screens_reached: int | None = None
     spec_screens_total: int | None = None
     spec_error: str | None = Field(default=None, description="why the FlowSpec could not be "
@@ -162,10 +200,18 @@ class CrawlCoverage(BaseModel):
                                                         "the crawl record is kept regardless")
 
     def by_reason(self) -> dict[str, int]:
-        counts: dict[str, int] = {}
-        for hole in self.holes:
-            counts[hole.reason] = counts.get(hole.reason, 0) + 1
-        return dict(sorted(counts.items()))
+        return _tally(self.holes)
+
+    def permitted_by_reason(self) -> dict[str, int]:
+        """V9's breakdown: the permitted controls NOT exercised, by reason."""
+        return _tally(self.permitted_holes)
+
+
+def _tally(holes: list[CoverageHole]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for hole in holes:
+        counts[hole.reason] = counts.get(hole.reason, 0) + 1
+    return dict(sorted(counts.items()))
 
 
 class NoiseCount(BaseModel):
