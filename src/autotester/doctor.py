@@ -264,6 +264,7 @@ def run(root: Path | None = None) -> list[Violation]:
         check_ledger,
         check_qa_issue_rows,
     )
+    from autotester.ledger.citations import check_decision_citations
     from autotester.ledger.evidence_specs import check_stale_evidence_specs
 
     base = root or repo_root()
@@ -274,6 +275,6 @@ def run(root: Path | None = None) -> list[Violation]:
                   check_ledger, check_qa_issue_rows, check_adapter_pytest_q,
                   check_goal_pytest_q, check_stale_evidence_specs,
                   check_generated_fresh,
-                  check_architecture_budget, check_docs_routed):
+                  check_architecture_budget, check_docs_routed, check_decision_citations):
         violations.extend(check(base))
     return violations
