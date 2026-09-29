@@ -61,20 +61,9 @@ function Get-CycleNumber($path, $names) {
   # `#` heading 9, `-` 6, `.` 4) and the 533 at line start, while excluding the 23
   # quoted inside a code span and the 24 after a bare word. Written as a negated class
   # rather than a literal separator list so the file stays pure ASCII.
-  # The inline-code strip is BACK, and this time it is load-bearing. Cycle 1 removed
-  # it after measuring that it changed 0 answers, which was correct THEN: under the
-  # old boundary a backtick immediately before the field already excluded the quote.
-  # It does not survive MAX. A QUOTED HEADING -- `## Cycle checked: 2` written inside
-  # a code span while describing another file -- puts a `#` between the backtick and
-  # the field, and `#` is itself a legal separator, so the quote is re-admitted
-  # through the heading allowance. Found by running the hook on this unit's own
-  # verdict (`:96`), which reported an unclosed PASS that does not exist. Measured
-  # over all 546 manifests and verdicts, the strip changes exactly ONE answer -- that
-  # file, 2 -> 1 -- so it is narrow and it is necessary.
   $lines = @(Get-Content -Path $path -ErrorAction SilentlyContinue)
   $n = -1
   foreach ($line in $lines) {
-    $line = [regex]::Replace($line, '`[^`]*`', ' ')
     foreach ($mm in [regex]::Matches($line, '(?:^|[^\w\s`])\s*\*{0,2}(?:' + $names + ')\*{0,2}\s*(?:\([^)]*\))?\s*:\s*\*{0,2}\s*(\d+)')) {
       $v = [int]$mm.Groups[1].Value
       if ($v -gt $n) { $n = $v }
