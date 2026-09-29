@@ -52,15 +52,24 @@ computes the table — no model call, no network call, no mutation of anything i
   this stage. (Falsifiable: an unset declared secret produces an entry whose text contains the key
   name; `assert_no_raw_secrets`/`Redactor.scrub` over the rendered page and the `Catalog` JSON finds
   nothing resembling the actual `.env` value.)
-- **CT6 — Cheap→expensive tier ordering is real, not decorative.** `CaseClass.tier` places every
-  class into `static < behavioural < adversarial`; the tier ordering is total (every class has
-  exactly one tier) and `routes_runs.py`'s tiered dispatch runs `static` before `behavioural` before
-  `adversarial`, and STOPS before paying for a tier that has zero runnable entries at the point it
-  would start (a cheap structural failure is visible before an expensive graded run is triggered).
-  (Falsifiable: a fixture with a blocked `static` tier and a runnable `adversarial` tier still stops
-  before `adversarial` runs; a fixture with `static` entries runnable and nothing blocking
-  `behavioural` runs both tiers in `static → behavioural` order, observed via call order not just
-  final state.)
+- **CT6 — Cheap→expensive tier ordering is real, ordering only, and never skips a case.**
+  (Narrowed 2026-09-29 by **D-057**, `Approved-by: Umesh`; the earlier wording — "STOPS before paying
+  for a tier that has zero runnable entries" — filtered which cases execute and contradicted
+  `ui-run.md` RU3 and F-058.) `CaseClass.tier` places every class into
+  `static < behavioural < adversarial`; the ordering is total (every class has exactly one tier).
+  The run trigger dispatches cases in tier order, `static` before `behavioural` before
+  `adversarial`, and **reports each tier's runnable count** (including a count of zero). It **never
+  omits a case that RU3 says runs**: the set of cases executed is identical with and without the
+  ordering, and a pinned case (F-058) runs every time whatever tier it is in. The ordering helper
+  (`stages/catalog.py::tiers_to_run()`) is an ordering input, not a filter. (Falsifiable, three
+  parts. (1) Ordering, observed via call order and not only final state: a fixture with runnable
+  `static`, `behavioural` and `adversarial` cases records dispatch `static → behavioural →
+  adversarial`. (2) Never skip: a fixture with a fully blocked or empty `static` tier and a runnable
+  `adversarial` case still RUNS the `adversarial` case, and the executed set equals
+  `store.list_cases()` (RU3). Sabotage: gate dispatch on the tier's runnable count, the old rule —
+  this fixture goes red on the executed-set assertion. (3) Reporting: the run record carries a
+  runnable count per tier, and the empty tier's count is `0`, not absent. A pinned `adversarial`
+  case in a run whose `static` tier is empty still runs.)
 - **CT7 — One `Catalog`, reused, not duplicated (C3).** `schema/catalog.py::Catalog` and
   `BlockedReason` are the only such model/enum in the repo — this criterion is judged over every
   unit that touches `stages/ai_catalog.py` or any later Track-C catalog code: a second `Catalog`-
@@ -75,6 +84,31 @@ computes the table — no model call, no network call, no mutation of anything i
   each `BlockedReason` value, a fixture producing that reason renders row text distinct from the
   bare enum name, e.g. `missing_credential` renders "set PATHLYNKS_PASSWORD in .env", not the literal
   string `missing_credential`.)
+
+- **CT9 — Which credential gates which row: only keys the row's own flows read, and never fewer
+  (added 2026-09-29 under **D-051**, `Approved-by: Umesh`, which authorizes the checker to define
+  flow relevance).** A `CatalogEntry`'s `missing_credential` gate, and the key its `unblock_action`
+  names, are computed from the `SecretRef` keys referenced (`{{SECRET:KEY}}`) by **the flows that
+  feed that row's case class** (`Case` is keyed by `flow_id`, `schema/case.py:22`; the class-to-flow
+  mapping is `stages/expand.py`'s). Three rules, in priority order:
+  (a) **No under-block.** A row is never `runnable=True` while any key read by a flow feeding it is
+  unset. A false green is the unsafe direction (`qa/debug/t125-catalog-cycle3.md`: it propagates into
+  T-152/T-166 through CT7). (b) **No cross-flow leak.** A key read only by flows that feed a
+  *different* class neither blocks this row nor appears in its `unblock_action` (this is ISS-t125-5).
+  (c) **Declared, never inferred.** Relevance comes only from the SecretRef declarations and the
+  `{{SECRET:KEY}}` references in flow steps. A keyword match on flow text, or the shape of an input
+  field, does not decide it (`stages/explore_merge.py:50-51`: "`secret_key` is deliberately never
+  inferred"). **Stated limit, not a gap:** with one row per class (CT2), two flows of the same class
+  needing different keys make the row's wording a union of both. That is allowed; naming a key of a
+  flow that does not feed the class is not. An unrelated flow that reads a key for a class it also
+  feeds (an admin import that fills `SFTP_KEY`) is not distinguished by this contract; over-blocking
+  there is the accepted direction. (Falsifiable: (a) two flows of one class, one key set and one unset
+  — the row is blocked and names the unset key; (b) a fixture with an unset key referenced only by an
+  `oauth_signup` flow and a set key for the login flow — the auth row is `runnable=True` and its text
+  contains neither the key nor its name; (c) a flow whose text says "sign in with Google" but
+  references no `{{SECRET:*}}` contributes no key. Each is observed on a real `catalog()` return, and
+  the two named sabotages — union the keys spec-wide, and add a keyword rule — each turn the named
+  fixture red.)
 
 ## Explicit no-fire list (do not raise these as findings)
 
@@ -100,3 +134,15 @@ green→red-for-the-named-reason→revert→green. File/function caps (core-inva
 - 2026-09-24 · init · contract authored by /checker as DRAFT, from `plan.md` §5A and D-039
   (Approved-by Umesh — "allow krr doo , goal pura hona chaiyee", `qa/gates/t125-d039-entry-draft.md`).
   No prior draft existed; nothing amended.
+- 2026-09-29 · amend (Changes-authorized: D-057, D-051) · **CT6 narrowed** from "stop before an empty
+  tier" to "dispatch in cheap-to-expensive order and report each tier's runnable count; never skip a
+  case". Umesh's answer at `qa/gates/t125-ct6-tiered-dispatch-vs-ru3.md`, option A "order only, never
+  skip", recorded as D-057 (`ade87168`). This IS a weakening of the old CT6 stop-rule and is on the
+  record as human-approved, not routine; RU3 and F-058 are unchanged and CT6 now cites them.
+  **CT9 added** (a tightening): D-051 authorized the checker to define flow relevance and nothing was
+  ever written, so all three T-125 cycles and the cycle-4 candidate were judged against an
+  unwritten rule (AT-732). Grounding: `qa/debug/t125-catalog-cycle3.md`. CT2/CT5/CT8 are untouched.
+  **Links:** D-057; D-051; T-125; ISS-t125-1; ISS-t125-5; F-058; ui-run.md RU3.
+  **Merge note:** the `wave/t125-catalog` branch carries its own 2026-09-27 amendment (the "Standard
+  packs" section and a verify-command change, commit 3da63550) that is not on master; the two log
+  tails will conflict on merge and both entries are to be kept.

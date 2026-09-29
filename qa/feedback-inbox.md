@@ -93,7 +93,7 @@ Maker is correcting the script's read/write encoding to UTF-8 under D-000 `Chang
 template-level defect upstream (`D:/ai_os/templates/lab-protocol/scripts/append_decision.ps1`) — that is
 outside this project's root, so the maker does not touch it.
 
-**Status:** unfolded (tooling defect, not a contract change)
+**Status:** folded/closed (2026-09-29, Mode B sweep, sweep-2026-09-29). Two halves. (1) IN-REPO FIX: verified in the 2026-09-03 check and re-verified now - `scripts/append_decision.ps1:47,70,77` read every input with `-Encoding UTF8` (D-006, D-000 `Changes-authorized`). (2) UPSTREAM TEMPLATE (`D:/ai_os/templates/lab-protocol/scripts/append_decision.ps1`): not folded by design - it is outside the bound root, the checker never leaves it, and it is a note for Umesh / the AIOS session, not a contract criterion here. This tag said `unfolded` for 26 days for a reason that was never a fold.
 */checker 2026-09-03 (T-005 cycle-1 check): the in-repo fix is verified - ran the working-tree `scripts/append_decision.ps1` (`-Encoding UTF8` on the entry read, the live-file read, and the raw read before append) against a scratch copy of `docs/DECISIONS.md`; the appended entry carried `·` and `—` as clean UTF-8 (`c2 b7`, `e2 80 94`), no `Â·`/`â€”`. Authorization: D-000 `Changes-authorized` lists `scripts/append_decision.ps1` with `Approved-by: Umesh`; D-006 records the change. The template-level copy at `D:/ai_os/templates/lab-protocol/scripts/append_decision.ps1` is outside this root - left unfolded here on purpose; it is a note for Umesh / the AIOS session, not a contract item for this project.*
 
 ## 2026-09-03 — Umesh, on provider architecture (mid T-050 build)
@@ -883,6 +883,7 @@ crawl-traversal.md) — checked against each: the scenario-list pattern belongs 
 permission-surface pass," which D-040 split out to **T-171** (no contract yet); the stalled-handoff
 and stitched-regression patterns belong to T-166/T-167/T-168. None fit CT/NA/CR criteria as scoped.
 Left unfolded pending whichever unit builds T-171/T-166/T-167/T-168's contracts.
+**Status (update 2026-09-29, Mode B sweep):** partially folded. The four contracts this entry waited on now exist (D-054; `permission-surface.md`, `eval-compiler.md`, `release-regression.md`, `damage-control-report.md`). PATTERN 1 (scenario list = input contract) -> `eval-compiler.md` EC5. PATTERN 4 (per-flow plans stitched into one release regression ending in an issues log) -> `release-regression.md` RR6; its 'unified report' half is already `damage-control-report.md` DC3. PATTERN 2 (worst-case default) and PATTERN 3 (stalled handoff) are NOT folded: each is a new defect/case CLASS with no implementation site yet (EC's no-fire list excludes taxonomy beyond `expand.md` X3), and PATTERN 3 needs an N that only Umesh can set. They stay owned by AT-666 (open).
 
 
 ## 2026-09-24T16:33:00+05:30 · source: Umesh, chat (answers to the seven open decisions, verbatim)
@@ -958,6 +959,8 @@ my first guess and was wrong — clearing it changed nothing.
 Consequence for the checker, not asserted as a conclusion: the at626 disclosure is explained by a
 cache artifact rather than by the bound tree having been run. The checker should still re-derive it
 independently; this note exists so the same 20 minutes are not spent twice.
+
+**Status:** folded 2026-09-29 to `core-invariants.md` C12 (throwaway copy excludes `__pycache__`; `.pytest_cache` disproved as a cause, so not required).
 
 **Suggested contract/tooling follow-up (checker's call, not the maker's):** the throwaway-copy
 recipe in the capability-coverage rule should exclude `__pycache__` and `.pytest_cache` alongside
@@ -1174,7 +1177,7 @@ folds them into `crawl-traversal.md` so the next unit does not re-derive them.
 > `70` in `test_revised_goal_contract_is_registered` needs updating by whoever owns that batch's
 > registration, or the assertion needs to stop hardcoding a total.
 
-**Status:** unfolded
+**Status:** folded (2026-09-29, Mode B sweep) - already encoded before this pass; the tag was stale (AT-667). The `-k`-filtered `done_check` shape is covered by the `done_check.waiver` mechanism plus `tests/test_goal_contract_registration.py`; re-run now: `uv run pytest tests/test_goal_done_checks.py` = 7 passed (the hardcoded `70` no longer fails). Ledger: `ISS-at638-remainder-2` fixed.
 
 
 ## 2026-09-27 — self-discovered, t165-crawl-traversal cycle-2 build (maker, not user feedback)
@@ -1299,7 +1302,7 @@ folds them into `crawl-traversal.md` so the next unit does not re-derive them.
 > **APPLIES NEXT:** file both against `crawl-traversal`; and note the general lesson — a fake that
 > cannot be wrong about timing cannot test a timing-dependent guard.
 
-**Status:** unfolded
+**Status:** folded (2026-09-29, Mode B sweep) - already encoded before this pass; the tag was stale (AT-667). Q4-Q8 are rulings in `qa/contracts/crawl-traversal.md` CR3/CR4/CR7 (skip-truncation joins `missing_unjudged`; the growth against an unstable signature is an accepted, disclosed cost; the 'prior state' clause was superseded on Q8a). Q9's two defects are ledger rows `ISS-t165-crawl-traversal-a5` and `-a6`, both `verified`.
 
 ## L1 (generated-artifact freshness) is declared in no contract — maker, 2026-09-28, tick 33r
 
@@ -1330,11 +1333,11 @@ is stated to be.
 One thing the maker is NOT claiming: that every doctor check needs a contract line. This one earned
 the ask by being measurably narrower than its own name for an unknown length of time.
 
-**Status:** unfolded
+**Status:** folded (2026-09-29, Mode B sweep) into `qa/contracts/living-ledger.md` L1. The maker's premise was half right: L1 **was** stated in a contract (living-ledger L1, not core-invariants, which is where its grep looked) but only in the disk-vs-fresh form that AT-697 measured as too narrow. L1 now also requires the committed blob to equal the fresh regeneration, and names the pre-first-commit case as skipped-and-named, never passed. The maker's suggested definition was adopted; the wording is the checker's.
 
 ## L9's Verify clause produces 4 false positives, and one class makes the rule as written false (maker, 2026-09-28)
 
-**Status:** for the checker. Contracts are checker-owned; nothing here was edited into L9.
+**Status:** for the checker. Contracts are checker-owned; nothing here was edited into L9. **Folded (2026-09-29, Mode B sweep):** already done by the time of this pass - `living-ledger.md` L9 was amended twice on 2026-09-28 (`9f717106`, `c6d4b31e`): a foreign id space is out of scope at ENTRY granularity (class 3, the `D-088` citations); non-claiming occurrences (classes 1 and 2) are declared per occurrence with a reason in an allow-list, never inferred and never per file; and no whole-file exemption for `docs/DECISIONS.md`. The maker's suggested amendment was taken almost verbatim. Held pending only on `qa/gates/new-module-authorization.md` (unanswered).
 
 I implemented L9's Verify clause literally and ran it against the repo before landing it. It finds
 the real defect and more of it than was reported: **`D-056` is cited 7 times across TWO files**, not
@@ -1471,3 +1474,241 @@ exercise pass and no new approval path — deliberately, per PS1's own "reusing 
 rather than a second one". PS1's negative verify ("a run with no approval ... touches zero
 controls") is therefore an assertion about `explore_consent`, not about anything T-171 changed, and
 was not re-derived here.
+
+## 2026-09-27 · maker (at638-remainder, T-166/T-167/T-168/T-171 governance) · four contract-criteria requests answering the rest of AT-638
+
+`t150-track-c-governance` answered AT-638's Track C portion (`ai-target.md`/`adversarial.md`,
+checker-PASSed 2026-09-27, verdict `a3d04cd2`) and explicitly left "T-166, T-167, T-168 and T-171
+still have zero checkable criteria" as open debt for a follow-up unit. This entry is that unit.
+Contracts are checker-owned; this filing does not create any `qa/contracts/` file itself.
+
+**Authorization check, done first per this unit's brief — a finding, not a formality.** Every
+checker-authored contract file in this repo's history has an explicit `docs/DECISIONS.md`
+`Changes-authorized` line naming it before the checker wrote it: `catalog.md` (D-039),
+`crawl-traversal.md` + `network-assertions.md` (D-040), `run-trace.md`/`parallel-run.md`/
+`cli-mcp.md`/`skills.md`/`script-replay.md`/`agent-fallback.md`/`failure-bundle.md` (D-041),
+`agent-layer.md` (D-042), `ai-target.md` + `adversarial.md` (D-017/D-018). **None of the four files
+proposed below has that.** Read in full:
+- D-040's `Changes-authorized` names only `qa/contracts/crawl-traversal.md` and
+  `qa/contracts/network-assertions.md`. T-171 is registered in `.goal/goal.json` by the same
+  decision, but no contract file is named for it — `crawl-traversal.md` itself only forward-refers
+  to `qa/contracts/permission-surface.md (future, T-171)` (line 164), which is a naming hint, not an
+  authorization.
+- D-041's `Changes-authorized` names "New checker-authored DRAFT contracts under `qa/contracts/`, as
+  listed in Result" — Result's list is `run-trace.md, parallel-run.md, cli-mcp.md, skills.md,
+  script-replay.md, agent-fallback.md, failure-bundle.md` (T-172-T-178 only). T-166 and T-167 each
+  get "a note" added to their `.goal/goal.json` rows — no contract file is named for either.
+- T-168 is not mentioned by D-040 or D-041 at all (it has existed in `.goal/goal.json` since
+  2026-09-10, before either decision). No decision entry authorizes anything about it.
+
+Per this unit's brief I am not writing a `docs/DECISIONS.md` entry to manufacture this authorization
+— that would be exactly the "no gate file opened" shortcut the brief warned against. **This is a
+real gap**, distinct from Track C's (where D-017/D-018 named the two files directly), and I am
+flagging it plainly rather than treating my own filing as sufficient authority: before the checker
+acts on any of the four groups below, this repo's own established practice (5/5 prior contract
+files, no exceptions) says a decision naming them should exist. I have not asked Umesh for that
+decision myself — that is outside a build subagent's authority and is named as a judgement call in
+my report.
+
+**Prefixes chosen** (checked via `grep -ohE '^### [A-Z]+[0-9]+' qa/contracts/*.md`, which today
+returns `AD AI AL B C CN CR D E F G I K L LC LS ML O P R RE RP U V VL X` — `AI`/`AD` now taken since
+`t150-track-c-governance`'s check): **PS** (permission-surface), **EC** (eval-compiler), **RR**
+(release-regression), **DC** (damage-control-report). All four are free and read unambiguously next
+to an `AT-NNN` issue id.
+
+**Landing notes, verified for real today (2026-09-27), not asserted:** none of the four capabilities
+has any code on disk yet.
+- `grep -rln "permission_surface|PermissionSurface" src/` -> exit 1, no matches.
+- `grep -rln "knowledge_graph|KnowledgeGraph|kg_node|KGNode" src/` -> exit 1, no matches.
+- `grep -n "langgraph" pyproject.toml` -> exit 1, not a declared dependency.
+- `grep -rln "langgraph|interrupt(" src/` -> exit 1, no matches.
+- `grep -rln "damage_control|DamageControl|unified_report" src/` -> exit 1, no matches.
+- `ls src/autotester/stages/orchestrate.py` -> exists (T-163, done; T-167 converts this file, per its
+  own goal-task note — it does not invent a second orchestrator).
+- `ls src/autotester/agents/` -> exit 2, does not exist (T-179 is `pending`; see RR's disclosed gap
+  below).
+Every criterion below carries its own **Landing note** for this reason: a `grep` against a
+not-yet-existing file exits 2 ("no such file"), not "no match", and reading that as "criterion
+satisfied" is the AT-218 vacuous-guard trap `t150-track-c-governance`'s checker just closed for
+Track C. Re-committing it here would be the worst possible outcome for this unit.
+
+### `qa/contracts/permission-surface.md` — PS1-PS4, covering T-171 (D-040)
+
+- **PS1 — Every reachable control is exercised or blocked-with-reason, under `write_policy=
+  TEST_ACCOUNT` + a valid `RunApproval`, reusing consent.md's gate rather than a second one.
+  [D-040 verbatim]** This does not invent new approval mechanics — it requires T-171 to call through
+  `consent.md`'s existing CN1 (nothing outward-facing starts without approval) and CN9 (the gate is
+  unconditional), the same way `adversarial.md` AD1/AD2 already require the adversarial exerciser to
+  reuse CN1/CN5/CN6 rather than build a parallel gate.
+  **Landing note:** binds T-171's own unit check; T-171 depends on T-165, also pending.
+  **Verify (once built):** a fixture role with N reachable non-destructive controls, exercised under
+  a granted TEST_ACCOUNT approval, all N end up exercised or carrying a named reason from
+  `coverage.md` V7(b)'s closed reason set; a run with no approval, or an expired one, touches zero
+  controls (CN1-shaped: no directory, no navigation exists).
+- **PS2 — Destructive actions are ordered last. [D-040 verbatim]**
+  **Landing note:** same as PS1.
+  **Verify (once built):** a fixture mixing destructive (deny-list-shaped, D-016) and non-destructive
+  controls -> every destructive action's position in the exercise sequence is after every
+  non-destructive one; this is a C7 guard and needs its own failing-first sabotage once built
+  (reordering the sequence must be shown to fail a named assertion).
+- **PS3 — "A blocked control never counts as covered" is coverage.md V7's existing book-balance,
+  exercised under TEST_ACCOUNT — not a second counting mechanism. [D-040, extending T-171's own
+  note; cross-reference, not a new claim]** `coverage.md` V7(a)-(c) already tracks
+  `controls_discovered`/`controls_exercised`/reason-tallied gaps and requires
+  `controls_exercised + sum(unreached by reason) == controls_discovered`. T-171's job is to supply
+  the TEST_ACCOUNT-mode exercise pass V7 counts over — under TEST_ACCOUNT+approval, a control landing
+  in `policy:<rule>` must be genuinely deny-listed or off-domain, never merely un-attempted. I am
+  **not** proposing this as a new V7 clause; restating it here would give one concept two ground
+  truths in two contracts, the exact mistake `ai-target.md`'s checker corrected on my own AI3/AI4
+  filing last cycle. This contract should defer to `coverage.md` V7 for the counting mechanism and
+  supply only the TEST_ACCOUNT-mode obligation.
+  **Landing note:** same.
+  **Verify (once built):** a fixture with a reachable, non-deny-listed control left unexercised under
+  TEST_ACCOUNT+approval with no bound/off-domain/login-wall reason -> V7(c)'s book-balance test fails.
+- **PS4 — No second, disagreeing coverage number. [maker, hardening — not derived from D-040's text]**
+  If T-171 ships any report surface of its own beyond the existing V7 surfaces (crawl page, workbook,
+  `crawl.json`, CLI), that surface must not compute an independent "coverage %" that could disagree
+  with V7's book-balanced figure. Offered pre-emptively since T-171 doesn't exist yet to check; the
+  checker may drop this if T-171 ends up adding no new surface at all, in which case it is vacuously
+  satisfied and should be recorded as such rather than silently dropped.
+  **Landing note:** same.
+  **Verify (once built):** no second coverage-percentage computation exists outside `coverage.py`'s
+  V7 arithmetic; if no new surface exists, state that explicitly rather than leaving PS4 unaddressed.
+
+**No-fire list offered:** building T-171 itself; the concrete deny-list contents (D-016's own
+territory, `crawl.py`); a UI page for permission-surface results (not asked for by D-040); T-165's
+own traversal mechanics (`crawl-traversal.md`'s job, explicitly not this contract's per its own
+no-fire list).
+
+### `qa/contracts/eval-compiler.md` — EC1-EC4, covering T-166 (D-041, AT-586 extend)
+
+- **EC1 — The knowledge graph is the existing portal-persona graph, extended — not a second graph
+  schema anywhere in `src/`. [D-041 verbatim]** `schema/portal_persona.py`'s `PersonaScreen`/
+  `PersonaTransition` gain typed nodes/edges for screen, control, flow, scenario, case, verdict, API
+  and release; it stays JSON on the filestore (D-002) — no graph database, no GraphRAG. Same C3
+  "one concept, one place" discipline as `ai-target.md` AI4's Catalog-reuse precedent.
+  **Landing note:** no KG schema exists yet (verified 2026-09-27, grep above); T-166 is `pending`.
+  **Verify (once built):** `grep -rn "class.*Graph" src/autotester/schema/` resolves to the extended
+  `portal_persona.py` family only, no second graph-shaped model; `grep -rniE
+  "neo4j|networkx|graph[_-]?db" pyproject.toml src/` returns nothing.
+- **EC2 — Every generated eval traces to its source via a real KG edge, not free text. [T-166's own
+  goal-task note]** A `Case` with no resolvable source edge is not produced.
+  **Landing note:** same.
+  **Verify (once built):** a fixture flow's generated cases each resolve a KG edge to a real
+  screen/flow node on disk; removing the edge-population step fails a test asserting every case has
+  a non-null trace.
+- **EC3 — Component PASS cannot hide workflow/application failure. [T-166's own goal-task note —
+  genuinely new, checked against `grade.md` and `expand.md`: neither states this today]** An
+  aggregate/summary view must not report an overall PASS for a multi-step workflow whose end-to-end
+  assertion failed while its individual component-level steps each passed — the rollup is
+  workflow-first, never "AND of components only".
+  **Landing note:** same.
+  **Verify (once built):** a fixture workflow where every component step's own assertion passes but
+  the end-to-end assertion fails -> the compiled top-level verdict is FAIL/INCONCLUSIVE, never PASS;
+  reverting the rollup to "AND of components" reproduces a false PASS as the sabotage.
+- **EC4 — Structured scenario variants are distinct, traceable KG nodes, not folded into the base
+  flow. [D-041 EXTEND note, AT-586]**
+  **Landing note:** same.
+  **Verify (once built):** a fixture flow with 2 declared scenario variants produces 2 distinct KG
+  scenario nodes, each with its own traceable case set.
+
+**No-fire list offered:** building T-166 itself; taxonomy classes beyond what `expand.md` X3 already
+enumerates; a graph database or GraphRAG integration (explicitly rejected, D-041); visual rendering
+of the KG (not named by any task read).
+
+### `qa/contracts/release-regression.md` — RR1-RR5, covering T-167 (D-041, D-042 tension disclosed)
+
+- **RR1 — LangGraph converts `stages/orchestrate.py` in place; it is not a second orchestrator, and
+  it must preserve (not weaken) `orchestrator.md` OR2/OR4's resume-without-redo and
+  crash-honesty. [D-041 verbatim + orchestrator.md cross-reference, not restated]**
+  `orchestrator.md`'s own no-fire list declined LangGraph "in this unit" (T-163) pending "a
+  superseding entry" — D-041 is that entry, scoped to T-167.
+  **Landing note:** `stages/orchestrate.py` exists (T-163, done); no LangGraph usage exists anywhere
+  in `src/` yet and `langgraph` is not yet in `pyproject.toml` (both verified 2026-09-27, grep
+  above), consistent with D-041's "langgraph added to pyproject only within T-167".
+  **Verify (once built):** OR2/OR4's own falsification shape (mark a stage done, re-run, assert not
+  redone; force a raise, assert `failed` status + correct resume point) reproduced against the
+  LangGraph checkpointer substrate instead of the filestore `RunState`.
+- **RR2 — `interrupt()` gates consent/review; it layers on top of, and never replaces,
+  `consent.md`'s `RunApproval`. [D-041 explicit + consent.md cross-reference]** A release run still
+  needs its own valid approval before it starts, exactly as every other outward-facing entry point
+  does (CN9's unconditional-gate principle, extended to this new caller the same way `adversarial.md`
+  AD1/AD2 already extend CN1/CN5/CN6 rather than inventing a parallel gate).
+  **Landing note:** same as RR1.
+  **Verify (once built):** a release run with no `RunApproval` is refused before the LangGraph graph
+  is invoked (CN1-shaped: no run directory, no navigation); a run WITH approval reaches the
+  `interrupt()` point and a resume-without-human-input never proceeds past it.
+- **RR3 — "Compares against the last trusted baseline" must be one named, testable rule, not an
+  implicit "whatever ran last". [maker — D-041/goal.json name the property, not its mechanics; I am
+  not asserting a specific rule as D-041's text, only that the build must pick and name one]**
+  **Landing note:** same.
+  **Verify (once built):** a fixture with three release runs (good, bad, good) -> a test proves
+  whichever "trusted" rule the build adopts is named and exercised — e.g. if a flagged-bad run is
+  excluded, the third run's diff must skip it and compare against the first good one, not silently
+  the immediately-prior run.
+- **RR4 — The release-trigger mechanism never grades — third instance of one family, not re-derived.
+  [core-invariants C7, same shape as ai-target.md AI5 / adversarial.md AD5]**
+  **Landing note:** same.
+  **Verify (once built):** same test shape as AI5/AD5, applied to the release-trigger module.
+- **RR5 — `langgraph` is declared in `pyproject.toml` only within this unit. [D-041
+  Changes-authorized + core-invariants C11]**
+  **Landing note:** verified today, no `langgraph` entry exists yet.
+  **Verify (once built):** `grep -n "langgraph" pyproject.toml` returns a real line; `uv run
+  autotester doctor`'s `check_dependencies_declared` reports it clean.
+
+**Disclosed judgement call, not a criterion:** D-042 additionally says "T-167 (release regression)
+runs the lead agent on LangGraph checkpoints" — tying T-167 to the Deep Agents lead agent (T-179).
+But `.goal/goal.json` T-167's own `deps` are `["T-166", "T-110"]` (no T-179), `docs/plan.md` row 21's
+"depends on" column names only `18` (t166-eval-compiler-kg), and `src/autotester/agents/` does not
+exist (`ls` exits 2, T-179 `pending`, both verified 2026-09-27). I wrote no criterion assuming T-167
+depends on the lead agent, because the two more specific ground-truth documents (goal.json deps,
+plan.md's dependency column) both disagree with D-042's sentence, and D-042 may describe a later
+integration rather than T-167's own build. Flagging the tension for the checker or Umesh, not
+picking a side.
+
+**No-fire list offered:** building T-167 itself; the Deep Agents lead-agent integration (disputed
+dependency above, not this contract's job either way until resolved); the concrete webhook/CI
+trigger mechanism (not named by any decision read).
+
+### `qa/contracts/damage-control-report.md` — DC1-DC4, covering T-168 (no authorizing decision found)
+
+- **DC1 — Blocked/unvisited is never rendered as pass on the unified surface — coverage.md V7(b)-(c)
+  and crawl-traversal.md CR5's existing honesty, required to survive re-rendering here. [T-168's own
+  goal-task note; cross-reference, not a new counting mechanism]**
+  **Landing note:** no `damage_control`/`unified_report` module exists yet (verified 2026-09-27);
+  T-168 is `pending`, depends on T-155, T-164, T-165, T-167 (all pending or in-flight).
+  **Verify (once built):** a fixture crawl with a bound-stopped, <100% V7 figure, rendered through the
+  unified report, shows the same figure and reason breakdown as the crawl page — never rounded to
+  "PASS" or omitted; a `not_visited` control/screen never appears as a passed row anywhere in it.
+- **DC2 — Reads only existing evidence across all four named sources — regression diff (RR3),
+  API failures (network-assertions.md NA1, already ACTIVE since T-170's PASS), workflows
+  (report-export.md RE1), change history (crawl-traversal.md CR4's `PersonaRevision` counts) — never
+  recomputing a number none of those sources already produced. [T-168 note; cross-reference]**
+  **Landing note:** same.
+  **Verify (once built):** every figure on the unified report traces to one of the four named
+  existing sources; no new number-computing function bypasses all four loaders.
+- **DC3 — The report is genuinely unified: one artifact (or one coherent linked pair, per
+  report-export.md's own video-link exception shape), not four separate files a human must merge
+  by hand. [maker — the "unified" half of the task's own name, not explicitly stated by any decision
+  I read]**
+  **Landing note:** same.
+  **Verify (once built):** one invocation produces one report artifact (or one clearly cross-linked
+  pair) containing all four data classes; four unrelated, unlinked files fails this criterion.
+- **DC4 — No secret reaches the unified report — inherits report-export.md's existing guarantee.
+  [core-invariants C5 + report-export.md RE5 cross-reference]**
+  **Landing note:** same.
+  **Verify (once built):** `scripts/check_no_secrets.py` passes clean on the unified report artifact
+  against a project touching real credentials.
+
+**No-fire list offered:** building T-168 itself; the regression-diff mechanism's own internals
+(`release-regression.md`'s job); the network-evidence capture mechanism's own internals
+(`network-assertions.md`'s job, ACTIVE already); a PDF exporter or scheduled export
+(`report-export.md`'s own declined scope, unchanged here).
+
+**APPLIES NEXT:** whichever unit builds each of T-171/T-166/T-167/T-168 builds directly against
+PS/EC/RR/DC (as the checker amends them), and does not re-derive D-040/D-041 from scratch. **Before
+any of them is authored, the missing-authorization finding above should be resolved** (a small
+decisions-log entry naming the four files, the same shape every prior contract file in this repo
+received) — I have not written that entry myself, per this unit's brief.
+
+**Status:** folded (2026-09-27 authorization by D-054, Approved-by Umesh; contracts authored 2026-09-28, `c6f31f50`; swept 2026-09-29). `permission-surface.md` (PS), `eval-compiler.md` (EC), `release-regression.md` (RR), `damage-control-report.md` (DC) exist as DRAFT and carry these requests' criteria, with two deliberate narrowings recorded in their amendment logs (RR2 narrowed; the T-179 tension closed by D-055). Ledger: `ISS-at638-remainder-1` fixed. The 'missing authorization' finding above is resolved.

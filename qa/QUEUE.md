@@ -1,129 +1,46 @@
 # qa/QUEUE.md — checker sweep queue (top-3 recommended next units)
 
-Refreshed by `/checker sweep` **2026-09-28T12:32:24Z**, stamp from the system clock (`date -u`), not
-typed (AT-399). Bound strictly to `D:/autoTesting`. **Single-agent sweep** (measured ceiling this
-tick: 2.72 GB free RAM — the usual 3-shard + consolidation split was not available; this is one
-agent walking the checks in order, stated rather than pretended sharded). Supersedes the
-`2026-09-18T01:41:32+05:30` queue, which had gone **ten days stale** while `qa/.last-tick` kept
-advancing without it (confirmed: `qa/.last-tick` itself says "queue stale since 2026-09-18" at
-`2026-09-28T12:24:47+00:00`, the tick that dispatched this sweep).
+Refreshed by `/checker sweep` **2026-09-29T12:28Z** (system clock, `date -u`, not typed — AT-399), HEAD
+`ade87168` (D-057). Bound strictly to `D:/autoTesting`. **Single-agent sweep** — measured ceiling this tick
+2.81 GB free RAM, the same constraint the 2026-09-28T12:35 sweep stated, so the 3-shard split was not
+available. Full report: `qa/verdicts/sweep-2026-09-29.md`. Supersedes the 2026-09-28T12:32Z queue. **D-057 (Umesh, 2026-09-29) is folded in:** the CT6 gate and the AT-710 new-module gate are both ANSWERED.
 
-**Window actually covered.** `qa/.last-sweep`'s literal first line reads 2026-09-18, but the file was
-never abandoned — it has 20+ dated entries running continuously through `2026-09-28T00:21:37Z`
-(commit `6d365cd7`), each a real Mode B sweep or focused reconcile. The 10-day gap named in the
-dispatch was in the STAMP LINE the maker's tick reads for staleness (a literal-first-line reading
-bug, not an absent-sweep one — worth a look but not filed here, out of scope for this pass), not in
-actual sweep coverage. This sweep therefore covers `6d365cd7..HEAD` in full (bypass, enforcement,
-inbox, ledger) and treats the 2026-09-18 to 09-27 span as already swept by the prior entries in this
-same file, spot-checked here rather than re-walked. `HEAD` at close-out is `ded3fbfc` (master advanced
-past the dispatch snapshot `a30ff712` during this sweep — a concurrent checker session closed `at673`
-cycle 1 PASS while this one ran; that unit is explicitly out of scope here per its own dispatch and
-untouched).
-
-**Not reached this pass, named rather than silently dropped:** a full commit-by-commit re-walk of the
-2026-09-18 to 2026-09-27 span (already covered by the 15+ intervening `.last-sweep` entries, spot-
-checked here, not independently re-derived); a fresh goal-coverage gap decomposition beyond
-re-confirming the 58/23 done/pending split (AT-638's 2026-09-27 decomposition is still the live one
-and has active follow-on work — see below); Mode C / release-level checks (no release in flight); the
-structural-erosion census beyond what the last two sweeps already carry.
-
-## Re-triage this sweep performed (priority 2 of the dispatch)
-
-**The maker's `qa/feedback-inbox.md` 2026-09-28 entry ("re-triage, plan step 3") was independently
-verified against the gate and current source, then folded.** It reported that gate
-`qa/gates/at674-approval-key-and-live-case-grant.md` was ANSWERED by Umesh 2026-09-28 rejecting the
-premise that a human types approval bounds at all — "jab tere paas id password user ne de diya, wahi
-sabse badi permission hai na" — and asked for the five approval-surface rows
-(AT-661/674/675/683/698) to be re-triaged against that answer before any is picked as a build unit.
-
-Independently re-verified before acting (not taken on the maker's word):
-- `core/consent.py:56-60` and `stages/run_budget.py:62-71` — confirmed strict/explicit comparisons,
-  `0` means zero budget everywhere today, matching AT-660/CN10 (`status: verified`).
-- `ui/routes_crawl_approval.py:104,188` — still hard-codes `ApprovalKind.CRAWL`, confirmed unchanged.
-- `AUTOTESTER_APPROVAL_KEY` — absent from the repo-root `.env` (`grep -c` = 0), confirmed.
-- **One inaccuracy in the maker's note, caught and corrected rather than carried forward:** it claimed
-  `parallel_run.py` "no longer exists." It does (`src/autotester/stages/parallel_run.py`, still the
-  file that calls `budget.try_consume(...)`); only the falsy-guard *line* it used to cite is gone, not
-  the file. Correction recorded in the inbox fold-in and in AT-661's/AT-675's `checker_note`.
-
-**Verdict, written to each row's `checker_note` in `qa/issues.jsonl` (originals untouched, per L8):**
-
-| Row | Was | Now | Why |
-|---|---|---|---|
-| AT-661 | open, high | wontfix | "Granting practice" finding about a human choosing bad bounds — under the Answer, no human chooses bounds any more. Mechanism retired. |
-| AT-675 | open, high | wontfix | Proposed fix was a UI field so a human could type max_probes — moot once no human types any bound. |
-| AT-698 | open, high | wontfix | Proposed fix was letting the UI grant a live_case kind — moot once nothing is manually granted at all. The maker's own re-triage names only two remaining halves, and a UI change is not one of them. |
-| AT-683 | open, high | open, high (confirmed live) | Explicitly named as mechanical consequence #3 of the Answer (approve_cmd defaults must go from 0 to real min=1 values). Re-verified: cli_crawl.py:241-243 still defaults everything to 0/0.0. |
-| AT-674 | open, high | open, high (re-scoped) | Underlying blocker (no key, no live_case row, T-122 still blocked) confirmed still real. Remedy changed from "Umesh runs the CLI by hand" to "the tool auto-generates the key and auto-derives the grant" — the umbrella for the one remaining buildable unit. |
-
-`qa/feedback-inbox.md`'s 2026-09-28 entry is now marked **Status:** folded.
-
-**AT-712** (open, high — "a fix can land, verified, and stale rows describing the old mechanism keep
-being read as current, and one reached a human-facing gate") is exactly the general shape of what was
-just done by hand for this cluster. Not closed by this — AT-712 asks for a *mechanised* back-reference
-at close-out, which does not exist yet; this sweep performed its equivalent manually for one cluster
-because the cluster was named directly. Left open, annotated with this instance as corroborating
-evidence.
+**What changed since that queue:** D-057 answered both open gates (below); the four D-054 contract files exist (so the ISS-at638-remainder-1
+HUMAN_GATE line is gone — it was answered 2026-09-27 and fixed 2026-09-28); D-041's four unwritten
+contracts now exist too (AT-726); `at710` was built, falsified and **held** at a new-module gate
+(`qa/gates/new-module-authorization.md`, unanswered); the approval-surface cluster stands as re-triaged.
 
 ## TOP-3 BUILDABLE NEXT UNITS
 
 | # | Unit | Why |
 |---|---|---|
-| 1 | The approval-derivation unit — AT-674 (key half) + AT-683 (bounds half): `core/env.py::ensure_approval_key` + `cli_crawl.py::approve_cmd` real min=1 defaults. Fully authorized by Umesh's direct 2026-09-28 answer; no further human decision needed on WHAT to build. **But both halves are reported classifier-blocked** ([Security Weaken] on the bounds edit, [Instruction Poisoning] on a related DECISIONS append in AT-710) as of 2026-09-28 — an agent cannot land this today. This is the item that most needs Umesh's own hands: either apply the small diffs directly, or find a phrasing/route that doesn't trip the harness classifier. Blocks T-122, the unit Umesh named first. | Directly answered, directly blocking, currently stuck on a mechanism no session in this seat controls. |
-| 2 | AT-663 / T-171 — permission-surface coverage. Umesh's verbatim ask (2026-09-23, qa/feedback-inbox.md:855-861): coverage should be measured against what the granted account's role permits, not against screens a bounded crawl happened to reach. Contract criteria already folded (qa/contracts/coverage.md V9) — a manifest can be built against them today with no gate in front of it. | Real product gap, serves O4 directly, ungated, criteria already written. |
-| 3 | AT-710's general remedy — a D-NNN citation resolver in `autotester doctor`. Two gate files cited D-056, which was never appended (highest real id is D-055); nothing anywhere checks that a cited decision id resolves, so a phantom authorization propagated for a day before anyone noticed. The specific missing D-056 append is itself classifier-blocked ([Instruction Poisoning], same class of blocker as #1) and needs Umesh — but the doctor check that would catch the next one is pure filesystem code, buildable today, no human gate. | Cheap, mechanical, and prevents a repeat of exactly the failure mode that produced the AT-674 cluster (AT-712) and the AT-661/675/683/698 stale-mechanism rows this sweep just re-triaged by hand. |
+| 1 | **T-171 permission-surface — RESUME, do not restart.** `.claude/worktrees/agent-a34c44eb5901959f8` holds 10 files (+249/-19) of **uncommitted** crawl-coverage and explore-safety work from 2026-09-28 18:12, tied to a manifest that exists only inside that worktree, untracked, with `tests/test_permission_coverage.py` (AT-728, corrected). Criteria exist and are ungated: `qa/contracts/permission-surface.md` PS1-PS4 (DRAFT, D-054) plus `coverage.md` V9 (AT-663). Commit that work and its manifest to a wave branch so master can see them, then build. | Serves O4 directly and Umesh's verbatim 2026-09-23 ask ("jo account mai dunga usme jitni permission hogi uthi tho testing ho hi jaani chaiyee"). It is also the one item where finished-looking work is one `worktree remove` from being lost. RAM-bound: one build at a time at 2.81 GB. |
+| 2 | **T-176 script-replay.** Criteria written today: `qa/contracts/script-replay.md` SR1-SR5. Free behind T-165 (done). `Case.script_ref` and `Script` already exist and are unwired, so this is wiring, not invention. **It was never gated** — the maker's 2026-09-29 tick listed "T-176: no authorizing contract", but D-041 authorized the file on 2026-09-24 (AT-726). T-177 (`agent-fallback.md` AF1-AF6) follows it. | Highest-value ungated unit: it turns every regression run from N provider calls into zero, and SR5 encodes D-041's refusal of "regenerate instead of maintain". |
+| 3 | **T-125 cycle 4 -- submit it for check, and judge it against CT6 (narrowed) and CT9 (new).** Build to recover: `worktree-agent-aca539b488be4c248`, 12 ahead (manifest `t125-test-catalog.md`, `ready-for-check`, uncommitted edit, no verdict; master carries neither, so the hook cannot see it). **D-057 makes CT6 PASSable:** it is now 'dispatch in tier order, report each tier's runnable count, never skip' and no longer conflicts with RU3/F-058; the build must wire `tiers_to_run()` (not yet in `src/` on master) into `routes_runs.py::trigger_run` as ordering only. **New precondition met this sweep:** D-051 asked for a written relevance rule before cycle 4 and none existed (AT-732); CT9 now states it. Expect the check to open on CT9(b) (`4636e832`) and CT6(2) (executed set == `list_cases()`). | T-125 gates T-152, T-166, T-174 and T-178; `cli-mcp.md` and `failure-bundle.md` wait behind it. Merge note: `wave/t125-catalog` holds a 2026-09-27 catalog.md amendment master lacks; the two log tails will conflict and both entries stay. |
 
-**Also real, not in the top 3 only for space:** AT-645/AT-656/AT-676 (recurring qa/issues.jsonl
-duplicate-id / merge-integrity debt — no uniqueness guard, docs/FEATURES.jsonl has one and this
-ledger doesn't); AT-711 (capability-coverage rows need to be bound to the commit they're submitted
-with — the AT-700/701 asymmetry that produced it is fully written up and the fix shape is agreed,
-just not built); AT-644 (qa/.last-tick needs a guard against a truncating `>` write).
+## HELD on a human — one line each, not build rows
 
-## Bypass detection — CLEAN
+- **AT-710 is OFF the human list (D-057, Umesh 2026-09-29):** `src/autotester/ledger/citations.py` and its own test module are authorized for AT-710 ONLY. AT-697 and AT-727 meet the new-module gate again on their own merits (the standing-rule variant was not chosen). The build is held in `.work/at710/` and resumes under the maker. **AT-718 has happened AGAIN (AT-740):** the seven write-policy citations were re-pointed to `D-057 (NOT YET WRITTEN)`, and D-057 was then appended on 2026-09-29 for a different subject (the three answers). They resolve to the wrong entry a second time; the write-policy entry, once written, is `D-058` or later. This is the exact case `check_decision_citations` exists to catch, and its fixture (c) in `living-ledger.md` names the now-spent id.
+- **HUMAN (classifier-blocked): the approval-derivation unit** — AT-674 (`core/env.py::ensure_approval_key`) + AT-683 (`cli_crawl.py::approve_cmd` real min=1 defaults). Fully authorized by Umesh's 2026-09-28 answer; both halves were reported blocked by the harness classifier. Blocks T-122.
+- **HUMAN_GATE (AT-668/AT-669):** the guard-the-guards protection does not cover `qa/hooks/*` — needs an `Approved-by` DECISIONS entry before the wiring fix lands.
+- **Umesh's, still open:** `qa/gates/t192-narrowed-command-ratification.md`. (`t125-ct6-tiered-dispatch-vs-ru3.md` is ANSWERED, D-057; the maker records its `Answered:` line.)
 
-Every commit in `6d365cd7..ded3fbfc` touching `src/`, `tests/`, or `scripts/` traces to a
-manifest→verdict handshake: `2782083e`/`6fd9dcaa` to the AT-700/AT-701 cycle
-(`qa/verdicts/at700-setup-vs-subject.md`, cycle 2 PASS `726074d5`); `ed26fb16` to the in-flight,
-explicitly-out-of-scope `at673` unit (manifest `qa/manifests/at673-sessionstart-unclosed-detector.md`,
-cycle 1 PASS landed as `ded3fbfc` while this sweep ran). No untraced commit found. Handshake state: no
-manifest sits `ready-for-check` with a missing or stale-cycle verdict (the only `ready-for-check` unit
-on disk, at673, just resolved).
+## Also real, not in the top 3 only for space
 
-## Enforcement liveness — CLEAN
+AT-733 (high: `ui/run_execution.py:67` wipes the logged-out profile with `ignore_errors=True`, so a locked profile lets a logged-out case PASS logged in); AT-734/735/736 (video, post-save prune and session-start failure paths); AT-727 (nothing checks that an authorized contract file exists — twice now misread as a human gate);
+AT-731 (T-185 still `pending` after its PASS, merge and green done_check — one `goal_cli done`);
+AT-729/AT-730 (target.md, plan.md and the at638-remainder manifest still say things that stopped being
+true on 2026-09-27); AT-645/AT-656/AT-676 (recurring `qa/issues.jsonl` duplicate-id debt — 10 ids still
+carry two rows); AT-711; AT-644; AT-634 (rows fixed without a `regression_check`, now 69, was 31).
 
-`doctor: clean`; `ruff check src tests scripts`: all checks passed (re-run this sweep, not pasted).
-`.claude/hooks/` carries `decisions-append-guard.ps1` + the lab session hooks; `qa/hooks/mc-sessionstart.ps1`
-exists (the file under the in-flight at673 check — read, not judged, per this sweep's own scope
-limit). Repo has 900+ commits, not an empty-history gate. `qa/.last-tick` is being written
-continuously (latest `2026-09-28T12:29:10+00:00`).
-
-## Goal coverage — spot-checked, not re-decomposed
-
-`.goal/goal.json`: 81 tasks, 58 done / 23 pending — consistent with the last full decomposition
-(AT-638, 2026-09-27), whose follow-on work is visibly active (`qa/verdicts/at638-remainder.md`,
-`qa/verdicts/at638-done-check-repair.md`, both dated 2026-09-27, and `ISS-at638-remainder-1` still an
-open HUMAN_GATE awaiting Umesh's approval on four checker-owned contract files). No new gap found; no
-re-decomposition performed this pass (see "not reached" above).
-
-## Data boundary + delegation — not re-run this pass
-
-`data_boundary.py` was `wontfix`'d against this project on 2026-09-24 per Umesh's gate answer
-(AT-365) — not re-litigated. No `qa/delegation-ledger.jsonl` entries changed shape since the last
-sweep read it; not re-walked given the RAM ceiling.
-
-## GRILL — human decision, not a build row (carried, unchanged this sweep)
+## GRILL — human decision, not a build row (carried)
 
 - GRILL: recurring vacuous-guard prevention policy (AT-218). Unanswered, carried.
 - GRILL: real two-mode acceptance thresholds for D-023/T-169 (AT-281). Carried.
 - GRILL (AT-402): structure-before-code review of `visual_order.js`. Carried.
-- HUMAN_GATE (ISS-at638-remainder-1): approve a DECISIONS entry naming four checker-owned draft
-  contract files (permission-surface.md, eval-compiler.md, release-regression.md,
-  damage-control-report.md) — 17 criteria already drafted and reviewed, waiting only on this.
-- HUMAN_GATE (AT-668/AT-669): the guard-the-guards protection doesn't cover qa/hooks/* — needs an
-  Approved-by DECISIONS entry before the wiring fix can land.
+- GRILL: intent Q1 audience internal-tool vs external-ui (`docs/intent.md:82`) -- unanswered, not PARKED. It sets how expensive every persona walk is.
 
-**Explicitly NOT judged or dispatched this sweep:** `at673`
-(`qa/manifests/at673-sessionstart-unclosed-detector.md`, `qa/hooks/mc-sessionstart.ps1`,
-`tests/test_mc_sessionstart_unclosed.py`) — another checker session owns it and has already filed
-AT-713/AT-714/AT-715 against it; it closed cycle 1 PASS (`ded3fbfc`) during this sweep's run, read
-here only to confirm it left the handshake clean.
+**Explicitly NOT judged this sweep:** `at673` (`qa/manifests/at673-sessionstart-unclosed-detector.md`,
+`qa/hooks/mc-sessionstart.ps1`, `tests/test_mc_sessionstart_unclosed.py`) and rows AT-713/714/715 and
+AT-722..725 — a concurrent Mode A checker owns it. Commit `8ea308ee` (its cycle-2 build) is the only
+in-window commit that touched `src`/`tests`/`scripts`/`qa/hooks`, and it belongs to that check.

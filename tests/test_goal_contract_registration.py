@@ -47,7 +47,7 @@ def test_revised_goal_contract_is_registered() -> None:
         "T-176": (["T-165"], tests + "test_script_replay.py"),
         "T-177": (["T-176"], tests + "test_agent_fallback.py"),
         "T-178": (["T-125"], tests + "test_failure_bundle.py"),
-        "T-167": (["T-166", "T-110"], tests + "test_regression_trigger.py"),
+        "T-167": (["T-166", "T-110", "T-179"], tests + "test_regression_trigger.py"),  # D-057
         "T-168": (["T-155", "T-164", "T-165", "T-167"], tests + "test_unified_report.py"),
         "T-169": (["T-136", "T-145", "T-168"], tests + "test_generic_acceptance.py"),
         # D-042: T-179..T-181

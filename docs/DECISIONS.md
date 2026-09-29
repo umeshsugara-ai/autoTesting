@@ -1565,3 +1565,101 @@ supersedes clause `:960` and `Changes-authorized` `:967`) · D-054 ·
 **Changes-authorized:** none. No `docs/ARCHITECTURE.md` prose change, no `.goal/goal.json` change (the
 deps array is already correct; the stale note is queued separately), no contract amendment. This entry
 is a clarification of two existing decisions, and it creates no new scope.
+
+## D-056 | 2026-09-28 | type: decision | status: ACTIVE
+
+**What:** Waive the D-014 round cap ONCE for the `qa/hooks/mc-sessionstart.ps1` seam, authorizing a
+single bounded cycle 2 of unit `at673-sessionstart-unclosed-detector` with exactly this scope and
+nothing beyond it: AT-713 (read the MAXIMUM cycle field, not the last one), AT-714 (drop the
+bare-whitespace alternative from the cycle boundary, keeping the heading-prefix allowance), and
+AT-715 (make the new test module's docstring raw). Cycle 1 as built and checked stands; round 4 is
+accepted. After cycle 2 PASSes the seam is closed again and any further visit needs a new waiver.
+This entry also retroactively supplies the authorization the cycle-1 code landed ahead of, which the
+manifest disclosed in writing at the time rather than landing silently.
+
+**Why:** The seam has 3 prior PASSes (`at097-session-start-hook-regression`,
+`at383-sessionstart-loop-status`, `t005-living-ledger`) against a non-security cap of 2, and this
+unit is the 4th visit. The maker escalated rather than argued past the cap, correctly declining both
+available escapes: it is an enforcement path, which is adjacent to the security class and not in it,
+and stretching the one into the other is the rationalisation the cap exists to stop.
+
+The evidence argues for the cap rather than against it, which is why the waiver is bounded to three
+named rows instead of reopening the file. Inside this single unit the seam produced four defects:
+two of the maker's own, caught by measuring (an anchored `^## Status:` read that would have silently
+skipped ~37 of 263 manifests; a `Fix cycle` pattern that broke on `**Fix cycle:** 2`), plus the
+checker's AT-713 and AT-714.
+
+What makes the fix worth spending a waiver on rather than filing as debt: AT-713 and AT-714 resolve
+to ONE change, and it is a correctness change, not a tightening. Cycle numbers only ever increase,
+so reading the MAXIMUM is correct under both orderings, while last-wins is correct only under the
+manifest ordering. LS6 is a rule about manifests and was applied to verdicts, which order their
+history the opposite way — measured over all 280 verdicts, 40 carry multiple cycle values, 39
+ascend and exactly one descends. Under max the bare-whitespace boundary becomes actively harmful
+rather than merely possible, so both rows land in the same cycle by necessity.
+
+Cycle 1 is a real fix and the waiver preserves it: the old phrase read flagged `t182-viewport-locale`
+(whose manifest merely keeps superseded history) and MISSED `at483-orphaned-running-crawl` (a genuine
+cycle-2 PASS never flipped). The headline count stayed 1 across the fix while the set inverted, which
+is why no capability row asserts a count. Option C (revert) would return the hook to that state
+permanently.
+
+**Result:** Cycle 2 authorized with the three-row scope above. Not authorized by this entry: any other
+change to `qa/hooks/mc-sessionstart.ps1`, and the separate question of whether `W` joins the ruff
+select list (AT-715's second half), which stays a contract question for the checker.
+
+**Changes-authorized:** `qa/hooks/mc-sessionstart.ps1` (enforcement path) — `Get-CycleNumber` only,
+for the max-over-last read and the boundary tightening; `tests/test_mc_sessionstart_unclosed.py`
+docstring.
+
+**Approved-by:** Umesh
+
+**Links:** AT-673 · AT-713 · AT-714 · AT-715 · T-673 · `qa/gates/at673-round-cap.md` (answered
+2026-09-28, option B) · `qa/gates/at673-sessionstart-unclosed-detector.md` (answered 2026-09-28,
+option A) · `qa/verdicts/at673-sessionstart-unclosed-detector.md` (cycle 1 PASS) ·
+`qa/contracts/loop-status.md` LS6 · `qa/contracts/core-invariants.md` C12 · D-014
+
+## D-057 | 2026-09-29 | type: decision | status: ACTIVE
+
+**What:** Umesh answered three open questions on 2026-09-29. This entry records all three before
+anything acts on them.
+
+1. **`qa/gates/new-module-authorization.md` → A.** Create `src/autotester/ledger/citations.py`
+   (plus its own test module) to hold `check_decision_citations` for **AT-710 only**. The
+   standing-rule variant ("any future check may take a new module") was **not** chosen, so AT-697
+   and later checks meet this gate again on their own merits.
+2. **`qa/gates/t125-ct6-tiered-dispatch-vs-ru3.md` → A, "order only, never skip".** `catalog.md` CT6
+   is narrowed from *stop before an empty tier* to *dispatch cases in cheap-to-expensive tier order
+   and report each tier's runnable count*. `ui-run.md` RU3 (run every case on file) and F-058 (a
+   pinned case runs every time) stay intact. `stages/catalog.py::tiers_to_run()` is wired into the
+   run trigger as an ordering helper, never as a filter.
+3. **T-167 deps gain T-179.** They become `["T-166","T-110","T-179"]`, matching D-042's statement
+   that T-167 "runs the lead agent on LangGraph checkpoints". This settles the contradiction that
+   D-054 explicitly left unsettled.
+
+**Why:**
+- *(1)* The implementation is built and falsified (held in `.work/at710/`). Every conceptual home is
+  at or near the 300-line cap: `ledger/checks.py` 288, `doctor.py` 279, `render.py` 300,
+  `tests/test_doctor.py` 300. Two independent build subagents stopped at this gate instead of
+  granting themselves the exception, which is the behaviour the design rules want.
+- *(2)* Honouring the old CT6 would filter which cases execute. That breaks RU3 and would let a
+  pinned regression case be skipped, which is the one guarantee F-058 exists to make. Ordering keeps
+  CT6's intent (cheap structural failures show first) without skipping anything.
+- *(3)* The deps array contradicted the task's own note and D-042.
+
+**Result:** AT-710 leaves HUMAN_GATE and returns to build. T-125 can reach CT6 PASS on the narrowed
+criterion. `.goal/goal.json` T-167 deps and `docs/plan.md` T-167 row are corrected.
+
+**Changes-authorized:**
+- new `src/autotester/ledger/citations.py` and its test module (AT-710 only);
+- `qa/contracts/catalog.md` CT6 wording (checker-authored amendment to ordering + reporting);
+- `ui/routes_runs.py::trigger_run` calls `tiers_to_run()` for ordering only;
+- `.goal/goal.json` T-167 `deps`, and `docs/plan.md` T-167 row.
+
+No `docs/ARCHITECTURE.md` prose change. No enforcement-path change.
+
+**Approved-by:** Umesh. Answers given 2026-09-29 via AskUserQuestion in session autotesting-23, then
+re-confirmed directly to the maker session the same day ("Yes, all three").
+
+**Links:** AT-710 · AT-697 · T-125 · ISS-t125-1 · T-167 · T-179 · F-058 · D-042 · D-054 ·
+`qa/gates/new-module-authorization.md` · `qa/gates/t125-ct6-tiered-dispatch-vs-ru3.md` ·
+`qa/contracts/catalog.md` CT6 · `qa/contracts/ui-run.md` RU3

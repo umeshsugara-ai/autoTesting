@@ -23,6 +23,15 @@ human instead of silently rebuilt. It is the product's **overview, not a logger*
 - `autotester doctor` **fails** when `docs/MAP.md` or `docs/SNAPSHOT.md` differs from a fresh regeneration.
 - **Verify:** `uv run autotester map && uv run autotester snapshot && git diff --exit-code docs/MAP.md docs/SNAPSHOT.md`; then change one module docstring → `uv run autotester doctor` exits non-zero (`stale-generated: docs/MAP.md`) until `map` is re-run; `wc -l docs/ARCHITECTURE.md` ≤ 150.
 
+- **Committed == disk == fresh (added 2026-09-29, from the maker's 2026-09-28 request and AT-697).**
+  The check above compares the working file against a fresh regeneration. It must **also** compare
+  the **committed** blob against that regeneration, because a working tree can be regenerated to
+  clean while the repository every clone receives is stale. Where no committed object exists (a
+  pre-first-commit tree), the committed leg is reported as **skipped and named**, never as passed.
+  **Verify:** commit a stale `docs/MAP.md`, regenerate it on disk without committing — `autotester
+  doctor` exits non-zero naming the committed blob; the same tree with the regeneration committed
+  exits 0. Sabotage: remove the committed-blob comparison — the stale-commit fixture goes red.
+
 ### L2 — Every change gets a row; the ask is gated by user value (fatigue defence)
 - `docs/FEATURES.jsonl` rows validate against `schema/ledger.py::FeatureEvent`
   (`id`, `feature`, `event ∈ {planned, live, updated, retired}`, `date`, `unit`, `verdict_ref`,
@@ -148,10 +157,20 @@ citation. So the citation is checked, not trusted.
   above. Header-matching, never substring-matching. Three fixtures, and each is a shape that has
   already occurred in this repo rather than an invented one: (a) this criterion's own sentence
   *"D-056 did not exist"* must not fire it; (b) a cross-log citation qualified only elsewhere in its
-  entry must not fire it; (c) the seven real `D-056` citations across
+  entry must not fire it; (c) the seven real write-policy citations across
   `qa/gates/at654-d029-dev-only-vs-production-pathlynks.md` (:8, :18, :63) and
-  `qa/gates/pathlynks-user-account-first.md` (:31, :35, :38, :67) must **all** fire it. **Links:**
-  AT-710; AT-711.
+  `qa/gates/pathlynks-user-account-first.md` (:31, :35, :38, :67) must **all** fire it **while the
+  entry they name is unwritten** -- as of 2026-09-28 they name `D-057`, not `D-056` (AT-718).
+
+- **Resolution is necessary and not sufficient -- the SUBJECT must match too (added 2026-09-28,
+  AT-718).** Fixture (c) was written naming `D-056`, and on 2026-09-28 this seat appended a real
+  `D-056` on an unrelated subject (the at673 round-cap waiver). Every one of those seven citations
+  instantly began to RESOLVE while still being wrong, and a check that only asks "does `## D-NNN`
+  exist" would have gone green on all seven in the same stroke -- reporting the defect as fixed at
+  the exact moment it got harder to see. So the check may not treat a resolving id as clean on its
+  own: where a citation states what the entry authorizes, that claim is compared against the entry's
+  own **What:** field, and a mismatch is a violation in its own right. This is the C12 shape once
+  more -- a green that the construction, not the code, produced. **Links:** AT-710; AT-711; AT-718.
 
 
 ## Out of scope
@@ -226,3 +245,36 @@ only, later); Google-Sheet sync.
   **Changes-authorized:** qa/contracts/living-ledger.md L9 + Amendment log (this entry). No
   enforcement-path file touched. **Links:** AT-710; AT-711; AT-662; qa/feedback-inbox.md 4a1b51f9;
   docs/DECISIONS.md:623,638.
+
+- 2026-09-28 - CORRECTION (narrow, self-inflicted) - L9 fixture (c) amended and one bullet added,
+  because this seat invalidated the fixture by its own append. Appending D-056 as the at673
+  round-cap waiver (authorized by Umesh's option-B answer; `append_decision.ps1` V3 forces
+  max(existing)+1, so the id was not a free choice once the append ran) turned the seven phantom
+  write-policy citations from DANGLING into RESOLVING-BUT-WRONG. The avoidable error was ORDERING,
+  not the id: the write-policy entry should have been written first. Fixture (c) now names D-057
+  and is conditioned on the cited entry being unwritten, and L9 gains an explicit rule that
+  resolution alone is not cleanliness -- a citation stating what an entry authorizes is compared
+  against that entry's **What:**. Strengthening, not weakening: every violation L9 was written to
+  catch still fires, and one class it would have silently stopped catching now fires too.
+  **Changes-authorized:** qa/contracts/living-ledger.md L9 Verify + one L9 bullet + Amendment log
+  (this entry). No enforcement-path file touched. **Links:** AT-718; AT-710; AT-711; D-056.
+
+- 2026-09-29 - routine (tighten) - L1 gains the "committed == disk == fresh regeneration" leg and the
+  pre-first-commit rule. Cause: the maker's 2026-09-28 request (`qa/feedback-inbox.md`, "L1 ... is
+  declared in no contract") asked that L1 be stated somewhere a check can be judged against. It
+  **was** — here, in L1 — but only in the disk-vs-fresh form, which is exactly the narrowness AT-697
+  measured in `doctor.py::check_generated_fresh` (it never reads the committed blob). The maker's
+  grep looked in `core-invariants.md`, not this file, so the request was half right: the criterion
+  existed and was too weak. Tightening, not weakening: every violation L1 caught still fires.
+  **Changes-authorized:** qa/contracts/living-ledger.md L1 + Amendment log (this entry). No
+  enforcement-path file touched. **Links:** AT-697; qa/feedback-inbox.md 2026-09-28 tick 33r.
+
+- 2026-09-29 - routine (tighten) - L9 fixture (c) must not hard-code an UNWRITTEN decision id. Cause:
+  AT-740. Fixture (c) named `D-057` as the not-yet-written write-policy entry (the AT-718 fix); on
+  2026-09-29 `D-057` was appended for an unrelated subject (`ade87168`), so the seven citations went
+  from dangling to resolving-but-wrong a second time, and the fixture's stated precondition ("the entry
+  they name is unwritten") is now false. The fixture is to be built so its precondition is asserted at
+  run time (the cited id is absent, or present with a non-matching **What:**), never assumed from a
+  date. With `D-057` now real and off-subject, all seven citations are the L9 wrong-subject case
+  as it stands. Additive; no clause weakened. **Changes-authorized:** qa/contracts/living-ledger.md
+  Amendment log (this entry). No enforcement-path file touched. **Links:** AT-740; AT-718; AT-710; D-057.

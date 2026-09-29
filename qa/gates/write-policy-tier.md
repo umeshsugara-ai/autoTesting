@@ -100,5 +100,13 @@ ordering) · `T-145` · `T-171` (permission surface — the tier is what makes i
 Re-confirmed 2026-09-28 by Umesh, unprompted and with visible impatience at the repetition.
 projects/pathlynks/project.json write_policy = allow_writes, on production. See
 qa/gates/at654-d029-dev-only-vs-production-pathlynks.md for the verbatim instruction.
-NOTE: the "D-056" cited elsewhere as authorizing this DID NOT EXIST on disk -- highest decision id
-was D-055. That missing entry is why this question kept coming back. Filed as a finding.
+NOTE (updated 2026-09-28, AT-718): the "D-056" cited elsewhere as authorizing this DID NOT EXIST
+on disk -- highest decision id was D-055. That missing entry is why this question kept coming back.
+Filed as a finding (AT-710). **The state has since changed and the citation is now WORSE, not fixed:**
+D-056 was appended 2026-09-28 for an unrelated subject (the at673 round-cap waiver), so every
+citation pointing here now resolves to the wrong entry instead of dangling visibly. The authorizing
+entry for Pathlynks `allow_writes` is to be written as **D-057** by the maker, who owns both that
+edit and the `projects/pathlynks/project.json` flip per the section above. The seven citations in
+`at654-d029-dev-only-vs-production-pathlynks.md` and `pathlynks-user-account-first.md` were corrected
+to `D-057 (NOT YET WRITTEN)` the same day; `qa/QUEUE.md` is the maker's surface and still carries the
+old one.

@@ -40,11 +40,44 @@ function Get-CycleNumber($path, $names) {
   # inline-code strip was tried here first and removed: measured over all 543 manifests
   # and verdicts it changed zero answers, because the boundary already covers the case.
   # LAST field wins (LS6).
+  # AT-713 (cycle 2, authorized by D-056): take the MAXIMUM, not the last.
+  # LS6 is a rule about MANIFESTS -- they append new cycles BELOW, so last-wins is
+  # right there. Verdicts order history the OPPOSITE way, newest on top. Measured
+  # over all 280 verdicts: 40 carry more than one cycle value, 39 ascend and exactly
+  # one descends -- and that one read 1 when it is 2. Cycle numbers only ever
+  # increase, so MAX is correct under BOTH orderings while last-wins is correct
+  # under only one.
+  #
+  # AT-714 (same waiver): the boundary no longer admits a BARE SPACE. It used to,
+  # via the \s inside the character class, so ordinary prose counted -- measured on
+  # disk, 24 hits sit after a plain word ("manifest Fix cycle: 1 of 3",
+  # "manifest's Fix cycle: 1 of 3"), describing ANOTHER file's value. Harmless under
+  # last-wins if they happened to agree; actively harmful under MAX, which is why
+  # both rows had to land in the same cycle.
+  #
+  # The boundary is now: line start, or a character that is neither a word character
+  # nor whitespace nor a backtick, followed by optional whitespace. Measured over all
+  # 546 manifests and verdicts, that admits every real separator (`·` 66, `,` 41,
+  # `#` heading 9, `-` 6, `.` 4) and the 533 at line start, while excluding the 23
+  # quoted inside a code span and the 24 after a bare word. Written as a negated class
+  # rather than a literal separator list so the file stays pure ASCII.
+  # The inline-code strip is BACK, and this time it is load-bearing. Cycle 1 removed
+  # it after measuring that it changed 0 answers, which was correct THEN: under the
+  # old boundary a backtick immediately before the field already excluded the quote.
+  # It does not survive MAX. A QUOTED HEADING -- `## Cycle checked: 2` written inside
+  # a code span while describing another file -- puts a `#` between the backtick and
+  # the field, and `#` is itself a legal separator, so the quote is re-admitted
+  # through the heading allowance. Found by running the hook on this unit's own
+  # verdict (`:96`), which reported an unclosed PASS that does not exist. Measured
+  # over all 546 manifests and verdicts, the strip changes exactly ONE answer -- that
+  # file, 2 -> 1 -- so it is narrow and it is necessary.
   $lines = @(Get-Content -Path $path -ErrorAction SilentlyContinue)
   $n = -1
   foreach ($line in $lines) {
-    foreach ($mm in [regex]::Matches($line, '(?:^|[-*+|.\s])\s*\*{0,2}(?:' + $names + ')\*{0,2}\s*(?:\([^)]*\))?\s*:\s*\*{0,2}\s*(\d+)')) {
-      $n = [int]$mm.Groups[1].Value
+    $line = [regex]::Replace($line, '`[^`]*`', ' ')
+    foreach ($mm in [regex]::Matches($line, '(?:^|[^\w\s`])\s*\*{0,2}(?:' + $names + ')\*{0,2}\s*(?:\([^)]*\))?\s*:\s*\*{0,2}\s*(\d+)')) {
+      $v = [int]$mm.Groups[1].Value
+      if ($v -gt $n) { $n = $v }
     }
   }
   return $n
