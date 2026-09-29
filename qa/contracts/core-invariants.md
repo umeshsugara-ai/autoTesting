@@ -138,6 +138,11 @@ control of it. Every criterion below is a cheap rule now that was unaffordable t
   - The manifest row names the guard and the single-hunk edit that reintroduces the defect it
     guards against. It pastes the run showing the guard fire on its own named assertion, from a
     throwaway copy with a green asserted baseline.
+  - The throwaway copy excludes every `__pycache__` directory. A `.pyc` carried across by `tar` keeps
+    the `co_filename` of the tree it was compiled in, so the copy's traceback prints the ORIGINAL
+    tree's path while running the copy's source (measured at626/at639, marshal-proven). With the
+    caches left in, a falsification's own evidence looks like the guard ran in the wrong tree.
+    `.pytest_cache` was tested and is NOT the cause; excluding it is harmless, not required.
   - Reading the code and concluding that the guard would fire is not the proof. That habit is how
     all 23 measured vacuous guards (AT-218) reached a checker instead of being caught at build.
   - A guard with no such row is an unenumerated claim. It fails the unit on its own, even when
@@ -950,3 +955,8 @@ judgements and only the second was wrong.
   because the surface was covered. Additive; no clause weakened. **Changes-authorized:**
   qa/contracts/core-invariants.md C12 final clause + Amendment log (this entry). No enforcement-path
   file touched. **Links:** AT-662; AT-697; AT-695.
+- 2026-09-29 · amend · C12 throwaway-copy bullet: the copy excludes every `__pycache__`. Cause: the
+  maker's 2026-09-27 inbox note (root cause of the at626 'honest oddity', proven with
+  `marshal.loads(pyc[16:]).co_filename`), which suggested the recipe change and left it to the checker.
+  Additive; no clause weakened. **Changes-authorized:** qa/contracts/core-invariants.md C12 + this
+  entry. No enforcement-path file touched. **Links:** AT-626; AT-639.

@@ -71,6 +71,22 @@ The mechanism that starts a release run does not also judge its outcome. This is
 **Verify:** `grep -n "langgraph" pyproject.toml` returns a real line, and `uv run autotester doctor`'s
 `check_dependencies_declared` reports clean.
 
+### RR6 — Per-flow validation plans are stitched into ONE release run that ends in ONE issues log
+
+*(Added 2026-09-29 from Umesh's verbatim 2026-09-24 meeting direction, `qa/feedback-inbox.md`
+2026-09-24T16:10, 09:28-09:47: "jab yeh ek flow poora complete ho jayega next time woh ek hamara plan
+ban jayega ... woh stitch ho jate hain ek ke upar ek. Toh jab aap badi release karte ho toh yeh saare
+flow automatic check karke aapko last me log de dega ki yahan yeh yeh issues hain.")*
+
+Each completed flow leaves a persisted validation plan. A release run executes **all** of them and
+terminates in a **single** issues log naming each issue's flow. A flow with no plan is reported as
+**not run**, never omitted from the log.
+
+**Verify:** a fixture with 3 flows, each with a persisted plan and one seeded failure in two of them —
+one release run produces one log containing both failures with their flow ids, and the third flow
+appears as passed. Remove one flow's plan — it appears in the log as `not run`. Sabotage: run only the
+first plan — the two-failures assertion goes red.
+
 ## Disclosed dependency tension — RESOLVED, recorded so it is not re-opened
 
 D-042 says *"T-167 runs the lead agent on LangGraph checkpoints"*, which would tie T-167 to the Deep
@@ -97,3 +113,11 @@ here assumes the lead agent.
   dependency tension is closed by D-055** rather than left flagged, so a future unit does not
   re-litigate it. DRAFT until T-167's first PASS. **Changes-authorized:** this file (named by D-054).
   No enforcement-path file touched. **Links:** AT-638; D-041; D-042; D-054; D-055; T-167; T-163.
+
+- 2026-09-29 · routine (add) · RR6 added: per-flow validation plans stitch into one release run that
+  ends in one issues log, and a planless flow is `not run`, never omitted. Cause: Umesh's verbatim
+  2026-09-24 meeting direction ("the product's own north star as the customer states it"), tagged
+  "unfolded pending T-167's contract" since 2026-09-24; RR1-RR5 govern the substrate, the approval,
+  the baseline rule, the grading boundary and the dependency, and none states the stitching.
+  Adds a criterion, weakens none. **Changes-authorized:** this file (D-054). No enforcement-path file
+  touched. **Links:** AT-666; D-054; T-167; qa/feedback-inbox.md 2026-09-24T16:10.

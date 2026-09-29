@@ -66,6 +66,22 @@ flow.
 **Verify:** a fixture flow with 2 declared scenario variants produces 2 distinct scenario nodes,
 each with its own traceable case set.
 
+### EC5 — A scenario list is an input contract: a branch with no compiled case is reported UNCOVERED
+
+*(Added 2026-09-29 from Umesh's verbatim 2026-09-24 meeting direction, `qa/feedback-inbox.md`
+2026-09-24T16:10, 10:35-10:57 and 05:30-06:05: "Sabse pehle scenario likhne zaroori hai taki aap
+koi scenario bhoolo nahi ... us scenario me saare options test kar lena. Yes, no. Yes, no.")*
+
+When evals are compiled from a written scenario list, every branch a scenario enumerates (yes / no,
+each option) must end up with a compiled case **or** be listed as **uncovered**. A branch that
+silently produced no case is the failure this refuses (intent O4).
+
+**Verify:** a fixture scenario list with 3 scenarios, each with a yes and a no branch, where the
+compiler is made unable to produce a case for exactly one branch — the compiled output lists that
+branch under an `uncovered` heading with its scenario id, and the coverage figure is **not** 100%.
+Sabotage: drop the uncovered-listing step — the named test goes red on the missing branch, not on an
+import error.
+
 ## No-fire list
 
 - Building T-166 itself.
@@ -82,3 +98,14 @@ each with its own traceable case set.
   decision. Gate `at638` was answered 2026-09-27 (D-054); what was missing after that answer was this
   file. DRAFT until T-166's first PASS. **Changes-authorized:** this file (named by D-054). No
   enforcement-path file touched. **Links:** AT-638; AT-586; D-041; D-054; T-166; T-164.
+
+- 2026-09-29 · routine (add) · EC5 added: a scenario list is an input contract, and a branch with no
+  compiled case is reported UNCOVERED. Cause: Umesh's verbatim 2026-09-24 meeting direction, tagged
+  "unfolded pending T-166's contract" since 2026-09-24 (`qa/feedback-inbox.md`, folded this sweep);
+  EC1-EC4 govern the graph and provenance and none states it. Adds a criterion, weakens none.
+  **Deliberately NOT folded here:** the "worst-case default" and "stalled handoff" patterns from the
+  same transcript — they are new case/defect CLASSES, which this contract's no-fire list excludes
+  ("taxonomy classes beyond `expand.md` X3") and which need an implementation site and, for the
+  stalled handoff, an N that only Umesh can set (AT-666 stays open for them).
+  **Changes-authorized:** this file (D-054). No enforcement-path file touched. **Links:** AT-666;
+  D-054; T-166; qa/feedback-inbox.md 2026-09-24T16:10.

@@ -93,7 +93,7 @@ Maker is correcting the script's read/write encoding to UTF-8 under D-000 `Chang
 template-level defect upstream (`D:/ai_os/templates/lab-protocol/scripts/append_decision.ps1`) — that is
 outside this project's root, so the maker does not touch it.
 
-**Status:** unfolded (tooling defect, not a contract change)
+**Status:** folded/closed (2026-09-29, Mode B sweep, sweep-2026-09-29). Two halves. (1) IN-REPO FIX: verified in the 2026-09-03 check and re-verified now - `scripts/append_decision.ps1:47,70,77` read every input with `-Encoding UTF8` (D-006, D-000 `Changes-authorized`). (2) UPSTREAM TEMPLATE (`D:/ai_os/templates/lab-protocol/scripts/append_decision.ps1`): not folded by design - it is outside the bound root, the checker never leaves it, and it is a note for Umesh / the AIOS session, not a contract criterion here. This tag said `unfolded` for 26 days for a reason that was never a fold.
 */checker 2026-09-03 (T-005 cycle-1 check): the in-repo fix is verified - ran the working-tree `scripts/append_decision.ps1` (`-Encoding UTF8` on the entry read, the live-file read, and the raw read before append) against a scratch copy of `docs/DECISIONS.md`; the appended entry carried `·` and `—` as clean UTF-8 (`c2 b7`, `e2 80 94`), no `Â·`/`â€”`. Authorization: D-000 `Changes-authorized` lists `scripts/append_decision.ps1` with `Approved-by: Umesh`; D-006 records the change. The template-level copy at `D:/ai_os/templates/lab-protocol/scripts/append_decision.ps1` is outside this root - left unfolded here on purpose; it is a note for Umesh / the AIOS session, not a contract item for this project.*
 
 ## 2026-09-03 — Umesh, on provider architecture (mid T-050 build)
@@ -883,6 +883,7 @@ crawl-traversal.md) — checked against each: the scenario-list pattern belongs 
 permission-surface pass," which D-040 split out to **T-171** (no contract yet); the stalled-handoff
 and stitched-regression patterns belong to T-166/T-167/T-168. None fit CT/NA/CR criteria as scoped.
 Left unfolded pending whichever unit builds T-171/T-166/T-167/T-168's contracts.
+**Status (update 2026-09-29, Mode B sweep):** partially folded. The four contracts this entry waited on now exist (D-054; `permission-surface.md`, `eval-compiler.md`, `release-regression.md`, `damage-control-report.md`). PATTERN 1 (scenario list = input contract) -> `eval-compiler.md` EC5. PATTERN 4 (per-flow plans stitched into one release regression ending in an issues log) -> `release-regression.md` RR6; its 'unified report' half is already `damage-control-report.md` DC3. PATTERN 2 (worst-case default) and PATTERN 3 (stalled handoff) are NOT folded: each is a new defect/case CLASS with no implementation site yet (EC's no-fire list excludes taxonomy beyond `expand.md` X3), and PATTERN 3 needs an N that only Umesh can set. They stay owned by AT-666 (open).
 
 
 ## 2026-09-24T16:33:00+05:30 · source: Umesh, chat (answers to the seven open decisions, verbatim)
@@ -958,6 +959,8 @@ my first guess and was wrong — clearing it changed nothing.
 Consequence for the checker, not asserted as a conclusion: the at626 disclosure is explained by a
 cache artifact rather than by the bound tree having been run. The checker should still re-derive it
 independently; this note exists so the same 20 minutes are not spent twice.
+
+**Status:** folded 2026-09-29 to `core-invariants.md` C12 (throwaway copy excludes `__pycache__`; `.pytest_cache` disproved as a cause, so not required).
 
 **Suggested contract/tooling follow-up (checker's call, not the maker's):** the throwaway-copy
 recipe in the capability-coverage rule should exclude `__pycache__` and `.pytest_cache` alongside
@@ -1174,7 +1177,7 @@ folds them into `crawl-traversal.md` so the next unit does not re-derive them.
 > `70` in `test_revised_goal_contract_is_registered` needs updating by whoever owns that batch's
 > registration, or the assertion needs to stop hardcoding a total.
 
-**Status:** unfolded
+**Status:** folded (2026-09-29, Mode B sweep) - already encoded before this pass; the tag was stale (AT-667). The `-k`-filtered `done_check` shape is covered by the `done_check.waiver` mechanism plus `tests/test_goal_contract_registration.py`; re-run now: `uv run pytest tests/test_goal_done_checks.py` = 7 passed (the hardcoded `70` no longer fails). Ledger: `ISS-at638-remainder-2` fixed.
 
 
 ## 2026-09-27 — self-discovered, t165-crawl-traversal cycle-2 build (maker, not user feedback)
@@ -1299,7 +1302,7 @@ folds them into `crawl-traversal.md` so the next unit does not re-derive them.
 > **APPLIES NEXT:** file both against `crawl-traversal`; and note the general lesson — a fake that
 > cannot be wrong about timing cannot test a timing-dependent guard.
 
-**Status:** unfolded
+**Status:** folded (2026-09-29, Mode B sweep) - already encoded before this pass; the tag was stale (AT-667). Q4-Q8 are rulings in `qa/contracts/crawl-traversal.md` CR3/CR4/CR7 (skip-truncation joins `missing_unjudged`; the growth against an unstable signature is an accepted, disclosed cost; the 'prior state' clause was superseded on Q8a). Q9's two defects are ledger rows `ISS-t165-crawl-traversal-a5` and `-a6`, both `verified`.
 
 ## L1 (generated-artifact freshness) is declared in no contract — maker, 2026-09-28, tick 33r
 
@@ -1330,11 +1333,11 @@ is stated to be.
 One thing the maker is NOT claiming: that every doctor check needs a contract line. This one earned
 the ask by being measurably narrower than its own name for an unknown length of time.
 
-**Status:** unfolded
+**Status:** folded (2026-09-29, Mode B sweep) into `qa/contracts/living-ledger.md` L1. The maker's premise was half right: L1 **was** stated in a contract (living-ledger L1, not core-invariants, which is where its grep looked) but only in the disk-vs-fresh form that AT-697 measured as too narrow. L1 now also requires the committed blob to equal the fresh regeneration, and names the pre-first-commit case as skipped-and-named, never passed. The maker's suggested definition was adopted; the wording is the checker's.
 
 ## L9's Verify clause produces 4 false positives, and one class makes the rule as written false (maker, 2026-09-28)
 
-**Status:** for the checker. Contracts are checker-owned; nothing here was edited into L9.
+**Status:** for the checker. Contracts are checker-owned; nothing here was edited into L9. **Folded (2026-09-29, Mode B sweep):** already done by the time of this pass - `living-ledger.md` L9 was amended twice on 2026-09-28 (`9f717106`, `c6d4b31e`): a foreign id space is out of scope at ENTRY granularity (class 3, the `D-088` citations); non-claiming occurrences (classes 1 and 2) are declared per occurrence with a reason in an allow-list, never inferred and never per file; and no whole-file exemption for `docs/DECISIONS.md`. The maker's suggested amendment was taken almost verbatim. Held pending only on `qa/gates/new-module-authorization.md` (unanswered).
 
 I implemented L9's Verify clause literally and ran it against the repo before landing it. It finds
 the real defect and more of it than was reported: **`D-056` is cited 7 times across TWO files**, not
@@ -1646,3 +1649,5 @@ PS/EC/RR/DC (as the checker amends them), and does not re-derive D-040/D-041 fro
 any of them is authored, the missing-authorization finding above should be resolved** (a small
 decisions-log entry naming the four files, the same shape every prior contract file in this repo
 received) — I have not written that entry myself, per this unit's brief.
+
+**Status:** folded (2026-09-27 authorization by D-054, Approved-by Umesh; contracts authored 2026-09-28, `c6f31f50`; swept 2026-09-29). `permission-surface.md` (PS), `eval-compiler.md` (EC), `release-regression.md` (RR), `damage-control-report.md` (DC) exist as DRAFT and carry these requests' criteria, with two deliberate narrowings recorded in their amendment logs (RR2 narrowed; the T-179 tension closed by D-055). Ledger: `ISS-at638-remainder-1` fixed. The 'missing authorization' finding above is resolved.

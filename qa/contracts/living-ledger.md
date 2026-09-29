@@ -23,6 +23,15 @@ human instead of silently rebuilt. It is the product's **overview, not a logger*
 - `autotester doctor` **fails** when `docs/MAP.md` or `docs/SNAPSHOT.md` differs from a fresh regeneration.
 - **Verify:** `uv run autotester map && uv run autotester snapshot && git diff --exit-code docs/MAP.md docs/SNAPSHOT.md`; then change one module docstring → `uv run autotester doctor` exits non-zero (`stale-generated: docs/MAP.md`) until `map` is re-run; `wc -l docs/ARCHITECTURE.md` ≤ 150.
 
+- **Committed == disk == fresh (added 2026-09-29, from the maker's 2026-09-28 request and AT-697).**
+  The check above compares the working file against a fresh regeneration. It must **also** compare
+  the **committed** blob against that regeneration, because a working tree can be regenerated to
+  clean while the repository every clone receives is stale. Where no committed object exists (a
+  pre-first-commit tree), the committed leg is reported as **skipped and named**, never as passed.
+  **Verify:** commit a stale `docs/MAP.md`, regenerate it on disk without committing — `autotester
+  doctor` exits non-zero naming the committed blob; the same tree with the regeneration committed
+  exits 0. Sabotage: remove the committed-blob comparison — the stale-commit fixture goes red.
+
 ### L2 — Every change gets a row; the ask is gated by user value (fatigue defence)
 - `docs/FEATURES.jsonl` rows validate against `schema/ledger.py::FeatureEvent`
   (`id`, `feature`, `event ∈ {planned, live, updated, retired}`, `date`, `unit`, `verdict_ref`,
@@ -249,3 +258,23 @@ only, later); Google-Sheet sync.
   catch still fires, and one class it would have silently stopped catching now fires too.
   **Changes-authorized:** qa/contracts/living-ledger.md L9 Verify + one L9 bullet + Amendment log
   (this entry). No enforcement-path file touched. **Links:** AT-718; AT-710; AT-711; D-056.
+
+- 2026-09-29 - routine (tighten) - L1 gains the "committed == disk == fresh regeneration" leg and the
+  pre-first-commit rule. Cause: the maker's 2026-09-28 request (`qa/feedback-inbox.md`, "L1 ... is
+  declared in no contract") asked that L1 be stated somewhere a check can be judged against. It
+  **was** — here, in L1 — but only in the disk-vs-fresh form, which is exactly the narrowness AT-697
+  measured in `doctor.py::check_generated_fresh` (it never reads the committed blob). The maker's
+  grep looked in `core-invariants.md`, not this file, so the request was half right: the criterion
+  existed and was too weak. Tightening, not weakening: every violation L1 caught still fires.
+  **Changes-authorized:** qa/contracts/living-ledger.md L1 + Amendment log (this entry). No
+  enforcement-path file touched. **Links:** AT-697; qa/feedback-inbox.md 2026-09-28 tick 33r.
+
+- 2026-09-29 - routine (tighten) - L9 fixture (c) must not hard-code an UNWRITTEN decision id. Cause:
+  AT-740. Fixture (c) named `D-057` as the not-yet-written write-policy entry (the AT-718 fix); on
+  2026-09-29 `D-057` was appended for an unrelated subject (`ade87168`), so the seven citations went
+  from dangling to resolving-but-wrong a second time, and the fixture's stated precondition ("the entry
+  they name is unwritten") is now false. The fixture is to be built so its precondition is asserted at
+  run time (the cited id is absent, or present with a non-matching **What:**), never assumed from a
+  date. With `D-057` now real and off-subject, all seven citations are the L9 wrong-subject case
+  as it stands. Additive; no clause weakened. **Changes-authorized:** qa/contracts/living-ledger.md
+  Amendment log (this entry). No enforcement-path file touched. **Links:** AT-740; AT-718; AT-710; D-057.
