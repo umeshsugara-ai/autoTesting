@@ -105,8 +105,8 @@ on disk -- highest decision id was D-055. That missing entry is why this questio
 Filed as a finding (AT-710). **The state has since changed and the citation is now WORSE, not fixed:**
 D-056 was appended 2026-09-28 for an unrelated subject (the at673 round-cap waiver), so every
 citation pointing here now resolves to the wrong entry instead of dangling visibly. The authorizing
-entry for Pathlynks `allow_writes` is to be written as **D-057** by the maker, who owns both that
+entry for Pathlynks `allow_writes` is to be written under the next free D-number (NOT D-057, which was spent on another subject — AT-740, D-058) by the maker, who owns both that
 edit and the `projects/pathlynks/project.json` flip per the section above. The seven citations in
 `at654-d029-dev-only-vs-production-pathlynks.md` and `pathlynks-user-account-first.md` were corrected
-to `D-057 (NOT YET WRITTEN)` the same day; `qa/QUEUE.md` is the maker's surface and still carries the
+to `WP-DECISION (NOT YET WRITTEN; number assigned when written — D-057 was spent on another subject, AT-740, D-058)` the same day; `qa/QUEUE.md` is the maker's surface and still carries the
 old one.
