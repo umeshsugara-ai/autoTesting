@@ -36,7 +36,7 @@ are **held for a separate approval** — no probe traffic in this push.
 | 18 | `t166-eval-compiler-kg` | T-166 | R7 | `stages/expand.py`, new KG artifact | every generated eval traces to its source; component PASS cannot hide workflow failure | high | skip (engine) | 3, 11 |
 | 19 | `t180-subagents` | T-180 | R26 | `agents/` | the grader subagent holds no action tools (C7); judge vendor named, warned when it matches | high | skip (agent layer) | 14 |
 | 20 | `t151-track-c1-discovery` | T-151 | R30 | new Track C discovery module | every Signal cites a real `file:line`; no model chooses which checks run | high | skip (read-only discovery) | 15 |
-| 21 | `t167-langgraph-regression` | T-167 | R21 | `stages/orchestrate.py` → LangGraph 1.x | a release trigger runs the approved suite; consent via `interrupt()`; resumes after a crash | critical | required (release-manager) | 18, 14 (T-179, D-057) |
+| 21 | `t167-langgraph-regression` | T-167 | R21 | `stages/orchestrate.py` → LangGraph 1.x | a release trigger runs the approved suite; consent via `interrupt()`; resumes after a crash | critical | required (release-manager) | 18 |
 | 22 | `t177-browser-use-fallback` | T-177 | R23 | actuator + revived `agent_loop.run_with_fallback` | an unknown screen is driven with typed outputs; AT-253 dead code is alive | high | skip (actuator) | 17 |
 | 23 | `t181-agent-gain-measured` | T-181 | R26 | `agents/` + bench | measured gain vs the plain pipeline on a fixture; per-run token/cost budget enforced | high | skip (measurement) | 19 |
 | 24 | `t152-track-c2-registry` | T-152 | R30 | check registry reusing T-125's Catalog | kind→checks is a literal table a checker can re-derive | low | skip | 3, 20 |
