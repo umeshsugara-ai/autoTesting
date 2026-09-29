@@ -165,6 +165,7 @@ def _bfs(rt: ExploreRuntime) -> None:
         rt.last_visited = node.id
         rt.frontier.visited.append(node.id)
         rt.store.save_frontier(rt.crawl.id, rt.frontier)
+    explore_traversal.drain_deferred(rt)  # PS2: destructive controls, crawl-global last
     # The queue drained. That is an exhausted frontier ONLY if no bound had
     # already fired: `_click_loop` sets `stop_reason` when a bound stops it
     # mid-node (AT-463), which leaves controls untried on the last screen even

@@ -26,12 +26,29 @@ Ids enter the queue only through `_enqueue`, which is bounded by `max_screens`
 and `max_depth`. So the same argument that terminates `bfs` terminates `hybrid`
 unchanged, and `hybrid` introduces no bound of its own — X4's four bounds are
 the only ones, exactly as CR1 requires.
+
+**Destructive-last, crawl-global (PS2, `permission-surface.md`, D-040 verbatim).**
+The second half of this module is the ORDER of a control across the whole crawl,
+not across one screen: a control the crawl would press that is destructive by name
+is parked by `defer_destructive` instead of pressed, and `drain_deferred` presses
+the parked ones only once the non-destructive frontier is exhausted. So every
+destructive press comes after every non-destructive one in the exercise sequence.
+A screen first reached BY a destructive press is recorded but not explored —
+exploring it would put a non-destructive action after a destructive one — and the
+crawl says so in `stop_reason` rather than reading "complete". Bounded like any
+other action: `drain_deferred` obeys `explore.stop_reason` and adds no bound.
 """
 
 from __future__ import annotations
 
-from autotester.schema.enums import TraversalStrategy
-from autotester.schema.screen_graph import ScreenEdge, ScreenNode
+from typing import TYPE_CHECKING
+
+from autotester.schema.enums import Action, EdgeOutcome, IssueKind, TraversalStrategy
+from autotester.schema.screen_graph import ElementRef, ScreenEdge, ScreenNode
+from autotester.stages.explore_safety import is_destructive
+
+if TYPE_CHECKING:
+    from autotester.stages.explore_runtime import ExploreRuntime
 
 
 def next_node_id(
@@ -84,3 +101,46 @@ def _descendant_of(
     if not children:
         return None
     return max(children, key=lambda node_id: (nodes[node_id].depth, node_id))
+
+
+def defer_destructive(rt: ExploreRuntime, node: ScreenNode, el: ElementRef) -> bool:
+    """Park `el` for the end-of-crawl pass when it is destructive by name. True = parked.
+
+    Called only for a control policy already ALLOWED (a denied one is recorded in place —
+    a refusal is not an exercise, so it does not have to wait)."""
+    if not is_destructive(el, rt.policy):
+        return False
+    rt.deferred.append((node.id, el))
+    return True
+
+
+def drain_deferred(rt: ExploreRuntime) -> None:
+    """Press every parked destructive control, in the order it was parked (PS2).
+
+    Runs once, after the non-destructive frontier is empty. Each press re-enters its
+    screen first; a screen it cannot re-enter is filed, never guessed at. Screens a press
+    discovers stay QUEUED (named in `stop_reason`): nothing ordinary may follow this pass."""
+    from autotester.stages import explore, explore_node  # lazy: both import this package's stages
+    from autotester.stages.explore_return import return_to, why_lost
+
+    while rt.deferred:
+        reached = explore.stop_reason(rt)
+        if reached:
+            rt.stop_reason = reached
+            return
+        node_id, el = rt.deferred.pop(0)
+        node = rt.nodes[node_id]
+        if not return_to(rt, node):
+            explore_node.record_edge(rt, node, el, Action.BACK, EdgeOutcome.ERRORED,
+                                     f"could not return to this screen: {why_lost(rt)}")
+            continue
+        rt.frontier.actions_used += 1
+        edge = explore_node.try_action(rt, node, el)
+        if explore_node._heartbeat_due(rt):
+            explore_node.heartbeat(rt)
+        if edge.outcome is EdgeOutcome.DIALOG:
+            explore_node.add_issue(rt, node.id, IssueKind.DIALOG, "dialog repeat limit reached")
+            rt.deferred = [(n, e) for n, e in rt.deferred if n != node_id]
+    if rt.frontier.queue and rt.stop_reason is None:
+        rt.stop_reason = (f"destructive_last ({len(rt.frontier.queue)} screen(s) first reached by "
+                          "a destructive press were recorded, not explored)")

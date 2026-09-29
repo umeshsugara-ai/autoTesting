@@ -2,7 +2,8 @@
 
 ## Status: ready-for-check
 
-**Fix cycle:** 1
+**Fix cycle:** 2
+**Persona walk:** skip (the crawl-ordering change is backend-only; the one UI edit, `ui/crawl_view.py`, adds permitted-hole pills to an existing read-only report page and creates no screen, route, control or user journey)
 **Contract:** `qa/contracts/coverage.md` **V9** (the criterion this unit is formally judged
 against), with V7(a)-(d) unchanged and still holding. Filed intent: **PS1-PS4** in
 `qa/feedback-inbox.md` (heading "`qa/contracts/permission-surface.md` — PS1-PS4, covering T-171
@@ -43,6 +44,7 @@ denominator may not be chosen by what was seen.
 | `src/autotester/stages/explore_safety.py:120-145` | **PS2/D-040:** `is_destructive()` + `destructive_last()` — a stable partition, not a sort |
 | `src/autotester/stages/explore_node.py:21, 235` | the click loop iterates `destructive_last(node.elements, rt.policy)` (net zero lines: the file was exactly at the 300 cap) |
 | `tests/test_crawl_coverage_bounds.py:117-119` | the `SimpleNamespace` runtime stub gains `project` + `crawl.policy` — `of_run` now reads both. **This was a real regression my change caused and the suite caught** (2 failures), fixed by making the stub model the runtime, not by making production code defensive |
+| `tests/test_permission_coverage.py` | **new file (cycle-1 omission, ISS-t171-2):** the V9 + PS2 tests, 15 after cycle 2 |
 | `docs/MAP.md` | regenerated (`autotester map`) — `PermittedControl` row |
 | `qa/feedback-inbox.md` | the PS1-vs-`write-policy-tier.md` disagreement, verbatim, plus PS3/PS4 as-built |
 
@@ -68,7 +70,7 @@ denominator may not be chosen by what was seen.
 | | Verdict |
 |---|---|
 | **PS1** | **Partly.** The "exercised or blocked-with-reason, every one named" half is built and falsified below. The **approval** half is untouched by design: the exercise pass is the crawl's own loop, already gated by `stages/explore_consent.py`, and PS1 itself says reuse consent.md's gate rather than build a second. PS1's negative verify ("no approval → zero controls") is an assertion about `explore_consent`, not about anything T-171 changed, and was **not** re-derived here. PS1's `write_policy=TEST_ACCOUNT` clause **contradicts `qa/gates/write-policy-tier.md`** — filed verbatim in `qa/feedback-inbox.md`, not silently resolved. |
-| **PS2** | **Yes.** `explore_safety.destructive_last`, wired into `explore_node._click_loop`. Rows R8/R9. |
+| **PS2** | **Yes, crawl-global as of cycle 2** (was per-screen in cycle 1 and FAILED). See the cycle-2 section; row R12. |
 | **PS3** | **Yes, by construction.** No second counting mechanism: same `CoverageHole` model, same closed reason set (one member added), same book-balance shape. `controls_discovered`/`controls_exercised`/`holes` are unchanged in meaning and V7(c) still holds over them. |
 | **PS4** | **Satisfied by absence, recorded rather than dropped** (as PS4 asks). No new report surface exists. There is exactly **one** `percent` field and exactly **one** place that computes it (`compute_coverage`), rendered through the existing V7 surfaces. There is no second number that could disagree. |
 
@@ -122,7 +124,8 @@ doctor: clean
 
 ```
 $ uv run pytest
-PYTEST_OUTPUT_PLACEHOLDER
+2190 passed, 6 skipped, 14 xfailed, 15 warnings in 1541.74s (0:25:41)
+exit 0   # cycle 2, after merging master; full text in .work/full-pytest-cycle2.txt (gitignored)
 ```
 
 *(Interim, for the record: an earlier full-suite run on this branch produced **2 failures**, both
@@ -176,3 +179,74 @@ Also re-run on request from the orchestrator: `uv run pytest tests/test_goal_don
   defines. A `Löschen` button is not recognised as destructive unless the project extends its
   deny-list — the documented limit `policy_for` already carries, inherited, not introduced.
 </content>
+
+---
+
+# CYCLE 2 (fix of the cycle-1 FAIL)
+
+## Status: ready-for-check
+
+**Fix cycle:** 2
+**Base:** `git merge master` into the branch (one conflict, `qa/feedback-inbox.md`, both sides append-only, both kept). That merge brought in 8dad4d56, so ISS-t171-3 (T-167 deps pin) is cleared: the full suite is green.
+
+## Verdict failures and how each was fixed
+
+**1. [PS2, high, ISS-t171-1]** "destructive-last is per-screen; a real ALLOW_WRITES crawl presses destructive `button.del` (edge 10) before ordinary `button.edit` (edge 11)."
+
+Fixed by making the order crawl-global, in place, no new module:
+
+| File | Change |
+|---|---|
+| `src/autotester/stages/explore_traversal.py` (module docstring + end of file) | `defer_destructive(rt, node, el)` parks a destructive-by-name control the crawl would press; `drain_deferred(rt)` presses the parked ones only after the non-destructive frontier is exhausted. That file already owns crawl order (`next_node_id`) and had room; `explore_node.py` (300) and `explore.py` (285) did not |
+| `src/autotester/stages/explore_node.py:21,249-250` | `_click_loop` calls `defer_destructive` after policy allows the control, and skips the press. Net zero lines (the file is at the 300 cap: an AT-533 comment was folded from 2 lines to 1, one blank line removed) |
+| `src/autotester/stages/explore.py:168` | `_bfs` calls `drain_deferred(rt)` once, after the `while rt.frontier.queue` loop and before `frontier_exhausted` is computed |
+| `src/autotester/stages/explore_runtime.py` | `ExploreRuntime.deferred: list[tuple[str, ElementRef]]` (a runtime field, not a schema model) |
+| `tests/test_permission_coverage.py` (end) | `test_every_destructive_press_comes_after_every_non_destructive_one_across_the_crawl` |
+
+Behaviour worth stating: a destructive control that policy DENIES is still recorded in place (a refusal is not an exercise, so it need not wait). Only controls the crawl would really press are deferred. Deferred presses count against the per-node cap (`tried += 1` happens before deferral) and against `max_actions`; `drain_deferred` obeys `explore.stop_reason` and adds no bound. Screens first reached BY a destructive press are recorded (status QUEUED) but not explored, because exploring them would put a non-destructive action after a destructive one; the crawl names that in `stop_reason` (`destructive_last (N screen(s) ...)`) so it never reads "complete". `destructive_last` (per-screen) is kept and still called.
+
+**Failing-first, shown.** The new test was written and run BEFORE the fix, against the cycle-1 code:
+
+```
+FAILED tests/test_permission_coverage.py::test_every_destructive_press_comes_after_every_non_destructive_one_across_the_crawl
+AssertionError: [('a.students', 'navigated', False), ('a.settings', 'navigated', False), ('a.s1', 'navigated', False), ('a.s2', 'navigated', False), ('button.save', 'navigated', False), ('button.del', 'navigated', True), ...]
+1 failed, 14 passed, 1 warning in 18.05s
+```
+
+After the fix: `1 passed`.
+
+Real crawl edge order (the checker's `demo_order.py`, re-run), cycle 1 versus cycle 2 (`qa/evidence/ps2-global-order-cycle2-t171.txt`):
+
+```
+cycle 1:  10 /settings button.del navigated DESTRUCTIVE     11 /students/{id} button.edit same_screen
+cycle 2:  10 /students/{id} button.edit same_screen         11 /settings button.del navigated DESTRUCTIVE
+```
+
+**2. [ISS-t171-2, low]** `PYTEST_OUTPUT_PLACEHOLDER` replaced by the real suite output (Verify section); `tests/test_permission_coverage.py` added to "What changed"; `**Persona walk:** skip` added at the top with its reason.
+
+## Capability coverage (cycle 2: R1-R10 unchanged, R12 added, R9 re-checked)
+
+| # | Capability | Falsifying edit (single hunk) | Named test | PASS before / FAIL after |
+|---|---|---|---|---|
+| R12 | Destructive-last is **crawl-global** (PS2) | `explore_traversal.defer_destructive`: `if not is_destructive(el, rt.policy):` becomes `if True or not is_destructive(el, rt.policy):` (the crawl falls back to per-screen order only) | `test_every_destructive_press_comes_after_every_non_destructive_one_across_the_crawl` | before: `1 passed, 1 warning in 9.02s`. after: `AssertionError: [('a.students', 'navigated', False), ... ('button.del', 'navigated', True), ...]` / `assert not True`, `1 failed, 1 warning in 8.53s`. File restored from a saved copy, re-run: `1 passed` |
+| R9 (re-checked) | The per-screen order is wired | `destructive_last(node.elements, rt.policy)` becomes `node.elements` | `test_the_crawl_really_tries_the_destructive_control_last` | still RED after the deferral change (`1 failed, 14 passed`), so R9 still bites |
+
+R8 (helper partition) is untouched. R1-R7 and R10 do not depend on this change; their tests are in the green full run below.
+
+## Verify, real output (cycle 2, redirected to a file, no CLI `-q`)
+
+```
+$ uv run pytest                       -> 2190 passed, 6 skipped, 14 xfailed, 15 warnings in 1541.74s (0:25:41)   exit 0
+$ uv run ruff check src tests scripts -> All checks passed!
+$ uv run autotester doctor            -> doctor: clean
+```
+
+## Live browser evidence
+
+**SKIP, stated.** This cycle changes crawl ORDER (backend) and touches no rendered page. The evidence for it is the real fake-site crawl's recorded edge order above, not a browser smoke, and a smoke is never the validation. The cycle-1 checker already drove the crawl page in a real Chromium (0 console errors) and nothing under `ui/` changed since. Free RAM was also short (~2.5 GB) while the 25-minute suite ran.
+
+## Known limits (cycle 2)
+
+- Replaces the cycle-1 limit "`destructive_last` orders within one screen": the order is now crawl-global for every control the crawl actually presses.
+- A screen reached only by a destructive press is recorded but unexplored (named in `stop_reason`). That trades a little coverage for PS2's strict reading; a product whose Delete lands on a not-yet-seen screen will show that screen as QUEUED, not explored.
+- `drain_deferred` calls `explore_node._heartbeat_due` (a private name; `explore_typing` already does the same).

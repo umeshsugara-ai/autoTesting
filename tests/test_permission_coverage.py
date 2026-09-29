@@ -267,3 +267,29 @@ def test_the_crawl_really_tries_the_destructive_control_last(tmp_path: Path) -> 
 
     assert "button.del" in order, "the destructive control must still be accounted for"
     assert order.index("button.del") == len(order) - 1, order
+
+
+def test_every_destructive_press_comes_after_every_non_destructive_one_across_the_crawl(
+        tmp_path: Path) -> None:
+    """PS2 [D-040 verbatim], CRAWL-GLOBAL: not per screen. The checker's reproduction is a
+    multi-screen crawl under ALLOW_WRITES in which `button.del` on /settings was pressed
+    before `button.edit` on a screen the crawl visits later."""
+    from crawl_fake import crawl_it, make_project
+
+    from autotester.schema.crawl import SafetyPolicy
+    from autotester.stages.explore_safety import is_destructive
+
+    policy = SafetyPolicy(write_policy=WritePolicy.ALLOW_WRITES)
+    crawl, store, _page = crawl_it(tmp_path, project=make_project(WritePolicy.ALLOW_WRITES),
+                                   policy=policy)
+    pressed = {EdgeOutcome.NAVIGATED, EdgeOutcome.SAME_SCREEN}
+    seq = [(i, e) for i, e in enumerate(store.list_edges(crawl.id)) if e.outcome in pressed]
+    kind = [is_destructive(ElementRef(role="button", name=e.name or "", selector=e.target),
+                           policy) for _i, e in seq]
+
+    assert any(kind), "the fixture must really press a destructive control"
+    assert not all(kind), "the fixture must press ordinary controls too"
+    first_destructive = kind.index(True)
+    assert not any(not k for k in kind[first_destructive:]), [
+        (e.target, e.outcome.value, k) for (_i, e), k in zip(seq, kind, strict=True)]
+    assert len({e.from_node for _i, e in seq}) > 1, "the crawl must span several screens"
