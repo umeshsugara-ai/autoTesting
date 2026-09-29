@@ -69,3 +69,5 @@ that branch has since stalled at its cycle cap and may be reverted, which would 
 gate along with the code. **A gate the human cannot see is not a gate.** Gate files are human-facing
 decision records, not unit artifacts: they belong on master the moment they are opened, whatever
 happens to the branch that prompted them. The CT6 question below is unchanged and still open.
+
+Answered: 2026-09-29 — A — "A: order only, never skip (Recommended)"; CT6 narrowed to ordering + reporting, RU3/F-058 intact, tiers_to_run() wired as ordering helper only; Umesh via AskUserQuestion in session autotesting-23, re-confirmed to the maker session; recorded as D-057

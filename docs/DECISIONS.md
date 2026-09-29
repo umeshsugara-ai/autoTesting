@@ -1617,3 +1617,49 @@ docstring.
 2026-09-28, option B) · `qa/gates/at673-sessionstart-unclosed-detector.md` (answered 2026-09-28,
 option A) · `qa/verdicts/at673-sessionstart-unclosed-detector.md` (cycle 1 PASS) ·
 `qa/contracts/loop-status.md` LS6 · `qa/contracts/core-invariants.md` C12 · D-014
+
+## D-057 | 2026-09-29 | type: decision | status: ACTIVE
+
+**What:** Umesh answered three open questions on 2026-09-29. This entry records all three before
+anything acts on them.
+
+1. **`qa/gates/new-module-authorization.md` → A.** Create `src/autotester/ledger/citations.py`
+   (plus its own test module) to hold `check_decision_citations` for **AT-710 only**. The
+   standing-rule variant ("any future check may take a new module") was **not** chosen, so AT-697
+   and later checks meet this gate again on their own merits.
+2. **`qa/gates/t125-ct6-tiered-dispatch-vs-ru3.md` → A, "order only, never skip".** `catalog.md` CT6
+   is narrowed from *stop before an empty tier* to *dispatch cases in cheap-to-expensive tier order
+   and report each tier's runnable count*. `ui-run.md` RU3 (run every case on file) and F-058 (a
+   pinned case runs every time) stay intact. `stages/catalog.py::tiers_to_run()` is wired into the
+   run trigger as an ordering helper, never as a filter.
+3. **T-167 deps gain T-179.** They become `["T-166","T-110","T-179"]`, matching D-042's statement
+   that T-167 "runs the lead agent on LangGraph checkpoints". This settles the contradiction that
+   D-054 explicitly left unsettled.
+
+**Why:**
+- *(1)* The implementation is built and falsified (held in `.work/at710/`). Every conceptual home is
+  at or near the 300-line cap: `ledger/checks.py` 288, `doctor.py` 279, `render.py` 300,
+  `tests/test_doctor.py` 300. Two independent build subagents stopped at this gate instead of
+  granting themselves the exception, which is the behaviour the design rules want.
+- *(2)* Honouring the old CT6 would filter which cases execute. That breaks RU3 and would let a
+  pinned regression case be skipped, which is the one guarantee F-058 exists to make. Ordering keeps
+  CT6's intent (cheap structural failures show first) without skipping anything.
+- *(3)* The deps array contradicted the task's own note and D-042.
+
+**Result:** AT-710 leaves HUMAN_GATE and returns to build. T-125 can reach CT6 PASS on the narrowed
+criterion. `.goal/goal.json` T-167 deps and `docs/plan.md` T-167 row are corrected.
+
+**Changes-authorized:**
+- new `src/autotester/ledger/citations.py` and its test module (AT-710 only);
+- `qa/contracts/catalog.md` CT6 wording (checker-authored amendment to ordering + reporting);
+- `ui/routes_runs.py::trigger_run` calls `tiers_to_run()` for ordering only;
+- `.goal/goal.json` T-167 `deps`, and `docs/plan.md` T-167 row.
+
+No `docs/ARCHITECTURE.md` prose change. No enforcement-path change.
+
+**Approved-by:** Umesh. Answers given 2026-09-29 via AskUserQuestion in session autotesting-23, then
+re-confirmed directly to the maker session the same day ("Yes, all three").
+
+**Links:** AT-710 · AT-697 · T-125 · ISS-t125-1 · T-167 · T-179 · F-058 · D-042 · D-054 ·
+`qa/gates/new-module-authorization.md` · `qa/gates/t125-ct6-tiered-dispatch-vs-ru3.md` ·
+`qa/contracts/catalog.md` CT6 · `qa/contracts/ui-run.md` RU3

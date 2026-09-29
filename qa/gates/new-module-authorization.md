@@ -73,3 +73,5 @@ DECISIONS entry rather than a repeat of this file.
 
 <!-- Append one line when answered:
 Answered: <ISO date> — <A|B|C|D> — <where/verbatim> -->
+
+Answered: 2026-09-29 — A — "A: new ledger/citations.py (Recommended)", AT-710 only (standing-rule variant not chosen); Umesh via AskUserQuestion in session autotesting-23, re-confirmed to the maker session; recorded as D-057
