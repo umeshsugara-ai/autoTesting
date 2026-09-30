@@ -1,4 +1,4 @@
-# AT-113 independent second checker — cycle 2 IN PROGRESS
+# AT-113 independent second checker — cycle 2 FAIL
 
 Cycle checked: 2
 Bound root: D:/autoTesting
@@ -6,10 +6,12 @@ Source: f9052150f4cd2af19a5ed3888173e910fa1220ed
 Baseline: c5596a0a
 Date: 2026-09-30
 
-This is partial progress, not a PASS or final verdict. Current state: own full pytest
+Current final verdict: FAIL, because applicable X4's max_depth runtime requirement
+is not met. The remaining text records independent verification and preserved history.
+Own full pytest
 is TERMINAL under actual session55836 (exit 1: 15 failed, 2222 passed, 5 skipped,
 14 xfailed, 15 warnings in 1659.94s). Own headed Mode D remains pending reviewed
-instrument runtime; selected baseline attribution is RUNNING under session74963.
+instrument runtime is completed; selected baseline attribution session74963 is terminal.
 Earlier statements about the first checker owning the lane are historical and superseded
 by the explicit lane release and 55836 launch recorded below.
 No master merge, public push or whole T-165 closure is certified.
@@ -93,3 +95,72 @@ full suite launched with actual session55836 against immutable f905 clean archiv
 `.work/at113-check-b/source`, installed root venv, `uv --active --no-sync`, isolated
 PYTHONPATH/src and unique pytest temp/cache. Full output `.work/at113-check-b/full-pytest.log`.
 No terminal result yet; own headed Mode D follows its terminal and owned cleanup.
+
+## Final independent assessment (supersedes historical pending statements above)
+
+VERDICT: FAIL
+Cycle checked: 2
+CRITERIA: X4 fails; the abandonment classification, retained named bounds,
+persona unknown classification, legacy presentation and UI/workbook assertions pass.
+FAILURES:
+- [sev: medium] X4 max_depth=1 does not end the crawl with a named bound. On the
+  scripted crawl fixture, /students/1 and /students/2 are depth2 beyond the bound.
+  Actual f905 result: completed, frontier empty, 3 screens (/, /students, /settings).
+  Required: stopped_bound with max_depth named. Source `_enqueue` drops deeper nodes
+  without setting a stop cause; `_bfs` then treats the empty queue as complete.
+  Independent c559 reproduction is identical, but that does not satisfy the
+  explicitly applicable X4 criterion. This is not an AT-113 abandonment regression;
+  it is an uncovered existing contract gap, not waived or reclassified as passing.
+
+Reproduce in either own immutable archive with its src/tests in PYTHONPATH,
+process-local synthetic AUTOTESTER_APPROVAL_KEY, installed root venv:
+`python -c "from pathlib import Path; from crawl_fake import crawl_it; from autotester.schema.crawl import CrawlBounds; p=Path('<unique scratch>'); p.mkdir(exist_ok=True); c,s,page=crawl_it(p,bounds=CrawlBounds(max_depth=1)); print(c.status,c.stop_reason,c.screens,[(n.url_template,n.depth) for n in s.list_nodes(c.id)])"`.
+Both source and baseline output: `completed frontier empty 3 [('/', 0), ('/students', 1), ('/settings', 1)]`.
+Other own runtime bounds: max_actions=2 -> stopped_bound/max_actions/actions2;
+max_screens=2 -> stopped_bound/max_screens/screens2; injected clock ->
+stopped_bound/wall_clock_s/actions0. Initial bound harness directory setup failure
+was corrected before these results; it is not a product failure or mutation kill.
+
+Own full gate55836 terminal1: 15failed,2222passed,5skipped,14xfailed,15warnings,
+1659.94s. Own c559 selected74963 terminal1:13failed,6passed,101.91s; earlier goal
+baseline2failed/6passed supplies the remaining two IDs. Exact ten hook failures
+are execution-policy refusal: four capture stderr directly, six lose stderr and
+fail their no-signal assertion; direct baseline powershell -NoProfile -File hook
+independently confirms scripts-disabled UnauthorizedAccess. Both mutation failures
+are pytest process-tree-survived kill refusal, not a product assertion kill.
+Serial live case independently reaches403/no live_case approval on both sources,
+not303 and not500. Relevant causal paths are unchanged in the13-path unit diff.
+No whole-suite green claim, resource guard weakening or approved live serial
+workflow claim is made. Own residual descendants were creation-time revalidated
+and closed; readback empty. Older unrelated mutation PIDs were left untouched.
+
+LIVE-BROWSER: own headed positive31259 terminal0, report at
+`qa/evidence/browser-at113-crawl-completion-2026-09-30-checker-b/report.json`.
+Own synthetic local actual crawl reached aborted_dialog(/storm.html),
+aborted_error(/volatile.html), explored(/sibling.html), aggregateABORTED and both
+causes; persona previous/unreached stays unknown, never missing. Seven cases
+clicked history→detail→Excel download; exact DOM status, warning/positive classes,
+URL-bound node danger/positive classes, workbook Summary status/reason and actual
+Screens URL/status pairs asserted. Visible uppercase labels were recorded in own
+history_text and independently inspected in own actual-dialog screenshots.
+Crawl manifest byte hashes stayed unchanged. Server20016/child42296 original
+creation identities closed; port53993 closedtrue. Executed module SHA256
+800e5c013a037c942175f8e1b1b35c75c52825a17931d056e6996f025ec1e615;
+nonce/source/hash serving identity read twice. Own identity4708 terminal0 confirmed
+all1765 tracked source bytes still exact f905 after browser runs.
+
+Runtime limitations and failed instruments preserved honestly: initial negative
+setup failed missing synthetic signing key; keyed negative14835 terminal1 reached
+intentional malformed identity JSON after actual crawl assertions, then closed
+server23572/child15860 and port62209. First positive49254 and diagnostic83927
+failed lowercase inner_text oracle because CSS uppercases visible labels, not
+because product status was wrong; reports/cleanup retained separately. Final exact
+DOM comparison kept unchanged expected statuses, with visible uppercase evidence.
+Fresh senior reviewer approved the PID-identity cleanup control-flow and corrected
+CSS-sensitive assertion. Local UI page errors0; 42 Google font requests explicitly
+stubbed as emptyCSS; external network/rendering path unverified. Actual fixture
+crawl contains attributable favicon404 console issue, not blanket zero events.
+Synthetic localhost only; no production calls or real credentials. Historical
+preservation assertion covers crawl manifests, not every possible artifact.
+
+No source edit, merge, push, issue/task closure or whole T165 certification.
