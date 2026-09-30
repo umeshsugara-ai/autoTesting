@@ -37,3 +37,24 @@ Independent evidence so far:
   an actual local dialog-storm crawl with independent sibling plus report interactions.
 
 No maker probe, maker screenshot, primary verdict or other checker instrument was read.
+
+Additional independently completed checks:
+
+- Same3419 terminal exit0: six additional status/caller mutations killed by their named
+  JUnit assertion IDs (actual named bound, login precedence, failed-observation qualifier,
+  real-node frontier caller, deferred drain ordering, CLI displayed reason). Asserted
+  baseline48 PASS; each single unique anchor applied and bytes changed; each restored
+  baseline48 PASS; no collection-only kill. Own status-mutation-results.json and13 logs.
+- Total independent mutation cases completed:13 (3 contract-oracle +4 presentation/persona
+  named-test caller +6 status/caller). Each has an asserted green baseline and exact restore.
+- Own c559 clean-archive doctor exit1: T-171 missing ledger, stale snapshot and danglingD061.
+  Exactf905 clean archive retains only T-171 missing ledger. The snapshot diff removesD061.
+- Goal/ledger files and two failing goal-test blobs are unchanged between baseline and source;
+  full-suite failure attribution remains pending independently, rather than broadly waived.
+- Final full-archive comparison detected newline-only divergence left by the initial exploratory
+  apply_patch restore in own throwaway explore_status.py. Per-case harness byte restores were
+  exact to their captured originals; whole-commit identity was therefore separately corrected
+  by re-extracting the immutable source ZIP. Final1765 tracked archive files are byte-identical;
+  independent25-assertion oracle rerun passed afterward. The submitted source was never edited.
+  Historical13 mutation kills are not exact-commit proofs and are not retroactively upgraded
+  by that restore. Exact-source rerun of all13 is required and remains pending.
