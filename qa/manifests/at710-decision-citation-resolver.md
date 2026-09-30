@@ -329,3 +329,19 @@ SNAPSHOT.md) caused only by the new module; both regenerated, then clean.
 No senior-software-engineer review dispatched by this seat (instructed not to dispatch a checker).
 
 **Links:** AT-710; D-058; D-057; D-056; `qa/contracts/living-ledger.md` L9; `qa/gates/new-module-authorization.md`.
+
+---
+
+# Cycle 2 — re-check against L9 as narrowed by D-060
+
+## Status: ready-for-check
+
+**Fix cycle:** 2
+
+**Authorized by:** `docs/DECISIONS.md` D-060 (checker, commit `38930b1f`): the wrong-subject bullet moved verbatim out of L9 into new criterion L10 ("not yet buildable: needs a declarable form; own unit"). L9's Verify no longer includes subject match.
+
+**What changed:** no code change. `citations.py`, `tests/test_citations.py` and the 3 `doctor.py` lines are exactly as the cycle-1 checker verified (9/9 capability rows reproduced, 11 passed, ruff clean, doctor clean). The only failure in `qa/verdicts/at710-decision-citation-resolver.md` (ISS-at710-1) was the wrong-subject bullet, which is no longer part of L9. Master merged into this branch so the checker sees the amended `qa/contracts/living-ledger.md`.
+
+**Known gap, now owned elsewhere:** L10 (subject match) is a separate unit with its own task; it is not claimed here.
+
+**Suite:** the full suite is run once by the maker after merge (RAM). Last master full run: 4 failed / 2170 passed, the 4 under isolated re-run.
