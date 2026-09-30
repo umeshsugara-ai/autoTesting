@@ -165,6 +165,7 @@ def _bfs(rt: ExploreRuntime) -> None:
         rt.last_visited = node.id
         rt.frontier.visited.append(node.id)
         rt.store.save_frontier(rt.crawl.id, rt.frontier)
+    explore_traversal.drain_deferred(rt)  # PS2: destructive controls, crawl-global last
     # Draining the queue after a bound or abandoned visit leaves controls untried.
     abandoned = [f"{n.status.value} ({n.url_template})" for n in rt.nodes.values()
                  if n.status in {NodeStatus.ABORTED_ERROR, NodeStatus.ABORTED_DIALOG}]

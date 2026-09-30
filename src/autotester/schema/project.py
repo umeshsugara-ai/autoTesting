@@ -5,6 +5,7 @@ from __future__ import annotations
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from autotester.schema.base import Artifact
+from autotester.schema.crawl import PermittedControl
 from autotester.schema.enums import ProviderRole, SourceKind, WritePolicy
 
 DEFAULT_VISION_PROVIDER = "gemini"
@@ -134,6 +135,16 @@ class Project(Artifact):
         default=1, ge=1,
         description="ceiling on concurrently-running cases (T-173/D-041); the run's actual N "
                     "is min(this, a measured RAM/CPU budget) -- see stages/parallel_run.py",
+    )
+    permitted_surface: list[PermittedControl] = Field(
+        default_factory=list,
+        description="coverage.md V9: the controls the supplied account's role PERMITS — the "
+                    "denominator a crawl's coverage figure is measured against. Empty means "
+                    "the permitted surface is UNKNOWN, and coverage reports its denominator "
+                    "as screens-reached instead of silently claiming permission coverage. "
+                    "Declaring it never narrows a run (qa/gates/write-policy-tier.md): the "
+                    "account's own permissions are the scope, and this only names them so a "
+                    "control never reached can be listed rather than vanish from the figure.",
     )
     secrets: list[SecretRef] = Field(default_factory=list)
     providers: ProviderConfig = Field(default_factory=ProviderConfig)

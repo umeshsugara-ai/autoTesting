@@ -1414,6 +1414,67 @@ verdict: **AT-661, AT-675, AT-698 closed `wontfix`** (retired-design artifacts, 
 analysis); **AT-674 and AT-683 kept `open`** as the two halves of the one remaining approval-derivation
 unit, both still classifier-blocked. Full reasoning and independent verification on each row is in its
 own `checker_note` field in `qa/issues.jsonl`.
+
+---
+
+## 2026-09-28 · maker (T-171 permission-surface coverage, build subagent) → /checker
+
+### PS1's `write_policy=TEST_ACCOUNT` contradicts `qa/gates/write-policy-tier.md`
+
+Filed verbatim rather than resolved, because a contract is checker-owned and this is a
+disagreement between two checker-owned records, not a maker preference.
+
+PS1, as filed in this inbox (heading "`qa/contracts/permission-surface.md` — PS1-PS4, covering
+T-171 (D-040)"), reads:
+
+> **PS1 — Every reachable control is exercised or blocked-with-reason, under `write_policy=
+> TEST_ACCOUNT` + a valid `RunApproval`, reusing consent.md's gate rather than a second one.
+> [D-040 verbatim]**
+
+`qa/gates/write-policy-tier.md` (asked by a checker Mode B session 2026-09-27, answered by Umesh
+the same day, re-confirmed 2026-09-28) reads:
+
+> **The answer**
+> **`ALLOW_WRITES`, on every target, production included.**
+> ...
+> **So: no run is scoped narrower than the supplied account's permissions on the checker's
+> initiative.**
+
+T-171 built to the gate, not to PS1's tier: nothing in the unit pins, checks or prefers
+`TEST_ACCOUNT`. `stages/crawl_coverage.py::_permitted_reason` takes the run's actual
+`write_policy` and reports what it did — a declared destructive control that a sub-`ALLOW_WRITES`
+run did not press is listed as `policy:destructive under <tier>`, i.e. a **gap in the run's own
+coverage**, which is exactly `coverage.md` V9's fourth bullet ("narrowing below the account's
+rights is a finding about the RUN, not a safety feature"). Under `ALLOW_WRITES` the same control
+reports as an ordinary `not_reached`.
+
+If PS1 is ever promoted into `qa/contracts/permission-surface.md`, its tier clause should be
+reconciled with the gate first — as written it would make a passing T-171 run require a tier the
+owner withdrew.
+
+### PS3 / PS4, as built (for the record, no action asked)
+
+- **PS3** — honoured by construction. No second counting mechanism was created: `permitted_holes`
+  reuses the same `CoverageHole` model, the same closed reason set (`crawl_coverage.REASONS`,
+  extended by one member, `not_reached`) and the same book-balance shape
+  (`permitted_exercised + len(permitted_holes) == permitted_total`, asserted in
+  `tests/test_permission_coverage.py`). `controls_discovered` / `controls_exercised` / `holes` are
+  byte-unchanged in meaning; V7's identity still holds over them.
+- **PS4** — no new report surface exists. The permitted figure is computed in exactly one place
+  (`stages/crawl_coverage.py::compute_coverage`) and rendered through the existing V7 surfaces
+  (crawl page, `crawl.json`, workbook Summary + Unreached sheet). There is one `percent` field, not
+  two, so there is no number that can disagree with another. Recording it as satisfied-by-absence
+  rather than dropping it, as PS4 itself asks.
+
+### One thing PS1 asks for that this unit does NOT supply
+
+PS1's "the TEST_ACCOUNT-mode exercise pass V7 counts over" is the crawl's own exercise loop, which
+already exists and is already approval-gated (`stages/explore_consent.py`). This unit added no new
+exercise pass and no new approval path — deliberately, per PS1's own "reusing consent.md's gate
+rather than a second one". PS1's negative verify ("a run with no approval ... touches zero
+controls") is therefore an assertion about `explore_consent`, not about anything T-171 changed, and
+was not re-derived here.
+
 ## 2026-09-27 · maker (at638-remainder, T-166/T-167/T-168/T-171 governance) · four contract-criteria requests answering the rest of AT-638
 
 `t150-track-c-governance` answered AT-638's Track C portion (`ai-target.md`/`adversarial.md`,
@@ -1652,4 +1713,8 @@ received) — I have not written that entry myself, per this unit's brief.
 
 **Status:** folded (2026-09-27 authorization by D-054, Approved-by Umesh; contracts authored 2026-09-28, `c6f31f50`; swept 2026-09-29). `permission-surface.md` (PS), `eval-compiler.md` (EC), `release-regression.md` (RR), `damage-control-report.md` (DC) exist as DRAFT and carry these requests' criteria, with two deliberate narrowings recorded in their amendment logs (RR2 narrowed; the T-179 tension closed by D-055). Ledger: `ISS-at638-remainder-1` fixed. The 'missing authorization' finding above is resolved.
 
-2026-09-30 · maker · PATTERN: a dependency dropped by decision (D-059) must reach the checker-owned contract's own dependency line, or the contract and goal.json disagree · EVIDENCE: qa/contracts/damage-control-report.md line 8 still says "Depends on T-155, T-164, T-165, T-167" while goal.json T-168 deps are now [T-164, T-165, T-167] · APPLIES NEXT: any task whose deps change by decision -- amend the contract line in the same fold. ASK: /checker amend damage-control-report.md line 8 under D-059 (Changes-authorized names it). Status: unfolded
+2026-09-30 · maker · PATTERN: a dependency dropped by decision (D-059) must reach the checker-owned contract's own dependency line, or the contract and goal.json disagree · EVIDENCE: qa/contracts/damage-control-report.md line 8 still says "Depends on T-155, T-164, T-165, T-167" while goal.json T-168 deps are now [T-164, T-165, T-167] · APPLIES NEXT: any task whose deps change by decision -- amend the contract line in the same fold. ASK: /checker amend damage-control-report.md line 8 under D-059 (Changes-authorized names it). Status: folded -> `qa/contracts/damage-control-report.md` line 8 + its amendment log (folded 2026-09-30 by checker under D-059).
+
+2026-09-30 · maker · PATTERN: a contract bullet that needs a comparison the artifact cannot express (citation vs the entry's What:) has no buildable shape until the contract names the declarable form · EVIDENCE: at710 cycle 1 verdict FAIL (b385910f, ISS-at710-1), 9/9 capability rows reproduced, only L9's wrong-subject bullet unbuilt; the maker disclosed it as "Known gap" in the manifest · APPLIES NEXT: any check that must judge relevance, not just existence, ships with its declarable marker in the contract. ASK: /checker choose ONE of (a) split the wrong-subject bullet out of L9 into its own criterion so at710 closes against L9's Verify clause and the bullet becomes its own unit, or (b) fold a declarable shape into L9 (maker proposal: a `cites-for: D-NNN - <subject>` marker on the citing line, checked by keyword overlap with that entry's What:) and the maker builds it as cycle 2. Maker leans (a): the resolver already yields 0 dangling citations on the tree, and (b) adds a fuzzy matcher whose false-positive rate is unmeasured. Status: folded -> `qa/contracts/living-ledger.md` L9/L10 + its amendment log, option (a) chosen (folded 2026-09-30 by checker under D-060); ISS-at710-1.
+
+2026-09-30 · maker · PATTERN: a wall-clock or wall-time bound in a test is a load probe, not a correctness probe -- the same test at the same code read 2.7 s and 18.9 s · EVIDENCE: full suite on master bc25ad17 was 4 failed / 2170 passed at ~95% CPU; isolated re-runs: test_same_bytes_register_once 3/3 PASS, test_a_hung_baseline... PASS, test_redact_scan_stays_under_a_generous_bound... FAIL 5 of 6 at HEAD (4.3-5.1 s vs 3.0 s bound; 2.74 s pass and 3.18 s fail at 6cd64164, before AT-598 8e24e392), test_a_logged_in_crawl_maps_every_route... FAIL at wall_clock_s=240 (STOPPED_BOUND, ~1-3 s per navigation, repeated home/login re-entry) · APPLIES NEXT: judge these two on an IDLE machine before calling them a regression; do not raise the bound to make them pass. ASK: checker, when CPU is idle, re-run the redact perf test and the live crawl test; if the crawl still ends at wall_clock_s it is a crawl-efficiency finding for T-165 (already reopened, AT-113) and belongs in that unit; if the redact test still reads ~4 s, file it against AT-598's added needles. Status: unfolded

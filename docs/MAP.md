@@ -37,6 +37,7 @@
 | `core/urls.py` | URL templating: the identity input a crawled screen shares with the |
 | `doctor.py` | Design enforcement. Runs the rules that keep this repo readable. |
 | `ledger/checks.py` | Design rules over the project's RECORDS, as opposed to its source files. |
+| `ledger/citations.py` | Does every `D-NNN` cited in a gate, contract, manifest, verdict or doc resolve to an |
 | `ledger/evidence_specs.py` | AT-516 (D-048, gate answer c): does a unit's evidence spec (`mutations.json`) |
 | `ledger/relitigation.py` | The cyclic-rebuild gate: is this new unit a retired feature coming back? |
 | `ledger/render.py` | Derive the living docs from code and the ledger. Nothing here is hand-typed. |
@@ -187,6 +188,7 @@
 | `SafetyPolicy` (`schema/crawl.py`) | What the explorer will and won't click, given a project's `write_policy`. |
 | `CrawlIssue` (`schema/crawl.py`) | One problem the crawl noticed — console error, failed first-party |
 | `CoverageHole` (`schema/crawl.py`) | One control the crawl discovered and did not perform, with the ONE reason why (V7b). |
+| `PermittedControl` (`schema/crawl.py`) | One control the supplied account's role PERMITS (coverage.md V9). |
 | `CrawlCoverage` (`schema/crawl.py`) | What a crawl covered, stated by the crawl itself (coverage.md V7). The books balance: |
 | `NoiseCount` (`schema/crawl.py`) | One third-party host's dropped-request tally (never an issue, X9). |
 | `Crawl` (`schema/crawl.py`) | The envelope for one bounded BFS run — `stages/explore.py`'s output. |
