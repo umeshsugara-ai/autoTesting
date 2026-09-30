@@ -164,3 +164,46 @@ Synthetic localhost only; no production calls or real credentials. Historical
 preservation assertion covers crawl manifests, not every possible artifact.
 
 No source edit, merge, push, issue/task closure or whole T165 certification.
+# CHECK B — cycle 3, independent check IN PROGRESS (2026-10-01)
+
+Cycle checked: 3
+Bound project: D:/autoTesting
+Source reviewed: 085537cd549a6aa0ce522aee3d9a6486f2874c83
+Baseline: c5596a0a6175a2ea10f8c7be80f1082e09b11ba8
+Status: IN PROGRESS — no PASS or FAIL issued; full pytest and headed runtime remain pending the shared heavy-lane grant.
+
+Blind scope: contracts plus exact Git diff; no maker manifest, plan, probes, evidence, prior verdict content, or checker A artifacts read. The existing content below is retained as history without being used as evidence.
+
+Owned archive: `.work/check-at113-c3-b-085537/tree`; own mutation copies `mutant-terminal`, `mutant-display`; own baseline archive `baseline`. Root installed venv reused with `uv run --offline --active --no-sync`, isolated `PYTHONPATH`, `UV_CACHE_DIR`, and unique `--basetemp`. Archive content matches all 14 changed Git blobs after explicitly normalizing CRLF to LF. Raw bytes differ due Windows archive line endings; no claim of raw Git-blob equality is made. Source import identity printed from the owned tree; mutant failures also identify their own source paths.
+
+## Independently completed evidence
+
+- Focused command: `uv run --offline --active --no-sync pytest tests/test_explore_blocked.py tests/test_explore_node_recovery.py tests/test_persona_changes.py tests/test_crawl_status_surfaces.py --basetemp=D:/autoTesting/.work/check-at113-c3-b-085537/temp-focused --tb=short`. Handle 94393: exit 0, **79 passed, 1 warning in 35.08s**. Includes both depth-refusal cases and all nine admission/dedup/bound-precedence cases. Initial handle 75796 hit default temporary-directory ACL denial; its environmental setup failures are excluded from product conclusions.
+- Own `oracle.py`: exit 0, 20 abandoned/bound/completed combinations; forged-exhaustion refusals and healthy positive controls; public broken/unjudged versus healthy/missing classifications; legacy error-hole controls; model non-mutation and actual persisted fixture bytes unchanged. Fresh independent senior reviewer ran it and approved the revised instrument.
+- Exact-source lint: `uv run --offline --active --no-sync ruff check src tests scripts`: exit 0, `All checks passed!`.
+- Exact-source doctor: `uv run --offline --active --no-sync autotester doctor`: exit 1, only `ledger-row-missing: T-171 — closed high-value task has no live/updated row`.
+- Independent baseline doctor: same command on own baseline archive: exit 1, same T-171 failure plus baseline-only stale SNAPSHOT and dangling D-061 snapshot citation. T-171 is already done/high on baseline. `check_ledger` derives the failure from `.goal/goal.json` and `docs/FEATURES.jsonl`; both inputs and the executing ledger implementation have no baseline-to-source diff. The T-171 cause is independently established outside this unit; no broad baseline waiver is claimed.
+
+## Independent single-hunk mutations, each restored
+
+All mutations act only inside own archive copies, excluding inherited `__pycache__`. Baselines were green; failure attribution uses the named assertions, not exit status alone. The terminal/display mutation anchors were independently asserted unique and the transformed contents compared; restoration of eight relevant files was compared with original source after explicit CRLF normalization.
+
+| Mutated behavior | Green | Named red result | Restored |
+|---|---:|---|---:|
+| Suppress abandoned terminal branch | 8 | 2 `test_abandoned_visits_are_aborted_unless_an_actual_bound_fired[None-aborted_error/aborted_dialog]`: completed instead of aborted | 8 |
+| Suppress legacy error-hole displayed status | 8 | 2 `test_legacy_completion_display_uses_only_recorded_error_holes[0-error/3-error]`: completed instead of aborted | 8 |
+| Remove depth-refusal reason assignment | 11 depth cases | 4 `test_depth_admission_dedup_and_recorded_bound_precedence`: missing max_screens/max_actions/wall_clock_s/max_depth reason | 9 admission cases |
+| Disable sticky recorded-bound guard | green depth cases | 4 same named precedence assertions: recorded actions/time/depth overwritten or lost | 9 |
+| Disable known-node dedup guard | 9 | 1 same named `[True-None-none-None]`: spurious max_depth | 9 |
+| Remove abandoned nodes from persona exhaustion predicate | 4 | 2 `test_a_bound_truncated_crawl_never_reports_missing_only_unjudged[aborted_error-True/aborted_dialog-True]`: fabricated `/unreached` deletion | 4 |
+| Remove abandoned-node caller frontier predicate | 4 | 2 `test_a_bound_that_fires_mid_node_never_reads_as_an_exhausted_frontier[aborted_error-None/aborted_dialog-None]`: false frontier_exhausted | 4 |
+| Drop legacy incomplete displayed reason | 4 | All 4 legacy_error_holes surface cases (history/detail/XLSX/CLI) falsely report frontier empty | 4 |
+
+## Still pending
+
+Own full pytest gate and individual independent causes for any failures; own actual headed runtime for valid max_depth=1 refusing depth 2, successful deeper control, other bounds, real abandoned/error and dialog visits with explored siblings, deferred order, synthetic typing, login wall, UI history/detail/Excel download and unchanged historical crawl bytes. Own `browser_check.py` is fresh senior-reviewed for readiness (latest verdict Approve), not yet executed. Earlier instrument review caught fixture order and signature-truncation errors; both were corrected and the latest file re-reviewed. No browser/runtime acceptance is claimed. No source edits, merge, push, or full T-165 close performed.
+
+LIVE-BROWSER: pending shared heavy-lane grant
+ISSUES-WRITTEN: none
+
+---
