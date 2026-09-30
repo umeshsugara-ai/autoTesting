@@ -58,3 +58,17 @@ Additional independently completed checks:
   independent25-assertion oracle rerun passed afterward. The submitted source was never edited.
   Historical13 mutation kills are not exact-commit proofs and are not retroactively upgraded
   by that restore. Exact-source rerun of all13 is required and remains pending.
+
+Exact-source rerun completed subsequently (supersedes only the pending statement above):
+
+- Fresh3 oracle kills and4 named-test caller kills re-ran from the byte-exact archive.
+  Current artifacts retained separately at exact-oracle-run and exact-caller-run.
+- Fresh6 status/caller kills ran under session78809, terminal exit0. Startup and end
+  both asserted all1765 archived tracked files byte-identical to submitted f905 ZIP.
+  Baseline and each restored run48 PASS; each mutation killed its exact named JUnit
+  assertion (no collection-only failure); original CRLF preserved for single-hunk edits.
+  Artifacts: `.work/at113-check-b/exact-status-run/`.
+- Old oracle/caller logs were overwritten during the initial rerun; their historical
+  bytes were not preserved. They are excluded from final exact-source evidence.
+- Exact completed independent count is13 new kills, not a carryover of historical13.
+  Full suite and actual headed Mode D remain pending. No final PASS.
