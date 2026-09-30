@@ -1,5 +1,94 @@
 # Verdict - t171-permission-surface-coverage
 
+**Cycle checked: 2**
+**VERDICT: PASS**
+Date: 2026-09-30 - Checker: claude-sonnet-subagent (fresh context) - Bound to `D:/autoTesting/.claude/worktrees/agent-a34c44eb5901959f8` (branch `worktree-agent-a34c44eb5901959f8`, cycle-2 commit `fdd1d90c`)
+Judged against: `qa/contracts/permission-surface.md` PS1-PS4 (now present in the tree via the master merge; DRAFT, goes ACTIVE on this PASS) plus `qa/contracts/coverage.md` V9 (the criterion the manifest names) with V7(a)-(d). No contract file was edited.
+Merge first: `git merge master` into the branch, clean, no conflicts (merge commit `8fdee498`).
+Diff scope (step 4c): cycle-2 commit alone, `git diff fdd1d90c^1 fdd1d90c`: 5 src/tests files (`explore.py` +1, `explore_node.py` +4/-4, `explore_runtime.py` +3/-1, `explore_traversal.py` +64, `tests/test_permission_coverage.py` +26) plus the manifest and one evidence file. All listed in the manifest's cycle-2 "What changed" table. Removed lines: a 2-line AT-533 comment folded to 1 line and one blank line (net-zero to stay at the 300-line cap, disclosed), and the `explore_runtime` import line extended. No function, class, export, route, test or config key deleted or renamed.
+
+SCOREBOARD: 5/5 criteria met (PS1, PS2, PS3, PS4, V9); permission-surface.md carries no [I*] invariants; V7(a)-(d) hold (their tests pass).
+
+## What I re-ran (bound worktree, real output, none pasted from the manifest)
+
+| Command | Result |
+|---|---|
+| `uv run pytest tests/test_permission_coverage.py tests/test_crawl_coverage.py tests/test_crawl_coverage_bounds.py tests/test_coverage_wiring.py tests/test_explore.py tests/test_explore_safety.py` | 133 passed in 169 s (`.work/checker-c2-pytest-unit.txt`) |
+| neighbours: 24 further `test_explore_*`, `test_crawl_*`, `test_coverage`, `test_store_crawl`, `test_goal_contract_registration`, `test_ui_crawls`, `test_consent` files (live-browser files excluded) | 210 passed in 1507 s (`.work/checker-c2-pytest-neighbours.txt`) |
+| `uv run ruff check src tests scripts` | `All checks passed!` |
+| `uv run autotester doctor` on the merged tree | 1 violation: `stale-generated: docs/SNAPSHOT.md`. **Not attributable to T-171**: (a) the same command on an archive of the unit's own commit `fdd1d90c` prints `doctor: clean`; (b) the same command on an archive of master `bc25ad17` prints the same single violation, so master's committed SNAPSHOT is already stale. The maker regenerates it with `autotester snapshot` at merge. |
+| full suite | NOT run, by instruction (RAM); the maker runs one after merge. The manifest's claim `2190 passed` was not re-derived by me. |
+
+## PS2 - the cycle-1 failure, re-derived on a real crawl
+
+I ran the fake-site crawl myself under `ALLOW_WRITES` from a copy of the merged tree: the recorded edge order ends `10 /students/{id} button.edit same_screen`, `11 /settings button.del navigated`. The destructive press is now the LAST action across the whole crawl; cycle 1 had it at edge 10, before `button.edit`. `drain_deferred` runs once after the frontier drains (`explore.py:168`), parked controls are pressed in park order, each after `return_to` its screen.
+Behaviour checked beyond the manifest's test:
+- `max_actions=6`: the destructive control is never pressed and lands as a hole `bound:max_actions`; book balance `exercised + holes == discovered` holds (6 + 6 == 12).
+- `READ_ONLY`: `button.del` is denied in place (`policy:destructive-name deny-list`), not deferred; book balance holds (5 + 7 == 12).
+- `ALLOW_WRITES`, full: the screen first reached BY the destructive press (`/deleted`) stays `queued`, `stop_reason` reads `destructive_last (1 screen(s) first reached by a destructive press were recorded, not explored)`, status `stopped_bound`, percent 58 not 100. Disclosed in the manifest's limits; never reads "complete".
+- `try_action` has exactly two callers (`explore_node._click_loop`, `explore_traversal.drain_deferred`); no other path presses controls.
+
+## Capability coverage (step 4b) - 12/12 rows reproduced
+
+Each row in its own throwaway copy (`git archive HEAD` of the merged tree, lean copy, outside the bound root; the worktree interpreter with `PYTHONPATH` at the copy; `autotester.__file__` printed and confirmed to resolve inside each copy). Every copy was GREEN before the edit, then one single-hunk edit to one file named in "What changed" (hunk occurrences = 1 asserted before writing), then RED. Bound tree never edited.
+
+| Row | Edit (file) | GREEN before -> assertion that fired |
+|---|---|---|
+| R1 | delete the permitted `coverage.percent = _percent(...)` re-base (crawl_coverage.py) | 1 passed -> `assert 100 == 25` "the figure must be a fraction of the permitted surface" |
+| R2 | `continue` before `permitted_holes.append` (crawl_coverage.py) | 1 passed -> `assert {} == {'#never': 'not_reached'}` "not reached is a REASON, not an absence of one" |
+| R3 | count a `policy:` hole as exercised (crawl_coverage.py) | 1 passed -> `assert [] == [('#pay', 'policy:deny-list: pay')]` |
+| R4 | `if control.destructive and policy is not ALLOW_WRITES` -> `if False` (crawl_coverage.py) | 1 passed -> `'not_reached' != 'policy:destructive under read_only'` |
+| R5 | drop the `denominator is screens-reached, NOT permission coverage` clause (crawl_report.py) | 1 passed -> `'NOT permission coverage' in '100% of controls (1 of 1)'` |
+| R6 | delete the `Coverage denominator` row (crawl_report.py) | 3 passed -> 3 failed (`KeyError: 'Coverage denominator'` x2, page assertion) |
+| R6b | permitted_holes loop -> `for hole in []` in `_unreached_sheet` (crawl_report.py) | 1 passed -> `assert set() == {'#b', '#pay'}` |
+| R7 | `permitted=rt.project.permitted_surface` -> `None` (crawl_coverage.py) | 1 passed -> `'screens-reached' == 'permitted'` |
+| R8 | `return list(elements)` in `destructive_last` (explore_safety.py) | 1 passed -> `'Delete account' != 'Open'` at index 0 |
+| R9 | iterate `node.elements` instead of `destructive_last(...)` (explore_node.py) | 1 passed -> `assert 2 == (6 - 1)`, real recorded order shows `button.del` at index 2 |
+| R10 | `_key` returns the host-exact `(url_template, selector)` (crawl_coverage.py) | 1 passed -> `assert (0, 4) == (1, 4)` |
+| **R12** | `if not is_destructive(...)` -> `if True or not is_destructive(...)` in `defer_destructive` (explore_traversal.py) | 1 passed -> `assert not True` over the recorded sequence `[... ('button.save', 'navigated', False), ('button.del', 'navigated', True), ...]`: the crawl-global assertion the row is named for, not a load/parse failure |
+
+No row survived. R9 still bites after the deferral change (it guards the per-screen order that remains in place). Traps considered: R12's test reads the edges a real fake-site crawl recorded (not a list the test built) and asserts more than one source screen and that both kinds were pressed, so the fixture cannot decide the outcome; the check does not read live state to judge live state. A blind spot, not a failure: the test counts only NAVIGATED/SAME_SCREEN edges as presses, so a destructive press that ended DIALOG/ERRORED would not be ordered by it.
+
+## Criteria
+
+- **PS1 - met** (unchanged since cycle 1; `test_explore_consent`, `test_consent` pass). Approval half reused from `explore_consent`, not rebuilt.
+- **PS2 - met.** Crawl-global ordering evidenced on a real crawl and by R12. `[D-040 verbatim]` is honoured, not re-scoped: every destructive press is after every non-destructive one; a denied destructive control is recorded in place because a refusal is not an exercise.
+- **PS3 - met.** Same `CoverageHole` model and closed reason set; R3; V7(c) tests pass; the deferred-then-unpressed case still balances (probe above).
+- **PS4 - met.** One percent computation (`_percent` via `compute_coverage`); no new surface with its own figure.
+- **V9 - met** (R1-R7, R10; live page/workbook proof from the cycle-1 Mode D; nothing under `ui/` or the report code changed since).
+
+## Issues addressed (step 5)
+
+- ISS-t171-1 (PS2 per-screen): fixed by this unit -> `fixed`, regression_check `uv run pytest tests/test_permission_coverage.py` (fails with the fix reverted: R12).
+- ISS-t171-2 (manifest hygiene): placeholder replaced with real output, `tests/test_permission_coverage.py` in "What changed", `Persona walk: skip (...)` present and its reason is true (no screen/route/control added) -> `fixed`.
+- ISS-t171-3 (`test_goal_contract_registration`): cleared by the master merge; passes in my neighbour run -> `fixed`, regression_check `uv run pytest tests/test_goal_contract_registration.py`.
+`fixed -> verified` remains a later re-check.
+
+## Questions (not failures)
+
+- Under `ALLOW_WRITES`, any crawl where a destructive control navigates to a new screen now ends `stopped_bound` with `stop_reason destructive_last (...)`, though no bound fired. The reason string is honest; the status label is not. Worth a wording decision by the maker/Umesh.
+- `drain_deferred` on a dialog storm drops the node's remaining parked controls; their hole reason then falls to the generic `_untried_reason` (`bound:per_node_action_cap` when no global bound is set), which may mislabel a dialog abort. Not exercised by any test; I did not reproduce a wrong reason.
+
+## LIVE-BROWSER (Mode D, step 5b)
+
+not-applicable: cycle-2 changed paths are `src/autotester/stages/explore*.py` and `tests/` only; nothing under `ui/`, no template, no report renderer. The playwright MCP failed to connect this session, so I did not open a browser and do not claim one. The cycle-1 checker's Mode D evidence (`qa/evidence/browser-t171-permission-surface-coverage-2026-09-29-checker/`, 0 console errors) covers the UI surface, which is byte-unchanged. Untested: the rendering of the new `destructive_last (...)` stop_reason string on the crawl page.
+
+## Return block
+
+```
+VERDICT: PASS
+SCOREBOARD: 5/5 criteria met, no invariants in this contract (V7(a)-(d) hold)
+FAILURES: none
+CAPABILITY-COVERAGE: 12/12 rows reproduced
+LIVE-BROWSER: not-applicable (src/autotester/stages/explore*.py + tests only; cycle-1 Mode D stands)
+ISSUES-WRITTEN: none new; ISS-t171-1, -2, -3 moved open -> fixed
+EXECUTOR: claude-sonnet-subagent (checker: claude-sonnet-subagent)
+```
+
+---
+
+# Verdict - t171-permission-surface-coverage
+
 **Cycle checked: 1**
 **VERDICT: FAIL**
 Date: 2026-09-29 - Checker: claude-sonnet-subagent (fresh context) - Bound to `D:/autoTesting/.claude/worktrees/agent-a34c44eb5901959f8`
