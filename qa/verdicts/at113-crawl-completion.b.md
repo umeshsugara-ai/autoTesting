@@ -209,3 +209,10 @@ LIVE-BROWSER: pending shared heavy-lane grant
 ISSUES-WRITTEN: none
 
 ---
+## Cycle 3 — full-suite runtime update (still IN_PROGRESS)
+
+Source: `085537cd549a6aa0ce522aee3d9a6486f2874c83`. Actual full-suite handle `92346` terminated exit 1: **24 failed, 2223 passed, 6 skipped, 14 xfailed, 15 warnings in 1523.29s**. Command: `uv run --offline --active --no-sync pytest -p identity_b --basetemp=D:/autoTesting/.work/check-at113-c3-b-085537/temp-full-cycle3 --junitxml=D:/autoTesting/.work/check-at113-c3-b-085537/full-cycle3.xml --tb=short`, frozen archive cwd and PYTHONPATH, installed root venv, own TEMP/TMP/cache. Eight changed-module import origins passed inside the same pytest process at collection and finish. Raw log and 325335-byte JUnit retained in the owned archive.
+
+Observed failures: two goal metadata checks; ten SessionStart hook checks; ten mutation node-ID/rootdir checks; two mutation process-tree timeout checks. Each exact failure ID is in the raw summary/JUnit. Individual independent baseline/cause attribution is **pending**; these counts are not a blanket waiver. Terminal cleanup matched fresh PID plus creation-time receipts, excluded the prelaunch baseline, stopped only eleven owned leftovers, and read back zero remaining. Own headed synthetic probe is now running as handle `83967` (shell 31288 / Python 34464); no headed result claimed yet.
+
+VERDICT: IN_PROGRESS
