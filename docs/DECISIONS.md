@@ -1725,3 +1725,41 @@ No `docs/ARCHITECTURE.md` prose change.
 **Links:** D-055 · D-056 · D-057 · D-042 · AT-710 · AT-740 · AT-741 · AT-722 · ISS-t171-3 · AT-743 ·
 T-125 · T-167 · T-179 · T-181 · `qa/gates/at673-cycle2-scope.md` ·
 `qa/verdicts/at673-sessionstart-unclosed-detector.md` (cycle 2 FAIL)
+
+## D-059 | 2026-09-30 | type: decision | status: ACTIVE
+
+**What:**
+1. **T-168 drops its dependency on T-155.** T-168 (damage-control report) ships without the AI-test
+   section. That section is added when Track C is released. `.goal/goal.json` T-168 `deps` become
+   `["T-164","T-165","T-167"]`. `docs/plan.md` row 26 already omits T-155 and is unchanged. T-154 and
+   T-155 stay HELD.
+2. **This maker session is the single maker** and drives the remaining wave plan. The checker seat
+   (a separate session) stays checker-only and takes over only if the maker session dies.
+
+**Why:** Track C is held on `qa/gates/write-policy-tier.md` and per-run approvals, and T-168 sat behind
+T-155 as a result. The report is useful without the AI-test section, and its `blocked/unvisited is never
+rendered as pass` guarantee does not need it. Deferring the section removes a hold-induced block without
+weakening the report.
+
+**Result:** T-168 depends on T-167 (and, through it, T-166). It is no longer gated on Track C.
+`qa/contracts/damage-control-report.md` line 8 ("Depends on T-155, T-164, T-165, T-167") is checker-owned
+and needs the matching amendment. The maker files it through `qa/feedback-inbox.md` and does not edit the
+contract.
+
+**Not adopted by this entry:** the relayed wave plan (autotesting-23, 2026-09-29) lists T-167 as needing
+T-179. D-058 stands. T-167's deps remain `["T-166","T-110"]`, per D-055.
+
+**Changes-authorized:**
+- `.goal/goal.json` T-168 `deps`;
+- `tests/test_goal_contract_registration.py:51` pin;
+- `qa/contracts/damage-control-report.md` line 8 (checker-authored amendment).
+
+No `docs/ARCHITECTURE.md` prose change. No enforcement-path change.
+
+**Approved-by:** Umesh — decision relayed by session autotesting-23 as his answer of 2026-09-29
+("Drop T-155 dep (Recommended)"), and confirmed to the maker session on 2026-09-30 by the session's
+user, whose account shows abhinav@vidysea.com. That the confirming user is the Approver is not
+established from the session alone. Umesh should ratify or reverse this at his next review.
+
+**Links:** T-168 · T-155 · T-154 · T-167 · T-166 · D-055 · D-058 · `qa/gates/write-policy-tier.md` ·
+`qa/contracts/damage-control-report.md`
