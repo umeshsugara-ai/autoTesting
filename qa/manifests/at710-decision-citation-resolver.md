@@ -334,7 +334,9 @@ No senior-software-engineer review dispatched by this seat (instructed not to di
 
 # Cycle 2 — re-check against L9 as narrowed by D-060
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+**Verdict:** `qa/verdicts/at710-decision-citation-resolver.md` (`02435392`) — `Cycle checked: 2`, `VERDICT: PASS`, L9 as narrowed by D-060 met, 5/5 re-run capability rows reproduced (4 carried from cycle 1). Merged to master. Close-out: `docs/SNAPSHOT.md` regenerated after merge (doctor `stale-generated` was the master merge, not this unit). The L10 subject-match obligation is T-196.
 
 **Fix cycle:** 2
 
