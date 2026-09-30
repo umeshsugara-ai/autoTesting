@@ -10,6 +10,35 @@ Goal: T-165 (reopened); blocks truthful T-145 acceptance.
 Branch: codex/at113-crawl-completion
 Worktree: D:/autoTesting/.worktrees/at113-crawl-completion
 
+## Cycle 3 full-suite failure inventory (attribution, not waiver)
+
+Frozen source: 085537cd549a6aa0ce522aee3d9a6486f2874c83. Checker B's full-cycle3.xml records 24 failed / 2223 passed; maker re-read all 24 failed testcase identities from that XML on 2026-10-01. Independent baseline evidence under .work/check-at113-c3-b-085537/: baseline-metadata-hooks.xml/.log reproduces IDs 1-12; baseline-mutation-ids.xml/.log reproduces IDs 13-22; baseline-timeouts.xml/.log reproduces IDs 23-24. baseline-rootdir.xml/.log separately demonstrates the nested pytest-root cause for IDs 13-22. These remain failures, not a green suite or blanket waiver. Current X4 product FAIL is separate and unchanged. Implicated baseline-to-source paths were independently reported unchanged by checker B; maker does not certify another checker's verdict.
+
+1. tests/test_goal_contract_registration.py::test_revised_goal_contract_is_registered
+2. tests/test_goal_done_checks.py::test_no_done_task_has_a_done_check_naming_a_file_that_does_not_exist
+3. tests/test_mc_sessionstart_loop_status.py::test_hook_prints_the_report_and_exits_zero_on_a_healthy_log
+4. tests/test_mc_sessionstart_loop_status.py::test_hook_prints_unhealthy_line_only_on_an_asleep_log_and_still_exits_zero
+5. tests/test_mc_sessionstart_loop_status.py::test_hook_skips_cleanly_when_uv_is_unavailable
+6. tests/test_mc_sessionstart_loop_status.py::test_the_timeout_kills_the_real_grandchild_process_not_just_uv
+7. tests/test_mc_sessionstart_unclosed.py::test_a_closed_unit_that_keeps_its_superseded_history_is_not_reported
+8. tests/test_mc_sessionstart_unclosed.py::test_a_pass_verdict_whose_manifest_was_never_flipped_is_reported
+9. tests/test_mc_sessionstart_unclosed.py::test_a_cycle_number_written_mid_line_after_a_separator_is_read
+10. tests/test_mc_sessionstart_unclosed.py::test_a_cycle_number_quoted_inside_backticks_is_not_read_as_this_files_value
+11. tests/test_mc_sessionstart_unclosed.py::test_the_highest_cycle_wins_when_a_verdict_lists_its_newest_first
+12. tests/test_mc_sessionstart_unclosed.py::test_a_cycle_named_after_a_bare_word_is_prose_about_another_file
+13. tests/test_mutation_check.py::test_a_real_mutation_is_killed_and_attributed
+14. tests/test_mutation_check.py::test_it_refuses_when_the_named_test_survives_but_another_fails
+15. tests/test_mutation_check.py::test_a_suite_split_across_files_is_still_one_suite
+16. tests/test_mutation_check.py::test_a_kills_entry_may_be_the_full_nodeid_the_guard_asks_for
+17. tests/test_mutation_check.py::test_a_mutation_is_attributed_to_a_parametrized_test_with_spaces_in_its_id
+18. tests/test_mutation_check.py::test_a_passing_sibling_is_never_credited_with_another_tests_failure
+19. tests/test_mutation_check.py::test_a_failing_test_that_prints_a_summary_line_cannot_fake_a_kill
+20. tests/test_mutation_check.py::test_a_named_test_that_did_not_run_under_the_mutation_is_never_killed
+21. tests/test_mutation_check.py::test_a_named_test_that_errors_in_setup_is_not_a_kill
+22. tests/test_mutation_check_judgement.py::test_an_interrupted_run_with_real_failures_is_not_a_kill
+23. tests/test_mutation_check_judgement.py::test_a_mutation_that_hangs_pytest_times_out_and_is_not_a_kill
+24. tests/test_mutation_check_judgement.py::test_a_hung_baseline_is_refused_even_when_a_child_holds_the_output_open
+
 ## Plan and independent approval
 
 Concrete plan: .work/at113-completion-plan.md.
