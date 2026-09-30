@@ -1,3 +1,13 @@
+# AT-113 crawl completion — primary independent check, current cycle 3
+
+Cycle checked: 3
+Verdict: FAIL
+Source: `085537cd549a6aa0ce522aee3d9a6486f2874c83`
+
+Current authoritative result: headed BFS and hybrid both perform a second synthetic FILL after a successful depth-1-to-valid-depth-2 FILL triggers max_depth refusal. Session43797 naturally exits1 at the X4 assertion; all18 owned PID+creation records read back not alive. Detailed independent cycle3 receipts and explicit remaining verification gaps are retained in this file's independent-checker-A section below. Prior cycle history does not supersede this cycle3 FAIL.
+
+---
+
 # AT-113 crawl completion — primary independent check, current cycle 2
 
 Date: 2026-09-30
