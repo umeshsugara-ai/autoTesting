@@ -10,8 +10,8 @@ Current final verdict: FAIL, because applicable X4's max_depth runtime requireme
 is not met. The remaining text records independent verification and preserved history.
 Own full pytest
 is TERMINAL under actual session55836 (exit 1: 15 failed, 2222 passed, 5 skipped,
-14 xfailed, 15 warnings in 1659.94s). Own headed Mode D remains pending reviewed
-instrument runtime is completed; selected baseline attribution session74963 is terminal.
+14 xfailed, 15 warnings in 1659.94s). Own reviewed headed Mode D runtime is completed;
+selected baseline attribution session74963 is terminal.
 Earlier statements about the first checker owning the lane are historical and superseded
 by the explicit lane release and 55836 launch recorded below.
 No master merge, public push or whole T-165 closure is certified.
