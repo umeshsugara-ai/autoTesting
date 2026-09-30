@@ -204,3 +204,91 @@ def test_abandoned_visit_retains_failed_login_observation_qualifier(node_status,
     assert status is CrawlStatus.ABORTED
     assert reason == (f"abandoned visits: {node_status.value} (/lost) -- login not judged: "
                       f"could not observe the login page ({error})")
+
+
+@pytest.mark.parametrize("depth", [1, 3])
+def test_real_depth_refusal_stops_before_queued_and_deferred_actions(tmp_path, monkeypatch, depth):
+    from crawl_fake import BASE, SITE, make_project
+
+    from autotester.schema.crawl import CrawlBounds
+    from autotester.schema.enums import WritePolicy
+    from autotester.stages import explore
+
+    def link(name, path):
+        return {"role": "link", "name": name, "selector": "a." + name, "href": path}
+
+    monkeypatch.setitem(SITE, BASE, [
+        {"role": "button", "name": "Delete account", "selector": "button.del"},
+        link("branch", "/branch"), link("sibling", "/sibling")])
+    monkeypatch.setitem(SITE, BASE + "branch", [link("deep", "/deep"), link("later", "/later")])
+    for path in ("deep", "sibling", "later"):
+        monkeypatch.setitem(SITE, BASE + path, [])
+    captured = []
+    original_bfs = explore._bfs
+
+    def capture_bfs(rt):
+        captured.append(rt)
+        original_bfs(rt)
+
+    monkeypatch.setattr(explore, "_bfs", capture_bfs)
+    crawl, store, page = crawl_it(
+        tmp_path, project=make_project(WritePolicy.ALLOW_WRITES),
+        policy=SafetyPolicy(write_policy=WritePolicy.ALLOW_WRITES),
+        bounds=CrawlBounds(max_depth=depth, max_screens=30, max_actions=100))
+    nodes = store.list_nodes(crawl.id)
+    if depth == 1:
+        assert crawl.status is CrawlStatus.STOPPED_BOUND
+        assert crawl.stop_reason == "max_depth"
+        assert not captured[0].frontier_exhausted
+        assert all(n.depth <= 1 for n in nodes)
+        assert all(n.url_template != "/deep" for n in nodes)
+        assert next(n for n in nodes if n.url_template == "/sibling").status is NodeStatus.QUEUED
+        assert not any(e.name == "later" for e in store.list_edges(crawl.id))
+        assert "button.del" not in page.clicks
+        assert any(el.selector == "button.del" for _, el in captured[0].deferred)
+        assert store.load_frontier(crawl.id).queue
+        assert any(e.name == "deep" for e in store.list_edges(crawl.id))
+    else:
+        assert next(n for n in nodes if n.url_template == "/deep").depth == 2
+        assert any(e.name == "later" for e in store.list_edges(crawl.id))
+        assert "button.del" in page.clicks
+
+
+@pytest.mark.parametrize("known,sticky,reached,expected", [
+    (True, None, "none", None),
+    *[(False, name, "all", name) for name in
+      ("max_screens", "max_actions", "wall_clock_s", "max_depth")],
+    (False, None, "all", "max_screens"),
+    (False, None, "actions_time", "max_actions"),
+    (False, None, "time", "wall_clock_s"),
+    (False, None, "none", "max_depth"),
+])
+def test_depth_admission_dedup_and_recorded_bound_precedence(
+    tmp_path, monkeypatch, known, sticky, reached, expected,
+):
+    from autotester.schema.crawl import CrawlBounds
+    from autotester.stages import explore, explore_node
+
+    captured = []
+    monkeypatch.setattr(explore, "_bfs", lambda rt: captured.append(rt))
+    crawl_it(tmp_path, bounds=CrawlBounds(max_depth=1))
+    rt = captured[0]
+    original = next(iter(rt.nodes.values()))
+    candidate = original.model_copy(update={"depth": 2} if known else
+                                    {"id": "unseen", "signature": "unseen", "depth": 2})
+    edge = ScreenEdge(crawl_id=rt.crawl.id, from_node=original.id,
+                      action=Action.CLICK, target="a.deep", outcome=EdgeOutcome.NAVIGATED)
+    rt.stop_reason = sticky
+    if reached == "all":
+        rt.frontier.screens_found = rt.bounds.max_screens
+    if reached in {"all", "actions_time"}:
+        rt.frontier.actions_used = rt.bounds.max_actions
+    if reached in {"all", "actions_time", "time"}:
+        rt.started -= rt.bounds.wall_clock_s + 1
+    before = rt.frontier.model_dump()
+    explore_node._enqueue(rt, candidate, edge)
+    assert rt.frontier.model_dump() == before
+    assert rt.nodes[original.id] == original
+    assert rt.stop_reason == expected
+    if expected:
+        assert explore.stop_reason(rt) == expected

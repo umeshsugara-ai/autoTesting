@@ -48,6 +48,8 @@ def _now_iso() -> str:
 def stop_reason(rt: ExploreRuntime) -> str | None:
     """Which bound (if any) has been reached. Checked before every node and
     before every action, so a bound cannot be overshot by a whole node."""
+    if rt.stop_reason in {"max_screens", "max_actions", "wall_clock_s", "max_depth"}:
+        return rt.stop_reason
     if rt.frontier.screens_found >= rt.bounds.max_screens:
         return "max_screens"
     if rt.frontier.actions_used >= rt.bounds.max_actions:
