@@ -1763,3 +1763,40 @@ established from the session alone. Umesh should ratify or reverse this at his n
 
 **Links:** T-168 · T-155 · T-154 · T-167 · T-166 · D-055 · D-058 · `qa/gates/write-policy-tier.md` ·
 `qa/contracts/damage-control-report.md`
+
+## D-060 | 2026-09-30 | type: decision | status: ACTIVE
+
+**What:**
+1. **L9's wrong-subject bullet is split out into a new criterion L10.** `qa/contracts/living-ledger.md`
+   L9 ("Resolution is necessary and not sufficient -- the SUBJECT must match too") moves, verbatim,
+   into L10 "a citing line's claimed subject must match the cited entry's What:". L9 keeps a one-line
+   pointer to L10 and its Verify clause stops requiring the moved bullet. Every other L9 sub-clause is
+   unchanged. AT-710 (unit `at710-decision-citation-resolver`, branch `wave/at710-citations`) therefore
+   closes against L9's own Verify clause. The subject-match check becomes its own later unit.
+2. **`qa/contracts/damage-control-report.md` line 8 is brought in line with D-059.** "Depends on T-155,
+   T-164, T-165, T-167" becomes "Depends on T-164, T-165, T-167".
+
+**Why:**
+- *(1)* This is the checker's choice of option (a) for ISS-at710-1 (at710 cycle 1 FAIL, verdict
+  b385910f). The resolver already yields 0 dangling citations on the tree and 9 of 9 capability rows
+  reproduce; the only unbuilt part is the wrong-subject bullet. L9 itself says a non-claiming occurrence
+  is "declared, not inferred", and no machine-readable declared form for a citation's claim exists, so
+  the bullet has no buildable shape yet. Option (b) (a fuzzy `cites-for: D-NNN - <subject>` marker
+  checked by keyword overlap with the entry's What:) would add a matcher whose false-positive rate is
+  unmeasured. This weakens nothing: the obligation is preserved verbatim in L10; it stops blocking at710
+  and is owned by a later unit that first defines the declarable form.
+- *(2)* D-059 already dropped T-155 from T-168's deps and named this line in its Changes-authorized. The
+  maker filed the ask through `qa/feedback-inbox.md`; the checker owns the contract and makes the edit.
+
+**Result:** at710 can close against L9's Verify clause. L10 is recorded as "not yet buildable: needs a
+declarable form for the claim; own unit". The damage-control contract and `.goal/goal.json` T-168 deps
+agree again.
+
+**Changes-authorized:**
+- `qa/contracts/living-ledger.md` L9 (wrong-subject bullet moved out) + new criterion L10 + Amendment
+  log (this entry);
+- `qa/contracts/damage-control-report.md` line 8 (Depends-on line brought in line with D-059).
+
+No `docs/ARCHITECTURE.md` prose change. No enforcement-path file touched.
+
+**Links:** AT-710 - ISS-at710-1 - b385910f - D-057 - D-058 - D-059 - T-168
