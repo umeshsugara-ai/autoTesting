@@ -34,3 +34,18 @@ The checker did not edit product code, source checkpoint, manifest, contracts, g
 ## Recovery boundary
 
 The maker owns recovery on the private branch. Preserve/recover the exact current patch using a non-destructive private-checkpoint procedure with explicit pathspecs; do not reset the shared root or rewrite this verdict. A changed SHA must receive a new matching cycle and fresh independent checks, as C10 requires. This checker grants no permission to merge or push.
+
+## PRIMARY CHECK — cycle 2 (in progress, no completion verdict)
+
+Bound root: D:/autoTesting; adapter: coding.
+Cycle checked: 2
+Source SHA: f9052150f4cd2af19a5ed3888173e910fa1220ed
+Baseline: c5596a0a6175a2ea10f8c7be80f1082e09b11ba8
+
+State: IN PROGRESS — required gates, capability falsification, and own headed Mode D remain pending. This is durable partial state under C12, not PASS or FAIL.
+
+Independent command launched: `uv run --active --no-sync pytest -o pythonpath=src --basetemp=D:/autoTesting/.work/check-at113-a-temp -o cache_dir=D:/autoTesting/.work/check-at113-a-cache > D:/autoTesting/.work/check-at113-a-full.txt 2>&1`, working directory the isolated source worktree, VIRTUAL_ENV the installed root venv, PYTHONPATH the isolated source. Tool handle 15904; owned pytest PID 19096, parent 41280, confirmed by read-only CIM. No pipe or additional `-q`.
+
+Source tracking clean; untracked maker evidence directories were not read. Own mutation harness: `.work/check-at113-a-mutations.py`; own headed browser instrument: `.work/check-at113-a-browser.py`; neither launched while the full suite owns the heavy lane. No maker/browser scripts, screenshots or second verdict were read.
+
+Recovery independently checked: old/new full tree ids both `2c96e96237bdcc4a7c05ed23c95136581bdaa9d0`; old/new parent both `d219f03add5df490b9fa068b03f9037016526295`; `git diff --exit-code 3342f89a f9052150` returned no differences. New tip's two paths are both declared. Cycle 1 FAIL above remains byte-intact; no inherited behavioral PASS is credited.
