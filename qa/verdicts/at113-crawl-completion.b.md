@@ -6,8 +6,10 @@ Source: f9052150f4cd2af19a5ed3888173e910fa1220ed
 Baseline: c5596a0a
 Date: 2026-09-30
 
-This is partial progress, not a PASS or final verdict. Full pytest and own headed
-Mode D remain unexecuted while the first checker owns the heavy resource lane.
+This is partial progress, not a PASS or final verdict. Current state: own full pytest
+is RUNNING under actual session55836; own headed Mode D is pending its terminal cleanup.
+Earlier statements about the first checker owning the lane are historical and superseded
+by the explicit lane release and 55836 launch recorded below.
 No master merge, public push or whole T-165 closure is certified.
 
 Independent evidence so far:
