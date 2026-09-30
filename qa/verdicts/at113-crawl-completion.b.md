@@ -1,4 +1,4 @@
-# AT-113 independent second checker — cycle 3 FAIL (authoritative)
+# AT-113 independent second checker — cycle 3 product FAIL (authoritative)
 
 Cycle checked: 3
 Source checked: `085537cd549a6aa0ce522aee3d9a6486f2874c83`
@@ -6,7 +6,14 @@ Baseline: `c5596a0a6175a2ea10f8c7be80f1082e09b11ba8`
 VERDICT: FAIL
 SCOREBOARD: 4/5 applicable feature criteria met, 3/3 applicable invariants hold
 
-The earlier appended cycle-3 PASS is revoked: actual ordinary typing did not independently establish X4 bound enforcement for depth-changing synthetic FILL and return-to/replay after the bound. This verification gap blocks PASS, without borrowing another checker's finding or asserting a product defect before independent reproduction. Existing reached positive/negative browser receipts and individually attributed full-suite failures remain valid only in their proven scope. No source edit, push, or full T-165 closure is authorized or claimed.
+The earlier appended cycle-3 PASS is revoked. The former X4 verification gap is now independently reproduced as a product failure on the frozen source: a depth-changing synthetic FILL fires `max_depth`, but return-to performs `go_back` and typing performs a second FILL afterward. The second field's HTTP sentinel is reached. This directly violates X4 before-every-action enforcement; a truthful final `stopped_bound/max_depth` status does not cure continued browser actions after the bound. No maker/other-checker evidence was used. Existing positive/negative receipts remain valid only in their actually reached scope; they do not establish this missing behavior.
+
+FAILURES:
+- [X4] sev: high — `explore_typing.py:type_form` checks only `actions_used >= max_actions` before its next field, and calls `return_to` immediately after `_type_one` without checking a newly fired bound. Re-check the same named-bound guard before every typing action and before any return/replay navigation, then independently prove no browser operation continues after a depth-changing FILL fires the bound. Frozen source lines 105-106, 119, 126; own actual receipt below. Canonical issue registration is handed to the parent coordinator; this checker wrote no issue row.
+
+Actual reproduction: own freshly reviewed `browser_check.py` in `CHECKER_B_FILL_BOUND=1` mode; handle `46987` naturally terminated **exit 1** at its strict no-after-bound-action assertion. Printed source is `D:/autoTesting/.work/check-at113-c3-b-085537/tree/src/autotester/stages/explore_typing.py`. Bounds are valid `max_depth=1`, max-actions 40, screens 20, wall-clock 120. Root link admits `/fill-child` at depth 1. FILL `#trigger` navigates to `/fill-out`, whose depth-2 admission sets `rt.stop_reason=max_depth`; the original enqueue is called unchanged before the observer records it. Then the transparent method trace records `go_back` and FILL `#second` with `after_bound=true`; HTTP `/second-fill` confirms the second operation executed. Final crawl has actions 3, status `stopped_bound`, reason `max_depth`, and only depths 0/1 persisted. Receipt: `.work/check-at113-c3-b-085537/browser-artifacts/fill-bound-receipt.json`; raw terminal log: `.work/check-at113-c3-b-085537/fill-bound.log`.
+
+Ownership limitation retained: prelaunch creation baseline and printed shell 42928/Python 60324 were recorded, but the short run terminated before the postlaunch descendant creation snapshot; that snapshot is empty. No unknown-identity process was killed and no exact-creation cleanup claim is made for this run. Fresh read-only checks returned `FILL_BOUND_KNOWN_PID_PRESENT 0` and `FILL_BOUND_KNOWN_PORT_LISTENERS 0` for its actual fixture port 51455. Earlier long-run positive/negative cleanup receipts remain separately valid. No live owned handle, source edit, push, or full T-165 closure.
 
 LIVE-BROWSER: `D:/autoTesting/.work/check-at113-c3-b-085537/positive-artifacts`
 ISSUES-WRITTEN: none
