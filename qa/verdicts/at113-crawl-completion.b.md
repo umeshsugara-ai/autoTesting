@@ -233,8 +233,10 @@ Source checked: `085537cd549a6aa0ce522aee3d9a6486f2874c83`
 Baseline: `c5596a0a6175a2ea10f8c7be80f1082e09b11ba8`
 Bound project: `D:/autoTesting`
 
-VERDICT: PASS
-SCOREBOARD: 5/5 applicable feature criteria met, 3/3 applicable invariants hold
+VERDICT: FAIL
+SCOREBOARD: 4/5 applicable feature criteria met, 3/3 applicable invariants hold
+
+Authoritative correction: the earlier cycle-3 PASS claim was premature. Own actual typing control establishes ordinary FILL behavior, but does not independently prove X4 before-every-action enforcement for depth-changing synthetic FILL followed by return-to/replay after the fired bound. This is an identified verification gap, not an inherited checker claim or a proven product defect. That missing proof blocks this unit's PASS; further independent source-derived verification is pending. The reached positive/negative receipts below remain valid within their actual scope.
 
 This is an independent, blind, **diff-scoped AT-113 completion-honesty judgment**, not a green whole-repository suite, a T-165 closure, deployment approval, or authority to push. No maker manifest/plan/evidence or other checker verdict/instrument was read. Parent coordinated manifest naming of the exact 24 independently derived failure IDs; that coordination is not substituted for any runtime proof below.
 
