@@ -195,38 +195,6 @@ def test_a_cycle_named_after_a_bare_word_is_prose_about_another_file(tmp_path):
     assert _signals(tmp_path) == (1, 0)
 
 
-@windows_only
-def test_a_quoted_heading_is_not_readable_through_the_heading_allowance(tmp_path):
-    r"""The defect cycle 2 introduced in itself, kept as a regression.
-
-    Cycle 1 measured an inline-code strip as changing 0 answers and removed it as
-    dead code -- correct at the time, because under the OLD boundary a backtick
-    immediately before the field already excluded a quoted value. It does not
-    survive MAX. A quoted HEADING -- ``## Cycle checked: 2`` written inside a code
-    span while describing a different file -- puts a `#` between the backtick and
-    the field, and `#` is itself a legal separator, so the quote gets re-admitted
-    through the heading allowance that AT-714 deliberately kept.
-
-    This was found by running the hook against this unit's OWN verdict, whose
-    `:96` carries exactly that shape: it reported an unclosed PASS that does not
-    exist. Measured over all 546 manifests and verdicts the strip changes exactly
-    one answer -- that file, 2 -> 1 -- so it is both narrow and necessary.
-
-    Here the manifest is at cycle 2 with a cycle-1 PASS verdict that merely QUOTES
-    a cycle-2 heading. The unit is awaiting its cycle-2 check and must be reported
-    pending, never as a closed-out PASS.
-
-    Falsify: delete the ``[regex]::Replace($line, '`[^`]*`', ' ')`` strip --
-    (0, 1) instead of (1, 0)."""
-    _tree(
-        tmp_path, "quoted-heading",
-        "## Status: ready-for-check\n\n**Fix cycle:** 2\n",
-        "**Cycle checked:** 1\n\nThe old read misread `## Cycle checked: 2` here.\n\n"
-        + _PASS_VERDICT,
-    )
-    assert _signals(tmp_path) == (1, 0)
-
-
 def test_the_hook_reads_status_and_cycle_through_the_two_field_readers():
     """Static, portable half (no PowerShell needed): the loop must not fall back
     to a bare phrase/regex read at the four sites gate at673 named together."""

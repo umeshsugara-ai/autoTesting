@@ -1663,3 +1663,103 @@ re-confirmed directly to the maker session the same day ("Yes, all three").
 **Links:** AT-710 · AT-697 · T-125 · ISS-t125-1 · T-167 · T-179 · F-058 · D-042 · D-054 ·
 `qa/gates/new-module-authorization.md` · `qa/gates/t125-ct6-tiered-dispatch-vs-ru3.md` ·
 `qa/contracts/catalog.md` CT6 · `qa/contracts/ui-run.md` RU3
+
+## D-058 | 2026-09-29 | type: decision | status: ACTIVE
+
+**Supersedes:** D-057 -- D-057's point 3 added T-179 to T-167's deps and reversed ACTIVE D-055 without
+flagging it, which the Lab Protocol forbids. That question was put to Umesh in session autotesting-23
+without D-055 in view, and the maker recorded the answer without checking the decision index. This
+entry is better because it restates D-057's two sound answers unchanged, withdraws point 3 on Umesh's
+informed answer, and records the at673 scope decision.
+
+**What:**
+1. **AT-710 new module (restated from D-057, unchanged).** Create `src/autotester/ledger/citations.py`
+   and its test module to hold `check_decision_citations`, for AT-710 only. The standing-rule variant
+   was not chosen.
+2. **CT6 order-only (restated from D-057, unchanged).** `catalog.md` CT6 is narrowed to: dispatch
+   cases in cheap-to-expensive tier order and report each tier's runnable count, never skipping a case.
+   `ui-run.md` RU3 and F-058 stay intact. `tiers_to_run()` orders and never filters. The checker's
+   amendment made under D-057 (sweep 98f8365a) stands under this entry.
+3. **T-167 deps: D-055 stands.** T-167 depends on `["T-166","T-110"]` only. Today's T-179 edit is
+   reverted in three places: `.goal/goal.json`, `docs/plan.md` row 21 and
+   `tests/test_goal_contract_registration.py:50`.
+4. **at673 cycle 3: revert the strip.** Cycle 3 removes the per-line inline-code strip at
+   `qa/hooks/mc-sessionstart.ps1:77`, and its test, from unit `at673-sessionstart-unclosed-detector`.
+   The strip was a fourth change that D-056 did not authorize (cycle-2 verdict FAIL on scope, AT-741).
+   With cycle 3 the unit is back to exactly D-056's three rows. Nothing else on this seam changes.
+
+**Why:**
+- **(3)** The maker explained both options plainly, and Umesh chose Option 1 knowing what each costs.
+  If T-167, the critical release safety net, sat on T-179's agent layer, a negative T-181 result
+  ("the layer must show a measured gain to stay", D-042) could never be acted on. The experiment would
+  become a formality.
+- **(4)** The checker measured three things:
+  - The strip's premise does not reproduce. The quoted-heading misread it targets pre-dates cycle 2.
+  - The strip adds a fail-open regression. The AT-722 odd-backtick line read -1 under cycle 1 and
+    reads 42 now.
+  - With the strip removed, the AT-713 and AT-714 tests still pass.
+  Removing it is safer than ratifying it.
+
+**Result:** AT-710 is buildable and T-125's CT6 is passable, both as under D-057. T-167 is back to
+D-055. at673 goes to fix cycle 3, bounded to the removal. The seam closes again after cycle 3 PASSes.
+
+**AT-740 note:** gate files that pre-reserved "D-057 (NOT YET WRITTEN)" for the write-policy decision
+now point at spent numbers. Those citations are repointed to "the write-policy decision (not yet
+written; number assigned when written)". Numbers are never reserved ahead of writing again.
+
+**Changes-authorized:**
+- `.goal/goal.json` T-167 `deps`;
+- `docs/plan.md` row 21;
+- `tests/test_goal_contract_registration.py:50`;
+- `qa/hooks/mc-sessionstart.ps1` (enforcement path), removal of the `:77` inline-code strip only, plus
+  removal of its test;
+- the `D-057 (NOT YET WRITTEN)` citations in `qa/gates/write-policy-tier.md`,
+  `qa/gates/pathlynks-user-account-first.md` and `qa/gates/at654-d029-dev-only-vs-production-pathlynks.md`,
+  wording only.
+
+No `docs/ARCHITECTURE.md` prose change.
+
+**Approved-by:** Umesh. Recorded 2026-09-29 from two AskUserQuestion answers in the maker session:
+"A: Revert it" for at673, and "Option 1: No, keep D-055" for T-167.
+
+**Links:** D-055 · D-056 · D-057 · D-042 · AT-710 · AT-740 · AT-741 · AT-722 · ISS-t171-3 · AT-743 ·
+T-125 · T-167 · T-179 · T-181 · `qa/gates/at673-cycle2-scope.md` ·
+`qa/verdicts/at673-sessionstart-unclosed-detector.md` (cycle 2 FAIL)
+
+## D-059 | 2026-09-30 | type: decision | status: ACTIVE
+
+**What:**
+1. **T-168 drops its dependency on T-155.** T-168 (damage-control report) ships without the AI-test
+   section. That section is added when Track C is released. `.goal/goal.json` T-168 `deps` become
+   `["T-164","T-165","T-167"]`. `docs/plan.md` row 26 already omits T-155 and is unchanged. T-154 and
+   T-155 stay HELD.
+2. **This maker session is the single maker** and drives the remaining wave plan. The checker seat
+   (a separate session) stays checker-only and takes over only if the maker session dies.
+
+**Why:** Track C is held on `qa/gates/write-policy-tier.md` and per-run approvals, and T-168 sat behind
+T-155 as a result. The report is useful without the AI-test section, and its `blocked/unvisited is never
+rendered as pass` guarantee does not need it. Deferring the section removes a hold-induced block without
+weakening the report.
+
+**Result:** T-168 depends on T-167 (and, through it, T-166). It is no longer gated on Track C.
+`qa/contracts/damage-control-report.md` line 8 ("Depends on T-155, T-164, T-165, T-167") is checker-owned
+and needs the matching amendment. The maker files it through `qa/feedback-inbox.md` and does not edit the
+contract.
+
+**Not adopted by this entry:** the relayed wave plan (autotesting-23, 2026-09-29) lists T-167 as needing
+T-179. D-058 stands. T-167's deps remain `["T-166","T-110"]`, per D-055.
+
+**Changes-authorized:**
+- `.goal/goal.json` T-168 `deps`;
+- `tests/test_goal_contract_registration.py:51` pin;
+- `qa/contracts/damage-control-report.md` line 8 (checker-authored amendment).
+
+No `docs/ARCHITECTURE.md` prose change. No enforcement-path change.
+
+**Approved-by:** Umesh — decision relayed by session autotesting-23 as his answer of 2026-09-29
+("Drop T-155 dep (Recommended)"), and confirmed to the maker session on 2026-09-30 by the session's
+user, whose account shows abhinav@vidysea.com. That the confirming user is the Approver is not
+established from the session alone. Umesh should ratify or reverse this at his next review.
+
+**Links:** T-168 · T-155 · T-154 · T-167 · T-166 · D-055 · D-058 · `qa/gates/write-policy-tier.md` ·
+`qa/contracts/damage-control-report.md`

@@ -344,3 +344,82 @@ One correction to my own probing, recorded because the rule here is that a claim
 not evidence: my first attempt at the fenced-block probe **errored** and printed `-1`, which I could
 have reported as "no gap". I re-ran it properly and it returns `7`. The reviewer was right and my
 first number was an artifact, not a measurement.
+
+---
+
+# Cycle 3 — revert the strip (D-058 point 4)
+
+## Status: checked-PASS
+
+**Verdict:** `qa/verdicts/at673-sessionstart-unclosed-detector.md` (`311d322f`, addendum `ec7c86ce`) — `Cycle checked: 3`, `VERDICT: PASS`, 12/12 criteria, 3/3 capability rows reproduced. Merged to master `0b102e1e`. Known: the real hook still lists this unit as pending (a bold-quoted `Fix cycle` reads 7 at line 324); filed as ISS-at673-1, needs a new waiver.
+
+**Fix cycle:** 3
+
+**Authorized by:** `docs/DECISIONS.md` D-058 point 4 (ACTIVE, 2026-09-29, `Approved-by: Umesh`):
+"Cycle 3 removes the per-line inline-code strip at `qa/hooks/mc-sessionstart.ps1:77`, and its test ...
+With cycle 3 the unit is back to exactly D-056's three rows. Nothing else on this seam changes."
+
+**AT-741 (cycle-2 verdict), quoted:** "[D-056 scope] the inline-code strip at mc-sessionstart.ps1:77 is a
+fourth change outside the three waived rows, its stated premise does not reproduce, and it carries a
+fail-open regression cycle 1 did not have · revert the strip and its test to stay inside three rows".
+**Resolved by** removing exactly the strip and the one test that existed only to cover it. AT-713, AT-714
+and AT-715 are untouched.
+
+## What changed
+
+- `qa/hooks/mc-sessionstart.ps1` (was `:77`, now between `:65` and `:66`) — deleted
+  `$line = [regex]::Replace($line, '`[^`]*`', ' ')` and its 10-line rationale comment ("The inline-code
+  strip is BACK ..."), which described code that no longer exists. The loop is now `:66-70`, identical to
+  the cycle-2 loop minus that one statement. The older comment at `:40-41` ("An inline-code strip was
+  tried here first and removed") is true again and left as is.
+- `tests/test_mc_sessionstart_unclosed.py` — deleted
+  `test_a_quoted_heading_is_not_readable_through_the_heading_allowance` (32 lines, the only test that
+  exists for the strip). 7 tests remain (was 8).
+- No other file. Diff: 2 files, 43 deletions, 0 insertions (excluding this manifest).
+
+## Real outputs (redirected to files, read back; no CLI `-q`)
+
+- `uv run pytest tests/test_mc_sessionstart_unclosed.py tests/test_mc_sessionstart_loop_status.py` →
+  `16 passed in 27.81s`, rc=0. The unclosed module alone: `7 passed in 11.70s`. That includes
+  `test_the_highest_cycle_wins_when_a_verdict_lists_its_newest_first` (AT-713),
+  `test_a_cycle_named_after_a_bare_word_is_prose_about_another_file` (AT-714) and the raw-docstring
+  backtick test (AT-715 lives in its docstring), all green with the strip gone. This is D-058's third
+  measurement, reproduced here.
+- `uv run ruff check src tests scripts` → `All checks passed!`, rc=0.
+- `uv run autotester doctor` → rc=1, one violation: `stale-generated: docs/SNAPSHOT.md differs from
+  regeneration`. **Pre-existing and not caused by this change:** the identical single violation prints
+  from `D:/autoTesting` on master `9daa5a02`. Regenerating the snapshot is outside D-058's scope and
+  is left for the checker/maker to decide.
+- **Deferred:** the full suite was NOT run (RAM ~2.5 GB); the checker runs it.
+
+## The AT-722 shape, measured against the reverted function
+
+Probe (scratchpad `probe722.ps1`) loads the real `Get-CycleNumber` out of the hook file by AST and feeds it
+one line, `See note - ` a partial code fragment `Cycle checked: 42` in the old report.`
+
+| hook version | AT-722 odd-backtick line | balanced quoted heading `` `## Cycle checked: 2` `` |
+|---|---|---|
+| cycle 3 (strip removed) | **-1** | 2 |
+| `8ea308ee` (cycle 2, strip present) | **42** | -1 |
+
+The fail-open regression the checker measured (42) is gone: -1 is the cycle-1 answer. The other column is
+the known cost, stated plainly and not fixed here: with the strip gone the balanced quoted heading reads 2
+again. That is the pre-existing hole AT-741 point 1 says "pre-dates cycle 2" (old read 2); D-058 chose
+"removing it is safer than ratifying it" and closes this seam at exactly D-056's three rows.
+
+## Capability coverage — reverted state
+
+| Regression state | Expected | Observed |
+|---|---|---|
+| strip hunk re-added (`hook-c2.ps1`, i.e. `8ea308ee`) | AT-722 line must NOT read 42 | reads 42 (probe) |
+| strip absent (this commit) | AT-722 line reads -1 | reads -1 (probe) |
+| AT-713 / AT-714 tests, strip absent | still pass | 7 passed |
+
+Honest limit: no committed test asserts the AT-722 shape, because D-058 scopes this cycle to removals and a
+new test would be a fifth change. The re-add case is demonstrated by the probe, not by a kept assertion.
+AT-722 stays open in `qa/issues.jsonl` for the checker to resolve or wontfix.
+
+**Persona walk:** skip (enforcement hook, no UI)
+
+**Live browser:** Not UI-touching with the changed paths (`qa/hooks/mc-sessionstart.ps1`,
+`tests/test_mc_sessionstart_unclosed.py`).

@@ -287,3 +287,141 @@ No push (D-007 applies to PASS only). The manifest is not edited and its Status 
 the maker answers by either reverting the strip or by Umesh's ratification. `qa/gates/` was not written: the
 decision needed is stated in AT-741 and here, and it is Umesh's, so the maker's next tick should raise it as a
 HUMAN_GATE citing this verdict.
+
+---
+
+# VERDICT, fix cycle 3 (revert the strip, D-058 point 4)
+
+**Date:** 2026-09-30 · **Cycle checked:** 3 · **Checker:** claude-sonnet-5-5 subagent (bound to `d:/autoTesting/.worktrees/at673-c3`)
+**Judged against:** `docs/DECISIONS.md` D-058 point 4 (ACTIVE, `Approved-by: Umesh`, scope: remove ONLY the
+per-line inline-code strip and its test), D-056 (the three waived rows), `qa/contracts/loop-status.md` LS5/LS6,
+`core-invariants.md` C12, cycle-1 criteria C1-C8. **Head at check:** `d43590ef`, base `9daa5a02`
+(`git merge-base master HEAD`). The cycle-1 and cycle-2 sections above are untouched.
+
+```
+VERDICT: PASS
+SCOREBOARD: 12/12 criteria met (C1-C8 hold; D-056 rows AT-713, AT-714, AT-715 intact; D-056/D-058 scope bound met), 3/3 invariants hold (I1 on the measured corpus, with the fail-open debt enumerated as ISS-at673-1)
+FAILURES: none
+CAPABILITY-COVERAGE: 3/3 rows reproduced (two committed-test rows green-before/red-after on the named assertion in throwaway copies; the strip re-add row by loading the real function, because no committed test pins it: disclosed debt ISS-at673-1)
+LIVE-BROWSER: not-applicable (changed paths: qa/hooks/mc-sessionstart.ps1, tests/test_mc_sessionstart_unclosed.py, the manifest; no UI surface, direct or indirect)
+ISSUES-WRITTEN: ISS-at673-1 (medium, open); AT-741, AT-722, AT-742 -> fixed
+EXECUTOR: maker session (claude) (checker: claude-sonnet-subagent)
+EXPLANATION: The commit removes exactly the strip line, its 10-line rationale comment and the one test that existed only for it, and nothing else: the hook now differs from 8ea308ee by those 11 deleted lines only, so the seam is back to D-056's three rows. The AT-722 odd-backtick line reads -1 again (42 under 8ea308ee, both loaded from the real hook files), and the AT-713, AT-714 and LS5 tests pass. The price D-058 accepted is real and now has its own open id: a balanced quoted heading reads high again, and no committed test pins either behaviour. The full suite was NOT run by me (explicit evidence gap below).
+```
+
+## What I re-ran myself (nothing taken on report)
+
+| Command (bound worktree, each redirected to a file and read back, no pipe, no CLI -q) | My result |
+|---|---|
+| `uv run pytest tests/test_mc_sessionstart_unclosed.py tests/test_mc_sessionstart_loop_status.py` | `16 passed in 51.30s`, rc=0 (7 unclosed + 9 LS5) |
+| `uv run ruff check src tests scripts` | `All checks passed!`, rc=0 |
+| `uv run autotester doctor` | rc=1, ONE violation: `stale-generated: docs/SNAPSHOT.md differs from regeneration`. See the ruling below |
+| `git diff 9daa5a02...HEAD --stat` | 3 files: hook (11 deletions), test (32 deletions), manifest (77 insertions). Nothing else |
+| **Full `uv run pytest`** | **NOT RUN, by instruction (RAM about 0.6 GB free; another step runs one full suite after merge). This is an evidence gap, not a claim of green.** Cycle 2's full run had one unrelated failure (`test_goal_contract_registration`, AT-743), which D-058 point 3 addresses on master |
+
+**Doctor ruling.** The single violation is a stale generated snapshot, not a design-rule breach. The identical
+violation prints from `D:/autoTesting` (master, whose working tree carries the uncommitted SNAPSHOT/goal edits
+that regeneration reads). This unit's diff touches no `src/` file, no `docs/` file and no `.goal/` file, and its only
+test-file change is a deletion, so it cannot have caused it. Not charged to the unit; the maker or a sweep
+regenerates the snapshot. I did not re-run doctor on a pristine checkout of the base, so "identical on base" rests
+on master's dirty tree plus the diff-scope argument, and I say so.
+
+## Requested verifications
+
+**(a) Exactly the strip and its test were removed, nothing else in the hook.** `git diff 9daa5a02...HEAD -- qa/hooks/mc-sessionstart.ps1`
+is one hunk, `@@ -61,20 +61,9 @@`, 11 deletions and 0 insertions: the per-line statement that replaced each
+backtick-delimited span with a space, and the 10-line comment that explained it ("The inline-code strip is BACK ...").
+`git diff 8ea308ee HEAD -- qa/hooks/mc-sessionstart.ps1` is those same 11 deletions and nothing more, so cycle 3 is
+precisely cycle 2 minus the strip. The test diff is one hunk, the 32-line
+`test_a_quoted_heading_is_not_readable_through_the_heading_allowance` and its `@windows_only` decorator; the seven other
+tests are byte-untouched. A grep of `tests/` and `qa/hooks/` for the strip's call finds no other reference. MET.
+
+**(b) The AT-722 shape no longer reads 42.** I wrote my own probe (scratchpad `probe.ps1`) that loads the real
+`Get-CycleNumber` out of a hook file by AST, so nothing is reimplemented, and fed it the ledger's exact AT-722
+line (three backticks, one odd). Against `git show 8ea308ee:qa/hooks/mc-sessionstart.ps1`: **42**. Against the bound
+tree's hook: **-1**. The same run shows the rest of the function behaving as before:
+
+| Line shape | 8ea308ee (strip present) | d43590ef (this cycle) |
+|---|---|---|
+| AT-722 odd-backtick line | 42 | **-1** |
+| balanced quoted heading in a code span | -1 | 2 |
+| real field | 3 | 3 |
+| two fields, newest first (AT-713) | 2 | 2 |
+| field after a bare word (AT-714) | -1 | -1 |
+
+A first attempt of mine with a two-backtick variant of the line read -1 under BOTH hooks; that is not the AT-722
+shape (its backticks are balanced), so I discarded it and re-ran with the ledger's exact text. MET.
+
+**(c) AT-713 and AT-714 tests still pass.** Both are in the 16 passed above, and I falsified each in its own
+throwaway copy below. MET.
+
+**(d) The D-056 seam is closed again.** Base-to-head touches the hook in that one hunk only; the hook now
+contains exactly the AT-713 maximum, the AT-714 boundary and (in the test) the AT-715 raw docstring, nothing
+else. No enforcement path other than the one D-058 authorizes (`qa/hooks/mc-sessionstart.ps1`, removal of the
+strip only) is touched. MET.
+
+## Capability coverage, reproduced by me outside the worktree
+
+Each row in its own copy under the scratchpad (the hook and the test module copied; `conftest.py` omitted because it
+imports a repo helper these tests do not use; the venv of `D:/autoTesting` used). The named test ran GREEN in the
+copy before the edit, then the single-hunk single-file edit was applied to the copy's hook.
+
+| Row | Green before (in the copy) | Single-hunk edit to `qa/hooks/mc-sessionstart.ps1` | Red after, assertion that fired |
+|---|---|---|---|
+| AT-713: max, not last | `1 passed` | `if ($v -gt $n) { $n = $v }` becomes `$n = $v` | `assert (1, 0) == (0, 1)` in `test_the_highest_cycle_wins_when_a_verdict_lists_its_newest_first`. It is the named assertion (a semantic (pending, unclosed) mismatch, not an import or parse error) |
+| AT-714: no bare-space boundary | `1 passed` | drop `\s` from the boundary class `[^\w\s<backtick>]` | `assert (0, 0) == (1, 0)` in `test_a_cycle_named_after_a_bare_word_is_prose_about_another_file` |
+| Cycle-3 claim: strip absent, AT-722 line reads -1 | probe on the copy: -1 | re-insert the strip statement as the first line of the `foreach ($line ...)` body | probe: 42 |
+
+The third row is not a committed test. The manifest says so plainly ("no committed test asserts the AT-722 shape,
+because D-058 scopes this cycle to removals"), D-058 does authorize only removals, and I accept that as enumerated
+debt rather than an unenumerated claim, charged once through ISS-at673-1. Consequence to state honestly: re-adding
+the strip would keep every committed test green, so the revert is guarded today by this probe and by nothing in the suite.
+
+## Criteria and invariants
+
+| # | Item | Verdict | Evidence I produced |
+|---|---|---|---|
+| C1-C5 | Status, Fix cycle, cycle-checked read as fields; anchored VERDICT read; no phrase fallback at any of the four sites | MET | Hook read in full at the bound head; the static test `test_the_hook_reads_status_and_cycle_through_the_two_field_readers` passes |
+| C6 | LS5 not regressed | MET | `tests/test_mc_sessionstart_loop_status.py`, 9 passed |
+| C7 | LS6 honoured | MET | This diff touches no manifest history; the manifest's earlier cycles are byte-intact and Cycle 3 is appended below them |
+| C8 | The at483 close-out was justified | MET | Judged at cycle 1 and untouched by this diff |
+| D-056 rows | AT-713 max, AT-714 boundary, AT-715 raw docstring | MET | Tests pass; two falsified above; AT-715 unchanged from cycle 2 |
+| D-058 scope | Only the strip and its test removed | MET | (a) above |
+| I1 (C12) | A detector defect fails over-report, not fail-open | **On the corpus only** | Removing the strip removes the AT-722 fail-open regression. The balanced-quoted-heading over-read returns to its cycle-1 state (reads high, which can hide a pending check). It pre-dates cycle 2, D-058 accepted it, it is 0 live on today's tree, and it is now open as ISS-at673-1, not hidden |
+| I2 | Checker never edited the artifact in the bound tree | YES | All three reproductions ran in scratchpad copies; the bound tree was written only at the ledger and this verdict |
+| I3 | Diff scope: nothing removed or touched beyond the claim | YES | The only removals are the two D-058 authorizes; the one added path is the manifest, the maker's own file |
+
+## Ledger
+
+- **ISS-at673-1 (medium, open, new):** the balanced quoted heading reads high again (2 here, -1 under the cycle-2
+  hook) and no committed test pins the AT-722 or the strip-absence behaviour. Not chargeable to this cycle
+  (D-058 bounds it to removals); it needs a new waiver from Umesh for a fix that handles both shapes plus committed tests.
+- **AT-741, AT-722, AT-742 -> fixed** (fixed by the revert; verification is by the probe above). Their
+  `regression_check` is deliberately left null: no committed command fails with the revert undone, and I will not
+  enter an allowlisted command that does not, which is the exact `echo ok` case the ledger rules forbid. ISS-at673-1
+  is the row that, when fixed, supplies one. Expect sweep check 1c to name them until then.
+- **AT-723 (low)** stays open, untouched. **AT-743** is D-058 point 3's on master, not this unit's.
+- The ledger has `merge=union`, and I edited three existing rows in place. The maker should read `qa/issues.jsonl`
+  after the merge for duplicated ids.
+
+## Not done, and why
+
+- No merge and no push: the maker merges, and D-007's push-on-PASS is the maker's step after this verdict lands on master.
+- No goal task closed: `.goal/goal.json` carries no task for this unit.
+- Manifest not edited. Its Status stays at ready-for-check for the maker to flip to `checked-PASS` on close-out.
+
+## Addendum (found after the first commit of this verdict)
+
+Running the real hook on the bound tree after writing the verdict printed `Checks pending: 2 [at673-..., at710-...]`, not the
+close-out state I expected. I loaded the real functions (scratchpad `real.ps1`): status `ready-for-check`, manifest Fix cycle
+read as **7**, this verdict read as **3**. The 7 comes from manifest line 324 (the AT-723 row, which quotes a fenced example
+containing a bold Fix cycle field with 7). Findings, all reproduced against the real function:
+
+- That line reads 7 under **both** 8ea308ee and d43590ef (it is an odd-backtick line, the AT-722 family), so this is not a
+  consequence of the revert.
+- Separately, a bold field quoted in a code span (backtick, `**Fix cycle:** 7`) reads 7 under d43590ef and -1 under 8ea308ee:
+  the first asterisk satisfies the boundary class, the second is eaten by the bold allowance, so the backtick exclusion is
+  bypassed for bold fields. That one **is** the balanced-quote hole D-058 accepted, in its bold form. Recorded in ISS-at673-1.
+- Direction: over-report on a manifest (pending shown when the check is done), so C12-safe. It does not change the PASS. It
+  means **the hook will keep printing this unit as pending until the maker flips its Status to `checked-PASS`**; the maker
+  should close out from this verdict file, not re-dispatch a check on the hook's word.
