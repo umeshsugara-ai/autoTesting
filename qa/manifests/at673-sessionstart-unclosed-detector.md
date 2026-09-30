@@ -349,7 +349,9 @@ first number was an artifact, not a measurement.
 
 # Cycle 3 — revert the strip (D-058 point 4)
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+**Verdict:** `qa/verdicts/at673-sessionstart-unclosed-detector.md` (`311d322f`, addendum `ec7c86ce`) — `Cycle checked: 3`, `VERDICT: PASS`, 12/12 criteria, 3/3 capability rows reproduced. Merged to master `0b102e1e`. Known: the real hook still lists this unit as pending (a bold-quoted `Fix cycle` reads 7 at line 324); filed as ISS-at673-1, needs a new waiver.
 
 **Fix cycle:** 3
 
