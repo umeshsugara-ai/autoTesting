@@ -14,9 +14,20 @@ import pytest
 from crawl_fake import crawl_it, grant_crawl_approval, make_session
 
 from autotester.browser.observe import PageObserver
-from autotester.schema.crawl import SafetyPolicy
-from autotester.schema.enums import CrawlStatus
+from autotester.schema.case import Case
+from autotester.schema.crawl import CoverageHole, Crawl, CrawlCoverage, SafetyPolicy
+from autotester.schema.enums import (
+    Action,
+    CaseClass,
+    CaseKind,
+    CrawlStatus,
+    EdgeOutcome,
+    NodeStatus,
+)
+from autotester.schema.flowspec import Step
 from autotester.schema.project import Project
+from autotester.schema.screen_graph import ScreenEdge, ScreenNode
+from autotester.stages import explore_status
 from autotester.stages.explore import run_crawl
 from autotester.store.project_store import ProjectStore
 
@@ -77,3 +88,51 @@ def test_a_page_with_no_controls_at_all_still_reports_completed(tmp_path: Path) 
     assert crawl.status is CrawlStatus.COMPLETED, (
         "a page with genuinely nothing to click must not be floored to blocked_no_actions"
     )
+
+
+@pytest.mark.parametrize("status", [NodeStatus.ABORTED_ERROR, NodeStatus.ABORTED_DIALOG])
+@pytest.mark.parametrize("bound", [None, "max_actions", "wall_clock_s", "max_screens"])
+def test_abandoned_visits_are_aborted_unless_an_actual_bound_fired(status, bound) -> None:
+    node = ScreenNode(crawl_id="c", project="p", url_template="/lost",
+                      url_example="https://app.test/lost", signature="lost", status=status)
+    actual, reason = explore_status.terminal_status(
+        completed=bound is None, actions_used=2, denied=0, nodes=[node], edges=[],
+        login_case=None, current_stop_reason=bound)
+    assert actual is (CrawlStatus.STOPPED_BOUND if bound else CrawlStatus.ABORTED)
+    if bound:
+        assert reason is None, "an actual bound's original reason must stay intact"
+    else:
+        assert "abandoned" in reason and status.value in reason
+
+
+@pytest.mark.parametrize("hole_reason", ["error", "policy:deny", "not_visited", None])
+@pytest.mark.parametrize("actions", [0, 3])
+def test_legacy_completion_display_uses_only_recorded_error_holes(hole_reason, actions) -> None:
+    coverage = None if hole_reason is None else CrawlCoverage(
+        percent=0, controls_discovered=1, holes=[CoverageHole(
+            node_id="n", url_template="/", selector="#x", reason=hole_reason)])
+    crawl = Crawl(project="p", status=CrawlStatus.COMPLETED, actions=actions,
+                  issues=9, stop_reason="frontier empty", coverage=coverage)
+    original = crawl.model_dump_json()
+    expected = CrawlStatus.ABORTED if hole_reason == "error" else CrawlStatus.COMPLETED
+    assert explore_status.displayed_status(crawl) is expected
+    assert explore_status.is_success(crawl) is (expected is CrawlStatus.COMPLETED)
+    assert crawl.model_dump_json() == original, "display must not rewrite historical artifacts"
+
+
+@pytest.mark.parametrize("declared", [False, True])
+def test_login_precedence_over_abort_does_not_invent_a_bound(declared) -> None:
+    node = ScreenNode(crawl_id="c", project="p", url_template="/",
+                      url_example="https://app.test/", signature="login",
+                      status=NodeStatus.ABORTED_ERROR)
+    case = Case(project="p", flow_id="login", kind=CaseKind.BEST, case_class=CaseClass.HAPPY,
+                title="login", steps=[Step(order=1, action=Action.NAVIGATE,
+                                           target="https://app.test/")]) if declared else None
+    edges = [ScreenEdge(crawl_id="c", from_node=node.id, action=Action.CLICK,
+                        target="#login", outcome=EdgeOutcome.DENIED_POLICY,
+                        reason=explore_status.FORM_SUBMIT_REFUSED)]
+    status, reason = explore_status.terminal_status(
+        completed=False, actions_used=0, denied=1, nodes=[node], edges=edges,
+        login_case=case, login_signature="login", current_stop_reason="abandoned visits")
+    assert status is (CrawlStatus.LOGIN_FAILED if declared else CrawlStatus.LOGIN_WALL)
+    assert "bound fired" not in reason
