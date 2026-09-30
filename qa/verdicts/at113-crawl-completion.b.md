@@ -72,3 +72,9 @@ Exact-source rerun completed subsequently (supersedes only the pending statement
   bytes were not preserved. They are excluded from final exact-source evidence.
 - Exact completed independent count is13 new kills, not a carryover of historical13.
   Full suite and actual headed Mode D remain pending. No final PASS.
+
+Heavy lane released by orchestrator after first checker's terminal cleanup. Own unpiped
+full suite launched with actual session55836 against immutable f905 clean archive at
+`.work/at113-check-b/source`, installed root venv, `uv --active --no-sync`, isolated
+PYTHONPATH/src and unique pytest temp/cache. Full output `.work/at113-check-b/full-pytest.log`.
+No terminal result yet; own headed Mode D follows its terminal and owned cleanup.
