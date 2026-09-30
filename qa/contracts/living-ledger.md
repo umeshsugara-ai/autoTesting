@@ -162,15 +162,22 @@ citation. So the citation is checked, not trusted.
   `qa/gates/pathlynks-user-account-first.md` (:31, :35, :38, :67) must **all** fire it **while the
   entry they name is unwritten** -- as of 2026-09-28 they name `D-057`, not `D-056` (AT-718).
 
-- **Resolution is necessary and not sufficient -- the SUBJECT must match too (added 2026-09-28,
-  AT-718).** Fixture (c) was written naming `D-056`, and on 2026-09-28 this seat appended a real
-  `D-056` on an unrelated subject (the at673 round-cap waiver). Every one of those seven citations
-  instantly began to RESOLVE while still being wrong, and a check that only asks "does `## D-NNN`
-  exist" would have gone green on all seven in the same stroke -- reporting the defect as fixed at
-  the exact moment it got harder to see. So the check may not treat a resolving id as clean on its
-  own: where a citation states what the entry authorizes, that claim is compared against the entry's
-  own **What:** field, and a mismatch is a violation in its own right. This is the C12 shape once
-  more -- a green that the construction, not the code, produced. **Links:** AT-710; AT-711; AT-718.
+- **Subject match is not part of this criterion's Verify:** the subject-match obligation is L10, split out under D-060.
+
+
+**L10 — a citing line's claimed subject must match the cited entry's **What:**.** Split out of L9 under D-060 (2026-09-30) so AT-710 closes against L9's Verify clause. **Status: not yet buildable: needs a declarable form for the claim; own unit; serves the same outcome as L9.** The text below is L9's former wrong-subject bullet, verbatim.
+
+> **Resolution is necessary and not sufficient -- the SUBJECT must match too (added 2026-09-28,
+>   AT-718).** Fixture (c) was written naming `D-056`, and on 2026-09-28 this seat appended a real
+>   `D-056` on an unrelated subject (the at673 round-cap waiver). Every one of those seven citations
+>   instantly began to RESOLVE while still being wrong, and a check that only asks "does `## D-NNN`
+>   exist" would have gone green on all seven in the same stroke -- reporting the defect as fixed at
+>   the exact moment it got harder to see. So the check may not treat a resolving id as clean on its
+>   own: where a citation states what the entry authorizes, that claim is compared against the entry's
+>   own **What:** field, and a mismatch is a violation in its own right. This is the C12 shape once
+>   more -- a green that the construction, not the code, produced. **Links:** AT-710; AT-711; AT-718.
+
+- **Verify:** a doctor fixture with three cases: (i) the cited id absent from `docs/DECISIONS.md` and `docs/archive/` (fires as an L9 dangling citation); (ii) the id present but the citing line's declared claim does not match that entry's **What:** (fires as a subject mismatch); (iii) the id present and the claim matching (does not fire). Case (ii) presupposes a machine-readable declared form for the claim, which is the first deliverable of the unit that builds L10. **Links:** AT-710; AT-718; ISS-at710-1; D-060.
 
 
 ## Out of scope
@@ -278,3 +285,4 @@ only, later); Google-Sheet sync.
   date. With `D-057` now real and off-subject, all seven citations are the L9 wrong-subject case
   as it stands. Additive; no clause weakened. **Changes-authorized:** qa/contracts/living-ledger.md
   Amendment log (this entry). No enforcement-path file touched. **Links:** AT-740; AT-718; AT-710; D-057.
+- 2026-09-30 - amend (split) - L9's wrong-subject bullet moved verbatim into new criterion L10 ("a citing line's claimed subject must match the cited entry's **What:**"), status not yet buildable (needs a declarable form for the claim; own unit); L9 keeps a one-line pointer and its Verify clause no longer has to cover the moved bullet, no other L9 sub-clause touched. Cause: at710 cycle 1 FAIL, ISS-at710-1 (verdict b385910f) - resolver yields 0 dangling citations and 9/9 capability rows reproduce; the bullet compares a citation's claim to the entry's What:, no machine-readable declared form exists, and the alternative (a `cites-for: D-NNN` keyword-overlap matcher) has an unmeasured false-positive rate. Obligation preserved in L10, weakened nowhere. **Changes-authorized:** D-060 (qa/contracts/living-ledger.md L9/L10 + Amendment log). No enforcement-path file touched. **Links:** AT-710; ISS-at710-1; b385910f; D-057; D-058; D-059; T-168.

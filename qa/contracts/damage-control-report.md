@@ -5,7 +5,7 @@ Goes **ACTIVE** on T-168's first checker PASS.
 **Feature:** T-168 — the unified report: regression diff, API failures, workflows and change history
 on one surface.
 **Code:** does not exist yet (T-168 `pending`; no `damage_control` / `unified_report` module).
-Depends on T-155, T-164, T-165, T-167.
+Depends on T-164, T-165, T-167.
 **Grounding:** AT-638 — and note that **T-168 was named by no decision at all** before D-054, despite
 existing in `.goal/goal.json` since 2026-09-10. That is the finding this file closes.
 Cross-references: `coverage.md` V7(b)–(c) · `crawl-traversal.md` CR4/CR5 · `network-assertions.md` NA1
@@ -84,3 +84,4 @@ explicitly and show the output; "the gate would have caught it" is not evidence 
   it and show the output rather than rely on a gate that will not fire. Additive; no filed criterion
   weakened. DRAFT until T-168's first PASS. **Changes-authorized:** this file (named by D-054). No
   enforcement-path file touched. **Links:** AT-638; AT-694; D-054; T-168.
+- 2026-09-30 · routine · Depends-on line (line 8): T-155 removed, now "T-164, T-165, T-167" · why: D-059 dropped T-168's dependency on T-155 (the AI-test section is added when Track C is released) and named this line in its Changes-authorized; the maker filed the ask via `qa/feedback-inbox.md` 2026-09-30. Dependency line only; no criterion touched or weakened. **Changes-authorized:** D-059. No enforcement-path file touched. **Links:** T-168; T-155; D-059.
