@@ -7,10 +7,23 @@ Baseline: c5596a0a
 Date: 2026-09-30
 
 This is partial progress, not a PASS or final verdict. Current state: own full pytest
-is RUNNING under actual session55836; own headed Mode D is pending its terminal cleanup.
+is TERMINAL under actual session55836 (exit 1: 15 failed, 2222 passed, 5 skipped,
+14 xfailed, 15 warnings in 1659.94s). Own headed Mode D remains pending reviewed
+instrument runtime; selected baseline attribution is RUNNING under session74963.
 Earlier statements about the first checker owning the lane are historical and superseded
 by the explicit lane release and 55836 launch recorded below.
 No master merge, public push or whole T-165 closure is certified.
+
+Current terminal gate evidence: `.work/at113-check-b/full-pytest.log`. Exact failures
+are two goal registration/done-check cases, four `test_mc_sessionstart_loop_status`
+cases, six `test_mc_sessionstart_unclosed` cases, two hung-run mutation judgement
+cases, and `test_ui_runs_serial_entry_mix_live::test_a_serial_run_mixing_an_entry_case_with_ordinary_cases_does_not_500`.
+The last reached HTTP 403 with a missing live_case approval; this is not a browser
+500 nor a passing serial workflow. Independent c559 attribution is pending.
+Owned residual PID creation identities were freshly checked; 37772, 51144 and
+37484 were stopped, others had exited; readback of all ten recorded PIDs was empty.
+Probe3 found cleanup PID-reuse and exact warning-tone assertion gaps. These are
+being fixed and re-reviewed before runtime. No final PASS is implied.
 
 Independent evidence so far:
 
