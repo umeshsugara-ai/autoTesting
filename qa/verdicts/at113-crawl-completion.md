@@ -1,3 +1,49 @@
+# AT-113 crawl completion — primary independent check, current cycle 2
+
+Date: 2026-09-30
+Bound root: D:/autoTesting
+Adapter: coding
+Cycle checked: 2
+Reviewed source SHA: f9052150f4cd2af19a5ed3888173e910fa1220ed
+Comparison baseline: c5596a0a6175a2ea10f8c7be80f1082e09b11ba8
+
+VERDICT: PASS
+SCOREBOARD: 8/8 unit-specific adjudications met (C7, C10, C12, CR4, CR5, X4, X16, X18); retained global-gate exceptions below are not a green-suite claim.
+FAILURES: none attributable to this submitted unit.
+LIVE-BROWSER: PASS — own headed synthetic-local Mode D, seven scenarios, actual Explore form submissions and reopened downloads.
+ISSUES-WRITTEN: none; existing AT-113 retained for maker close-out after both independent checks. Full T-165/T-145 NOT closed.
+EXPLANATION: The exact frozen source distinguishes actual abandoned visits from completion and actual named bounds, retains sibling exploration and failed-login observation, preserves missing_unjudged under optimistic exhaustion, and uses only recorded legacy error holes as display evidence. Independent 17-mutation falsification and own browser checks support this diff-scoped verdict. C7 independently justifies the individually named baseline/setup exceptions, not blanket acceptance of red gates.
+
+## Current cycle-2 criterion adjudication
+
+| Criterion | Independent result |
+|---|---|
+| CR5/C12 — no false completion | `_bfs` drains deferred actions before deriving abandoned statuses; aborted_error/dialog do not exhaust frontier. Error/dialog, reason, deferred-order and sibling mutations killed named assertions. Own headed dialog visit showed ABORTED and abandoned cause, with independent sibling EXPLORED. Healthy static control completed. |
+| X4 — actual bounds | Actual max_actions/max_screens/wall-clock/depth retain stopped_bound; other stop reasons do not invent a bound. Bound mutation killed controls. Own headed max_actions=1 crawl showed stopped_bound/max_actions. No limit was relaxed. |
+| X18 — login precedence | Tests retained login-wall/not-left-login precedence without invented bound suffix and preserved failed login observation under both abandoned statuses; qualifier mutations killed the exact tests. Real authentication/production login was not performed. |
+| CR4 — deletion stays unjudged | Both abandoned statuses force missing_unjudged despite optimistic caller exhaustion; healthy exhausted and genuine missing controls retained. Persona status/wording mutations killed intended assertions. |
+| X16 — every status surface | CLI, workbook, detail and history use shared display status/reason; four separate call-site mutations killed their named surface tests. Own browser history/detail/download checks cover healthy, bound, dialog and four legacy records. Only specific recorded error holes change legacy display, never empty actions, issue count or low percentage; stored bytes remained unchanged. |
+| C7 — independent gates/falsification | Full unpiped exact-source suite terminal; ruff terminal green; doctor terminal with individually reproduced outside-diff ledger exception. Own cache-free archive harness asserted 72 green baseline, applied 17 unique semantic edits with changed hashes, killed named expected assertions, restored each file and asserted 72 green restored tests plus byte-identical complete source hash mapping. |
+| C10 — compliant recovery | Independently verified old/new full trees identical, same parent, declared path subset, clean tracked source and new exact SHA; approved explicit-path amend recovery disclosed. Cycle1 failure remains history, not inherited as a fresh failure after compliant recovery. Checker commits use coordinated --only verdict path; no source edit, merge or push. |
+| C12 — fail-closed measurements | Actual terminal exit/counts retained; 14 baseline reproductions separated from one setup failure whose baseline passed. Unknown console/page errors and unexpected requests fail the instrument; six invalid arrangements rejected. Earlier instrument failures retained with cleanup, not reclassified as product PASS. |
+
+Other core invariants and CR1–3/CR6–7/X1–3/X5–15/X17 are unchanged by this unit where outside the above mapping: no schema/dependency/provider/prompt/permission change, safety matrix not widened, and no approved persona overwritten. Doctor checks design/dependencies and full-suite safety/schema tests were rerun; unrelated C9/T171 bookkeeping defects remain explicitly open. This is not certification of every prior feature, production behavior, overall permission coverage, real login, or the whole T-165 goal.
+
+## Terminal independent evidence
+
+- Full suite session 15904: exit 1, `15 failed, 2221 passed, 6 skipped, 14 xfailed, 15 warnings in 1586.20s`; `.work/check-at113-a-full.txt`.
+- Ruff: exit 0, `All checks passed!`. Doctor session 27876: exit 1, `ledger-row-missing: T-171`, one violation. Baseline doctor independently reproduces T171; source snapshot fixes the baseline's two generated-document defects. Own runtime native debug.log was reversibly preserved, not a tracked-source edit.
+- Nonbrowser baseline session 92288: `14 failed in 102.10s`; each exact ID reproduced on clean c559 archive and test/causal paths diff-identical. `.work/check-at113-a-base/report.json` lists all individual IDs; complete trace `.work/check-at113-a-base/pytest.txt`. Causes: goal total 81 vs 82, missing T171 permission-surface test, ten PowerShell UnauthorizedAccess/missing-signal hook checks, two surviving subprocess-tree timeout checks. These were correctly individually named in manifest and remain defects, not repaired here.
+- Fifteenth ID: `tests/test_browser_scroll_invariance.py::test_what_is_reported_does_not_change_when_anything_is_scrolled[hidden+tall]`: direct fixture page.goto fails ERR_NO_BUFFER_SPACE before observe/assertions. Unchanged browser.observe/fixture/conftest paths and native socket10055 establish outside-diff local setup/resource failure. Exact-node baseline passed `1 passed in 1.66s`; NOT claimed baseline-reproduced. Amended manifest individually names this trace. Scroll behavior under full-run pressure remains unmeasured; no blanket waiver.
+- Mutation session 49363: exit 0, `PASS 17`; baseline `72 passed`, restored `72 passed, 1 warning in 27.30s`; `.work/check-at113-a-mutation/report.json` contains every anchor/replacement, changed hash, killed node ID and complete source hashes; `source_restored_byte_identical=true`. Complete logs retained alongside it. No __pycache__ copied and no bound-source mutation occurred.
+- Own Mode D session 69518: exit 0, seven scenarios; `qa/evidence/browser-at113-crawl-completion-2026-09-30-checker-a2/report.json`, own PNGs/XLSX files. Browser closed, both fixture/server threads stopped, ports54991/54993 closed. No pageerrors; exact denied Google font URL errors and successful workbook-download ERR_ABORTED requests only. Earlier attempts1–4 retained under .work; synthetic signing key and CSS casing were instrument corrections, not product defects.
+- Verified orphan trees from full/baseline timeout tests were cleaned only after exact parent/command/trace attribution. Scoped PID/descendant readback empty. Final own instrument-command and owned-port queries returned no rows; no heavy/browser lane retained.
+- Final source readback f9052150 unchanged; `git diff HEAD -- src tests` empty. All checks are own evidence; no maker/secondary browser scripts/screenshots or secondary verdict were read.
+
+No merge/push, production calls, credentials, issue closure or whole-goal completion authorized by this primary verdict. Dual-check completion and maker close-out remain separate.
+
+## Historical cycle 1 — preserved verbatim
+
 # AT-113 crawl completion — primary independent check
 
 Date: 2026-09-30
@@ -35,7 +81,7 @@ The checker did not edit product code, source checkpoint, manifest, contracts, g
 
 The maker owns recovery on the private branch. Preserve/recover the exact current patch using a non-destructive private-checkpoint procedure with explicit pathspecs; do not reset the shared root or rewrite this verdict. A changed SHA must receive a new matching cycle and fresh independent checks, as C10 requires. This checker grants no permission to merge or push.
 
-## PRIMARY CHECK — cycle 2 (in progress, no completion verdict)
+## Historical cycle-2 partial checkpoint — retained measurement trail
 
 Bound root: D:/autoTesting; adapter: coding.
 Cycle checked: 2
