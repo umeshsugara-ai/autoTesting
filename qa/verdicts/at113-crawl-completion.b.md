@@ -199,6 +199,7 @@ All mutations act only inside own archive copies, excluding inherited `__pycache
 | Remove abandoned nodes from persona exhaustion predicate | 4 | 2 `test_a_bound_truncated_crawl_never_reports_missing_only_unjudged[aborted_error-True/aborted_dialog-True]`: fabricated `/unreached` deletion | 4 |
 | Remove abandoned-node caller frontier predicate | 4 | 2 `test_a_bound_that_fires_mid_node_never_reads_as_an_exhausted_frontier[aborted_error-None/aborted_dialog-None]`: false frontier_exhausted | 4 |
 | Drop legacy incomplete displayed reason | 4 | All 4 legacy_error_holes surface cases (history/detail/XLSX/CLI) falsely report frontier empty | 4 |
+| Treat any nonempty reason as a fired bound | 2 | Both `test_login_precedence_over_abort_does_not_invent_a_bound[False/True]` fail on fabricated `abandoned visits bound fired` suffix | 2 |
 
 ## Still pending
 
