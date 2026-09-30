@@ -68,7 +68,12 @@ def coverage_figure(crawl: Crawl) -> str:
         return "not recorded (this crawl predates coverage)"
     if cov.error:
         return f"could not be computed ({cov.error})"
-    return f"{cov.percent}% of controls ({cov.controls_exercised} of {cov.controls_discovered})"
+    if cov.denominator_basis == "permitted":  # V9
+        return (f"{cov.percent}% of controls ({cov.permitted_exercised} of "
+                f"{cov.permitted_total} the account's role permits)")
+    return (f"{cov.percent}% of controls ({cov.controls_exercised} of "
+            f"{cov.controls_discovered}) — denominator is screens-reached, "
+            f"NOT permission coverage")
 
 
 def coverage_rows(crawl: Crawl) -> list[tuple[str, str]]:
@@ -81,6 +86,11 @@ def coverage_rows(crawl: Crawl) -> list[tuple[str, str]]:
                  f"{cov.screens_reached} / {cov.screens_queued_unvisited}"))
     rows.append(("Not exercised, by reason",
                  "; ".join(f"{r}: {n}" for r, n in cov.by_reason().items()) or "none"))
+    rows.append(("Coverage denominator", cov.denominator_basis))  # V9
+    if cov.denominator_basis == "permitted":
+        rows.append(("Permitted but not exercised, by reason",
+                     "; ".join(f"{r}: {n}" for r, n in cov.permitted_by_reason().items())
+                     or "none"))
     rows.append(("Screens not entered, by reason",  # AT-470
                  "; ".join(f"{r}: {n}" for r, n in screens_by_reason(cov).items()) or "none"))
     if cov.spec_error:
@@ -149,6 +159,10 @@ def _unreached_sheet(wb: Workbook, crawl: Crawl) -> None:
     ws.append(["URL template", "Control", "Selector", "Reason"])
     for hole in (crawl.coverage.holes if crawl.coverage else []):
         ws.append([_clean(hole.url_template), _clean(hole.name or "(unnamed)"),
+                   _clean(hole.selector), hole.reason])
+    for hole in (crawl.coverage.permitted_holes if crawl.coverage else []):  # V9
+        ws.append([_clean(hole.url_template),
+                   _clean(f"permitted, not exercised: {hole.name or '(unnamed)'}"),
                    _clean(hole.selector), hole.reason])
     for hole in (crawl.coverage.screens_not_entered if crawl.coverage else []):  # AT-470
         ws.append([_clean(hole.url_template),

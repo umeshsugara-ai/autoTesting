@@ -1,0 +1,30 @@
+{
+  "unit": "t171-permission-surface-coverage",
+  "date": "2026-09-29",
+  "checker": "claude-sonnet-subagent (Mode D, own browser: Playwright MCP Chromium)",
+  "server": "worktree venv uvicorn autotester.ui.app:app on 127.0.0.1:8151, AUTOTESTER_ROOT = scratch dir outside the worktree; seeded by crawling the tests/crawl_fake.py site with (a) a declared permitted_surface of 6 controls and (b) none",
+  "pages": [
+    {"url": "/projects/demo/crawls/crawl_01M3PJJQB5MFAFH034D4VF2QNE", "case": "declared surface",
+     "console_errors": 0,
+     "asserted": [
+       "coverage line reads '33% of controls (2 of 6 the account's role permits)'",
+       "page lists 'permitted but not exercised: NOT_REACHED: 1, POLICY:DESTRUCTIVE UNDER READ_ONLY: 1, POLICY:DESTRUCTIVE-NAME DENY-LIST: 1, POLICY:FORM SUBMIT UNDER READ_ONLY: 1' (4 holes + 2 exercised = 6 permitted)",
+       "Run-detail table rows 'Coverage denominator = permitted' and 'Permitted but not exercised, by reason'"],
+     "screenshot": "crawl-with-surface.png"},
+    {"url": "/projects/demo/crawls/crawl_01M3PJJQB5MFAFH034D4VF2QNE/report.xlsx", "case": "workbook download link clicked (browser download) and the same URL fetched with curl and read with openpyxl",
+     "console_errors": 0,
+     "asserted": [
+       "Summary sheet: Coverage denominator = permitted; Permitted but not exercised, by reason present",
+       "Unreached sheet: 4 rows 'permitted, not exercised: <name>' (Save, Delete account, Invite user, Remove user), each with a closed-set reason"],
+     "file": "report.xlsx"},
+    {"url": "/projects/demo/crawls/crawl_01M3PJJVYBZK5G4SDJNGBF7FA2", "case": "no declared surface",
+     "console_errors": 0,
+     "asserted": [
+       "coverage line reads '41% of controls (5 of 12) - denominator is screens-reached, NOT permission coverage'",
+       "Run-detail row 'Coverage denominator = screens-reached'; no 'permitted but not exercised' pills"],
+     "screenshot": "crawl-no-surface.png"}
+  ],
+  "interaction_limit": "the crawl page has no control that changes the coverage figure (it is a read-only report); interaction was: navigate from the crawl list to each crawl by clicking its link, click the Excel download link, and read the resulting workbook. The claim under test (what the figure and lists SHOW) is a rendering claim, asserted on the rendered DOM and the workbook.",
+  "total_console_errors": 0,
+  "ps2_live_crawl_order": "ps2-global-order.txt (a real fake-site crawl under ALLOW_WRITES: the destructive button.del at /settings is pressed at edge 10, BEFORE the ordinary button.edit at /students/{id} at edge 11)"
+}

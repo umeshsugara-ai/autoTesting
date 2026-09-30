@@ -1,0 +1,13 @@
+policy allow_writes
+0 / a.students navigated 
+1 / a.settings navigated 
+2 / a.ext off_domain_refused 
+3 /students a.s1 navigated 
+4 /students a.s2 navigated 
+5 /settings input.displayname denied_policy 
+6 /settings select.grade denied_policy 
+7 /settings button.save navigated 
+8 /settings a.out denied_policy 
+9 /settings button.icon skipped_unnamed 
+10 /settings button.del navigated DESTRUCTIVE
+11 /students/{id} button.edit same_screen 

@@ -16,7 +16,7 @@ import pytest
 from crawl_fake import crawl_it
 from test_crawl_coverage import _balanced, _compute, _edge, _node
 
-from autotester.schema.crawl import CrawlBounds, CrawlCoverage
+from autotester.schema.crawl import CrawlBounds, CrawlCoverage, SafetyPolicy
 from autotester.schema.enums import CrawlStatus, EdgeOutcome, NodeStatus
 from autotester.stages import crawl_coverage
 from autotester.store.project_store import ProjectStore
@@ -111,7 +111,10 @@ def _runtime(**overrides: object) -> SimpleNamespace:
     fields: dict[str, object] = dict(
         session=SimpleNamespace(secrets=SimpleNamespace(scrub_optional=lambda s: s)),
         store=SimpleNamespace(load_flowspec=lambda: None, list_edges=lambda _id: []),
-        bounds=CrawlBounds(max_actions=3), nodes={}, crawl=SimpleNamespace(id="c"),
+        bounds=CrawlBounds(max_actions=3), nodes={},
+        # V9: `of_run` reads the project's declared permitted surface and the run's own
+        # write_policy, so the stub carries both -- an empty surface keeps the pre-V9 shape.
+        project=crawl_fake.make_project(), crawl=SimpleNamespace(id="c", policy=SafetyPolicy()),
         frontier=SimpleNamespace(screens_found=1, actions_used=3), clock=lambda: 0.0, started=0.0,
         stop_reason="stopped at a login wall: every screen reached only offers a form submit",
     )

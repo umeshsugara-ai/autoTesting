@@ -25,7 +25,7 @@ from autotester.browser.session import BrowserSession
 from autotester.schema.crawl import Crawl, CrawlBounds, SafetyPolicy
 from autotester.schema.enums import TraversalStrategy
 from autotester.schema.project import Project
-from autotester.schema.screen_graph import CrawlFrontier, ScreenEdge, ScreenNode
+from autotester.schema.screen_graph import CrawlFrontier, ElementRef, ScreenEdge, ScreenNode
 from autotester.stages.explore_incremental import PersonaIndex
 from autotester.stages.explore_safety import DialogBreaker
 from autotester.store.project_store import ProjectStore
@@ -74,6 +74,9 @@ class ExploreRuntime:
     `explore_replay` can re-issue them. In memory only; never persisted."""
     last_visited: str | None = None
     """CR1: which screen the hybrid descent is currently descending FROM."""
+    deferred: list[tuple[str, ElementRef]] = field(default_factory=list)
+    """PS2/D-040: destructive controls the crawl WOULD press, parked as (node id, control)
+    until the non-destructive frontier is drained. `explore_traversal.drain_deferred` empties it."""
     skipped_unchanged: int = 0
     """CR3/CR5: screens skipped as unchanged. Counted apart from `screens`."""
     frontier_exhausted: bool = False

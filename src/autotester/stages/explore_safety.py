@@ -117,6 +117,33 @@ def deny_reason(el: ElementRef, policy: SafetyPolicy) -> str | None:
     return None
 
 
+def is_destructive(el: ElementRef, policy: SafetyPolicy) -> bool:
+    """Whether this control's own NAME marks it destructive (D-016's deny-list
+    vocabulary), independently of whether the tier lets the crawl press it.
+
+    `deny_reason` asks a different question — *may I click this now* — and answers
+    "yes" under `ALLOW_WRITES`, which is exactly the tier where the ordering below
+    matters most. So the classification is read off `policy.deny_patterns` directly;
+    a project that widens its deny-list widens what counts as destructive too.
+    """
+    return _matches_any(el.name, list(policy.deny_patterns))
+
+
+def destructive_last(elements: list[ElementRef],
+                     policy: SafetyPolicy) -> list[ElementRef]:
+    """D-040 verbatim ("destructive actions are ordered last"), per screen.
+
+    A stable partition, not a sort: the order inside each half is byte-identical to
+    the order the observer reported, so the only behaviour this changes is that a
+    `Delete`/`Send`/`Pay` control is attempted after every ordinary control on the
+    same screen. Under a bound that stops the crawl mid-screen, that is the
+    difference between losing the read-only controls and losing the irreversible one.
+    """
+    ordinary = [el for el in elements if not is_destructive(el, policy)]
+    destructive = [el for el in elements if is_destructive(el, policy)]
+    return ordinary + destructive
+
+
 def link_is_safe(el: ElementRef, project: Project, base_url: str) -> bool:
     """A link the explorer may `goto` directly: same-domain, not a scheme the
     browser would treat specially (`javascript:`, `mailto:`, `tel:`).
