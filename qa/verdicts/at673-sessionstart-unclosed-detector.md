@@ -409,3 +409,19 @@ the strip would keep every committed test green, so the revert is guarded today 
 - No merge and no push: the maker merges, and D-007's push-on-PASS is the maker's step after this verdict lands on master.
 - No goal task closed: `.goal/goal.json` carries no task for this unit.
 - Manifest not edited. Its Status stays at ready-for-check for the maker to flip to `checked-PASS` on close-out.
+
+## Addendum (found after the first commit of this verdict)
+
+Running the real hook on the bound tree after writing the verdict printed `Checks pending: 2 [at673-..., at710-...]`, not the
+close-out state I expected. I loaded the real functions (scratchpad `real.ps1`): status `ready-for-check`, manifest Fix cycle
+read as **7**, this verdict read as **3**. The 7 comes from manifest line 324 (the AT-723 row, which quotes a fenced example
+containing a bold Fix cycle field with 7). Findings, all reproduced against the real function:
+
+- That line reads 7 under **both** 8ea308ee and d43590ef (it is an odd-backtick line, the AT-722 family), so this is not a
+  consequence of the revert.
+- Separately, a bold field quoted in a code span (backtick, `**Fix cycle:** 7`) reads 7 under d43590ef and -1 under 8ea308ee:
+  the first asterisk satisfies the boundary class, the second is eaten by the bold allowance, so the backtick exclusion is
+  bypassed for bold fields. That one **is** the balanced-quote hole D-058 accepted, in its bold form. Recorded in ISS-at673-1.
+- Direction: over-report on a manifest (pending shown when the check is done), so C12-safe. It does not change the PASS. It
+  means **the hook will keep printing this unit as pending until the maker flips its Status to `checked-PASS`**; the maker
+  should close out from this verdict file, not re-dispatch a check on the hook's word.
