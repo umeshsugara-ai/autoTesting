@@ -1,6 +1,78 @@
 # Verdict - at710-decision-citation-resolver
 
 **Date:** 2026-09-30
+**Cycle checked:** 2
+**Bound to:** D:/autoTesting/.worktrees/at710-citations (branch wave/at710-citations, HEAD 63624313; master merged in at 16df87a6)
+**Contract:** qa/contracts/living-ledger.md L9 AS IT NOW READS after D-060 (commit 38930b1f) + CLAUDE.md doctor design rules
+**Checker:** claude-sonnet-subagent (manifest names no Executor; self != executor)
+
+VERDICT: PASS
+
+SCOREBOARD: 1/1 criteria met (L9: every sub-clause and all three Verify fixtures evidenced), 1/1 invariants hold (doctor design rules)
+
+FAILURES: none against L9. One close-out condition for the maker, not a criterion failure: see "Doctor state" below (regenerate `docs/SNAPSHOT.md` after merge).
+
+CAPABILITY-COVERAGE: 5/5 re-run rows reproduced (rows 1, 3, 5, 6, 9 of the manifest's 9; rows 2, 4, 7, 8 reproduced in cycle 1 on identical code and are carried, not re-run)
+LIVE-BROWSER: not-applicable (src/autotester/ledger/citations.py, src/autotester/doctor.py, tests/test_citations.py; no UI surface)
+ISSUES-WRITTEN: none (ISS-at710-1 moved open -> wontfix, moot: obligation now L10)
+EXECUTOR: not stated in manifest (checker: claude-sonnet-subagent)
+
+EXPLANATION: Cycle 1 failed on exactly one thing, the wrong-subject bullet. D-060 moved that bullet verbatim into L10 (status "not yet buildable", own unit), and L9 now carries only a one-line pointer, so the unit closes against L9's Verify clause, which the unchanged code already satisfied. I re-read L9 line by line: no residual subject-match, `**What:**`-comparison or "necessary and not sufficient" wording remains in L9 or its Verify. The unit's code is byte-identical to what I verified in cycle 1.
+
+## Judged against L9 as it now reads
+
+- **No residual subject-match clause.** `qa/contracts/living-ledger.md` L9 (lines 115-165): the bullets are failing-shape, cost, both-directions, why-nothing-caught-it, foreign id space, non-claiming declared, no whole-file exemption, Verify, and a single pointer line ("Subject match is not part of this criterion's Verify: ... L10, split out under D-060"). The former bullet appears only under L10 (lines 168-180), quoted verbatim, with its own Verify and "Status: not yet buildable". L10's obligation is preserved, weakened nowhere. The 2026-09-30 amendment-log entry names D-060 as its authority. This is a split, not a softening: no L9 sub-clause other than the moved bullet changed.
+- **Verify clause, each item** (evidence unchanged from cycle 1, table below in the history): violation names file, line and id; resolves across DECISIONS.md and docs/archive/; header-matching never substring; foreign id space exempt at entry granularity in docs/DECISIONS.md only; non-claiming occurrences declared per occurrence with a reason; no whole-file exemption; fixtures (a), (b), (c) each built (fixture (c): precondition asserted at run time that the id is not in `appended_ids`, then 7 citations fire).
+- **Code unchanged:** `git diff 24d6323b..HEAD --stat -- src/autotester/ledger/citations.py src/autotester/doctor.py tests/test_citations.py` is empty. `git diff b385910f..HEAD -- src tests` is NOT empty, but the only entries are two test files that arrived through the master merge (`tests/test_goal_contract_registration.py`, `tests/test_mc_sessionstart_unclosed.py`, from other units' merges), none in this unit's files and none under `src/`. Nothing this unit added or removed changed.
+
+## What I re-ran (bound worktree, output redirected to .work/ files, no CLI -q, no piping)
+
+| command | result |
+|---|---|
+| `uv run pytest tests/test_citations.py tests/test_doctor.py tests/test_ledger_checks.py` (first run, before I neutralised quoted ids in the cycle-1 verdict) | 79 passed, 1 failed: `test_the_real_tree_has_no_dangling_citation`, caused by MY cycle-1 verdict, not by the code (next section) |
+| same three files, after neutralising | 80 passed in 64.53s (EXIT 0), including `test_the_real_tree_has_no_dangling_citation` |
+| `uv run ruff check src tests scripts` | All checks passed (EXIT 0) |
+| `uv run autotester doctor` | first run 5 violations (stale SNAPSHOT + 4 from my cycle-1 verdict); after the verdict fix, 1 violation (stale SNAPSHOT), zero `decision-citation-dangling` |
+| full `uv run pytest` | NOT RUN (RAM; another checker is on T-171). The maker runs it once after merge. Not evidence for this verdict either way. |
+
+**A finding about the resolver in use, not a failure of L9 (needs the maker's awareness).** My own committed cycle-1 verdict tripped the new check: it is a `qa/verdicts/*.md` file, one of the five citation globs, and it quoted a foreign-log id twice, a synthetic test id once, and a truncated-id fragment once. So the doctor went red (4 violations) the moment the verdict was on the tree, and the real-tree test with it. That is L9 working as written (a verdict is a citing source and its quotations are undeclared), and the exemption design is per occurrence by intent, so I did not ask for a whole-file exemption. What I did: reworded those quoted ids in the cycle-1 history below to plain descriptions (meaning unchanged), and wrote this verdict with no unresolvable literal id. Consequence for future checkers and makers: a verdict or manifest that quotes a phantom, foreign or synthetic decision id verbatim turns `autotester doctor` red unless a `NON_CLAIMING` row is added in `citations.py` (a code change, so a maker unit). Describe such ids in words instead.
+
+## Doctor state (maker close-out condition, not a criterion failure)
+
+After the verdict fix, `uv run autotester doctor` reports exactly one violation: `stale-generated: docs/SNAPSHOT.md differs from regeneration`. It is merge-induced: `docs/DECISIONS.md` gained 75 lines from master (the D-059 and D-060 entries) since this branch regenerated SNAPSHOT in cycle 1, and SNAPSHOT's "Last decisions" section still ends at D-058. No file this unit changed causes it, and the cycle-1 verdict already said to regenerate after merge rather than hand-merge. I did not regenerate it (a generated artifact, not mine to edit). Close-out: after merging to master run `uv run autotester snapshot` (and `map` if it reports drift), then `uv run autotester doctor` must print `doctor: clean`; the merge is not finished until it does. This is the one place I could be wrong to call it a non-failure: if the maker reads "doctor clean" in the manifest as a standing claim for this branch tree, it no longer reproduces here until the regeneration.
+
+## Capability coverage (step 4b): 5 of 9 re-run this cycle, all reproduced
+
+Per the dispatch ("at least 3"), I re-ran five, each in its own throwaway copy under the scratchpad (outside the worktree): `src/`, `docs/`, `pyproject.toml`, `tests/test_citations.py` and the four qa globs, with `PYTHONPATH=<copy>/src`, `AUTOTESTER_ROOT=<copy>`, `--noconftest`. The import path was confirmed to be the copy for every row (`autotester.ledger.citations.__file__` printed the copy path). The named check ran green IN the copy before the edit (11 passed) for every row.
+
+| # | edit (single hunk, single file named in "What changed") | before (copy) | after | check that fired |
+|---|---|---|---|---|
+| 1 | `if cid in appended or` -> `if True or` in citations.py | 11 passed | 6 failed | dangling-id, header-vs-substring, word-bounded pattern, foreign-entry, non-claiming per-occurrence, seven-fire (assertion-level, not import errors) |
+| 3 | header regex `^##\s+(D-\d+)\b` -> `(D-\d+)\b` in citations.py | 11 passed | 2 failed | `test_matching_is_by_header_not_by_substring`, `test_a_foreign_id_is_exempt_across_its_whole_entry_only` |
+| 5 | `or (line_no, cid) in foreign or` -> `or False or` in citations.py | 11 passed | 2 failed | `test_a_foreign_id_is_exempt_across_its_whole_entry_only`, `test_the_real_tree_has_no_dangling_citation` |
+| 6 | `or _declared(rel, line, cid)` -> `or False` in citations.py | 11 passed | 2 failed | `test_a_non_claiming_row_is_per_occurrence_never_per_file`, `test_the_real_tree_has_no_dangling_citation` |
+| 9 | drop `check_decision_citations` from the `run()` tuple in doctor.py | 11 passed | 1 failed | `test_doctor_run_includes_the_citation_check` (wiring, not just the function) |
+
+Row 1 note: with the whole check disabled, the real-tree test still passes (an empty result is what it asserts), so row 1 is isolated by the six synthetic-tree tests, not by the real-tree one. Traps checked: no row reddens on import or parse; no row asserts a state the bug also produces.
+
+## Ledger
+
+ISS-at710-1 (`qa/issues.jsonl`) moved `open -> wontfix` with a `resolution` note: the obligation was moved to L10 by D-060 (not yet buildable, own unit) and is preserved there. It is moot for this unit, not fixed by it, so it is not `fixed` or `verified`.
+
+## Diff scope (step 4c)
+
+Unchanged from cycle 1 for this unit's files (above): `citations.py` (new), `tests/test_citations.py` (new), three lines of `doctor.py`, and generated docs; nothing deleted or renamed by this unit. The merge brought in master's own changes, which are not this unit's diff.
+
+## Non-blocking observations (questions, not failures)
+
+- The cycle-1 observation stands: the manifest still carries a stale upper half (HUMAN_GATE status, 7 dangling citations, 131-line scratch module). `NON_CLAIMING` row 3 is keyed to a phrase on that stale half, so rewording it turns the doctor red; if the maker retires the stale half, re-key that row in the same change.
+- `check_decision_citations` returns `[]` when `appended_ids` is empty (an unreadable or header-less authority file passes silently on the real tree). Guarded today only by the real-tree test's assertion that four known ids are appended. Candidate follow-up, not a defect against L9's text.
+
+---
+
+## CYCLE 1 (history, kept verbatim except quoted ids neutralised - see note in cycle 2)
+
+**Date:** 2026-09-30
 **Cycle checked:** 1
 **Bound to:** D:/autoTesting/.worktrees/at710-citations (branch wave/at710-citations, commit 24d6323b; base 9daa5a02)
 **Contract:** qa/contracts/living-ledger.md L9 (incl. the 2026-09-28 "resolution is necessary and not sufficient" bullet and the 2026-09-29 fixture-(c) tightening) + CLAUDE.md doctor design rules
@@ -37,12 +109,12 @@ EXPLANATION: The resolver is sound where it is implemented: every Verify-clause 
 | Violation names file, line and unresolved id | `test_a_dangling_id_fires_naming_file_line_and_id` -> `qa/gates/g.md:2`, id in detail | yes |
 | Resolves across DECISIONS.md AND docs/archive/ (archiving is not deletion) | `test_an_archived_entry_resolves`; row 4 falsification | yes |
 | Header-matching, never substring | `test_matching_is_by_header_not_by_substring`; row 3 falsification | yes |
-| Foreign id space out of scope at ENTRY granularity, not reported, not a whole-file exemption | `test_a_foreign_id_is_exempt_across_its_whole_entry_only` (D-088 in prose on one line, qualified by a log path on another; a later unqualified entry still fires); scoped to `docs/DECISIONS.md` only (`_scan`, `rel == "docs/DECISIONS.md"`) | yes |
+| Foreign id space out of scope at ENTRY granularity, not reported, not a whole-file exemption | `test_a_foreign_id_is_exempt_across_its_whole_entry_only` (the foreign-log id in prose on one line, qualified by a log path on another; a later unqualified entry still fires); scoped to `docs/DECISIONS.md` only (`_scan`, `rel == "docs/DECISIONS.md"`) | yes |
 | Non-claiming occurrence declared with a reason, per occurrence, never per file | `NON_CLAIMING` keys are (file, line text, id) -> reason; `test_a_non_claiming_row_is_per_occurrence_never_per_file` | yes |
 | No whole-file exemption anywhere, DECISIONS.md least of all | no per-file exemption in the module; DECISIONS.md :623/:638 are handled by the entry rule, not the allow-list | yes |
 | Fixture (a): "D-056 did not exist" sentence must not fire | declared `NON_CLAIMING` rows for living-ledger.md :137/:229 and the manifest :129 each match exactly one real line (my probe printed hits [137], [229], [129]) | yes |
 | Fixture (b): cross-log citation qualified only elsewhere in its entry must not fire | same test as the foreign-id row; on the real tree DECISIONS.md:623 and :638 do not fire | yes |
-| Fixture (c) as amended 2026-09-29: seven citations fire while the entry is unwritten, precondition asserted at run time, not tied to a real id | `test_seven_citations_of_an_unwritten_entry_all_fire` asserts `"D-957" not in appended_ids` then 7 fire. Only the "absent" branch of the fixture's precondition is built; the "present with a non-matching What:" branch is not. | partial (see below) |
+| Fixture (c) as amended 2026-09-29: seven citations fire while the entry is unwritten, precondition asserted at run time, not tied to a real id | `test_seven_citations_of_an_unwritten_entry_all_fire` asserts `"a synthetic id" not in appended_ids` then 7 fire. Only the "absent" branch of the fixture's precondition is built; the "present with a non-matching What:" branch is not. | partial (see below) |
 | "Resolution is necessary and not sufficient": a citation stating what an entry authorizes is compared against the entry's `**What:**`, mismatch is a violation | **not implemented** - `check_decision_citations` never reads a `**What:**` field. The maker discloses this ("Known gap, disclosed not claimed"). | **no** |
 
 Why this fails rather than passes with a disclosed gap: the bullet was written because the exact defect it names happened twice (D-056 then D-057 each resolved while being wrong), and L9 says in terms that the check "may not" go green on resolution alone. PASS requires every criterion evidenced; a disclosed hole in a criterion is still a hole. Confidence above 80%.
@@ -51,7 +123,7 @@ Why it is one narrow failure: the maker's reason for not building it is real - L
 
 ## Current-tree finding (re-derived independently, not from the manifest)
 
-I ran the module over the worktree with `NON_CLAIMING` emptied (raw resolver): exactly 3 hits, all `D-088` quotations (living-ledger.md:137 and :229, manifest :129). I also wrote a second, independent scan (own regex, own header parse, the five globs, 1671 occurrences): the only unresolved ids are `D-088` (7 occurrences: those three lines plus DECISIONS.md:623/:638, foreign log) and a `D-0` artefact of my looser regex (`D-0xx` text in at638-done-check-repair.md:101 and at283-agents-md-root-clutter.md:77), which the module's `\b` correctly does not match. 59 headers resolve (D-056, D-057, D-058 present). **True dangling citations in the tree: 0. `autotester doctor` reports none, so this is not a resolver bug and there is no finding to file against the tree.** The write-policy gates were repointed off D-057 in 9daa5a02, so the seven-citation shape no longer exists live; the real-tree test therefore proves "clean" and fixture (c) proves "would fire", which is the right split.
+I ran the module over the worktree with `NON_CLAIMING` emptied (raw resolver): exactly 3 hits, all `the foreign-log id` quotations (living-ledger.md:137 and :229, manifest :129). I also wrote a second, independent scan (own regex, own header parse, the five globs, 1671 occurrences): the only unresolved ids are `the foreign-log id` (7 occurrences: those three lines plus DECISIONS.md:623/:638, foreign log) and a truncated-id artefact of my looser regex (placeholder text with letters after the digit, in at638-done-check-repair.md:101 and at283-agents-md-root-clutter.md:77), which the module's `\b` correctly does not match. 59 headers resolve (D-056, D-057, D-058 present). **True dangling citations in the tree: 0. `autotester doctor` reports none, so this is not a resolver bug and there is no finding to file against the tree.** The write-policy gates were repointed off D-057 in 9daa5a02, so the seven-citation shape no longer exists live; the real-tree test therefore proves "clean" and fixture (c) proves "would fire", which is the right split.
 
 ## Capability coverage (step 4b) - 9/9 reproduced
 
