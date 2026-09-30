@@ -1,6 +1,6 @@
 # T-171 — permission-surface coverage (AT-663, D-040)
 
-## Status: ready-for-check
+## Status: checked-PASS
 
 **Fix cycle:** 2
 **Persona walk:** skip (the crawl-ordering change is backend-only; the one UI edit, `ui/crawl_view.py`, adds permitted-hole pills to an existing read-only report page and creates no screen, route, control or user journey)
@@ -184,7 +184,10 @@ Also re-run on request from the orchestrator: `uv run pytest tests/test_goal_don
 
 # CYCLE 2 (fix of the cycle-1 FAIL)
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+
+**Verdict:** `qa/verdicts/t171-permission-surface-coverage.md` (`275f89a5`) — `Cycle checked: 2`, `VERDICT: PASS`, PS1-PS4 + V9 met, 12/12 capability rows reproduced, ISS-t171-1/2/3 fixed. Merged to master `520c7e80`. Open questions for Umesh (not failures): the `stopped_bound` status label when a destructive control navigates with no bound fired; `drain_deferred` hole reason on a dialog storm; the R12 test counts only NAVIGATED/SAME_SCREEN presses.
 
 **Fix cycle:** 2
 **Base:** `git merge master` into the branch (one conflict, `qa/feedback-inbox.md`, both sides append-only, both kept). That merge brought in 8dad4d56, so ISS-t171-3 (T-167 deps pin) is cleared: the full suite is green.
