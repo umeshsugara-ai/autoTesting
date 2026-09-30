@@ -1,3 +1,19 @@
+# AT-113 independent second checker — cycle 3 FAIL (authoritative)
+
+Cycle checked: 3
+Source checked: `085537cd549a6aa0ce522aee3d9a6486f2874c83`
+Baseline: `c5596a0a6175a2ea10f8c7be80f1082e09b11ba8`
+VERDICT: FAIL
+SCOREBOARD: 4/5 applicable feature criteria met, 3/3 applicable invariants hold
+
+The earlier appended cycle-3 PASS is revoked: actual ordinary typing did not independently establish X4 bound enforcement for depth-changing synthetic FILL and return-to/replay after the bound. This verification gap blocks PASS, without borrowing another checker's finding or asserting a product defect before independent reproduction. Existing reached positive/negative browser receipts and individually attributed full-suite failures remain valid only in their proven scope. No source edit, push, or full T-165 closure is authorized or claimed.
+
+LIVE-BROWSER: `D:/autoTesting/.work/check-at113-c3-b-085537/positive-artifacts`
+ISSUES-WRITTEN: none
+
+---
+
+# Preserved cycle 2 history
 # AT-113 independent second checker — cycle 2 FAIL
 
 Cycle checked: 2
