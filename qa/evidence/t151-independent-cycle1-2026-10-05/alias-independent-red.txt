@@ -1,0 +1,27 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0
+rootdir: D:\autoTesting\.worktrees\t151-target-discovery\.work\t151-checker-mutation-copy
+configfile: pyproject.toml
+collected 1 item
+
+tests\test_checker_yaml.py F                                             [100%]
+
+================================== FAILURES ===================================
+_____________________ test_noncyclic_alias_exact_refusal ______________________
+
+tmp_path = WindowsPath('D:/autoTesting/.worktrees/t151-target-discovery/.work/t151-checker-mutation-copy/alias-independent-red-temp/test_noncyclic_alias_exact_ref0')
+
+    def test_noncyclic_alias_exact_refusal(tmp_path):
+        (tmp_path / "note.md").write_text("---\nx: &a [1]\ny: *a\n---\n", encoding="utf-8")
+        result = read_context([tmp_path], scope=ReadScope(project="fixture", project_root=str(tmp_path)), redactor=Redactor({}))
+>       assert result.documents == []
+E       AssertionError: assert [ContextDocum...ded_on=None))] == []
+E         
+E         Left contains one more item: ContextDocument(evidence_path='D:\\autoTesting\\.worktrees\\t151-target-discovery\\.work\\t151-checker-mutation-copy\\...f4033bc50fe557065d9a682a50a8d94b769c540046653e8e11ac', duration_s=None, label='note.md', notes=None, recorded_on=None))
+E         Use -v to get more diff
+
+tests\test_checker_yaml.py:8: AssertionError
+- generated xml file: D:\autoTesting\.worktrees\t151-target-discovery\.work\t151-checker-mutation-copy\alias-independent-red.xml -
+=========================== short test summary info ===========================
+FAILED tests/test_checker_yaml.py::test_noncyclic_alias_exact_refusal - Asser...
+============================== 1 failed in 3.19s ==============================

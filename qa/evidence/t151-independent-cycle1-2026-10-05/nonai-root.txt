@@ -1,0 +1,24 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0
+rootdir: D:\autoTesting\.worktrees\t151-target-discovery\.work\t151-checker-mutation-copy
+configfile: pyproject.toml
+collected 35 items
+
+tests\test_discover.py ...............................F...               [100%]
+
+================================== FAILURES ===================================
+_________________ test_non_ai_encoded_root_secret_is_refused __________________
+
+tmp_path = WindowsPath('D:/autoTesting/.worktrees/t151-target-discovery/.work/t151-checker-mutation-copy/nonai-root-temp/test_non_ai_encoded_root_secre0')
+
+    def test_non_ai_encoded_root_secret_is_refused(tmp_path: Path) -> None:
+        provider = MockProvider()
+        scope = _scope(tmp_path).model_copy(update={"project_root": "c2VjcmV0LXZhbHVl"})
+>       with pytest.raises(Exception, match="secret"):
+E       Failed: DID NOT RAISE Exception
+
+tests\test_discover.py:268: Failed
+- generated xml file: D:\autoTesting\.worktrees\t151-target-discovery\.work\t151-checker-mutation-copy\nonai-root.xml -
+=========================== short test summary info ===========================
+FAILED tests/test_discover.py::test_non_ai_encoded_root_secret_is_refused - F...
+======================== 1 failed, 34 passed in 2.34s =========================

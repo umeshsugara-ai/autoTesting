@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.329" timestamp="2026-10-05T15:30:19.880362+05:30" hostname="LAPTOP-AC7NCA4G"><testcase classname="tests.test_discover" name="test_non_ai_encoded_root_secret_is_refused" time="0.005"><failure message="Failed: DID NOT RAISE Exception">tmp_path = WindowsPath('D:/autoTesting/.worktrees/t151-target-discovery/.work/t151-root-red/test_non_ai_encoded_root_secre0')
+
+    def test_non_ai_encoded_root_secret_is_refused(tmp_path: Path) -&gt; None:
+        from autotester.providers.mock import MockProvider
+        from autotester.stages.discover import classify
+    
+        provider = MockProvider()
+        scope = _scope(tmp_path).model_copy(update={"project_root": "c2VjcmV0LXZhbHVl"})
+&gt;       with pytest.raises(Exception, match="secret"):
+E       Failed: DID NOT RAISE Exception
+
+tests\test_discover.py:299: Failed</failure></testcase></testsuite></testsuites>

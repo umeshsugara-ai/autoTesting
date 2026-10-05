@@ -1,0 +1,32 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0
+rootdir: D:\autoTesting\.worktrees\t151-target-discovery\.work\t151-checker-rebind-copy
+configfile: pyproject.toml
+collected 64 items
+
+tests\test_discover.py ................................................. [ 76%]
+........F.....                                                           [ 98%]
+tests\test_checker_yaml.py .                                             [100%]
+
+================================== FAILURES ===================================
+________________ test_dirty_signal_is_refused_before_provider _________________
+
+tmp_path = WindowsPath('D:/autoTesting/.worktrees/t151-target-discovery/.work/t151-checker-rebind-copy/dirty-signal-temp/test_dirty_signal_is_refused_b0')
+
+    def test_dirty_signal_is_refused_before_provider(tmp_path: Path) -> None:
+        provider = MockProvider()
+        signal = Signal(kind="sdk", evidence_path="app.py", line=1, detail="secret-value")
+        with pytest.raises(Exception, match="secret"):
+            classify_target([signal], provider, scope=_scope(tmp_path),
+                     redactor=Redactor({"FIXTURE": "secret-value"}))
+>       assert provider.prompts == []
+E       assert [('agent', 'N...count": 1}]')] == []
+E         
+E         Left contains one more item: ('agent', 'Name the observed LLM application kind from the supplied lexical signals only.\nReturn exactly system_kind,...on.\nUse a brief factual reason and a confidence between zero and one.\n\nSIGNALS_JSON\n[{"kind": "sdk", "count": 1}]')
+E         Use -v to get more diff
+
+tests\test_discover.py:252: AssertionError
+- generated xml file: D:\autoTesting\.worktrees\t151-target-discovery\.work\t151-checker-rebind-copy\dirty-signal.xml -
+=========================== short test summary info ===========================
+FAILED tests/test_discover.py::test_dirty_signal_is_refused_before_provider
+======================== 1 failed, 63 passed in 1.96s =========================

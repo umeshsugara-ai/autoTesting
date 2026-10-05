@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.250" timestamp="2026-10-05T15:24:04.626521+05:30" hostname="LAPTOP-AC7NCA4G"><testcase classname="tests.test_discover" name="test_context_is_metadata_only_and_secrets_are_scrubbed" time="0.004"><failure message="IndexError: list index out of range">tmp_path = WindowsPath('D:/autoTesting/.worktrees/t151-target-discovery/.work/t151-context-red/test_context_is_metadata_only_0')
+
+    def test_context_is_metadata_only_and_secrets_are_scrubbed(tmp_path: Path) -&gt; None:
+        note = tmp_path / "note.md"
+        note.write_text("---\ntitle: secret-fixture\ntags: [rag]\n---\n"
+                        "[[hidden]]\n```dataview\nTABLE private\n```\n#safe\n", encoding="utf-8")
+        result = read_context([tmp_path], scope=_scope(tmp_path),
+                              redactor=Redactor({"TEST": "secret-fixture"}))
+        assert result.complete
+&gt;       doc = result.documents[0]
+              ^^^^^^^^^^^^^^^^^^^
+E       IndexError: list index out of range
+
+tests\test_discover.py:52: IndexError</failure></testcase></testsuite></testsuites>

@@ -1,0 +1,42 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0
+rootdir: D:\autoTesting\.worktrees\t151-target-discovery\.work\t151-checker-mutation-copy
+configfile: pyproject.toml
+collected 35 items
+
+tests\test_discover.py ................................F..               [100%]
+
+================================== FAILURES ===================================
+_________________ test_provider_error_never_echoes_raw_secret _________________
+
+tmp_path = WindowsPath('D:/autoTesting/.worktrees/t151-target-discovery/.work/t151-checker-mutation-copy/provider-error-temp/test_provider_error_never_echo0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000016146166B10>
+
+    def test_provider_error_never_echoes_raw_secret(tmp_path: Path, monkeypatch) -> None:
+        provider = MockProvider()
+        def broken(*args, **kwargs):
+            raise ProviderError("malformed response secret-value")
+        monkeypatch.setattr(provider, "act", broken)
+        with pytest.raises(ValueError, match=r"^invalid classification response$") as caught:
+>           classify_target([Signal(kind="sdk", evidence_path="app.py", line=1, detail="SDK")],
+                     provider, scope=_scope(tmp_path), redactor=Redactor({"KEY": "secret-value"}))
+
+tests\test_discover.py:278: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\autotester\stages\discover.py:261: in classify_target
+    raw = provider.act(prompt, schema=Classification, prompt_file=prompt_path.name)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+args = ('Name the observed LLM application kind from the supplied lexical signals only.\nReturn exactly system_kind, reason a...n.\nUse a brief factual reason and a confidence between zero and one.\n\nSIGNALS_JSON\n[{"kind": "sdk", "count": 1}]',)
+kwargs = {'schema': <class 'autotester.schema.ai_target.Classification'>, 'prompt_file': 'ai_target_classify_v1.md'}
+
+    def broken(*args, **kwargs):
+>       raise ProviderError("malformed response secret-value")
+E       autotester.providers.base.ProviderError: malformed response secret-value
+
+tests\test_discover.py:275: ProviderError
+- generated xml file: D:\autoTesting\.worktrees\t151-target-discovery\.work\t151-checker-mutation-copy\provider-error.xml -
+=========================== short test summary info ===========================
+FAILED tests/test_discover.py::test_provider_error_never_echoes_raw_secret - ...
+======================== 1 failed, 34 passed in 2.15s =========================

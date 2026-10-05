@@ -1,0 +1,12 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0
+rootdir: D:\autoTesting\.worktrees\t151-target-discovery\.work\t151-checker-rebind-copy
+configfile: pyproject.toml
+collected 64 items
+
+tests\test_discover.py ................................................. [ 76%]
+..............                                                           [ 98%]
+tests\test_checker_yaml.py .                                             [100%]
+
+- generated xml file: D:\autoTesting\.worktrees\t151-target-discovery\.work\t151-checker-rebind-copy\restored.xml -
+============================= 64 passed in 1.80s ==============================

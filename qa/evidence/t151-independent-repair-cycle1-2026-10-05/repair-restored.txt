@@ -1,0 +1,13 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0
+rootdir: D:\autoTesting\.worktrees\t151-target-discovery\.work\t151-checker-repair-copy
+configfile: pyproject.toml
+collected 77 items
+
+tests\test_discover.py ................................................. [ 63%]
+..............                                                           [ 81%]
+tests\test_original_checker.py ....                                      [ 87%]
+tests\test_repair_checker.py ..........                                  [100%]
+
+- generated xml file: D:\autoTesting\.worktrees\t151-target-discovery\.work\t151-checker-repair-copy\repair-restored.xml -
+============================= 77 passed in 1.70s ==============================

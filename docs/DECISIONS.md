@@ -1800,3 +1800,27 @@ agree again.
 No `docs/ARCHITECTURE.md` prose change. No enforcement-path file touched.
 
 **Links:** AT-710 - ISS-at710-1 - b385910f - D-057 - D-058 - D-059 - T-168
+
+## D-061 | 2026-09-30 | type: fix | status: ACTIVE
+
+**What:** Reopen AT-113 and T-165 completion acceptance after independent executable evidence
+proved that an abandoned seed still reports completed/frontier empty/success=true. Repair the
+existing runtime, legacy display and persona deletion-evidence seams under the reviewed plan.
+
+**Why:** The user's whole-portal breadth-first tester must distinguish exhausted actionable
+frontier from a queue drained after failed visits. Otherwise reports hide incomplete testing
+and stored learning may invent regressions. Preserve useful partial exploration and siblings,
+login precedence, actual named bounds, credential scoping and existing safety policy.
+
+**Result:** Independent real run_crawl fixture reproduced completed/0 actions/one aborted_error/
+success=true/issues=1; the actual fresh Pathlynks crawl agrees. Existing targeted baseline is
+32 passed, showing the missing assertion. T-165 reopened; isolated codex/at113-crawl-completion
+worktree created. Revised preimplementation plan explicitly approved by a fresh independent
+reviewer. Implementation, mutation evidence, headed browser validation and dual PASS remain
+pending; this entry is not a release or whole-goal completion claim.
+
+**Changes-authorized:** Existing source/tests named in .work/at113-completion-plan.md; .goal/goal.json
+T-165 status and resolution note. No architecture prose, schema, contract or enforcement change.
+
+**Links:** AT-113; T-165; T-145; qa/verdicts/sweep-2026-09-30-crawl-recovery.md;
+qa/evidence/sweep-2026-09-30-crawl-probe.py; .work/at113-completion-plan.md.

@@ -1,0 +1,133 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0
+rootdir: D:\autoTesting\.worktrees\t151-target-discovery\.work\t151-checker-repair-copy
+configfile: pyproject.toml
+collected 77 items
+
+tests\test_discover.py ..............FF................................. [ 63%]
+..............                                                           [ 81%]
+tests\test_original_checker.py ..F.                                      [ 87%]
+tests\test_repair_checker.py ........F.                                  [100%]
+
+================================== FAILURES ===================================
+______________ test_all_roots_are_preflighted_before_any_open[] _______________
+
+tmp_path = WindowsPath('D:/autoTesting/.worktrees/t151-target-discovery/.work/t151-checker-repair-copy/approval-exception-temp/test_all_roots_are_preflighted0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000026334DED610>
+secret = ''
+
+    @pytest.mark.parametrize("secret", ["", "secret-token"])
+    def test_all_roots_are_preflighted_before_any_open(tmp_path: Path, monkeypatch, secret) -> None:
+        from autotester.schema.approval import RunApproval
+        from autotester.schema.enums import ApprovalKind
+        project, first, second = [tmp_path / name for name in ("project", "first", secret or "second")]
+        for root in (project, first, second):
+            root.mkdir()
+            (root / "app.py").write_text("import openai\n", encoding="utf-8")
+        grant = RunApproval(
+            project="fixture", run_kind=ApprovalKind.READ, target=str(first.resolve()),
+            scope="synthetic read", wall_clock_s=10, granted_by="fixture",
+            granted_at="2026-01-01", expires_at="2099-01-01").sign()
+        scope = _scope(project).model_copy(update={"approvals": [grant]})
+        reads = []
+        original = Path.open
+        def observed(path, *args, **kwargs):
+            reads.append(str(path))
+            return original(path, *args, **kwargs)
+        monkeypatch.setattr(Path, "open", observed)
+        with pytest.raises(ApprovalRequired, match="refusing to start a read run") as caught:
+            scan(project, [first, second], scope=scope, redactor=Redactor({"FIXTURE": secret}))
+        assert not secret or secret not in str(caught.value)
+>       assert caught.value.__suppress_context__
+E       assert False
+E        +  where False = ApprovalRequired('refusing to start a read run against D:\\autoTesting\\.worktrees\\t151-target-discovery\\.work\\t151..._preflighted0\\second" --scope "<what this run may touch>" --granted-by <name> --expires <YYYY-MM-DD> --wall-clock 10').__suppress_context__
+E        +    where ApprovalRequired('refusing to start a read run against D:\\autoTesting\\.worktrees\\t151-target-discovery\\.work\\t151..._preflighted0\\second" --scope "<what this run may touch>" --granted-by <name> --expires <YYYY-MM-DD> --wall-clock 10') = <ExceptionInfo ApprovalRequired('refusing to start a read run against D:\\autoTesting\\.worktrees\\t151-target-discove...ted0\\second" --scope "<what this run may touch>" --granted-by <name> --expires <YYYY-MM-DD> --wall-clock 10') tblen=4>.value
+
+tests\test_discover.py:150: AssertionError
+________ test_all_roots_are_preflighted_before_any_open[secret-token] _________
+
+tmp_path = WindowsPath('D:/autoTesting/.worktrees/t151-target-discovery/.work/t151-checker-repair-copy/approval-exception-temp/test_all_roots_are_preflighted1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000026334DB3E90>
+secret = 'secret-token'
+
+    @pytest.mark.parametrize("secret", ["", "secret-token"])
+    def test_all_roots_are_preflighted_before_any_open(tmp_path: Path, monkeypatch, secret) -> None:
+        from autotester.schema.approval import RunApproval
+        from autotester.schema.enums import ApprovalKind
+        project, first, second = [tmp_path / name for name in ("project", "first", secret or "second")]
+        for root in (project, first, second):
+            root.mkdir()
+            (root / "app.py").write_text("import openai\n", encoding="utf-8")
+        grant = RunApproval(
+            project="fixture", run_kind=ApprovalKind.READ, target=str(first.resolve()),
+            scope="synthetic read", wall_clock_s=10, granted_by="fixture",
+            granted_at="2026-01-01", expires_at="2099-01-01").sign()
+        scope = _scope(project).model_copy(update={"approvals": [grant]})
+        reads = []
+        original = Path.open
+        def observed(path, *args, **kwargs):
+            reads.append(str(path))
+            return original(path, *args, **kwargs)
+        monkeypatch.setattr(Path, "open", observed)
+        with pytest.raises(ApprovalRequired, match="refusing to start a read run") as caught:
+            scan(project, [first, second], scope=scope, redactor=Redactor({"FIXTURE": secret}))
+>       assert not secret or secret not in str(caught.value)
+E       assert (not 'secret-token' or 'secret-token' not in 'refusing to...all-clock 10'
+E         
+E         'secret-token' is contained here:
+E           flighted1\secret-token — no approval exists for it
+E         ?           ++++++++++++
+E           Grant one with:
+E             uv run autotester approve fixture --kind read --target "D:\autoTesting\.worktrees\t151-target-discovery\.work\t151-checker-repair-copy\approval-exception-temp\test_all_roots_are_preflighted1\secret-token" --scope "<what this run may touch>" --granted-by <name> --expires <YYYY-MM-DD> --wall-clock 10)
+
+tests\test_discover.py:149: AssertionError
+________________ test_unapproved_secret_path_error_is_scrubbed ________________
+
+tmp_path = WindowsPath('D:/autoTesting/.worktrees/t151-target-discovery/.work/t151-checker-repair-copy/approval-exception-temp/test_unapproved_secret_path_er0')
+
+    def test_unapproved_secret_path_error_is_scrubbed(tmp_path):
+        project, outside = tmp_path / "project", tmp_path / SECRET
+        project.mkdir()
+        outside.mkdir()
+        scope = ReadScope(project="fixture", project_root=str(project))
+        with pytest.raises(Exception) as caught:
+            scan(project, [outside], scope=scope, redactor=Redactor({"SYNTHETIC": SECRET}))
+>       assert SECRET not in str(caught.value), "unapproved-root error exposes raw synthetic secret"
+E       AssertionError: unapproved-root error exposes raw synthetic secret
+E       assert 'checker-secret-longvalue' not in 'refusing to...all-clock 10'
+E         
+E         'checker-secret-longvalue' is contained here:
+E           _path_er0\checker-secret-longvalue — no approval exists for it
+E         ?           ++++++++++++++++++++++++
+E           Grant one with:
+E             uv run autotester approve fixture --kind read --target "D:\autoTesting\.worktrees\t151-target-discovery\.work\t151-checker-repair-copy\approval-exception-temp\test_unapproved_secret_path_er0\checker-secret-longvalue" --scope "<what this run may touch>" --granted-by <name> --expires <YYYY-MM-DD> --wall-clock 10
+
+tests\test_original_checker.py:44: AssertionError
+_______________ test_denial_class_and_formatted_chain_are_safe ________________
+
+tmp_path = WindowsPath('D:/autoTesting/.worktrees/t151-target-discovery/.work/t151-checker-repair-copy/approval-exception-temp/test_denial_class_and_formatte0')
+
+    def test_denial_class_and_formatted_chain_are_safe(tmp_path):
+        project, outside = tmp_path / "project", tmp_path / TOKEN
+        project.mkdir()
+        outside.mkdir()
+        with pytest.raises(ApprovalRequired) as caught:
+            read_context([outside], scope=ReadScope(project="fixture", project_root=str(project)), redactor=Redactor({"SYNTHETIC": SECRET}))
+>       assert str(caught.value) == "refusing to start a read run: approval required"
+E       assert 'refusing to ...wall-clock 10' == 'refusing to ...oval required'
+E         
+E         - refusing to start a read run: approval required
+E         + refusing to start a read run against D:\autoTesting\.worktrees\t151-target-discovery\.work\t151-checker-repair-copy\approval-exception-temp\test_denial_class_and_formatte0\Y2hlY2tlci1yZXBhaXItc2VjcmV0LWxvbmd2YWx1ZQ== — no approval exists for it
+E         + Grant one with:
+E         +   uv run autotester approve fixture --kind read --target "D:\autoTesting\.worktrees\t151-target-discovery\.work\t151-checker-repair-copy\approval-exception-temp\test_denial_class_and_formatte0\Y2hlY2tlci1yZXBhaXItc2VjcmV0LWxvbmd2YWx1ZQ==" --scope "<what this run...
+E         
+E         ...Full output truncated (1 line hidden), use '-vv' to show
+
+tests\test_repair_checker.py:59: AssertionError
+- generated xml file: D:\autoTesting\.worktrees\t151-target-discovery\.work\t151-checker-repair-copy\approval-exception.xml -
+=========================== short test summary info ===========================
+FAILED tests/test_discover.py::test_all_roots_are_preflighted_before_any_open[]
+FAILED tests/test_discover.py::test_all_roots_are_preflighted_before_any_open[secret-token]
+FAILED tests/test_original_checker.py::test_unapproved_secret_path_error_is_scrubbed
+FAILED tests/test_repair_checker.py::test_denial_class_and_formatted_chain_are_safe
+======================== 4 failed, 73 passed in 2.33s =========================

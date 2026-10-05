@@ -1,0 +1,74 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0
+rootdir: D:\autoTesting\.worktrees\t151-target-discovery\.work\t151-checker-rebind-copy
+configfile: pyproject.toml
+collected 64 items
+
+tests\test_discover.py ..............FF................................. [ 76%]
+..............                                                           [ 98%]
+tests\test_checker_yaml.py .                                             [100%]
+
+================================== FAILURES ===================================
+______________ test_all_roots_are_preflighted_before_any_open[] _______________
+
+tmp_path = WindowsPath('D:/autoTesting/.worktrees/t151-target-discovery/.work/t151-checker-rebind-copy/scope-preflight-temp/test_all_roots_are_preflighted0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000021DD0980AD0>
+secret = ''
+
+    @pytest.mark.parametrize("secret", ["", "secret-token"])
+    def test_all_roots_are_preflighted_before_any_open(tmp_path: Path, monkeypatch, secret) -> None:
+        from autotester.schema.approval import RunApproval
+        from autotester.schema.enums import ApprovalKind
+        project, first, second = [tmp_path / name for name in ("project", "first", secret or "second")]
+        for root in (project, first, second):
+            root.mkdir()
+            (root / "app.py").write_text("import openai\n", encoding="utf-8")
+        grant = RunApproval(
+            project="fixture", run_kind=ApprovalKind.READ, target=str(first.resolve()),
+            scope="synthetic read", wall_clock_s=10, granted_by="fixture",
+            granted_at="2026-01-01", expires_at="2099-01-01").sign()
+        scope = _scope(project).model_copy(update={"approvals": [grant]})
+        reads = []
+        original = Path.open
+        def observed(path, *args, **kwargs):
+            reads.append(str(path))
+            return original(path, *args, **kwargs)
+        monkeypatch.setattr(Path, "open", observed)
+>       with pytest.raises(ApprovalRequired, match="refusing to start a read run") as caught:
+E       Failed: DID NOT RAISE ApprovalRequired
+
+tests\test_discover.py:147: Failed
+________ test_all_roots_are_preflighted_before_any_open[secret-token] _________
+
+tmp_path = WindowsPath('D:/autoTesting/.worktrees/t151-target-discovery/.work/t151-checker-rebind-copy/scope-preflight-temp/test_all_roots_are_preflighted1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000021DD0973B50>
+secret = 'secret-token'
+
+    @pytest.mark.parametrize("secret", ["", "secret-token"])
+    def test_all_roots_are_preflighted_before_any_open(tmp_path: Path, monkeypatch, secret) -> None:
+        from autotester.schema.approval import RunApproval
+        from autotester.schema.enums import ApprovalKind
+        project, first, second = [tmp_path / name for name in ("project", "first", secret or "second")]
+        for root in (project, first, second):
+            root.mkdir()
+            (root / "app.py").write_text("import openai\n", encoding="utf-8")
+        grant = RunApproval(
+            project="fixture", run_kind=ApprovalKind.READ, target=str(first.resolve()),
+            scope="synthetic read", wall_clock_s=10, granted_by="fixture",
+            granted_at="2026-01-01", expires_at="2099-01-01").sign()
+        scope = _scope(project).model_copy(update={"approvals": [grant]})
+        reads = []
+        original = Path.open
+        def observed(path, *args, **kwargs):
+            reads.append(str(path))
+            return original(path, *args, **kwargs)
+        monkeypatch.setattr(Path, "open", observed)
+>       with pytest.raises(ApprovalRequired, match="refusing to start a read run") as caught:
+E       Failed: DID NOT RAISE ApprovalRequired
+
+tests\test_discover.py:147: Failed
+- generated xml file: D:\autoTesting\.worktrees\t151-target-discovery\.work\t151-checker-rebind-copy\scope-preflight.xml -
+=========================== short test summary info ===========================
+FAILED tests/test_discover.py::test_all_roots_are_preflighted_before_any_open[]
+FAILED tests/test_discover.py::test_all_roots_are_preflighted_before_any_open[secret-token]
+======================== 2 failed, 62 passed in 3.63s =========================

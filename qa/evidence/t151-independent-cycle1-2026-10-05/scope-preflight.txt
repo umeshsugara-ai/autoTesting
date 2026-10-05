@@ -1,0 +1,46 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0
+rootdir: D:\autoTesting\.worktrees\t151-target-discovery\.work\t151-checker-mutation-copy
+configfile: pyproject.toml
+collected 35 items
+
+tests\test_discover.py ..............F....................               [100%]
+
+================================== FAILURES ===================================
+_______________ test_all_roots_are_preflighted_before_any_open ________________
+
+tmp_path = WindowsPath('D:/autoTesting/.worktrees/t151-target-discovery/.work/t151-checker-mutation-copy/scope-preflight-temp/test_all_roots_are_preflighted0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001DFD960C6D0>
+
+    def test_all_roots_are_preflighted_before_any_open(tmp_path: Path, monkeypatch) -> None:
+        from autotester.schema.approval import RunApproval
+        from autotester.schema.enums import ApprovalKind
+        project, first, second = [tmp_path / name for name in ("project", "first", "second")]
+        for root in (project, first, second):
+            root.mkdir()
+            (root / "app.py").write_text("import openai\n", encoding="utf-8")
+        grant = RunApproval(
+            project="fixture",
+            run_kind=ApprovalKind.READ,
+            target=str(first.resolve()),
+            scope="synthetic read",
+            wall_clock_s=10,
+            granted_by="fixture",
+            granted_at="2026-01-01",
+            expires_at="2099-01-01",
+        ).sign()
+        scope = _scope(project).model_copy(update={"approvals": [grant]})
+        reads = []
+        original = Path.open
+        def observed(path, *args, **kwargs):
+            reads.append(str(path))
+            return original(path, *args, **kwargs)
+        monkeypatch.setattr(Path, "open", observed)
+>       with pytest.raises(Exception, match="refusing to start a read run"):
+E       Failed: DID NOT RAISE Exception
+
+tests\test_discover.py:163: Failed
+- generated xml file: D:\autoTesting\.worktrees\t151-target-discovery\.work\t151-checker-mutation-copy\scope-preflight.xml -
+=========================== short test summary info ===========================
+FAILED tests/test_discover.py::test_all_roots_are_preflighted_before_any_open
+======================== 1 failed, 34 passed in 2.05s =========================

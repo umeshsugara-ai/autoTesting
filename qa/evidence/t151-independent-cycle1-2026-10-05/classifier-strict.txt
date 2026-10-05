@@ -1,0 +1,50 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0
+rootdir: D:\autoTesting\.worktrees\t151-target-discovery\.work\t151-checker-mutation-copy
+configfile: pyproject.toml
+collected 35 items
+
+tests\test_discover.py .........................FF........               [100%]
+
+================================== FAILURES ===================================
+________ test_seeded_bad_classifier_output_is_never_overridden[string] ________
+
+tmp_path = WindowsPath('D:/autoTesting/.worktrees/t151-target-discovery/.work/t151-checker-mutation-copy/classifier-strict-temp/test_seeded_bad_classifier_out3')
+bad = 'string'
+
+    @pytest.mark.parametrize("bad", ["system_kind", "extra", "confidence", "string", "bool", "nan"])
+    def test_seeded_bad_classifier_output_is_never_overridden(tmp_path: Path, bad: str) -> None:
+        answer = {"system_kind": "agentic", "reason": "fixture", "confidence": 0.5}
+        if bad in {"string", "bool", "nan"}:
+            answer["confidence"] = {"string": "0.8", "bool": True, "nan": float("nan")}[bad]
+        else:
+            answer[bad] = "poisoned" if bad != "confidence" else 2.0
+        provider = MockProvider(responses={"agent": [answer]})
+        signal = Signal(kind="sdk", evidence_path="fixture.py", line=1, detail="SDK import")
+>       with pytest.raises(ValueError, match="invalid classification response"):
+E       Failed: DID NOT RAISE ValueError
+
+tests\test_discover.py:229: Failed
+_________ test_seeded_bad_classifier_output_is_never_overridden[bool] _________
+
+tmp_path = WindowsPath('D:/autoTesting/.worktrees/t151-target-discovery/.work/t151-checker-mutation-copy/classifier-strict-temp/test_seeded_bad_classifier_out4')
+bad = 'bool'
+
+    @pytest.mark.parametrize("bad", ["system_kind", "extra", "confidence", "string", "bool", "nan"])
+    def test_seeded_bad_classifier_output_is_never_overridden(tmp_path: Path, bad: str) -> None:
+        answer = {"system_kind": "agentic", "reason": "fixture", "confidence": 0.5}
+        if bad in {"string", "bool", "nan"}:
+            answer["confidence"] = {"string": "0.8", "bool": True, "nan": float("nan")}[bad]
+        else:
+            answer[bad] = "poisoned" if bad != "confidence" else 2.0
+        provider = MockProvider(responses={"agent": [answer]})
+        signal = Signal(kind="sdk", evidence_path="fixture.py", line=1, detail="SDK import")
+>       with pytest.raises(ValueError, match="invalid classification response"):
+E       Failed: DID NOT RAISE ValueError
+
+tests\test_discover.py:229: Failed
+- generated xml file: D:\autoTesting\.worktrees\t151-target-discovery\.work\t151-checker-mutation-copy\classifier-strict.xml -
+=========================== short test summary info ===========================
+FAILED tests/test_discover.py::test_seeded_bad_classifier_output_is_never_overridden[string]
+FAILED tests/test_discover.py::test_seeded_bad_classifier_output_is_never_overridden[bool]
+======================== 2 failed, 33 passed in 1.77s =========================
