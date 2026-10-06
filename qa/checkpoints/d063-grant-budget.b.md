@@ -16,3 +16,20 @@ Attribution: coordinator B; sub-checkers via Agent (ids in the dispatching trans
 | diff scope 4c | `git diff bd2fe8f4 --stat/--` | no deletions of symbols/assertions | coordinator |
 
 Remaining: none mandatory. Verdict FAIL (P1).
+
+## Cycle 1 (coordinator B), head b90618c9; src/uv.lock/pyproject/conftest identical to a4bd0a60
+
+Environment fingerprint: Windows 11, worktree .venv cpython 3.11, copies under scratchpad c1/m1..m4 (git archive HEAD), PYTHONPATH=<copy>/src:<copy>/scripts.
+
+| check | command + scope | result | attribution |
+|---|---|---|---|
+| diff identity | git diff --name-only a4bd0a60 HEAD -- src pyproject.toml uv.lock | empty (tests + qa only) | coordinator |
+| C3 CLI bounds | copy c1: tests/test_approve_cli_bounds.py (10 collected) | 10 passed | coordinator |
+| C3 if False mutant | copy m1, cli_crawl.py:256 | 2 failed (nan, inf), 8 passed | coordinator |
+| C3 defaults mutant | copy m4, --production default True | 1 failed, 9 passed | coordinator |
+| Row 1 scope | copy c1 green 13 passed; copy m2 `True for d in ref.domains` | 1 failed [scope] DID NOT RAISE, 12 passed | coordinator |
+| F3 production | copy m3 consent.py:85 production=True | 2 failed ([valid],[unused]), 11 passed | coordinator |
+| bound-tree affected tests | approve_cli_bounds, approve_cli, consent, approval_signing | 69 passed | coordinator |
+| lint / doctor | ruff src tests scripts / autotester doctor | pass / 1 violation (stale MAP, as cycle 0) | coordinator |
+
+Reused from cycle 0 by identity: lint, full suite, falsification R2-R9/M1-M3/G2-G4, security and budget/exact-host probes. Remaining: none. Verdict PASS (B side).
