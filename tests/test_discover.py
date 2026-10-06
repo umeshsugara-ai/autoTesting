@@ -1,6 +1,7 @@
 """Independent local oracles for discovery provenance and Markdown-only context."""
 
 import base64
+import contextlib
 from pathlib import Path
 
 import pytest
@@ -35,8 +36,7 @@ def test_context_is_metadata_only_and_secrets_are_scrubbed(tmp_path: Path) -> No
         "[[hidden]]\n```dataview\nTABLE private\n```\n#safe\n", encoding="utf-8")
     result = read_context([tmp_path], scope=_scope(tmp_path),
                           redactor=Redactor({"TEST": "secret-fixture"}))
-    assert result.complete
-    assert len(result.documents) == 1
+    assert result.complete and len(result.documents) == 1
     doc = result.documents[0]
     assert doc.frontmatter == {"title": "[REDACTED]:TEST", "tags": ["rag"]}
     assert doc.tags == ["rag", "safe"]
@@ -50,8 +50,7 @@ def test_unsafe_or_excessively_nested_yaml_is_refused(tmp_path: Path, header: st
     (tmp_path / "bad.md").write_text(f"---\n{header}\n---\n", encoding="utf-8")
     result = read_context([tmp_path], redactor=Redactor({}),
                           scope=_scope(tmp_path, max_yaml_depth=4, max_yaml_nodes=10))
-    assert not result.complete and result.documents == []
-    assert result.refusals
+    assert not result.complete and result.documents == [] and result.refusals
 def test_credentials_and_oversize_files_are_never_returned(tmp_path: Path) -> None:
     (tmp_path / ".env").write_text("import openai\n", encoding="utf-8")
     (tmp_path / "large.py").write_text("import openai\n" * 20, encoding="utf-8")
@@ -123,8 +122,7 @@ def test_rejected_files_still_consume_physical_read_budget(tmp_path: Path, monke
     monkeypatch.setattr(Path, "open", observed)
     result = scan(tmp_path, [], redactor=Redactor({}),
                   scope=_scope(tmp_path, max_file_bytes=16, max_total_bytes=20))
-    assert sum(physical) <= 20, "physical read budget applies to rejected files too"
-    assert not result.complete
+    assert sum(physical) <= 20 and not result.complete, "physical read budget covers rejected files"
 @pytest.mark.parametrize("secret", ["", "secret-token"])
 def test_all_roots_are_preflighted_before_any_open(tmp_path: Path, monkeypatch, secret) -> None:
     from autotester.schema.approval import RunApproval
@@ -238,9 +236,11 @@ def test_model_reason_is_redacted_and_scanner_evidence_is_preserved(tmp_path: Pa
     provider = MockProvider(responses={"agent": [
         {"system_kind": "agentic", "reason": "secret-value", "confidence": 0.8}]})
     signal = Signal(kind="sdk", evidence_path="app.py", line=7, detail="SDK import")
-    result = classify_target([signal], provider, scope=_scope(tmp_path),
-                             redactor=Redactor({"FIXTURE": "secret-value"}))
-    assert result.signals[0] == signal and "secret-value" not in result.reason
+    result = None
+    with contextlib.suppress(ValueError):
+        result = classify_target([signal], provider, scope=_scope(tmp_path),
+                                 redactor=Redactor({"FIXTURE": "secret-value"}))
+    assert result and result.signals[0] == signal and "secret-value" not in result.reason
     assert "secret-value" not in provider.prompts[0][1]
 
 def test_dirty_signal_is_refused_before_provider(tmp_path: Path) -> None:

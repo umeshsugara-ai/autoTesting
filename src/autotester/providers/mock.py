@@ -36,74 +36,41 @@ class MockProvider(Provider):
     def available(self) -> bool:
         return True
 
-    def _next(
-        self, role: str, prompt: str, *, prompt_file: str | None = None, fed_id: str | None = None
-    ) -> Any:
+    def _next(self, role: str, prompt: str, *,
+              prompt_file: str | None = None, fed_id: str | None = None) -> Any:
         self.prompts.append((role, prompt))
         queue = self.responses.get(role) or []
         if not queue:
             raise ProviderError(f"mock provider has no queued response for role={role}")
-        self.record(
-            role,
-            input_tokens=len(prompt) // 4,
-            output_tokens=16,
-            prompt_file=prompt_file,
-            fed_id=fed_id,
-        )
+        self.record(role, input_tokens=len(prompt) // 4, output_tokens=16,
+                    prompt_file=prompt_file, fed_id=fed_id)
         return queue.pop(0)
 
-    def see_video(
-        self,
-        path: Path,
-        prompt: str,
-        schema: type[ModelT],
-        options: VisionOptions | None = None,
-        *,
-        prompt_file: str | None = None,
-        fed_id: str | None = None,
-    ) -> ModelT:
+    def see_video(self, path: Path, prompt: str, schema: type[ModelT],
+                  options: VisionOptions | None = None, *,
+                  prompt_file: str | None = None, fed_id: str | None = None) -> ModelT:
         self.vision_options.append(options)
         return self._next("vision", f"{path}:{prompt}", prompt_file=prompt_file, fed_id=fed_id)
 
-    def act(
-        self,
-        prompt: str,
-        schema: type[ModelT] | None = None,
-        *,
-        prompt_file: str | None = None,
-        fed_id: str | None = None,
-    ) -> Any:
+    def act(self, prompt: str, schema: type[ModelT] | None = None, *,
+            prompt_file: str | None = None, fed_id: str | None = None) -> Any:
         if schema is Classification and not self.responses.get("agent"):
             signals = json.loads(prompt.rsplit("\nSIGNALS_JSON\n", 1)[1])
             kinds = {s["kind"] for s in signals}
             agent = bool(kinds & {"agent_framework", "tool"})
             orchestration = "orchestration" in kinds
-            kind = (
-                "hybrid"
-                if agent and orchestration
-                else "agentic"
-                if agent
-                else "orchestration"
-                if orchestration
-                else "conversational"
-            )
-            self.responses.setdefault("agent", []).append(
-                Classification(
-                    system_kind=kind,
-                    reason="Deterministic fixture naming from observed signals",
-                    confidence=0.8,
-                )
-            )
+            kind = ("hybrid" if agent and orchestration else "agentic" if agent
+                    else "orchestration" if orchestration else "conversational")
+            self.responses.setdefault("agent", []).append(Classification(
+                system_kind=kind,
+                reason="Deterministic fixture naming from observed signals",
+                confidence=0.8,
+            ))
         return self._next("agent", prompt, prompt_file=prompt_file, fed_id=fed_id)
 
     def judge(
-        self,
-        prompt: str,
-        schema: type[ModelT],
-        images: list[Path] | None = None,
-        *,
-        prompt_file: str | None = None,
-        fed_id: str | None = None,
+        self, prompt: str, schema: type[ModelT], images: list[Path] | None = None, *,
+        prompt_file: str | None = None, fed_id: str | None = None,
     ) -> ModelT:
         self.judge_images.append(images or [])
         return self._next("judge", prompt, prompt_file=prompt_file, fed_id=fed_id)
