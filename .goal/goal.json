@@ -6,13 +6,13 @@
   "created": "2026-09-03T07:26:17",
   "updated": "2026-09-30T17:53:08",
   "progress": {
-    "total": 81,
-    "done": 57,
+    "total": 82,
+    "done": 59,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 24,
+    "pending": 23,
     "current": "T-122",
-    "percent": 70
+    "percent": 72
   },
   "tasks": [
     {
@@ -1058,7 +1058,7 @@
       "criticality": "high",
       "done_check": {
         "type": "cmd",
-        "cmd": "uv run pytest tests/test_permission_surface.py",
+        "cmd": "uv run pytest tests/test_permission_coverage.py",
         "expect_exit": 0
       },
       "note": "D-040: split from T-165. Writes only under write_policy=TEST_ACCOUNT + per-run RunApproval; destructive actions last; a blocked control never counts as covered.",
@@ -1404,7 +1404,7 @@
     {
       "id": "T-185",
       "title": "at416-B: re-check wave/at408-416-scroll-reach (merge master, fresh cycle, real-Chromium Mode D + 50-shape corpus)",
-      "status": "pending",
+      "status": "done",
       "deps": [],
       "base_criticality": "high",
       "criticality": "critical",
@@ -1413,10 +1413,11 @@
         "cmd": "uv run pytest tests/test_browser_scroll_reach_at408_416.py",
         "expect_exit": 0
       },
-      "note": "AT-416/AT-408/AT-379; gate at416-clip-vs-reach-direction answer B (D-048). Branch built earlier, held on the gate.",
+      "note": "AT-416/AT-408/AT-379; gate at416-clip-vs-reach-direction answer B (D-048). Original requirement satisfied by existing merged independent cycle1PASS, qa/verdicts/at408-416-scroll-reach.md, and AT-731 historical done_check: 2 passed in 9.72s on 2026-09-29. 2026-10-06 read-only identity audit attributes three changed paths to separately checked-PASS T-186; nine relevant Git blobs unchanged. Task-id bookkeeping reconciliation, not a new runtime PASS. Root's extra fresh2PASS condition was an optional refresh plan, not the original task requirement, and is corrected. Preserve preparation/refusal history: frozen178-file/1.67MiB credential-free fixture export; preflight refused at767360KiB free; later1371236KiB below unchanged2GiBfloor; no container/browser/test launched today. Original coverage/timing follow-ups and final combined/live acceptance remain. Evidence qa/manifests/at408-416-scroll-reach.md.",
       "attempts": 0,
       "created": "2026-09-26T22:47:07",
-      "user_value": "normal"
+      "user_value": "normal",
+      "completed": "2026-10-06T15:47:19"
     },
     {
       "id": "T-186",
