@@ -55,4 +55,4 @@ Throwaway `git archive` copy outside the tree; original restored byte-identical,
 
 Not UI-touching — no surface changed: the changed paths are tests/test_goal_contract_registration.py, .goal/goal.json and the generated .goal/dashboard.html (a status report, no behavior).
 
-## Status: ready-for-check
+## Status: checked-PASS — qa/verdicts/t171-goal-pin.md (cycle 0)
