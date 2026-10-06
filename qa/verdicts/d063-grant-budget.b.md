@@ -85,4 +85,4 @@ LIVE-BROWSER: not-applicable (no UI screen/template/navigation changed; fixture-
 ISSUES-WRITTEN: none (dual coordinator: PROPOSED-ISSUE P1-P13 above)
 EXECUTOR: claude-sonnet-subagent (checker: claude-sonnet-subagent)
 EXPLANATION: Grant scope/identity, key preparation, aggregate budget and fill receipt are correct and falsified with 8 of 9 table rows reproduced; the exact-host slice is correct. The unit fails the floor only because the CLI bound guard claimed under acceptance 3 / CN11 has no test and survives a direct mutation (P1); the security design questions (P5, P6) need Umesh. The suite is green apart from a goal.json/test drift that comes from the merged master, not this diff.
-Metrics: start=2026-10-07T01:29:11+05:30 end=2026-10-07T02:03:00+05:30 wall_min=34 agent_min=73 blocked_min=0 suite_runs=1 repeat_runs=0 mutations=19 cycle=0 resumes=0 tokens=unavailable policy=proportional-verification/2026-10-06.6
+Metrics: start=2026-10-07T01:29:11+05:30 end=2026-10-07T01:57:40+05:30 wall_min=28 agent_min=67 blocked_min=0 suite_runs=1 repeat_runs=0 mutations=19 cycle=0 resumes=0 tokens=unavailable policy=proportional-verification/2026-10-06.6
