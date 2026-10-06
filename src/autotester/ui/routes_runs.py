@@ -33,7 +33,7 @@ from autotester.stages.coverage import diff_coverage, queue_requests
 from autotester.stages.explore_consent import covering_approval
 from autotester.stages.orchestrate import StageContext
 from autotester.stages.parallel_run import ParallelPlan, plan_parallel_run
-from autotester.stages.run_budget import action_cost, wall_clock_request_s
+from autotester.stages.run_budget import RunBudget, action_cost, wall_clock_request_s
 from autotester.stages.video_retention import prune_old_videos
 from autotester.store.project_store import ProjectStore
 from autotester.ui.helpers import _load_project_or_404
@@ -128,20 +128,24 @@ def _execute_with_trace(
     ctx = StageContext(store=store, run_id=run_id, secrets=secrets)
     judge.trace = ctx.trace
     plan = plan_parallel_run(project, video_enabled=True)
+    budget = RunBudget(approval)
 
     started = ctx.clock()
     if plan.n > 1:
         _run_cases_in_parallel(
             cases, entry_flags, plan, project, secrets, run_dir, slug, judge, run_id, store,
-            approval,
+            approval, budget=budget,
         )
     else:
         _run_cases_serially(
-            cases, entry_flags, project, secrets, run_dir, paths, slug, judge, run_id, store
+            cases, entry_flags, project, secrets, run_dir, paths, slug, judge, run_id, store,
+            budget=budget,
         )
     assert ctx.trace is not None
     ctx.trace.record_stage(StageCheckpoint(
-        stage=StageName.EXECUTE, status="done", started=started, finished=ctx.clock(),
+        stage=StageName.EXECUTE, status="failed" if budget.stop_reason else "done",
+        error=f"run budget exhausted: {budget.stop_reason}" if budget.stop_reason else None,
+        started=started, finished=ctx.clock(),
     ))
     return plan
 
