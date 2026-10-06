@@ -1,0 +1,18 @@
+# Checkpoint B — d063-grant-budget (coordinator B, cycle 0)
+
+Environment fingerprint: Windows 11, worktree .venv (cpython 3.11), HEAD a4bd0a60a3f2b9a76028b0ec1d46f91a8d63dae0, uv.lock sha256 188681b3a300c36f..., no browser/deploy/data snapshot.
+Attribution: coordinator B; sub-checkers via Agent (ids in the dispatching transcript only), scratch C:/Users/Lenovo/AppData/Local/Temp/d063-checkerB.
+
+| check | command + scope | result | attribution |
+|---|---|---|---|
+| lint | `uv run ruff check src tests scripts` | pass | coordinator |
+| doctor | `uv run autotester doctor` | exit 1, 1 violation (stale docs/MAP.md) | coordinator |
+| full suite | `uv --directory <root> run pytest` (2320 collected) at HEAD a4bd0a60 | 1 failed (test_goal_contract_registration, merge drift), 2314 passed, 5 skipped, 14 xfailed, 1589 s | coordinator |
+| falsification R1-R5 + R1b/R1c + M1-M3 | single node per row in throwaway copy, PYTHONPATH=<copy>/src | R1 literal not red; R1b/R1c, R2-R5, M1, M3 red; M2 survives; all restored | sub-checker 1 |
+| falsification R6-R9, G1-G4 | single node per row in throwaway copy | R6-R9, G2-G4 red; G1 survives | sub-checker 2 |
+| G1 re-run by coordinator | copy g1b, `if False:` at approve_cmd bound check, pytest test_approve_cli+test_approval_signing+test_consent | 59 passed (survives) | coordinator |
+| security probes | grant scope/bounds/placeholders/key creation/end-to-end preflight, scratch dirs | findings P5,P6,P9,P13; no scope-widening defect | sub-checker 3 |
+| budget/exact-host review | probes with fakes | findings P4,P7,P8,P10; exact-host no defect | sub-checker 4 |
+| diff scope 4c | `git diff bd2fe8f4 --stat/--` | no deletions of symbols/assertions | coordinator |
+
+Remaining: none mandatory. Verdict FAIL (P1).
