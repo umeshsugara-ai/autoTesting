@@ -255,6 +255,7 @@ def test_account_grant_is_new_exact_and_bounded(mode) -> None:
     assert row.project == project.slug and row.target == project.base_url
     assert row.run_kind is ApprovalKind.LIVE_CASE
     assert row.is_intact and row.is_signed_and_verified
+    assert row.production is False
     assert not row.is_expired(args["now"])
     scope = json.loads(row.scope)
     assert scope["keys"] == ["USER"] and scope["cases"] == ["case-one"]
