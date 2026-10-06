@@ -27,6 +27,7 @@ class SecretRef(BaseModel):
     key: str = Field(pattern=r"^[A-Z][A-Z0-9_]*$")
     description: str | None = None
     domains: list[str] = Field(default_factory=list, description="hosts this may be typed into")
+    include_subdomains: bool = Field(default=True, strict=True)
     mask_in_screenshot: bool = True
 
     @field_validator("key")
