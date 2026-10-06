@@ -8,7 +8,8 @@ checker 12C935F80B4344E1C7B43C7F2A3467B71D1923B8883A06D16B9D7E828CDB47E5
 Fix cycle: 1 of 2
 Resumes: 0 of 2
 Phase: READY
-Status: ready-for-check
+Status: checked-PASS (cycle 1: qa/verdicts/d063-grant-budget.md A PASS, qa/verdicts/d063-grant-budget.b.md B PASS)
+Ship gates open: qa/gates/d063-self-grant-csrf.md, qa/gates/d063-cn5-vs-cn11.md (on master)
 Tier: L — auth/security credential scope
 Dual check: required — credential security
 Base: bd2fe8f4d9a9fa87552e8a3999eb27cb52f8addf
