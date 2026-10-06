@@ -10,15 +10,83 @@ says "no" teaches the operator nothing, and the next thing they do is guess.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+import json
+import math
+from datetime import UTC, datetime, timedelta
+from urllib.parse import urlparse
 
+from autotester.browser.secrets import SecretStore, _host_matches, host_of
 from autotester.core.ids import SigningKeyMissing
 from autotester.schema.approval import RunApproval
 from autotester.schema.enums import ApprovalKind
+from autotester.schema.project import Project
 
 
 class ApprovalRequired(RuntimeError):
     """Raised instead of doing the thing. Carries the grant command verbatim."""
+
+
+def validate_account_scope(
+    project: Project, secrets: SecretStore, *, account_keys: set[str], case_ids: list[str],
+) -> str:
+    """Validate selected declared account metadata without retrieving raw values."""
+    host = host_of(project.base_url)
+    if (not host or urlparse(project.base_url).scheme not in {"http", "https"}
+            or not project.allows_domain(host) or secrets._project != project):
+        raise ApprovalRequired("account authorization target or project is invalid")
+    if (not account_keys or not case_ids or any(not c for c in case_ids)
+            or len(set(case_ids)) != len(case_ids)):
+        raise ApprovalRequired("account authorization needs selected account keys and cases")
+    domains = {}
+    for key in sorted(account_keys):
+        ref = project.secret(key)
+        if (ref is None or not secrets.has_value(key)
+                or secrets._refs.get(key) != ref
+                or not any(_host_matches(host, d, ref.include_subdomains) for d in ref.domains)):
+            raise ApprovalRequired(f"referenced account key {key} is unavailable or out of scope")
+        domains[key] = {"domains": ref.domains, "include_subdomains": ref.include_subdomains}
+    return json.dumps({"keys": sorted(account_keys), "domains": domains,
+                       "cases": sorted(case_ids)}, sort_keys=True, separators=(",", ":"))
+
+
+def validate_account_bounds(
+    actions: int, probes: int, wall_clock_s: float, *, now: datetime | None = None,
+) -> datetime:
+    """Return an aware expiry or refuse nonpositive, nonfinite or overflowing brakes."""
+    try:
+        finite_wall = type(wall_clock_s) in {int, float} and math.isfinite(wall_clock_s)
+    except OverflowError:
+        finite_wall = False
+    if (type(actions) is not int or type(probes) is not int or actions <= 0 or probes <= 0
+            or not finite_wall or wall_clock_s <= 0):
+        raise ApprovalRequired("account authorization bounds must be positive and finite")
+    moment = now or datetime.now(UTC)
+    if moment.tzinfo is None or moment.utcoffset() is None:
+        raise ApprovalRequired("account authorization clock must be offset-aware")
+    try:
+        expiry = moment + timedelta(seconds=wall_clock_s)
+        if expiry <= moment:
+            raise ValueError("expiry did not advance")
+        return expiry
+    except (ValueError, OverflowError):
+        raise ApprovalRequired("account authorization expiry is outside supported range") from None
+
+
+def prepare_account_live_case(
+    project: Project, secrets: SecretStore, *, account_keys: set[str], case_ids: list[str],
+    actions: int, probes: int, wall_clock_s: float, now: datetime | None = None,
+) -> RunApproval:
+    """Mint and verify one NEW exact account-derived LIVE_CASE row, never loaded rows."""
+    scope = validate_account_scope(project, secrets, account_keys=account_keys, case_ids=case_ids)
+    moment = now or datetime.now(UTC)
+    expiry = validate_account_bounds(actions, probes, wall_clock_s, now=moment)
+    candidate = RunApproval(project=project.slug, run_kind=ApprovalKind.LIVE_CASE,
+        target=project.base_url, scope=scope, max_actions=actions, max_probes=probes,
+        wall_clock_s=wall_clock_s, production=False, granted_by="account-derived:D-063",
+        granted_at=moment.isoformat(), expires_at=expiry.isoformat()).sign()
+    return require_approval([candidate], project=project.slug, kind=ApprovalKind.LIVE_CASE,
+                            target=project.base_url, actions=actions, probes=probes,
+                            wall_clock_s=wall_clock_s, now=moment)
 
 
 def _grant_command(

@@ -12,9 +12,15 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import RedirectResponse
 
 from autotester.browser.secrets import SecretStore
-from autotester.core.consent import ApprovalRequired
-from autotester.core.ids import ulid
+from autotester.core.consent import (
+    ApprovalRequired,
+    prepare_account_live_case,
+    validate_account_bounds,
+    validate_account_scope,
+)
+from autotester.core.ids import SigningKeyMissing, ensure_approval_key, ulid
 from autotester.core.paths import ProjectPaths
+from autotester.core.redact import placeholder_keys
 from autotester.providers.langchain_fallback import LangChainFallbackProvider
 from autotester.schema.approval import RunApproval
 from autotester.schema.case import Case
@@ -49,14 +55,15 @@ def _is_entry_case(case: Case, project: Project) -> bool:
         and case.steps[0].target == project.base_url
 
 
-def _require_declared_values(project: Project, secrets: SecretStore, slug: str) -> None:
-    """Refuse the run up front when a declared credential has no value yet.
-
-    The UI path loads secrets with `strict=False`, so a missing value used to
-    surface only when a step tried to type it — as `BLOCKED_HITL`, mid-run,
-    after a browser had already been launched. Name the key instead, and say
-    where to fix it."""
-    missing = [ref.key for ref in project.secrets if not secrets.has_value(ref.key)]
+def _require_declared_values(
+    project: Project, secrets: SecretStore, slug: str, cases: list[Case] | None = None,
+) -> set[str]:
+    """Check referenced credentials before launch; unused roles never gate a run."""
+    keys = ({ref.key for ref in project.secrets} if cases is None else {
+        key for case in cases for step in case.steps
+        for text in (step.target, step.value or "") for key in placeholder_keys(text)
+    })
+    missing = sorted(key for key in keys if not secrets.has_value(key))
     if missing:
         raise HTTPException(400, (
             f"{', '.join(missing)} has no value yet. Enter it on the project's "
@@ -65,29 +72,47 @@ def _require_declared_values(project: Project, secrets: SecretStore, slug: str) 
             f"these credentials have no value yet: {', '.join(missing)}. Enter them on the "
             f"project's Credentials page (/projects/{slug}/env) before running."
         ))
+    return keys
 
 
 def _require_live_case_approval(
-    project: Project, store: ProjectStore, cases: list[Case]
+    project: Project, store: ProjectStore, cases: list[Case],
+    secrets: SecretStore | None = None, account_keys: set[str] | None = None,
 ) -> RunApproval:
-    """D-018 gate 2 for a CASE run (AT-570). Refuses BEFORE a run id, a run
-    directory, a browser or a `Run` record exists (consent.md CN1's "a refused
-    run leaves no trace"), and the refusal text names WHICH state refused it --
-    no `live_case` row / the row carries no signature / no signing key is
-    configured -- because `require_approval` builds that text per candidate.
+    """Pre-run D-018/CN11 gate: verify fresh account grant or existing human grant.
 
-    The bounds requested are the run's own: `action_cost` per case (the system's
-    existing vocabulary for an action, never 0, which would find any approval
-    "wide enough") and a positive wall clock, so an approval granting zero time
-    is refused here rather than exhausting `RunBudget` after the first case."""
+    Refuse before run-id/directory/browser creation, naming human-grant shortfalls.
+    System-derived action/probe/time brakes bound, never expand, account consent.
+    """
     bounds = CrawlBounds(
         max_actions=sum(action_cost(c) for c in cases),
         wall_clock_s=wall_clock_request_s(cases),
     )
     try:
+        if secrets is not None and account_keys:
+            case_ids = [case.id for case in cases]
+            if any(case.project != project.slug for case in cases):
+                raise ApprovalRequired("case project differs from the requested project")
+            probes = max(1, bounds.max_actions * 20)
+            validate_account_scope(project, secrets, account_keys=account_keys, case_ids=case_ids)
+            validate_account_bounds(bounds.max_actions, probes, bounds.wall_clock_s)
+            # Deferred repository-wide typed history, read only inside key creation's lock.
+            ensure_approval_key(store.paths.env_file, lambda: [
+                row for directory in store.paths.dir.parent.iterdir() if directory.is_dir()
+                for row in ProjectStore(directory.name, store.paths.root).list_approvals()
+            ])
+            approval = prepare_account_live_case(
+                project, secrets, account_keys=account_keys, case_ids=case_ids,
+                actions=bounds.max_actions, probes=probes, wall_clock_s=bounds.wall_clock_s,
+            )
+            return store.add_approval(approval)
         return covering_approval(project, store, bounds, kind=ApprovalKind.LIVE_CASE)
     except ApprovalRequired as exc:
         raise HTTPException(403, str(exc)) from exc
+    except (SigningKeyMissing, ValueError, OSError, TimeoutError) as exc:
+        # Do not expose malformed history rows, file contents or env values in diagnostics.
+        detail = f"account run preparation refused ({type(exc).__name__})"
+        raise HTTPException(403, detail) from None
 
 
 def _execute_with_trace(
@@ -143,8 +168,8 @@ def trigger_run(slug: str) -> RedirectResponse:
         )
     paths = ProjectPaths(slug)
     secrets = SecretStore.load(project, paths.env_file, strict=False)
-    _require_declared_values(project, secrets, slug)
-    approval = _require_live_case_approval(project, store, cases)
+    account_keys = _require_declared_values(project, secrets, slug, cases)
+    approval = _require_live_case_approval(project, store, cases, secrets, account_keys)
     run_id = f"run-{ulid()}"
     run_dir = paths.run_dir(run_id)
     entry_flags = [_is_entry_case(c, project) for c in cases]
