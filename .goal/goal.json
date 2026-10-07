@@ -4,15 +4,15 @@
   "north_star": "A reusable AI testing platform where an operator submits any project URL, domain-scoped test-account credential references, and optional evals, conditions, use cases, video, audio, documents, text, email or Google Drive sources. AutoTester learns from supplied evidence or logs in and performs bounded breadth-first exploration, preserves a durable Portal Persona, compiles traceable best/worst/edge evals, reruns them after developer releases in a real visible browser, and reports workflow/API regressions through clear HTML, Excel, text and screenshots. First acceptance targets: Vidysea ERP and Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-10-07T18:13:41",
+  "updated": "2026-10-07T18:33:09",
   "progress": {
     "total": 90,
-    "done": 62,
+    "done": 63,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 28,
-    "current": "T-122",
-    "percent": 69
+    "pending": 27,
+    "current": "T-136",
+    "percent": 70
   },
   "tasks": [
     {
@@ -432,7 +432,7 @@
     {
       "id": "T-122",
       "title": "Track 0 tail: login case + first logged-in Pathlynks run (credentials present; ERP is the second product)",
-      "status": "pending",
+      "status": "done",
       "base_criticality": "high",
       "deps": [
         "T-121"
@@ -446,7 +446,8 @@
       "attempts": 0,
       "created": "2026-09-07T17:15:41",
       "user_value": "high",
-      "criticality": "high"
+      "criticality": "high",
+      "completed": "2026-10-07T18:17:28"
     },
     {
       "id": "T-123",
@@ -1251,7 +1252,7 @@
       "attempts": 0,
       "created": "2026-09-24T17:37:32",
       "user_value": "high",
-      "completed": "2026-10-07T16:47:45"
+      "completed": "2026-10-07T18:32:59"
     },
     {
       "id": "T-177",
@@ -2131,9 +2132,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 1.63,
-    "eta_days": 17.2
+    "velocity_per_day": 1.66,
+    "eta_days": 16.3
   },
-  "last_deterministic_tick": "2026-10-07T18:13:41",
+  "last_deterministic_tick": "2026-10-07T18:33:09",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }
