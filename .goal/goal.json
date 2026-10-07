@@ -7,12 +7,12 @@
   "updated": "2026-10-07T19:47:47",
   "progress": {
     "total": 92,
-    "done": 64,
+    "done": 65,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 28,
+    "pending": 27,
     "current": "T-136",
-    "percent": 70
+    "percent": 71
   },
   "tasks": [
     {
@@ -754,7 +754,7 @@
     {
       "id": "T-125",
       "title": "Test catalog: which case classes apply, which are runnable, which are blocked and why (+ cheap->expensive ordering)",
-      "status": "pending",
+      "status": "done",
       "base_criticality": "low",
       "deps": [
         "T-124"
@@ -764,11 +764,12 @@
         "cmd": "uv run pytest tests/test_catalog.py tests/test_ui_catalog.py",
         "expect_exit": 0
       },
-      "note": "plan.md 5A. expand.py generates cases without saying which cannot actually run; a blocked entry must name the one action that unblocks it. | EXTEND (AT-588, meeting 2026-09-26): packs for OAuth sign-up carry-over, month/year pickers, Excel column-mapping upload.",
+      "note": "plan.md 5A. expand.py generates cases without saying which cannot actually run; a blocked entry must name the one action that unblocks it. | EXTEND (AT-588, meeting 2026-09-26): packs for OAuth sign-up carry-over, month/year pickers, Excel column-mapping upload. | Checked-PASS, dual check (D-051 cycle 4 + integration rework onto d063 aggregate RunBudget): qa/verdicts/t125-catalog.md (checker A, cd212a1e) and qa/verdicts/t125-catalog.b.md (checker B, 8992ced9).",
       "attempts": 0,
       "created": "2026-09-08T00:46:52",
       "user_value": "high",
-      "criticality": "low"
+      "criticality": "low",
+      "completed": "2026-10-07T20:07:33"
     },
     {
       "id": "T-126",
