@@ -46,7 +46,7 @@ appears nowhere in the bundle (`scripts/check_no_secrets.py` clean on the bundle
 ## What was built
 
 - `src/autotester/schema/failure_bundle.py` (new, one job: bundle shapes): `BundleSource` (a screenshot stamped with its run id and masked flag), `BundleFile` (name, kind, run_id, sha256), `BundleManifest` (bundle id, run id, case id, failing step, steps included, files). All `extra="forbid"`.
-- `src/autotester/stages/failure_bundle.py` (new, one job: assemble + load; 197 lines). No existing home for a bundle in docs/ARCHITECTURE.md (searched), so a new stage module.
+- `src/autotester/stages/failure_bundle.py` (new, one job: assemble + load; 209 lines). No existing home for a bundle in docs/ARCHITECTURE.md (searched), so a new stage module.
   - `build_failure_bundle(...)`: refuses first (FB2 run mix, FB3 unmasked screenshot), then writes `case.json`, `verdict.json`, `result.json`, `error.txt`, `steps/{n}.json` for the failing step +/- `neighbours` (default 1, clipped where they do not exist), `screenshots/{step}-{n}.png` for those steps, `trace.jsonl`, and `manifest.json` LAST, all into `<bundle_id>.partial/`; renames to `<bundle_id>/` only after the manifest is in. The id is `content_id("fb", {run, case})`, so a repeat call returns the existing complete bundle, and a corrupt existing one is rebuilt.
   - `load_bundle(path)`: refuses a `.partial` name, a missing manifest, a missing/hash-mismatched file, a file stamped with another run, or a bundle lacking case/verdict/result/error/trace.
   - FB3: every text part goes through `Redactor.scrub_obj` / `scrub` and then the `Redactor.assert_clean` hard gate before it touches disk; a screenshot is copied only when its source evidence is `masked=True`.
