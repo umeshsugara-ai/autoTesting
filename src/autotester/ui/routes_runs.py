@@ -12,13 +12,8 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import RedirectResponse
 
 from autotester.browser.secrets import SecretStore
-from autotester.core.consent import (
-    ApprovalRequired,
-    prepare_account_live_case,
-    validate_account_bounds,
-    validate_account_scope,
-)
-from autotester.core.ids import SigningKeyMissing, ensure_approval_key, ulid
+from autotester.core.consent import ApprovalRequired
+from autotester.core.ids import ulid
 from autotester.core.paths import ProjectPaths
 from autotester.core.redact import placeholder_keys
 from autotester.providers.langchain_fallback import LangChainFallbackProvider
@@ -79,7 +74,8 @@ def _require_live_case_approval(
     project: Project, store: ProjectStore, cases: list[Case],
     secrets: SecretStore | None = None, account_keys: set[str] | None = None,
 ) -> RunApproval:
-    """Pre-run D-018/CN11 gate: verify fresh account grant or existing human grant.
+    """Pre-run D-018/CN11 gate (D-068): a covering human grant, else one derived from the
+    project's provisioned credentials -- reused if an earlier row covers the run, else minted.
 
     Refuse before run-id/directory/browser creation, naming human-grant shortfalls.
     System-derived action/probe/time brakes bound, never expand, account consent.
@@ -89,30 +85,12 @@ def _require_live_case_approval(
         wall_clock_s=wall_clock_request_s(cases),
     )
     try:
-        if secrets is not None and account_keys:
-            case_ids = [case.id for case in cases]
-            if any(case.project != project.slug for case in cases):
-                raise ApprovalRequired("case project differs from the requested project")
-            probes = max(1, bounds.max_actions * 20)
-            validate_account_scope(project, secrets, account_keys=account_keys, case_ids=case_ids)
-            validate_account_bounds(bounds.max_actions, probes, bounds.wall_clock_s)
-            # Deferred repository-wide typed history, read only inside key creation's lock.
-            ensure_approval_key(store.paths.env_file, lambda: [
-                row for directory in store.paths.dir.parent.iterdir() if directory.is_dir()
-                for row in ProjectStore(directory.name, store.paths.root).list_approvals()
-            ])
-            approval = prepare_account_live_case(
-                project, secrets, account_keys=account_keys, case_ids=case_ids,
-                actions=bounds.max_actions, probes=probes, wall_clock_s=bounds.wall_clock_s,
-            )
-            return store.add_approval(approval)
-        return covering_approval(project, store, bounds, kind=ApprovalKind.LIVE_CASE)
+        if any(case.project != project.slug for case in cases):
+            raise ApprovalRequired("case project differs from the requested project")
+        return covering_approval(project, store, bounds, kind=ApprovalKind.LIVE_CASE,
+                                 secrets=secrets, account_keys=account_keys or None)
     except ApprovalRequired as exc:
         raise HTTPException(403, str(exc)) from exc
-    except (SigningKeyMissing, ValueError, OSError, TimeoutError) as exc:
-        # Do not expose malformed history rows, file contents or env values in diagnostics.
-        detail = f"account run preparation refused ({type(exc).__name__})"
-        raise HTTPException(403, detail) from None
 
 
 def _execute_with_trace(

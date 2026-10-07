@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 from autotester.browser.secrets import SecretStore
-from autotester.core.consent import ApprovalRequired, prepare_account_live_case, require_approval
+from autotester.core.consent import ApprovalRequired, prepare_account_grant, require_approval
 from autotester.schema.approval import RunApproval
 from autotester.schema.enums import ApprovalKind
 from autotester.schema.project import Project, SecretRef
@@ -243,22 +243,23 @@ def test_account_grant_is_new_exact_and_bounded(mode) -> None:
     secrets = SecretStore(project, values)
     if mode == "other":
         secrets = SecretStore(project.model_copy(update={"slug": "other"}), values)
-    args = dict(account_keys=keys, case_ids=["case-one"], now=NOW.replace(tzinfo=UTC), **bounds)
+    args = dict(kind=ApprovalKind.LIVE_CASE, account_keys=keys,
+                now=NOW.replace(tzinfo=UTC), **bounds)
     historical = approval()
     before = historical.model_dump_json()
     if mode not in {"valid", "unused"}:
         with pytest.raises((ApprovalRequired, ValueError)):
-            prepare_account_live_case(project, secrets, **args)
+            prepare_account_grant(project, secrets, **args)
         assert historical.model_dump_json() == before
         return
-    row = prepare_account_live_case(project, secrets, **args)
+    row = prepare_account_grant(project, secrets, **args)
     assert row.project == project.slug and row.target == project.base_url
     assert row.run_kind is ApprovalKind.LIVE_CASE
     assert row.is_intact and row.is_signed_and_verified
     assert row.production is False
     assert not row.is_expired(args["now"])
     scope = json.loads(row.scope)
-    assert scope["keys"] == ["USER"] and scope["cases"] == ["case-one"]
+    assert scope["keys"] == ["USER"] and "cases" not in scope  # D-068: scope is not a case-set key
     assert "synthetic-account-value" not in row.model_dump_json()
     assert "UNUSED" not in row.scope
     assert historical.model_dump_json() == before
