@@ -2287,3 +2287,17 @@ the dependency or by a fresh licence decision.
 **Approved-by:** Umesh — chat answer 2026-10-07.
 
 **Links:** T-177; D-075; qa/verdicts/t177-agent-fallback.a.md.
+
+## D-078 | 2026-10-07 | type: decision | status: ACTIVE
+
+**What:** Umesh decided (chat, 2026-10-07) not to add the `tzdata` package. Schedules (Group 10 G5, team-schedule.md) support exactly two time zones: UTC and IST, the fixed +05:30 offset with no DST. Any other zone is refused with an error. The implementation uses fixed offsets (`datetime.timezone`), with no ZoneInfo and no zone database, so it behaves the same on Windows dev and Ubuntu prod.
+
+**Why:** Windows ships no IANA zone database, so a city zone such as America/New_York fails there without `tzdata`. Umesh chose not to take a new dependency. The team works in IST, and UTC covers the server.
+
+**Result:** The G5 schedule slice drops its DST handling and DST tests. The checker amends the qa/contracts/team-schedule.md timezone/DST wording to "UTC or IST only, no DST".
+
+**Changes-authorized:** `core/localtime.py`, `schema/schedule.py` and `stages/schedule_*.py` in the G5 slice. No change to pyproject.toml or uv.lock.
+
+**Approved-by:** Umesh (chat, 2026-10-07)
+
+**Links:** D-072 item 9, D-074, T-201 or the G5 schedule unit, qa/contracts/team-schedule.md
