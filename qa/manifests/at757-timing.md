@@ -4,7 +4,7 @@ Contract: qa/contracts/core-invariants.md (no assertion removed; C2 file/functio
 Goal task: none (suite-health ruling AT-757; also closes AT-767, AT-771)
 Policy-Version: proportional-verification/2026-10-07.7
 Fix cycle: 0
-Status: ready-for-check
+Status: checked-PASS
 Tier: L - protected test change (it can loosen a threshold); one checker, no dual check.
 Base: 642ab4bd783624f63ff75caa4f7fd5f816238810 (origin/master), branch wave/at757-timing
 Source: c9832b19424c2371ebd0a77c90de004ac3227ce1
