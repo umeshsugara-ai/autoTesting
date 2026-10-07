@@ -15,7 +15,7 @@
 | `browser/launch.py` | Playwright launch options for one project's persistent browser context. |
 | `browser/observe.py` | Passive observation: enumerate a page's controls, capture console/network |
 | `browser/secrets.py` | The credential boundary. Secret values live here and nowhere else. |
-| `browser/session.py` | One owned visible browser: scoped secrets, masked evidence and bounded actions (B5-B9). |
+| `browser/session.py` | One real, visible browser session per project. Contract: browser-and-secrets.md B5-B9. |
 | `browser/video.py` | Per-case video recording for `BrowserSession` (T-191/AT-587). |
 | `cli.py` | Command line. Every action the UI offers is available here first. |
 | `cli_crawl.py` | Crawl commands — `autotester explore` and `autotester report crawl`. |
@@ -54,6 +54,7 @@
 | `providers/gemini_schema.py` | Turn a Pydantic model into a schema Gemini's `response_schema` will accept. |
 | `providers/langchain_fallback.py` | LangChain-backed provider with automatic fallback across configured vendors. |
 | `providers/mock.py` | Deterministic provider for tests and dry runs. Never calls a network. |
+| `schema/ai_target.py` | Typed evidence and bounded read scope for deterministic AI target discovery. |
 | `schema/analysis.py` | The adjudicated result of running an ensemble over one video's chunks. |
 | `schema/approval.py` | Consent as an artifact, not a habit (D-018). |
 | `schema/base.py` | Base model every artifact inherits. Defines the shared envelope. |
@@ -91,6 +92,8 @@
 | `stages/coverage.py` | COVERAGE: diff what a run actually saw against what the FlowSpec knows. |
 | `stages/crawl_coverage.py` | What a crawl covered, stated by the crawl itself — and every hole, with its reason (V7). |
 | `stages/crawl_report.py` | The crawl, as something a human can read: an Excel workbook and the |
+| `stages/credential_files.py` | Which file names and suffixes hold credentials; they are refused without being opened. |
+| `stages/discover.py` | Inspect approved bounded file trees for deterministic, cited lexical signals. |
 | `stages/execute.py` | EXECUTE: run one case's steps in a real browser, producing a RawResult. |
 | `stages/expand.py` | EXPAND: FlowSpec -> Case[], covering every applicable CaseClass per flow. |
 | `stages/explore.py` | EXPLORE: a bounded, safety-gated BFS crawl of a (usually logged-in) app. |
@@ -119,6 +122,7 @@
 | `stages/portal_persona.py` | PORTAL PERSONA: promote per-crawl knowledge into the durable, cross-run |
 | `stages/portal_persona_view.py` | Render a `PortalPersona` as `knowledge.md` — a human-readable VIEW of the |
 | `stages/product_map.py` | PRODUCT MAP: fold every recording analysis into one navigable screen map. |
+| `stages/read_context.py` | Read approved Markdown as metadata only, never a vault graph or body corpus. |
 | `stages/report_export.py` | Tester-style run reports: an Excel summary and a screen-by-screen HTML |
 | `stages/review.py` | FlowSpec review gate: nothing generates cases from an unreviewed understanding |
 | `stages/run_budget.py` | RUN_BUDGET: the consent budget one case run spends against (AT-570/AT-660). |
@@ -127,6 +131,7 @@
 | `stages/screen_identity.py` | Screen identity: turn one `PageObservation` into a `ScreenNode`. |
 | `stages/similarity_score.py` | How two bug reports are compared for `stages/score.py`'s T-136 scorer. |
 | `stages/synthetic_values.py` | The synthetic value generator (X10-b, D-029): what the crawler types. |
+| `stages/text_lines.py` | Number lines by  |
 | `stages/video_retention.py` | T-191/AT-587 V5: keep at most the N most recent kept videos, project-wide. |
 | `store/crawl_store.py` | Crawl artifact persistence — split from `project_store.py` at the |
 | `store/filestore.py` | The one place any artifact is read from or written to disk. Contract: core-invariants.md C6. |
@@ -166,6 +171,16 @@
 <!-- generated:schema -->
 | Model | Meaning |
 |---|---|
+| `AiSignalKind` (`schema/ai_target.py`) | Observed lexical facts; never runtime claims or check selection. |
+| `AiTargetKind` (`schema/ai_target.py`) | The four positive target kinds specified by the approved T-151 plan. |
+| `Classification` (`schema/ai_target.py`) | Strict naming response; evidence and checks are never model-controlled. |
+| `AiTarget` (`schema/ai_target.py`) | Source evidence plus classification, or an explicit non-AI outcome. |
+| `Signal` (`schema/ai_target.py`) | One observed lexical fact, never a claim about runtime behavior. |
+| `ScanLimits` (`schema/ai_target.py`) | Explicit finite limits on scanning and metadata parsing. |
+| `ReadScope` (`schema/ai_target.py`) | Caller-supplied project identity and approvals; no ambient credential loading. |
+| `ReadRefusal` (`schema/ai_target.py`) | Why an input was not read, keeping incompleteness explicit. |
+| `ContextDocument` (`schema/ai_target.py`) | Markdown metadata and an unpersisted Source reference, never body text. |
+| `Discovery` (`schema/ai_target.py`) | Read-only discovery receipt; classification is a separate pending operation. |
 | `AnalysedScreen` (`schema/analysis.py`) | An `ObservedScreen` two or more models agreed on (or the one model that |
 | `AnalysedIssue` (`schema/analysis.py`) | An `ObservedIssue` after cross-model merge — `id` is stamped by |
 | `JourneyStop` (`schema/analysis.py`) | One stop in a recording's end-to-end journey — reuses `ObservedScreen`'s |
