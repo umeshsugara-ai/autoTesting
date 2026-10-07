@@ -17,7 +17,7 @@ from autotester.core.urls import screen_url_pattern
 from autotester.providers.base import Provider, load_skill_prompt
 from autotester.schema.base import Provenance
 from autotester.schema.enums import ReviewStatus, SourceKind
-from autotester.schema.flowspec import Flow, FlowSpec, Screen, SourceRef, Step
+from autotester.schema.flowspec import Flow, FlowSpec, InputField, Screen, SourceRef, Step
 from autotester.schema.media import Transcript
 from autotester.schema.observation import (
     ObservedFlow,
@@ -129,13 +129,17 @@ def _to_screen(observed: ObservedScreen, source_id: str) -> Screen:
     (I7), so a screen learned from a video and the same screen found by a crawl
     produce one row and not two. It is set only when a url was actually visible
     in the recording -- inventing one would make coverage report a gap closed
-    that nothing has seen."""
+    that nothing has seen.
+
+    `observed.fields` are the visible input LABELS (list[str]); FlowSpec wants
+    `InputField`s, so each label becomes one (`name` and `label` both the label --
+    the video shows no DOM name). Repeated labels are kept as seen, not deduped."""
     return Screen(
         id=content_id("scr", {"name": observed.name, "signals": sorted(observed.signals)}),
         name=observed.name,
         signals=observed.signals,
         url_pattern=screen_url_pattern(observed.url),
-        fields=observed.fields,
+        fields=[InputField(name=label, label=label) for label in observed.fields],
         source_ref=SourceRef(source_id=source_id, t_start=observed.t_start,
                              t_end=observed.t_end),
     )
