@@ -47,7 +47,7 @@ than an honest gap.
   attention and never hide the rest; the output names every span nobody looked at. Human oracle: the 13
   high-severity rows in `.work/pathlynks-dev-videos-oracle-2026-10-07.md`.
 - **O9** — A developer hands over a demo without a terminal: a file, a zip, or a pasted Google Drive link
-  becomes one registered source per video inside a project they are assigned to. The upload limit is an
+  becomes one registered source per video inside one of their own projects (or one they are assigned to). The upload limit is an
   admin setting (default 2 GB). A hostile or broken archive cannot write outside its staging area, and
   any member skipped or failed is listed by name with the reason. The video is ingested into the product
   knowledge graph with no human approval step (D-070 part 2).

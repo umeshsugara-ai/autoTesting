@@ -6,7 +6,7 @@
 Developers upload a video, a zip, or a pasted Google Drive link into their project and AutoTester turns each into a source. A reviewer gives timestamps and 2-3 pointers and gets a summary plus a 4-5 row confirm-list that cites the second. Failures become one tracked bug that updates on re-test and closes after passes. A project runs by button, at a fixed time, or at a custom time. Reports appear on the website and are emailed only to people who ticked the box. A video has a share link; people without access can request it; people with access comment at timestamps. Sheet sync to a team tracker is shown and confirmed before the first write.
 
 ## Not built here (other tasks own it)
-T-204: sign-up, sessions, groups, ticking permissions, user/group/assignment screens. T-203: Ubuntu deploy, run queue, concurrency setting (default 2), settings page (upload limit default 2 GB), tick timer. Group 10 calls them and does not duplicate them.
+T-204: sign-up, sessions, groups, ticking permissions, user/group/assignment screens. T-203: Ubuntu deploy, run queue, concurrency setting (default 2), settings page (upload limit default 2 GB), tick timer. Group 10 calls them and does not duplicate them. The checker's `auth.md` and `hosting.md` (D-072) already hold the permission list, default groups and the schedule, report-email and upload rows; this plan follows them.
 
 ## User types and navigation (default groups from your answer)
 - **admin (CEO/Admin):** sees everything, approves anyone. Open video -> add pointers -> Review -> read rows (4 steps). Access requests -> approve (2).

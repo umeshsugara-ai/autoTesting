@@ -57,25 +57,25 @@
 | R42 | Every source records who supplied it, when and from where (zip member or Drive id). Intake routes require a signed-in member with `video.upload` on that project | O9, O15 | must | TI10, TI11 |
 | R43 | Bug key is stable: derived from project plus the failing case/criterion (or the video issue fingerprint), never from run id, time or screenshot. The same failure across runs is one bug | O10 | must | `team-bug-loop.md` TB1 |
 | R44 | Lifecycle: `open` on first FAIL; re-fail updates last-seen and count; N consecutive PASS verdicts set `fixed`; a FAIL after `fixed` is `reopened`; blocked/inconclusive/not-run never changes state | O10 | must | TB2, TB3 |
-| R45 | In-product tracker page: bugs with status, severity, screen, assignee, first/last seen, count and evidence links; filters; assignee is a project member or free text. Visible per `tracker.view` and project scope | O10, O15 | must | TB7 |
+| R45 | In-product tracker page: bugs with status, severity, screen, assignee, first/last seen, count and evidence links; filters; assignee is a project member or free text. Visible per `report.view` and project scope | O10, O15 | must | TB7 |
 | R46 | The bug loop reads graded verdicts only (replayed runs included, D-072) and is idempotent per run id | O10, O3 | must | TB3, TB6 |
-| R47 | Tracker binding for any project: the user supplies a sheet; AutoTester reads only the header row, proposes a column mapping, marks ambiguous or missing columns `unmapped` with candidates, and activates nothing until a named user with `tracker.bind` confirms. A moved or renamed header makes the mapping `stale` | O11 | must | TB8, TB14 |
+| R47 | Tracker binding for any project: the user supplies a sheet; AutoTester reads only the header row, proposes a column mapping, marks ambiguous or missing columns `unmapped` with candidates, and activates nothing until a named user holding `project.edit` on the project confirms. A moved or renamed header makes the mapping `stale` | O11 | must | TB8, TB14 |
 | R48 | First live write is previewed as exact cells and confirmed by a named user, bound to the plan hash. Later writes only append or update rows carrying our bug key; never delete, never touch unmapped columns, never overwrite a cell a human edited since our last write (flag a conflict) | O11 | must | TB9, TB10, TB11 |
 | R49 | A sheet failure degrades, it does not fail: the in-product tracker stays authoritative, sync status and last error are visible, retries converge, no run fails because the sheet is down | O11 | must | TB12 |
 | R50 | Anything written to a sheet passes `Redactor.scrub`; screenshot links are authenticated product URLs, never public links | O7, O11 | must | TB13 |
-| R51 | Per-project schedule with three modes: **manual** (button only), **fixed** (recurring daily or weekly at a time of day, with weekdays and timezone) and **custom** (one or more date-times the user selects, each firing once). Invalid input is refused at save; a minimum-interval floor applies to fixed | O12 | must | `team-schedule.md` TS1 |
-| R52 | A slot fires exactly once even with two concurrent ticks; missed slots produce one catch-up run, not a backfill; a slot that finds the previous run still going is recorded `skipped_overlap`. The marker is atomic on Windows and Ubuntu | O12 | must | TS2, TS3, TS4 |
+| R51 | Per-project schedule with three modes (D-072 item 9; `qa/contracts/hosting.md` HO22): **manual** (button only, the default), **fixed** (one daily `HH:MM`) and **custom** (a time the user selects: a one-off date-time, or a weekly set of weekdays plus `HH:MM`). IANA timezone per schedule (default `AUTOTESTER_TIMEZONE`, else UTC), DST-correct. Invalid input (25:00, unknown zone, past one-off, empty weekday set) is refused and stores nothing. Needs `schedule.manage` on the project | O12 | must | `hosting.md` HO22 + `team-schedule.md` TS1 (proposed) |
+| R52 | A slot fires exactly once even with two concurrent ticks; a slot missed while the server was down fires at most one catch-up inside a grace window (default 60 minutes), otherwise it is recorded `missed`, never backfilled; a slot that finds the previous run still going is recorded `skipped_overlap`. The marker is atomic on Windows and Ubuntu | O12 | must | TS2, TS3, TS4 |
 | R53 | A scheduled run proceeds only on a credential-derived approval (D-068). Without a declared credential pair it is recorded `blocked_no_credentials`, sends zero requests and notifies the schedule owner | O12, O7 | must | TS5 |
 | R54 | A scheduled run uses the same launcher as a manual run and as the Test button, and records its trigger plus slot key. No second runner exists. It enters the **T-203 run queue**; it does not start browsers itself | O12 | must | TS6 |
 | R55 | A scheduler that has not ticked for two intervals is shown as stale; a crashed scheduled run is reported failed with its cause, never absent | O12, O4 | must | TS7 |
-| R56 | Test button on the project page: a signed-in member with `run.trigger` on that project enqueues a `RunRequest` attributed to them and returns at once; the status page shows queued, running, finished, failed, blocked | O13, O15 | must | `team-test-button.md` TT1-TT3 |
+| R56 | Test button on the project page: a signed-in member with `project.run` on that project enqueues a `RunRequest` attributed to them and returns at once; the status page shows queued, running, finished, failed, blocked | O13, O15 | must | `team-test-button.md` TT1-TT3 |
 | R57 | Group 10 only **enqueues**. One active run per project, the server-wide concurrency cap (an admin setting, default 2) and the queue are T-203's; this group shows the queue position and returns the existing request when the same project is already queued or running | O13 | must | TT5 (seam on T-203's queue contract) |
 | R58 | The report is shown on the website (project report and "My reports"), and also emailed to the identity that pressed the button (or to the schedule owner and subscribers) **only if that user ticked their email preference** (profile checkbox, default off). A recipient field in the request is ignored. Blocked, failed and low-coverage runs are delivered with that label | O13, O4 | must | TT7, TT8 |
 | R59 | Delivery failure is recorded and visible and never changes the run's verdict; no message carries a secret or a link that works without sign-in | O13, O7 | must | TT9 |
 | R60 | The Test button is gated exactly like a schedule: credential-derived approval, refusal text names the state, no run directory on refusal; the approval's own bounds cap each run | O13, O7 | must | TT6 |
 | R61 | Video page inside a project with a non-guessable share link that still requires sign-in. A person without access sees "request access"; the request goes to those who may approve it: the video's uploader, a sub-admin of the project, or an admin | O14 | should | `team-intake.md` TP1, TP3, TP5 |
-| R62 | Timestamped comments (second offset, text, author), visible to everyone with access; edit/delete own; a comment can be promoted to a pointer. Needs `video.comment` | O14 | should | TP2, TP6 |
-| R63 | Group 10 declares the permission keys it needs and their default group grants (catalog below) and enforces them server-side on every route through T-204's `require_permission`; the UI hiding a button is not enforcement. Visibility scopes: `all`, `assigned`, `own`, `shared` | O15 | must | TP4 |
+| R62 | Timestamped comments (second offset, text, author), visible to everyone with access; edit/delete own; a comment can be promoted to a pointer. Needs `comment.create` | O14 | should | TP2, TP6 |
+| R63 | Group 10 uses the permission keys and scopes in `qa/contracts/auth.md` (closed catalogue, scopes `all`, `assigned`, `own`, `shared`) and requests no new keys; it enforces them server-side on every route through T-204's engine. The UI hiding a button is not enforcement. A route needing an unlisted key is a contract gap to raise with the checker | O15 | must | `auth.md` AU11-AU14 + TP4 (proposed) |
 | R64 | Every Group 10 page and state-changing route requires a signed-in member. T-204 is the mechanism; Group 10 consumes its identity and permission interface and implements no login, session, group editor or sign-up | O15, O7 | must | TT1, TI10 |
 | R65 | New modules run on Windows (development) and Ubuntu (production): no POSIX-only calls, path-safety tests cover both separators and drive letters, atomic file markers use portable primitives. T-203's deploy check runs the Group 10 tests on Ubuntu | O9, O12 | must | cross-cutting criterion in each contract |
 
@@ -138,7 +138,7 @@ are confirmed types.
 | concern | owner | Group 10 does |
 |---|---|---|
 | email+password sign-up, session, logout; first account becomes admin; admin can disable/delete/change any account | **T-204** | consumes an `authenticated_user()` dependency returning `{id, email, display_name}` |
-| groups, ticking permissions, adding users to groups, assigning users to projects, the `require_permission(perm, project, resource)` check, scope evaluation (`all`, `assigned`, `own`, `shared`), the `credentials.view` permission | **T-204** | registers the permission keys below as data; calls the check on every route |
+| groups, ticking permissions, adding users to groups, assigning users to projects, the permission engine (a key plus a `ResourceRef`, scopes `all`, `assigned`, `own`, `shared`), the `credentials.view` permission | **T-204** | uses the keys below; calls the engine on every route |
 | the admin screens for users, groups and project assignment | **T-204** | none |
 | Docker/Ubuntu deploy, deploy guide, HTTPS, persistent store, Host allow-list (AT-758) | **T-203** | none |
 | run queue, one-active-run-per-project, server-wide concurrency setting (default 2), the async run request and status | **T-203** | enqueues; shows position; unit G1 extracts the one `run_launcher.py` that T-203's queue worker calls |
@@ -146,27 +146,30 @@ are confirmed types.
 | the scheduler tick driver (systemd timer on Ubuntu; Task Scheduler or manual on Windows) | **T-203** ships the timer unit | owns `autotester schedule tick` and the schedule screen |
 | video intake, review, bugs, tracker, sheet sync, schedule, Test button, report delivery (website + email preference), video share / access requests / comments | **Group 10** | everything else in R32-R65 |
 
-### Permission keys Group 10 registers, and the default groups (an admin can tick any box for any group)
+### Permission keys Group 10 uses (the closed catalogue and the default groups are `qa/contracts/auth.md`, which governs)
 
-| key | admin (CEO) | sub-admin | developer | tester |
-|---|---|---|---|---|
-| `project.view` | all projects | assigned | assigned | shared |
-| `video.view` | all videos | all in assigned | own + shared | shared |
-| `video.upload` | yes | yes | yes | - |
-| `video.comment` | yes | yes | yes | yes |
-| `video.approve_access` | anyone's | assigned projects | own videos | - |
-| `review.run` (pointers, review) | yes | yes | yes | - |
-| `run.trigger` (Test button) | yes | yes | yes | - |
-| `schedule.edit` | yes | yes | - | - |
-| `tracker.view` | yes | yes | yes | shared |
-| `tracker.bind` (sheet mapping, first write) | yes | yes | - | - |
-| `report.view` | yes | yes | yes | shared |
+Group 10 requests no new keys. Scopes: `all`; `assigned` (the user is in the project's assignees); `own` (the user created the
+project or video); `shared` (the user is in the resource's `shared_with`). Defaults, per `auth.md`: **Admin/CEO** has every key at
+`@all`; **Sub-admin** the project, report, video, access, comment and schedule keys at `@assigned`; **Developer** the same at
+`@own` plus view, report, video and comment at `@shared`; **Tester** `project.view`, `report.view`, `video.view` and
+`comment.create` at `@shared` only. An admin can tick any box for any group.
 
-Keys owned elsewhere, listed so nobody re-declares them: `users.manage`, `groups.manage`,
-`project.assign` (sub-admin: assigned projects only) and `credentials.view` (admin only by default) belong
-to T-204; `settings.manage` (admin only) belongs to T-203. A **share** grants a user one project or one
-video; a tester sees nothing else. A new account with no group sees only the sign-in and
-"waiting for access" screens.
+| Group 10 action | key | notes |
+|---|---|---|
+| open a project, its runs and library | `project.view` | a project the user may not view answers 404 |
+| watch a video | `video.view` | |
+| upload a file or zip, or paste a Drive link | `video.upload` | |
+| add or remove `shared_with` on a video or project | `video.share` | the share link needs sign-in |
+| approve an access request | `access.approve` | a developer approves only requests on their own videos (`@own`); a sub-admin in assigned projects; admin anyone |
+| comment at a timestamp | `comment.create` | |
+| press Test | `project.run` | the credential-derived approval still applies (D-068) |
+| set the schedule | `schedule.manage` | |
+| read a run report and the tracker | `report.view` | the tracker is a view of run reports |
+| run a pointer review; bind a tracker sheet | `project.edit` (plus `video.view` for review) | a tester holds neither, so cannot spend model cost or write a sheet |
+| email me reports | none (own profile) | recipient must still hold `report.view` at send time (`hosting.md` HO26) |
+
+Owned elsewhere: `users.manage`, `groups.manage`, `project.assign`, `credentials.view` and `credentials.edit` (T-204); `settings.manage`,
+`live.view` (T-204 grants, T-203 serves) . A new account with no group sees only the sign-in and "waiting for access" screens.
 
 ### `dev` (Developer group)
 - **Entry:** project Videos page ("Add videos"), or the report link for a run they pressed.
@@ -202,12 +205,12 @@ video; a tester sees nothing else. A new account with no group sees only the sig
 | G1 | Project Videos (library; Add videos: file, zip, Drive link; outcome table) | dev, subadmin, admin | F1 |
 | G2 | Video page (player, pointers box, review, comments, share link) | all with access | F2, F7 |
 | G3 | Review result (summary, confirm-list, not-reviewed spans, provenance chips) | admin, dev | F2 |
-| G4 | Tracker (bugs, filters, evidence, sync status) | per `tracker.view` | F3 |
+| G4 | Tracker (bugs, filters, evidence, sync status) | per `report.view` | F3 |
 | G5 | Tracker settings (sheet link, mapping proposal, first-write preview) | subadmin, admin | F4 |
 | G6 | Schedule card and history (manual / fixed / custom) | subadmin, admin | F5 |
 | G7 | Project page with Test button and run status | dev, subadmin, admin | F6 |
 | G8 | My reports (website inbox) with the "email me reports" checkbox | all | F6 |
-| G9 | Access requests (approve or decline, per `video.approve_access`) | dev (own), subadmin, admin | F7 |
+| G9 | Access requests (approve or decline, per `access.approve`) | dev (own), subadmin, admin | F7 |
 
 Users, groups and project assignment (T-204) and Settings (T-203) are those units' screens, not G-screens.
 
