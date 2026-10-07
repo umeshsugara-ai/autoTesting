@@ -7,36 +7,36 @@
 **Persona walk:** skip (backend-only: no human screen; Track C below-the-UI discovery)
 **Issues addressed:** none
 **Executor:** claude-sonnet-subagent
-**Executor rationale:** plan-review fixes applied by a maker subagent in the t151 worktree; no external executor worthy.
+**Executor rationale:** gate answered; merge of master + manifest close-out by a maker subagent in the t151 worktree; no external executor worthy.
 
 ## What changed
 - src/autotester/schema/ai_target.py (new, 122 lines) — Signal/ReadScope/ScanLimits/Classification models, all `extra="forbid"` (authorized by D-017 What).
 - src/autotester/stages/discover.py (new, 287) — deterministic scan with file:line signals; `classify_target` names the kind through `Provider.act` (D-017: model names, never chooses checks).
 - src/autotester/stages/read_context.py (new, 147) — Markdown frontmatter+tags only; no backlink graph, no Dataview, no vault-index library.
-- src/autotester/prompts/ai_target_classify_v1.md (new, 7) — classify prompt file. **Not yet authorized on disk.**
-- src/autotester/providers/mock.py:55-70 — `act` hunk only (deterministic Classification when no response is queued). Unrelated signature reflow reverted. **Not yet authorized on disk.**
-- pyproject.toml / uv.lock — `pyyaml==6.0.3`. **Not yet authorized on disk.**
+- src/autotester/prompts/ai_target_classify_v1.md (new, 7) — classify prompt file. Authorized by D-065 (Approved-by Umesh).
+- src/autotester/providers/mock.py:55-70 — `act` hunk only (deterministic Classification when no response is queued). Unrelated signature reflow reverted. Authorized by D-065 (Approved-by Umesh).
+- pyproject.toml / uv.lock — `pyyaml==6.0.3`. Authorized by D-065 (Approved-by Umesh).
 - tests/test_discover.py (new, 300) — 63 cases; SIM105 fixed with `contextlib.suppress`.
 - Removed from this branch as non-T-151: D-061 (AT-113) and F-067 (T-171) hunks; docs/DECISIONS.md and docs/FEATURES.jsonl now equal master bd2fe8f4.
 
 ## Verification scope
 Policy-Version: proportional-verification/2026-10-06.6
 Tier: L (dependency bump + credential, path-escape and approval boundary)
-Base / checked state: master bd2fe8f4 + branch codex/t151-target-discovery HEAD (re-bind SHA and dirty diff hash at Mode A)
-Gate answers: OPEN HUMAN_GATE `qa/gates/t151-dependency-authorization.md` (on master): pyyaml dependency, prompt file, mock.py `act` hunk. Required change 3 (DECISIONS entry) waits on the answer. No ready-for-check until it is answered.
+Base SHA: master 2fae2504 (merged into the branch). Checked state: branch codex/t151-target-discovery HEAD at ready-for-check (re-bind SHA and dirty diff hash at Mode A)
+Gate answers (qa/gates/t151-dependency-authorization.md, verbatim): "Answered: 2026-10-07T01:34:13Z — A — chat (Umesh): approve all three (pyyaml==6.0.3, the target-discovery prompt file, the mock.py act hunk). DECISIONS entry to follow." Recorded as D-065 (docs/DECISIONS.md, Approved-by Umesh); Changes-authorized: pyproject.toml / uv.lock (pyyaml==6.0.3) · src/autotester/prompts/ai_target_classify_v1.md (the T-151 target-discovery prompt file) · src/autotester/providers/mock.py `act` hunk.
 Affected tests / full-suite trigger: tests/test_discover.py only (63). The builder runs no full suite; the checker decides on the full-suite trigger (new dependency touches uv.lock).
-Metrics: start=2026-10-07T00:00:00Z end=2026-10-07T00:30:00Z wall_min=30 agent_min=unavailable blocked_min=0 suite_runs=0 repeat_runs=0 mutations=0 cycle=1 resumes=0 tokens=unavailable policy=2026-10-06.6
+Metrics: start=2026-10-07T02:00:00Z end=2026-10-07T02:25:00Z wall_min=25 agent_min=unavailable blocked_min=0 suite_runs=0 repeat_runs=0 mutations=1 cycle=1 resumes=0 tokens=unavailable policy=2026-10-06.6
 
 ## How to verify (commands + expected)
 - `uv run ruff check src tests scripts` → expected: All checks passed
 - `uv run pytest tests/test_discover.py` → expected: 63 passed
-- `uv run autotester doctor` → expected: no T-151 violation (8 violations are pre-existing on master bd2fe8f4: D-061 cited by AT-733/AT-113/SNAPSHOT docs whose entry is only in root's uncommitted tree, ledger-row-missing T-171, stale SNAPSHOT)
+- `uv run autotester doctor` → expected: `doctor: clean`
 - `grep -rniE obsidian pyproject.toml` → expected: no output, exit 1
 
 ## Actual outputs (from maker's own run, 2026-10-07)
 - ruff: `All checks passed!`
 - pytest tests/test_discover.py: `63 passed in 0.99s`
-- doctor: `8 violation(s)`, none in T-151 files (cap check: discover.py 287, read_context.py 147, ai_target.py 122, test_discover.py 300 lines).
+- doctor (after `autotester map`): `doctor: clean`. Earlier on bd2fe8f4 it reported 8 pre-existing violations, none in T-151 files (cap check: discover.py 287, read_context.py 147, ai_target.py 122, test_discover.py 300 lines).
 - obsidian grep: no output, exit=1.
 
 ## Capability coverage (each new claim -> its isolating falsification)
@@ -53,8 +53,8 @@ Falsification evidence is reused from independent checker runs (no new mutation 
 | C5 / approval | signed READ approval and scope preflight before any file open | test_all_roots_are_preflighted_before_any_open; test_denial_class_and_formatted_chain_are_safe | disable scope preflight; approval-exception sanitation | scope-preflight KILLED (cycle1); approval-exception KILLED (repair-results.json, 77 baseline -> restored 77) |
 | C5 / bounds | physical read budget and final deadline are visible, never silent | test_rejected_files_still_consume_physical_read_budget; test_final_parser_overrun_is_not_complete | disable physical-byte accounting; disable final deadline (scan and context) | physical-budget, scan-final-deadline, context-final-deadline all KILLED |
 | C5 / YAML | alias, depth and node bombs refused; safe_load only | test_unsafe_or_excessively_nested_yaml_is_refused; test_noncyclic_alias_exact_refusal | delete AliasEvent detection | alias-independent-results.json: baseline pass -> 1 failed -> restored pass (initial cycle1 run INCONCLUSIVE, superseded by this isolated proof) |
-| C5 / path-escape | symlink and junction escape refused | test_symlink_escape_is_refused | none run | UNVERIFIED -- native symlink/junction escape mutation not run (verdict matrix marks it UNPROVEN) because the mutation needs a real reparse point; carried to Mode A, no issue id yet |
-| (dependency) | pyyaml==6.0.3 is the only new dependency | pyproject.toml:26 | n/a | HUMAN_GATE open (qa/gates/t151-dependency-authorization.md) |
+| C5 / path-escape | symlink and junction escape refused | test_symlink_escape_is_refused | in `discover.py` replace the `not resolved.is_relative_to(root) or REPARSE_POINT` refusal condition with `False` | baseline `2 passed` (symlink + junction nodes) -> KILLED `2 failed` (assertion at tests/test_discover.py:104) -> restored `2 passed`; throwaway copy, node `tests/test_discover.py::test_symlink_escape_is_refused` |
+| (dependency) | pyyaml==6.0.3 is the only new dependency | pyproject.toml:26 | n/a | authorized by D-065; `grep -n pyyaml pyproject.toml` -> `26:    "pyyaml==6.0.3",` |
 
 ## Live browser evidence
 Not UI-touching — no surface changed (src/autotester/schema/ai_target.py, stages/discover.py, stages/read_context.py, prompts/ai_target_classify_v1.md, providers/mock.py, tests/test_discover.py, pyproject.toml). Discovery reads local Markdown and code files only; no browser, network or live model.
@@ -62,4 +62,4 @@ Not UI-touching — no surface changed (src/autotester/schema/ai_target.py, stag
 ## Evidence kept / removed
 Kept: results.json per run, probe/mutation scripts, native-tool-receipt.md and the verdicts. Removed (git rm, commit e7033787): 87 raw per-test XML/txt dumps from the four t151-* evidence directories.
 
-## Status: building
+## Status: ready-for-check
