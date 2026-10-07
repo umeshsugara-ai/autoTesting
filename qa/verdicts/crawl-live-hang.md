@@ -29,3 +29,5 @@ Both cycle-0 criteria are met. Only these two were re-checked, plus the AT-803 i
 AT-803 is the id in qa/issues.jsonl (feature crawl-live-hang, status open) and throughout the manifest's cycle-1 section; AT-787 remains only as T-178's own row on master and as the historical note in the manifest. The cycle-0 commit message still says AT-787 (disclosed by the maker, not rewritable). Close-out of the AT-803 row (status/verified_date) is the maker's/ledger step, not touched here.
 
 Metrics: start=2026-10-07T15:20:00Z end=2026-10-07T15:30:00Z wall_min=10 agent_min=unavailable blocked_min=0 suite_runs=0 repeat_runs=1 mutations=2 cycle=1 resumes=0 tokens=unavailable policy=proportional-verification/2026-10-07.7
+
+Issue id renumbered AT-803 → AT-809 (collision), 2026-10-07

@@ -73,3 +73,5 @@ uv run autotester doctor
 - Chromium close taking 1-2 minutes on this host is an environment problem (sibling sessions' browsers, CPU load), not diagnosed further.
 
 Metrics: start=2026-10-07T13:00:00Z end=2026-10-07T14:25:00Z wall_min=85 agent_min=unavailable blocked_min=0 suite_runs=0 repeat_runs=5 mutations=3 cycle=0 resumes=1 tokens=unavailable policy=proportional-verification/2026-10-07.7
+
+Issue id renumbered AT-803 → AT-809 (collision), 2026-10-07
