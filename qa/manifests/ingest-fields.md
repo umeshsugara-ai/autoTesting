@@ -47,4 +47,4 @@ Metrics: start=2026-10-07T04:50:00Z end=2026-10-07T05:00:00Z wall_min=10 agent_m
 ## Live browser evidence
 Not UI-touching — stages/ingest.py, tests/test_ingest.py
 
-## Status: ready-for-check
+## Status: checked-PASS (cycle 0, qa/verdicts/ingest-fields.md)
