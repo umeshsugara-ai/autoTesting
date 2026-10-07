@@ -15,3 +15,5 @@ The full suite gave the same result for both checkers: 4 failed, 2286 passed. Al
 **Recommendation:** A. It costs one test and one checker run, and keeps the dual check honest.
 
 **Answer format:** "t151: A", "t151: B" or "t151: C".
+
+Answered: 2026-10-07T06:34:21Z — A — chat (Umesh): one narrow extra cycle, add the scan-path deadline test only; repair checker B re-runs X17.

@@ -4,15 +4,15 @@
   "north_star": "A reusable AI testing platform where an operator submits any project URL, domain-scoped test-account credential references, and optional evals, conditions, use cases, video, audio, documents, text, email or Google Drive sources. AutoTester learns from supplied evidence or logs in and performs bounded breadth-first exploration, preserves a durable Portal Persona, compiles traceable best/worst/edge evals, reruns them after developer releases in a real visible browser, and reports workflow/API regressions through clear HTML, Excel, text and screenshots. First acceptance targets: Vidysea ERP and Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-10-07T11:48:25",
+  "updated": "2026-10-07T12:17:40",
   "progress": {
-    "total": 87,
+    "total": 90,
     "done": 59,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 28,
+    "pending": 31,
     "current": "T-122",
-    "percent": 68
+    "percent": 66
   },
   "tasks": [
     {
@@ -1208,7 +1208,7 @@
         "cmd": "uv run pytest tests/test_cli_mcp.py",
         "expect_exit": 0
       },
-      "note": "D-041; competitor F + Umesh MCP ask.",
+      "note": "D-041; competitor F + Umesh MCP ask. | D-071: Umesh approved the mcp SDK dependency ('mcp: haan'); CLI stays a first-class surface alongside MCP.",
       "attempts": 0,
       "created": "2026-09-24T17:37:32",
       "user_value": "high"
@@ -1656,7 +1656,7 @@
         "cmd": "uv run python scripts/check_deliverable.py --exists qa/verdicts/t-199-team-loop.md",
         "expect_exit": 0
       },
-      "note": "Group 10 'Team loop' (Umesh 2026-10-07: top priority, ahead of groups 5-9). Maker PLAN gate first: intent -> /grill -> spec -> plan -> qa/gates/plan-approved.md. Plan: C:/Users/Lenovo/.claude/plans/hello-hello-hello-resilient-reddy.md. Tracker sheet 1JvSez… (full id in .work/google-ids-private.md). Outward-facing team-sheet write => HUMAN_GATE before first live write; column mapping agreed with Umesh/Mamta.",
+      "note": "Group 10 'Team loop' (Umesh 2026-10-07: top priority, ahead of groups 5-9). Maker PLAN gate first: intent -> /grill -> spec -> plan -> qa/gates/plan-approved.md. Plan: C:/Users/Lenovo/.claude/plans/hello-hello-hello-resilient-reddy.md. Tracker sheet 1JvSez… (full id in .work/google-ids-private.md). Outward-facing team-sheet write => HUMAN_GATE before first live write; column mapping agreed with Umesh/Mamta. | WIDENED (D-071): generic for any project -- when a user supplies a tracker sheet for a project, the first run proposes a column mapping (title, severity, screen/page, status, assignee, date, screenshot link) and shows it to the user for confirmation; the first live write to that sheet is shown and confirmed before it happens; mapping stored per project.",
       "criticality": "high"
     },
     {
@@ -1689,6 +1689,41 @@
         "expect_exit": 0
       },
       "note": "Group 10 'Team loop' (Umesh 2026-10-07: top priority, ahead of groups 5-9). Maker PLAN gate first: intent -> /grill -> spec -> plan -> qa/gates/plan-approved.md. Plan: C:/Users/Lenovo/.claude/plans/hello-hello-hello-resilient-reddy.md. Prerequisite AT-570: ui/routes_runs.py::trigger_run checks no RunApproval today; close it first or the button is an unapproved run path.",
+      "criticality": "high"
+    },
+    {
+      "id": "T-202",
+      "title": "Any-model provider: LiteLLM-backed Provider (Gemini, Anthropic, OpenAI, Ollama/local, any OpenAI-compatible) behind providers.base.Provider, chosen per project/role by config (D-071)",
+      "status": "pending",
+      "deps": [],
+      "base_criticality": "high",
+      "user_value": "high",
+      "done_check": "A project can switch its model to Gemini, Claude, an OpenAI model or a local Ollama model by config alone, with no code change; the mock-provider suite and one real-provider smoke pass through the same seam; redaction gate (assert_no_raw_secrets) still runs before every call.",
+      "note": "D-071: Umesh -- 'kisi bhi AI ki API se chala paaye, Gemini ya Ollama ya kuch bhi'. LiteLLM is the portable-core choice in the agentic-architecture standard; LangChain stays where it already is (langchain_fallback). New dependency litellm authorized by D-071 in this unit only.",
+      "criticality": "high"
+    },
+    {
+      "id": "T-203",
+      "title": "Hosted website: AutoTester UI runs on a Linux/Ubuntu server for the Vidysea internal development and product teams (Docker image, service, HTTPS, persistent project store, AUTOTESTER_ALLOWED_ORIGINS set to the server URL) (D-071)",
+      "status": "pending",
+      "deps": [
+        "T-204"
+      ],
+      "base_criticality": "high",
+      "user_value": "high",
+      "done_check": "A team member opens the server URL in a browser, signs in, onboards a project and runs a case; data survives a restart; the Origin/CSRF guard is configured for the server origin; no secret value is baked into the image.",
+      "note": "D-071: Umesh -- 'abhi vidysea ki internal development team aur product team ke paas chalega, host properly website mai hoga', Linux/Ubuntu server. Server/host choice and DNS are a HUMAN_GATE before the first deploy.",
+      "criticality": "critical"
+    },
+    {
+      "id": "T-204",
+      "title": "Team login for the hosted UI: every page and API route requires an authenticated Vidysea team member before go-live; role-based authorization stays a later unit (D-066, D-070)",
+      "status": "pending",
+      "deps": [],
+      "base_criticality": "high",
+      "user_value": "high",
+      "done_check": "An unauthenticated request to any UI page or state-changing route is refused; a signed-in team member gets through; credentials/sessions never appear in logs.",
+      "note": "D-066 noted real auth is required once the UI leaves localhost; D-070 makes it a go-live blocker. Mechanism (simple team password vs Google sign-in limited to the company domain) is a HUMAN_GATE.",
       "criticality": "high"
     }
   ],
@@ -2052,6 +2087,27 @@
       "message": "T-201 needs review (high)",
       "task_id": "T-201",
       "acked": false
+    },
+    {
+      "ts": "2026-10-07T12:08:47",
+      "level": "warn",
+      "message": "T-202 needs review (high)",
+      "task_id": "T-202",
+      "acked": false
+    },
+    {
+      "ts": "2026-10-07T12:08:47",
+      "level": "critical",
+      "message": "T-203 is CRITICAL — human required",
+      "task_id": "T-203",
+      "acked": false
+    },
+    {
+      "ts": "2026-10-07T12:08:47",
+      "level": "warn",
+      "message": "T-204 needs review (high)",
+      "task_id": "T-204",
+      "acked": false
     }
   ],
   "preferences": {
@@ -2061,8 +2117,8 @@
   },
   "analytics": {
     "velocity_per_day": 1.55,
-    "eta_days": 18.1
+    "eta_days": 20.0
   },
-  "last_deterministic_tick": "2026-10-07T11:48:25",
+  "last_deterministic_tick": "2026-10-07T12:17:40",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }

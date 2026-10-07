@@ -2132,3 +2132,37 @@ folded in by `/checker`.
 **Approved-by:** Umesh — chat 2026-10-07 (answers to the five asks).
 
 **Links:** T-125; T-165; T-166; T-197; T-198; T-199; T-200; T-201; D-007; D-053; D-067; D-068; AT-113.
+
+## D-071 | 2026-10-07 | type: decision | status: ACTIVE
+
+**What:** Gate answers and go-live direction from Umesh. (1) t151: A, one narrow extra cycle (one
+scan-path deadline test; repair checker B only). (2) ct6: A, CT6 is amended to tier ordering and
+reporting, not skipping: every case runs, cheapest tier first, cheap failures shown first. RU3 and
+F-058 are unchanged. (3) T-174: the `mcp` SDK dependency is authorized. The CLI stays a first-class
+surface next to MCP. (4) Any-model provider: model calls must work with any AI API (Gemini, Claude,
+OpenAI, local Ollama, any OpenAI-compatible endpoint), chosen by config. New task T-202 adds a
+LiteLLM-backed Provider behind `providers.base.Provider`, and `litellm` is authorized in that unit.
+LangChain stays where it is already used. (5) T-199 widened: a generic tracker integration for any
+project, with a per-project column mapping proposed on first use and confirmed by the user, and the
+first live write shown and confirmed. (6) Go-live: AutoTester is hosted as a website on a
+Linux/Ubuntu server for the Vidysea internal development and product teams. New tasks T-203
+(hosting) and T-204 (team login, a go-live blocker; role-based authorization stays later).
+
+**Why:** Umesh, chat 2026-10-07: "mcp: haan … CLI bhi"; "kisi bhi AI ki API se chala paaye, Gemini ya
+Ollama ya kuch bhi"; "jab user dega kisi bhi project ke liye tracker tab usko"; "abhi Vidysea ki
+internal development team aur product team ke paas chalega, host properly website mai hoga". A
+server-hosted UI without login would let anyone with the URL run tests through the provisioned
+test account, so team login is required before go-live (D-066 already flagged it).
+
+**Result:** gate answers recorded in qa/gates/t151-cycle2-stalled.md and
+qa/gates/t125-ct6-tiered-dispatch-vs-ru3.md. goal.json gains T-202, T-203 and T-204, and the T-199 and
+T-174 notes are updated. No product code changed by this entry.
+
+**Changes-authorized:** qa/contracts/catalog.md CT6 (checker-owned amendment to ordering and
+reporting) · pyproject.toml / uv.lock: `mcp` (T-174) and `litellm` (T-202) · .goal/goal.json
+(T-202..T-204 added, T-174 and T-199 notes) · tests/test_discover_hardening.py on
+codex/t151-target-discovery (one test).
+
+**Approved-by:** Umesh — chat answers 2026-10-07.
+
+**Links:** T-151; T-125; T-174; T-199; T-202; T-203; T-204; D-066; D-068; qa/gates/t151-cycle2-stalled.md; qa/gates/t125-ct6-tiered-dispatch-vs-ru3.md.
