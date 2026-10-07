@@ -27,6 +27,7 @@ EXECUTOR: claude (checker: claude-sonnet-subagent)
 VERDICT: PASS
 SCOREBOARD: 4/4 ruling checks met (default identical, clamp, no weakening, synthetic regression), 3/3 invariants hold (no src import, no conftest edit, ratio guard + 15 s ceiling intact)
 EXPLANATION: Every bound equals its original at scale 1.0, the clamp and fallback are as ruled, and nothing but a multiplier was added. A ~10x slower redact scan is red at scale 1, unset and 2 (10.4 s vs the 6 s scaled bound); timing-only flakes at scale 1 pass at scale 2. Full suite not run (policy .7); full-suite trigger: none, pre-push check covers the merged head.
+Post-rebase run (head after rebase onto origin/master d4c369b0..6f351e11, scale 2, loaded host): 60 passed, 2 failed - test_mc_sessionstart_loop_status healthy/unhealthy hook tests, caused by the hook's own fixed 15 s loop-status timeout (qa/hooks/mc-sessionstart.ps1:137-141), not by any scaled bound; hook run directly printed 'loop-status: no gaps'. Timing-only host-load, not a FAIL; filed AT-772 (low).
 Wording row (low, not a FAIL): the wrap_perf message prints `{bound:g}s`; no action.
 
 Metrics: start=2026-10-07T11:23:00Z end=2026-10-07T11:52:00Z wall_min=29 agent_min=unavailable blocked_min=0 suite_runs=0 repeat_runs=0 mutations=1 cycle=0 resumes=0 tokens=unavailable policy=proportional-verification/2026-10-07.7
