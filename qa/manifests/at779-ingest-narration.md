@@ -1,6 +1,6 @@
 # Manifest — at779-ingest-narration
 
-**Status:** ready-for-check
+**Status:** checked-PASS
 **Fix cycle:** 0
 **Policy-Version:** proportional-verification/2026-10-07.7
 **Tier:** S
