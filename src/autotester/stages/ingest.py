@@ -22,6 +22,7 @@ from autotester.schema.media import Transcript
 from autotester.schema.observation import (
     ObservedFlow,
     ObservedScreen,
+    ObservedStep,
     VideoObservation,
     VisionOptions,
 )
@@ -145,23 +146,38 @@ def _to_screen(observed: ObservedScreen, source_id: str) -> Screen:
     )
 
 
+def flow_id(name: str, source_id: str) -> str:
+    """A video flow's id: its name AND the recording it came from (reconcile RC8).
+    Name-only ids made two recordings' "Login" flows one id, and `_new_flows`
+    silently dropped the second."""
+    return content_id("flow", {"name": name, "source": source_id})
+
+
+def legacy_flow_id(name: str) -> str:
+    """The pre-RC8 name-only id; saved specs keep it, `merge_flowspec` recognises it."""
+    return content_id("flow", {"name": name})
+
+
+def _to_step(s: ObservedStep, source_id: str, screen_ids: dict[str, str]) -> Step:
+    """One observed action, keeping the evidence of intent (RC2): the presenter's
+    words, the visible text, and the screen it happened on (RC1). A screen name no
+    screen carries stays `None` -- reconcile reports it, nothing guesses it."""
+    return Step(
+        order=s.order, action=s.action, target=s.target, value=s.value,
+        source_ref=SourceRef(source_id=source_id, t_start=s.t_start, t_end=s.t_end),
+        screen_id=screen_ids.get(s.screen) if s.screen else None,
+        narration=s.narration or None, on_screen_text=s.on_screen_text or None,
+    )
+
+
 def _to_flow(observed: ObservedFlow, source_id: str, screen_ids: dict[str, str]) -> Flow:
-    steps = [
-        Step(
-            order=s.order,
-            action=s.action,
-            target=s.target,
-            value=s.value,
-            source_ref=SourceRef(source_id=source_id, t_start=s.t_start, t_end=s.t_end),
-        )
-        for s in observed.steps
-    ]
-    entry_screen = screen_ids.get(observed.entry_screen, observed.entry_screen)
+    exit_name = observed.exit_screen or None
     return Flow(
-        id=content_id("flow", {"name": observed.name}),
+        id=flow_id(observed.name, source_id),
         name=observed.name,
-        entry_screen=entry_screen,
-        steps=steps,
+        entry_screen=screen_ids.get(observed.entry_screen, observed.entry_screen),
+        exit_screen=screen_ids.get(exit_name, exit_name) if exit_name else None,
+        steps=[_to_step(s, source_id, screen_ids) for s in observed.steps],
     )
 
 
@@ -264,14 +280,20 @@ def ingest_video(
     observation = provider.see_video(Path(source.path), prompt, VideoObservation, options,
                                       prompt_file=SKILL_NAME, fed_id=source.id)
 
+    return flowspec_from_observation(observation, source.id, project_slug)
+
+
+def flowspec_from_observation(observation: VideoObservation, source_id: str,
+                              project_slug: str) -> FlowSpec:
+    """A vision reading as a fresh FlowSpec: ids minted, provenance attached. Pure --
+    no provider, no disk -- so reconcile's frozen fixture runs the same mapping."""
     screen_ids: dict[str, str] = {}
     screens: list[Screen] = []
     for observed in observation.screens:
-        screen = _to_screen(observed, source.id)
+        screen = _to_screen(observed, source_id)
         screen_ids.setdefault(observed.name, screen.id)
         if screen.id not in {s.id for s in screens}:  # AT-034: same screen named twice -> one row
             screens.append(screen)
-    flows = [_to_flow(f, source.id, screen_ids) for f in observation.flows]
-
+    flows = [_to_flow(f, source_id, screen_ids) for f in observation.flows]
     return FlowSpec(project=project_slug, screens=screens, flows=flows,
-                    source_ids=[source.id], app_overview=observation.summary)
+                    source_ids=[source_id], app_overview=observation.summary)
