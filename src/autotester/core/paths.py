@@ -110,6 +110,10 @@ class ProjectPaths:
     def run_dir(self, run_id: str) -> Path:
         return self.runs_dir / run_id
 
+    def bundles_dir(self, run_id: str) -> Path:
+        """Where a run's failure bundles live (T-178); each is one directory."""
+        return self.run_dir(run_id) / "bundles"
+
     def run_trace(self, run_id: str) -> Path:
         """The redacted per-run trace (D-041 phase 1, RT1) -- `trace_id`
         equals `run_id`, never re-minted (RT2)."""
