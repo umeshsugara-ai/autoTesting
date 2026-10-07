@@ -4,7 +4,7 @@ Contract: qa/contracts/core-invariants.md (no assertion removed; C2 file/functio
 Goal task: none (suite health, blocks other units' checkers)
 Policy-Version: proportional-verification/2026-10-07.7
 Fix cycle: 1
-Status: ready-for-check
+Status: checked-PASS
 Tier: L - protected test change (a skip precondition is now cached once per file; a watchdog wraps the crawl).
 Base: a77ed746b37b31d6777f9e56f362474acfcd5c83 (origin/master), branch wave/crawl-live-hang
 Source: see `git log wave/crawl-live-hang -1` (the commit that adds this manifest)
