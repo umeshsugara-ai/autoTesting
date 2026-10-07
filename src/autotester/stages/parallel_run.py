@@ -172,7 +172,7 @@ def _run_one(
 
 def run_cases(
     cases: list[Case], plan: ParallelPlan, session_factory: SessionFactory, run_fn: RunFn,
-    *, approval: RunApproval,
+    *, approval: RunApproval, budget: RunBudget | None = None,
 ) -> list[RawResult]:
     """Run `cases` at concurrency `plan.n` (PR1/PR3: `n=1` is exactly the
     serial baseline PR4/PR5 compare against -- one function, two widths, not
@@ -185,7 +185,9 @@ def run_cases(
     reached an unbounded run by passing nothing, and the one production caller
     (`ui/run_execution.py`) did exactly that. With no default there is nothing
     to omit, so a future caller cannot re-acquire unlimited by silence."""
-    budget = RunBudget(approval)
+    if budget is None:
+        budget = RunBudget(approval)
+    budget.require_approval(approval)
     n = max(1, plan.n)
     with ThreadPoolExecutor(max_workers=n) as pool:
         futures = [pool.submit(_run_one, case, session_factory, run_fn, budget) for case in cases]

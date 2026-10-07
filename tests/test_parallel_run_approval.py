@@ -164,3 +164,13 @@ def test_pr7_run_budget_try_consume_is_thread_safe_under_race() -> None:
         t.join()
 
     assert (accepted, budget.actions_used) == (50, 50)
+
+
+def test_budget_owns_a_snapshot_of_its_approval_not_the_callers_live_object() -> None:
+    """CN10/D-018: a caller widening its own `RunApproval` after the budget was
+    built must not widen the budget (the shared budget is the single bound)."""
+    approval = _approval(max_actions=2)
+    budget = RunBudget(approval)
+    approval.max_actions = 10_000
+    assert budget.try_consume(actions=2) is True
+    assert budget.try_consume(actions=1) is False

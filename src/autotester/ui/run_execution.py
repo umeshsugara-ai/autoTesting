@@ -24,6 +24,7 @@ from autotester.schema.project import Project
 from autotester.schema.run import RawResult
 from autotester.schema.verdict import Verdict
 from autotester.stages.parallel_run import ParallelPlan, default_session_factory, run_cases
+from autotester.stages.run_budget import RunBudget, action_cost
 from autotester.stages.run_case_pipeline import (
     grade_errored_result,
     run_and_grade_case_resilient,
@@ -54,7 +55,7 @@ def _run_and_grade_resilient(
 
 def _run_entry_case(
     case: Case, project: Project, secrets: SecretStore, run_dir: Path, slug: str,
-    judge: LangChainFallbackProvider, run_id: str, store: ProjectStore,
+    judge: LangChainFallbackProvider, run_id: str, store: ProjectStore, budget: RunBudget,
 ) -> tuple[RawResult, Verdict]:
     """A dedicated, wiped-before-every-run profile so an entry-screen case is
     always exercised from a genuinely logged-out state -- order- and
@@ -63,6 +64,10 @@ def _run_entry_case(
     AT-577 cycle 2: shares `run_dir` with the shared session; unprefixed,
     both number screenshots from 01 and collide. `evidence_prefix = case.id`
     (AT-572's mechanism) nests this case's files under `run_dir/<case.id>/`."""
+    if not budget.try_consume(actions=action_cost(case)):
+        result = RawResult(case_id=case.id, outcome=Outcome.ERRORED,
+                           error="run budget exhausted before this case could start")
+        return result, grade_errored_result(case, result, judge, run_id, store)
     entry_paths = ProjectPaths(f"{slug}-entry-test")
     shutil.rmtree(entry_paths.profile_dir, ignore_errors=True)
     session = BrowserSession(project, secrets, run_dir, entry_paths, record_video=True)
@@ -77,54 +82,40 @@ def _run_entry_case(
 def _run_cases_serially(
     cases: list[Case], entry_flags: list[bool], project: Project, secrets: SecretStore,
     run_dir: Path, paths: ProjectPaths, slug: str, judge: LangChainFallbackProvider,
-    run_id: str, store: ProjectStore,
+    run_id: str, store: ProjectStore, budget: RunBudget,
 ) -> None:
-    """`plan.n <= 1` (the default, AT-562/PR1): one shared session reused
-    across every non-entry case (login continuity across the whole run), one
-    dedicated wiped profile per entry case (AT-044). Not routed through
-    `run_cases`: that module's contract starts and closes one session per
-    case (PR2's isolation), which would tear down this shared session after
-    the first case.
+    """One tier: dedicated entries finish before its shared normal session starts.
 
-    AT-574: each case goes through `_run_and_grade_resilient` -- before this
-    fix, a grader/provider exception, or a `run_case` crash, propagated
-    straight out of this loop, 500ing `trigger_run` before the remaining
-    cases ran or the `Run` record was saved. Now a crash is reported as that
-    case's own result+verdict and the loop, and the run, continue.
-
-    AT-576: every entry case runs to completion first -- its own dedicated
-    session, started and closed by `_run_entry_case` -- BEFORE the shared
-    session below ever starts (same order `_run_cases_in_parallel` uses).
-    Starting the shared session first and only THEN hitting an entry case
-    used to start a SECOND sync Playwright driver on this thread while the
-    shared one was still live -- Playwright raises "Sync API inside the
-    asyncio loop" the moment that happens, 500ing the whole run. Entry
-    cases first, one shared session started once, never nests two."""
-    for case, is_entry in zip(cases, entry_flags, strict=True):
-        if not is_entry:
-            continue
-        result, verdict = _run_entry_case(case, project, secrets, run_dir, slug, judge, run_id,
-                                          store)
-        store.save_result(run_id, result)
-        store.save_verdict(run_id, verdict)
-
+    Each admitted normal case reserves once. A tier's shared driver closes before
+    the next tier can open an entry driver; persistent profile files retain continuity.
+    Exhausted cases persist their own deterministic error verdict without a browser.
+    """
+    entry_cases = [c for c, flag in zip(cases, entry_flags, strict=True) if flag]
+    _run_entry_cases(entry_cases, project, secrets, run_dir, slug, judge, run_id, store, budget)
     normal_cases = [c for c, is_entry in zip(cases, entry_flags, strict=True) if not is_entry]
-    if not normal_cases:
-        return
-    session = BrowserSession(project, secrets, run_dir, paths, record_video=True)
-    session.start()
+    session: BrowserSession | None = None
     try:
         for case in normal_cases:
-            result, verdict = _run_and_grade_resilient(case, session, judge, run_id, store)
+            if not budget.try_consume(actions=action_cost(case)):
+                result = RawResult(case_id=case.id, outcome=Outcome.ERRORED,
+                                   error="run budget exhausted before this case could start")
+                verdict = grade_errored_result(case, result, judge, run_id, store)
+            else:
+                if session is None:
+                    session = BrowserSession(project, secrets, run_dir, paths, record_video=True)
+                    session.start()
+                result, verdict = _run_and_grade_resilient(case, session, judge, run_id, store)
             store.save_result(run_id, result)
             store.save_verdict(run_id, verdict)
     finally:
-        session.close()
+        if session is not None:
+            session.close()
 
 
 def _run_entry_cases(
     entry_cases: list[Case], project: Project, secrets: SecretStore, run_dir: Path,
     slug: str, judge: LangChainFallbackProvider, run_id: str, store: ProjectStore,
+    budget: RunBudget,
 ) -> None:
     """The serial entry-case leg of a parallel run: each entry case keeps its
     dedicated wiped profile (AT-044) and they always run one at a time, before
@@ -133,7 +124,7 @@ def _run_entry_cases(
     it carries is asserted by `tests/test_ui_runs_serial_entry_order.py`."""
     for case in entry_cases:
         result, verdict = _run_entry_case(case, project, secrets, run_dir, slug, judge, run_id,
-                                          store)
+                                          store, budget)
         store.save_result(run_id, result)
         store.save_verdict(run_id, verdict)
 
@@ -141,7 +132,7 @@ def _run_entry_cases(
 def _run_cases_in_parallel(
     cases: list[Case], entry_flags: list[bool], plan: ParallelPlan, project: Project,
     secrets: SecretStore, run_dir: Path, slug: str, judge: LangChainFallbackProvider,
-    run_id: str, store: ProjectStore, approval: RunApproval,
+    run_id: str, store: ProjectStore, approval: RunApproval, budget: RunBudget,
 ) -> None:
     """`plan.n > 1` (T-173/AT-562): fan the non-entry cases out through the
     real `stages.parallel_run.run_cases` at the planned width, each in its
@@ -150,13 +141,12 @@ def _run_cases_in_parallel(
     entry-screen assertion is about one logged-out state, not something
     concurrency helps.
 
-    AT-570: `approval` is threaded in from `trigger_run`'s preflight and handed
-    to `run_cases`, which builds the shared `RunBudget` from it. It has no
-    default here either -- the caller that forgot to pass one is exactly how
-    the case-run path ran unbounded."""
+    The approval-bound budget is shared with every entry and every other tier;
+    normal workers reserve once inside run_cases, never in their callback."""
+    budget.require_approval(approval)
     entry_cases = [c for c, is_entry in zip(cases, entry_flags, strict=True) if is_entry]
     normal_cases = [c for c, is_entry in zip(cases, entry_flags, strict=True) if not is_entry]
-    _run_entry_cases(entry_cases, project, secrets, run_dir, slug, judge, run_id, store)
+    _run_entry_cases(entry_cases, project, secrets, run_dir, slug, judge, run_id, store, budget)
     if not normal_cases:
         return
     case_by_id = {c.id: c for c in normal_cases}
@@ -173,7 +163,7 @@ def _run_cases_in_parallel(
 
     session_factory = default_session_factory(project, secrets, run_dir, record_video=True)
     for result in run_cases(normal_cases, plan, session_factory, _run_and_grade,
-                            approval=approval):
+                            approval=approval, budget=budget):
         # AT-568/PR6: a session_factory crash, or any exception BEFORE
         # run_and_grade_case_resilient captures its own result, means
         # `_run_and_grade` above never ran to completion for this case, so

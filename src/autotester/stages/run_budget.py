@@ -46,11 +46,16 @@ class RunBudget:
                 "RunBudget requires a RunApproval: a run with no approval is an unapproved "
                 "run, never an unlimited one (AT-570, core-invariants C12(b))"
             )
-        self._approval = approval
+        self._approval = approval.model_copy(deep=True)
         self._lock = threading.Lock()
         self._actions_used = 0
         self._probes_used = 0
         self._start = time.monotonic()
+
+    def require_approval(self, approval: RunApproval) -> None:
+        """A shared budget may only be reused with the exact approval that bound it."""
+        if approval.model_dump() != self._approval.model_dump():
+            raise ValueError("shared run budget does not match this RunApproval")
 
     def try_consume(self, *, actions: int = 0, probes: int = 0) -> bool:
         approval = self._approval
