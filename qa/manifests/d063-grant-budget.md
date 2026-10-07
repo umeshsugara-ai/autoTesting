@@ -102,7 +102,7 @@ Metrics: start=2026-10-07 end=2026-10-07 wall_min=unavailable agent_min=unavaila
 
 - Fix cycle 2 (2026-10-07, same worktree): `uv run ruff check src tests scripts` -> `All checks passed!`; `uv run autotester doctor` -> `doctor: clean` (after `autotester map` and `autotester snapshot`; it was 2 stale-generated violations before regeneration).
 - Fix cycle 2 affected set (consent, approval signing, approve CLI, explore consent/login, parallel-run approval, permission coverage, core, orchestrate-resume, the new origin and credential tests, and every `tests/test_ui_*.py`): `583 passed, 2 skipped, 1 failed in 323.84s; the one failure, tests/test_core.py::test_env_creation_is_coordinated_across_processes, is a 15 s child-process handshake timeout under machine load (files untouched by this branch: ids.py, env_editor.py, test_core.py), and passed on re-run: 1 passed in 14.85s`. A first pass of the same set had 1 failure, `test_ui_runs_parallel_trace.py::test_a_declared_fake_secret_never_appears_raw_in_the_trace[True]` (it granted a probe-less human row and asserted the last row is the account row); fixed in product code (a probe-less human row does not cover a credentialed run), not by editing the test.
-- No full suite was run (instructed); line counts: app.py 300, helpers.py 250, consent.py 220, explore_consent.py 127, test_credential_run_approval.py 286, test_ui_origin_guard.py under 120.
+- No full suite was run (instructed); line counts: app.py 300, helpers.py 250, consent.py 220, explore_consent.py 127, test_credential_run_approval.py 286, test_ui_origin_guard.py 133.
 
 ## Capability coverage (each new claim -> its isolating falsification)
 
