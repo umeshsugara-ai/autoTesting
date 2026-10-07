@@ -5,7 +5,7 @@
 (+ cheap->expensive ordering).
 **Date:** 2026-09-27
 **Fix cycle:** 4 (the one scoped cycle D-051 authorises after CT9; no cycle 5)
-**Status:** ready-for-check
+**Status:** ready-for-check (integration rework, dual re-check)
 **Policy-Version:** proportional-verification/2026-10-06.6 (NO pin existed in this manifest; latest pin in qa/ is .6; the dispatch brief cites ".7" -- orchestrator to confirm which)
 **Tier:** L
 **Dual check:** required (diff touches HMAC run-approval, D-018/CN10 = security trigger; permits ONE checker full suite)
@@ -625,3 +625,62 @@ Each restored to byte-identical source and re-run green (counts in the scratch l
 keyword path exists in `_auth_secret_keys`; covered by `test_same_class_union_includes_secret_fills_with_arbitrary_field_names` only.
 
 `Metrics: start=2026-10-07T15:05 end=2026-10-07T15:20 wall_min=15 agent_min=unavailable blocked_min=0 suite_runs=0 repeat_runs=0 mutations=12 cycle=4 resumes=0 tokens=unavailable policy=proportional-verification/2026-10-06.6`
+
+## Integration rework (2026-10-07)
+
+Merging `codex/t125-cycle4` onto origin/master (`d4c369b0`, which carries d063's aggregate `RunBudget`
+f7adb2b9 / 20594b23 / a2c6124a) conflicted in five files. d063's accounting is the merged authority;
+T-125 aligns to it. Branch `integrate/t125`, merge commit below. No source guard of d063/D-066/D-068 was weakened.
+
+**Per-file resolution**
+- `stages/run_budget.py`, `stages/parallel_run.py`: origin's version verbatim (finite/non-negative limit
+  validation, `_stop_reason`/`stop_reason`, `check_start()`, `matches()`, `reserve = budget is None`).
+- `ui/run_execution.py`: origin's version, plus ONE added guard at the top of `_run_cases_in_parallel`:
+  `if not budget.matches(approval): raise ValueError("shared budget does not match approval")`. An entry-only
+  tier returns before `run_cases`, so origin's own `matches()` check never ran for it; this closes that hole
+  with the existing `matches()` (CN10, T-125's `test_parallel_entry_only_rejects_mismatched_budget_before_any_effect`).
+- `ui/routes_runs.py`: origin's `budget=` keyword, EXECUTE stage `failed` on `stop_reason`, `account_keys` and
+  the 5-arg `_require_live_case_approval`; T-125's tier loop (`tiers_to_run`, `TIER_BY_CLASS`,
+  `catalog_snapshot`, `Run.catalog_runnable_counts`) wrapped around them, one `RunBudget` built once outside the loop.
+- `tests/test_parallel_run_approval.py`: both sides' tests kept (d063's four plus T-125's snapshot test).
+- `ui/app.py` (auto-merged, 301 lines): module docstring's last two lines joined, 300 lines, no behaviour change.
+
+**Dropped:** T-125's `RunBudget.require_approval()`. It duplicated d063's `matches()` (one concept, one place);
+the deep-copy snapshot it relied on already exists in origin's `RunBudget.__init__`.
+
+**Not re-expressed: the per-case `action_cost` reservation** (T-125's `try_consume(actions=action_cost(case))`
+in `_run_entry_case`/`_run_cases_serially`). d063 charges actions per executed step in `stages/execute.py`
+(`budget.check(actions=1)`) and `trigger_run` grants `max_actions = sum(action_cost)`; adding the case-level
+charge would double-spend and exhaust every real run at about half its grant.
+
+**Protected test change** `tests/test_ui_runs_serial_entry_order.py` (checker to re-judge):
+- helper `_patch_tier_execution.run`: ADDED `session.budget.check(actions=1)` (one mocked step spent through
+  the real d063 budget API) so exhaustion actually happens with mocks.
+- `test_parallel_entry_only_rejects_mismatched_budget_before_any_effect`: call changed from positional
+  `..., mismatched, budget)` to the d063 keyword `budget=budget`. Assertions unchanged.
+- `test_internal_execution_spends_one_budget_across_tiers_and_all_legs` (16 params), before -> after:
+  - per-case error text `== "run budget exhausted before this case could start"` -> `f"run budget exhausted: {reason}" in error`
+    with `reason` = `max_actions` (allowance) or `wall_clock_s` (deadline), and outcome still ERRORED. Why: d063
+    reports the brake by `stop_reason`, not a reservation string.
+  - session count: formula `1 if deadline or allowance==1 else (3 if width==1 else 4)` -> derived from the admitted set:
+    admitted entries + (distinct admitted-normal tiers if width==1, else admitted normals). Why: d063 starts no
+    browser for a refused case (`check_start()` raises before `start()`), so the old reservation-era counts differ.
+  - wipe count: `0/1/2` by branch -> `== number of entry cases`. Why: d063's `_run_entry_case` wipes the profile before
+    consulting the budget.
+  - ADDED: the EXECUTE span is exactly one, `status == "failed"`, error names the brake.
+  - UNCHANGED: admitted-case set and order (`expected`), every case persisted (never-skip), grade events == admitted,
+    verdict set == result set, refused cases INCONCLUSIVE.
+  - Mutation: `RunBudget(approval)` rebuilt inside the tier loop -> 16 RED (one shared budget across tiers still pinned).
+
+**Verification (integrate/t125 worktree):** 44 affected test files `498 passed, 1 skipped`; `ruff check src tests scripts`
+All checks passed; `autotester doctor` clean. Full suite NOT yet run (maker step 6c, to follow the dual re-check).
+
+**Contract wording that now mismatches.** `qa/contracts/catalog.md` states no reservation criterion; the nearest criterion
+is `qa/contracts/consent.md:255-258` ("One aggregate budget ... Stop on a brake, identify the brake and record
+stopped/truncated truth"), which the merged result satisfies as written. The reservation claim lives only in this
+manifest's cycle-4 evidence ("all-leg action/deadline denial", line 548; mutation #10 "entry-case budget debit removed",
+#9 `RunBudget.require_approval` no-op), which is superseded by this section. Proposed clarification for the checker to
+amend at consent.md:255 (append): "Actions are spent per executed step through `RunBudget.check(actions=...)`, never by
+a case-level pre-charge. A case refused by an exhausted budget still persists its own ERRORED result and INCONCLUSIVE
+verdict naming the brake (`run budget exhausted: <stop_reason>`); no case is skipped, and the EXECUTE stage is recorded
+`failed`."
