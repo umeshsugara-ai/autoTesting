@@ -102,16 +102,16 @@ def explore_cmd(
 
 
 def echo_crawl_summary(crawl: Any) -> None:
-    """The whole report a headless or CI run gets (AT-122).
-
-    `tool_failures` belongs here for the same reason it belongs in the
-    workbook: this line is the only place such a run learns the crawl could
-    not record part of what it saw. Dropping it under-reports as dishonestly
-    as folding it into `issues` over-reported."""
-    from autotester.stages.explore_status import displayed_status, is_success, skip_note
+    """The CI report, keeping crawler failures apart from product issues (AT-122)."""
+    from autotester.stages.explore_status import (
+        displayed_reason,
+        displayed_status,
+        is_success,
+        skip_note,
+    )
 
     typer.secho(
-        f"{crawl.id}: {displayed_status(crawl).value} ({crawl.stop_reason}) — "
+        f"{crawl.id}: {displayed_status(crawl).value} ({displayed_reason(crawl)}) — "
         f"{crawl.screens} screens, {crawl.edges} edges, {crawl.actions} actions, "
         f"{crawl.denied} denied, {crawl.issues} issues, "
         f"{crawl.tool_failures} tool failures{skip_note(crawl)}",  # CR5

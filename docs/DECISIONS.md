@@ -2166,3 +2166,29 @@ codex/t151-target-discovery (one test).
 **Approved-by:** Umesh — chat answers 2026-10-07.
 
 **Links:** T-151; T-125; T-174; T-199; T-202; T-203; T-204; D-066; D-068; qa/gates/t151-cycle2-stalled.md; qa/gates/t125-ct6-tiered-dispatch-vs-ru3.md.
+
+## D-072 | 2026-10-07 | type: decision | status: ACTIVE
+
+**What:** Umesh answered every open go-live, Group 10 and unit gate in one sitting (chat, 2026-10-07):
+1. **T-122 login oracle: A.** The "YOUR PROGRESS" section was removed from the Pathlynks dashboard on purpose. Re-author the BEST login case's step-4 marker to a stable signed-in marker (the Logout control plus the dashboard heading), update `login_case_id`, and re-run.
+2. **New modules: yes to all.** This covers T-176 (`browser/locators.py`, `browser/locator_derive.py`, `stages/script_replay.py`), T-202 (the LiteLLM provider), T-203/T-204 (hosting, auth), the Group 10 split modules, T-190's six paths, and `agents/`. Every file stays at or under 300 lines with a one-job docstring, and the checker judges it.
+3. **Login (G3):** the simplest scheme, email and password. **Anyone can sign up**, and an admin can act on any account (disable, delete, change access). A new account starts with no access until an admin puts it in a group.
+4. **Access (Group 10 Q2):** AWS-IAM-like **groups with checkbox permissions**. The admin creates groups, ticks the permissions each group has, and adds users to groups. Permissions are additive, and the first account created becomes admin.
+5. **Secrets display (G4):** saved credential values are shown **only to admins**, which here means holders of a `credentials.view` permission that by default only the admin group has. Everyone else sees "set / not set".
+6. **Concurrency (G6):** a **server setting**, admin-configurable, sized to the server (default 2 concurrent browser runs server-wide, with one run per project at a time and the rest queued).
+7. **Server (G1/G2):** production is an **Ubuntu server**, and development continues on **Windows**. The code must run on both. Docker and Ubuntu are the deploy target, with a deploy guide. The domain comes later.
+8. **Reports:** shown on the website, plus email **by user preference** (a per-user checkbox).
+9. **Schedule:** a run starts on a button press, at a fixed time, or at a custom time the user selects, configured per project.
+10. **Videos:** the upload limit is admin-configurable, default **2 GB**. A **Google Drive video link** is also accepted, and the system fetches the video itself.
+11. **Script replay:** a replayed run is still graded by the judge (`judge_replays` stays True by default).
+12. **Host allow-list (AT-758):** extends the D-066 Origin guard. Every request's Host must be loopback, a host from `AUTOTESTER_ALLOWED_ORIGINS`, or an exact `AUTOTESTER_ALLOWED_HOSTS` entry. The hosted server must set one of these.
+
+**Why:** Everything open on the path to the hosted team MVP was waiting on these answers. Umesh asked to be asked properly, once, and answered every question. Open signup with admin moderation and default-no-access is the simplest scheme that still keeps outsiders away from credentials and runs.
+
+**Result:** Gates `qa/gates/t122-stale-login-oracle.md` and the new-module gates are answered. T-176 can merge. T-122, T-202, T-203, T-204 and Group 10 move to build. The checker amends contracts where these answers change a criterion: secrets display, the auth/roles contract for T-204, and the concurrency and schedule rows for T-203 and Group 10.
+
+**Changes-authorized:** new modules for T-176, T-202, T-203, T-204, Group 10 (T-197..T-201), T-190 and `agents/`; `src/autotester/ui/` auth, permission and group routes and middleware; the queue and concurrency setting in the run path; the Host allow-list in `ui/helpers.py` (AT-758); `.env.example` keys `AUTOTESTER_ALLOWED_HOSTS`, SMTP and run concurrency; the re-authored `projects/pathlynks` login case and `login_case_id`; the Docker and Ubuntu deploy files and guide.
+
+**Approved-by:** Umesh (chat, 2026-10-07)
+
+**Links:** D-066, D-068, D-071, T-122, T-176, T-197..T-204, AT-758..AT-761, qa/gates/t122-stale-login-oracle.md
