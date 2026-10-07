@@ -24,3 +24,13 @@ Environment: Windows, worktree in-tree .venv for suite/ruff/doctor; copies run v
 | row C1 grant production | copy, consent.py:85 production=False->True, node test_account_grant_is_new_exact_and_bounded | 13 passed / 2 failed [valid][unused] :258 / 13 passed | coordinator A |
 | row C1 scope | copy, consent.py:45 clause->True, node ...[scope] | 1 passed / failed :250 / 1 passed | coordinator A |
 | full suite, doctor, mix_live, exact-host, reviews | not re-run: src, conftest, lock identity unchanged from cycle 0 | reused | cycle-0 rows above |
+
+# Cycle 2 (repair) - coordinator A, head 1fd229b1; src changed since 5201859a (consent.py, explore_consent.py, helpers.py, app.py, routes_runs.py); uv.lock and conftest unchanged.
+
+| check | command / scope | result | attribution |
+|---|---|---|---|
+| full suite | uv run pytest (bound worktree, all) | 1 failed (test_goal_done_checks, T-197..T-201 no done_check, red at master fe6eb98a), 2388 passed, 6 skipped, 14 xfailed | coordinator A |
+| lint / doctor | ruff check src tests scripts; autotester doctor | pass / clean; app.py 300 lines | coordinator A |
+| own falsification | copies: consent.py:59 scope, explore_consent.py:92 persist, :84 reuse, consent.py:165 signature, :172 expiry | each green-before / red-after on the named node | coordinator A |
+| mutation sweep | 15 mutants M1-M15 in copies | 6 killed, 9 survived (test gaps, no wrong behaviour) | sub-checker a22baf29073eb9f8e |
+| security probe | Origin guard and approval derivation attacks | no bypass in scope; D1-D6 low/medium, outside diff scope | sub-checker a8b8dd750971fb36a |
