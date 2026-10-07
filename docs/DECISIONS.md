@@ -1940,3 +1940,51 @@ no historical-disposition exception or retrospective operational permission.
 **Links:** T-196; qa/manifests/t196-citation-subject-check.md;
 qa/feedback-inbox.md (checkpoints D/E/F and independently approved fixture/gate plans);
 tests/test_citations.py; .goal/goal.json.
+
+## D-065 | 2026-10-07 | type: decision | status: ACTIVE
+
+**What:** Authorize three additions made by the T-151 target-discovery build that D-017 did not name:
+(1) the runtime dependency `pyyaml==6.0.3` in pyproject; (2) the new target-discovery prompt file;
+(3) the `act` hunk in `src/autotester/providers/mock.py`.
+
+**Why:** Umesh approved all three (gate answer "T-151: A"). PyYAML is a widely used, pinned dependency;
+the prompt is a file, as the design rules require; the mock hunk keeps the deterministic test provider
+in step with the provider interface. Rejected alternative: stdlib-only parsing (option B).
+
+**Result:** Gate answered; T-151 build may continue on branch codex/t151-target-discovery to
+ready-for-check. No code changed by this entry.
+
+**Changes-authorized:** pyproject.toml / uv.lock (add pyyaml==6.0.3) · the T-151 target-discovery
+prompt file under prompts/ · src/autotester/providers/mock.py `act` hunk. Nothing else; T-151 still
+reaches PASS only through /checker.
+
+**Approved-by:** Umesh — chat answer 2026-10-07 ("A: Teeno approve"), recorded in
+qa/gates/t151-dependency-authorization.md.
+
+**Links:** T-151; D-017; qa/gates/t151-dependency-authorization.md; qa/verdicts/t151-plan-approval.md.
+
+## D-066 | 2026-10-07 | type: decision | status: ACTIVE
+
+**What:** Two gate answers from Umesh. (1) T-196: L10 gains a sealed-record disposition for immutable
+history (gate t196-l10-coverage, option B). (2) D-063 self-grant: add an Origin/CSRF check on the
+state-changing UI routes (credential edits and run triggers) (gate d063-self-grant-csrf, option B);
+role-based authentication is deferred to a later unit.
+
+**Why:** (1) "logic badalte rehte hai, product evolve hota hai, purane ka acha part rakh kar later
+update kar sakte hai." Reviewing ~1200 occurrences in closed records one by one (option A) costs a
+lot and adds little; a hash-bound, self-invalidating seal keeps the rule strict for anything new or
+changed. (2) The CSRF check is a small change that closes the cross-site POST hole. Umesh noted the UI
+will run on a server URL after go-live, not localhost, so real auth is a required follow-up, not optional.
+
+**Result:** L10 amended by /checker on wave/t196-citation-subjects (2749e38d). The two disputed
+historical claims K1 (DECISIONS.md:80) and K2 (DECISIONS.md:209) remain open pending Umesh's ruling and
+are tracked as ISS-t196-citation-subjects-k1k2. The CSRF fix is not yet built; it rides the next
+d063-grant-budget fix cycle.
+
+**Changes-authorized:** qa/contracts/living-ledger.md L10 (sealed-record disposition, as committed in
+2749e38d) · src/autotester/ui/ state-changing routes (Origin/CSRF check) on the d063-grant-budget branch.
+
+**Approved-by:** Umesh — chat answers 2026-10-07, recorded in qa/gates/t196-l10-coverage.md and
+qa/gates/d063-self-grant-csrf.md.
+
+**Links:** T-196; D-062; D-063; D-064; qa/gates/t196-l10-coverage.md; qa/gates/d063-self-grant-csrf.md.
