@@ -2193,6 +2193,8 @@ codex/t151-target-discovery (one test).
 
 **Links:** D-066, D-068, D-071, T-122, T-176, T-197..T-204, AT-758..AT-761, qa/gates/t122-stale-login-oracle.md
 
+## D-073 | 2026-10-07 | type: decision | status: ACTIVE
+
 **What:** Create the new module `src/autotester/stages/reconcile.py` (about 250 lines). It reconciles
 video-derived flows into the product knowledge graph with no human approval step (D-070 part 2). It
 matches video screens to crawl screens by route, title or element signature, and sends ambiguous
