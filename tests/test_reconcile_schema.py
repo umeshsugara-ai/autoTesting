@@ -212,6 +212,13 @@ def test_rc9_a_tie_resolves_to_the_earliest_source_every_time() -> None:
     assert dict(next(iter(runs))) == {"src_a": "ideal", "src_b": "variant"}
 
 
+def test_rc9_assign_kinds_breaks_a_tie_by_source_whatever_the_input_order() -> None:
+    late, early = flow("Tie", "src_b", ["scr_9"]), flow("Tie", "src_a", ["scr_8"])
+    for order in ([late, early], [early, late]):
+        kinds = {f.source_id: f.kind for f in rc.assign_kinds(order, set())[0]}
+        assert kinds == {"src_a": "ideal", "src_b": "variant"}
+
+
 def test_rc9_rc10_every_flow_has_one_kind_and_the_counts_balance() -> None:
     videos, crawl, said = frozen()
     out, report = reconcile(videos, crawl, judge_mock(), transcripts=said)
