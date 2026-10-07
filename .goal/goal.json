@@ -4,7 +4,7 @@
   "north_star": "A reusable AI testing platform where an operator submits any project URL, domain-scoped test-account credential references, and optional evals, conditions, use cases, video, audio, documents, text, email or Google Drive sources. AutoTester learns from supplied evidence or logs in and performs bounded breadth-first exploration, preserves a durable Portal Persona, compiles traceable best/worst/edge evals, reruns them after developer releases in a real visible browser, and reports workflow/API regressions through clear HTML, Excel, text and screenshots. First acceptance targets: Vidysea ERP and Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-10-07T09:35:46",
+  "updated": "2026-10-07T11:48:25",
   "progress": {
     "total": 87,
     "done": 59,
@@ -1620,8 +1620,9 @@
       "base_criticality": "high",
       "user_value": "high",
       "done_check": {
-        "type": "file",
-        "path": "qa/verdicts/t-197-team-loop.md"
+        "type": "cmd",
+        "cmd": "uv run python scripts/check_deliverable.py --exists qa/verdicts/t-197-team-loop.md",
+        "expect_exit": 0
       },
       "note": "Group 10 'Team loop' (Umesh 2026-10-07: top priority, ahead of groups 5-9). Maker PLAN gate first: intent -> /grill -> spec -> plan -> qa/gates/plan-approved.md. Plan: C:/Users/Lenovo/.claude/plans/hello-hello-hello-resilient-reddy.md. Extend stages/ingest.py + cli_video.py in place (`ingest run --pointers <file>`). Reference output: Karunn review doc 1FjABvhH… (full id in .work/google-ids-private.md); oracle .work/pathlynks-dev-videos-oracle-2026-10-07.md; sources src_e8fcdc4a15ce/src_44e2f1f6c64c/src_8540cc84081e.",
       "criticality": "high"
@@ -1634,8 +1635,9 @@
       "base_criticality": "high",
       "user_value": "high",
       "done_check": {
-        "type": "file",
-        "path": "qa/verdicts/t-198-team-loop.md"
+        "type": "cmd",
+        "cmd": "uv run python scripts/check_deliverable.py --exists qa/verdicts/t-198-team-loop.md",
+        "expect_exit": 0
       },
       "note": "Group 10 'Team loop' (Umesh 2026-10-07: top priority, ahead of groups 5-9). Maker PLAN gate first: intent -> /grill -> spec -> plan -> qa/gates/plan-approved.md. Plan: C:/Users/Lenovo/.claude/plans/hello-hello-hello-resilient-reddy.md. No new module: edit sources/drive.py, cli_video.py, ui/routes_sources.py upload. Measured 2026-10-07: gws `drive files get -o` only writes under CWD; register does not copy (stable path needed).",
       "criticality": "high"
@@ -1650,8 +1652,9 @@
       "base_criticality": "high",
       "user_value": "high",
       "done_check": {
-        "type": "file",
-        "path": "qa/verdicts/t-199-team-loop.md"
+        "type": "cmd",
+        "cmd": "uv run python scripts/check_deliverable.py --exists qa/verdicts/t-199-team-loop.md",
+        "expect_exit": 0
       },
       "note": "Group 10 'Team loop' (Umesh 2026-10-07: top priority, ahead of groups 5-9). Maker PLAN gate first: intent -> /grill -> spec -> plan -> qa/gates/plan-approved.md. Plan: C:/Users/Lenovo/.claude/plans/hello-hello-hello-resilient-reddy.md. Tracker sheet 1JvSez… (full id in .work/google-ids-private.md). Outward-facing team-sheet write => HUMAN_GATE before first live write; column mapping agreed with Umesh/Mamta.",
       "criticality": "high"
@@ -1664,8 +1667,9 @@
       "base_criticality": "high",
       "user_value": "high",
       "done_check": {
-        "type": "file",
-        "path": "qa/verdicts/t-200-team-loop.md"
+        "type": "cmd",
+        "cmd": "uv run python scripts/check_deliverable.py --exists qa/verdicts/t-200-team-loop.md",
+        "expect_exit": 0
       },
       "note": "Group 10 'Team loop' (Umesh 2026-10-07: top priority, ahead of groups 5-9). Maker PLAN gate first: intent -> /grill -> spec -> plan -> qa/gates/plan-approved.md. Plan: C:/Users/Lenovo/.claude/plans/hello-hello-hello-resilient-reddy.md. Frequency field in schema/project.py; trigger reuses stages/parallel_run.py; must respect RunApproval (D-018).",
       "criticality": "high"
@@ -1680,8 +1684,9 @@
       "base_criticality": "high",
       "user_value": "high",
       "done_check": {
-        "type": "file",
-        "path": "qa/verdicts/t-201-team-loop.md"
+        "type": "cmd",
+        "cmd": "uv run python scripts/check_deliverable.py --exists qa/verdicts/t-201-team-loop.md",
+        "expect_exit": 0
       },
       "note": "Group 10 'Team loop' (Umesh 2026-10-07: top priority, ahead of groups 5-9). Maker PLAN gate first: intent -> /grill -> spec -> plan -> qa/gates/plan-approved.md. Plan: C:/Users/Lenovo/.claude/plans/hello-hello-hello-resilient-reddy.md. Prerequisite AT-570: ui/routes_runs.py::trigger_run checks no RunApproval today; close it first or the button is an unapproved run path.",
       "criticality": "high"
@@ -2055,9 +2060,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 1.56,
-    "eta_days": 17.9
+    "velocity_per_day": 1.55,
+    "eta_days": 18.1
   },
-  "last_deterministic_tick": "2026-10-07T09:35:46",
+  "last_deterministic_tick": "2026-10-07T11:48:25",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }

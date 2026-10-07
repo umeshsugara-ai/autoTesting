@@ -2078,3 +2078,57 @@ D-014, not D-005). Nothing else.
 **Approved-by:** Umesh — chat answer 2026-10-07, recorded in qa/gates/t196-l10-coverage.md.
 
 **Links:** T-196; D-000; D-005; D-006; D-014; D-068; ISS-t196-citation-subjects-k1k2; qa/gates/t196-l10-coverage.md.
+
+## D-070 | 2026-10-07 | type: decision | status: ACTIVE
+
+**What:** Umesh answered the open runtime gate and set direction for the video and team-loop work. Five parts:
+1. **Browser/full-suite runtime: option A, generalized.** AutoTester runs a local visible browser and the
+   full suite directly on whatever machine it is installed on. The native-egress sandbox precondition
+   recorded in `qa/gates/t125-fullsuite-browser-egress.md` and `qa/gates/t125-stalled-at-cycle-cap.md`
+   is dropped. The target is never Pathlynks-specific: any product given by URL plus the credentials
+   supplied for it (the boundary stays the supplied account's own rights, D-053/D-068). The test suite
+   keeps its own guards: no real credentials or `.env` values in tests, no paid model calls from tests,
+   and no external network from unit tests.
+2. **Video flows are reconciled by the system, not approved by a human.** There is no human-approval
+   dependency for video-derived flows. Each video yields its own knowledge graph: screens, actions, and
+   the flow the narrator says they are doing (speech is evidence of intent). It is re-mapped onto the
+   product knowledge graph built by the crawl. Every flow is kept: the ideal flow, each narrated flow
+   and each variant. Reports highlight where a video's path differs from the crawled or ideal one, as
+   an "another possibility" view for developers. The FlowSpec DRAFT review gate remains as a status
+   only, and it never blocks case generation from reconciled flows. Contract changes come through the
+   checker's inbox fold-in.
+3. **Group 10 scope widens to an in-product developer portal (T-198, being grilled).**
+   - Accounts with a role hierarchy that follows the company structure (CEO, developer, tester, admin,
+     sub-admin…).
+   - Users are mapped to projects. A developer uploads a video inside their project, and gets a
+     shareable URL to send by mail. Viewers with access watch it; others request access.
+   - Viewers leave timestamped comments on the video, Udemy-style, visible to everyone with access.
+   - The details come from the grill that is in progress.
+4. **Parked, must-have:** an in-product tracker with auto-validation, plus a Test button anyone can
+   press for a real-time run. Re-runs update the ledger and the tracker, log new issues and close fixed
+   ones. Optional sync to the team's Google/Excel sheet comes later (T-199 becomes the in-product
+   tracker first, sheet sync second).
+5. **Push:** everything built and validated (checker PASS) is committed and pushed. This restates D-007
+   and applies to the maker's own close-out merges as well.
+
+**Why:** In Umesh's words (chat, 2026-10-07): "Not only path links, but any of the account or website which
+is provided with the help of the URL ... along with the user credentials"; "it can run in any of the
+machine just via the browser"; "Don't make any human dependency ... the system should be intelligent
+enough"; "we can have like either n number of flows, but we have understanding of each and every
+flow"; "park it that it is a must and we must need to add"; "jo jo build hokrr validate hota jaa rha hai
+commit and push". The sandbox path had been BLOCKED-CAPABILITY since 2026-10-05 with no end in sight,
+and it held most of groups 3, 4, 6 and 7.
+
+**Result:** T-125 and T-165 (AT-113 cycle 4) are unblocked for runtime: the gate files carry
+`Answered: 2026-10-07` lines. The three Navnit videos already give a 38-screen, 4-flow DRAFT, which is
+now an input to the video-KG → product-KG reconciliation and not something waiting on a human. The
+group-10 grill continues with the developer-portal scope. The tracker loop is parked as a must-have.
+
+**Changes-authorized:** `qa/gates/t125-fullsuite-browser-egress.md`, `qa/gates/t125-stalled-at-cycle-cap.md`
+(Answered lines); `qa/feedback-inbox.md` (verbatim answers for the checker fold-in); `.goal/goal.json`
+(T-166 note, T-197..T-201 notes). No contract or ARCHITECTURE text is changed by this entry: those are
+folded in by `/checker`.
+
+**Approved-by:** Umesh — chat 2026-10-07 (answers to the five asks).
+
+**Links:** T-125; T-165; T-166; T-197; T-198; T-199; T-200; T-201; D-007; D-053; D-067; D-068; AT-113.
