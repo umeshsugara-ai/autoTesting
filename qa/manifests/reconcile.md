@@ -1,6 +1,6 @@
 # Manifest — reconcile (video knowledge graph → product knowledge graph, no human gate)
 
-Status: ready-for-check
+Status: checked-PASS
 Fix cycle: 0
 Resume: 0 of 2
 Contract: qa/contracts/reconcile.md RC1–RC14 (commit 8b9bdb89 on wave/reconcile)
