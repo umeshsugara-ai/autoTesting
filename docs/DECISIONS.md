@@ -1988,3 +1988,181 @@ d063-grant-budget fix cycle.
 qa/gates/d063-self-grant-csrf.md.
 
 **Links:** T-196; D-062; D-063; D-064; qa/gates/t196-l10-coverage.md; qa/gates/d063-self-grant-csrf.md.
+
+## D-067 | 2026-10-07 | type: decision | status: ACTIVE
+
+**What:** Group 10 "Team loop" is added at top priority, ahead of groups 5–9 of the 2026-10-05
+nine-batch plan. It has five tasks: T-197 video INGEST with human timestamp-pointers and a confirm-list,
+T-198 developer video intake (zip upload and Drive fetch), T-199 a bug loop into the PathLynks
+Tracker sheet (file, update, close), T-200 scheduled auto-test at a configurable frequency, and T-201
+a team on-demand Test button with the report sent to the person who clicked. Developer demo videos
+are a first-class teaching source for the flow model and the future knowledge graph (T-166).
+
+**Why:** Umesh said on 2026-10-07 that the team is waiting on this ("team wait kar rahi hai bahut
+zor se"). In the 2026-10-06 meeting the CEO described his own video-review skill: approximate
+timestamps plus 2–3 pointers in, then a summary and 4–5 checks out. It cut a 3 h review to about
+30 min. His review of Navnit's three partner-portal videos (Drive doc 1FjABvhH…) is the target
+output shape and a ready human oracle. Developers who explain "how it is built and what it is for"
+on video give AutoTester the intended flow up front, instead of only what a crawl can infer.
+
+**Result:** goal.json now has 87 tasks, 28 pending: 23 of the original 24 plus these 5. All 9 old
+groups are still open; only T-185 has closed since 2026-10-05. Navnit's three videos (17:46, 33:33,
+16:18) were downloaded through gws, size-verified and registered as pathlynks sources
+src_e8fcdc4a15ce, src_44e2f1f6c64c and src_8540cc84081e. Himanshu's promised video had not arrived
+when this was written. Each new task still passes the maker PLAN gate before any code.
+
+**Changes-authorized:** .goal/goal.json (append T-197..T-201). No contract or ARCHITECTURE change;
+the PLAN gate authorizes those later.
+
+**Approved-by:** Umesh — chat answer 2026-10-07 ("New tasks, top priority").
+
+**Links:** T-197; T-198; T-199; T-200; T-201; T-166; AT-570; .work/pathlynks-dev-videos-oracle-2026-10-07.md.
+
+## D-068 | 2026-10-07 | type: decision | status: ACTIVE
+
+**What:** Three gate answers from Umesh. (1) cn5 (gate d063-cn5-vs-cn11): provisioned credentials are
+the run approval. When a project declares a credential pair in its SecretRef[], a run against that
+project's declared target and allowed_domains proceeds with no per-run human approval, for every run
+kind (live case and crawl/explore). An account-derived approval row may cover any (project, run_kind,
+target) match (option B). Approval rows are still minted and HMAC-signed automatically, as an audit
+record, not as a human step. (2) t196 disputed claims K1 (DECISIONS.md:80) and K2 (DECISIONS.md:209):
+an independent second confirmation runs first; then the record is corrected (option i). Umesh allows
+old entries to be changed or removed if that is needed; a correcting entry is the first route, and a
+direct edit to an old entry would still need its own entry with Approved-by, since the append-only
+hook stays. (3) Build order: all open groups run in parallel, scheduled only by real dependencies
+(the agent layer waits for the stages it wraps).
+
+**Why:** (1) "credentials de dena sabse bada approval hai" -- the account Umesh provisions already is
+the scope (D-053, qa/gates/write-policy-tier.md); repeated per-run approvals add a human step with
+no added safety. The test-account-only rule and the allowed_domains scope are unchanged. (2) "2nd
+confirmation le lo aur sabhi update kar do". (3) "parallelly all".
+
+**Result:** d063-grant-budget's next fix cycle drops the CN5 exclusion and keeps the D-066
+Origin/CSRF check. T-145 no longer needs a per-run human approval. No code changed by this entry.
+
+**Changes-authorized:** the qa/contracts rows holding CN5/CN11 and the explore pre-crawl approval
+criterion (checker-owned amendment) · src/autotester/core/consent.py and
+src/autotester/stages/explore_consent.py (credential-derived approval for every run kind) ·
+.goal/goal.json T-145 note (drop "per-run RunApproval required").
+
+**Approved-by:** Umesh — chat answers 2026-10-07, recorded in qa/gates/d063-cn5-vs-cn11.md and
+qa/gates/t196-l10-coverage.md.
+
+**Links:** T-145; T-196; D-018; D-053; D-063; D-066; qa/gates/d063-cn5-vs-cn11.md; qa/gates/t196-l10-coverage.md.
+
+## D-069 | 2026-10-07 | type: fix | status: ACTIVE
+
+**What:** Correct two historical citation claims, K1 and K2, without editing the old entries.
+K1 (D-006, DECISIONS.md:80): D-006 cites D-000 `Changes-authorized` for the append_decision.ps1
+UTF-8 fix. D-000 authorizes `scripts/append_decision.ps1` only at the file level, as enforcement
+wiring, and never names the UTF-8 fix. The fix was verified by /checker in the T-005 cycle-1 check
+(qa/feedback-inbox.md:111) and shipped in 2785312d. The authorization holds at the file level; the
+specific claim is imprecise. K2 (D-014, DECISIONS.md:209): D-014 item (1) attributes BACK to D-005.
+D-005 approved only HOVER, PRESS_KEY and SCROLL (DECISIONS.md:74). BACK is an additive amendment
+first authorized by D-014 itself (Approved-by: Umesh, plan.md section 4, plan.md:204). It was verified
+in qa/verdicts/track-b1-observation-primitives.md:117-120 and shipped in ce1b624b. The docstring at
+src/autotester/schema/enums.py:26 repeats the wrong "discharge D-005" attribution.
+
+**Why:** Umesh's ruling on the T-196 disputed claims (option i, after a second confirmation):
+"2nd confirmation le loo aur sabhi update krr doo". An independent second review confirmed both
+findings. A correcting entry fixes the record without breaking the append-only history. Editing
+D-006 and D-014 in place was not needed.
+
+**Result:** K1 and K2 now have a recorded disposition: both changes stand as authorized, and the
+attribution is corrected here. T-196 may treat ISS-t196-citation-subjects-k1k2 as resolvable once
+/checker records the disposition. The enums.py:26 docstring fix rides the next unit touching that file.
+
+**Changes-authorized:** src/autotester/schema/enums.py:26 docstring wording (BACK attributed to
+D-014, not D-005). Nothing else.
+
+**Approved-by:** Umesh — chat answer 2026-10-07, recorded in qa/gates/t196-l10-coverage.md.
+
+**Links:** T-196; D-000; D-005; D-006; D-014; D-068; ISS-t196-citation-subjects-k1k2; qa/gates/t196-l10-coverage.md.
+
+## D-070 | 2026-10-07 | type: decision | status: ACTIVE
+
+**What:** Umesh answered the open runtime gate and set direction for the video and team-loop work. Five parts:
+1. **Browser/full-suite runtime: option A, generalized.** AutoTester runs a local visible browser and the
+   full suite directly on whatever machine it is installed on. The native-egress sandbox precondition
+   recorded in `qa/gates/t125-fullsuite-browser-egress.md` and `qa/gates/t125-stalled-at-cycle-cap.md`
+   is dropped. The target is never Pathlynks-specific: any product given by URL plus the credentials
+   supplied for it (the boundary stays the supplied account's own rights, D-053/D-068). The test suite
+   keeps its own guards: no real credentials or `.env` values in tests, no paid model calls from tests,
+   and no external network from unit tests.
+2. **Video flows are reconciled by the system, not approved by a human.** There is no human-approval
+   dependency for video-derived flows. Each video yields its own knowledge graph: screens, actions, and
+   the flow the narrator says they are doing (speech is evidence of intent). It is re-mapped onto the
+   product knowledge graph built by the crawl. Every flow is kept: the ideal flow, each narrated flow
+   and each variant. Reports highlight where a video's path differs from the crawled or ideal one, as
+   an "another possibility" view for developers. The FlowSpec DRAFT review gate remains as a status
+   only, and it never blocks case generation from reconciled flows. Contract changes come through the
+   checker's inbox fold-in.
+3. **Group 10 scope widens to an in-product developer portal (T-198, being grilled).**
+   - Accounts with a role hierarchy that follows the company structure (CEO, developer, tester, admin,
+     sub-admin…).
+   - Users are mapped to projects. A developer uploads a video inside their project, and gets a
+     shareable URL to send by mail. Viewers with access watch it; others request access.
+   - Viewers leave timestamped comments on the video, Udemy-style, visible to everyone with access.
+   - The details come from the grill that is in progress.
+4. **Parked, must-have:** an in-product tracker with auto-validation, plus a Test button anyone can
+   press for a real-time run. Re-runs update the ledger and the tracker, log new issues and close fixed
+   ones. Optional sync to the team's Google/Excel sheet comes later (T-199 becomes the in-product
+   tracker first, sheet sync second).
+5. **Push:** everything built and validated (checker PASS) is committed and pushed. This restates D-007
+   and applies to the maker's own close-out merges as well.
+
+**Why:** In Umesh's words (chat, 2026-10-07): "Not only path links, but any of the account or website which
+is provided with the help of the URL ... along with the user credentials"; "it can run in any of the
+machine just via the browser"; "Don't make any human dependency ... the system should be intelligent
+enough"; "we can have like either n number of flows, but we have understanding of each and every
+flow"; "park it that it is a must and we must need to add"; "jo jo build hokrr validate hota jaa rha hai
+commit and push". The sandbox path had been BLOCKED-CAPABILITY since 2026-10-05 with no end in sight,
+and it held most of groups 3, 4, 6 and 7.
+
+**Result:** T-125 and T-165 (AT-113 cycle 4) are unblocked for runtime: the gate files carry
+`Answered: 2026-10-07` lines. The three Navnit videos already give a 38-screen, 4-flow DRAFT, which is
+now an input to the video-KG → product-KG reconciliation and not something waiting on a human. The
+group-10 grill continues with the developer-portal scope. The tracker loop is parked as a must-have.
+
+**Changes-authorized:** `qa/gates/t125-fullsuite-browser-egress.md`, `qa/gates/t125-stalled-at-cycle-cap.md`
+(Answered lines); `qa/feedback-inbox.md` (verbatim answers for the checker fold-in); `.goal/goal.json`
+(T-166 note, T-197..T-201 notes). No contract or ARCHITECTURE text is changed by this entry: those are
+folded in by `/checker`.
+
+**Approved-by:** Umesh — chat 2026-10-07 (answers to the five asks).
+
+**Links:** T-125; T-165; T-166; T-197; T-198; T-199; T-200; T-201; D-007; D-053; D-067; D-068; AT-113.
+
+## D-071 | 2026-10-07 | type: decision | status: ACTIVE
+
+**What:** Gate answers and go-live direction from Umesh. (1) t151: A, one narrow extra cycle (one
+scan-path deadline test; repair checker B only). (2) ct6: A, CT6 is amended to tier ordering and
+reporting, not skipping: every case runs, cheapest tier first, cheap failures shown first. RU3 and
+F-058 are unchanged. (3) T-174: the `mcp` SDK dependency is authorized. The CLI stays a first-class
+surface next to MCP. (4) Any-model provider: model calls must work with any AI API (Gemini, Claude,
+OpenAI, local Ollama, any OpenAI-compatible endpoint), chosen by config. New task T-202 adds a
+LiteLLM-backed Provider behind `providers.base.Provider`, and `litellm` is authorized in that unit.
+LangChain stays where it is already used. (5) T-199 widened: a generic tracker integration for any
+project, with a per-project column mapping proposed on first use and confirmed by the user, and the
+first live write shown and confirmed. (6) Go-live: AutoTester is hosted as a website on a
+Linux/Ubuntu server for the Vidysea internal development and product teams. New tasks T-203
+(hosting) and T-204 (team login, a go-live blocker; role-based authorization stays later).
+
+**Why:** Umesh, chat 2026-10-07: "mcp: haan … CLI bhi"; "kisi bhi AI ki API se chala paaye, Gemini ya
+Ollama ya kuch bhi"; "jab user dega kisi bhi project ke liye tracker tab usko"; "abhi Vidysea ki
+internal development team aur product team ke paas chalega, host properly website mai hoga". A
+server-hosted UI without login would let anyone with the URL run tests through the provisioned
+test account, so team login is required before go-live (D-066 already flagged it).
+
+**Result:** gate answers recorded in qa/gates/t151-cycle2-stalled.md and
+qa/gates/t125-ct6-tiered-dispatch-vs-ru3.md. goal.json gains T-202, T-203 and T-204, and the T-199 and
+T-174 notes are updated. No product code changed by this entry.
+
+**Changes-authorized:** qa/contracts/catalog.md CT6 (checker-owned amendment to ordering and
+reporting) · pyproject.toml / uv.lock: `mcp` (T-174) and `litellm` (T-202) · .goal/goal.json
+(T-202..T-204 added, T-174 and T-199 notes) · tests/test_discover_hardening.py on
+codex/t151-target-discovery (one test).
+
+**Approved-by:** Umesh — chat answers 2026-10-07.
+
+**Links:** T-151; T-125; T-174; T-199; T-202; T-203; T-204; D-066; D-068; qa/gates/t151-cycle2-stalled.md; qa/gates/t125-ct6-tiered-dispatch-vs-ru3.md.
