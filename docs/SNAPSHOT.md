@@ -37,8 +37,8 @@ AutoTester wins on bugs found, false positives, and time (`schema/bench.py` comp
 - T-125 [high] Test catalog: which case classes apply, which are runnable, which are blocked and why (+ cheap->expensive ordering)
 - T-151 [high] Track C1: read-only target discovery + deterministic signals + classification (+ context folder as markdown)
 ## Last decisions (computed status)
-- D-060 2026-09-30 decision ACTIVE
-- D-061 2026-09-30 fix ACTIVE
 - D-062 2026-10-06 decision ACTIVE
 - D-063 2026-10-06 decision ACTIVE
 - D-064 2026-10-06 session ACTIVE
+- D-065 2026-10-07 decision ACTIVE
+- D-066 2026-10-07 decision ACTIVE

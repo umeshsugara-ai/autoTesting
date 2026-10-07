@@ -9,15 +9,16 @@ import yaml
 from yaml.events import AliasEvent, CollectionEndEvent, CollectionStartEvent, ScalarEvent
 
 from autotester.core.redact import Redactor
-from autotester.schema.ai_target import ContextDocument, Discovery, ReadScope, Signal
+from autotester.schema.ai_target import ContextDocument, Discovery, ReadRefusal, ReadScope, Signal
 from autotester.schema.enums import SourceKind
 from autotester.schema.project import Source
 from autotester.stages.discover import approved_roots, bounded_files
+from autotester.stages.text_lines import split_lines
 
 
 def _frontmatter(text: str, scope: ReadScope) -> tuple[dict, int]:
     """Bound YAML before loading; aliases and explicit executable tags are refused."""
-    lines = text.splitlines()
+    lines = split_lines(text)
     if not lines or lines[0] != "---":
         return {}, 0
     end = next((i for i in range(1, len(lines)) if lines[i] == "---"), None)
@@ -44,12 +45,16 @@ def _frontmatter(text: str, scope: ReadScope) -> tuple[dict, int]:
     return data, end
 
 
-def _metadata(value: object, redactor: Redactor) -> object:
-    """Normalize safe metadata types and redact keys as well as values."""
+def _metadata(value: object, redactor: Redactor, seen: frozenset[int] = frozenset()) -> object:
+    """Normalize safe metadata types and redact keys as well as values; a cycle is an alias."""
+    if isinstance(value, (dict, list)):
+        if id(value) in seen:
+            raise ValueError("yaml_alias")
+        seen = seen | {id(value)}
     if isinstance(value, dict):
-        return {redactor.scrub(str(k)): _metadata(v, redactor) for k, v in value.items()}
+        return {redactor.scrub(str(k)): _metadata(v, redactor, seen) for k, v in value.items()}
     if isinstance(value, list):
-        return [_metadata(v, redactor) for v in value]
+        return [_metadata(v, redactor, seen) for v in value]
     if isinstance(value, str):
         return redactor.scrub(value)
     if value is None or isinstance(value, (int, float, bool)):
@@ -57,7 +62,16 @@ def _metadata(value: object, redactor: Redactor) -> object:
     return redactor.scrub(str(value))
 
 
-def _document(path: Path, text: str, scope: ReadScope, redactor: Redactor) -> ContextDocument:
+def _guard(emitted: int, scope: ReadScope, started: float) -> None:
+    """Refuse before the next Signal once the signal or time budget is spent."""
+    if emitted >= scope.limits.max_signals:
+        raise ValueError("signal_budget")
+    if time.monotonic() - started >= scope.limits.wall_clock_s:
+        raise ValueError("wall_clock_s")
+
+
+def _document(path: Path, text: str, scope: ReadScope, redactor: Redactor,
+              started: float, used: int = 0) -> ContextDocument:
     """Extract only metadata and standalone hashtag tokens outside fenced blocks."""
     frontmatter, end = _frontmatter(text, scope)
     signals, tags = [], []
@@ -68,9 +82,10 @@ def _document(path: Path, text: str, scope: ReadScope, redactor: Redactor) -> Co
         raise ValueError("tags_must_be_strings")
     tags.extend(redactor.scrub(t) for t in declared)
     fenced = False
-    for line, value in enumerate(text.splitlines(), 1):
+    for line, value in enumerate(split_lines(text), 1):
         if line <= end + 1 and end:
             if line > 1 and value.strip():
+                _guard(used + len(signals), scope, started)
                 signals.append(
                     Signal(
                         kind="context",
@@ -84,6 +99,7 @@ def _document(path: Path, text: str, scope: ReadScope, redactor: Redactor) -> Co
             fenced = not fenced
         if not fenced:
             for tag in re.findall(r"(?<![\w\[])#([\w/-]+)\b", value):
+                _guard(used + len(signals), scope, started)
                 tags.append(redactor.scrub(tag))
                 signals.append(
                     Signal(
@@ -113,6 +129,12 @@ def _source_reference(path: Path, text: str, scope: ReadScope, redactor: Redacto
                   label=redactor.scrub(path.name), sha256=hashlib.sha256(text.encode()).hexdigest())
 
 
+def _reason(exc: Exception) -> str:
+    if isinstance(exc, (RecursionError, MemoryError)):
+        return "parse_depth"
+    return str(exc) if isinstance(exc, ValueError) else "invalid_yaml"
+
+
 def read_context(roots: list[Path], *, scope: ReadScope, redactor: Redactor) -> Discovery:
     """Extract metadata from approved trees without evaluating Markdown body syntax."""
     result = Discovery()
@@ -123,15 +145,11 @@ def read_context(roots: list[Path], *, scope: ReadScope, redactor: Redactor) -> 
             if path.suffix.lower() != ".md":
                 continue
             try:
-                document = _document(path, text, scope, redactor)
-            except (ValueError, yaml.YAMLError) as exc:
-                from autotester.schema.ai_target import ReadRefusal
-
-                reason = str(exc) if isinstance(exc, ValueError) else "invalid_yaml"
+                document = _document(path, text, scope, redactor, started, len(result.signals))
+            except (ValueError, yaml.YAMLError, RecursionError, MemoryError) as exc:
                 result.refusals.append(
                     ReadRefusal(evidence_path=redactor.scrub(str(path)),
-                                reason=redactor.scrub(reason))
-                )
+                                reason=redactor.scrub(_reason(exc))))
                 continue
             result.documents.append(document)
             result.signals.extend(document.signals)
@@ -139,9 +157,8 @@ def read_context(roots: list[Path], *, scope: ReadScope, redactor: Redactor) -> 
         category = (type(error) if isinstance(error, (FileNotFoundError, PermissionError))
                     else OSError)
         raise category("filesystem access refused") from None
-    if time.monotonic() - started >= scope.limits.wall_clock_s:
-        from autotester.schema.ai_target import ReadRefusal
-
-        result.refusals.append(ReadRefusal(evidence_path="context", reason="wall_clock_s"))
     redactor.assert_clean(result.model_dump_json())
+    if time.monotonic() - started >= scope.limits.wall_clock_s and not any(
+            r.reason == "wall_clock_s" for r in result.refusals):
+        result.refusals.append(ReadRefusal(evidence_path="context", reason="wall_clock_s"))
     return result

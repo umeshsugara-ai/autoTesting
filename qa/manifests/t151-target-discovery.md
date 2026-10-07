@@ -2,7 +2,7 @@
 **Contract:** qa/contracts/ai-target.md (AI1, AI8 bind T-151; core-invariants C5/C7)
 **Goal task:** T-151
 **Date:** 2026-10-07
-**Fix cycle:** 1 of max 2
+**Fix cycle:** 2 of max 2
 **Dual check:** required   <!-- credential refusal, path-escape and approval gating are a security boundary -->
 **Persona walk:** skip (backend-only: no human screen; Track C below-the-UI discovery)
 **Issues addressed:** none
@@ -10,51 +10,66 @@
 **Executor rationale:** gate answered; merge of master + manifest close-out by a maker subagent in the t151 worktree; no external executor worthy.
 
 ## What changed
-- src/autotester/schema/ai_target.py (new, 122 lines) — Signal/ReadScope/ScanLimits/Classification models, all `extra="forbid"` (authorized by D-017 What).
-- src/autotester/stages/discover.py (new, 287) — deterministic scan with file:line signals; `classify_target` names the kind through `Provider.act` (D-017: model names, never chooses checks).
-- src/autotester/stages/read_context.py (new, 147) — Markdown frontmatter+tags only; no backlink graph, no Dataview, no vault-index library.
-- src/autotester/prompts/ai_target_classify_v1.md (new, 7) — classify prompt file. Authorized by D-065 (Approved-by Umesh).
-- src/autotester/providers/mock.py:55-70 — `act` hunk only (deterministic Classification when no response is queued). Unrelated signature reflow reverted. Authorized by D-065 (Approved-by Umesh).
-- pyproject.toml / uv.lock — `pyyaml==6.0.3`. Authorized by D-065 (Approved-by Umesh).
-- tests/test_discover.py (new, 300) — 63 cases; SIM105 fixed with `contextlib.suppress`.
-- Removed from this branch as non-T-151: D-061 (AT-113) and F-067 (T-171) hunks; docs/DECISIONS.md and docs/FEATURES.jsonl now equal master bd2fe8f4.
+Cycle-2 fixes (both cycle-1 FAILs, fix list items 1-7). Complete list from `git diff --name-only 2fae2504...HEAD` follows the fixes.
+- Merge of master into the branch (D-065, D-063/D-066 gate files, issues row now present; `qa/.last-tick` not committed). Dangling-citation doctor violations for D-065 and `tests/test_citations.py::test_the_real_tree_has_no_dangling_citation` are green.
+- src/autotester/stages/text_lines.py (new, 18) — one shared line splitter (`split_lines`, `first_nonblank_line`): lines are counted by 
+, 
+
+ and 
+ only. Replaces the three `str.splitlines()` call sites in read_context.py and discover.py (U+2028/U+2029/U+0085///- no longer shift Signal lines).
+- src/autotester/stages/credential_files.py (new, 16) — credential denylist moved out of discover.py (which would otherwise exceed 300 lines) and extended: .envrc .npmrc .netrc .pypirc .htpasswd *.jks *.keystore *.p8 id_ecdsa credentials.yml secrets.yaml service-account.json token.json.
+- src/autotester/stages/discover.py (286) — `_emit` enforces `max_signals` (refusal `signal_budget`) and the deadline per Signal; `scan` refuses a file with `parse_depth` on RecursionError/MemoryError and continues; the final deadline check now runs after `redactor.assert_clean`.
+- src/autotester/stages/read_context.py (164) — `_guard` (signal budget + deadline inside the tag/frontmatter emission loop), final deadline after `assert_clean`, per-file `parse_depth` refusal, `_metadata` refuses a cyclic structure as `yaml_alias` instead of recursing.
+- src/autotester/schema/ai_target.py — `ScanLimits.max_signals` (default 2000, ge=1, le=20000; `extra="forbid"` kept).
+- tests/test_discover_hardening.py (new, 158; 27 cases) — committed defenders. NOTE: tests/test_discover.py is already at the 300-line cap (doctor C2 counts tests/), so the new cases could not be appended to it; they live in this sibling file instead of test_discover.py (deviation from fix-list wording, forced by the file-size rule).
+- docs/MAP.md, docs/SNAPSHOT.md — regenerated (`autotester map`, `autotester snapshot`).
+- Carried from cycle 1 (already on the branch): src/autotester/prompts/ai_target_classify_v1.md, src/autotester/providers/mock.py (`act` hunk), pyproject.toml / uv.lock (`pyyaml==6.0.3`), tests/test_discover.py (63 cases), docs/DECISIONS.md (D-065 via master), qa/gates/d063-cn5-vs-cn11.md, qa/gates/d063-self-grant-csrf.md, qa/gates/t151-dependency-authorization.md, qa/gates/t196-l10-coverage.md, qa/issues.jsonl (all from master), qa/checkpoints/t151-target-discovery.md and .b.md, qa/verdicts/t151-target-discovery.md, .b.md, -scoped-cycle1.md, -repair-scoped-cycle1.md (checker records), qa/evidence/t151-independent-cycle1-2026-10-05/ (alias-independent-results.json, results.json, t151_checker_mutations.py, t151_checker_probe.py, t151_checker_yaml_proof.py), qa/evidence/t151-independent-rebind-cycle1-2026-10-05/ (results.json, t151_checker_rebind_mutations.py, test_checker_yaml.py), qa/evidence/t151-independent-repair-cycle1-2026-10-05/ (repair-results.json, t151_checker_repair_mutations.py, t151_checker_repair_probe.py), qa/evidence/t151-maker-cycle1-2026-10-05/ (native-tool-receipt.md, t151_maker_filesystem_probe.py), qa/manifests/t151-target-discovery.md (this file).
 
 ## Verification scope
 Policy-Version: proportional-verification/2026-10-06.6
 Tier: L (dependency bump + credential, path-escape and approval boundary)
-Base SHA: master 2fae2504 (merged into the branch). Checked state: branch codex/t151-target-discovery HEAD at ready-for-check (re-bind SHA and dirty diff hash at Mode A)
-Gate answers (qa/gates/t151-dependency-authorization.md, verbatim): "Answered: 2026-10-07T01:34:13Z — A — chat (Umesh): approve all three (pyyaml==6.0.3, the target-discovery prompt file, the mock.py act hunk). DECISIONS entry to follow." Recorded as D-065 (docs/DECISIONS.md, Approved-by Umesh); Changes-authorized: pyproject.toml / uv.lock (pyyaml==6.0.3) · src/autotester/prompts/ai_target_classify_v1.md (the T-151 target-discovery prompt file) · src/autotester/providers/mock.py `act` hunk.
-Affected tests / full-suite trigger: tests/test_discover.py only (63). The builder runs no full suite; the checker decides on the full-suite trigger (new dependency touches uv.lock).
-Metrics: start=2026-10-07T02:00:00Z end=2026-10-07T02:25:00Z wall_min=25 agent_min=unavailable blocked_min=0 suite_runs=0 repeat_runs=0 mutations=1 cycle=1 resumes=0 tokens=unavailable policy=2026-10-06.6
+Base SHA: master 2fae2504 merged (merge commits on the branch; D-065 present). Checked state: branch codex/t151-target-discovery HEAD at ready-for-check (re-bind SHA and dirty diff hash at Mode A)
+Gate answers (qa/gates/t151-dependency-authorization.md, verbatim): "Answered: 2026-10-07 — A — chat (Umesh): approve all three (pyyaml==6.0.3, the target-discovery prompt file, the mock.py act hunk). DECISIONS entry to follow." Recorded as D-065 (docs/DECISIONS.md, Approved-by Umesh); Changes-authorized: pyproject.toml / uv.lock (pyyaml==6.0.3) · src/autotester/prompts/ai_target_classify_v1.md · src/autotester/providers/mock.py `act` hunk.
+Affected tests / full-suite trigger: tests/test_discover.py (63) + tests/test_discover_hardening.py (27) + tests/test_citations.py. The builder runs no full suite (suite_runs=0); the checker decides on the full-suite trigger (new dependency touches uv.lock).
+Metrics: start=2026-10-07T03:00:00Z end=unavailable wall_min=unavailable agent_min=unavailable blocked_min=0 suite_runs=0 repeat_runs=0 mutations=13 cycle=2 resumes=1 tokens=unavailable policy=2026-10-06.6
 
 ## How to verify (commands + expected)
 - `uv run ruff check src tests scripts` → expected: All checks passed
-- `uv run pytest tests/test_discover.py` → expected: 63 passed
+- `uv run pytest tests/test_discover.py tests/test_discover_hardening.py tests/test_citations.py` → expected: 101 passed
 - `uv run autotester doctor` → expected: `doctor: clean`
 - `grep -rniE obsidian pyproject.toml` → expected: no output, exit 1
 
 ## Actual outputs (from maker's own run, 2026-10-07)
 - ruff: `All checks passed!`
-- pytest tests/test_discover.py: `63 passed in 0.99s`
-- doctor (after `autotester map`): `doctor: clean`. Earlier on bd2fe8f4 it reported 8 pre-existing violations, none in T-151 files (cap check: discover.py 287, read_context.py 147, ai_target.py 122, test_discover.py 300 lines).
-- obsidian grep: no output, exit=1.
+- pytest (three files above): `101 passed in 94.38s (0:01:34)`
+- doctor (after `autotester map` and `autotester snapshot`): `doctor: clean`. Caps: discover.py 286, read_context.py 164, text_lines.py 18, credential_files.py 16, ai_target.py 123, test_discover.py 300, test_discover_hardening.py 158.
 
-## Capability coverage (each new claim -> its isolating falsification)
-Falsification evidence is reused from independent checker runs (no new mutation groups). Some named defenders (test_target_is_never_executed_before_import, test_reader_signal_lines_match_exact_source, test_noncyclic_alias_exact_refusal, test_denial_class_and_formatted_chain_are_safe, G4-*) are checker scratch oracles run against the same source, not nodes of tests/test_discover.py. Records: `qa/verdicts/t151-target-discovery-repair-scoped-cycle1.md` (groups 2-4) and the retained results.json files under `qa/evidence/t151-independent-*-2026-10-05/`. Planning prose: `.work/t151-planning-notes.md` (gitignored).
+## Capability coverage (each claim -> a committed test and its isolating falsification)
+Every defender below is a node in tests/. Each row's runner line is from a throwaway copy of the tree outside the bound worktree (the maker's scratch driver is not committed), the single named node only: baseline -> mutant -> restored.
 
-| Criterion | capability | the check that covers it | the falsifying edit | observed |
+| Criterion | capability | the committed check | the falsifying edit | observed (baseline -> mutant -> restored) |
 |---|---|---|---|---|
-| AI1 | every Signal names a real file:line | test_signals_match_real_lines_without_importing_target; test_reader_signal_lines_match_exact_source (verdict group 2) | scan citation line +1; reader metadata line +1 | baseline 65 passed -> KILLED (3 failures; reader line mutant 1 failure) -> restore 65 passed |
-| AI1 | no Provider call on the signal-emission path | test_discovery_never_calls_provider | inserted `Provider.act` into scan; into read_context | KILLED (21 and 25 failures) -> restore green. Literal Verify grep hits `classify_target` (naming, D-017 authorized); checker amends AI1 Verify scope at Mode A |
-| AI1 | target code is parsed, never executed | test_target_is_never_executed_before_import | `exec(text)` before AST parse | KILLED, 10 failures, exact sentinel RuntimeError |
-| AI8 | frontmatter and tags only; no backlink graph, no Dataview, no vault-index dependency | test_context_is_metadata_only_and_secrets_are_scrubbed; G4-22..24 body/backlink/Dataview exclusion (verdict group 4) | persist body text; emit backlink names; admit non-Markdown | 28/28 single-hunk mutants KILLED, 34 baseline cases green before and after; `grep -rniE obsidian pyproject.toml` exit 1 |
-| C5 secrets | dirty signal and encoded root secret refused before any provider call | test_dirty_signal_is_refused_before_provider; test_non_ai_encoded_root_secret_is_refused | remove dirty-signal guard; remove non-AI root guard | results.json: both KILLED, attributed=True, baseline 35 passed, restored 35 passed |
-| C5 secrets | metadata and provider errors never echo a raw secret | test_context_is_metadata_only_and_secrets_are_scrubbed; test_provider_error_never_echoes_raw_secret | disable metadata literal scrubbing; disable ProviderError sanitization | both KILLED, attributed=True |
-| C5 / approval | signed READ approval and scope preflight before any file open | test_all_roots_are_preflighted_before_any_open; test_denial_class_and_formatted_chain_are_safe | disable scope preflight; approval-exception sanitation | scope-preflight KILLED (cycle1); approval-exception KILLED (repair-results.json, 77 baseline -> restored 77) |
-| C5 / bounds | physical read budget and final deadline are visible, never silent | test_rejected_files_still_consume_physical_read_budget; test_final_parser_overrun_is_not_complete | disable physical-byte accounting; disable final deadline (scan and context) | physical-budget, scan-final-deadline, context-final-deadline all KILLED |
-| C5 / YAML | alias, depth and node bombs refused; safe_load only | test_unsafe_or_excessively_nested_yaml_is_refused; test_noncyclic_alias_exact_refusal | delete AliasEvent detection | alias-independent-results.json: baseline pass -> 1 failed -> restored pass (initial cycle1 run INCONCLUSIVE, superseded by this isolated proof) |
-| C5 / path-escape | symlink and junction escape refused | test_symlink_escape_is_refused | in `discover.py` replace the `not resolved.is_relative_to(root) or REPARSE_POINT` refusal condition with `False` | baseline `2 passed` (symlink + junction nodes) -> KILLED `2 failed` (assertion at tests/test_discover.py:104) -> restored `2 passed`; throwaway copy, node `tests/test_discover.py::test_symlink_escape_is_refused` |
+| AI1 | Signal lines are physical 
+/
+/ lines (U+2028,  no shift) | tests/test_discover_hardening.py::test_unicode_and_formfeed_separators_do_not_shift_reader_lines and ::test_unicode_and_formfeed_separators_do_not_shift_scan_lines | text_lines.split_lines returns `text.splitlines()` | `2 passed` -> `2 failed` -> `2 passed` |
+| AI1 | reader tag Signal cites the exact file:line | tests/test_discover_hardening.py::test_reader_signal_lines_match_exact_source | read_context Markdown-tag `line=line` -> `line=line + 1` | `1 passed` -> `1 failed` -> `1 passed` |
+| AI1 | reader frontmatter Signal cites the exact file:line | same node | frontmatter `line=line` -> `line=line + 1` | `1 passed` -> `1 failed` -> `1 passed` |
+| AI1 | scanned Python is parsed, never executed | tests/test_discover_hardening.py::test_scanned_python_is_never_executed (sentinel file absent) | `exec(compile(text, ...))` before `ast.parse` in `_python_facts` | `1 passed` -> `1 failed` -> `1 passed` |
+| AI8 | Markdown only: a .txt context file yields no document | tests/test_discover_hardening.py::test_non_markdown_context_files_yield_no_document | `suffix.lower() != ".md"` -> `not in {".md", ".txt"}` | `1 passed` -> `1 failed` -> `1 passed` |
+| C5 / YAML | non-cyclic and cyclic alias refused as `yaml_alias`, complete=False, generous limits | tests/test_discover_hardening.py::test_yaml_alias_is_refused_under_generous_limits | `if isinstance(event, AliasEvent)` -> `if False` | `2 passed` -> `1 failed, 1 passed` (the non-cyclic case dies; the cyclic case is also caught by the `_metadata` cycle guard) -> `2 passed` |
+| C5 / bounds | tag flood ends in visible `signal_budget`, no Signals | tests/test_discover_hardening.py::test_tag_flood_is_a_visible_signal_budget_refusal | `_guard` cap `emitted >= max_signals` -> `>= 10**9` | `1 passed` -> `1 failed` -> `1 passed` |
+| C5 / bounds | import flood ends in visible `signal_budget` | tests/test_discover_hardening.py::test_import_flood_is_a_visible_signal_budget_refusal | `_emit` cap -> `> 10**9` | `1 passed` -> `1 failed` -> `1 passed` |
+| C5 / bounds | deadline is checked inside the emission loop | tests/test_discover_hardening.py::test_deadline_is_checked_inside_the_tag_emission_loop | `_guard` deadline body -> `pass` | `1 passed` -> `1 failed` -> `1 passed` |
+| C5 / bounds | deadline is rechecked after the final redaction (reader) | tests/test_discover_hardening.py::test_deadline_is_rechecked_after_the_final_redaction | reader post-assert_clean deadline check -> `if False` | `2 passed` -> `1 failed, 1 passed` -> `2 passed` |
+| C5 / bounds | same, scan | same node | scan post-assert_clean deadline check -> `if False` | `2 passed` -> `1 failed, 1 passed` -> `2 passed` |
+| C5 / bounds | deep binop and decorator chains are a per-file `parse_depth` refusal and the scan continues | tests/test_discover_hardening.py::test_deep_binop_chain_is_a_per_file_refusal_and_scan_continues and ::test_deep_decorator_chain_is_a_per_file_refusal_and_scan_continues | `except (RecursionError, MemoryError)` -> `except KeyError` | `2 passed` -> `2 failed` -> `2 passed` |
+| C5 / credentials | .envrc .npmrc .netrc .pypirc .htpasswd *.jks *.keystore *.p8 id_ecdsa credentials.yml secrets.yaml service-account.json token.json refused, never opened | tests/test_discover_hardening.py::test_more_credential_files_are_refused_without_being_opened (13 params) | credential_files `_NAMES`/`_SUFFIXES` reverted to the cycle-1 lists | `13 passed` -> `13 failed` -> `13 passed` |
+| AI1 | no Provider call on the signal-emission path | tests/test_discover.py::test_discovery_never_calls_provider | not re-run this cycle (unchanged); cycle-1 checker record | see verdicts; checker re-verifies |
+| AI8 | frontmatter and tags only, secrets scrubbed | tests/test_discover.py::test_context_is_metadata_only_and_secrets_are_scrubbed | not re-run this cycle (unchanged) | checker re-verifies |
+| C5 / path-escape | symlink and junction escape refused | tests/test_discover.py::test_symlink_escape_is_refused | not re-run this cycle (unchanged; cycle-1 proof recorded `2 passed -> 2 failed -> 2 passed`) | checker re-verifies |
 | (dependency) | pyyaml==6.0.3 is the only new dependency | pyproject.toml:26 | n/a | authorized by D-065; `grep -n pyyaml pyproject.toml` -> `26:    "pyyaml==6.0.3",` |
+
+Claims dropped from cycle 1 because their defenders were checker scratch oracles, not tests/ nodes: Dataview/backlink/body exclusion "28/28 mutants" (G4-22..24), approval-exception sanitation (test_denial_class_and_formatted_chain_are_safe), and the cycle-1 reader/exec/alias names (now the committed nodes above).
 
 ## Live browser evidence
 Not UI-touching — no surface changed (src/autotester/schema/ai_target.py, stages/discover.py, stages/read_context.py, prompts/ai_target_classify_v1.md, providers/mock.py, tests/test_discover.py, pyproject.toml). Discovery reads local Markdown and code files only; no browser, network or live model.

@@ -22,21 +22,13 @@ from autotester.schema.ai_target import (
     Signal,
 )
 from autotester.schema.enums import ApprovalKind
+from autotester.stages.credential_files import is_credential
+from autotester.stages.text_lines import first_nonblank_line
 
 _SDK = {"openai", "anthropic", "google.genai", "google.generativeai"}
 _FRAMEWORKS = {"langgraph", "langchain", "autogen", "crewai"}
 _RETRIEVAL = {"chromadb", "faiss", "pinecone", "qdrant_client"}
 _EXCLUDED = {".git", ".venv", "node_modules", "__pycache__"}
-_CREDENTIALS = {
-    ".env",
-    "credentials",
-    "credentials.json",
-    "secrets.json",
-    "id_rsa",
-    "id_ed25519",
-    "credentials.md",
-    "secrets.md",
-}
 
 
 def approved_roots(paths: list[Path], scope: ReadScope, redactor: Redactor) -> list[Path]:
@@ -69,15 +61,6 @@ def approved_roots(paths: list[Path], scope: ReadScope, redactor: Redactor) -> l
 
 def _refuse(result: Discovery, path: Path, reason: str, redactor: Redactor) -> None:
     result.refusals.append(ReadRefusal(evidence_path=redactor.scrub(str(path)), reason=reason))
-
-
-def _credential(path: Path) -> bool:
-    name = path.name.lower()
-    return (
-        name in _CREDENTIALS
-        or name.startswith(".env.")
-        or path.suffix.lower() in {".pem", ".key", ".p12", ".pfx"}
-    )
 
 
 def _candidates(
@@ -136,7 +119,7 @@ def bounded_files(
             if time.monotonic() - started >= scope.limits.wall_clock_s:
                 _refuse(result, path, "wall_clock_s", redactor)
                 return
-            if _credential(path):
+            if is_credential(path):
                 _refuse(result, path, "credential_file", redactor)
                 continue
             if count >= scope.limits.max_files:
@@ -215,6 +198,21 @@ def _python_facts(text: str) -> list[tuple[str, int, str]]:
     return facts
 
 
+def _emit(result: Discovery, path: Path, facts: list, scope: ReadScope, redactor: Redactor,
+          started: float) -> bool:
+    """Append one file's facts within budget; False once the deadline stops the whole scan."""
+    if len(result.signals) + len(facts) > scope.limits.max_signals:
+        _refuse(result, path, "signal_budget", redactor)
+        return True
+    for kind, line, detail in facts:
+        if time.monotonic() - started >= scope.limits.wall_clock_s:
+            _refuse(result, path, "wall_clock_s", redactor)
+            return False
+        result.signals.append(
+            Signal(kind=kind, line=line, detail=detail, evidence_path=redactor.scrub(str(path))))
+    return True
+
+
 def scan(
     root: Path, context_dirs: list[Path], *, scope: ReadScope, redactor: Redactor
 ) -> Discovery:
@@ -229,24 +227,25 @@ def scan(
             except ValueError:
                 _refuse(result, path, "invalid_python", redactor)
                 continue
+            except (RecursionError, MemoryError):
+                _refuse(result, path, "parse_depth", redactor)
+                continue
             if path.suffix == ".md" and "prompt" in path.stem.lower() and text.strip():
-                line = next(i for i, value in enumerate(text.splitlines(), 1) if value.strip())
-                facts.append(("prompt", line, "Prompt-template file"))
+                facts.append(("prompt", first_nonblank_line(text), "Prompt-template file"))
             if path.stem.lower() in {"ground_truth", "golden_set", "golden-set"} and text.strip():
-                line = next(i for i, value in enumerate(text.splitlines(), 1) if value.strip())
+                line = first_nonblank_line(text)
                 facts.append(("ground_truth", line, "Ground-truth fixture file"))
-            for kind, line, detail in facts:
-                result.signals.append(
-                    Signal(kind=kind, line=line, detail=detail,
-                           evidence_path=redactor.scrub(str(path))))
+            if not _emit(result, path, facts, scope, redactor, started):
+                break
     except OSError as error:
         category = (type(error) if isinstance(error, (FileNotFoundError, PermissionError))
                     else OSError)
         raise category("filesystem access refused") from None
     result.signals = sorted(result.signals, key=lambda s: (s.evidence_path, s.line, s.kind))
-    if time.monotonic() - started >= scope.limits.wall_clock_s:
-        _refuse(result, root, "wall_clock_s", redactor)
     redactor.assert_clean(result.model_dump_json())
+    if time.monotonic() - started >= scope.limits.wall_clock_s and not any(
+            r.reason == "wall_clock_s" for r in result.refusals):
+        _refuse(result, root, "wall_clock_s", redactor)
     return result
 
 

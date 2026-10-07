@@ -79,6 +79,7 @@ class ScanLimits(BaseModel):
     wall_clock_s: float = Field(default=10, gt=0, le=300)
     max_yaml_depth: int = Field(default=8, ge=1, le=20)
     max_yaml_nodes: int = Field(default=500, ge=1, le=2000)
+    max_signals: int = Field(default=2000, ge=1, le=20000)
 
 
 class ReadScope(BaseModel):
