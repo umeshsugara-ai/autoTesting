@@ -77,6 +77,8 @@
 | `schema/screen_graph.py` | What one page-visit observed: its interactive elements and identity inputs. |
 | `schema/screenmap.py` | The product map — every screen the system has learned across all a |
 | `schema/trace.py` | Trace-span shapes for the redacted per-run trace.jsonl (D-041 phase 1, |
+| `schema/user_persona.py` | A `UserPersona` and the opt-in `UXPolicy` -- WHO the advisory UX pass reads a run as. |
+| `schema/ux_report.py` | The advisory UX artifacts: `UXFinding`, `UXCaseOutcome`, `UXReport` (PU2). |
 | `schema/verdict.py` | Grading. An independent, stateless judge reads evidence against a rubric. |
 | `sources/adapters.py` | Convert teaching material into the ONE content-addressed `Source` model. |
 | `sources/audio.py` | Gemini-first transcription for AUDIO sources, Whisper as the no-API fallback. |
@@ -132,11 +134,13 @@
 | `stages/similarity_score.py` | How two bug reports are compared for `stages/score.py`'s T-136 scorer. |
 | `stages/synthetic_values.py` | The synthetic value generator (X10-b, D-029): what the crawler types. |
 | `stages/text_lines.py` | Number lines by  |
+| `stages/ux_advisory.py` | The advisory UX pass: read a finished run's evidence as a persona, record findings (T-190). |
 | `stages/video_retention.py` | T-191/AT-587 V5: keep at most the N most recent kept videos, project-wide. |
 | `store/crawl_store.py` | Crawl artifact persistence — split from `project_store.py` at the |
 | `store/filestore.py` | The one place any artifact is read from or written to disk. Contract: core-invariants.md C6. |
 | `store/project_store.py` | Typed convenience over `filestore` for one project's directory. |
 | `store/request_store.py` | Video-request persistence — split from `project_store.py` at the 300-line |
+| `store/run_store.py` | Persistence for the advisory UX track: personas and one run's `UXReport` (T-190, PU1/PU2). |
 | `ui/app.py` | Thin FastAPI viewer/editor over project files. Design principle 8: never a |
 | `ui/case_form.py` | Rendering the add-a-case form. Contract: qa/contracts/ui.md. |
 | `ui/crawl_view.py` | HTML fragments for the crawl pages — split from `routes_crawls.py` to keep |
@@ -267,6 +271,14 @@
 | `ScreenMap` (`schema/screenmap.py`) | The product map: every learned screen plus the journeys that visited them. |
 | `StageSpan` (`schema/trace.py`) | One finished `StageCheckpoint` (RT3) — `trace_id` is always the run's |
 | `LLMSpan` (`schema/trace.py`) | One call through `Provider.see_video`/`act`/`judge` (RT4), recorded at |
+| `UserPersona` (`schema/user_persona.py`) | One kind of user the UX pass reads a run as. Advisory input only (PU4). |
+| `UXPolicy` (`schema/user_persona.py`) | Per-project switch and cap for the UX pass. Off by default (plan decision 5). |
+| `UXFinding` (`schema/ux_report.py`) | One advisory observation about one case, cited to real evidence. |
+| `UXDraft` (`schema/ux_report.py`) | What the model returns for one finding -- validated against the real evidence before it |
+| `UXJudgment` (`schema/ux_report.py`) | The provider's structured answer for one case (the `Provider.judge` schema). |
+| `UXCaseStatus` (`schema/ux_report.py`) | How one case's UX pass ended. Only `ANALYZED` can carry findings. |
+| `UXCaseOutcome` (`schema/ux_report.py`) | One case's advisory record: its status, why, and any findings. |
+| `UXReport` (`schema/ux_report.py`) | One run's advisory UX pass. `complete=False` means the pass was cut short; an absent |
 | `Criterion` (`schema/verdict.py`) | One checkable bar. If it can be argued about, it is not a criterion. |
 | `Rubric` (`schema/verdict.py`) | The grading contract for a case. More specific than the case itself. |
 | `Failure` (`schema/verdict.py`) | One unmet criterion, with the evidence that shows it. |

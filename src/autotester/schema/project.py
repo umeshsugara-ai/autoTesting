@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from autotester.schema.base import Artifact
 from autotester.schema.crawl import PermittedControl
 from autotester.schema.enums import ProviderRole, SourceKind, WritePolicy
+from autotester.schema.user_persona import PERSONA_ID_PATTERN, UXPolicy
 
 DEFAULT_VISION_PROVIDER = "gemini"
 """AT-550: the vision provider `vision_ensemble()` substitutes when the
@@ -157,6 +158,12 @@ class Project(Artifact):
                     "and used by every entry point (X17); None means the product is crawled "
                     "signed out",
     )
+    user_persona_ref: str | None = Field(
+        default=None, pattern=PERSONA_ID_PATTERN,
+        description="T-190: the default advisory UserPersona (an id in user_personas.jsonl); "
+                    "a Case's own ref overrides it. Never read by grading (PU4)",
+    )
+    ux_policy: UXPolicy = Field(default_factory=UXPolicy)
 
     def secret(self, key: str) -> SecretRef | None:
         return next((s for s in self.secrets if s.key == key), None)
