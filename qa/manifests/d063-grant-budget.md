@@ -166,5 +166,6 @@ real-Chromium fixture test passed once on a throwaway copy with the RAM floor ze
 1 warning in 14.84s`. No live Pathlynks account run was performed; that is the later T-122
 USER-account step and needs provisioned credentials.
 
-## Status: ready-for-check
+## Status: checked-PASS
+Verdicts (cycle 2, tip 1fd229b1): qa/verdicts/d063-grant-budget.md (coordinator A, PASS) and qa/verdicts/d063-grant-budget.b.md (coordinator B, PASS). Cycle-1 verdicts archived as *.r1-1.md. Follow-ups filed as AT-758..AT-764 (PROPOSED-ISSUEs from the dual check).
 Ship gates open: qa/gates/d063-self-grant-csrf.md (answered B, built here), qa/gates/d063-cn5-vs-cn11.md (answered B widened, built here); real role-based auth stays a follow-up (D-066)

@@ -33,3 +33,14 @@ Environment fingerprint: Windows 11, worktree .venv cpython 3.11, copies under s
 | lint / doctor | ruff src tests scripts / autotester doctor | pass / 1 violation (stale MAP, as cycle 0) | coordinator |
 
 Reused from cycle 0 by identity: lint, full suite, falsification R2-R9/M1-M3/G2-G4, security and budget/exact-host probes. Remaining: none. Verdict PASS (B side).
+
+## Cycle 2 (coordinator B, tip 1fd229b1)
+Environment fingerprint: Windows 11, detached worktree .venv cpython 3.11 (removed after), HEAD 1fd229b1963d784d06ad029fa65ec7945e89cfb2, uv sync clean; no browser build id (local uvicorn on 127.0.0.1:8765 from the bound src), no data snapshot.
+| check | command + scope | result | attribution |
+|---|---|---|---|
+| lint | uv run ruff check src tests scripts | pass | coordinator B |
+| doctor | uv run autotester doctor | doctor: clean | coordinator B |
+| full suite | uv run pytest (2409 collected incl. xfail/skip) at 1fd229b1 | 1 failed (tests/test_goal_done_checks.py, T-197..T-201 done_check, master fe6eb98a state, .goal/ unchanged by branch), 2388 passed, 6 skipped, 14 xfailed, 2223 s | coordinator B |
+| falsification | 31 single-hunk mutants, own isolated copy each (scratchpad b/mutants4.py, mutants5.py) | 26 killed, 5 survived (C9, C10, C12, D4b, X1) | coordinator B |
+| real browser | scratchpad b/browser_probe.py, Chromium | same-origin accepted, cross-site and Origin null refused | coordinator B |
+Result: PASS, verdict qa/verdicts/d063-grant-budget.b.md.
