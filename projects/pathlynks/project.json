@@ -12,29 +12,33 @@
     {
       "key": "PATHLYNKS_COUNSELLOR_EMAIL",
       "domains": [
-        "vidysea.com"
+        "dev-new.vidysea.com"
       ],
+      "include_subdomains": false,
       "mask_in_screenshot": false
     },
     {
       "key": "PATHLYNKS_COUNSELLOR_PASSWORD",
       "domains": [
-        "vidysea.com"
+        "dev-new.vidysea.com"
       ],
+      "include_subdomains": false,
       "mask_in_screenshot": true
     },
     {
       "key": "PATHLYNKS_USER_EMAIL",
       "domains": [
-        "vidysea.com"
+        "pathlynks.vidysea.com"
       ],
+      "include_subdomains": false,
       "mask_in_screenshot": false
     },
     {
       "key": "PATHLYNKS_USER_PASSWORD",
       "domains": [
-        "vidysea.com"
+        "pathlynks.vidysea.com"
       ],
+      "include_subdomains": false,
       "mask_in_screenshot": true
     }
   ],
