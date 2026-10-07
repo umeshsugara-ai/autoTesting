@@ -4,7 +4,7 @@
   "north_star": "A reusable AI testing platform where an operator submits any project URL, domain-scoped test-account credential references, and optional evals, conditions, use cases, video, audio, documents, text, email or Google Drive sources. AutoTester learns from supplied evidence or logs in and performs bounded breadth-first exploration, preserves a durable Portal Persona, compiles traceable best/worst/edge evals, reruns them after developer releases in a real visible browser, and reports workflow/API regressions through clear HTML, Excel, text and screenshots. First acceptance targets: Vidysea ERP and Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-10-07T12:17:40",
+  "updated": "2026-10-07T12:43:07",
   "progress": {
     "total": 90,
     "done": 59,
@@ -1698,8 +1698,12 @@
       "deps": [],
       "base_criticality": "high",
       "user_value": "high",
-      "done_check": "A project can switch its model to Gemini, Claude, an OpenAI model or a local Ollama model by config alone, with no code change; the mock-provider suite and one real-provider smoke pass through the same seam; redaction gate (assert_no_raw_secrets) still runs before every call.",
-      "note": "D-071: Umesh -- 'kisi bhi AI ki API se chala paaye, Gemini ya Ollama ya kuch bhi'. LiteLLM is the portable-core choice in the agentic-architecture standard; LangChain stays where it already is (langchain_fallback). New dependency litellm authorized by D-071 in this unit only.",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run python scripts/check_deliverable.py --exists qa/verdicts/t-202-any-model-provider.md",
+        "expect_exit": 0
+      },
+      "note": "D-071: Umesh -- 'kisi bhi AI ki API se chala paaye, Gemini ya Ollama ya kuch bhi'. LiteLLM is the portable-core choice in the agentic-architecture standard; LangChain stays where it already is (langchain_fallback). New dependency litellm authorized by D-071 in this unit only. | Acceptance: A project can switch its model to Gemini, Claude, an OpenAI model or a local Ollama model by config alone, with no code change; the mock-provider suite and one real-provider smoke pass through the same seam; redaction gate (assert_no_raw_secrets) still runs before every call.",
       "criticality": "high"
     },
     {
@@ -1711,8 +1715,12 @@
       ],
       "base_criticality": "high",
       "user_value": "high",
-      "done_check": "A team member opens the server URL in a browser, signs in, onboards a project and runs a case; data survives a restart; the Origin/CSRF guard is configured for the server origin; no secret value is baked into the image.",
-      "note": "D-071: Umesh -- 'abhi vidysea ki internal development team aur product team ke paas chalega, host properly website mai hoga', Linux/Ubuntu server. Server/host choice and DNS are a HUMAN_GATE before the first deploy.",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run python scripts/check_deliverable.py --exists qa/verdicts/t-203-hosted-website.md",
+        "expect_exit": 0
+      },
+      "note": "D-071: Umesh -- 'abhi vidysea ki internal development team aur product team ke paas chalega, host properly website mai hoga', Linux/Ubuntu server. Server/host choice and DNS are a HUMAN_GATE before the first deploy. | Acceptance: A team member opens the server URL in a browser, signs in, onboards a project and runs a case; data survives a restart; the Origin/CSRF guard is configured for the server origin; no secret value is baked into the image.",
       "criticality": "critical"
     },
     {
@@ -1722,8 +1730,12 @@
       "deps": [],
       "base_criticality": "high",
       "user_value": "high",
-      "done_check": "An unauthenticated request to any UI page or state-changing route is refused; a signed-in team member gets through; credentials/sessions never appear in logs.",
-      "note": "D-066 noted real auth is required once the UI leaves localhost; D-070 makes it a go-live blocker. Mechanism (simple team password vs Google sign-in limited to the company domain) is a HUMAN_GATE.",
+      "done_check": {
+        "type": "cmd",
+        "cmd": "uv run python scripts/check_deliverable.py --exists qa/verdicts/t-204-team-login.md",
+        "expect_exit": 0
+      },
+      "note": "D-066 noted real auth is required once the UI leaves localhost; D-070 makes it a go-live blocker. Mechanism (simple team password vs Google sign-in limited to the company domain) is a HUMAN_GATE. | Acceptance: An unauthenticated request to any UI page or state-changing route is refused; a signed-in team member gets through; credentials/sessions never appear in logs.",
       "criticality": "high"
     }
   ],
@@ -2119,6 +2131,6 @@
     "velocity_per_day": 1.55,
     "eta_days": 20.0
   },
-  "last_deterministic_tick": "2026-10-07T12:17:40",
+  "last_deterministic_tick": "2026-10-07T12:43:07",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }
