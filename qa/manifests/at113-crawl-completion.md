@@ -2,7 +2,8 @@
 
 ## Cycle 4 — contained recovery (2026-10-07)
 
-Status: ready-for-check
+Status: checked-PASS
+Closed: 2026-10-07, verdict qa/verdicts/at113-crawl-completion.md cycle 4 PASS; merged to master via integrate/at113
 Fix cycle: 4 (one contained recovery, gate qa/gates/at113-cycle3-recovery.md answered 2026-10-05; runtime per D-070; no cycle 5)
 Brief rewrite: X4 is restated as "no browser operation (FILL, heartbeat, go_back/return_to, replay) runs after any named bound has latched". This applies to every site, not one call-site at a time (cycles 2 and 3 both FAILed X4).
 Resume: 0 of 2
