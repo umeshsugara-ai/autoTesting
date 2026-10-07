@@ -11,6 +11,7 @@ from typing import Any
 from autotester.browser import assertions
 from autotester.browser.evidence import MASK_ATTR, MASK_CSS, EvidenceMixin
 from autotester.browser.launch import launch_options
+from autotester.browser.locators import LocatorMixin
 from autotester.browser.secrets import SecretStore, host_of
 from autotester.browser.video import VIDEO_DIR_NAME, VideoMixin
 from autotester.core.paths import ProjectPaths
@@ -61,7 +62,7 @@ def check_destination(project: Project, url: str) -> str:
     return host
 
 
-class BrowserSession(EvidenceMixin, VideoMixin):
+class BrowserSession(EvidenceMixin, LocatorMixin, VideoMixin):
     """Drive one project's browser. Construct, `start()`, act, `close()`."""
 
     def __init__(self, project: Project, secrets: SecretStore, run_dir: Path,
@@ -151,7 +152,7 @@ class BrowserSession(EvidenceMixin, VideoMixin):
         host only (B2/B3, AT-007: never the intended URL) and the input is tagged for masking."""
         is_secret = bool(value and PLACEHOLDER_RE.search(value))
         real = self.secrets.resolve(value, self.page.url) if is_secret else value
-        target = self.page.locator(locator)
+        target = self.locate(locator)
         before = self._field_sample(target, locator, secret=is_secret)
         if is_secret:
             target.evaluate(f"el => el.setAttribute('{MASK_ATTR}', '1')", **self._timeout())
@@ -166,12 +167,11 @@ class BrowserSession(EvidenceMixin, VideoMixin):
                          + f" before={before} after={after}", step_order=step_order)
 
     def click(self, locator: str, *, step_order: int | None = None) -> Evidence:
-        self.page.locator(locator).click(**self._timeout())
+        self.locate(locator).click(**self._timeout())
         return self._record(EvidenceKind.DOM, f"clicked {locator}", step_order=step_order)
 
     def current_url(self) -> str:
-        """The page's current URL. The explorer (Track B) reads this instead of
-        touching `.page` directly (the actuator choke-point)."""
+        """The page's current URL; the explorer reads this, never `.page` (choke-point)."""
         return str(self.page.url)
 
     def go_back(self, *, step_order: int | None = None) -> Evidence:
@@ -179,14 +179,14 @@ class BrowserSession(EvidenceMixin, VideoMixin):
         return self._record(EvidenceKind.URL, self.page.url, step_order=step_order, label="back")
 
     def hover(self, locator: str, *, step_order: int | None = None) -> Evidence:
-        self.page.locator(locator).hover(**self._timeout())
+        self.locate(locator).hover(**self._timeout())
         return self._record(EvidenceKind.DOM, f"hovered {locator}", step_order=step_order)
 
     def press_key(
         self, key: str, locator: str | None = None, *, step_order: int | None = None
     ) -> Evidence:
         if locator:
-            self.page.locator(locator).press(key, **self._timeout())
+            self.locate(locator).press(key, **self._timeout())
         else:
             self.page.keyboard.press(key)
         return self._record(EvidenceKind.DOM, f"pressed {key}", step_order=step_order)
@@ -198,7 +198,7 @@ class BrowserSession(EvidenceMixin, VideoMixin):
     def select_option(
         self, locator: str, value: str | None, *, step_order: int | None = None
     ) -> Evidence:
-        self.page.locator(locator).select_option(value, **self._timeout())
+        self.locate(locator).select_option(value, **self._timeout())
         return self._record(EvidenceKind.DOM, f"selected {value!r} in {locator}",
                              step_order=step_order)
 
@@ -217,7 +217,7 @@ class BrowserSession(EvidenceMixin, VideoMixin):
         return None
 
     def upload(self, locator: str, file_path: str, *, step_order: int | None = None) -> Evidence:
-        self.page.locator(locator).set_input_files(file_path, **self._timeout())
+        self.locate(locator).set_input_files(file_path, **self._timeout())
         return self._record(EvidenceKind.DOM, f"uploaded to {locator}", step_order=step_order)
 
     def settle(self, expected: ExpectedState | None = None, timeout_ms: int = 8000) -> None:
@@ -285,7 +285,7 @@ class BrowserSession(EvidenceMixin, VideoMixin):
     ) -> Evidence:
         timeout_ms = self._timeout(timeout_ms).get("timeout", timeout_ms)
         if locator:
-            self.page.locator(locator).wait_for(timeout=timeout_ms)
+            self.locate(locator).wait_for(timeout=timeout_ms)
             label = f"waited for {locator}"
         else:
             self.page.wait_for_timeout(timeout_ms)

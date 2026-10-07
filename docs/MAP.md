@@ -13,6 +13,8 @@
 | `browser/db.py` | Read-only backend assertions against MongoDB. Contract: qa/contracts/db-assert.md. |
 | `browser/evidence.py` | Screenshot capture and evidence-recording for `BrowserSession`. |
 | `browser/launch.py` | Playwright launch options for one project's persistent browser context. |
+| `browser/locator_derive.py` | Derive the most meaningful locator for an element that is on screen right now. |
+| `browser/locators.py` | Semantic locators: the target grammar and the session's one place that resolves it. |
 | `browser/observe.py` | Passive observation: enumerate a page's controls, capture console/network |
 | `browser/secrets.py` | The credential boundary. Secret values live here and nowhere else. |
 | `browser/session.py` | One owned visible browser: scoped secrets, masked evidence and bounded actions (B5-B9). |
@@ -125,12 +127,14 @@
 | `stages/portal_persona_view.py` | Render a `PortalPersona` as `knowledge.md` — a human-readable VIEW of the |
 | `stages/product_map.py` | PRODUCT MAP: fold every recording analysis into one navigable screen map. |
 | `stages/read_context.py` | Read approved Markdown as metadata only, never a vault graph or body corpus. |
+| `stages/reconcile.py` | RECONCILE: re-map what each video taught onto the product knowledge graph (D-070 part 2). |
 | `stages/report_export.py` | Tester-style run reports: an Excel summary and a screen-by-screen HTML |
 | `stages/review.py` | FlowSpec review gate: nothing generates cases from an unreviewed understanding |
 | `stages/run_budget.py` | RUN_BUDGET: the consent budget one case run spends against (AT-570/AT-660). |
 | `stages/run_case_pipeline.py` | RUN_CASE_PIPELINE: the one function that runs a case and grades it. |
 | `stages/score.py` | SCORE: compare AutoTester's issues against a human tester's own sheet. |
-| `stages/screen_identity.py` | Screen identity: turn one `PageObservation` into a `ScreenNode`. |
+| `stages/screen_identity.py` | Screen identity: the rules that decide when two screens are one. |
+| `stages/script_replay.py` | SCRIPT_REPLAY: record a working live run's locators as a `Script`, then replay it for free. |
 | `stages/similarity_score.py` | How two bug reports are compared for `stages/score.py`'s T-136 scorer. |
 | `stages/synthetic_values.py` | The synthetic value generator (X10-b, D-029): what the crawler types. |
 | `stages/text_lines.py` | Number lines by  |
@@ -199,7 +203,9 @@
 | `Case` (`schema/case.py`) | One generated or hand-written test case. |
 | `AgentFix` (`schema/case.py`) | The agent's proposed correction for one failing step. |
 | `ExpandedSteps` (`schema/case.py`) | One taxonomy class's proposed steps for a flow — `stages/expand.py`'s raw |
-| `Script` (`schema/case.py`) | A durable Playwright script produced once an agent gets a case working. |
+| `ScriptStep` (`schema/case.py`) | One recorded step's locator: what replay uses in place of the case step's own target. |
+| `ScriptInputs` (`schema/case.py`) | Everything that determines a script (SR2). Any difference makes it stale. |
+| `Script` (`schema/case.py`) | A durable, versioned record of how one case runs, produced by a live run that worked. |
 | `CoverageGap` (`schema/coverage.py`) | A screen or route observed in a run but absent from the FlowSpec. |
 | `VideoRequest` (`schema/coverage.py`) | What the system asks a human to record, and why. |
 | `DialogEvent` (`schema/crawl.py`) | One JS dialog (`alert`/`confirm`/`prompt`/`beforeunload`) the observer saw. |
@@ -223,6 +229,11 @@
 | `Review` (`schema/flowspec.py`) | The human gate. A flowspec drives nothing until a person approves it. |
 | `Conflict` (`schema/flowspec.py`) | Sources disagreed. Flagged for a human — never silently merged. |
 | `FlowSpec` (`schema/flowspec.py`) | The reviewed understanding of one project's UI. |
+| `ScreenJudgement` (`schema/flowspec.py`) | The judge's answer for ONE ambiguous screen pair -- the only call reconcile makes. |
+| `ScreenMatch` (`schema/flowspec.py`) | One canonical video screen scored against its best candidate (RC5). |
+| `StepRef` (`schema/flowspec.py`) | A step the report points a human at: which flow, which step, which second. |
+| `Possibility` (`schema/flowspec.py`) | A variant flow -- another way the task was done, never an error (RC10). |
+| `ReconcileReport` (`schema/flowspec.py`) | What reconcile decided, in a form a human can audit. No timestamps (RC11). |
 | `Issue` (`schema/issue.py`) | One row of "what's wrong", derived from a video and (optionally) matched |
 | `IssueKind` (`schema/issue_kind.py`) | What kind of problem a crawl-detected `CrawlIssue` is. |
 | `FeatureEvent` (`schema/ledger.py`) | One dated event in the life of a feature: planned, live, updated, or retired. |

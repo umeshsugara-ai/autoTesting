@@ -115,11 +115,46 @@ class ExpandedSteps(BaseModel):
                             "the class doesn't apply (when steps is empty)")
 
 
-class Script(Artifact):
-    """A durable Playwright script produced once an agent gets a case working.
+class ScriptStep(BaseModel):
+    """One recorded step's locator: what replay uses in place of the case step's own target."""
 
-    The point of the whole execution model: after the first successful agent
-    run, a case costs zero tokens to re-run.
+    model_config = ConfigDict(extra="forbid")
+
+    order: int
+    locator: str = Field(description="browser/locators.py target grammar")
+    strategy: str = Field(description="testid | role | label | css")
+    brittle: bool = Field(default=False, description="css only: named in the run's report (SR3)")
+    source_target: str = Field(description="the case step's own target at record time")
+
+
+class ScriptInputs(BaseModel):
+    """Everything that determines a script (SR2). Any difference makes it stale."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    steps_hash: str
+    flowspec_version: int | None = None
+    test_id_attributes: list[str] = Field(default_factory=list)
+
+    def differences(self, current: ScriptInputs) -> list[str]:
+        """Human-readable names of what changed from `self` (the script's) to `current`."""
+        found = []
+        if self.steps_hash != current.steps_hash:
+            found.append("case steps changed")
+        if self.flowspec_version != current.flowspec_version:
+            found.append(f"flowspec version {self.flowspec_version} -> {current.flowspec_version}")
+        if self.test_id_attributes != current.test_id_attributes:
+            found.append(f"locator priority {self.test_id_attributes} -> "
+                         f"{current.test_id_attributes}")
+        return found
+
+
+class Script(Artifact):
+    """A durable, versioned record of how one case runs, produced by a live run that worked.
+
+    The point of the whole execution model: after the first successful run, a case replays
+    its recorded locators and costs zero model calls to execute. A script is never edited in
+    place; a changed input records a new `version` (T-176, D-041).
     """
 
     id: str = ""
@@ -128,6 +163,13 @@ class Script(Artifact):
     generated_by: str = Field(description="provider id, or 'human'")
     iterations: int = Field(default=1, description="agent attempts before it worked")
     stable_runs: int = Field(default=0, description="consecutive passes since last edit")
+    version: int = Field(default=1, ge=1)
+    inputs: ScriptInputs | None = None
+    steps: list[ScriptStep] = Field(default_factory=list)
+
+    @property
+    def brittle_steps(self) -> list[int]:
+        return [s.order for s in self.steps if s.brittle]
 
     def model_post_init(self, _context: object) -> None:
         if not self.id:

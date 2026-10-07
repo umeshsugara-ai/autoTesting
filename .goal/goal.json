@@ -4,15 +4,15 @@
   "north_star": "A reusable AI testing platform where an operator submits any project URL, domain-scoped test-account credential references, and optional evals, conditions, use cases, video, audio, documents, text, email or Google Drive sources. AutoTester learns from supplied evidence or logs in and performs bounded breadth-first exploration, preserves a durable Portal Persona, compiles traceable best/worst/edge evals, reruns them after developer releases in a real visible browser, and reports workflow/API regressions through clear HTML, Excel, text and screenshots. First acceptance targets: Vidysea ERP and Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-10-07T18:19:00",
+  "updated": "2026-10-07T18:33:09",
   "progress": {
     "total": 90,
-    "done": 62,
+    "done": 63,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 28,
+    "pending": 27,
     "current": "T-136",
-    "percent": 69
+    "percent": 70
   },
   "tasks": [
     {
@@ -1237,7 +1237,7 @@
     {
       "id": "T-176",
       "title": "Persist + replay generated script with semantic locators (get_by_role/label) and declared test-id priority (D-041)",
-      "status": "pending",
+      "status": "done",
       "deps": [
         "T-165"
       ],
@@ -1251,7 +1251,8 @@
       "note": "D-041; competitor A + C; wires existing Script/case.script_ref.",
       "attempts": 0,
       "created": "2026-09-24T17:37:32",
-      "user_value": "high"
+      "user_value": "high",
+      "completed": "2026-10-07T18:32:59"
     },
     {
       "id": "T-177",
@@ -2131,9 +2132,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 1.63,
-    "eta_days": 17.2
+    "velocity_per_day": 1.66,
+    "eta_days": 16.3
   },
-  "last_deterministic_tick": "2026-10-07T18:19:00",
+  "last_deterministic_tick": "2026-10-07T18:33:09",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from autotester.schema.base import Artifact
@@ -14,6 +16,9 @@ DEFAULT_VISION_PROVIDER = "gemini"
 configured `vision` string is empty. Named explicitly so the substitution
 is a documented constant, not a bare literal buried in the fallback — and so
 `vision_ensemble_defaulted()` below can tell callers when this happened."""
+
+
+_ATTRIBUTE_NAME = re.compile(r"^[A-Za-z_][\w:.-]*$")
 
 
 class SecretRef(BaseModel):
@@ -150,6 +155,12 @@ class Project(Artifact):
     )
     secrets: list[SecretRef] = Field(default_factory=list)
     providers: ProviderConfig = Field(default_factory=ProviderConfig)
+    test_id_attributes: list[str] = Field(
+        default_factory=list,
+        description="T-176/SR4: ordered test-id attributes (e.g. data-testid, data-qa) a script's "
+                    "locators may use, first one present on the element wins; nothing off the "
+                    "list is ever used. Empty (the default) means role/label only.",
+    )
     headed: bool = Field(default=True, description="real visible browser by default")
     description: str | None = None
     login_case_id: str | None = Field(
@@ -164,6 +175,15 @@ class Project(Artifact):
                     "a Case's own ref overrides it. Never read by grading (PU4)",
     )
     ux_policy: UXPolicy = Field(default_factory=UXPolicy)
+
+    @field_validator("test_id_attributes")
+    @classmethod
+    def _attribute_names_only(cls, names: list[str]) -> list[str]:
+        """Names land in an attribute selector, so only plain attribute names pass."""
+        bad = [n for n in names if not _ATTRIBUTE_NAME.match(n)]
+        if bad or len(set(names)) != len(names):
+            raise ValueError(f"test_id_attributes must be distinct attribute names, got {names}")
+        return names
 
     def secret(self, key: str) -> SecretRef | None:
         return next((s for s in self.secrets if s.key == key), None)
