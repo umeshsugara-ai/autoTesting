@@ -4,8 +4,8 @@ Contract: qa/contracts/eval-compiler.md EC1-EC5 (DRAFT; goes ACTIVE on first PAS
 Goal task: T-166 (done_check `uv run pytest tests/test_eval_compiler.py`, exit 0)
 Policy-Version: proportional-verification/2026-10-07.7
 Fix cycle: 0
-Phase: BUILT
-Status: ready-for-check
+Phase: CHECKED
+Status: checked-PASS
 Tier: M — new multi-file feature (1 schema edit, 1 schema file, 2 stages) with five contract criteria; no UI, no live browser, no provider spend, no enforcement-path file. Not L: no security boundary or authority claim.
 Dual check: not requested by the maker.
 Base: c93e6330 (integrate/t125), branch `wave/t166-eval-compiler`, worktree `D:/autoTesting/.worktrees/t166`. Not pushed.

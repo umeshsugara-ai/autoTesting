@@ -7,12 +7,12 @@
   "updated": "2026-10-07T19:47:47",
   "progress": {
     "total": 92,
-    "done": 65,
+    "done": 66,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 27,
+    "pending": 26,
     "current": "T-136",
-    "percent": 71
+    "percent": 72
   },
   "tasks": [
     {
@@ -1075,7 +1075,7 @@
     {
       "id": "T-166",
       "title": "Traceable eval compiler from user rules, taught flows, Portal Persona and discoveries",
-      "status": "pending",
+      "status": "done",
       "base_criticality": "high",
       "deps": [
         "T-125",
@@ -1089,7 +1089,7 @@
         "expect_exit": 0
       },
       "note": "Generates best/worst/edge evals with source traceability; component PASS cannot hide workflow/application failure. | D-041: include the traceability knowledge graph (persona graph extended: screen/control/flow/scenario/case/verdict/API/release nodes+edges; JSON, no graph DB). | EXTEND (AT-586, meeting 2026-09-26): structured scenario variants.",
-      "attempts": 0,
+      "attempts": 1,
       "created": "2026-09-10T05:58:09",
       "user_value": "high",
       "criticality": "high"
