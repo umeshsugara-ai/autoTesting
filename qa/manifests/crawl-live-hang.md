@@ -1,9 +1,9 @@
-# Manifest - crawl-live-hang (AT-787 tests/test_crawl_inventory_live.py never finishes under load)
+# Manifest - crawl-live-hang (AT-803 tests/test_crawl_inventory_live.py never finishes under load)
 
-Contract: qa/contracts/core-invariants.md (no assertion removed; C2 file/function caps); suite-health unit raised by the coordinator 2026-10-07; issue AT-787 (qa/issues.jsonl).
+Contract: qa/contracts/core-invariants.md (no assertion removed; C2 file/function caps); suite-health unit raised by the coordinator 2026-10-07; issue AT-803 (qa/issues.jsonl).
 Goal task: none (suite health, blocks other units' checkers)
 Policy-Version: proportional-verification/2026-10-07.7
-Fix cycle: 0
+Fix cycle: 1
 Status: ready-for-check
 Tier: L - protected test change (a skip precondition is now cached once per file; a watchdog wraps the crawl).
 Base: a77ed746b37b31d6777f9e56f362474acfcd5c83 (origin/master), branch wave/crawl-live-hang
@@ -26,7 +26,16 @@ faulthandler at 150 s showed the main thread inside the Playwright greenlet's as
 - `tests/test_crawl_inventory_live.py` (edited in place): imports `hard_timeout`; `_crawl_inventory` is decorated `@hard_timeout(WATCHDOG_S, "inventory crawl")` with `WATCHDOG_S = 600 * timing_scale()` (line 57, 76); the launch+close preflight moved into `_require_chromium()` (line 61) and runs once per file (cached verdict) instead of once per test; `FULL` moved above it (same value, unchanged).
 - Protected-change justification: no assertion removed or loosened; `FULL` bounds identical; the skip is the same skip (`chromium unavailable`, now raised from a cached verdict), it just no longer pays a second launch+close in the second test. A launch failure still skips with the precondition named.
 - Product code untouched; none of the owned-by-others files touched.
-- `qa/issues.jsonl`: row AT-787 appended (open).
+- `qa/issues.jsonl`: row AT-803 appended (open).
+
+## Fix cycle 1 (checker FAIL at cycle 0, qa/verdicts/crawl-live-hang.md)
+
+- Issue id renamed AT-787 -> AT-803 (AT-787 is T-178's row on master); row, manifest and this commit use AT-803. The cycle-0 commit message still says AT-787.
+- tests/hard_timeout.py: `hard_timeout` snapshots the direct children (PID plus creation time: Toolhelp + GetProcessTimes on Windows, `pgrep` + `ps -o lstart=` elsewhere) when armed; `_trip` kills only children not in that snapshot and logs killed and spared PIDs to stderr.
+- `_trip`: dump/kill steps run in `try/except Exception` (logged), and `_wake_main_thread()` is in `finally`, so a failing lookup or kill still wakes the main thread.
+- tests/test_hard_timeout.py: child-wait test now starts its child inside the watchdog; new `test_a_child_started_before_arming_survives_the_trip` and `test_the_main_thread_still_wakes_when_the_kill_step_raises` (6 cases total).
+- Falsified in throwaway copies: dropping the `not in before` filter -> bystander test FAILED (1 failed, 5 passed); `_trip` without try/finally and a raising kill -> the file hung until the outer `timeout 600` killed it (no summary line); restored -> 6 passed in 9.5 s. The live file was not re-run (checker ran it at scale 2).
+- ruff: All checks passed! doctor: 1 violation, `stale-generated: docs/SNAPSHOT.md` (decision list D-070/071 vs D-075/076), present on origin/master independent of this unit; not regenerated here.
 
 ## How to verify
 

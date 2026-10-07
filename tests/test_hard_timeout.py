@@ -6,6 +6,7 @@ import subprocess
 import sys
 import time
 
+import hard_timeout as hard_timeout_module
 import pytest
 from hard_timeout import WatchdogTripped, hard_timeout
 
@@ -32,13 +33,49 @@ def test_a_sleeping_body_is_interrupted_and_fails_within_the_bound() -> None:
     assert time.monotonic() - started < BOUND_S + SLACK_S
 
 
-def test_a_body_blocked_on_a_child_process_is_freed_by_killing_the_child() -> None:
-    child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(10**6)"])
+def _spawn_sleeper() -> subprocess.Popen:
+    return subprocess.Popen([sys.executable, "-c", "import time; time.sleep(10**6)"])
+
+
+def test_a_body_blocked_on_a_child_started_after_arming_is_freed_by_killing_it() -> None:
+    children: list[subprocess.Popen] = []
     try:
         with pytest.raises(WatchdogTripped), hard_timeout(BOUND_S, "child wait"):
-            child.wait()
-        assert child.poll() is not None, "the watchdog must kill the child it is blocked on"
+            children.append(_spawn_sleeper())
+            children[0].wait()
+        assert children[0].poll() is not None, "the watchdog must kill the child it is blocked on"
     finally:
-        if child.poll() is None:
+        for child in children:
             child.kill()
-        child.wait(timeout=30)
+            child.wait(timeout=30)
+
+
+def test_a_child_started_before_arming_survives_the_trip() -> None:
+    bystander = _spawn_sleeper()
+    try:
+        with pytest.raises(WatchdogTripped), hard_timeout(BOUND_S, "sleeping body"):
+            time.sleep(10**6)
+        assert bystander.poll() is None, "a child that predates the watchdog is not ours to kill"
+    finally:
+        bystander.kill()
+        bystander.wait(timeout=30)
+
+
+def test_the_main_thread_still_wakes_when_the_kill_step_raises(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def boom(_pid: int) -> None:
+        raise OSError("taskkill unavailable")
+
+    monkeypatch.setattr(hard_timeout_module, "_kill_tree", boom)
+    started = time.monotonic()
+    child_holder: list[subprocess.Popen] = []
+    try:
+        with pytest.raises(WatchdogTripped), hard_timeout(BOUND_S, "kill raises"):
+            child_holder.append(_spawn_sleeper())  # a victim exists, so _kill_tree is reached
+            time.sleep(10**6)
+        assert time.monotonic() - started < BOUND_S + SLACK_S
+    finally:
+        for child in child_holder:
+            child.kill()
+            child.wait(timeout=30)
