@@ -120,4 +120,6 @@ Note: the first SR4 "never used" test did not catch its mutation (the declared a
 
 No UI surface changed. The tests drive real Chromium (headless) against a local HTTP fixture page; no live site was touched.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Checker verdict: `qa/verdicts/t176-script-replay.md` (cycle 0, PASS, Tier M, single checker, commit 5383a559). HUMAN_GATE-REQUEST for the new modules `browser/locators.py`, `browser/locator_derive.py`, `stages/script_replay.py` answered by D-072 item 2 (approved, origin/master 642ab4bd). Verdict P1 (SR1 default grades a replay) resolved as "keep the default" by D-072 item 11 (`judge_replays=True` stays). P2/P3/P4 filed as AT issues at merge.
