@@ -31,3 +31,15 @@ Common identity: HEAD a9307c2ef42eb2085d18f9203c81546581e6168c (base 2fae2504). 
 | falsification | 16 rows R01-R16 (one isolated copy per row, named nodes only) | all green -> red (named assertion) -> green, copy restored byte-identical; twice (rows/, rows2/) |
 | falsification | X17 scan _emit deadline-in-loop (not in table) | SURVIVES: 3 named + all 90 of test_discover.py+test_discover_hardening.py pass; checker probe test fails 501 scrub calls vs <50 on mutant, passes on baseline |
 | full suite | uv run pytest, PID 57552, detached worktree, no -q/-x, started 2026-10-07T09:21:36+05:30 | 4 failed, 2286 passed, 6 skipped, 14 xfailed in 4963.90s (1:22:43); failures: test_crawl_inventory_live (wall_clock_s), test_mc_sessionstart_loop_status x2, test_redact_wrap_perf (3.95s vs 3s); none in files touched by the diff |
+
+# Cycle 3 (narrow, X17 only, repair checker B, 2026-10-07)
+
+Verdict: PASS (qa/verdicts/t151-target-discovery.b.md). Common identity: HEAD a0820901096333f803a4f208a694ba7265e21b44; HEAD:src/autotester/stages/discover.py 9253e1b7d102cbea336f05c1f2fb270fd9867252; HEAD:tests/test_discover_hardening.py a366641df8d7fe22070e63333fd00888bc038dc8; HEAD:uv.lock e9bfb8868a57dfc95ee37fc12243eb3efdc61c78; HEAD:src/autotester/stages 497e66b8a6a53ebbbeb797e7f5c180ed9a4c91e0.
+
+| check | command / scope | result |
+|---|---|---|
+| X17 falsification | named node, copy of HEAD, discover.py line 208 -> if False | 1 passed -> 1 failed (500 < 50) -> 1 passed, restored byte-identical; all 91 discover tests under mutant: 1 failed, 90 passed |
+| affected tests | tests/test_discover.py + tests/test_discover_hardening.py (copy of HEAD) | 91 passed |
+| lint | ruff check src tests scripts | All checks passed |
+| doctor | autotester doctor | doctor: clean |
+| full suite | uv run pytest, worktree, no -q/-x | 2 failed, 2291 passed, 5 skipped, 14 xfailed in 2256.38s; both failures reproduce on a git archive of master 478cc5fb (dashboard sync; live_case 403) |

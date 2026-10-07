@@ -81,4 +81,6 @@ Not UI-touching — no surface changed (src/autotester/schema/ai_target.py, stag
 ## Evidence kept / removed
 Kept: results.json per run, probe/mutation scripts, native-tool-receipt.md and the verdicts. Removed (git rm, commit e7033787): 87 raw per-test XML/txt dumps from the four t151-* evidence directories.
 
-## Status: ready-for-check
+## Status: checked-PASS
+
+Closed out 2026-10-07 (Tier L, dual check, both coordinators PASS): coordinator A PASS at b18e4ea6 (qa/verdicts/t151-target-discovery.md, cycle 2); coordinator B PASS at f0282ce5 (qa/verdicts/t151-target-discovery.b.md, cycle 3, X17 only per D-071). Goal task T-151 closed. Follow-up PROPOSED-ISSUEs filed in qa/issues.jsonl as AT-765..AT-769.
