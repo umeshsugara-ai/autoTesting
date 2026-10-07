@@ -1940,3 +1940,141 @@ no historical-disposition exception or retrospective operational permission.
 **Links:** T-196; qa/manifests/t196-citation-subject-check.md;
 qa/feedback-inbox.md (checkpoints D/E/F and independently approved fixture/gate plans);
 tests/test_citations.py; .goal/goal.json.
+
+## D-065 | 2026-10-07 | type: decision | status: ACTIVE
+
+**What:** Authorize three additions made by the T-151 target-discovery build that D-017 did not name:
+(1) the runtime dependency `pyyaml==6.0.3` in pyproject; (2) the new target-discovery prompt file;
+(3) the `act` hunk in `src/autotester/providers/mock.py`.
+
+**Why:** Umesh approved all three (gate answer "T-151: A"). PyYAML is a widely used, pinned dependency;
+the prompt is a file, as the design rules require; the mock hunk keeps the deterministic test provider
+in step with the provider interface. Rejected alternative: stdlib-only parsing (option B).
+
+**Result:** Gate answered; T-151 build may continue on branch codex/t151-target-discovery to
+ready-for-check. No code changed by this entry.
+
+**Changes-authorized:** pyproject.toml / uv.lock (add pyyaml==6.0.3) · the T-151 target-discovery
+prompt file under prompts/ · src/autotester/providers/mock.py `act` hunk. Nothing else; T-151 still
+reaches PASS only through /checker.
+
+**Approved-by:** Umesh — chat answer 2026-10-07 ("A: Teeno approve"), recorded in
+qa/gates/t151-dependency-authorization.md.
+
+**Links:** T-151; D-017; qa/gates/t151-dependency-authorization.md; qa/verdicts/t151-plan-approval.md.
+
+## D-066 | 2026-10-07 | type: decision | status: ACTIVE
+
+**What:** Two gate answers from Umesh. (1) T-196: L10 gains a sealed-record disposition for immutable
+history (gate t196-l10-coverage, option B). (2) D-063 self-grant: add an Origin/CSRF check on the
+state-changing UI routes (credential edits and run triggers) (gate d063-self-grant-csrf, option B);
+role-based authentication is deferred to a later unit.
+
+**Why:** (1) "logic badalte rehte hai, product evolve hota hai, purane ka acha part rakh kar later
+update kar sakte hai." Reviewing ~1200 occurrences in closed records one by one (option A) costs a
+lot and adds little; a hash-bound, self-invalidating seal keeps the rule strict for anything new or
+changed. (2) The CSRF check is a small change that closes the cross-site POST hole. Umesh noted the UI
+will run on a server URL after go-live, not localhost, so real auth is a required follow-up, not optional.
+
+**Result:** L10 amended by /checker on wave/t196-citation-subjects (2749e38d). The two disputed
+historical claims K1 (DECISIONS.md:80) and K2 (DECISIONS.md:209) remain open pending Umesh's ruling and
+are tracked as ISS-t196-citation-subjects-k1k2. The CSRF fix is not yet built; it rides the next
+d063-grant-budget fix cycle.
+
+**Changes-authorized:** qa/contracts/living-ledger.md L10 (sealed-record disposition, as committed in
+2749e38d) · src/autotester/ui/ state-changing routes (Origin/CSRF check) on the d063-grant-budget branch.
+
+**Approved-by:** Umesh — chat answers 2026-10-07, recorded in qa/gates/t196-l10-coverage.md and
+qa/gates/d063-self-grant-csrf.md.
+
+**Links:** T-196; D-062; D-063; D-064; qa/gates/t196-l10-coverage.md; qa/gates/d063-self-grant-csrf.md.
+
+## D-067 | 2026-10-07 | type: decision | status: ACTIVE
+
+**What:** Group 10 "Team loop" is added at top priority, ahead of groups 5–9 of the 2026-10-05
+nine-batch plan. It has five tasks: T-197 video INGEST with human timestamp-pointers and a confirm-list,
+T-198 developer video intake (zip upload and Drive fetch), T-199 a bug loop into the PathLynks
+Tracker sheet (file, update, close), T-200 scheduled auto-test at a configurable frequency, and T-201
+a team on-demand Test button with the report sent to the person who clicked. Developer demo videos
+are a first-class teaching source for the flow model and the future knowledge graph (T-166).
+
+**Why:** Umesh said on 2026-10-07 that the team is waiting on this ("team wait kar rahi hai bahut
+zor se"). In the 2026-10-06 meeting the CEO described his own video-review skill: approximate
+timestamps plus 2–3 pointers in, then a summary and 4–5 checks out. It cut a 3 h review to about
+30 min. His review of Navnit's three partner-portal videos (Drive doc 1FjABvhH…) is the target
+output shape and a ready human oracle. Developers who explain "how it is built and what it is for"
+on video give AutoTester the intended flow up front, instead of only what a crawl can infer.
+
+**Result:** goal.json now has 87 tasks, 28 pending: 23 of the original 24 plus these 5. All 9 old
+groups are still open; only T-185 has closed since 2026-10-05. Navnit's three videos (17:46, 33:33,
+16:18) were downloaded through gws, size-verified and registered as pathlynks sources
+src_e8fcdc4a15ce, src_44e2f1f6c64c and src_8540cc84081e. Himanshu's promised video had not arrived
+when this was written. Each new task still passes the maker PLAN gate before any code.
+
+**Changes-authorized:** .goal/goal.json (append T-197..T-201). No contract or ARCHITECTURE change;
+the PLAN gate authorizes those later.
+
+**Approved-by:** Umesh — chat answer 2026-10-07 ("New tasks, top priority").
+
+**Links:** T-197; T-198; T-199; T-200; T-201; T-166; AT-570; .work/pathlynks-dev-videos-oracle-2026-10-07.md.
+
+## D-068 | 2026-10-07 | type: decision | status: ACTIVE
+
+**What:** Three gate answers from Umesh. (1) cn5 (gate d063-cn5-vs-cn11): provisioned credentials are
+the run approval. When a project declares a credential pair in its SecretRef[], a run against that
+project's declared target and allowed_domains proceeds with no per-run human approval, for every run
+kind (live case and crawl/explore). An account-derived approval row may cover any (project, run_kind,
+target) match (option B). Approval rows are still minted and HMAC-signed automatically, as an audit
+record, not as a human step. (2) t196 disputed claims K1 (DECISIONS.md:80) and K2 (DECISIONS.md:209):
+an independent second confirmation runs first; then the record is corrected (option i). Umesh allows
+old entries to be changed or removed if that is needed; a correcting entry is the first route, and a
+direct edit to an old entry would still need its own entry with Approved-by, since the append-only
+hook stays. (3) Build order: all open groups run in parallel, scheduled only by real dependencies
+(the agent layer waits for the stages it wraps).
+
+**Why:** (1) "credentials de dena sabse bada approval hai" -- the account Umesh provisions already is
+the scope (D-053, qa/gates/write-policy-tier.md); repeated per-run approvals add a human step with
+no added safety. The test-account-only rule and the allowed_domains scope are unchanged. (2) "2nd
+confirmation le lo aur sabhi update kar do". (3) "parallelly all".
+
+**Result:** d063-grant-budget's next fix cycle drops the CN5 exclusion and keeps the D-066
+Origin/CSRF check. T-145 no longer needs a per-run human approval. No code changed by this entry.
+
+**Changes-authorized:** the qa/contracts rows holding CN5/CN11 and the explore pre-crawl approval
+criterion (checker-owned amendment) · src/autotester/core/consent.py and
+src/autotester/stages/explore_consent.py (credential-derived approval for every run kind) ·
+.goal/goal.json T-145 note (drop "per-run RunApproval required").
+
+**Approved-by:** Umesh — chat answers 2026-10-07, recorded in qa/gates/d063-cn5-vs-cn11.md and
+qa/gates/t196-l10-coverage.md.
+
+**Links:** T-145; T-196; D-018; D-053; D-063; D-066; qa/gates/d063-cn5-vs-cn11.md; qa/gates/t196-l10-coverage.md.
+
+## D-069 | 2026-10-07 | type: fix | status: ACTIVE
+
+**What:** Correct two historical citation claims, K1 and K2, without editing the old entries.
+K1 (D-006, DECISIONS.md:80): D-006 cites D-000 `Changes-authorized` for the append_decision.ps1
+UTF-8 fix. D-000 authorizes `scripts/append_decision.ps1` only at the file level, as enforcement
+wiring, and never names the UTF-8 fix. The fix was verified by /checker in the T-005 cycle-1 check
+(qa/feedback-inbox.md:111) and shipped in 2785312d. The authorization holds at the file level; the
+specific claim is imprecise. K2 (D-014, DECISIONS.md:209): D-014 item (1) attributes BACK to D-005.
+D-005 approved only HOVER, PRESS_KEY and SCROLL (DECISIONS.md:74). BACK is an additive amendment
+first authorized by D-014 itself (Approved-by: Umesh, plan.md section 4, plan.md:204). It was verified
+in qa/verdicts/track-b1-observation-primitives.md:117-120 and shipped in ce1b624b. The docstring at
+src/autotester/schema/enums.py:26 repeats the wrong "discharge D-005" attribution.
+
+**Why:** Umesh's ruling on the T-196 disputed claims (option i, after a second confirmation):
+"2nd confirmation le loo aur sabhi update krr doo". An independent second review confirmed both
+findings. A correcting entry fixes the record without breaking the append-only history. Editing
+D-006 and D-014 in place was not needed.
+
+**Result:** K1 and K2 now have a recorded disposition: both changes stand as authorized, and the
+attribution is corrected here. T-196 may treat ISS-t196-citation-subjects-k1k2 as resolvable once
+/checker records the disposition. The enums.py:26 docstring fix rides the next unit touching that file.
+
+**Changes-authorized:** src/autotester/schema/enums.py:26 docstring wording (BACK attributed to
+D-014, not D-005). Nothing else.
+
+**Approved-by:** Umesh — chat answer 2026-10-07, recorded in qa/gates/t196-l10-coverage.md.
+
+**Links:** T-196; D-000; D-005; D-006; D-014; D-068; ISS-t196-citation-subjects-k1k2; qa/gates/t196-l10-coverage.md.
