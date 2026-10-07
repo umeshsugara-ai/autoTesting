@@ -1,6 +1,6 @@
 # Manifest — t122-first-login-run (first logged-in Pathlynks run, D-068 account-derived approval)
 
-## Status: ready-for-check
+## Status: checked-PASS
 
 Goal task: T-122 · Branch: wave/t122-first-login-run · Base: af8f3218 (origin/master after the d063 + T-151 merges)
 Policy-Version: proportional-verification/2026-10-06.6

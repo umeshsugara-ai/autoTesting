@@ -31,11 +31,11 @@ AutoTester wins on bugs found, false positives, and time (`schema/bench.py` comp
 - 2026-09-28 updated F-065 Watch a failed run's video from the report — T-191 recorded and retained run videos but nothing reachable ever pointed at them: the only paths were a provably-broken download-export link and an undocumented manual CLI flag, so the evidence existed and no human could watch it. This closes that gap (ISS-t191-run-video-2).
 - 2026-09-28 updated F-066 Two-model ensemble: correction -- the second model never ran (AT-542) — RECOVERED 2026-09-28 from stash@{0} 'checker-temp-at540', where it had been the only copy since 2026-09-22 (ISS-at542-lost-correction). AT-542 (checker sweep 2026-09-22) found F-039 overstates what shipped -- the honest state is ensemble-CAPABLE code, ensemble-OF-ONE practice -- and the correcting row was stashed and never landed, so the overstatement has stood in the shipped ledger for six days. Verified before restoring: 'grep -c AT-542 docs/FEATURES.jsonl' returns 0, so it was never re-applied by another route.
 ## Next (open goal tasks)
-- T-122 [high] Track 0 tail: login case + first logged-in Pathlynks run (credentials present; ERP is the second product)
 - T-136 [high] Acceptance: AutoTester's Pathlynks report scored against a parallel human tester, with recall/FP/time in the manifest
 - T-145 [high] Live bounded crawl of pathlynks.vidysea.com with the test account (ALLOW_WRITES authorized; per-run RunApproval required)
 - T-125 [high] Test catalog: which case classes apply, which are runnable, which are blocked and why (+ cheap->expensive ordering)
 - T-152 [normal] Track C2: AI check registry + catalog matching (reuses T-125's Catalog, never a second one)
+- T-153 [high] Track C3: behavioural checks against a captured run, graded by the existing independent judge
 ## Last decisions (computed status)
 - D-068 2026-10-07 decision ACTIVE
 - D-069 2026-10-07 fix ACTIVE
