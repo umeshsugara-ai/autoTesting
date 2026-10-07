@@ -2214,3 +2214,22 @@ here; it is a separate L unit.
 **Approved-by:** Umesh (chat, 2026-10-07)
 
 **Links:** D-070; T-166
+
+## D-074 | 2026-10-07 | type: decision | status: ACTIVE
+
+**What:** Umesh answered five open questions in chat (2026-10-07):
+(a) **Group 10 plan approved.** Build units G1-G10 per `docs/plan.md` and `qa/gates/plan-approved-g10.md` (intent O8-O15, spec R32-R65, T-205 and T-206 as the new rows).
+(b) **Judge rule A.** A deterministic assertion that failed can never become PASS. For a run with a failed assertion the judge may only return FAIL or INCONCLUSIVE. This **amends D-032** (partial): the part of D-032 that let the judge weigh and overrule a recorded failed assertion is removed. The rest of D-032 (assertion evidence, `Outcome.ASSERTION_FAILED`, the executor never grading) stays in force, which is why this is an amendment and not a full Supersedes: `append_decision.ps1` computes a supersede as total, so a Supersedes line would retire all of D-032.
+(c) **Password hashing uses `argon2-cffi==25.1.0`.** It is the new dependency for T-204 AU1. The scrypt fallback is not used.
+(d) **The first admin is a fixed email**, set through `AUTOTESTER_FIRST_ADMIN_EMAIL`. Umesh sets the value in the server's `.env` at deploy time. With the variable unset, the hosted server must not auto-promote the first signup. Local dev keeps first-account-admin.
+(e) **Cookie Secure is off (`AUTOTESTER_COOKIE_SECURE=0`) only until the domain and HTTPS exist.** This is the default until then; Umesh can override it.
+
+**Why:** (a) Nothing in Group 10 could start without the plan being approved. (b) AT-773 measured 6 of 6 false PASSes in T-122, each one a run where a deterministic assertion had failed and the judge still said PASS. Failing closed is the safe direction: the worst case becomes an INCONCLUSIVE a human looks at, not a bug shipped as green. (c) argon2id is the current default recommendation for password hashing and pinning the version keeps the lock file reproducible. (d) First-signup-wins on a public-facing host lets whoever signs up first take admin; a fixed email removes that race. (e) Secure cookies are never sent over plain HTTP, so setting Secure before HTTPS exists would break every login.
+
+**Result:** Gate `qa/gates/plan-approved-g10.md` is answered. T-205 and T-206 are added to `.goal/goal.json` as tasks. The judge rule is authorized for build; the checker amends `qa/contracts/` rows that cite D-032 (execute and grade). Follow-up for T-204 (nothing is built yet: `src/autotester/auth/` does not exist, so no code auto-promotes today): `docs/plan.md` row 13 and `qa/contracts/auth.md` still say "first account becomes admin" and must be reworded to "first account becomes admin only in local dev; on the hosted server only the `AUTOTESTER_FIRST_ADMIN_EMAIL` account is promoted, and an unset variable promotes nobody". Cookie Secure must default from `AUTOTESTER_COOKIE_SECURE`.
+
+**Changes-authorized:** `src/autotester/stages/grade.py` and `src/autotester/stages/run_case_pipeline.py` (the judge rule); the `argon2-cffi==25.1.0` dependency in `pyproject.toml` and `uv.lock`; the Group 10 modules per `docs/plan.md` G1-G10; the first-admin and cookie-Secure env handling in `src/autotester/auth/` (new, T-204); `.env.example` keys `AUTOTESTER_FIRST_ADMIN_EMAIL` and `AUTOTESTER_COOKIE_SECURE`.
+
+**Approved-by:** Umesh (chat, 2026-10-07)
+
+**Links:** D-032, D-072, AT-773, T-204, T-205, T-206, qa/gates/plan-approved-g10.md
