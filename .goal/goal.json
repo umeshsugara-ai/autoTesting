@@ -4,15 +4,15 @@
   "north_star": "A reusable AI testing platform where an operator submits any project URL, domain-scoped test-account credential references, and optional evals, conditions, use cases, video, audio, documents, text, email or Google Drive sources. AutoTester learns from supplied evidence or logs in and performs bounded breadth-first exploration, preserves a durable Portal Persona, compiles traceable best/worst/edge evals, reruns them after developer releases in a real visible browser, and reports workflow/API regressions through clear HTML, Excel, text and screenshots. First acceptance targets: Vidysea ERP and Pathlynks.",
   "status": "active",
   "created": "2026-09-03T07:26:17",
-  "updated": "2026-10-07T01:27:01",
+  "updated": "2026-10-07T09:35:46",
   "progress": {
-    "total": 82,
+    "total": 87,
     "done": 59,
     "in_progress": 0,
     "blocked": 0,
-    "pending": 23,
+    "pending": 28,
     "current": "T-122",
-    "percent": 72
+    "percent": 68
   },
   "tasks": [
     {
@@ -1611,6 +1611,80 @@
       "created": "2026-09-30",
       "user_value": "normal",
       "criticality": "critical"
+    },
+    {
+      "id": "T-197",
+      "title": "TL-1 Video INGEST with human timestamp-pointers -> flow summary + 4-5 point confirm-list (CEO video-review skill shape: time|screen|seen|suggestion|severity)",
+      "status": "pending",
+      "deps": [],
+      "base_criticality": "high",
+      "user_value": "high",
+      "done_check": {
+        "type": "file",
+        "path": "qa/verdicts/t-197-team-loop.md"
+      },
+      "note": "Group 10 'Team loop' (Umesh 2026-10-07: top priority, ahead of groups 5-9). Maker PLAN gate first: intent -> /grill -> spec -> plan -> qa/gates/plan-approved.md. Plan: C:/Users/Lenovo/.claude/plans/hello-hello-hello-resilient-reddy.md. Extend stages/ingest.py + cli_video.py in place (`ingest run --pointers <file>`). Reference output: Karunn review doc 1FjABvhH… (full id in .work/google-ids-private.md); oracle .work/pathlynks-dev-videos-oracle-2026-10-07.md; sources src_e8fcdc4a15ce/src_44e2f1f6c64c/src_8540cc84081e.",
+      "criticality": "high"
+    },
+    {
+      "id": "T-198",
+      "title": "TL-2 Developer video intake: zip upload expanded safely to one source per video + `ingest fetch-drive <fileId>` over sources/drive.py (gws auth)",
+      "status": "pending",
+      "deps": [],
+      "base_criticality": "high",
+      "user_value": "high",
+      "done_check": {
+        "type": "file",
+        "path": "qa/verdicts/t-198-team-loop.md"
+      },
+      "note": "Group 10 'Team loop' (Umesh 2026-10-07: top priority, ahead of groups 5-9). Maker PLAN gate first: intent -> /grill -> spec -> plan -> qa/gates/plan-approved.md. Plan: C:/Users/Lenovo/.claude/plans/hello-hello-hello-resilient-reddy.md. No new module: edit sources/drive.py, cli_video.py, ui/routes_sources.py upload. Measured 2026-10-07: gws `drive files get -o` only writes under CWD; register does not copy (stable path needed).",
+      "criticality": "high"
+    },
+    {
+      "id": "T-199",
+      "title": "TL-3 Bug loop: auto-file failures into PathLynks Tracker sheet, update on re-test, close on pass (stable bug key dedupe)",
+      "status": "pending",
+      "deps": [
+        "T-197"
+      ],
+      "base_criticality": "high",
+      "user_value": "high",
+      "done_check": {
+        "type": "file",
+        "path": "qa/verdicts/t-199-team-loop.md"
+      },
+      "note": "Group 10 'Team loop' (Umesh 2026-10-07: top priority, ahead of groups 5-9). Maker PLAN gate first: intent -> /grill -> spec -> plan -> qa/gates/plan-approved.md. Plan: C:/Users/Lenovo/.claude/plans/hello-hello-hello-resilient-reddy.md. Tracker sheet 1JvSez… (full id in .work/google-ids-private.md). Outward-facing team-sheet write => HUMAN_GATE before first live write; column mapping agreed with Umesh/Mamta.",
+      "criticality": "high"
+    },
+    {
+      "id": "T-200",
+      "title": "TL-4 Scheduled auto-test at a per-project configurable frequency",
+      "status": "pending",
+      "deps": [],
+      "base_criticality": "high",
+      "user_value": "high",
+      "done_check": {
+        "type": "file",
+        "path": "qa/verdicts/t-200-team-loop.md"
+      },
+      "note": "Group 10 'Team loop' (Umesh 2026-10-07: top priority, ahead of groups 5-9). Maker PLAN gate first: intent -> /grill -> spec -> plan -> qa/gates/plan-approved.md. Plan: C:/Users/Lenovo/.claude/plans/hello-hello-hello-resilient-reddy.md. Frequency field in schema/project.py; trigger reuses stages/parallel_run.py; must respect RunApproval (D-018).",
+      "criticality": "high"
+    },
+    {
+      "id": "T-201",
+      "title": "TL-5 Team on-demand 'Test' button; report delivered to whoever clicked",
+      "status": "pending",
+      "deps": [
+        "T-200"
+      ],
+      "base_criticality": "high",
+      "user_value": "high",
+      "done_check": {
+        "type": "file",
+        "path": "qa/verdicts/t-201-team-loop.md"
+      },
+      "note": "Group 10 'Team loop' (Umesh 2026-10-07: top priority, ahead of groups 5-9). Maker PLAN gate first: intent -> /grill -> spec -> plan -> qa/gates/plan-approved.md. Plan: C:/Users/Lenovo/.claude/plans/hello-hello-hello-resilient-reddy.md. Prerequisite AT-570: ui/routes_runs.py::trigger_run checks no RunApproval today; close it first or the button is an unapproved run path.",
+      "criticality": "high"
     }
   ],
   "decisions": [],
@@ -1938,6 +2012,41 @@
       "message": "T-196 is CRITICAL — human required",
       "task_id": "T-196",
       "acked": false
+    },
+    {
+      "ts": "2026-10-07T08:23:28",
+      "level": "warn",
+      "message": "T-197 needs review (high)",
+      "task_id": "T-197",
+      "acked": false
+    },
+    {
+      "ts": "2026-10-07T08:23:28",
+      "level": "warn",
+      "message": "T-198 needs review (high)",
+      "task_id": "T-198",
+      "acked": false
+    },
+    {
+      "ts": "2026-10-07T08:23:28",
+      "level": "warn",
+      "message": "T-199 needs review (high)",
+      "task_id": "T-199",
+      "acked": false
+    },
+    {
+      "ts": "2026-10-07T08:23:28",
+      "level": "warn",
+      "message": "T-200 needs review (high)",
+      "task_id": "T-200",
+      "acked": false
+    },
+    {
+      "ts": "2026-10-07T08:23:28",
+      "level": "warn",
+      "message": "T-201 needs review (high)",
+      "task_id": "T-201",
+      "acked": false
     }
   ],
   "preferences": {
@@ -1946,9 +2055,9 @@
     "risk_tolerance": "conservative"
   },
   "analytics": {
-    "velocity_per_day": 1.57,
-    "eta_days": 14.6
+    "velocity_per_day": 1.56,
+    "eta_days": 17.9
   },
-  "last_deterministic_tick": "2026-10-07T01:27:01",
+  "last_deterministic_tick": "2026-10-07T09:35:46",
   "last_agentic_tick": "2026-09-03T10:32:18"
 }
