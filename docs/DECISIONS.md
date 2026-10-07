@@ -2192,3 +2192,25 @@ codex/t151-target-discovery (one test).
 **Approved-by:** Umesh (chat, 2026-10-07)
 
 **Links:** D-066, D-068, D-071, T-122, T-176, T-197..T-204, AT-758..AT-761, qa/gates/t122-stale-login-oracle.md
+
+## D-073 | 2026-10-07 | type: decision | status: ACTIVE
+
+**What:** Create the new module `src/autotester/stages/reconcile.py` (about 250 lines). It reconciles
+video-derived flows into the product knowledge graph with no human approval step (D-070 part 2). It
+matches video screens to crawl screens by route, title or element signature, and sends ambiguous
+matches to a Provider judge: a score of 0.8 or more is matched, 0.5 to 0.8 is ambiguous. It keeps every
+flow and records divergences as "another possibility" alternatives in reports.
+
+**Why:** Every existing candidate module is at or near the 300-line cap, so the reconcile logic cannot
+be added in place without breaking the design rules. The design is RC1-RC10, recorded in
+`qa/feedback-inbox.md` (the "D-070 part 2 reconcile design" block).
+
+**Result:** The module is authorized. A contract `qa/contracts/reconcile.md` follows from the checker.
+
+**Changes-authorized:** `src/autotester/stages/reconcile.py` (new), plus in-place edits to the schema
+models needed for step-to-screen linkage. Changing `require_reviewed` in review.py is NOT authorized
+here; it is a separate L unit.
+
+**Approved-by:** Umesh (chat, 2026-10-07)
+
+**Links:** D-070; T-166
