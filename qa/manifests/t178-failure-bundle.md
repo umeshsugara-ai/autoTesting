@@ -4,7 +4,7 @@ Contract: qa/contracts/failure-bundle.md (FB1-FB3 built; FB4-FB5 deferred); core
 Goal task: T-178 (stays pending: FB4 and FB5 are not built)
 Policy-Version: proportional-verification/2026-10-07.7
 Fix cycle: 0
-Status: ready-for-check
+Status: checked-PASS
 Tier: M
 Base: 7782df418ca5eaa04a8d866c485b2d865565d35d (origin/master), branch wave/t178-failure-bundle
 Source: see `git log -1` on the branch (head SHA reported to the orchestrator; a manifest cannot name its own commit)

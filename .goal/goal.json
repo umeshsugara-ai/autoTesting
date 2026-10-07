@@ -1287,7 +1287,7 @@
         "cmd": "uv run pytest tests/test_failure_bundle.py",
         "expect_exit": 0
       },
-      "note": "D-041; competitor D + H + G.",
+      "note": "D-041; competitor D + H + G. | Progress 2026-10-07: FB1-FB3 PASS (qa/verdicts/t178-failure-bundle.md); FB4 waits on Case.priority, FB5 waits on T-125; task stays pending.",
       "attempts": 0,
       "created": "2026-09-24T17:37:32",
       "user_value": "high"
