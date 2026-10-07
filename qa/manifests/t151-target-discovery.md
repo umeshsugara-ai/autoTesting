@@ -50,7 +50,7 @@ Every defender below is a node in tests/. Each row's runner line is from a throw
 | Criterion | capability | the committed check | the falsifying edit | observed (baseline -> mutant -> restored) |
 |---|---|---|---|---|
 | AI1 | Signal lines are physical 
-/
+/
 / lines (U+2028,  no shift) | tests/test_discover_hardening.py::test_unicode_and_formfeed_separators_do_not_shift_reader_lines and ::test_unicode_and_formfeed_separators_do_not_shift_scan_lines | text_lines.split_lines returns `text.splitlines()` | `2 passed` -> `2 failed` -> `2 passed` |
 | AI1 | reader tag Signal cites the exact file:line | tests/test_discover_hardening.py::test_reader_signal_lines_match_exact_source | read_context Markdown-tag `line=line` -> `line=line + 1` | `1 passed` -> `1 failed` -> `1 passed` |
 | AI1 | reader frontmatter Signal cites the exact file:line | same node | frontmatter `line=line` -> `line=line + 1` | `1 passed` -> `1 failed` -> `1 passed` |
@@ -77,4 +77,4 @@ Not UI-touching — no surface changed (src/autotester/schema/ai_target.py, stag
 ## Evidence kept / removed
 Kept: results.json per run, probe/mutation scripts, native-tool-receipt.md and the verdicts. Removed (git rm, commit e7033787): 87 raw per-test XML/txt dumps from the four t151-* evidence directories.
 
-## Status: ready-for-check
+## Status: STALLED (HUMAN_GATE qa/gates/t151-cycle2-stalled.md -- A PASS b18e4ea6, B FAIL c5000995 on X17)
