@@ -16,6 +16,7 @@ import time
 from collections.abc import Callable
 
 from autotester.browser import conditions
+from autotester.browser.locators import LocatorNotFound
 from autotester.browser.secrets import MissingSecret
 from autotester.browser.session import BrowserSession
 from autotester.schema.case import Case
@@ -118,6 +119,8 @@ def _run_steps(
             handler = _ACTIONS.get(step.action)
             if handler is None:
                 raise StepNotExecutable(f"{step.action.value} has no browser handler yet")
+            if (recorder := getattr(session, "recorder", None)) is not None:
+                recorder.capture(session, step)  # T-176: derive this step's locator, pre-action
             if step.action is Action.ASSERT or _declares_expectation(step.expected):
                 pre = len(session.state.evidence)
             else:
@@ -141,8 +144,16 @@ def _run_steps(
                            evidence_start=evidence_start, hitl_prompt=str(exc))
         except Exception as exc:  # the executor reports, it never crashes the run
             return _result(case, session, start, Outcome.ERRORED, evidence_start=evidence_start,
-                           error=f"{type(exc).__name__}: {exc}")
+                           error=_error_text(session, step, exc))
     return assertion_failed
+
+
+def _error_text(session: BrowserSession, step: Step, exc: Exception) -> str:
+    """T-176/SR5: a script replay (or any semantic-locator miss) names the failing step, so
+    the report says which recorded locator broke rather than leaving a bare timeout."""
+    if getattr(session, "replaying", False) or isinstance(exc, LocatorNotFound):
+        return f"{type(exc).__name__}: step {step.order} ({step.action.value}): {exc}"
+    return f"{type(exc).__name__}: {exc}"
 
 
 def run_case(case: Case, session: BrowserSession) -> RawResult:

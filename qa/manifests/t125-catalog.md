@@ -5,7 +5,7 @@
 (+ cheap->expensive ordering).
 **Date:** 2026-09-27
 **Fix cycle:** 4 (the one scoped cycle D-051 authorises after CT9; no cycle 5)
-**Status:** ready-for-check (integration rework, dual re-check)
+**Status:** checked-PASS (integration rework, dual PASS: qa/verdicts/t125-catalog.md + t125-catalog.b.md)
 **Policy-Version:** proportional-verification/2026-10-06.6 (NO pin existed in this manifest; latest pin in qa/ is .6; the dispatch brief cites ".7" -- orchestrator to confirm which)
 **Tier:** L
 **Dual check:** required (diff touches HMAC run-approval, D-018/CN10 = security trigger; permits ONE checker full suite)
