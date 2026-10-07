@@ -55,7 +55,7 @@ computes the table — no model call, no network call, no mutation of anything i
 - **CT6 — Cheap→expensive tier ordering is real, ordering and reporting only, and never skips a case.**
   (Narrowed 2026-09-29 by **D-057**, `Approved-by: Umesh`; the earlier wording — "STOPS before paying
   for a tier that has zero runnable entries" — filtered which cases execute and contradicted
-  `ui-run.md` RU3 and F-058. Amended again 2026-10-07 per gate t125-ct6 answer A (**D-070**): the
+  `ui-run.md` RU3 and F-058. Amended again 2026-10-07 per gate t125-ct6 answer A (**D-071**): the
   cost-avoidance "stop before an expensive tier" half is removed outright, and prominent reporting of
   cheap-tier failures is added.) `CaseClass.tier` places every class into
   `static < behavioural < adversarial`; the ordering is total (every class has exactly one tier).
@@ -155,11 +155,11 @@ green→red-for-the-named-reason→revert→green. File/function caps (core-inva
   **Merge note:** the `wave/t125-catalog` branch carries its own 2026-09-27 amendment (the "Standard
   packs" section and a verify-command change, commit 3da63550) that is not on master; the two log
   tails will conflict on merge and both entries are to be kept.
-- 2026-10-07 · amend (Changes-authorized: D-070; gate `qa/gates/t125-ct6-tiered-dispatch-vs-ru3.md`
-  answer A, Umesh, chat) · **CT6 amended** — "Amended 2026-10-07 per gate t125-ct6 answer A (D-070)".
+- 2026-10-07 · amend (Changes-authorized: D-071; gate `qa/gates/t125-ct6-tiered-dispatch-vs-ru3.md`
+  answer A, Umesh, chat) · **CT6 amended** — "Amended 2026-10-07 per gate t125-ct6 answer A (D-071)".
   The run trigger dispatches every case, cheapest tier first, never skips a tier; the cost-avoidance
   "stop before an expensive tier" half is removed; cheap-tier failures must be surfaced first and
   prominently in the run report. Verify rewritten to be checkable through the run endpoint (ordering
   plus reporting), not only via `tiers_to_run()`. RU3 (`ui-run.md`) and F-058 unchanged. This
   re-states D-057's order-only rule and adds the reporting requirement (part 4); it tightens, not
-  weakens. **Links:** D-070; D-057; T-125; ISS-t125-1; F-058; ui-run.md RU3.
+  weakens. **Links:** D-071; D-057; T-125; ISS-t125-1; F-058; ui-run.md RU3.
