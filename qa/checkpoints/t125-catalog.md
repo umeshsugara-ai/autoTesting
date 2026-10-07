@@ -15,3 +15,20 @@ Worktree also carried uncommitted other-unit bookkeeping (.goal/goal.json, docs/
 
 Browser build id: uvicorn from worktree src at HEAD 778b5f86 (source unchanged since 52bba0b7). Data snapshot: scratch root `scratchpad/ui-root`, seeded by `scratchpad/seed_ui.py`.
 Reuse rule: every field above unchanged required before reuse; a source change under src/ or tests/ voids the suite and mutant rows.
+
+## Integration re-check (cycle 4-integration, 2026-10-07)
+
+Attribution: coordinator A checker (qa/verdicts/t125-catalog.md; cycle-4 verdict archived as qa/verdicts/t125-catalog.r4-1.md). Environment: Windows 11, Python 3.11.15 (`.venv` of D:/autoTesting/.worktrees/t125-integrate), uv.lock sha256 prefix 0f25d574ae096863.
+Code identity: HEAD 0cce70ac (contract-only commit on merge 6c0d57a1 / manifest 51a84edd; B's later 8992ced9 is qa-only), tree of src at 0cce70ac. Blobs: ui/routes_runs.py e58af87c0252, ui/run_execution.py 1fbecaf8bae7, stages/run_budget.py a4abf08f4a06 (== origin d4c369b0), stages/parallel_run.py 3c79a9d74320 (== origin), ui/app.py 40b1646921a6 (300 lines), tests/test_ui_runs_serial_entry_order.py 7b55a55278cd. Unchanged vs cycle-4 identity: stages/catalog.py 41283e8e40a6, ui/routes_catalog.py 9ed4f8bcecb5, ui/routes_report.py bef0ec2382, schema/catalog.py d6a16e6b4a, schema/run.py 444687afc2.
+
+| Check | Command / scope | Result |
+|---|---|---|
+| Full suite | `uv run pytest` (uv PID 37804, python 43428), bound worktree, no -q/-x | 3 failed, 2621 passed, 5 skipped, 14 xfailed in 3038.99s; 2 baseline, 1 load-flake |
+| Earlier suite attempt | uv PID 36192 / python 36600, started 18:12 | died silently, no summary, no result (BLOCKED-PROCESS cause: concurrent suites, ~3 GB free) |
+| Load-flake confirm | `pytest tests/test_crawl_inventory_live.py` alone: clean d4c369b0 (PYTHONPATH copy) and HEAD | 2 passed in 357.95s / 2 passed in 278.73s |
+| Lint / doctor | `ruff check src tests scripts`; `autotester doctor` | All checks passed; doctor: clean |
+| Falsification | 17 mutants CT6(1)-(4), CN10, aggregate budget (sub-checker, copies cn-*) + 7 mutants of the protected test (copies tp-a..g) | all green-before / red-after |
+| Browser (headless Playwright library, build = HEAD 0cce70ac archive) | project page link, catalog page, run page, unknown 404 | pass; 1 expected 404 console error |
+| Kept by identity | CT1-CT5, CT7-CT9, AT-588 packs | inputs unchanged since the cycle-4 rows above |
+
+Reuse rule: every field above unchanged required before reuse; a source change under src/ or tests/ voids the suite and mutant rows.
