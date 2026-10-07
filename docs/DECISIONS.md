@@ -2268,3 +2268,22 @@ src/autotester/browser/session.py: read-only `cdp_url` property (T-177).
 **Result:** `qa/contracts/auth.md` AU27 stays as written; its `serves:` line (D-074 safe default, D-072#4) is read as D-072 item 3 plus this entry. T-204 builds to AU27. No code change is authorized by this entry.
 
 **Links:** D-072 item 3, D-074, qa/contracts/auth.md AU27
+
+## D-077 | 2026-10-07 | type: decision | status: ACTIVE
+
+**What:** The AGPL-licensed `pymupdf` package that `browser-use==0.5.9` (D-075) pulls in transitively
+is accepted as is. We do not strip, replace or vendor around it.
+
+**Why:** Umesh, chat 2026-10-07, answered "Accept AGPL" after T-177 checker A found the licence. The
+autoTesting repo is already public, so the AGPL source-disclosure duty is met for now. The risk
+applies only to a future closed, paid or customer-hosted build of AutoTester.
+
+**Result:** T-177 is not blocked on licensing. **Re-open trigger:** before AutoTester is sold,
+hosted for customers, or the repo is made private, this entry must be superseded, either by removing
+the dependency or by a fresh licence decision.
+
+**Changes-authorized:** none (pyproject/uv.lock pin already authorized by D-075).
+
+**Approved-by:** Umesh — chat answer 2026-10-07.
+
+**Links:** T-177; D-075; qa/verdicts/t177-agent-fallback.a.md.
