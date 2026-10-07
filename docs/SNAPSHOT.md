@@ -37,8 +37,8 @@ AutoTester wins on bugs found, false positives, and time (`schema/bench.py` comp
 - T-125 [high] Test catalog: which case classes apply, which are runnable, which are blocked and why (+ cheap->expensive ordering)
 - T-152 [normal] Track C2: AI check registry + catalog matching (reuses T-125's Catalog, never a second one)
 ## Last decisions (computed status)
-- D-067 2026-10-07 decision ACTIVE
 - D-068 2026-10-07 decision ACTIVE
 - D-069 2026-10-07 fix ACTIVE
 - D-070 2026-10-07 decision ACTIVE
 - D-071 2026-10-07 decision ACTIVE
+- D-072 2026-10-07 decision ACTIVE
