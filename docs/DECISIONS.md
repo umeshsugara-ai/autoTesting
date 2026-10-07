@@ -2258,3 +2258,13 @@ src/autotester/browser/session.py: read-only `cdp_url` property (T-177).
 **Approved-by:** Umesh — chat answer 2026-10-07.
 
 **Links:** T-177; D-071; D-074; qa/contracts/agent-fallback.md; qa/gates/at253-agent-fallback-wiring.md.
+
+## D-076 | 2026-10-07 | type: decision | status: ACTIVE
+
+**What:** Records the contract consequence of D-072 item 3 (a new account starts with no access), as written into `qa/contracts/auth.md` AU27 by the checker in commit 0f8c19d0 (D-074 amendment). AU27 states the safe default: a caller can grant only the permissions (key and scope) it already holds, and only members of the Admin/CEO group can change Admin/CEO membership, tick `users.manage`, `groups.manage`, `settings.manage` or `credentials.view`, or reset the password of an Admin/CEO account. No new product choice is being made: D-072 item 3 already decided that a new account has no access, and AU27 only closes the escalation path that a literal reading of AU8 and AU10 would leave open. D-074's own text states only items (a) to (e); the AU27 rule came from the dispatching brief, so this entry gives it a decisions record.
+
+**Why:** Without a record, AU27 cites "D-074 safe default" while D-074 does not contain it, which makes the criterion look like an invented requirement. A `users.manage` or `groups.manage` holder who is not an admin could otherwise promote themselves or another account to full access, which would undo the no-access default of D-072 item 3. Keeping the entry as a pure consequence, not a decision, lets Umesh veto it by superseding it if he wants a different rule.
+
+**Result:** `qa/contracts/auth.md` AU27 stays as written; its `serves:` line (D-074 safe default, D-072#4) is read as D-072 item 3 plus this entry. T-204 builds to AU27. No code change is authorized by this entry.
+
+**Links:** D-072 item 3, D-074, qa/contracts/auth.md AU27
