@@ -156,3 +156,21 @@ def test_more_credential_files_are_refused_without_being_opened(
     result = scan(tmp_path, [], scope=_scope(tmp_path), redactor=Redactor({}))
     assert _reasons(result) == ["credential_file"] and result.signals == []
     assert name not in opened
+
+
+def test_deadline_is_checked_inside_the_scan_emission_loop(tmp_path: Path, monkeypatch) -> None:
+    clock, scrubs = [0.0], [0]
+    monkeypatch.setattr(discover.time, "monotonic", lambda: clock[0])
+    original = Redactor.scrub
+
+    def slow(self, text):
+        scrubs[0] += 1
+        clock[0] += 1
+        return original(self, text)
+
+    monkeypatch.setattr(Redactor, "scrub", slow)
+    (tmp_path / "flood.py").write_text("import openai\n" * 500, encoding="utf-8")
+    result = scan(tmp_path, [], scope=_scope(tmp_path, wall_clock_s=5), redactor=Redactor({}))
+    assert not result.complete and "wall_clock_s" in _reasons(result)
+    assert len(result.signals) < 50 and scrubs[0] < 50, (
+        "the deadline must stop scan emission per Signal, not only the final check")
