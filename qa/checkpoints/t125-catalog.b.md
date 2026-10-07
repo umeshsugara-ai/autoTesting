@@ -13,3 +13,18 @@ Environment: Windows 11, CPython 3.11.15, venv `.worktrees/t125-b-check/.venv` (
 | doctor | `autotester doctor` at the committed head | 10 violations: 7 baseline + 3 manifest D-061 prose citations |
 | Mutants | 29 isolated copies, one per mutant | 25 RED, 4 explained survivors (C1b equivalent, C5 redundant, D3 inert with D3b RED, E6 label WARN) |
 | Browser | own Playwright Chromium vs uvicorn PID 19560 on a scratch root; evidence `D:/autoTesting/.work/t125-b-browser-evidence/` | catalog, no-flowspec and run pages as asserted in the verdict; the one 404 console error is the intentional unknown-project navigation |
+
+## Integration-rework re-check (cycle 4-integration), coordinator B
+Result: PASS. Verdict: qa/verdicts/t125-catalog.b.md (the cycle-4 verdict is archived at qa/verdicts/t125-catalog.b.r4-1.md).
+Code identity: integrate/t125 head 51a84eddb98f363f72f9c8369b97a01a1ad1241d (merge 6c0d57a1, d49ec0f5 into origin d4c369b0); worktree .worktrees/t125-int-b (removed after the check). Policy .6 + .7.
+Env: venv built by uv sync in that worktree, CPython 3.11, Windows 11; uv.lock as at the head.
+
+| Check | Command + scope | Result |
+|---|---|---|
+| Affected tests | pytest -m "not harness", 38 files (catalog*, ui_catalog, report_export*, execute*, parallel_run*, ui_runs*, consent, approval*/approve*, explore_consent, schema*, ui_report*) | 390 passed, 1 skipped |
+| Importers of changed modules | 12 more test files | 105 passed, 1 failed (test_goal_contract_registration: goal.json and the test identical to d4c369b0, baseline-red) |
+| ruff | ruff check src tests scripts | All checks passed |
+| doctor | autotester doctor | clean |
+| Diffs vs d4c369b0 | run_budget.py, parallel_run.py empty; run_execution.py docstring + one matches() guard; app.py docstring join only, 300 lines | as in the verdict |
+| Falsification | 11 isolated copies M1-M10 + M6b: budget per tier, break on brake, EXECUTE always done, reversed tiers, guard removed, counts None, counts non-zero, failures sorted by id, gate on runnable count, check_start removed, snapshot aliased | all green before, RED for the named reason after |
+| Full suite | not run by B (policy .7: A runs the one L suite) | - |
