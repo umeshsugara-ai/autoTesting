@@ -1,6 +1,6 @@
 # Manifest — at784-ingest-transcripts (AT-783, AT-784, AT-785)
 
-Status: ready-for-check
+Status: checked-PASS
 Fix cycle: 0
 Policy-Version: proportional-verification/2026-10-07.7
 Tier: M
