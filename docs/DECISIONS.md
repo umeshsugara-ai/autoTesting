@@ -2233,3 +2233,28 @@ here; it is a separate L unit.
 **Approved-by:** Umesh (chat, 2026-10-07)
 
 **Links:** D-032, D-072, AT-773, T-204, T-205, T-206, qa/gates/plan-approved-g10.md
+
+## D-075 | 2026-10-07 | type: decision | status: ACTIVE
+
+**What:** The `browser-use` dependency is authorized for T-177 (agent fallback), pinned exactly as
+`browser-use==0.5.9` (the same way litellm==1.104.0 and argon2-cffi==25.1.0 are pinned), with its
+anonymized telemetry disabled (`ANONYMIZED_TELEMETRY=false` set by AutoTester before the import,
+not left to the user's environment). `browser/session.py` gains a read-only `cdp_url` property so
+the browser-use backend can attach to the session AutoTester already opened. The UI wiring
+(`agent=`/`actuator=` into `run_and_grade_case` in ui/routes_runs.py) waits until T-203 and T-204
+land, to avoid a three-way conflict with the peer session's branches.
+
+**Why:** Umesh, chat 2026-10-07, answering the dependency question: "Approve, pin exact". The peer
+session (autotesting-07) flagged that no D-entry covered browser-use, unlike D-071 (litellm) and
+D-074 (argon2). Telemetry is turned off because Pathlynks screens and URLs must not reach a third
+party without per-use approval.
+
+**Result:** T-177 merges only after both dual-check coordinators PASS and the pin and telemetry
+change has had its repair check.
+
+**Changes-authorized:** pyproject.toml / uv.lock: `browser-use==0.5.9` (T-177) ·
+src/autotester/browser/session.py: read-only `cdp_url` property (T-177).
+
+**Approved-by:** Umesh — chat answer 2026-10-07.
+
+**Links:** T-177; D-071; D-074; qa/contracts/agent-fallback.md; qa/gates/at253-agent-fallback-wiring.md.
